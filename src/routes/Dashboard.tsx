@@ -19,6 +19,7 @@ import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal } from '@/components/dashboard/newResume'
+import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
 /** The resume library / dashboard (/app). The explainer homepage lives at /. */
@@ -64,6 +65,7 @@ export function Dashboard() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Logo to="/" />
           <div className="flex items-center gap-2">
+            <InstallButton />
             <Link className="btn-ghost btn-sm" to="/tracker">
               <KanbanSquare className="h-4 w-4" /> Job Tracker
             </Link>

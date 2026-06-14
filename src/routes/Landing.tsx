@@ -29,6 +29,7 @@ import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal } from '@/components/dashboard/newResume'
+import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
 const GOLD = 'linear-gradient(135deg,#8a5a12,#d4982f,#f7d774)'
@@ -87,6 +88,7 @@ export function Landing() {
             <a className="btn-ghost btn-sm hidden sm:inline-flex" href={REPO_URL} target="_blank" rel="noreferrer" title="View source on GitHub">
               <Github className="h-4 w-4" /> GitHub
             </a>
+            <InstallButton />
             <ThemeToggle />
             {hasResumes ? (
               <Link className="btn-outline btn-sm" to="/app">
