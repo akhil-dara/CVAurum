@@ -20,8 +20,10 @@ export function LeftRail() {
     <nav
       className={cn(
         'flex shrink-0 items-stretch justify-around border-border bg-background',
-        // mobile: horizontal bottom bar; desktop: vertical left rail
-        'order-3 border-t md:order-1 md:w-16 md:flex-col md:items-center md:justify-start md:gap-1 md:border-r md:border-t-0 md:py-3',
+        // mobile: horizontal bottom bar (order-3, sent below panel+canvas).
+        // desktop: vertical left rail — keep its natural DOM order (first child)
+        // so it sits on the LEFT, before the panel and canvas.
+        'order-3 border-t md:order-none md:w-16 md:flex-col md:items-center md:justify-start md:gap-1 md:border-r md:border-t-0 md:py-3',
       )}
     >
       {TABS.map((t) => {
