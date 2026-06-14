@@ -38,8 +38,21 @@ export function PrintPage() {
     document.title = pdfBaseName(doc)
 
     let cancelled = false
-    const auto = !/[?&]noprint/.test(window.location.search)
-    const raf2 = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    // Auto-open the print dialog only on desktop. On touch devices the dialog is
+    // Android/iOS's own (flaky, and easy to get stranded behind), so we instead
+    // land the user on the toolbar and let them tap "Save as PDF" deliberately.
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches
+    const auto = !/[?&]noprint/.test(window.location.search) && !coarse
+    // Two animation frames — but NEVER hang. If a new print tab opens
+    // backgrounded on mobile, RAF is throttled and would stall forever, so fall
+    // back to a timer. This guarantees the page always becomes printable.
+    const raf2 = () =>
+      new Promise<void>((r) => {
+        let done = false
+        const finish = () => { if (!done) { done = true; r() } }
+        requestAnimationFrame(() => requestAnimationFrame(finish))
+        setTimeout(finish, 400)
+      })
     // The photo's height isn't scaled by fit, so an unloaded image reflows the
     // sheet AFTER we measure — wait for it like we wait for fonts.
     const awaitPhoto = async () => {
@@ -54,37 +67,51 @@ export function PrintPage() {
       }
     }
 
-    void (async () => {
-      await ensureFontsReady([doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
-      await awaitPhoto()
-      await raf2()
-      if (cancelled) return
+    // Cap any single async wait so font loading / measurement can never block
+    // the page from becoming printable (a stuck promise would otherwise strand
+    // the user on a blank stage, especially on mobile).
+    const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+      Promise.race([p, new Promise<void>((r) => setTimeout(r, ms))])
 
-      if (doc.metadata.page.autoFit && sheetRef.current) {
-        const { h: pageH } = PAGE_DIMENSIONS[doc.metadata.page.format]
-        // Same binary-search fit the editor preview uses → identical page count.
-        await fitOnePageScale(pageH, async (sc) => {
-          if (cancelled || !sheetRef.current) return Number.POSITIVE_INFINITY
-          setFitScale(sc)
-          await raf2()
-          return sheetRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
-        })
-      }
-      await raf2()
-      if (cancelled) return
-      // If the resume fits a page (after fit), clamp the sheet to exactly one
-      // page and clip — so a hair of sub-pixel overflow can't emit a blank 2nd
-      // page. Genuinely multi-page resumes (well over a page) flow normally.
-      if (sheetRef.current) {
-        const { h: pageHpx } = PAGE_DIMENSIONS[doc.metadata.page.format]
-        // Only clamp when the overflow is within the bottom margin — i.e. it's
-        // trailing whitespace/rounding, never a real line of text.
-        const padPx = doc.metadata.page.margin * MM_TO_PX
-        if (sheetRef.current.scrollHeight <= pageHpx + padPx) {
-          sheetRef.current.style.height = `${Math.floor(pageHpx) - 2}px`
-          sheetRef.current.style.overflow = 'hidden'
+    void (async () => {
+      try {
+        await withTimeout(
+          ensureFontsReady([doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily]),
+          4000,
+        )
+        await awaitPhoto()
+        await raf2()
+        if (cancelled) return
+
+        if (doc.metadata.page.autoFit && sheetRef.current) {
+          const { h: pageH } = PAGE_DIMENSIONS[doc.metadata.page.format]
+          // Same binary-search fit the editor preview uses → identical page count.
+          await fitOnePageScale(pageH, async (sc) => {
+            if (cancelled || !sheetRef.current) return Number.POSITIVE_INFINITY
+            setFitScale(sc)
+            await raf2()
+            return sheetRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+          })
         }
+        await raf2()
+        if (cancelled) return
+        // If the resume fits a page (after fit), clamp the sheet to exactly one
+        // page and clip — so a hair of sub-pixel overflow can't emit a blank 2nd
+        // page. Genuinely multi-page resumes (well over a page) flow normally.
+        if (sheetRef.current) {
+          const { h: pageHpx } = PAGE_DIMENSIONS[doc.metadata.page.format]
+          // Only clamp when the overflow is within the bottom margin — i.e. it's
+          // trailing whitespace/rounding, never a real line of text.
+          const padPx = doc.metadata.page.margin * MM_TO_PX
+          if (sheetRef.current.scrollHeight <= pageHpx + padPx) {
+            sheetRef.current.style.height = `${Math.floor(pageHpx) - 2}px`
+            sheetRef.current.style.overflow = 'hidden'
+          }
+        }
+      } catch {
+        /* fall through — still mark ready so the user can print what rendered */
       }
+      if (cancelled) return
       document.documentElement.setAttribute('data-print-ready', '1')
       if (auto) {
         // Close the tab after printing ONLY if we were opened as a script tab
