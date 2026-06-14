@@ -60,7 +60,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
               transition={{ duration: 0.12 }}
               // Mobile: full-width, fills the height (canvas is hidden). Desktop: a
               // fixed 392px column beside the canvas.
-              className="order-1 flex w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none md:w-[392px] md:flex-none md:border-r"
+              className="order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none md:w-[392px] md:flex-none md:border-r"
             >
               <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
                 <h2 className="text-sm font-semibold">{PANEL_TITLES[leftTab]}</h2>
@@ -77,7 +77,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             </motion.aside>
           )}
         </AnimatePresence>
-        <div className={`order-2 min-w-0 flex-1 md:order-none ${leftOpen ? 'hidden md:block' : ''}`}>
+        <div className={`order-2 min-h-0 min-w-0 flex-1 md:order-none ${leftOpen ? 'hidden md:block' : ''}`}>
           <ResumePreview doc={doc} />
         </div>
       </div>
