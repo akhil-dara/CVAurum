@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Eye } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -42,25 +43,32 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const setLeftOpen = useEditorStore((s) => s.setLeftOpen)
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <EditorTopBar doc={doc} />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <LeftRail />
         <AnimatePresence initial={false}>
           {leftOpen && (
             <motion.aside
               key="panel"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 392, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-              className="flex shrink-0 flex-col overflow-hidden border-r border-border bg-surface"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+              // Mobile: full-width, fills the height (canvas is hidden). Desktop: a
+              // fixed 392px column beside the canvas.
+              className="order-1 flex w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none md:w-[392px] md:flex-none md:border-r"
             >
-              <div className="flex h-12 shrink-0 items-center border-b border-border px-4">
+              <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
                 <h2 className="text-sm font-semibold">{PANEL_TITLES[leftTab]}</h2>
+                <button className="btn-ghost btn-sm md:hidden" onClick={() => setLeftOpen(false)}>
+                  <Eye className="h-4 w-4" /> Preview
+                </button>
               </div>
-              <div className="panel-scroll flex-1 p-4" style={{ width: 392 }}>
+              <div className="panel-scroll w-full flex-1 p-4">
                 {leftTab === 'content' && <ContentPanel doc={doc} />}
                 {leftTab === 'design' && <DesignPanel doc={doc} />}
                 {leftTab === 'templates' && <TemplateGallery doc={doc} />}
@@ -69,7 +77,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             </motion.aside>
           )}
         </AnimatePresence>
-        <div className="min-w-0 flex-1">
+        <div className={`order-2 min-w-0 flex-1 md:order-none ${leftOpen ? 'hidden md:block' : ''}`}>
           <ResumePreview doc={doc} />
         </div>
       </div>

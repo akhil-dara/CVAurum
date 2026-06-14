@@ -65,38 +65,40 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
       </span>
 
       <div className="ml-auto flex items-center gap-1">
-        {/* undo / redo */}
-        <button className="btn-icon" onClick={() => undo()} disabled={past === 0} title="Undo (Ctrl+Z)">
-          <Undo2 className="h-[18px] w-[18px]" />
-        </button>
-        <button className="btn-icon" onClick={() => redo()} disabled={future === 0} title="Redo (Ctrl+Shift+Z)">
-          <Redo2 className="h-[18px] w-[18px]" />
-        </button>
+        {/* undo / redo + zoom — hidden on phones to keep the bar uncluttered */}
+        <div className="hidden items-center gap-1 md:flex">
+          <button className="btn-icon" onClick={() => undo()} disabled={past === 0} title="Undo (Ctrl+Z)">
+            <Undo2 className="h-[18px] w-[18px]" />
+          </button>
+          <button className="btn-icon" onClick={() => redo()} disabled={future === 0} title="Redo (Ctrl+Shift+Z)">
+            <Redo2 className="h-[18px] w-[18px]" />
+          </button>
 
-        <div className="mx-1 h-6 w-px bg-border" />
+          <div className="mx-1 h-6 w-px bg-border" />
 
-        {/* zoom */}
-        <div className="flex items-center rounded-lg bg-muted p-0.5">
-          <button className="btn-icon h-7 w-7" onClick={zoomOut} title="Zoom out">
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <span className="w-12 text-center text-xs tabular-nums text-muted-foreground">
-            {autoFit ? 'Fit' : `${Math.round(zoom * 100)}%`}
-          </span>
-          <button className="btn-icon h-7 w-7" onClick={zoomIn} title="Zoom in">
-            <ZoomIn className="h-4 w-4" />
-          </button>
-          <button
-            className="btn-icon h-7 w-7"
-            data-active={autoFit}
-            onClick={() => setAutoFit(!autoFit)}
-            title="Fit to width"
-          >
-            <Maximize className="h-4 w-4" />
-          </button>
+          {/* zoom */}
+          <div className="flex items-center rounded-lg bg-muted p-0.5">
+            <button className="btn-icon h-7 w-7" onClick={zoomOut} title="Zoom out">
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            <span className="w-12 text-center text-xs tabular-nums text-muted-foreground">
+              {autoFit ? 'Fit' : `${Math.round(zoom * 100)}%`}
+            </span>
+            <button className="btn-icon h-7 w-7" onClick={zoomIn} title="Zoom in">
+              <ZoomIn className="h-4 w-4" />
+            </button>
+            <button
+              className="btn-icon h-7 w-7"
+              data-active={autoFit}
+              onClick={() => setAutoFit(!autoFit)}
+              title="Fit to width"
+            >
+              <Maximize className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mx-1 h-6 w-px bg-border" />
         </div>
-
-        <div className="mx-1 h-6 w-px bg-border" />
 
         {/* export */}
         <div className="relative">

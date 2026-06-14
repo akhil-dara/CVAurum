@@ -25,6 +25,7 @@ interface EditorState {
   resetZoom: () => void
   setAutoFit: (v: boolean) => void
   toggleLeft: () => void
+  setLeftOpen: (v: boolean) => void
   setHighlightKeywords: (v: boolean) => void
   setFocusItem: (id: string | null) => void
 }
@@ -46,6 +47,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   resetZoom: () => set({ zoom: 1, autoFit: false }),
   setAutoFit: (autoFit) => set({ autoFit }),
   toggleLeft: () => set({ leftOpen: !get().leftOpen }),
+  setLeftOpen: (leftOpen) => set({ leftOpen }),
   setHighlightKeywords: (highlightKeywords) => set({ highlightKeywords }),
   setFocusItem: (focusItem) => set({ focusItem }),
 }))
