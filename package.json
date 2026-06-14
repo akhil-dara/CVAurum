@@ -1,0 +1,81 @@
+{
+  "name": "cvaurum",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "CVAurum — the open-source resume studio. Beautiful, ATS-ready resumes, 100% local and private. No account, no server, no tracking.",
+  "license": "MIT",
+  "author": "akhil-dara",
+  "homepage": "https://github.com/akhil-dara/cvaurum#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akhil-dara/cvaurum.git"
+  },
+  "bugs": {
+    "url": "https://github.com/akhil-dara/cvaurum/issues"
+  },
+  "keywords": [
+    "resume",
+    "resume-builder",
+    "cv",
+    "cv-builder",
+    "ats",
+    "json-resume",
+    "open-source",
+    "local-first",
+    "privacy"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:nocheck": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/modifiers": "^7.0.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@tiptap/extension-link": "^2.6.6",
+    "@tiptap/extension-placeholder": "^2.6.6",
+    "@tiptap/extension-underline": "^2.6.6",
+    "@tiptap/pm": "^2.6.6",
+    "@tiptap/react": "^2.6.6",
+    "@tiptap/starter-kit": "^2.6.6",
+    "clsx": "^2.1.1",
+    "docx": "^9.7.1",
+    "dompurify": "^3.1.6",
+    "framer-motion": "^11.5.4",
+    "idb-keyval": "^6.2.1",
+    "lucide-react": "^0.441.0",
+    "nanoid": "^5.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-easy-crop": "^5.5.7",
+    "react-router-dom": "^6.26.2",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8",
+    "zundo": "^2.3.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/dompurify": "^3.0.5",
+    "@types/node": "^22.5.5",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react-swc": "^3.7.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.45",
+    "prettier": "^3.3.3",
+    "tailwindcss": "^3.4.11",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.6",
+    "vite-plugin-pwa": "^1.3.0"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

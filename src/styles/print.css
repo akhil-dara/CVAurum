@@ -1,0 +1,77 @@
+/*
+ * Print rules. The PDF is produced by the browser's native "Save as PDF" of a
+ * dedicated print page that renders ONLY the resume pages — so the exported PDF
+ * is the exact same DOM as the preview (true WYSIWYG, selectable/ATS-readable
+ * text). `@page` size is injected per-document (A4/Letter) by the export helper.
+ */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Anything explicitly marked is removed from the printout. */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Each rendered page becomes one physical sheet. */
+  .rm-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    break-after: page;
+    page-break-after: always;
+  }
+  .rm-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* Make backgrounds & colors actually print. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Atomic blocks that should never be split across a page boundary. */
+.rm-keep {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Standalone print page (screen view before the dialog opens). */
+.print-stage {
+  background: hsl(220 18% 90%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+.print-sheet {
+  background: #fff;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+}
+@media print {
+  .print-stage {
+    background: #fff !important;
+    padding: 0 !important;
+    display: block;
+    /* Don't force a full viewport height in print — 100vh can round just over a
+       page and emit a blank trailing sheet. Let the content set the height. */
+    min-height: 0 !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    width: auto !important;
+  }
+}

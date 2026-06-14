@@ -1,0 +1,231 @@
+@import './styles/fonts.css';
+@import './styles/print.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================ design tokens */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 25% 12%;
+    --surface: 0 0% 100%;
+    --surface-muted: 220 20% 97%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 9% 46%;
+    --border: 220 16% 90%;
+    --input: 220 16% 87%;
+    --ring: 243 75% 59%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 189 94% 43%;
+    --accent-foreground: 222 47% 11%;
+    --success: 142 64% 40%;
+    --warning: 32 95% 44%;
+    --danger: 0 72% 51%;
+    --radius: 0.7rem;
+    --canvas: 220 18% 90%;
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 222 24% 8%;
+    --foreground: 220 20% 92%;
+    --surface: 222 22% 11%;
+    --surface-muted: 222 20% 14%;
+    --muted: 222 16% 18%;
+    --muted-foreground: 220 12% 62%;
+    --border: 222 14% 21%;
+    --input: 222 14% 24%;
+    --ring: 243 75% 66%;
+    --primary: 243 80% 68%;
+    --primary-foreground: 222 47% 9%;
+    --accent: 189 90% 52%;
+    --accent-foreground: 222 47% 11%;
+    --success: 142 60% 48%;
+    --warning: 38 92% 55%;
+    --danger: 0 75% 60%;
+    --canvas: 222 24% 6%;
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+  }
+  /* Refined scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: content-box;
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================================== components */
+@layer components {
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium
+      transition-all duration-150 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn h-9 px-4 bg-primary text-primary-foreground shadow-soft hover:brightness-110 active:brightness-95;
+  }
+  .btn-secondary {
+    @apply btn h-9 px-4 bg-muted text-foreground hover:bg-muted/70 border border-border;
+  }
+  .btn-ghost {
+    @apply btn h-9 px-3 text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+  .btn-outline {
+    @apply btn h-9 px-4 border border-input bg-surface hover:bg-muted text-foreground;
+  }
+  .btn-danger {
+    @apply btn h-9 px-4 bg-danger text-white hover:brightness-110;
+  }
+  .btn-icon {
+    @apply btn h-9 w-9 p-0 text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+  .btn-sm {
+    @apply h-8 px-3 text-[13px];
+  }
+  .btn-xs {
+    @apply h-7 px-2.5 text-xs;
+  }
+
+  .input {
+    @apply flex h-9 w-full rounded-md border border-input bg-surface px-3 py-1 text-sm text-foreground
+      shadow-soft transition-colors placeholder:text-muted-foreground/70
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring;
+  }
+  .textarea {
+    @apply input h-auto min-h-[80px] py-2 leading-relaxed resize-y;
+  }
+  .label {
+    @apply block text-xs font-medium text-muted-foreground mb-1.5;
+  }
+  .card {
+    @apply rounded-xl border border-border bg-surface shadow-soft;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground;
+  }
+  .panel-scroll {
+    @apply overflow-y-auto overscroll-contain;
+  }
+  /* segmented control */
+  .segmented {
+    @apply inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5;
+  }
+  .segmented > button {
+    @apply rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground;
+  }
+  .segmented > button[data-active='true'] {
+    @apply bg-surface text-foreground shadow-soft;
+  }
+}
+
+/* Range sliders */
+.range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: hsl(var(--input));
+  cursor: pointer;
+}
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  cursor: pointer;
+}
+
+/* TipTap editor content */
+.rt-content {
+  outline: none;
+}
+.rt-content p {
+  margin: 0 0 0.25em;
+}
+.rt-content p:last-child {
+  margin-bottom: 0;
+}
+.rt-content ul,
+.rt-content ol {
+  margin: 0.25em 0;
+  padding-left: 1.25em;
+}
+.rt-content ul {
+  list-style: disc;
+}
+.rt-content ol {
+  list-style: decimal;
+}
+.rt-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.rt-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground) / 0.7);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .canvas-bg {
+    background-color: hsl(var(--canvas));
+    background-image: radial-gradient(hsl(var(--foreground) / 0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .drag-none {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+}

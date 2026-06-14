@@ -1,0 +1,519 @@
+/*
+ * Per-template scoped styling. Each block targets `.tpl-<id>` and refines the
+ * shared artboard markup into a distinct, premium look. Templates only read
+ * --rm-* variables and existing .rm-* classes, so they stay print- & ATS-safe.
+ */
+
+/* ===================================================== Modern */
+.tpl-modern .rm-section-title {
+  letter-spacing: 0.07em;
+  border-bottom-width: 2px;
+}
+.tpl-modern .rm-headline {
+  font-weight: 600;
+}
+
+/* ===================================================== Classic */
+.tpl-classic .rm-name {
+  letter-spacing: 0.02em;
+}
+.tpl-classic .rm-section-title {
+  text-transform: none;
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  text-align: center;
+  border-bottom: none;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  padding: 3px 0;
+}
+.tpl-classic .rm-section-title::after {
+  display: none;
+}
+.tpl-classic .rm-headline {
+  color: var(--rm-text);
+  font-style: italic;
+  font-weight: 400;
+}
+.tpl-classic .rm-contact + .rm-contact::before {
+  content: '•';
+  margin-right: 12px;
+  opacity: 0.5;
+}
+
+/* ===================================================== Minimal */
+.tpl-minimal .rm-name {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.tpl-minimal .rm-section-title {
+  color: var(--rm-muted);
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.82);
+  letter-spacing: 0.2em;
+}
+.tpl-minimal .rm-headline {
+  color: var(--rm-muted);
+  font-weight: 400;
+}
+
+/* ===================================================== Executive */
+.tpl-executive .rm-name {
+  letter-spacing: 0;
+  font-weight: 700;
+}
+.tpl-executive .rm-section-title {
+  letter-spacing: 0.12em;
+  border-bottom-width: 1px;
+}
+.tpl-executive .rm-headline {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rm-muted);
+}
+
+/* ===================================================== Timeline */
+.tpl-timeline section[data-section='work'] .rm-section-body,
+.tpl-timeline section[data-section='projects'] .rm-section-body,
+.tpl-timeline section[data-section='education'] .rm-section-body,
+.tpl-timeline section[data-section='volunteer'] .rm-section-body {
+  position: relative;
+  padding-left: 18px;
+}
+.tpl-timeline section[data-section='work'] .rm-section-body::before,
+.tpl-timeline section[data-section='projects'] .rm-section-body::before,
+.tpl-timeline section[data-section='education'] .rm-section-body::before,
+.tpl-timeline section[data-section='volunteer'] .rm-section-body::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: color-mix(in srgb, var(--rm-primary) 30%, transparent);
+}
+.tpl-timeline section[data-section='work'] .rm-item,
+.tpl-timeline section[data-section='projects'] .rm-item,
+.tpl-timeline section[data-section='education'] .rm-item,
+.tpl-timeline section[data-section='volunteer'] .rm-item {
+  position: relative;
+}
+.tpl-timeline section[data-section='work'] .rm-item::before,
+.tpl-timeline section[data-section='projects'] .rm-item::before,
+.tpl-timeline section[data-section='education'] .rm-item::before,
+.tpl-timeline section[data-section='volunteer'] .rm-item::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--rm-bg);
+  border: 2px solid var(--rm-primary);
+}
+
+/* ===================================================== Double (dark sidebar) */
+.tpl-double .rm-col-aside,
+.tpl-creative .rm-col-aside {
+  --rm-pad: 32px;
+}
+.tpl-double .rm-name {
+  letter-spacing: -0.01em;
+}
+
+/* ===================================================== Double Colored */
+.tpl-double-colored .rm-col-aside .rm-photo {
+  display: block;
+  margin: 0 auto 14px;
+  width: 104px;
+  height: 104px;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+}
+
+/* ===================================================== Aside (light right rail) */
+.tpl-aside .rm-col-aside {
+  border-left: 1px solid color-mix(in srgb, var(--rm-muted) 25%, transparent);
+}
+.tpl-aside .rm-section-title {
+  font-size: calc(var(--rm-fs) * 0.86);
+  letter-spacing: 0.16em;
+  color: var(--rm-primary);
+}
+
+/* ===================================================== Compact */
+.tpl-compact .rm-bullets {
+  gap: 1.5px;
+}
+.tpl-compact .rm-section-title {
+  font-size: calc(var(--rm-fs) * 0.95);
+  letter-spacing: 0.08em;
+}
+.tpl-compact .rm-header {
+  margin-bottom: 8px;
+}
+
+/* ===================================================== Elegant */
+.tpl-elegant .rm-name {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.tpl-elegant .rm-headline {
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: calc(var(--rm-fs) * 0.92);
+  color: var(--rm-muted);
+}
+.tpl-elegant .rm-section-title {
+  text-align: center;
+  letter-spacing: 0.26em;
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.92);
+  color: var(--rm-primary);
+}
+.tpl-elegant .rm-header-centered::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 1px;
+  background: var(--rm-primary);
+  margin: 12px auto 0;
+}
+
+/* ===================================================== Contemporary (gutter) */
+.tpl-contemporary .rm-section-title {
+  color: var(--rm-primary);
+  font-size: calc(var(--rm-fs) * 0.9);
+  letter-spacing: 0.14em;
+}
+.tpl-contemporary .rm-name {
+  color: var(--rm-primary);
+}
+
+/* ===================================================== Polished (banner) */
+.tpl-polished .rm-header-banner {
+  border-radius: 0 0 14px 14px;
+}
+.tpl-polished .rm-chip {
+  border-radius: 9999px;
+  padding: 2px 10px;
+}
+
+/* ===================================================== Technical (mono) */
+.tpl-technical .rm-section-title {
+  font-family: var(--rm-font-heading);
+  letter-spacing: 0;
+  text-transform: lowercase;
+}
+.tpl-technical .rm-section-title::before {
+  content: '// ';
+  opacity: 0.5;
+}
+.tpl-technical .rm-chip {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--rm-primary) 40%, transparent);
+  border-radius: 4px;
+  font-family: var(--rm-font-heading);
+  font-size: calc(var(--rm-fs) * 0.82);
+}
+.tpl-technical .rm-name {
+  letter-spacing: -0.02em;
+}
+
+/* ===================================================== Creative */
+.tpl-creative .rm-header-banner {
+  background: linear-gradient(120deg, var(--rm-primary), color-mix(in srgb, var(--rm-primary) 55%, #22d3ee));
+  border-radius: 0 0 16px 16px;
+}
+.tpl-creative .rm-col-aside {
+  background: linear-gradient(180deg, var(--rm-sidebar-bg), color-mix(in srgb, var(--rm-sidebar-bg) 70%, #000));
+}
+.tpl-creative .rm-col-aside .rm-photo {
+  display: block;
+  margin: 0 auto 14px;
+  width: 110px;
+  height: 110px;
+}
+.tpl-creative .rm-chip {
+  border-radius: 9999px;
+}
+
+/* ===================================================== Ivy League */
+.tpl-ivy .rm-name {
+  letter-spacing: 0.04em;
+}
+.tpl-ivy .rm-section-title {
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.tpl-ivy .rm-headline {
+  color: var(--rm-text);
+  font-style: italic;
+  font-weight: 400;
+}
+.tpl-ivy .rm-contact + .rm-contact::before {
+  content: '|';
+  margin-right: 12px;
+  opacity: 0.4;
+}
+
+/* ===================================================== Onyx (monochrome) */
+.tpl-onyx .rm-name {
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.tpl-onyx .rm-section-title {
+  letter-spacing: 0.16em;
+  font-weight: 700;
+}
+.tpl-onyx .rm-headline {
+  color: var(--rm-muted);
+  font-weight: 500;
+}
+
+/* ===================================================== Cobalt (banner) */
+.tpl-cobalt .rm-header-banner {
+  border-radius: 0 0 12px 12px;
+}
+.tpl-cobalt .rm-chip {
+  border-radius: 9999px;
+  padding: 2px 10px;
+}
+
+/* ===================================================== Academic (serif CV) */
+.tpl-academic .rm-section-title {
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+.tpl-academic .rm-headline {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rm-text);
+}
+.tpl-academic .rm-contact + .rm-contact::before {
+  content: '·';
+  margin-right: 12px;
+  opacity: 0.5;
+}
+
+/* ===================================================== Verdant (green sidebar) */
+.tpl-verdant .rm-col-aside {
+  border-left: 1px solid color-mix(in srgb, var(--rm-primary) 20%, transparent);
+}
+.tpl-verdant .rm-section-title {
+  color: var(--rm-primary);
+  font-size: calc(var(--rm-fs) * 0.86);
+  letter-spacing: 0.14em;
+}
+.tpl-verdant .rm-col-aside .rm-chip {
+  background: color-mix(in srgb, var(--rm-primary) 14%, transparent);
+  color: var(--rm-primary);
+}
+
+/* ===================================================== Sienna (warm serif) */
+.tpl-sienna .rm-name {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.tpl-sienna .rm-headline {
+  text-transform: uppercase;
+  letter-spacing: 0.26em;
+  font-size: calc(var(--rm-fs) * 0.9);
+  color: var(--rm-muted);
+}
+.tpl-sienna .rm-section-title {
+  text-align: center;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.9);
+  color: var(--rm-primary);
+}
+.tpl-sienna .rm-header-centered::after {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 1px;
+  background: var(--rm-primary);
+  margin: 12px auto 0;
+}
+
+/* ===================================================== Newton (academic serif) */
+.tpl-newton .rm-name {
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+.tpl-newton .rm-section-title {
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  border-color: var(--rm-text);
+}
+.tpl-newton .rm-headline {
+  font-style: italic;
+  color: var(--rm-text);
+  font-weight: 400;
+}
+.tpl-newton .rm-header-centered {
+  border-bottom: 1.5px solid var(--rm-text);
+  padding-bottom: 0.5em;
+}
+.tpl-newton .rm-contact + .rm-contact::before {
+  content: '·';
+  margin-right: 0.7em;
+  opacity: 0.5;
+}
+
+/* ===================================================== Deedy (two-column) */
+.tpl-deedy .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.05);
+  letter-spacing: -0.01em;
+  line-height: 0.98;
+}
+.tpl-deedy .rm-headline {
+  font-weight: 700;
+  color: var(--rm-primary);
+}
+.tpl-deedy .rm-section-title {
+  border-bottom: none;
+  letter-spacing: 0.16em;
+  color: var(--rm-primary);
+  font-weight: 800;
+}
+.tpl-deedy .rm-col-aside .rm-section-title {
+  color: inherit;
+}
+.tpl-deedy .rm-col-aside {
+  border-right: 2px solid color-mix(in srgb, var(--rm-primary) 30%, transparent);
+}
+
+/* ===================================================== Slate (gutter teal) */
+.tpl-slate .rm-section-title {
+  color: var(--rm-primary);
+  font-size: calc(var(--rm-fs) * 0.92);
+  letter-spacing: 0.14em;
+}
+.tpl-slate .rm-name {
+  color: var(--rm-text);
+  letter-spacing: -0.01em;
+}
+
+/* ===================================================== Mercury (navy executive) */
+.tpl-mercury .rm-section-title {
+  letter-spacing: 0.1em;
+  border-bottom-width: 1px;
+}
+.tpl-mercury .rm-headline {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rm-muted);
+}
+.tpl-mercury .rm-name {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* ===================================================== Halcyon (cyan sidebar + photo) */
+.tpl-halcyon .rm-col-aside {
+  border-left: 1px solid color-mix(in srgb, var(--rm-primary) 22%, transparent);
+}
+.tpl-halcyon .rm-col-aside .rm-photo {
+  display: block;
+  margin: 0 auto 0.9em;
+  border: 3px solid color-mix(in srgb, var(--rm-primary) 25%, #fff);
+}
+.tpl-halcyon .rm-section-title {
+  color: var(--rm-primary);
+  font-size: calc(var(--rm-fs) * 0.88);
+  letter-spacing: 0.14em;
+}
+.tpl-halcyon .rm-chip {
+  border-radius: 9999px;
+}
+
+/* ===================================================== Graphite (monochrome ink) */
+.tpl-graphite .rm-section-title {
+  letter-spacing: 0.12em;
+  border-left-width: 3px;
+}
+.tpl-graphite .rm-name {
+  letter-spacing: -0.02em;
+}
+.tpl-graphite .rm-chip {
+  background: color-mix(in srgb, var(--rm-text) 8%, transparent);
+  color: var(--rm-text);
+  border: 1px solid color-mix(in srgb, var(--rm-text) 18%, transparent);
+}
+.tpl-graphite .rm-headline {
+  color: var(--rm-muted);
+  font-weight: 600;
+}
+
+/* ===================================================== Portrait (photo sidebar) */
+.tpl-portrait .rm-col-aside {
+  --rm-pad: 30px;
+}
+.tpl-portrait .rm-col-aside .rm-photo {
+  display: block;
+  margin: 0 auto 1em;
+  width: var(--rm-photo-size, 9.6em);
+  height: var(--rm-photo-size, 9.6em);
+  border: 3px solid rgba(255, 255, 255, 0.18);
+}
+.tpl-portrait .rm-name {
+  letter-spacing: -0.01em;
+}
+.tpl-portrait .rm-col-aside .rm-chip {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* ===================================================== Spotlight (banner + photo) */
+.tpl-spotlight .rm-header-banner {
+  background: linear-gradient(120deg, var(--rm-primary), color-mix(in srgb, var(--rm-primary) 55%, #ec4899));
+  border-radius: 0 0 18px 18px;
+  align-items: center;
+}
+.tpl-spotlight .rm-header-banner .rm-photo {
+  border: 3px solid rgba(255, 255, 255, 0.6);
+}
+.tpl-spotlight .rm-chip {
+  border-radius: 9999px;
+}
+
+/* ===================================================== Mono (stark minimal) */
+.tpl-mono .rm-name {
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+.tpl-mono .rm-header-standard {
+  border-bottom: 2.5px solid var(--rm-text);
+  padding-bottom: 0.55em;
+}
+.tpl-mono .rm-section-title {
+  font-size: calc(var(--rm-fs) * 0.84);
+  letter-spacing: 0.22em;
+  font-weight: 700;
+}
+.tpl-mono .rm-headline {
+  color: var(--rm-muted);
+  font-weight: 500;
+}
+
+/* ===================================================== Opal (pastel sidebar) */
+.tpl-opal .rm-col-aside .rm-photo {
+  display: block;
+  margin: 0 auto 0.9em;
+  border: 3px solid color-mix(in srgb, var(--rm-primary) 30%, #fff);
+}
+.tpl-opal .rm-section-title {
+  color: var(--rm-primary);
+  font-size: calc(var(--rm-fs) * 0.88);
+  letter-spacing: 0.14em;
+}
+.tpl-opal .rm-chip {
+  border-radius: 9999px;
+}

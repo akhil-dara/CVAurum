@@ -1,0 +1,13 @@
+# Security headers for Cloudflare Pages (and Netlify) — applied to every route.
+# CSP also hard-enforces the privacy promise: connect-src 'self' means the app
+# can make NO external network requests, even if a future bug tried to.
+# Delivered as real HTTP headers so header-only directives (frame-ancestors)
+# take effect. The build ships no inline executable JS, so script-src 'self'
+# needs no 'unsafe-inline'; inline styles (boot splash + React style props) need
+# 'unsafe-inline' under style-src only.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Cross-Origin-Opener-Policy: same-origin

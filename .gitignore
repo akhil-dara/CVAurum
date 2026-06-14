@@ -1,0 +1,25 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+.claude/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.local
+
+# Local scratch / notes (kept out of the repo; patterns stay generic on purpose)
+/_local/
+*.notes.md
+
+# Exported resumes created while testing (PDF/Word/JSON land in the repo root)
+/*.pdf
+/*.docx
+/*_Resume_*.json

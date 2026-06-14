@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!--
+    Only the marketing landing page is listed. /app, /tracker, /resume/:id and
+    /print/:id are private, account-free shells with no shareable content and are
+    deliberately excluded (and Disallowed in robots.txt). Update <lastmod> on
+    meaningful landing-page changes.
+  -->
+  <url>
+    <loc>https://cvaurum.com/</loc>
+    <lastmod>2026-06-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

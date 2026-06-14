@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="CVAurum — free, open-source, private resume builder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0d12"/>
+      <stop offset="1" stop-color="#11141c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a5a12"/>
+      <stop offset="0.5" stop-color="#d4982f"/>
+      <stop offset="1" stop-color="#f7d774"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="12%" r="60%">
+      <stop offset="0" stop-color="#d4982f" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#d4982f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- logo mark -->
+  <g transform="translate(90,86)">
+    <rect width="84" height="84" rx="22" fill="url(#gold)"/>
+    <path d="M24 64 42 22l18 42" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M31.5 50.5h21" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round"/>
+    <text x="104" y="58" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="44" font-weight="700" fill="#f3f4f8">CV<tspan fill="#e0ab3e">Aurum</tspan></text>
+  </g>
+
+  <!-- pill -->
+  <g transform="translate(92,224)">
+    <rect width="430" height="46" rx="23" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+    <circle cx="30" cy="23" r="6" fill="#39d98a"/>
+    <text x="48" y="30" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="20" font-weight="600" fill="#c9cdd8">Local-first · Free · Open source (MIT)</text>
+  </g>
+
+  <!-- headline -->
+  <text x="90" y="350" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="66" font-weight="800" fill="#f3f4f8">A beautiful resume that</text>
+  <text x="90" y="426" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="66" font-weight="800" fill="#f3f4f8">never leaves your <tspan fill="#e0ab3e">browser</tspan>.</text>
+
+  <!-- subline -->
+  <text x="92" y="486" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="500" fill="#9aa0ad">30 templates · built-in ATS · PDF · Word · JSON · fully offline</text>
+
+  <!-- footer -->
+  <text x="92" y="566" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#e0ab3e">cvaurum.com</text>
+  <text x="270" y="566" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="500" fill="#6b7280">· no account · no tracking · your data stays with you</text>
+</svg>
