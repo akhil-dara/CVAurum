@@ -76,7 +76,7 @@ export function Landing() {
 
       {/* nav */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
             <a href="#how" className="transition hover:text-foreground">How it works</a>
@@ -84,23 +84,22 @@ export function Landing() {
             <a href="#compare" className="transition hover:text-foreground">Compare</a>
             <a href="#privacy" className="transition hover:text-foreground">Privacy</a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <a className="btn-ghost btn-sm hidden sm:inline-flex" href={REPO_URL} target="_blank" rel="noreferrer" title="View source on GitHub">
               <Github className="h-4 w-4" /> GitHub
             </a>
             <InstallButton />
-            <ThemeToggle />
-            {hasResumes ? (
-              <Link className="btn-outline btn-sm" to="/app">
-                My resumes ({library.length})
-              </Link>
-            ) : (
-              <Link className="btn-ghost btn-sm" to="/app">
-                My resumes
-              </Link>
-            )}
+            {/* Theme toggle is a nicety — drop it on phones to keep the row from overflowing. */}
+            <span className="hidden sm:inline-flex">
+              <ThemeToggle />
+            </span>
+            <Link className={hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'} to="/app">
+              <span className="sm:hidden">Resumes{hasResumes ? ` (${library.length})` : ''}</span>
+              <span className="hidden sm:inline">My resumes{hasResumes ? ` (${library.length})` : ''}</span>
+            </Link>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-              <Plus className="h-4 w-4" /> Create resume
+              <Plus className="h-4 w-4" />
+              <span>Create<span className="hidden sm:inline"> resume</span></span>
             </button>
           </div>
         </div>
