@@ -7,6 +7,8 @@
 **Build a beautiful, ATS-ready resume in your browser. 100% local, private, and free.**
 **No account. No server. No tracking.**
 
+### 🔗 [**Try it live → cvaurum.com**](https://cvaurum.com)
+
 `100% Client-Side` · `MIT Licensed` · `Node ≥ 18.18` · `Zero Backend`
 
 </div>
