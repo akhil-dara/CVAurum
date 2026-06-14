@@ -32,7 +32,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
-    "og": "node scripts/make-og.cjs"
+    "og": "node scripts/make-og.cjs",
+    "icons": "node scripts/make-icons.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
