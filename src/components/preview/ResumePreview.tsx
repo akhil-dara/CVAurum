@@ -12,8 +12,11 @@ import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { clamp, uid } from '@/lib/utils'
 import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
+import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
+
+const raf2 = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
@@ -47,8 +50,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
+  // Off-screen print-mode render (NO edit chrome, empty sections excluded) — its
+  // height is the TRUE printable height the PDF paginates, so fit + page count
+  // match the export instead of the chrome-inflated editable canvas.
+  const measureRef = useRef<HTMLDivElement>(null)
   const [containerW, setContainerW] = useState(0)
   const [contentH, setContentH] = useState(0)
+  const [printH, setPrintH] = useState(0)
 
   const fmt = doc.metadata.page.format
   const { w: pageW, h: pageH } = PAGE_DIMENSIONS[fmt]
@@ -59,20 +67,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const [fitScale, setFitScale] = useState(1)
   const fitScaleRef = useRef(1)
   fitScaleRef.current = fitScale
-  const fitDone = useRef(false)
-  const correctTries = useRef(0)
+  // The hidden print-measure render is driven by its OWN scale so the binary
+  // search can probe trial scales without flickering the visible canvas.
+  const [measureScale, setMeasureScale] = useState(1)
+  const fitReq = useRef(0)
   const autoFit = doc.metadata.page.autoFit
-  const pad2 = 2 * doc.metadata.page.margin * MM_TO_PX
-
-  // Re-fit from a clean natural measurement ONLY when a design-affecting setting
-  // changes (template, page size/margins, columns, auto-fit). Content edits do NOT
-  // reset here — that was causing a full-size↔fitted scale jump on every keystroke.
-  const fitKey = `${doc.metadata.template}|${doc.metadata.page.format}|${doc.metadata.page.margin}|${doc.metadata.layout.columns}|${doc.metadata.layout.sidebar}|${autoFit}`
-  useEffect(() => {
-    fitDone.current = false
-    correctTries.current = 0
-    setFitScale(1)
-  }, [fitKey])
 
   // Track available width for fit-to-width zoom.
   useEffect(() => {
@@ -86,12 +85,24 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => ro.disconnect()
   }, [])
 
-  // Measure content height. The observer is set up ONCE and fires whenever the
-  // rendered height changes (typing, scale, fonts) — no per-edit effect churn.
+  // Measure the EDITABLE canvas height (incl. edit-only chrome) — used only to
+  // size the white sheet so the "+ Add" controls never spill onto the gray.
   useLayoutEffect(() => {
     const el = innerRef.current
     if (!el) return
     const measure = () => setContentH(el.scrollHeight)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Measure the PRINTABLE height from the hidden print-mode render — this drives
+  // the auto-fit and the page count, so the editor agrees with the exported PDF.
+  useLayoutEffect(() => {
+    const el = measureRef.current
+    if (!el) return
+    const measure = () => setPrintH(el.scrollHeight)
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
@@ -106,86 +117,82 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       doc.metadata.typography.nameFamily,
     ]).then(() => {
       if (innerRef.current) setContentH(innerRef.current.scrollHeight)
+      if (measureRef.current) setPrintH(measureRef.current.scrollHeight)
     })
   }, [doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
 
-  // Drive the fit scale from the measured content height (closed-form, converges
-  // in ~1 step because (contentH - margins) / fitScale recovers the natural height).
-  // One-shot auto-fit: computed ONCE per document change, from the natural
-  // (scale-1) measurement only (the `cur !== 1` guard prevents any feedback
-  // loop). Approximates the scalable height as (content − margins), which slightly
-  // OVER-estimates it, so the result errs toward fitting comfortably under a page.
+  // Auto-fit using the SAME binary search as the print/PDF page (fitOnePage.ts),
+  // run on the HIDDEN print-measure render so the visible canvas never flickers
+  // through trial scales. Re-runs (debounced) on any content or design change.
+  // Because both the editor and the export use this identical routine on the
+  // identical print-mode content, the on-screen page count ALWAYS matches the PDF.
   useEffect(() => {
     if (!autoFit) {
+      setMeasureScale(1)
       if (fitScaleRef.current !== 1) setFitScale(1)
       return
     }
-    if (!contentH || fitDone.current) return
-    if (fitScaleRef.current !== 1) return // only compute from the natural-size measurement
-    fitDone.current = true
-    // Aim a touch under the page: the model slightly under-estimates shrink
-    // (a few residual fixed px), so a 0.93 target lands content cleanly on one page.
-    const targetH = pageH * 0.93
-    if (contentH <= targetH) return // already fits at full size
-    const textH = contentH - pad2
-    if (textH < 40) return
-    const s = clamp((targetH - pad2) / textH, 0.6, 1)
-    if (s < 0.66) return // would be too cramped — leave full size and paginate
-    setFitScale(Number(s.toFixed(4)))
-  }, [contentH, autoFit, pad2, pageH])
+    let cancelled = false
+    const id = setTimeout(async () => {
+      const myReq = ++fitReq.current
+      await ensureFontsReady([doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
+      // Wait for the photo in the measure render to load too — an unsized image
+      // makes the header (and thus the fit) measure short, diverging from the PDF.
+      const img = measureRef.current?.querySelector('img.rm-photo') as HTMLImageElement | null
+      if (img && !img.complete) {
+        await new Promise<void>((r) => {
+          img.onload = () => r()
+          img.onerror = () => r()
+          setTimeout(r, 1500)
+        })
+      }
+      if (cancelled || myReq !== fitReq.current) return
+      const result = await fitOnePageScale(pageH, async (sc) => {
+        if (cancelled || myReq !== fitReq.current || !measureRef.current) return Number.POSITIVE_INFINITY
+        setMeasureScale(sc)
+        await raf2()
+        return measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+      })
+      if (cancelled || myReq !== fitReq.current) return
+      setMeasureScale(result)
+      setFitScale(result)
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
+    // `doc` changes on every edit → debounced re-fit; pageH covers page-size changes.
+  }, [doc, autoFit, pageH])
 
-  // Smooth re-fit while editing: 700ms AFTER content stops changing, recompute the
-  // scale from the CURRENT scale (no reset-to-1 flash). Threshold prevents churn.
-  useEffect(() => {
-    if (!autoFit || !contentH) return
-    const id = setTimeout(() => {
-      const el = innerRef.current
-      if (!el) return
-      const cur = fitScaleRef.current
-      const naturalTextH = (el.scrollHeight - pad2) / cur
-      if (naturalTextH < 40) return
-      const targetH = pageH * 0.93
-      let s = clamp((targetH - pad2) / naturalTextH, 0.6, 1)
-      s = s < 0.66 ? 1 : Number(s.toFixed(3))
-      if (Math.abs(s - cur) > 0.02) setFitScale(s)
-    }, 700)
-    return () => clearTimeout(id)
-  }, [contentH, autoFit, pad2, pageH])
-
-  // After the fit scale changes, re-measure on the next frame so the page count
-  // reflects the final scaled height (bounded: fitScale only changes a capped
-  // number of times per document).
+  // Keep the editable-canvas height current after a fit change (sizes the sheet).
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      const el = innerRef.current
-      if (!el) return
-      const h = el.scrollHeight
-      setContentH(h)
-      // Verify-and-correct: if a fitted page still overflows by a hair (e.g. a
-      // photo header whose height doesn't scale linearly with the type), nudge the
-      // scale down so it truly lands on ONE page — matching the printed/exported PDF.
-      if (autoFit && fitScaleRef.current < 0.999 && h > pageH && correctTries.current < 2) {
-        correctTries.current += 1
-        const next = Number((fitScaleRef.current * (pageH / h) * 0.99).toFixed(4))
-        if (next >= 0.55 && next < fitScaleRef.current) setFitScale(next)
-      }
+      if (innerRef.current) setContentH(innerRef.current.scrollHeight)
     })
     return () => cancelAnimationFrame(raf)
-  }, [fitScale, autoFit, pageH])
+  }, [fitScale])
 
   const effectiveZoom = useMemo(() => {
     if (fitToWidth && containerW > 0) return clamp((containerW - 56) / pageW, 0.4, 1.5)
     return zoom
   }, [fitToWidth, containerW, pageW, zoom])
 
-  // When auto-fit applied a shrink, the content is one page by construction, so
-  // trust that rather than a possibly-lagging measurement.
+  // Page count from the PRINTABLE height (what the PDF paginates), NOT the
+  // chrome-inflated editable canvas — so the editor and the export always agree.
   const fitted = autoFit && fitScale < 0.999
-  const pages = fitted ? 1 : Math.max(1, Math.ceil((contentH - 24) / pageH))
-  const sheetH = pages * pageH
+  const pages = fitted ? 1 : Math.max(1, Math.ceil(((printH || contentH) - 24) / pageH))
+  // The white sheet must be tall enough to hold the edit-only "+ Add" chrome too,
+  // so it never spills onto the gray — but page breaks are drawn at PDF boundaries.
+  const sheetH = Math.max(pages * pageH, contentH)
 
   return (
     <>
+    {/* Hidden, off-screen print-mode render — measured to drive fit + page count
+        so they match the exported PDF exactly. No edit chrome, empty sections
+        excluded (resolveOrder), same fitScale as the visible canvas. */}
+    <div ref={measureRef} aria-hidden style={{ position: 'fixed', top: 0, left: -99999, width: pageW, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+      <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
+    </div>
     <div ref={scrollRef} className="canvas-bg relative h-full w-full overflow-auto">
       <div className="flex min-h-full w-full justify-center px-6 py-8">
         {/* reserves scaled space */}

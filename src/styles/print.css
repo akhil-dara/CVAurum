@@ -55,11 +55,18 @@
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  /* Allow horizontal scroll instead of squashing the page on narrow/phone
+     screens — a shrunk sheet wraps text differently and breaks the fit/PDF. */
+  overflow-x: auto;
   padding: 24px 0;
 }
 .print-sheet {
   background: #fff;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+  /* The page is a fixed physical width (210mm/Letter). NEVER let it shrink to
+     fit a narrow viewport — that would reflow the content and desync the fit
+     from the editor preview and the exported PDF (this broke mobile export). */
+  flex-shrink: 0;
 }
 @media print {
   .print-stage {

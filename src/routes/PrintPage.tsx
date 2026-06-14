@@ -10,6 +10,7 @@ import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { loadDoc } from '@/lib/storage'
 import { ensureFontsReady } from '@/data/fonts'
+import { fitOnePageScale } from '@/lib/fitOnePage'
 import { pdfBaseName } from '@/lib/pdf'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 
@@ -60,23 +61,13 @@ export function PrintPage() {
 
       if (doc.metadata.page.autoFit && sheetRef.current) {
         const { h: pageH } = PAGE_DIMENSIONS[doc.metadata.page.format]
-        const pad2 = 2 * doc.metadata.page.margin * MM_TO_PX
-        const naturalTextH = sheetRef.current.scrollHeight - pad2
-        if (naturalTextH > 40 && sheetRef.current.scrollHeight > pageH * 0.93) {
-          let s = Math.max(0.6, Math.min(1, (pageH * 0.93 - pad2) / naturalTextH))
-          if (s >= 0.66) {
-            setFitScale(Number(s.toFixed(4)))
-            await raf2()
-            // Verify-and-correct: shrink until the realized sheet truly fits one
-            // page — identical intent to the live preview, so they always agree.
-            for (let i = 0; i < 2 && !cancelled && sheetRef.current && sheetRef.current.scrollHeight > pageH; i++) {
-              s = Number((s * (pageH / sheetRef.current.scrollHeight) * 0.99).toFixed(4))
-              if (s < 0.55) break
-              setFitScale(s)
-              await raf2()
-            }
-          }
-        }
+        // Same binary-search fit the editor preview uses → identical page count.
+        await fitOnePageScale(pageH, async (sc) => {
+          if (cancelled || !sheetRef.current) return Number.POSITIVE_INFINITY
+          setFitScale(sc)
+          await raf2()
+          return sheetRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+        })
       }
       await raf2()
       if (cancelled) return
