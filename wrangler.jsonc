@@ -9,5 +9,11 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
+  },
+  // Static-asset Worker — no app code to debug, and Cloudflare Analytics already
+  // shows traffic/errors. Keep observability off so deploys stay consistent (and
+  // the dashboard stops prompting). Set "enabled": true if you ever want request logs.
+  "observability": {
+    "enabled": false
   }
 }
