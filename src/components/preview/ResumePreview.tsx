@@ -179,8 +179,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
   // Page count from the PRINTABLE height (what the PDF paginates), NOT the
   // chrome-inflated editable canvas — so the editor and the export always agree.
+  // Use the SAME bottom-margin tolerance the print route uses to clamp a
+  // hair-over-one-page resume to a single sheet, or the editor would draw a
+  // "Page 2" guide while the exported PDF stays one page.
+  const padPx = doc.metadata.page.margin * MM_TO_PX
   const fitted = autoFit && fitScale < 0.999
-  const pages = fitted ? 1 : Math.max(1, Math.ceil(((printH || contentH) - 24) / pageH))
+  const pages = fitted ? 1 : Math.max(1, Math.ceil(((printH || contentH) - padPx) / pageH))
   // The white sheet must be tall enough to hold the edit-only "+ Add" chrome too,
   // so it never spills onto the gray — but page breaks are drawn at PDF boundaries.
   const sheetH = Math.max(pages * pageH, contentH)
