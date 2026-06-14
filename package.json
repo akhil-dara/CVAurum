@@ -31,7 +31,8 @@
     "build:nocheck": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "og": "node scripts/make-og.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -61,6 +62,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/typography": "^0.5.15",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^22.5.5",

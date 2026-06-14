@@ -16,6 +16,6 @@ Disallow: /print/
 Allow: /assets/
 Allow: /fonts/
 Allow: /favicon.svg
-Allow: /og.svg
+Allow: /og.png
 
 Sitemap: https://cvaurum.com/sitemap.xml
