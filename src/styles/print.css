@@ -53,6 +53,7 @@
 .print-stage {
   background: hsl(220 18% 90%);
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   /* Allow horizontal scroll instead of squashing the page on narrow/phone

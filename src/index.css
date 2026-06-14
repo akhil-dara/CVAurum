@@ -5,6 +5,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile viewport height: on phones the browser's address/nav bars make 100vh
+   TALLER than the visible area, so a fixed full-height layout (the editor) pushes
+   its bottom tab bar off-screen. Override h-screen to the dynamic viewport height
+   where supported; Tailwind's core 100vh stays as the fallback. */
+@supports (height: 100dvh) {
+  @layer utilities {
+    .h-screen {
+      height: 100dvh;
+    }
+  }
+}
+
 /* ============================================================ design tokens */
 @layer base {
   :root {
