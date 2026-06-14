@@ -4,29 +4,34 @@ CVAurum is a fully static, client-side app — there is **no server to run**. Th
 means you can host it for **$0** on any static host. `npm run build` produces a
 `dist/` folder; serve that folder anywhere.
 
-## Recommended: Cloudflare Pages (free, fast, custom domain)
+## Recommended: Cloudflare (free, fast, custom domain)
 
 1. Push this repo to GitHub.
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**.
+2. Cloudflare dashboard → **Workers & Pages → Create → Connect to Git** → pick this repo.
 3. Build settings:
    - **Build command:** `npm run build`
    - **Build output directory:** `dist`
-4. Deploy. You get a free `https://<project>.pages.dev` URL.
-5. (Optional) Add a custom domain in the Pages project settings (~$8–12/yr for the
+4. Deploy. You get a free `https://<project>.workers.dev` (or `.pages.dev`) URL.
+5. (Optional) Add a custom domain in the project settings (~$8–12/yr for the
    domain itself; the hosting stays free).
 
-SPA routing (deep links like `/resume/:id` and `/print/:id`) works because
-[`public/_redirects`](public/_redirects) rewrites all paths to `index.html`.
+[`wrangler.jsonc`](wrangler.jsonc) declares `dist/` as static assets and sets
+`not_found_handling: "single-page-application"`, so SPA deep links (`/resume/:id`,
+`/print/:id`) serve `index.html`. Security headers (CSP, etc.) come from
+[`public/_headers`](public/_headers).
 
-## Alternatives
+## Other static hosts
 
-- **Netlify** — same as above (`_redirects` is already included). Drag-and-drop
-  the `dist/` folder or connect Git. Free tier.
+These don't read `wrangler.jsonc`, so add a `public/_redirects` containing
+`/* /index.html 200` for SPA routing first:
+
+- **Cloudflare Pages** — create a **Pages** project (instead of the Worker above);
+  it honors `public/_headers` and `public/_redirects` natively.
+- **Netlify** — drag-and-drop `dist/` or connect Git. Free tier.
 - **Vercel** — import the repo; framework preset **Vite**. Free tier.
-- **GitHub Pages** — free, but served from a subpath (`/<repo>/`). Set
-  `base: '/<repo>/'` in `vite.config.ts`, build, and publish `dist/` (e.g. via the
-  `gh-pages` package or a GitHub Action). Add a `404.html` copy of `index.html`
-  for SPA routing.
+- **GitHub Pages** — served from a subpath (`/<repo>/`). Set `base: '/<repo>/'`
+  in `vite.config.ts`, build, publish `dist/`, and add a `404.html` copy of
+  `index.html` for SPA routing.
 
 ## Notes
 
