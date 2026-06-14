@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { ArrowLeft, Download } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { loadDoc } from '@/lib/storage'
@@ -86,9 +87,11 @@ export function PrintPage() {
       }
       document.documentElement.setAttribute('data-print-ready', '1')
       if (auto) {
-        // Close the print tab once the save/print dialog is dismissed, so the
-        // user is never stranded on the bare print page.
-        window.addEventListener('afterprint', () => window.close(), { once: true })
+        // Close the tab after printing ONLY if we were opened as a script tab
+        // (desktop new-tab flow). On mobile the popup is often blocked and we
+        // land here in the same tab — closing would fail/strand the user, so the
+        // toolbar's Back button handles the return instead.
+        window.addEventListener('afterprint', () => { if (window.opener) window.close() }, { once: true })
         window.print()
       }
     })()
@@ -110,12 +113,31 @@ export function PrintPage() {
   if (!doc) return null
 
   const widthCss = doc.metadata.page.format === 'Letter' ? '8.5in' : '210mm'
+  const goBack = () => {
+    if (window.opener) window.close()
+    else if (window.history.length > 1) window.history.back()
+    else window.location.assign(id ? `/resume/${id}` : '/app')
+  }
 
   return (
-    <div className="print-stage">
-      <div ref={sheetRef} className="print-sheet" style={{ width: widthCss }}>
-        <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
+    <>
+      {/* On-screen toolbar (never printed). The native print dialog is the real
+          "Save as PDF", but mobile often blocks auto-print — so always give an
+          explicit button, plus a way back so nobody is stranded on this page. */}
+      <div className="no-print fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-2 border-b border-border bg-surface/95 px-3 py-2 shadow-sm backdrop-blur">
+        <button className="btn-ghost btn-sm" onClick={goBack}>
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <span className="min-w-0 flex-1 truncate text-center text-xs font-medium text-muted-foreground">{pdfBaseName(doc)}.pdf</span>
+        <button className="btn-primary btn-sm" onClick={() => window.print()}>
+          <Download className="h-4 w-4" /> Save as PDF
+        </button>
       </div>
-    </div>
+      <div className="print-stage" style={{ paddingTop: 64 }}>
+        <div ref={sheetRef} className="print-sheet" style={{ width: widthCss }}>
+          <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
+        </div>
+      </div>
+    </>
   )
 }
