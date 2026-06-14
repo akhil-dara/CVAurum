@@ -4,7 +4,7 @@
   // routing), so it does NOT try to auto-configure the Vite plugin (which would
   // require Vite >= 6). `dist/_headers` (CSP) and `dist/_redirects` are served
   // from the assets directory.
-  "name": "cvaurum",
+  "name": "prod",
   "compatibility_date": "2025-06-01",
   "assets": {
     "directory": "./dist",
