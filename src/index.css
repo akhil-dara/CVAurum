@@ -19,6 +19,15 @@
 
 /* ============================================================ design tokens */
 @layer base {
+  /* Mobile browsers (esp. Android Chrome) auto-inflate font sizes on pages they
+     deem "not mobile-optimized" — which silently makes the fixed-width resume
+     measure TALLER on a phone than on desktop, so the editor drew a phantom
+     "Page 2" while the PDF (immune to inflation) stayed one page. Pin it off so
+     the page count is identical everywhere. */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   :root {
     --background: 0 0% 100%;
     --foreground: 222 25% 12%;
