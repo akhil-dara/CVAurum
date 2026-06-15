@@ -4,6 +4,7 @@ import { X, Download } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
+import { useEditorStore } from '@/store/useEditorStore'
 import { resumeFileBase } from '@/lib/utils'
 import { exportDocumentJson } from '@/lib/io'
 
@@ -36,7 +37,9 @@ export function ExportDialog({ fmt, doc, onClose }: { fmt: ExportFormat; doc: Re
         exportDocumentJson(d, fileName)
       } else {
         const { exportDocumentDocx } = await import('@/lib/docx')
-        await exportDocumentDocx(d, fileName)
+        // Match the .docx to the same one-page fit the preview/PDF settled on.
+        const scale = d.metadata.page.autoFit ? useEditorStore.getState().onePageScale : 1
+        await exportDocumentDocx(d, fileName, scale)
       }
       toast(`Downloaded ${fileName}`, 'success')
       onClose()

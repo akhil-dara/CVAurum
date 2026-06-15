@@ -44,7 +44,12 @@ const TWIP = {
   letter: { w: 12240, h: 15840 },
   margin: 1080, // 0.75 inch
 }
-const SIZE = { name: 46, headline: 24, section: 21, title: 21, body: 20, sub: 18, date: 18 }
+const BASE_SIZE = { name: 46, headline: 24, section: 21, title: 21, body: 20, sub: 18, date: 18 }
+// Per-export font sizes (half-points). Reassigned at the top of every export so
+// the .docx can shrink by the same one-page fit the live preview/PDF uses —
+// otherwise a resume the PDF squeezes onto one page spills onto a 2nd Word page.
+// Safe as module state: exports run one at a time and build synchronously.
+let SIZE = BASE_SIZE
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 const NONE: IBorderOptions = { style: BorderStyle.NONE, size: 0, color: 'auto' }
@@ -322,8 +327,15 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
 
 /* --------------------------------------------------------- the export itself */
 
-export async function exportDocumentDocx(doc: ResumeDocument, filename?: string) {
+export async function exportDocumentDocx(doc: ResumeDocument, filename?: string, fitScale = 1) {
   const { metadata } = doc
+  // Apply the live one-page fit so the Word doc lands on the same page count as
+  // the PDF. Clamp to the same floor the on-screen fit uses (never unreadable).
+  const scale = Math.min(1, Math.max(0.66, fitScale || 1))
+  SIZE =
+    scale === 1
+      ? BASE_SIZE
+      : (Object.fromEntries(Object.entries(BASE_SIZE).map(([k, v]) => [k, Math.round(v * scale)])) as typeof BASE_SIZE)
   const primary = toHex(metadata.theme.primary, '2563EB')
   const text = toHex(metadata.theme.text, '1A1A1A')
   const muted = toHex(metadata.theme.muted, '5B6472')

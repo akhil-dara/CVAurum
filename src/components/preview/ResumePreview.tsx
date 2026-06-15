@@ -72,6 +72,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const [measureScale, setMeasureScale] = useState(1)
   const fitReq = useRef(0)
   const autoFit = doc.metadata.page.autoFit
+  // Publish the settled one-page scale so silent exports (Word) can shrink to
+  // the same page count the preview/PDF lands on.
+  const setOnePageScale = useEditorStore((s) => s.setOnePageScale)
 
   // Track available width for fit-to-width zoom.
   useEffect(() => {
@@ -130,6 +133,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     if (!autoFit) {
       setMeasureScale(1)
       if (fitScaleRef.current !== 1) setFitScale(1)
+      setOnePageScale(1)
       return
     }
     let cancelled = false
@@ -156,6 +160,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       if (cancelled || myReq !== fitReq.current) return
       setMeasureScale(result)
       setFitScale(result)
+      setOnePageScale(result)
     }, 200)
     return () => {
       cancelled = true
