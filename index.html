@@ -39,11 +39,17 @@
     <meta property="og:site_name" content="CVAurum" />
     <meta property="og:locale" content="en_US" />
 
+    <meta property="og:image:secure_url" content="https://cvaurum.com/og.png" />
+    <link rel="alternate" hreflang="en" href="https://cvaurum.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://cvaurum.com/" />
+    <meta name="format-detection" content="telephone=no" />
+
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
     <meta name="twitter:description" content="Build ATS-ready resumes free & private in your browser. Open-source, offline, no sign-up. 30 templates, PDF/Word/JSON export. Your data never leaves your device." />
     <meta name="twitter:image" content="https://cvaurum.com/og.png" />
+    <meta name="twitter:image:alt" content="CVAurum — a beautiful resume that never leaves your browser." />
 
     <!-- Structured data: rich result for the app -->
     <script type="application/ld+json">
@@ -75,6 +81,66 @@
         "Full local backup and restore to a single file",
         "Inline WYSIWYG canvas editing",
         "Open source (MIT) — free forever"
+      ]
+    }
+    </script>
+
+    <!-- Site identity -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "CVAurum",
+      "alternateName": "CVAurum Resume Builder",
+      "url": "https://cvaurum.com/",
+      "description": "Free, open-source, 100% client-side resume builder. Build ATS-ready resumes in your browser — no account, no server, no tracking.",
+      "inLanguage": "en",
+      "publisher": {
+        "@type": "Organization",
+        "name": "CVAurum",
+        "url": "https://cvaurum.com/",
+        "logo": "https://cvaurum.com/icon-512.png",
+        "sameAs": ["https://github.com/akhil-dara/cvaurum"]
+      }
+    }
+    </script>
+
+    <!-- FAQ rich result — mirrors the visible FAQ on the homepage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I know my data is really private?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Because you can check. CVAurum runs entirely in your browser — your resume is stored locally and never sent anywhere. There's no account, no server, and no analytics. Open your browser's network tab and you'll see zero outbound requests, even for fonts, which we self-host." }
+        },
+        {
+          "@type": "Question",
+          "name": "If it's free and open source, what's the catch?",
+          "acceptedAnswer": { "@type": "Answer", "text": "There isn't one. CVAurum is MIT-licensed and the full source is on GitHub. There's no paid tier, no export paywall, and no data to monetize because we never collect any. Fork it, self-host it, or run it offline forever." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the ATS score real, or AI guesswork?",
+          "acceptedAnswer": { "@type": "Answer", "text": "It's deterministic, not a guess. The same resume and job description always produce the same score, and it shows exactly which keywords matched and which are missing — so you can fix your resume with confidence." }
+        },
+        {
+          "@type": "Question",
+          "name": "Where is my data stored?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy." }
+        },
+        {
+          "@type": "Question",
+          "name": "Will my résumé pass ATS scans?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I move my résumé to another computer?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser." }
+        }
       ]
     }
     </script>
