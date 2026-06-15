@@ -132,11 +132,21 @@ export function Landing() {
                 <button className="btn-outline" onClick={() => create(true)}>
                   <FileText className="h-4 w-4" /> Start with an example
                 </button>
-                <button className="btn-ghost" onClick={() => fileRef.current?.click()}>
-                  <FileUp className="h-4 w-4" /> Import JSON
-                </button>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">No account. No tracking. Works offline.</p>
+              {/* Import is JSON-Resume only — kept small and explicit so nobody
+                  expects to upload an existing PDF/Word résumé here. */}
+              <p className="mt-3 text-xs text-muted-foreground">
+                Already have a{' '}
+                <a href="https://jsonresume.org" target="_blank" rel="noreferrer" className="font-medium text-foreground underline decoration-dotted underline-offset-2">
+                  JSON&nbsp;Resume
+                </a>{' '}
+                file?{' '}
+                <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline">
+                  <FileUp className="h-3.5 w-3.5" /> Import it
+                </button>
+                <span className="block text-muted-foreground/70">PDF and Word résumés can't be imported — start fresh or from an example.</span>
+              </p>
             </motion.div>
 
             {/* floating template preview */}
