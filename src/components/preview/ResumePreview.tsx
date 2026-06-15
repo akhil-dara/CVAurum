@@ -5,6 +5,7 @@
  * matches exactly. Auto-fit scales the page to the available width.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
@@ -16,7 +17,16 @@ import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
 
-const raf2 = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+// Two animation frames, but never hang: if the editor tab is backgrounded, RAF
+// is throttled to ~never, which would stall the fit loop and leave a stale page
+// count. Fall back to a timer so the measurement always settles.
+const raf2 = () =>
+  new Promise<void>((r) => {
+    let done = false
+    const finish = () => { if (!done) { done = true; r() } }
+    requestAnimationFrame(() => requestAnimationFrame(finish))
+    setTimeout(finish, 400)
+  })
 
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
@@ -198,10 +208,18 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     <>
     {/* Hidden, off-screen print-mode render — measured to drive fit + page count
         so they match the exported PDF exactly. No edit chrome, empty sections
-        excluded (resolveOrder), same fitScale as the visible canvas. */}
-    <div ref={measureRef} aria-hidden style={{ position: 'fixed', top: 0, left: -99999, width: pageW, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
-      <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
-    </div>
+        excluded (resolveOrder), same fitScale as the visible canvas.
+        Portaled to <body> so it's NEVER inside a display:none ancestor — on
+        mobile the canvas is hidden while the edit panel is open, and a hidden
+        node measures height 0, which made the fit wrongly conclude "fits at
+        full size" (→ phantom 2nd page + an unshrunk Word export). In <body> it
+        always lays out, so the fit is correct regardless of panel state. */}
+    {createPortal(
+      <div ref={measureRef} aria-hidden style={{ position: 'fixed', top: 0, left: -99999, width: pageW, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+        <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
+      </div>,
+      document.body,
+    )}
     <div ref={scrollRef} className="canvas-bg relative h-full w-full overflow-auto">
       <div className="flex min-h-full w-full justify-center px-6 py-8">
         {/* reserves scaled space */}
