@@ -104,8 +104,8 @@ export function Dashboard() {
             <p className="mt-1 text-sm text-muted-foreground">Private &amp; local — everything is saved in this browser. Nothing leaves your device.</p>
           </div>
           <div className="flex gap-2">
-            <button className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()} title="Import a JSON Resume file">
-              <FileUp className="h-4 w-4" /> Import
+            <button className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()} title="Import a JSON Resume file (.json) — not a PDF or Word doc">
+              <FileUp className="h-4 w-4" /> Import JSON
             </button>
             <button className="btn-outline btn-sm" onClick={() => create(true)} title="Create a resume pre-filled with example content">
               <FileText className="h-4 w-4" /> Example
@@ -155,10 +155,11 @@ function EmptyState({ onNew, onExample, onImport }: { onNew: () => void; onExamp
         <button className="btn-outline btn-sm" onClick={onExample}>
           <FileText className="h-4 w-4" /> Start with an example
         </button>
-        <button className="btn-ghost btn-sm" onClick={onImport}>
+        <button className="btn-ghost btn-sm" onClick={onImport} title="Import a JSON Resume file (.json) — not a PDF or Word doc">
           <FileUp className="h-4 w-4" /> Import JSON
         </button>
       </div>
+      <p className="mt-3 text-xs text-muted-foreground/70">Import takes a JSON Resume file — PDF and Word résumés can't be imported.</p>
     </div>
   )
 }
