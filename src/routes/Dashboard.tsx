@@ -18,7 +18,7 @@ import type { ResumeDocument } from '@/types/document'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { useResumeActions, NewResumeModal } from '@/components/dashboard/newResume'
+import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
@@ -34,6 +34,7 @@ export function Dashboard() {
   const backupRef = useRef<HTMLInputElement>(null)
   const [backupMenu, setBackupMenu] = useState(false)
   const [chooser, setChooser] = useState(false)
+  const [sampleOpen, setSampleOpen] = useState(false)
 
   useEffect(() => {
     refreshLibrary()
@@ -107,7 +108,7 @@ export function Dashboard() {
             <button className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()} title="Import a JSON Resume file (.json) — not a PDF or Word doc">
               <FileUp className="h-4 w-4" /> Import JSON
             </button>
-            <button className="btn-outline btn-sm" onClick={() => create(true)} title="Create a resume pre-filled with example content">
+            <button className="btn-outline btn-sm" onClick={() => setSampleOpen(true)} title="Start from a complete example resume">
               <FileText className="h-4 w-4" /> Example
             </button>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
@@ -117,7 +118,7 @@ export function Dashboard() {
         </div>
 
         {library.length === 0 ? (
-          <EmptyState onNew={() => setChooser(true)} onExample={() => create(true)} onImport={() => fileRef.current?.click()} />
+          <EmptyState onNew={() => setChooser(true)} onExample={() => setSampleOpen(true)} onImport={() => fileRef.current?.click()} />
         ) : (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             <NewCard onClick={() => setChooser(true)} />
@@ -131,10 +132,13 @@ export function Dashboard() {
       {chooser && (
         <NewResumeModal
           onBlank={() => { setChooser(false); create(false) }}
-          onExample={() => { setChooser(false); create(true) }}
+          onExample={() => { setChooser(false); setSampleOpen(true) }}
           onImport={() => { setChooser(false); fileRef.current?.click() }}
           onClose={() => setChooser(false)}
         />
+      )}
+      {sampleOpen && (
+        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content) }} />
       )}
     </div>
   )

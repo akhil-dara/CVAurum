@@ -28,7 +28,7 @@ import { getTemplate } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { useResumeActions, NewResumeModal } from '@/components/dashboard/newResume'
+import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
@@ -56,6 +56,7 @@ export function Landing() {
   const { create, importFile } = useResumeActions()
   const fileRef = useRef<HTMLInputElement>(null)
   const [chooser, setChooser] = useState(false)
+  const [sampleOpen, setSampleOpen] = useState(false)
 
   // Throwaway sample docs (one per showcased template) for the live thumbnails.
   const showcase = useMemo(
@@ -129,7 +130,7 @@ export function Landing() {
                 <button className="btn-primary" onClick={() => setChooser(true)}>
                   <Plus className="h-4 w-4" /> Create my resume
                 </button>
-                <button className="btn-outline" onClick={() => create(true)}>
+                <button className="btn-outline" onClick={() => setSampleOpen(true)}>
                   <FileText className="h-4 w-4" /> Start with an example
                 </button>
               </div>
@@ -317,10 +318,13 @@ export function Landing() {
       {chooser && (
         <NewResumeModal
           onBlank={() => { setChooser(false); create(false) }}
-          onExample={() => { setChooser(false); create(true) }}
+          onExample={() => { setChooser(false); setSampleOpen(true) }}
           onImport={() => { setChooser(false); fileRef.current?.click() }}
           onClose={() => setChooser(false)}
         />
+      )}
+      {sampleOpen && (
+        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content) }} />
       )}
     </div>
   )
