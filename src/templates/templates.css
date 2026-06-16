@@ -100,6 +100,49 @@
   color: #7a5e22;
 }
 
+/* ===================================================== Vector (Jake's-Resume lineage) */
+.tpl-vector .rm-name {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.tpl-vector .rm-headline {
+  color: var(--rm-text);
+  font-weight: 400;
+  font-style: italic;
+}
+.tpl-vector .rm-contact + .rm-contact::before {
+  content: '|';
+  margin-right: 0.5em;
+  color: var(--rm-muted);
+}
+/* Small-caps section label over a full-width rule — the signature Jake's look. */
+.tpl-vector .rm-section-title {
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.12em;
+  margin-bottom: 0.42em;
+}
+/* Entry: bold title, italic org + right-aligned italic location. */
+.tpl-vector .rm-item-title {
+  font-weight: 700;
+}
+.tpl-vector .rm-item-org {
+  font-style: italic;
+}
+.tpl-vector .rm-item-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+.tpl-vector .rm-item-loc {
+  margin-left: auto;
+  font-style: italic;
+  white-space: nowrap;
+}
+
 /* ===================================================== Cambridge (RenderCV-style) */
 .tpl-cambridge .rm-name {
   font-weight: 700;

@@ -103,6 +103,23 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    id: 'vector',
+    name: 'Vector',
+    description: "The beloved single-column tech format (Jake's Resume lineage): small-caps ruled headings, italic roles, ruthless ATS clarity. A favorite for software roles.",
+    tags: ['ats-safe', 'single-column', 'technical', 'classic'],
+    atsSafe: true,
+    class: 'tpl-vector',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    defaults: defs(
+      'vector',
+      { primary: '#111111', text: '#1a1a1a', muted: '#444444' },
+      { fontFamily: 'Source Serif 4', headingFamily: 'Source Serif 4', nameFamily: 'Source Serif 4', fontSize: 10, lineHeight: 1.3, letterSpacing: 0, headingScale: 1.6, uppercaseHeadings: false },
+      { columns: 1, icons: false, sectionGap: 9, itemGap: 5 }
+    ),
+  },
+  {
     id: 'minimal',
     name: 'Frost',
     description: 'Maximum whitespace, no chrome. Lets the words carry the page.',
