@@ -91,7 +91,11 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
   if (b.url) out.push({ icon: <Globe />, text: prettyUrl(b.url), href: safeHref(b.url) })
   for (const p of b.profiles ?? []) {
     const Icon = networkIcon(p.network)
-    const text = p.username || prettyUrl(p.url) || p.network
+    // Keep profiles legible even when the template hides icons: prefer the clean
+    // URL (so LinkedIn vs GitHub is obvious), else show "Network · handle" rather
+    // than a bare, ambiguous username.
+    const handle = (p.username || '').replace(/^@+/, '')
+    const text = prettyUrl(p.url) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
     if (text) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
   }
   return out

@@ -102,18 +102,27 @@ function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: (f?: 
   )
 }
 
+const COMMON_NETWORKS = ['LinkedIn', 'GitHub', 'Portfolio', 'Twitter', 'X', 'Dribbble', 'Behance', 'Medium', 'Dev.to', 'Stack Overflow', 'GitLab', 'YouTube', 'Instagram', 'Google Scholar', 'ORCID']
+
 function Profiles({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateContent)
   const profiles = doc.content.basics.profiles ?? []
   return (
     <Labeled label="Profiles & links">
+      <datalist id="rm-networks">
+        {COMMON_NETWORKS.map((n) => (
+          <option key={n} value={n} />
+        ))}
+      </datalist>
       <div className="space-y-2">
         {profiles.map((p, i) => (
           <div key={p.id ?? i} className="flex items-center gap-2">
             <input
               className="input w-28"
+              list="rm-networks"
               value={p.network}
               placeholder="LinkedIn"
+              title="Pick a network or type your own"
               onChange={(e) => update((c) => { c.basics.profiles![i].network = e.target.value })}
             />
             <input
