@@ -12,6 +12,9 @@ import { BulletsEditor } from './fields/BulletsEditor'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type AnyItem = Record<string, any>
 
+/** Common language fluency levels (CEFR-ish), offered as a dropdown. */
+const FLUENCY_LEVELS = ['Native', 'Fluent', 'Professional', 'Conversational', 'Intermediate', 'Basic']
+
 function itemTitle(sectionKey: string, it: AnyItem): string {
   switch (sectionKey) {
     case 'work':
@@ -255,7 +258,15 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
         <>
           <Row>
             <TextField label="Language" value={item.language} onChange={set('language')} placeholder="Spanish" />
-            <TextField label="Fluency" value={item.fluency} onChange={set('fluency')} placeholder="Professional" />
+            <Labeled label="Fluency">
+              <select className="input" value={item.fluency || ''} onChange={(e) => set('fluency')(e.target.value)}>
+                <option value="">Select level…</option>
+                {FLUENCY_LEVELS.map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+                {item.fluency && !FLUENCY_LEVELS.includes(item.fluency) && <option value={item.fluency}>{item.fluency}</option>}
+              </select>
+            </Labeled>
           </Row>
           <RatingField label="Level (optional)" value={item.rating} onChange={(v) => patch((it) => { it.rating = v || undefined })} />
         </>
