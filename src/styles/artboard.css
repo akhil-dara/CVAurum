@@ -486,13 +486,21 @@
 /* heading in a left gutter — modern editorial single-column look */
 .sec-side .rm-col-main .rm-section {
   display: grid;
-  grid-template-columns: 22% 1fr;
-  gap: 14px;
+  grid-template-columns: 23% 1fr;
+  gap: 20px;
 }
 .sec-side .rm-col-main .rm-section-title {
   border-bottom: none;
   text-align: right;
-  padding-top: 2px;
+  padding-top: 0.1em; /* baseline-align the label with the body's first line */
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  word-break: break-word; /* long labels (CERTIFICATIONS) wrap cleanly, never clip */
+}
+/* Gutter labels read cleaner as pure text — the icon chip crowds a right-aligned
+   label in a narrow column, so hide it in the main gutter (aside keeps its own). */
+.sec-side .rm-col-main .rm-section-icon {
+  display: none;
 }
 @media (max-width: 0px) {
   /* placeholder to keep grid override print-safe */
