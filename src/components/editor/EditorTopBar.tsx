@@ -13,6 +13,7 @@ import {
   Check,
   Cloud,
   ChevronDown,
+  HelpCircle,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -100,9 +101,19 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           <div className="mx-1 h-6 w-px bg-border" />
         </div>
 
+        {/* re-open the guided tour */}
+        <button
+          className="btn-icon"
+          onClick={() => window.dispatchEvent(new Event('cvaurum:open-tour'))}
+          title="Show the quick tour"
+          aria-label="Show the quick tour"
+        >
+          <HelpCircle className="h-[18px] w-[18px]" />
+        </button>
+
         {/* export */}
         <div className="relative">
-          <button className="btn-primary btn-sm" onClick={() => setExportOpen((o) => !o)}>
+          <button data-tour="export" className="btn-primary btn-sm" onClick={() => setExportOpen((o) => !o)}>
             <Download className="h-4 w-4" /> Export <ChevronDown className="h-3.5 w-3.5 opacity-70" />
           </button>
           {exportOpen && (

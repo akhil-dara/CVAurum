@@ -18,6 +18,7 @@ export function LeftRail() {
   const { leftTab, setLeftTab, leftOpen, toggleLeft, setLeftOpen } = useEditorStore()
   return (
     <nav
+      data-tour="nav"
       className={cn(
         'flex shrink-0 items-stretch justify-around border-border bg-background',
         // mobile: horizontal bottom bar (order-3, sent below panel+canvas).
@@ -32,6 +33,7 @@ export function LeftRail() {
         return (
           <button
             key={t.id}
+            data-tour={t.id === 'templates' ? 'templates' : undefined}
             onClick={() => {
               setLeftTab(t.id)
               setLeftOpen(true)

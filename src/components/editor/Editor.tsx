@@ -5,6 +5,7 @@ import type { ResumeDocument } from '@/types/document'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { EditorTopBar } from './EditorTopBar'
+import { EditorTour } from './EditorTour'
 import { LeftRail } from './LeftRail'
 import { ContentPanel } from './panels/ContentPanel'
 import { DesignPanel } from './panels/DesignPanel'
@@ -60,6 +61,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
               transition={{ duration: 0.12 }}
               // Mobile: full-width, fills the height (canvas is hidden). Desktop: a
               // fixed 392px column beside the canvas.
+              data-tour="panel"
               className="order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none md:w-[392px] md:flex-none md:border-r"
             >
               <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
@@ -77,10 +79,11 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             </motion.aside>
           )}
         </AnimatePresence>
-        <div className={`order-2 min-h-0 min-w-0 flex-1 md:order-none ${leftOpen ? 'hidden md:block' : ''}`}>
+        <div data-tour="canvas" className={`order-2 min-h-0 min-w-0 flex-1 md:order-none ${leftOpen ? 'hidden md:block' : ''}`}>
           <ResumePreview doc={doc} />
         </div>
       </div>
+      <EditorTour />
     </div>
   )
 }
