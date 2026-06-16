@@ -35,6 +35,7 @@ export type TemplateTag =
   | 'photo'
   | 'compact'
   | 'elegant'
+  | 'premium'
 
 /** How the name/contact header is laid out. */
 export type HeaderVariant =
