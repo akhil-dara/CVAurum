@@ -52,6 +52,57 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    id: 'aurum-editorial',
+    name: 'Aurum Editorial',
+    description: 'Editorial gold: Cormorant serif headings, a small-caps gold name, and a single hairline gold rule under each heading. Magazine-grade and premium.',
+    tags: ['ats-safe', 'single-column', 'premium', 'elegant'],
+    atsSafe: true,
+    class: 'tpl-aurum-editorial',
+    header: 'centered',
+    section: 'plain',
+    skills: 'inline',
+    defaults: defs(
+      'aurum-editorial',
+      { primary: '#23211d', text: '#23211d', muted: '#6b6357' },
+      { fontFamily: 'Source Sans 3', headingFamily: 'Cormorant Garamond', nameFamily: 'Cormorant Garamond', fontSize: 9.9, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.9, uppercaseHeadings: false },
+      { columns: 1, icons: false, sectionGap: 12, itemGap: 7 }
+    ),
+  },
+  {
+    id: 'swiss-aurum',
+    name: 'Swiss Aurum',
+    description: 'Swiss-modernist grid: Inter, generous white space, tracked caps labels with a gold tick. Crisp, contemporary, unmistakably premium.',
+    tags: ['ats-safe', 'single-column', 'premium', 'modern'],
+    atsSafe: true,
+    class: 'tpl-swiss-aurum',
+    header: 'standard',
+    section: 'plain',
+    skills: 'grouped-chips',
+    defaults: defs(
+      'swiss-aurum',
+      { primary: '#1a1a1a', text: '#1a1a1a', muted: '#5a5a5a' },
+      { fontFamily: 'Inter', headingFamily: 'Inter', nameFamily: 'Inter', fontSize: 9.6, lineHeight: 1.5, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
+      { columns: 1, icons: false, sectionGap: 15, itemGap: 8 }
+    ),
+  },
+  {
+    id: 'harvard',
+    name: 'Harvard',
+    description: 'The classic Harvard format recruiters know: centered serif name, bold uppercase section rules, impeccable structure. Pure black, maximally ATS.',
+    tags: ['ats-safe', 'single-column', 'classic'],
+    atsSafe: true,
+    class: 'tpl-harvard',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    defaults: defs(
+      'harvard',
+      { primary: '#111111', text: '#1a1a1a', muted: '#3f3f3f' },
+      { fontFamily: 'Source Serif 4', headingFamily: 'Source Serif 4', nameFamily: 'Source Serif 4', fontSize: 10, lineHeight: 1.32, letterSpacing: 0, headingScale: 1.55, uppercaseHeadings: true },
+      { columns: 1, icons: false, sectionGap: 10, itemGap: 6 }
+    ),
+  },
+  {
     id: 'modern',
     name: 'Aria',
     description: 'Clean single-column with a confident accent. The safe, sharp default.',

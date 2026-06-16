@@ -143,6 +143,105 @@
   white-space: nowrap;
 }
 
+/* ===================================================== Aurum Editorial (signature, serif) */
+.tpl-aurum-editorial {
+  --aurum-gold: #b07d1a;
+}
+.tpl-aurum-editorial .rm-name {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--aurum-gold);
+}
+.tpl-aurum-editorial .rm-headline {
+  font-family: var(--rm-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: calc(var(--rm-fs) * 0.8);
+  color: var(--rm-muted);
+  margin-top: 0.3em;
+}
+.tpl-aurum-editorial .rm-section-title {
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border-bottom: 1px solid var(--aurum-gold);
+  padding-bottom: 0.16em;
+  margin-bottom: 0.5em;
+}
+.tpl-aurum-editorial .rm-item-title {
+  font-weight: 700;
+}
+
+/* ===================================================== Swiss Aurum (signature, modernist) */
+.tpl-swiss-aurum {
+  --aurum-gold: #c0902f;
+}
+.tpl-swiss-aurum .rm-name {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.tpl-swiss-aurum .rm-headline {
+  color: var(--rm-muted);
+  font-weight: 500;
+}
+.tpl-swiss-aurum .rm-section-title {
+  border-bottom: none;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: calc(var(--rm-fs) * 0.82);
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+}
+/* Modernist gold tick before each section label. */
+.tpl-swiss-aurum .rm-section-title::before {
+  content: '';
+  width: 0.62em;
+  height: 0.62em;
+  flex: none;
+  background: var(--aurum-gold);
+}
+.tpl-swiss-aurum .rm-item-title {
+  font-weight: 700;
+}
+.tpl-swiss-aurum .rm-chip {
+  background: color-mix(in srgb, var(--aurum-gold) 13%, transparent);
+  color: #7a5e22;
+  border-radius: 0;
+}
+
+/* ===================================================== Harvard (classic recruiter format) */
+.tpl-harvard .rm-name {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.tpl-harvard .rm-headline {
+  color: var(--rm-text);
+  font-style: italic;
+  font-weight: 400;
+}
+.tpl-harvard .rm-contact + .rm-contact::before {
+  content: '•';
+  margin-right: 0.5em;
+  color: var(--rm-muted);
+}
+.tpl-harvard .rm-section-title {
+  text-align: left;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-bottom: 1.5px solid currentColor;
+  padding-bottom: 0.12em;
+  margin-bottom: 0.4em;
+}
+.tpl-harvard .rm-item-title {
+  font-weight: 700;
+}
+.tpl-harvard .rm-item-org {
+  font-style: italic;
+}
+
 /* ===================================================== Cambridge (RenderCV-style) */
 .tpl-cambridge .rm-name {
   font-weight: 700;
