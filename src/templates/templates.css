@@ -41,6 +41,65 @@
   opacity: 0.5;
 }
 
+/* ===================================================== Aurum (signature) */
+/* USP: an editorial ink layout with a single hairline GOLD accent. The gold is
+   only ever a thin decorative rule/marker — every word stays dark, selectable
+   ink, so it reads premium yet parses clean through ATS. */
+.tpl-aurum {
+  --aurum-gold: #c0902f;
+}
+.tpl-aurum .rm-name {
+  font-weight: 600;
+  letter-spacing: 0.004em;
+}
+.tpl-aurum .rm-headline {
+  color: var(--rm-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: calc(var(--rm-fs) * 0.82);
+  margin-top: 0.25em;
+}
+/* Gold hairline closing the header block. */
+.tpl-aurum .rm-header {
+  border-bottom: 2px solid var(--aurum-gold);
+  padding-bottom: 0.55em;
+}
+.tpl-aurum .rm-contact a,
+.tpl-aurum .rm-contact span {
+  color: var(--rm-text);
+}
+/* Section label: tracked caps over a short gold underline marker. */
+.tpl-aurum .rm-section-title {
+  border-bottom: none;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-size: calc(var(--rm-fs) * 0.92);
+  position: relative;
+  padding-bottom: 0.42em;
+  margin-bottom: 0.6em;
+}
+.tpl-aurum .rm-section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1.9em;
+  height: 2px;
+  background: var(--aurum-gold);
+}
+.tpl-aurum .rm-item-title {
+  font-weight: 700;
+}
+.tpl-aurum .rm-item-org {
+  font-weight: 600;
+}
+/* Skills/keyword chips take a warm gold tint instead of the ink primary. */
+.tpl-aurum .rm-chip {
+  background: color-mix(in srgb, var(--aurum-gold) 15%, transparent);
+  color: #7a5e22;
+}
+
 /* ===================================================== Cambridge (RenderCV-style) */
 .tpl-cambridge .rm-name {
   font-weight: 700;
