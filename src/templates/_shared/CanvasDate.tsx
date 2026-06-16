@@ -15,6 +15,13 @@ function parseYM(v: string): { y: string; m: string } {
 }
 const isPresent = (v: string) => /^present$/i.test((v || '').trim())
 
+/** Sortable month index from a "YYYY" / "YYYY-MM" string (null if no year). */
+function ymValue(v: string): number | null {
+  const { y, m } = parseYM(v)
+  if (!y) return null
+  return parseInt(y, 10) * 12 + (m ? parseInt(m, 10) - 1 : 0)
+}
+
 /** Two dropdowns (month + year) that read/write a "YYYY-MM" / "YYYY" string. */
 function MonthYear({ value, onChange, present }: { value: string; onChange: (v: string) => void; present?: boolean }) {
   const { y, m } = parseYM(value)
@@ -67,6 +74,12 @@ export function CanvasDate({
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const present = !!range && !(end || '').trim()
+  const endBeforeStart = (() => {
+    if (!range || present) return false
+    const a = ymValue(start)
+    const b = ymValue(end || '')
+    return a != null && b != null && b < a
+  })()
 
   const label = range ? formatDateRange(start, end) || 'Add dates' : formatDate(start) || 'Add date'
 
@@ -98,6 +111,9 @@ export function CanvasDate({
                     </label>
                   </div>
                   <MonthYear value={end || ''} present={present} onChange={(v) => edit((c) => applyEnd(c, v))} />
+                  {endBeforeStart && (
+                    <p className="mt-1.5 text-[11px] font-medium text-danger">End date is before the start date.</p>
+                  )}
                 </>
               )}
               <div className="mt-3 flex justify-end">
