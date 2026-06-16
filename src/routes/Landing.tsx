@@ -43,7 +43,7 @@ const SHOWCASE = ['mercury', 'halcyon', 'aria', 'deedy', 'onyx', 'portrait']
 const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
   { capability: 'Where your data lives', cvaurum: 'Only in your browser — no server, no account, no tracking', others: 'Uploaded to a server behind a login' },
   { capability: 'Source code', cvaurum: 'Fully open source (MIT) — read it, fork it, self-host it', others: 'Closed — you take the privacy claims on faith' },
-  { capability: 'Templates', cvaurum: '30 premium templates, edited live on the canvas', others: 'A few basic layouts, polish behind a paywall' },
+  { capability: 'Templates', cvaurum: '30+ premium templates, edited live on the canvas', others: 'A few basic layouts, polish behind a paywall' },
   { capability: 'ATS check', cvaurum: 'Built-in deterministic score + job-description keyword match', others: 'None, or an opaque AI score you can’t reproduce' },
   { capability: 'Offline', cvaurum: 'All fonts self-hosted — zero external requests, truly offline', others: 'Pulls fonts/assets from CDNs — still phones home' },
   { capability: 'Export formats', cvaurum: 'Vector PDF (selectable text), Word .docx, and JSON Resume', others: 'PDF only, often a flattened image' },
@@ -122,7 +122,7 @@ export function Landing() {
               </h1>
               <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground">
                 CVAurum is the only resume builder that's <strong className="text-foreground">private</strong> and{' '}
-                <strong className="text-foreground">open-source</strong> and genuinely beautiful — with 30 templates, a
+                <strong className="text-foreground">open-source</strong> and genuinely beautiful — with 30+ templates, a
                 built-in ATS check, and true offline use. <strong className="text-foreground">Free, forever.</strong>
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
@@ -174,7 +174,7 @@ export function Landing() {
               </p>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
-              <Step n={1} icon={<LayoutGrid className="h-5 w-5" />} title="Pick a template" body="Choose from 30 recruiter-ready designs. Switch anytime — your content carries over." />
+              <Step n={1} icon={<LayoutGrid className="h-5 w-5" />} title="Pick a template" body="Choose from 30+ recruiter-ready designs. Switch anytime — your content carries over." />
               <Step n={2} icon={<PencilLine className="h-5 w-5" />} title="Fill it in" body="Edit right on the page. A live ATS score and keyword match keep you on track." />
               <Step n={3} icon={<Download className="h-5 w-5" />} title="Export & apply" body="Download a crisp, selectable PDF or an ATS-friendly Word file in one click." />
             </div>
@@ -294,6 +294,10 @@ export function Landing() {
             <Faq q="Where is my data stored?" a="Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy." />
             <Faq q="Will my résumé pass ATS scans?" a="The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description." />
             <Faq q="Can I move my résumé to another computer?" a="Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser." />
+            <Faq q="Do I need to create an account?" a="No. There's no sign-up, no email, and no login — open CVAurum and start editing immediately. Most builders make you register before you can even see the editor; CVAurum never does." />
+            <Faq q="What's the difference between a CV and a resume?" a="A resume is a concise, one-to-two page summary tailored to a specific job (common in the US). A CV is a longer, comprehensive record of your academic and professional history (standard in academia and much of Europe). CVAurum builds both — pick a compact template for a resume, or add sections for a full CV." />
+            <Faq q="What file formats can I download?" a="A crisp vector PDF with real, selectable text; an editable Word (.docx) that mirrors your template; and the open JSON Resume format. Every export is free and unlimited — no paywall, no watermark." />
+            <Faq q="How long should my resume be?" a="For most roles, one page — two if you have 10+ years of experience. CVAurum auto-fits your content to a single page when it's close, and shows live page-break guides so you always know where you stand." />
           </div>
         </section>
       </main>
