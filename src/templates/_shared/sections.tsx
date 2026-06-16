@@ -338,7 +338,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
             date={rangeDate(edit, show(opts?.showDates), p.startDate, p.endDate, (c, v) => { c.projects[i].startDate = v }, (c, v) => { c.projects[i].endDate = v })}
           />
-          {p.description ? (
+          {edit || p.description ? (
             <div className="rm-item-summary">
               <Ed edit={edit} value={p.description} apply={(c, v) => { c.projects[i].description = v }} placeholder="One-line description" />
             </div>
@@ -354,7 +354,18 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
               onPruneEmpty={edit ? () => edit((c) => { c.projects[i].highlights = c.projects[i].highlights.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
-          {p.keywords?.length ? <Chips items={p.keywords} /> : null}
+          {edit ? (
+            <EditableChips
+              items={p.keywords ?? []}
+              edit={edit}
+              setItem={(c, ki, v) => { (c.projects[i].keywords ??= [])[ki] = v }}
+              onAdd={() => edit((c) => { (c.projects[i].keywords ??= []).push('') })}
+              onRemove={(ki) => edit((c) => { c.projects[i].keywords?.splice(ki, 1) })}
+              onPruneEmpty={() => edit((c) => { c.projects[i].keywords = (c.projects[i].keywords ?? []).filter((k) => (k || '').trim().length > 0) })}
+              addLabel="+ tag"
+              placeholder="Tech"
+            />
+          ) : p.keywords?.length ? <Chips items={p.keywords} /> : null}
         </article>
       ))}
     </>
@@ -522,7 +533,18 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       {doc.content.interests.map((it, i) => (
         <div className="rm-mini" key={it.id}>
           <Ed edit={edit} value={it.name} apply={(c, v) => { c.interests[i].name = v }} className="rm-mini-title" placeholder="Interest" />
-          {it.keywords?.length ? <span className="rm-skill-inline"> — {it.keywords.join(', ')}</span> : null}
+          {edit ? (
+            <EditableChips
+              items={it.keywords ?? []}
+              edit={edit}
+              setItem={(c, ki, v) => { (c.interests[i].keywords ??= [])[ki] = v }}
+              onAdd={() => edit((c) => { (c.interests[i].keywords ??= []).push('') })}
+              onRemove={(ki) => edit((c) => { c.interests[i].keywords?.splice(ki, 1) })}
+              onPruneEmpty={() => edit((c) => { c.interests[i].keywords = (c.interests[i].keywords ?? []).filter((k) => (k || '').trim().length > 0) })}
+              addLabel="+ keyword"
+              placeholder="Keyword"
+            />
+          ) : it.keywords?.length ? <span className="rm-skill-inline"> — {it.keywords.join(', ')}</span> : null}
         </div>
       ))}
     </>
