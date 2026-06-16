@@ -4,12 +4,13 @@ import { Settings2, EyeOff, ArrowLeftRight } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { MetaEditFn } from './Editable'
 
-type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary'
+type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords'
 
 const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
 const HAS_DATES = new Set(['work', 'education', 'projects', 'volunteer', 'certificates', 'awards', 'publications', 'custom'])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 const HAS_SUMMARY = new Set(['work'])
+const HAS_KEYWORDS = new Set(['projects'])
 
 /**
  * Per-section "super customization" gear that appears on the canvas (edit mode).
@@ -58,6 +59,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   if (HAS_DATES.has(base)) rows.push({ label: 'Dates', field: 'showDates' })
   if (HAS_LOCATION.has(base)) rows.push({ label: 'Location', field: 'showLocation' })
   if (HAS_SUMMARY.has(base)) rows.push({ label: 'Role summary', field: 'showSummary' })
+  if (HAS_KEYWORDS.has(base)) rows.push({ label: 'Tech tags', field: 'showKeywords' })
 
   return (
     <>

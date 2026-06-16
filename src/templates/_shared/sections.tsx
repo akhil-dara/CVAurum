@@ -17,7 +17,7 @@ import { CanvasDate } from './CanvasDate'
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 
 /** Per-section visibility overrides (undefined = shown). */
-export type SecOpts = { showBullets?: boolean; showDates?: boolean; showLocation?: boolean; showSummary?: boolean }
+export type SecOpts = { showBullets?: boolean; showDates?: boolean; showLocation?: boolean; showSummary?: boolean; showKeywords?: boolean }
 const show = (v?: boolean) => v !== false
 
 type Apply = (c: ResumeDocument['content'], v: string) => void
@@ -354,18 +354,20 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
               onPruneEmpty={edit ? () => edit((c) => { c.projects[i].highlights = c.projects[i].highlights.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
-          {edit ? (
-            <EditableChips
-              items={p.keywords ?? []}
-              edit={edit}
-              setItem={(c, ki, v) => { (c.projects[i].keywords ??= [])[ki] = v }}
-              onAdd={() => edit((c) => { (c.projects[i].keywords ??= []).push('') })}
-              onRemove={(ki) => edit((c) => { c.projects[i].keywords?.splice(ki, 1) })}
-              onPruneEmpty={() => edit((c) => { c.projects[i].keywords = (c.projects[i].keywords ?? []).filter((k) => (k || '').trim().length > 0) })}
-              addLabel="+ tag"
-              placeholder="Tech"
-            />
-          ) : p.keywords?.length ? <Chips items={p.keywords} /> : null}
+          {show(opts?.showKeywords) ? (
+            edit ? (
+              <EditableChips
+                items={p.keywords ?? []}
+                edit={edit}
+                setItem={(c, ki, v) => { (c.projects[i].keywords ??= [])[ki] = v }}
+                onAdd={() => edit((c) => { (c.projects[i].keywords ??= []).push('') })}
+                onRemove={(ki) => edit((c) => { c.projects[i].keywords?.splice(ki, 1) })}
+                onPruneEmpty={() => edit((c) => { c.projects[i].keywords = (c.projects[i].keywords ?? []).filter((k) => (k || '').trim().length > 0) })}
+                addLabel="+ tag"
+                placeholder="Tech"
+              />
+            ) : p.keywords?.length ? <Chips items={p.keywords} /> : null
+          ) : null}
         </article>
       ))}
     </>

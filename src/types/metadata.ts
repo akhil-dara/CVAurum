@@ -95,6 +95,7 @@ export const LayoutSchema = z.object({
         showDates: z.boolean().optional(),
         showLocation: z.boolean().optional(),
         showSummary: z.boolean().optional(),
+        showKeywords: z.boolean().optional(),
       }),
     )
     .default({}),
