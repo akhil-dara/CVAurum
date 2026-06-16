@@ -27,7 +27,7 @@ for (const size of [192, 512]) {
 
 // Favicons (browser tab + Google search result)
 const faviconSvg = fs.readFileSync(pub('favicon.svg'), 'utf8')
-const faviconPngs = [16, 32, 48].map((size) => {
+const faviconPngs = [16, 32, 48, 96].map((size) => {
   const png = render(faviconSvg, size)
   fs.writeFileSync(pub(`favicon-${size}.png`), png)
   console.log(`wrote public/favicon-${size}.png — ${png.length} B`)
@@ -60,4 +60,4 @@ function buildIco(images) {
 
 const ico = buildIco(faviconPngs)
 fs.writeFileSync(pub('favicon.ico'), ico)
-console.log(`wrote public/favicon.ico — ${(ico.length / 1024).toFixed(1)} KB (16/32/48)`)
+console.log(`wrote public/favicon.ico — ${(ico.length / 1024).toFixed(1)} KB (${faviconPngs.map((p) => p.size).join('/')})`)
