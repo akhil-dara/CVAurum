@@ -41,6 +41,52 @@
   opacity: 0.5;
 }
 
+/* ===================================================== Cambridge (RenderCV-style) */
+.tpl-cambridge .rm-name {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.tpl-cambridge .rm-headline {
+  color: var(--rm-text);
+  font-weight: 400;
+}
+/* Bullet-separated, centered contact line (no icons) — RenderCV's connections row. */
+.tpl-cambridge .rm-contact + .rm-contact::before {
+  content: '•';
+  margin-right: 0.5em;
+  color: var(--rm-muted);
+}
+/* Signature heading: bold title followed by a rule running to the right edge. */
+.tpl-cambridge .rm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  border-bottom: none;
+  text-transform: none;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.45em;
+}
+.tpl-cambridge .rm-section-title::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1.4px;
+  background: currentColor;
+}
+/* Entry: position bold, company regular; location pushed to the right edge. */
+.tpl-cambridge .rm-item-title { font-weight: 700; }
+.tpl-cambridge .rm-item-org { font-weight: 600; }
+.tpl-cambridge .rm-item-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+.tpl-cambridge .rm-item-loc {
+  margin-left: auto;
+  font-style: italic;
+  white-space: nowrap;
+}
+
 /* ===================================================== Minimal */
 .tpl-minimal .rm-name {
   font-weight: 600;

@@ -69,6 +69,23 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    id: 'cambridge',
+    name: 'Cambridge',
+    description: 'RenderCV-grade clean layout: Source Sans, navy accent, ruled headings, right-aligned dates. The academic/engineer favorite.',
+    tags: ['ats-safe', 'single-column', 'classic'],
+    atsSafe: true,
+    class: 'tpl-cambridge',
+    header: 'centered',
+    section: 'plain',
+    skills: 'inline',
+    defaults: defs(
+      'cambridge',
+      { primary: '#0e4c92', text: '#1a1a1a', muted: '#525c6b' },
+      { fontFamily: 'Source Sans 3', headingFamily: 'Source Sans 3', nameFamily: 'Source Sans 3', fontSize: 9.8, lineHeight: 1.34, letterSpacing: 0, headingScale: 1.55, uppercaseHeadings: false },
+      { columns: 1, icons: false, sectionGap: 10, itemGap: 6 }
+    ),
+  },
+  {
     id: 'minimal',
     name: 'Frost',
     description: 'Maximum whitespace, no chrome. Lets the words carry the page.',
