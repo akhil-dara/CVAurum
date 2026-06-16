@@ -158,6 +158,100 @@ function ItemHead({ title, date }: { title: ReactNode; date?: ReactNode }) {
   )
 }
 
+/**
+ * Inline-editable keyword chips on the canvas (skills, etc.). Mirrors Bullets:
+ * each chip is editable text + an × to remove, with a "+" to add, blank chips
+ * pruned when focus leaves. Without `edit` it renders plain, print-clean chips.
+ */
+function EditableChips({
+  items,
+  edit,
+  setItem,
+  onAdd,
+  onRemove,
+  onPruneEmpty,
+  addLabel = '+ skill',
+  placeholder = 'Skill',
+}: {
+  items: string[]
+  edit?: EditFn
+  setItem?: (c: ResumeDocument['content'], ki: number, v: string) => void
+  onAdd?: () => void
+  onRemove?: (ki: number) => void
+  onPruneEmpty?: () => void
+  addLabel?: string
+  placeholder?: string
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const pendingFocus = useRef<number | null>(null)
+  const deleting = useRef(false)
+  useEffect(() => {
+    if (pendingFocus.current == null || !wrapRef.current) return
+    const eds = wrapRef.current.querySelectorAll<HTMLElement>('.rm-chip-edit .rm-editable')
+    eds[pendingFocus.current]?.focus()
+    pendingFocus.current = null
+  })
+
+  const onWrapBlur = (e: FocusEvent<HTMLDivElement>) => {
+    if (!onPruneEmpty || deleting.current) return
+    const next = e.relatedTarget as Node | null
+    if (next && wrapRef.current?.contains(next)) return
+    if (items.some((k) => (k || '').trim().length === 0)) onPruneEmpty()
+  }
+
+  if (!edit) {
+    const visible = items.filter((k) => (k || '').trim().length > 0)
+    return visible.length ? <Chips items={visible} /> : null
+  }
+
+  const stop = (e: { preventDefault: () => void }) => e.preventDefault()
+  return (
+    <div className="rm-chips rm-chips-edit" ref={wrapRef} onBlur={onWrapBlur}>
+      {items.map((k, ki) => (
+        <span key={ki} className="rm-chip rm-chip-edit">
+          <Ed
+            edit={edit}
+            value={k}
+            apply={(c, v) => setItem?.(c, ki, v)}
+            placeholder={placeholder}
+            onEnter={onAdd ? () => { pendingFocus.current = items.length; onAdd() } : undefined}
+          />
+          {onRemove && (
+            <button
+              type="button"
+              className="rm-chip-del no-print"
+              contentEditable={false}
+              onMouseDown={stop}
+              onClick={() => {
+                deleting.current = true
+                ;(document.activeElement as HTMLElement | null)?.blur()
+                onRemove(ki)
+                deleting.current = false
+              }}
+              aria-label="Remove"
+              title="Remove"
+            >
+              ×
+            </button>
+          )}
+        </span>
+      ))}
+      {onAdd && (
+        <button
+          type="button"
+          className="rm-add-btn no-print"
+          contentEditable={false}
+          onMouseDown={stop}
+          onClick={() => { pendingFocus.current = items.length; onAdd() }}
+          title="Add a skill"
+        >
+          {addLabel}
+        </button>
+      )}
+    </div>
+  )
+}
+
 /* --------------------------------------------------------------- renderers */
 
 function Summary({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
@@ -285,10 +379,22 @@ function Skills({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
             </div>
           )
         }
+        const chipStyle = style === 'chips' || style === 'grouped-chips' || style === 'bars' || style === 'dots'
         return (
           <div className="rm-skill-group" key={s.id}>
             {s.name || edit ? <Ed edit={edit} value={s.name} apply={(c, v) => { c.skills[i].name = v }} className="rm-skill-group-name" placeholder="Category" /> : null}
-            {hasKeywords && (style === 'chips' || style === 'grouped-chips' || style === 'bars' || style === 'dots') ? (
+            {edit ? (
+              // Always editable on the canvas — add/edit/remove skills inline,
+              // regardless of the template's display style.
+              <EditableChips
+                items={s.keywords ?? []}
+                edit={edit}
+                setItem={(c, ki, v) => { (c.skills[i].keywords ??= [])[ki] = v }}
+                onAdd={() => edit((c) => { (c.skills[i].keywords ??= []).push('') })}
+                onRemove={(ki) => edit((c) => { c.skills[i].keywords?.splice(ki, 1) })}
+                onPruneEmpty={() => edit((c) => { c.skills[i].keywords = (c.skills[i].keywords ?? []).filter((k) => (k || '').trim().length > 0) })}
+              />
+            ) : hasKeywords && chipStyle ? (
               <Chips items={s.keywords!} />
             ) : hasKeywords ? (
               <span className="rm-skill-inline">{s.name ? ': ' : ''}{s.keywords!.join(' · ')}</span>

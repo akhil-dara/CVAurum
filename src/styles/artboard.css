@@ -542,6 +542,34 @@
   opacity: 1;
 }
 
+/* Editable skill chips on the canvas (editable preview only). */
+.mode-preview .rm-chips-edit {
+  align-items: center;
+}
+.mode-preview .rm-chip-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+}
+.mode-preview .rm-chip-edit .rm-editable {
+  outline: none;
+  min-width: 0.6em;
+}
+.mode-preview .rm-chip-del {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.05em;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.5;
+  transition: opacity 0.12s ease;
+}
+.mode-preview .rm-chip-edit:hover .rm-chip-del {
+  opacity: 1;
+}
+
 /* Inline "Add <entry>" row under each section (editable preview only). */
 .mode-preview .rm-add-entry-row {
   margin-top: 0.4em;
