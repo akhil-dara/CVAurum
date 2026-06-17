@@ -45,10 +45,33 @@ export function useResumeActions() {
     }
   }
 
-  return { create, importFile }
+  /** Import an existing PDF résumé — parsed 100% in the browser, never uploaded. */
+  const importPdf = async (file?: File) => {
+    if (!file) return
+    toast('Reading your PDF — all on your device…', 'info')
+    try {
+      const { pdfToResumeContent } = await import('@/lib/import')
+      const content = await pdfToResumeContent(file)
+      const name = content.basics.name?.trim()
+      const doc = createDocument({
+        content,
+        sample: true, // lay out exactly the sections we found
+        title: name ? `${name} — Resume` : 'Imported résumé',
+      })
+      await saveDoc(doc)
+      await refreshLibrary()
+      toast('Imported from PDF — review and tidy the fields', 'success')
+      navigate(`/resume/${doc.id}`)
+    } catch (e) {
+      console.error(e)
+      toast('Could not read that PDF. Text-based PDFs work best — scanned/image PDFs need OCR (coming soon).', 'error')
+    }
+  }
+
+  return { create, importFile, importPdf }
 }
 
-export function NewResumeModal({ onBlank, onExample, onImport, onClose }: { onBlank: () => void; onExample: () => void; onImport: () => void; onClose: () => void }) {
+export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onClose }: { onBlank: () => void; onExample: () => void; onImport: () => void; onImportPdf?: () => void; onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -75,11 +98,21 @@ export function NewResumeModal({ onBlank, onExample, onImport, onClose }: { onBl
             onClick={onExample}
           />
         </div>
+        {onImportPdf && (
+          <button
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/5 py-2.5 text-sm font-medium text-primary transition hover:border-primary hover:bg-primary/10"
+            onClick={onImportPdf}
+          >
+            <FileUp className="h-4 w-4" /> Import your existing PDF résumé
+            <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Beta</span>
+          </button>
+        )}
+        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">Parsed entirely in your browser — your résumé is never uploaded.</p>
         <button
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground transition hover:border-primary hover:text-primary"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2 text-xs text-muted-foreground transition hover:border-primary hover:text-primary"
           onClick={onImport}
         >
-          <FileUp className="h-4 w-4" /> Import a JSON Resume file
+          <FileUp className="h-3.5 w-3.5" /> or import a JSON Resume file
         </button>
       </div>
     </div>,

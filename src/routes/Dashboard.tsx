@@ -29,8 +29,9 @@ export function Dashboard() {
   const library = useAppStore((s) => s.library)
   const refreshLibrary = useAppStore((s) => s.refreshLibrary)
   const toast = useAppStore((s) => s.toast)
-  const { create, importFile } = useResumeActions()
+  const { create, importFile, importPdf } = useResumeActions()
   const fileRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
   const backupRef = useRef<HTMLInputElement>(null)
   const [backupMenu, setBackupMenu] = useState(false)
   const [chooser, setChooser] = useState(false)
@@ -96,6 +97,7 @@ export function Dashboard() {
       </header>
 
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
+      <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
       <input ref={backupRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onRestore(e.target.files?.[0])} />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
@@ -105,8 +107,8 @@ export function Dashboard() {
             <p className="mt-1 text-sm text-muted-foreground">Private &amp; local — everything is saved in this browser. Nothing leaves your device.</p>
           </div>
           <div className="flex gap-2">
-            <button className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()} title="Import a JSON Resume file (.json) — not a PDF or Word doc">
-              <FileUp className="h-4 w-4" /> Import JSON
+            <button className="btn-ghost btn-sm" onClick={() => pdfRef.current?.click()} title="Import an existing PDF résumé — parsed in your browser, never uploaded">
+              <FileUp className="h-4 w-4" /> Import PDF
             </button>
             <button className="btn-outline btn-sm" onClick={() => setSampleOpen(true)} title="Start from a complete example resume">
               <FileText className="h-4 w-4" /> Example
@@ -134,6 +136,7 @@ export function Dashboard() {
           onBlank={() => { setChooser(false); create(false) }}
           onExample={() => { setChooser(false); setSampleOpen(true) }}
           onImport={() => { setChooser(false); fileRef.current?.click() }}
+          onImportPdf={() => { setChooser(false); pdfRef.current?.click() }}
           onClose={() => setChooser(false)}
         />
       )}

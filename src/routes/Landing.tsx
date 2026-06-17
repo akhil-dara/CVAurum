@@ -53,8 +53,9 @@ const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
 export function Landing() {
   useTitle('CVAurum — Free Open-Source Resume Builder (Local, Private, ATS-Ready)')
   const library = useAppStore((s) => s.library)
-  const { create, importFile } = useResumeActions()
+  const { create, importFile, importPdf } = useResumeActions()
   const fileRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
   const [chooser, setChooser] = useState(false)
   const [sampleOpen, setSampleOpen] = useState(false)
 
@@ -74,6 +75,7 @@ export function Landing() {
   return (
     <div className="min-h-full bg-background">
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
+      <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
 
       {/* nav */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
@@ -132,18 +134,13 @@ export function Landing() {
                 </button>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">No account. No tracking. Works offline.</p>
-              {/* Import is JSON-Resume only — kept small and explicit so nobody
-                  expects to upload an existing PDF/Word résumé here. */}
+              {/* PDF import now works — parsed locally. The JSON option stays in the create modal. */}
               <p className="mt-3 text-xs text-muted-foreground">
-                Already have a{' '}
-                <a href="https://jsonresume.org" target="_blank" rel="noreferrer" className="font-medium text-foreground underline decoration-dotted underline-offset-2">
-                  JSON&nbsp;Resume
-                </a>{' '}
-                file?{' '}
-                <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline">
-                  <FileUp className="h-3.5 w-3.5" /> Import it
+                Already have a résumé?{' '}
+                <button onClick={() => pdfRef.current?.click()} className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline">
+                  <FileUp className="h-3.5 w-3.5" /> Import your PDF
                 </button>
-                <span className="block text-muted-foreground/70">PDF and Word résumés can't be imported — start fresh or from an example.</span>
+                <span className="block text-muted-foreground/70">Read &amp; parsed entirely in your browser — never uploaded.</span>
               </p>
             </motion.div>
 
@@ -317,6 +314,7 @@ export function Landing() {
           onBlank={() => { setChooser(false); create(false) }}
           onExample={() => { setChooser(false); setSampleOpen(true) }}
           onImport={() => { setChooser(false); fileRef.current?.click() }}
+          onImportPdf={() => { setChooser(false); pdfRef.current?.click() }}
           onClose={() => setChooser(false)}
         />
       )}
