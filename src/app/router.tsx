@@ -1,5 +1,5 @@
-import { Component, lazy, Suspense, type ComponentType, type ReactNode } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { Component, lazy, Suspense, useEffect, type ComponentType, type ReactNode } from 'react'
+import { createBrowserRouter, useRouteError } from 'react-router-dom'
 import { RootLayout } from './RootLayout'
 import { Landing } from '@/routes/Landing'
 
@@ -97,9 +97,26 @@ const s = (el: ReactNode) => (
   </RouteErrorBoundary>
 )
 
+/** Router-level catch-all. If anything escapes to React Router (so it would
+ *  otherwise show its raw "Unexpected Application Error!"), auto-reload once on
+ *  a chunk-load failure, else show the friendly fallback. */
+function RouteError() {
+  const err = useRouteError()
+  const msg = err instanceof Error ? err.message : String(err ?? '')
+  const isChunk = /dynamically imported module|importing a module|failed to fetch|loading chunk|\.js/i.test(msg)
+  useEffect(() => {
+    if (isChunk && !sessionStorage.getItem(RELOAD_KEY)) {
+      sessionStorage.setItem(RELOAD_KEY, '1')
+      window.location.reload()
+    }
+  }, [isChunk])
+  return <FailedToLoad />
+}
+
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <RouteError />,
     children: [
       { path: '/', element: <Landing /> },
       { path: '/app', element: s(<Dashboard />) },
@@ -108,5 +125,5 @@ export const router = createBrowserRouter([
     ],
   },
   // Standalone, chrome-free page used for native "Save as PDF".
-  { path: '/print/:id', element: s(<PrintPage />) },
+  { path: '/print/:id', element: s(<PrintPage />), errorElement: <RouteError /> },
 ])
