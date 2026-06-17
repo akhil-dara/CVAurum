@@ -126,7 +126,7 @@ export const TEMPLATES: TemplateConfig[] = [
     tags: ['ats-safe', 'single-column', 'classic', 'elegant'],
     atsSafe: true,
     class: 'tpl-garamond',
-    header: 'centered',
+    header: 'standard',
     section: 'underline',
     skills: 'inline',
     defaults: defs(

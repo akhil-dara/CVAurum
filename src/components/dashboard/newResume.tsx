@@ -50,8 +50,15 @@ export function useResumeActions() {
     if (!file) return
     toast('Reading your PDF — all on your device…', 'info')
     try {
-      const { pdfToResumeContent } = await import('@/lib/import')
-      const content = await pdfToResumeContent(file)
+      const { importResumeFromPdf } = await import('@/lib/import')
+      const { content, meta } = await importResumeFromPdf(file)
+      // Refuse to import a near-empty result (scanned/image PDF with no text
+      // layer) — show a clear message instead of a blank resume.
+      const empty = !content.basics.name && !content.basics.email && !content.work.length && !content.education.length && !content.skills.length
+      if (meta.chars < 30 || empty) {
+        toast("Couldn't read text from that PDF — it looks scanned or image-based. Try a text-based PDF (OCR import is on the way).", 'error')
+        return
+      }
       const name = content.basics.name?.trim()
       const doc = createDocument({
         content,
@@ -104,7 +111,6 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
             onClick={onImportPdf}
           >
             <FileUp className="h-4 w-4" /> Import your existing PDF résumé
-            <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">Beta</span>
           </button>
         )}
         <p className="mt-1.5 text-center text-[11px] text-muted-foreground">Parsed entirely in your browser — your résumé is never uploaded.</p>
