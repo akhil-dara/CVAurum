@@ -86,6 +86,23 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    id: 'atelier',
+    name: 'Atelier',
+    description: 'Couture editorial: a Playfair serif name over a gold monospace tagline, gold gutter labels, and a single gold accent tick. Jewellery-grade — the one that turns heads.',
+    tags: ['single-column', 'premium', 'elegant'],
+    atsSafe: true,
+    class: 'tpl-atelier',
+    header: 'standard',
+    section: 'side',
+    skills: 'inline',
+    defaults: defs(
+      'atelier',
+      { primary: '#9a7b16', text: '#22201c', muted: '#6b6457' },
+      { fontFamily: 'IBM Plex Sans', headingFamily: 'IBM Plex Mono', nameFamily: 'Playfair Display', fontSize: 9.6, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.8, uppercaseHeadings: true },
+      { columns: 1, icons: false, sectionGap: 12, itemGap: 7 }
+    ),
+  },
+  {
     id: 'harvard',
     name: 'Harvard',
     description: 'The classic Harvard format recruiters know: centered serif name, bold uppercase section rules, impeccable structure. Pure black, maximally ATS.',

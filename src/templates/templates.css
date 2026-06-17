@@ -242,6 +242,51 @@
   font-style: italic;
 }
 
+/* ===================================================== Atelier (couture gold editorial) */
+.tpl-atelier {
+  --atelier-gold: #9a7b16;
+}
+.tpl-atelier .rm-name {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--rm-text);
+}
+/* Gold monospace tagline under the name. */
+.tpl-atelier .rm-headline {
+  font-family: var(--rm-font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.26em;
+  font-size: calc(var(--rm-fs) * 0.78);
+  font-weight: 500;
+  color: var(--atelier-gold);
+  margin-top: 0.5em;
+}
+/* Hairline header closed by a short gold accent tick. */
+.tpl-atelier .rm-header {
+  position: relative;
+  border-bottom: 1px solid color-mix(in srgb, var(--rm-text) 14%, transparent);
+  padding-bottom: 0.7em;
+}
+.tpl-atelier .rm-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 3em;
+  height: 2px;
+  background: var(--atelier-gold);
+}
+/* Gutter section labels: gold mono caps (sec-side puts them right-aligned). */
+.tpl-atelier .rm-section-title {
+  letter-spacing: 0.16em;
+  font-weight: 500;
+  font-size: calc(var(--rm-fs) * 0.82);
+}
+.tpl-atelier .rm-item-title {
+  font-weight: 700;
+  color: var(--rm-text);
+}
+
 /* ===================================================== Cambridge (RenderCV-style) */
 .tpl-cambridge .rm-name {
   font-weight: 700;
