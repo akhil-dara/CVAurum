@@ -10,13 +10,20 @@
  * v3 = round-trip geometric self-verification + confidence-weighted correction.
  */
 import type { ResumeContent } from '@/types/document'
-import { buildLayoutGraph } from './layoutGraph'
+import { buildLayoutGraph, type BuildOptions } from './layoutGraph'
 import { parseLayout, type ImportResult } from './parse'
 
 export type { ImportResult } from './parse'
 
-export async function importResumeFromPdf(file: File | ArrayBuffer): Promise<ImportResult> {
-  const graph = await buildLayoutGraph(file)
+export interface ImportOptions {
+  /** Disable the OCR fallback for no-text/scanned pages (default: enabled). */
+  ocr?: boolean
+  /** Progress for the (slow) OCR phase — e.g. to drive a toast. */
+  onOcrProgress?: BuildOptions['onOcrProgress']
+}
+
+export async function importResumeFromPdf(file: File | ArrayBuffer, opts: ImportOptions = {}): Promise<ImportResult> {
+  const graph = await buildLayoutGraph(file, { ocr: opts.ocr, onOcrProgress: opts.onOcrProgress })
   return parseLayout(graph)
 }
 

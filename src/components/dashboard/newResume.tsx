@@ -51,12 +51,21 @@ export function useResumeActions() {
     toast('Reading your PDF — all on your device…', 'info')
     try {
       const { importResumeFromPdf } = await import('@/lib/import')
-      const { content, meta } = await importResumeFromPdf(file)
-      // Refuse to import a near-empty result (scanned/image PDF with no text
-      // layer) — show a clear message instead of a blank resume.
+      let announcedOcr = false
+      const { content, meta } = await importResumeFromPdf(file, {
+        // Scanned / image-only pages get on-device OCR; tell the user once, since
+        // it loads the recognition engine and can take a few seconds per page.
+        onOcrProgress: () => {
+          if (!announcedOcr) {
+            announcedOcr = true
+            toast('Looks scanned — reading it with on-device OCR (a few seconds)…', 'info')
+          }
+        },
+      })
+      // Even OCR couldn't pull readable text — show a clear message, not a blank.
       const empty = !content.basics.name && !content.basics.email && !content.work.length && !content.education.length && !content.skills.length
       if (meta.chars < 30 || empty) {
-        toast("Couldn't read text from that PDF — it looks scanned or image-based. Try a text-based PDF (OCR import is on the way).", 'error')
+        toast("Couldn't read this PDF, even with OCR — it may be very low quality or image-only. Try a clearer or text-based PDF.", 'error')
         return
       }
       const name = content.basics.name?.trim()
@@ -67,11 +76,11 @@ export function useResumeActions() {
       })
       await saveDoc(doc)
       await refreshLibrary()
-      toast('Imported from PDF — review and tidy the fields', 'success')
+      toast(meta.ocrPages.length ? 'Imported via OCR — please review the fields closely' : 'Imported from PDF — review and tidy the fields', 'success')
       navigate(`/resume/${doc.id}`)
     } catch (e) {
       console.error(e)
-      toast('Could not read that PDF. Text-based PDFs work best — scanned/image PDFs need OCR (coming soon).', 'error')
+      toast('Could not read that PDF. Please try another file, or a text-based PDF.', 'error')
     }
   }
 

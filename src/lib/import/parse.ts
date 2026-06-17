@@ -141,6 +141,32 @@ const isBullet = (s: string) => /^[•‣▪●■·⁃∙*\-–—►▸]\s+/.t
 const stripBullet = (s: string) => s.replace(/^[•‣▪●■·⁃∙*►▸]+\s*|^[-–—]\s+/, '').trim()
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+// Multi-word city prefixes so "San Francisco" / "New York" stay whole.
+const CITY_PREFIX = /^(san|los|las|new|santa|fort|st\.?|saint|north|south|east|west|el|la|mount|lake|cape|port)$/i
+
+/**
+ * Pull just the trailing "City, ST" (or "City, Country") off a line, returning
+ * the remainder — so "Vertex Labs San Francisco, CA" → loc "San Francisco, CA",
+ * rest "Vertex Labs". The greedy header LOCATION_RE would otherwise swallow the
+ * company too. Two-letter region codes are always accepted; a spelled-out region
+ * needs a multi-word city to avoid eating phrases like "Manager, Engineering".
+ */
+function pullLocation(text: string): { location: string; rest: string } {
+  const m = text.match(/,\s*([A-Z]{2}|[A-Z][a-z]{2,})\b\.?\s*$/)
+  if (!m || m.index == null) return { location: '', rest: text }
+  const region = m[1]
+  const isCode = /^[A-Z]{2}$/.test(region)
+  const before = text.slice(0, m.index).replace(/\s+$/, '')
+  const words = before.split(/\s+/).filter(Boolean)
+  if (!words.length || !/^[A-Z]/.test(words[words.length - 1])) return { location: '', rest: text }
+  const cityWords = [words[words.length - 1]]
+  if (words.length >= 2 && CITY_PREFIX.test(words[words.length - 2])) cityWords.unshift(words[words.length - 2])
+  if (!isCode && cityWords.length < 2) return { location: '', rest: text } // guard against non-locations
+  const city = cityWords.join(' ')
+  const rest = words.slice(0, words.length - cityWords.length).join(' ')
+  return { location: `${city}, ${region}`, rest: cleanEdge(rest) }
+}
+
 /* -------------------------------------------------------------- header fields */
 
 function scoreName(line: Line): number {
@@ -164,7 +190,7 @@ function parseHeader(header: Line[], content: ResumeContent) {
 
   b.email = header.map((l) => l.text).join(' ').match(EMAIL_RE)?.[0] ?? ''
   // phone: international — longest digit-run (9–15 digits) that isn't a year/ZIP
-  const phoneCands = (blob.match(/\+?\d[\d().\-\s]{7,}\d/g) || [])
+  const phoneCands = (blob.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [])
     .map((p) => p.trim())
     .filter((p) => {
       const digits = p.replace(/\D/g, '')
@@ -209,8 +235,23 @@ function parseHeader(header: Line[], content: ResumeContent) {
 
 /* ------------------------------------------------------------- entry grouping */
 
+const sectionLeftX = (lines: Line[]): number => (lines.length ? Math.min(...lines.map((l) => l.x)) : 0)
+
+/**
+ * A line is a highlight (bullet) if it carries a bullet glyph OR is indented past
+ * the section's left margin. Many résumés — including CVAurum's own export —
+ * render bullets via a hanging indent with no glyph in the text layer, so
+ * indentation is the only reliable signal.
+ */
+function makeIsHighlight(lines: Line[], g: LayoutGraph): (l: Line) => boolean {
+  const leftX = sectionLeftX(lines)
+  const indent = Math.max(4, g.bodySize * 0.5)
+  return (l: Line) => isBullet(l.text) || l.x > leftX + indent
+}
+
 /** Split a section's lines into entries by large vertical gaps (subsections). */
 function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
+  const isHL = makeIsHighlight(lines, g)
   const entries: Line[][] = []
   let cur: Line[] = []
   for (let i = 0; i < lines.length; i++) {
@@ -218,7 +259,9 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
     const prev = lines[i - 1]
     const colJump = prev && (line.col !== prev.col || line.page !== prev.page)
     const bigGap = prev && !colJump && line.top - prev.top > g.lineGap * 1.55
-    const newEntryHeader = prev && cur.length && !isBullet(line.text) && (line.bold || RANGE_RE.test(line.text)) && isBullet(prev.text)
+    // A new entry starts when a non-indented header-ish line (bold or dated)
+    // follows a highlight from the previous entry.
+    const newEntryHeader = prev && cur.length && !isHL(line) && (line.bold || RANGE_RE.test(line.text)) && isHL(prev)
     if (cur.length && (bigGap || colJump || newEntryHeader)) {
       entries.push(cur)
       cur = []
@@ -230,6 +273,7 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
 }
 
 function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
+  const isHL = makeIsHighlight(lines, g)
   return toEntries(lines, g).map((entry) => {
     const highlights: string[] = []
     const headerLines: string[] = []
@@ -237,7 +281,7 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
       end = '',
       location = ''
     for (const line of entry) {
-      if (isBullet(line.text)) {
+      if (isHL(line)) {
         highlights.push(esc(stripBullet(line.text)))
         continue
       }
@@ -247,10 +291,10 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
         end = d.end
       }
       let rest = d.rest
-      const loc = rest.match(LOCATION_RE)
-      if (loc && !location) {
-        location = loc[1]
-        rest = rest.replace(loc[0], '')
+      const pl = pullLocation(rest)
+      if (pl.location && !location) {
+        location = pl.location
+        rest = pl.rest
       }
       rest = cleanEdge(rest)
       if (rest) headerLines.push(rest)
@@ -279,13 +323,16 @@ function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education
     const text = entry.map((l) => l.text).join(' · ')
     const d = pullDates(text)
     const gpa = text.match(GPA_RE)?.[1] ?? ''
-    const loc = text.match(LOCATION_RE)?.[1] ?? ''
     const headerLines = entry.filter((l) => !isBullet(l.text)).map((l) => cleanEdge(pullDates(l.text).rest)).filter(Boolean)
     const degreeLine = headerLines.find((l) => /\b(b\.?s\.?|b\.?a\.?|m\.?s\.?|m\.?a\.?|ph\.?d|bachelor|master|associate|diploma|mba|b\.?tech|m\.?tech|b\.?e\.?\b)/i.test(l))
-    const institution = headerLines.find((l) => l !== degreeLine) || headerLines[0] || ''
+    const instLine = headerLines.find((l) => l !== degreeLine) || headerLines[0] || ''
+    // Strip GPA, then peel the trailing "City, ST" so it doesn't pollute the name.
+    const instNoGpa = instLine.replace(GPA_RE, '').trim()
+    const plInst = pullLocation(instNoGpa)
+    const loc = plInst.location || text.match(LOCATION_RE)?.[1] || ''
     return {
       id: uid(),
-      institution: institution.replace(LOCATION_RE, '').replace(GPA_RE, '').trim() || '',
+      institution: (plInst.location ? plInst.rest : instNoGpa).trim() || '',
       area: degreeLine ? degreeLine.replace(GPA_RE, '').trim() : '',
       studyType: '',
       location: loc,
@@ -318,12 +365,13 @@ function parseSkills(lines: Line[]): ResumeContent['skills'] {
 }
 
 function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects'] {
+  const isHL = makeIsHighlight(lines, g)
   return toEntries(lines, g).map((entry) => {
     const highlights: string[] = []
     const headerLines: string[] = []
     let start = '', end = '', url = ''
     for (const line of entry) {
-      if (isBullet(line.text)) { highlights.push(esc(stripBullet(line.text))); continue }
+      if (isHL(line)) { highlights.push(esc(stripBullet(line.text))); continue }
       const d = pullDates(line.text)
       if (d.start && !start) { start = d.start; end = d.end }
       let rest = d.rest
@@ -354,7 +402,7 @@ function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awa
 
 export interface ImportResult {
   content: ResumeContent
-  meta: { pages: number; chars: number; sections: string[]; lowText: boolean }
+  meta: { pages: number; chars: number; sections: string[]; lowText: boolean; ocrPages: number[] }
 }
 
 const BLANK = (): ResumeContent => ({
@@ -418,7 +466,9 @@ export function parseLayout(g: LayoutGraph): ImportResult {
       pages: g.pageCount,
       chars: g.charCount,
       sections: sections.map((s) => s.key).filter((k) => k !== 'header'),
-      lowText: g.charCount < 80 * g.pageCount, // signals a scanned/Type3 PDF → v2 OCR path
+      // After OCR has had its turn, still-thin text means a genuinely unreadable PDF.
+      lowText: g.charCount < 80 * g.pageCount,
+      ocrPages: g.ocrPages,
     },
   }
 }

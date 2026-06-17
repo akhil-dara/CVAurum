@@ -34,6 +34,10 @@ export default defineConfig({
         // Fonts are self-hosted, so they precache via the woff2 glob below — no
         // third-party runtime caching is needed. The app contacts no external host.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        // OCR engine assets (tesseract worker/core/traineddata, ~10MB) are only
+        // needed when a user imports a scanned PDF — keep them OUT of the precache
+        // so first load stays lean; they fetch on demand, same-origin, from /ocr/.
+        globIgnores: ['**/ocr/**'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',
         // The print route renders client-side; never serve the SPA shell for it from cache wrongly.

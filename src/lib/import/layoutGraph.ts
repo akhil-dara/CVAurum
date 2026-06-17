@@ -8,8 +8,11 @@
  *   3. group runs → lines (shared baseline, within a column),
  *   4. order lines in human reading order (full-width header, then each column
  *      top→bottom), and expose body font size + line gap for downstream logic.
- * Everything runs in the browser; pdf.js is lazy-loaded and hardened
- * (isEvalSupported:false). OCR fallback for no-text/scanned PDFs is v2.
+ *
+ * Pages with no usable text layer (scanned, image-only, or subset fonts with no
+ * ToUnicode map) are detected per-page and routed to an in-browser OCR fallback
+ * (./ocr) whose word boxes re-enter this same pipeline. Everything runs locally;
+ * pdf.js is lazy-loaded and hardened (isEvalSupported:false).
  */
 import * as pdfjsLib from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -47,13 +50,49 @@ export interface LayoutGraph {
   pageCount: number
   charCount: number
   twoColumn: boolean
+  /** 1-based page numbers that were recovered via OCR. */
+  ocrPages: number[]
+}
+
+export interface BuildOptions {
+  /** Run the OCR fallback on no-text/garbled pages (default true). */
+  ocr?: boolean
+  /** Progress for the (slow) OCR phase, so the UI can keep the user informed. */
+  onOcrProgress?: (info: { page: number; pages: number; ratio: number }) => void
 }
 
 const BOLD_RE = /bold|black|heavy|semibold|w[5-9]00/i
 
-async function readItems(data: ArrayBuffer): Promise<{ items: Item[]; pageCount: number; pageWidth: Map<number, number> }> {
-  const doc = await pdfjsLib.getDocument({ data, isEvalSupported: false, disableFontFace: true, useSystemFonts: false }).promise
-  const items: Item[] = []
+/** A glyph pdf.js couldn't map to real Unicode (no ToUnicode): PUA / replacement / control. */
+const isGibberishChar = (c: string): boolean => {
+  const cp = c.codePointAt(0) ?? 0
+  return (
+    cp === 0xfffd || // replacement char
+    (cp >= 0xe000 && cp <= 0xf8ff) || // Private Use Area
+    (cp >= 0xf0000 && cp <= 0xffffd) || // Supplementary PUA-A
+    (cp < 0x20 && cp !== 0x09 && cp !== 0x0a) // control (keep tab/newline)
+  )
+}
+/** Count characters that represent real, readable text (drives the OCR router). */
+const usableLen = (s: string): number => {
+  let n = 0
+  for (const c of s) if (!/\s/.test(c) && !isGibberishChar(c)) n++
+  return n
+}
+
+interface PageText {
+  num: number
+  items: Item[]
+  /** real readable chars on the page (excludes whitespace + unmapped glyphs) */
+  usable: number
+  /** total non-whitespace chars (to spot a high gibberish ratio) */
+  total: number
+}
+
+async function readTextLayer(
+  doc: pdfjsLib.PDFDocumentProxy,
+): Promise<{ pages: PageText[]; pageWidth: Map<number, number> }> {
+  const pages: PageText[] = []
   const pageWidth = new Map<number, number>()
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p)
@@ -61,11 +100,16 @@ async function readItems(data: ArrayBuffer): Promise<{ items: Item[]; pageCount:
     pageWidth.set(p, viewport.width)
     const tc = await page.getTextContent()
     const styles = tc.styles as Record<string, { fontFamily?: string }>
+    const items: Item[] = []
+    let usable = 0
+    let total = 0
     for (const raw of tc.items as Array<Record<string, unknown>>) {
       const str = String(raw.str ?? '')
       if (!str.trim()) continue
       const t = raw.transform as number[]
       const fam = styles[String(raw.fontName)]?.fontFamily ?? ''
+      usable += usableLen(str)
+      total += str.replace(/\s/g, '').length
       items.push({
         str,
         x: t[4],
@@ -77,10 +121,21 @@ async function readItems(data: ArrayBuffer): Promise<{ items: Item[]; pageCount:
         col: 0,
       })
     }
+    pages.push({ num: p, items, usable, total })
     page.cleanup()
   }
-  doc.destroy()
-  return { items, pageCount: doc.numPages, pageWidth }
+  return { pages, pageWidth }
+}
+
+/**
+ * A page needs OCR when its text layer is effectively unreadable:
+ *  - almost no real text (scanned / image-only page), or
+ *  - plenty of glyphs but most are unmapped gibberish (subset font, no ToUnicode).
+ */
+function pageNeedsOcr(pt: PageText): boolean {
+  if (pt.usable < 40) return true
+  if (pt.total >= 60 && pt.usable / pt.total < 0.6) return true
+  return false
 }
 
 const median = (xs: number[]): number => {
@@ -91,6 +146,27 @@ const median = (xs: number[]): number => {
 const isUpper = (s: string): boolean => {
   const letters = s.replace(/[^A-Za-z]/g, '')
   return letters.length >= 2 && letters === letters.toUpperCase()
+}
+
+/**
+ * Undo CSS letter-spacing / tracking that surfaces as single spaces between
+ * glyphs — premium templates (incl. CVAurum's own export) track headings, so
+ * "SUMMARY" arrives as "S U M M A RY" and would otherwise defeat heading
+ * detection. Only fires when a line is dominated by single-character tokens, so
+ * ordinary prose is untouched. A genuine word break in tracked text appears as
+ * 2+ spaces ("W O R K  E X P E R I E N C E") and is preserved.
+ */
+function collapseTracking(text: string): string {
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length < 4) return text
+  const singleAlpha = words.filter((w) => w.length === 1 && /[A-Za-z]/.test(w)).length
+  if (singleAlpha / words.length < 0.6) return text
+  // Split on word breaks (2+ spaces), strip intra-letter spaces from each run,
+  // rejoin with one space: "W O R K  E X P" -> "WORK EXP", "S U M M A RY" -> "SUMMARY".
+  return text
+    .split(/ {2,}/)
+    .map((run) => run.replace(/ /g, ''))
+    .join(' ')
 }
 
 /**
@@ -137,9 +213,6 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
       const straddles = it.x < gutter - 2 && it.x + it.width > gutter + 2
       it.col = straddles ? 0 : center < gutter ? 1 : 2
     }
-    // Re-promote a wide header line (spans most of the page) to full width: any
-    // item above the topmost column-2 item that is clearly left-only but part of
-    // a centered header stays col 1; that's fine — header parsing scans all cols.
   }
   return any
 }
@@ -166,7 +239,9 @@ function buildLines(items: Item[]): Line[] {
       text += it.str
       prevRight = it.x + it.width
     }
-    text = text.replace(/\s+/g, ' ').trim()
+    // Collapse letter-spacing BEFORE squashing whitespace (a real word break in
+    // tracked text shows up as 2+ spaces, which collapseTracking preserves).
+    text = collapseTracking(text.trim()).replace(/\s+/g, ' ').trim()
     if (text) {
       const heights = ordered.map((i) => i.height).filter(Boolean)
       const boldChars = ordered.filter((i) => i.bold).reduce((n, i) => n + i.str.length, 0)
@@ -205,9 +280,7 @@ function buildLines(items: Item[]): Line[] {
   return lines
 }
 
-export async function buildLayoutGraph(file: File | ArrayBuffer): Promise<LayoutGraph> {
-  const data = file instanceof ArrayBuffer ? file : await file.arrayBuffer()
-  const { items, pageCount, pageWidth } = await readItems(data.slice(0))
+function assemble(items: Item[], pageWidth: Map<number, number>, pageCount: number, ocrPages: number[]): LayoutGraph {
   const twoColumn = assignColumns(items, pageWidth)
   const lines = buildLines(items)
   const bodyLines = lines.filter((l) => l.text.length > 12)
@@ -226,5 +299,55 @@ export async function buildLayoutGraph(file: File | ArrayBuffer): Promise<Layout
     pageCount,
     charCount: lines.reduce((n, l) => n + l.text.length, 0),
     twoColumn,
+    ocrPages,
+  }
+}
+
+export async function buildLayoutGraph(file: File | ArrayBuffer, opts: BuildOptions = {}): Promise<LayoutGraph> {
+  const data = file instanceof ArrayBuffer ? file : await file.arrayBuffer()
+  const doc = await pdfjsLib.getDocument({
+    data: data.slice(0),
+    isEvalSupported: false,
+    disableFontFace: true,
+    useSystemFonts: false,
+  }).promise
+
+  // Capture page count up front — reading it after destroy() is undefined behaviour.
+  const pageCount = doc.numPages
+
+  try {
+    const { pages, pageWidth } = await readTextLayer(doc)
+    const items: Item[] = pages.flatMap((p) => p.items)
+
+    // Route unreadable pages through OCR (lazy-loaded; only touched if needed).
+    const ocrPages: number[] = []
+    if (opts.ocr !== false) {
+      const needy = pages.filter(pageNeedsOcr)
+      if (needy.length) {
+        const { ocrPage, disposeOcr } = await import('./ocr')
+        try {
+          for (let i = 0; i < needy.length; i++) {
+            const pt = needy[i]
+            const page = await doc.getPage(pt.num)
+            const got = await ocrPage(page, pt.num, (ratio) =>
+              opts.onOcrProgress?.({ page: i + 1, pages: needy.length, ratio }),
+            )
+            page.cleanup()
+            if (got.length) {
+              // OCR fully replaces this page's (unreadable) native items.
+              for (let j = items.length - 1; j >= 0; j--) if (items[j].page === pt.num) items.splice(j, 1)
+              items.push(...got)
+              ocrPages.push(pt.num)
+            }
+          }
+        } finally {
+          await disposeOcr()
+        }
+      }
+    }
+
+    return assemble(items, pageWidth, pageCount, ocrPages)
+  } finally {
+    doc.destroy()
   }
 }
