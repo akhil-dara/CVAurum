@@ -11,20 +11,21 @@ import type { Line, LayoutGraph } from './layoutGraph'
 
 /* ----------------------------------------------------------- section ontology */
 
-// Section keywords matched against a *styled, short* line (contains-match, so
-// "WORK EXPERIENCE" / "Areas of Expertise" / "Technical Skills" all resolve).
-const SECTION_KEYWORDS: { key: string; re: RegExp }[] = [
-  { key: 'work', re: /\b(experience|employment|work history|career history)\b/i },
-  { key: 'education', re: /\b(education|academic|qualification)\b/i },
-  { key: 'skills', re: /\b(skills|competenc|technolog|expertise|tech stack|proficienc)\b/i },
-  { key: 'projects', re: /\bprojects?\b/i },
-  { key: 'certificates', re: /\b(certificat|licen[sc]e)\b/i },
-  { key: 'awards', re: /\b(awards?|honou?rs|accomplishments)\b/i },
-  { key: 'publications', re: /\b(publications?|research)\b/i },
-  { key: 'volunteer', re: /\b(volunteer|community service)\b/i },
-  { key: 'languages', re: /\blanguages?\b/i },
-  { key: 'interests', re: /\b(interests|hobbies)\b/i },
-  { key: 'summary', re: /\b(summary|profile|objective|about)\b/i },
+// Section heading phrases, anchored to the START of a line so a heading is
+// recognised even when trailing text follows (e.g. a template's
+// "WORK EXPERIENCE (your most impressive roles)" or "SKILLS: ...").
+const HEAD_PHRASES: { key: string; re: RegExp }[] = [
+  { key: 'work', re: /^(work\s+experience|professional\s+experience|employment(\s+history)?|work\s+history|experience|career(\s+history)?)\b/i },
+  { key: 'education', re: /^(education|academic\b.*|qualifications?)\b/i },
+  { key: 'skills', re: /^(technical\s+skills|core\s+(skills|competenc\w*)|key\s+skills|skills(\s*[,&].*)?|technolog\w*|tech(nical)?\s+stack|expertise|areas\s+of\s+expertise|competenc\w*|proficienc\w*)\b/i },
+  { key: 'projects', re: /^(projects?|personal\s+projects|key\s+projects|selected\s+projects)\b/i },
+  { key: 'certificates', re: /^(certifications?(\s*[,&].*)?|licen[sc]es?|certificates?)\b/i },
+  { key: 'awards', re: /^(awards?(\s*[,&].*)?|honou?rs|achievements|accomplishments)\b/i },
+  { key: 'publications', re: /^(publications?|research)\b/i },
+  { key: 'volunteer', re: /^(volunteer\w*|community\s+service)\b/i },
+  { key: 'languages', re: /^languages?\b/i },
+  { key: 'interests', re: /^(interests|hobbies)\b/i },
+  { key: 'summary', re: /^(summary|professional\s+summary|profile|objective|career\s+objective|about(\s+me)?)\b/i },
 ]
 
 interface Section {
@@ -33,29 +34,52 @@ interface Section {
   lines: Line[]
 }
 
+// Contained-keyword fallback for short heading-like lines whose keyword isn't at
+// the very start ("Relevant Experience", "Core Competencies", "Areas of Expertise").
+const CONTAIN_KEYWORDS: { key: string; re: RegExp }[] = [
+  { key: 'work', re: /\b(experience|employment|work history)\b/i },
+  { key: 'education', re: /\beducation\b/i },
+  { key: 'skills', re: /\b(skills|competenc\w*|expertise|technolog\w*|proficienc\w*)\b/i },
+  { key: 'projects', re: /\bprojects?\b/i },
+  { key: 'certificates', re: /\b(certificat\w*|licen[sc]e)\b/i },
+  { key: 'awards', re: /\b(awards?|honou?rs|accomplishments)\b/i },
+  { key: 'publications', re: /\bpublications?\b/i },
+  { key: 'languages', re: /\blanguages?\b/i },
+  { key: 'interests', re: /\b(interests|hobbies)\b/i },
+  { key: 'summary', re: /\b(summary|objective)\b/i },
+]
+
+/** Does the line BEGIN with several capital letters? (e.g. "WORK EXPERIENCE") */
+const startsAllCaps = (t: string): boolean => /^[A-Z][A-Z][A-Z &/,'’-]+/.test(t)
+
 /**
- * A line is a section heading only if it is BOTH styled (caps / bold / larger
- * than body) AND short AND contains a known section keyword. This deliberately
- * leaves names, job titles and company names as content (they were wrongly
- * eaten as headings before), so the header block stays intact.
+ * A line is a section heading when it starts with a known section keyword AND is
+ * set off as a heading — either a short, styled line (caps / bold / larger), OR
+ * a line whose leading words are ALL-CAPS (which catches headings that carry
+ * trailing text and headings on PDFs where pdf.js loses the bold flag).
+ * Names, job titles and company names (no leading keyword) stay as content.
  */
 function headingKey(line: Line, g: LayoutGraph): string | null {
-  const t = line.text.replace(/[:•·–—-]\s*$/, '').trim()
+  const t = line.text.replace(/[:•·]\s*$/, '').trim()
+  if (/@|https?:|\.com\b/.test(t)) return null // contact lines aren't headings
   const words = t.split(/\s+/)
-  if (words.length > 5 || t.length > 46) return null
-  if (/@|https?:|\.com\b|\d{3,}/.test(t)) return null // contact lines aren't headings
-  const norm = t.toLowerCase().replace(/[^a-z ]/g, '').trim()
-  // Tier 1 — the line IS essentially a section name (plain headings, no styling
-  // needed): the keyword phrase covers nearly the whole short line.
-  if (words.length <= 3) {
-    for (const { key, re } of SECTION_KEYWORDS) {
-      if (re.test(norm) && norm.replace(re, '').trim().length <= 12) return key
+  // Tier 0 — the line is essentially JUST a section name (a plain heading), so
+  // accept it even when pdf.js gives no bold flag and it isn't all-caps.
+  if (words.length <= 3 && !/\d/.test(t)) {
+    for (const { key, re } of HEAD_PHRASES) {
+      if (re.test(t) && t.replace(re, '').replace(/[^a-z]/gi, '').length <= 6) return key
     }
   }
-  // Tier 2 — a styled, short line that contains a section keyword.
-  const styled = line.upper || line.bold || line.height >= g.bodySize * 1.14
-  if (styled) for (const { key, re } of SECTION_KEYWORDS) if (re.test(t)) return key
-  return null // names / job titles / company names stay as content
+  const shortStyled = words.length <= 5 && t.length <= 46 && (line.upper || line.bold || line.height >= g.bodySize * 1.14)
+  const caps = startsAllCaps(t)
+  if (!shortStyled && !caps) return null
+  // 1) keyword at the start (handles trailing text + all-caps headings)
+  for (const { key, re } of HEAD_PHRASES) if (re.test(t)) return key
+  // 2) short heading-like line with the keyword elsewhere ("Relevant Experience")
+  if (shortStyled || (caps && words.length <= 6)) {
+    for (const { key, re } of CONTAIN_KEYWORDS) if (re.test(t)) return key
+  }
+  return null
 }
 
 function splitSections(g: LayoutGraph): Section[] {
@@ -192,9 +216,10 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const prev = lines[i - 1]
-    const bigGap = prev && line.page === prev.page && line.top - prev.top > g.lineGap * 1.55
+    const colJump = prev && (line.col !== prev.col || line.page !== prev.page)
+    const bigGap = prev && !colJump && line.top - prev.top > g.lineGap * 1.55
     const newEntryHeader = prev && cur.length && !isBullet(line.text) && (line.bold || RANGE_RE.test(line.text)) && isBullet(prev.text)
-    if (cur.length && (bigGap || newEntryHeader)) {
+    if (cur.length && (bigGap || colJump || newEntryHeader)) {
       entries.push(cur)
       cur = []
     }
