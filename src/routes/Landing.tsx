@@ -90,12 +90,9 @@ export function Landing() {
               <Github className="h-4 w-4" /> GitHub
             </a>
             <InstallButton />
-            {/* Theme toggle is a nicety — drop it on phones to keep the row from overflowing. */}
-            <span className="hidden sm:inline-flex">
-              <ThemeToggle />
-            </span>
+            <ThemeToggle />
             <Link className={hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'} to="/app">
-              <span className="sm:hidden">Resumes{hasResumes ? ` (${library.length})` : ''}</span>
+              <span className="sm:hidden">Resumes</span>
               <span className="hidden sm:inline">My resumes{hasResumes ? ` (${library.length})` : ''}</span>
             </Link>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
