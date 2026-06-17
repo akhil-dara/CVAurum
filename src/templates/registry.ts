@@ -120,6 +120,23 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    id: 'garamond',
+    name: 'Garamond',
+    description: 'The timeless Garamond résumé recruiters trust — a bold old-style serif name, clean ruled sections, impeccable single-column structure. Classic and ATS-perfect.',
+    tags: ['ats-safe', 'single-column', 'classic', 'elegant'],
+    atsSafe: true,
+    class: 'tpl-garamond',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    defaults: defs(
+      'garamond',
+      { primary: '#1a1a1a', text: '#1a1a1a', muted: '#555555' },
+      { fontFamily: 'EB Garamond', headingFamily: 'EB Garamond', nameFamily: 'EB Garamond', fontSize: 10.5, lineHeight: 1.3, letterSpacing: 0, headingScale: 1.6, uppercaseHeadings: true },
+      { columns: 1, icons: false, sectionGap: 10, itemGap: 6 }
+    ),
+  },
+  {
     id: 'modern',
     name: 'Aria',
     description: 'Clean single-column with a confident accent. The safe, sharp default.',

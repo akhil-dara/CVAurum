@@ -287,6 +287,32 @@
   color: var(--rm-text);
 }
 
+/* ===================================================== Garamond (SheetsResume-style classic) */
+.tpl-garamond .rm-name {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.tpl-garamond .rm-headline {
+  color: var(--rm-text);
+  font-style: italic;
+  font-weight: 400;
+}
+.tpl-garamond .rm-contact + .rm-contact::before {
+  content: '•';
+  margin-right: 0.5em;
+  color: var(--rm-muted);
+}
+.tpl-garamond .rm-section-title {
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.1em;
+  margin-bottom: 0.4em;
+}
+.tpl-garamond .rm-item-title {
+  font-weight: 700;
+}
+
 /* ===================================================== Cambridge (RenderCV-style) */
 .tpl-cambridge .rm-name {
   font-weight: 700;
