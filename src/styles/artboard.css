@@ -660,15 +660,18 @@
   transition: box-shadow 0.12s ease, background 0.12s ease;
 }
 .mode-preview .rm-item:hover {
-  background: color-mix(in srgb, var(--rm-primary) 4%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--rm-primary) 7%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rm-primary) 55%, transparent);
 }
-/* A lighter ring for the whole section; the entry ring above takes visual
- * priority when hovering a specific item within it. */
+/* A lighter ring for the whole section, shown until you hover a specific entry
+ * inside it (then the entry ring above takes over). */
 .mode-preview .rm-section {
-  border-radius: 5px;
-  transition: box-shadow 0.12s ease;
+  border-radius: 6px;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
 }
 .mode-preview .rm-section:hover {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 14%, transparent);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rm-primary) 22%, transparent);
+}
+.mode-preview .rm-section:hover:has(.rm-item:hover) {
+  box-shadow: none;
 }

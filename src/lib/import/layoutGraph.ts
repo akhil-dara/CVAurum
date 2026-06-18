@@ -234,7 +234,13 @@ function buildLines(items: Item[]): Line[] {
     for (const it of ordered) {
       if (prevRight !== -Infinity) {
         const gap = it.x - prevRight
-        if (gap > avgCharW * 0.5 && !/\s$/.test(text)) text += ' '
+        // pdf.js often emits a word-space as a small gap between two items rather
+        // than a space glyph; ~0.3·charWidth reliably separates real word spaces
+        // (≈0.4–0.6) from intra-word kerning (≈0–0.15). Never insert one before
+        // closing punctuation, or where a space already exists.
+        const startsPunct = /^[\s,.;:!?)\]}%/]/.test(it.str)
+        const hasSpace = /\s$/.test(text) || /^\s/.test(it.str)
+        if (gap > avgCharW * 0.3 && !hasSpace && !startsPunct) text += ' '
       }
       text += it.str
       prevRight = it.x + it.width
