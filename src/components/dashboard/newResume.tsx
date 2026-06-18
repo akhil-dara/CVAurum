@@ -162,7 +162,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
           </button>
         </div>
         <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
-        <div className="grid grid-cols-1 gap-4 overflow-y-auto sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-3">
           {docs.map(({ persona, doc }) => (
             <button
               key={persona.id}
