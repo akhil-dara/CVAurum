@@ -172,8 +172,15 @@ function pullLocation(text: string): { location: string; rest: string } {
 
 /* -------------------------------------------------------------- header fields */
 
+// Section labels and monograms masquerade as names in some templates' headers.
+const NOT_A_NAME = /^(contact(\s*(info|information|details))?|profile|summary|objective|about(\s*me)?|skills?|experience|education|resume|cv|curriculum\s*vitae|projects?|certifications?|references?)\.?$/i
+
 function scoreName(line: Line): number {
-  const t = line.text
+  const t = line.text.trim()
+  if (NOT_A_NAME.test(t)) return -10
+  // A single short all-letters token is a logo monogram ("DS"), not a name.
+  const wordArr = t.split(/\s+/)
+  if (wordArr.length === 1 && t.replace(/[^A-Za-z]/g, '').length <= 2) return -5
   let s = 0
   if (/^[A-Za-z][A-Za-z .'-]+$/.test(t)) s += 3
   if (line.bold) s += 1
@@ -181,10 +188,29 @@ function scoreName(line: Line): number {
   if (/\d/.test(t)) s -= 4
   if (/https?:|\.com|linkedin|github/i.test(t)) s -= 6
   if (/,/.test(t)) s -= 2
-  const words = t.split(/\s+/).length
-  if (words >= 2 && words <= 4) s += 2
+  if (wordArr.length >= 2 && wordArr.length <= 4) s += 2
   if (t.length > 38) s -= 3
   return s
+}
+
+/**
+ * Recover a name merged onto one line with a trailing title, by taking the
+ * leading run of ALL-CAPS tokens before the first mixed-case word — e.g.
+ * "AKSHAY R Incident Response Consultant" → "AKSHAY R". Returns '' if the line is
+ * wholly caps (no title to split off) or doesn't start with a caps name.
+ */
+function leadingCapsName(t: string): string {
+  const toks = t.trim().split(/\s+/)
+  const name: string[] = []
+  for (const tok of toks) {
+    if (/^[A-Z][A-Z.'’-]*$/.test(tok) || /^[A-Z]\.?$/.test(tok)) name.push(tok)
+    else break
+  }
+  if (name.length >= 2 && name.length <= 4 && name.length < toks.length) {
+    const s = name.join(' ')
+    if (s.length <= 32) return s
+  }
+  return ''
 }
 
 function parseHeader(header: Line[], content: ResumeContent) {
@@ -233,6 +259,25 @@ function parseHeader(header: Line[], content: ResumeContent) {
       return /[A-Za-z]/.test(t) && !EMAIL_RE.test(t) && !/\d{3}/.test(t) && !/https?:|\.com|,\s*[A-Z]{2}\b/.test(t) && t.length <= 60
     })
     if (after) b.label = cleanEdge(after.text)
+  }
+
+  // Recover a name merged with a trailing role on one line (e.g. ALL-CAPS
+  // "AKSHAY R Incident Response Consultant") when no clean name line was found
+  // or the chosen one still carries title text.
+  if (!b.name || b.name.length > 32 || /[,|]/.test(b.name)) {
+    for (let i = 0; i < Math.min(header.length, 3); i++) {
+      const ln = leadingCapsName(header[i].text)
+      if (!ln) continue
+      b.name = ln
+      if (!b.label) {
+        const rest = cleanEdge(header[i].text.slice(ln.length))
+        const next = header[i + 1]
+        if (rest && rest.length <= 50) b.label = rest
+        else if (next && /[A-Za-z]/.test(next.text) && !EMAIL_RE.test(next.text) && !/\d{3}/.test(next.text) && next.text.length <= 80)
+          b.label = cleanEdge(next.text)
+      }
+      break
+    }
   }
 }
 
