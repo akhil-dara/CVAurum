@@ -87,6 +87,16 @@
   margin: 0 0 0.08em;
   color: var(--rm-text);
   letter-spacing: -0.01em;
+  /* Optical alignment: a large, heavy name carries more left side-bearing than
+     the lighter headline / contacts / section titles beneath it, so flush boxes
+     look slightly inset. A small negative indent makes the name's glyph edge sit
+     visually flush with the text below. */
+  text-indent: -0.04em;
+}
+/* Centered & banner headers aren't left-flush with the body, so no nudge. */
+.rm-header-centered .rm-name,
+.rm-header-banner .rm-name {
+  text-indent: 0;
 }
 .rm-headline {
   font-size: calc(var(--rm-fs) * 1.15);
