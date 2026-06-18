@@ -116,13 +116,18 @@ export async function ocrPage(
   ctx.fillRect(0, 0, W, H)
   await page.render({ canvasContext: ctx as CanvasRenderingContext2D, viewport }).promise
 
+  // Hand Tesseract a PNG Blob — the one input form it reliably decodes (it does
+  // NOT accept raw ImageData, and OffscreenCanvas objects aren't portable).
+  const blob: Blob = offscreen
+    ? await offscreen.convertToBlob({ type: 'image/png' })
+    : await new Promise<Blob>((res, rej) =>
+        (canvas as HTMLCanvasElement).toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'),
+      )
+
   let words: OcrWord[] = []
   try {
     const worker = await getWorker((r) => onProgress?.(r * 0.5))
-    // Pass ImageData — accepted by Tesseract for both canvas kinds and avoids any
-    // OffscreenCanvas serialisation quirks.
-    const image = ctx.getImageData(0, 0, W, H)
-    const { data } = await worker.recognize(image)
+    const { data } = await worker.recognize(blob)
     words = data.words ?? []
     onProgress?.(1)
   } catch (e) {
