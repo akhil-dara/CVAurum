@@ -379,6 +379,60 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
   return entries
 }
 
+const ROLE_LABEL = /^(role|title|designation|position|job\s*title)$/i
+const COMPANY_LABEL = /^(client|clients|company|employer|organi[sz]ation|firm|account)$/i
+// Strong signals that an unlabelled header line is the employer, not the job title.
+const COMPANY_HINT = /\b(inc|ltd|llc|llp|pvt|corp|gmbh|consultanc\w*|services|technolog\w*|solutions|systems|enterprises|university|college|institute|infotech)\b/i
+const DATE_FRAGMENT = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*\d{0,4}$/i
+
+/**
+ * Decide which header line is the job title vs the employer. Honours explicit
+ * "Role:" / "Client:" / "Company:" labels (stripping them), and otherwise takes
+ * the first two unlabelled lines — swapping them when the first is clearly a
+ * company name and the second isn't (so "Tata Consultancy Services" + "Data
+ * Analyst" reads role-first). Leftover labelled lines (Environment:, Project:…)
+ * become the entry summary; stray date fragments are dropped.
+ */
+function assignRoleCompany(headerLines: string[]): { position: string; name: string; summary: string } {
+  let position = '',
+    name = ''
+  let posLabelled = false,
+    nameLabelled = false
+  const rest: string[] = []
+  const unlabelled: string[] = []
+  for (const hl of headerLines) {
+    const m = hl.match(/^([A-Za-z][A-Za-z /&]{1,22}?)\s*:\s*(.+)$/)
+    const label = m ? m[1].trim() : ''
+    if (m && ROLE_LABEL.test(label)) {
+      if (!position) {
+        position = m[2].trim()
+        posLabelled = true
+      }
+    } else if (m && COMPANY_LABEL.test(label)) {
+      if (!name) {
+        name = m[2].trim()
+        nameLabelled = true
+      }
+    } else if (m) {
+      rest.push(hl) // other labelled line (Environment:, Project:…) → summary
+    } else {
+      unlabelled.push(hl)
+    }
+  }
+  for (const u of unlabelled) {
+    if (!position) position = u
+    else if (!name) name = u
+    else rest.push(u)
+  }
+  // Both came from unlabelled lines (position-first assumed) — swap if the title
+  // slot actually holds the company name.
+  if (!posLabelled && !nameLabelled && position && name && COMPANY_HINT.test(position) && !COMPANY_HINT.test(name)) {
+    ;[position, name] = [name, position]
+  }
+  const summary = rest.filter((s) => !DATE_FRAGMENT.test(s.trim()) && s.trim().length > 2).join(' ')
+  return { position, name, summary }
+}
+
 function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
   const isHL = makeIsHighlight(lines, g)
   return toEntries(lines, g).map((entry) => {
@@ -407,17 +461,16 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
       if (rest) headerLines.push(rest)
     }
     const highlights = mergeHighlights(hlLines)
-    // headerLines[0] = position, [1] = company (CVAurum renders position first)
-    const [position = '', name = '', ...extra] = headerLines
+    const { position, name, summary } = assignRoleCompany(headerLines)
     return {
       id: uid(),
-      name: name || '',
-      position: position || '',
+      name,
+      position,
       location,
       url: '',
       startDate: start,
       endDate: end,
-      summary: extra.length ? esc(extra.join(' ')) : '',
+      summary: summary ? esc(summary) : '',
       highlights,
     }
   }).filter((w) => w.position || w.name || w.highlights.length)
