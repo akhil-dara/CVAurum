@@ -15,7 +15,7 @@
 
 ---
 
-CVAurum is a beautiful, privacy-first resume builder that runs entirely in your browser. Pick from 30 premium templates, edit right on the page, get instant ATS feedback, tailor your resume to a job description, and export a crisp PDF or an ATS-friendly Word document — all without an account, a server, or a single byte of tracking. Install it as an app and it works fully offline. Your data lives in your browser's IndexedDB and never leaves your machine unless **you** send it somewhere.
+CVAurum is a beautiful, privacy-first resume builder that runs entirely in your browser. Pick from 38 premium templates, edit right on the page, get instant ATS feedback, tailor your resume to a job description, **import an existing PDF résumé**, and export a crisp PDF or an ATS-friendly Word document — all without an account, a server, or a single byte of tracking. Install it as an app and it works fully offline. Your data lives in your browser's IndexedDB and never leaves your machine unless **you** send it somewhere.
 
 ```bash
 npm install && npm run dev
@@ -29,7 +29,7 @@ That's the entire setup. No Docker, no Postgres, no Redis, no headless Chromium.
 
 A resume tool should be beautiful, private, and instant — without asking you to sign up, pay, or trust a server with your career history. CVAurum is built around four ideas:
 
-- **🎨 Design-first.** 30 hand-crafted templates with real typographic hierarchy, icon-chip section headings, and an auto-fit engine that keeps your resume looking sharp on a single page.
+- **🎨 Design-first.** 38 hand-crafted templates with real typographic hierarchy, icon-chip section headings, and an auto-fit engine that keeps your resume looking sharp on a single page.
 - **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked.
 - **⚡ Instant to run, instant to use.** One command to start. Edit directly on the resume, drag sections around, undo/redo, and watch a live ATS score update as you type.
 - **🧩 Yours to own.** 100% open source (MIT), built on the open JSON Resume schema, and easy to extend — adding a template is a config object and a CSS block.
@@ -59,7 +59,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 ## 🚀 Features
 
 ### 🎨 Templates & Design
-- **30 premium, data-driven templates** — Aria, Oxford, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Marquee, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono, and Opal — each with icon-chip section headings and a refined type scale.
+- **38 premium, data-driven templates** — Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Marquee, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono, and Opal — each with icon-chip section headings and a refined type scale.
 - Most templates are **ATS-safe** and flagged with a shield so you know which ones parse cleanly.
 - **Full typography control:** separate body / heading / name fonts (**45 bundled, self-hosted fonts** — no CDN), font size, line-height, letter-spacing, accent colors, spacing, and margins.
 - **Layout freedom:** two-column ↔ single-column, **A4 or US-Letter** page size, light / dark / system theme.
@@ -79,7 +79,8 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Deterministic ATS analysis** — instant, private, and **no LLM required**. Structural checks for contact info, summary, quantified bullets, action verbs, length, ATS-safe layout, and standard headings, plus an overall **ATS score**.
 - **Live job-description tailoring:** paste a JD and instantly see **matched vs. missing keywords** and a **match score**.
 
-### 📄 Export & Interop
+### 📄 Import & Export
+- **Import an existing PDF résumé** — drop in a PDF and CVAurum reconstructs it into editable, structured sections (contact, experience, education, skills…) **entirely in your browser — nothing is uploaded.** Text-based PDFs work best; scanned / image-only PDFs are read with **on-device OCR** (self-hosted [Tesseract](https://github.com/naptha/tesseract.js), no cloud). Always give the result a quick review.
 - **One-click PDF export** via the browser's native "Save as PDF" of a dedicated print route — **selectable, ATS-parseable text** (not a rasterized image), pixel-identical to the preview.
 - **Word (.docx) export** — a clean, single-column, **ATS-friendly** Word document with real bullet lists, preserved bold, and your template's accent color and fonts. Generated entirely in your browser; nothing is uploaded.
 - **Import & export JSON Resume files** — built on the [JSON Resume schema](https://jsonresume.org/schema) so your data round-trips with the wider ecosystem.
@@ -112,7 +113,7 @@ A quick tour of what you get:
 
 - **Dashboard** — your private resume library, all stored locally.
 - **Editor** — left panel (Content · Design · Templates · ATS) with a live, paginated A4/Letter preview.
-- **Templates gallery** — 30 templates rendered live with *your* content.
+- **Templates gallery** — 38 templates rendered live with *your* content.
 - **ATS panel** — an instant score plus a checklist and job-description keyword matching.
 
 ---
@@ -153,7 +154,7 @@ Open **http://localhost:5173** and start building. CVAurum makes **zero external
 ## 🧭 Usage Highlights
 
 ### Templates
-Choose from **30 templates** and switch between them at any time — your content stays put while the design changes. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
+Choose from **38 templates** and switch between them at any time — your content stays put while the design changes. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
 
 ### ATS Analysis & Job Tailoring
 The **ATS engine is fully deterministic** — it runs instantly, in your browser, with **no LLM and no network call**. It checks for the things real applicant tracking systems care about: contact details, a summary, quantified and action-verb-driven bullets, appropriate length, an ATS-safe layout, and standard section headings — then rolls everything into an overall **ATS score**.
@@ -161,7 +162,9 @@ The **ATS engine is fully deterministic** — it runs instantly, in your browser
 Want to target a specific role? Paste the **job description** into the tailoring panel and CVAurum highlights **matched vs. missing keywords** and gives you a live **match score** so you know exactly what to add.
 
 ### Import & Export
-CVAurum speaks the **[JSON Resume schema](https://jsonresume.org/schema)**, with CVAurum's visual metadata namespaced under `meta.cvaurum`. That means you can:
+**Bring in an existing PDF résumé** — CVAurum parses it into structured, editable sections right in your browser (the file is never uploaded). It detects columns, headings, dated entries, bullets, and contact details deterministically; **scanned or image-only PDFs fall back to on-device OCR** (a self-hosted Tesseract engine, loaded only when needed). PDF parsing is best-effort, so review the imported fields before you rely on them.
+
+CVAurum also speaks the **[JSON Resume schema](https://jsonresume.org/schema)**, with CVAurum's visual metadata namespaced under `meta.cvaurum`. That means you can:
 - **Import** an existing JSON Resume file and keep editing.
 - **Export** your resume as JSON Resume — exports **round-trip** with the JSON Resume ecosystem, and the `meta.cvaurum` namespace preserves your template, fonts, and layout choices.
 
@@ -233,8 +236,10 @@ src/
 
 Planned and under consideration:
 
-- **More templates** _(planned)_
-- **PDF text import** — bring an existing PDF resume in as structured data _(planned)_
+- **More templates** _(ongoing)_
+- **Sharper PDF import** — better reading order for dense two-column layouts, and a confidence/review pass on imported fields _(planned)_
+
+✅ **Shipped:** local PDF résumé import (text + on-device OCR), Word (.docx) export, 38 templates, full offline PWA.
 
 Have an idea? Open an issue and let's talk.
 

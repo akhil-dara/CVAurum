@@ -45,7 +45,7 @@ You don't have to write code to make a difference. All of these are genuinely va
 
 ## :trophy: The easiest way to contribute: add a template
 
-**Adding a template is the best on-ramp to the codebase.** CVAurum ships with **30 premium, data-driven templates**, and there is always room for more.
+**Adding a template is the best on-ramp to the codebase.** CVAurum ships with **38 premium, data-driven templates**, and there is always room for more.
 
 Why it's the perfect first contribution:
 

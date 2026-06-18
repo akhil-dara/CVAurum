@@ -650,3 +650,25 @@
 .mode-preview .rm-editable.rm-rich:empty::before {
   display: inline;
 }
+
+/* Reveal editable regions on the canvas (edit mode only) — hovering an entry or
+ * section rings it, so it's obvious what can be clicked & edited, the way
+ * dedicated resume builders do. Box-shadow + radius only → no layout shift, so
+ * pagination and the printed/exported output are unaffected. */
+.mode-preview .rm-item {
+  border-radius: 4px;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+.mode-preview .rm-item:hover {
+  background: color-mix(in srgb, var(--rm-primary) 4%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, transparent);
+}
+/* A lighter ring for the whole section; the entry ring above takes visual
+ * priority when hovering a specific item within it. */
+.mode-preview .rm-section {
+  border-radius: 5px;
+  transition: box-shadow 0.12s ease;
+}
+.mode-preview .rm-section:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 14%, transparent);
+}

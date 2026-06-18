@@ -15,7 +15,7 @@ export default defineConfig({
         id: '/',
         name: 'CVAurum — Free Open-Source Resume Builder',
         short_name: 'CVAurum',
-        description: 'Free, open-source, 100% local resume builder. 30 ATS-ready templates, a built-in ATS score, and PDF / Word / JSON export — no account, fully offline.',
+        description: 'Free, open-source, 100% local resume builder. 38 ATS-ready templates, a built-in ATS score, PDF résumé import, and PDF / Word / JSON export — no account, fully offline.',
         categories: ['productivity', 'business', 'utilities'],
         theme_color: '#d4982f',
         background_color: '#0b0f1a',

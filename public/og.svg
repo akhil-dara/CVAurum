@@ -38,7 +38,7 @@
   <text x="90" y="426" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="66" font-weight="800" fill="#f3f4f8">never leaves your <tspan fill="#e0ab3e">browser</tspan>.</text>
 
   <!-- subline -->
-  <text x="92" y="486" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="500" fill="#9aa0ad">30 templates · built-in ATS · PDF · Word · JSON · fully offline</text>
+  <text x="92" y="486" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="500" fill="#9aa0ad">38 templates · built-in ATS · PDF import · PDF · Word · JSON · offline</text>
 
   <!-- footer -->
   <text x="92" y="566" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#e0ab3e">cvaurum.com</text>
