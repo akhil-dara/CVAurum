@@ -298,6 +298,28 @@ function makeIsHighlight(lines: Line[], g: LayoutGraph): (l: Line) => boolean {
 }
 
 /**
+ * Rejoin wrapped bullet lines into whole bullets. A PDF wraps one bullet across
+ * several lines, each surfacing as its own Line — so "…dashboards in Power BI to"
+ * + "monitor SLA compliance…" is really one bullet. A continuation is a highlight
+ * with no bullet glyph that follows a bullet which didn't end at a sentence
+ * boundary (or, when the résumé uses glyph bullets, any glyph-less highlight).
+ */
+function mergeHighlights(lines: Line[]): string[] {
+  const raw = lines.map((l) => ({ glyph: isBullet(l.text), text: stripBullet(l.text) }))
+  const anyGlyph = raw.some((r) => r.glyph)
+  const endsSentence = (s: string) => /[.!?:;][)"'”’]?$/.test(s.trim())
+  const anyTerminal = raw.some((r) => endsSentence(r.text))
+  const out: string[] = []
+  for (const r of raw) {
+    const prev = out[out.length - 1]
+    const continuation = prev !== undefined && !r.glyph && (anyGlyph || (anyTerminal && !endsSentence(prev)))
+    if (continuation) out[out.length - 1] = `${prev} ${r.text}`.replace(/\s+/g, ' ').trim()
+    else if (r.text) out.push(r.text)
+  }
+  return out.map(esc)
+}
+
+/**
  * Split a section's lines into entries (one per job / degree).
  *
  * When the section has ≥2 dated headers (the usual case), segment by DATE: each
@@ -360,14 +382,14 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
 function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
   const isHL = makeIsHighlight(lines, g)
   return toEntries(lines, g).map((entry) => {
-    const highlights: string[] = []
+    const hlLines: Line[] = []
     const headerLines: string[] = []
     let start = '',
       end = '',
       location = ''
     for (const line of entry) {
       if (isHL(line)) {
-        highlights.push(esc(stripBullet(line.text)))
+        hlLines.push(line)
         continue
       }
       const d = pullDates(line.text)
@@ -383,10 +405,8 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
       }
       rest = cleanEdge(rest)
       if (rest) headerLines.push(rest)
-      else if (highlights.length) {
-        // a wrapped continuation of the last bullet
-      }
     }
+    const highlights = mergeHighlights(hlLines)
     // headerLines[0] = position, [1] = company (CVAurum renders position first)
     const [position = '', name = '', ...extra] = headerLines
     return {
@@ -468,11 +488,11 @@ function parseSkills(lines: Line[]): ResumeContent['skills'] {
 function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects'] {
   const isHL = makeIsHighlight(lines, g)
   return toEntries(lines, g).map((entry) => {
-    const highlights: string[] = []
+    const hlLines: Line[] = []
     const headerLines: string[] = []
     let start = '', end = '', url = ''
     for (const line of entry) {
-      if (isHL(line)) { highlights.push(esc(stripBullet(line.text))); continue }
+      if (isHL(line)) { hlLines.push(line); continue }
       const d = pullDates(line.text)
       if (d.start && !start) { start = d.start; end = d.end }
       let rest = d.rest
@@ -481,6 +501,7 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
       rest = cleanEdge(rest)
       if (rest) headerLines.push(rest)
     }
+    const highlights = mergeHighlights(hlLines)
     const [name = '', description = ''] = headerLines
     return { id: uid(), name, description: description ? esc(description) : '', url: url ? (/^https?:/.test(url) ? url : 'https://' + url) : '', startDate: start, endDate: end, highlights, keywords: [] }
   }).filter((p) => p.name)
