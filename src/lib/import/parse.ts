@@ -14,18 +14,21 @@ import type { Line, LayoutGraph } from './layoutGraph'
 // Section heading phrases, anchored to the START of a line so a heading is
 // recognised even when trailing text follows (e.g. a template's
 // "WORK EXPERIENCE (your most impressive roles)" or "SKILLS: ...").
+// NB: inter-word gaps use \s* (not \s+) because some PDFs drop the space between
+// words on extraction ("WORK EXPERIENCE" → "WORKEXPERIENCE", "TECHNICAL SKILLS"
+// → "TECHNICALSKILLS"); headings must still be recognised.
 const HEAD_PHRASES: { key: string; re: RegExp }[] = [
-  { key: 'work', re: /^(work\s+experience|professional\s+experience|employment(\s+history)?|work\s+history|experience|career(\s+history)?)\b/i },
+  { key: 'work', re: /^(work\s*experience|professional\s*experience|employment(\s*history)?|work\s*history|experience|career(\s*history)?)\b/i },
   { key: 'education', re: /^(education|academic\b.*|qualifications?)\b/i },
-  { key: 'skills', re: /^(technical\s+skills|core\s+(skills|competenc\w*)|key\s+skills|skills(\s*[,&].*)?|technolog\w*|tech(nical)?\s+stack|expertise|areas\s+of\s+expertise|competenc\w*|proficienc\w*)\b/i },
-  { key: 'projects', re: /^(projects?|personal\s+projects|key\s+projects|selected\s+projects)\b/i },
+  { key: 'skills', re: /^(technical\s*skills|core\s*(skills|competenc\w*)|key\s*skills|skills(\s*[,&].*)?|technolog\w*|tech(nical)?\s*stack|expertise|areas\s*of\s*expertise|competenc\w*|proficienc\w*)\b/i },
+  { key: 'projects', re: /^(projects?|personal\s*projects|key\s*projects|selected\s*projects)\b/i },
   { key: 'certificates', re: /^(certifications?(\s*[,&].*)?|licen[sc]es?|certificates?)\b/i },
   { key: 'awards', re: /^(awards?(\s*[,&].*)?|honou?rs|achievements|accomplishments)\b/i },
   { key: 'publications', re: /^(publications?|research)\b/i },
-  { key: 'volunteer', re: /^(volunteer\w*|community\s+service)\b/i },
+  { key: 'volunteer', re: /^(volunteer\w*|community\s*service)\b/i },
   { key: 'languages', re: /^languages?\b/i },
   { key: 'interests', re: /^(interests|hobbies)\b/i },
-  { key: 'summary', re: /^(summary|professional\s+summary|profile|objective|career\s+objective|about(\s+me)?)\b/i },
+  { key: 'summary', re: /^(summary|professional\s*summary|profile|objective|career\s*objective|about(\s*me)?)\b/i },
 ]
 
 interface Section {
@@ -249,20 +252,57 @@ function makeIsHighlight(lines: Line[], g: LayoutGraph): (l: Line) => boolean {
   return (l: Line) => isBullet(l.text) || l.x > leftX + indent
 }
 
-/** Split a section's lines into entries by large vertical gaps (subsections). */
+/**
+ * Split a section's lines into entries (one per job / degree).
+ *
+ * When the section has ≥2 dated headers (the usual case), segment by DATE: each
+ * job has one date range, so a new entry starts at a dated header line once the
+ * current entry already owns one — and the 1–2 plain header lines immediately
+ * before that date (the company/title that sits above it) are carried into the
+ * new entry. This is far more robust on dense / multi-column / multi-page resumes
+ * than vertical-gap heuristics, which shatter one job into many fragments.
+ *
+ * With no reliable dates, fall back to conservative gap/heading splitting (no raw
+ * column/page-break splits, which over-segment).
+ */
 function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
   const isHL = makeIsHighlight(lines, g)
+  const isDatedHeader = (l: Line) => !isHL(l) && RANGE_RE.test(l.text)
+  const datedHeaders = lines.filter(isDatedHeader).length
+
+  if (datedHeaders >= 2) {
+    const entries: Line[][] = []
+    let cur: Line[] = []
+    let curDated = false
+    for (const line of lines) {
+      if (isDatedHeader(line) && curDated && cur.length) {
+        // Carry up to 2 trailing plain header lines (company/title above the date)
+        // into the new entry instead of leaving them on the previous one.
+        const carry: Line[] = []
+        while (cur.length && carry.length < 2 && !isHL(cur[cur.length - 1]) && !RANGE_RE.test(cur[cur.length - 1].text)) {
+          carry.unshift(cur.pop()!)
+        }
+        entries.push(cur)
+        cur = carry
+        curDated = false
+      }
+      cur.push(line)
+      if (isDatedHeader(line)) curDated = true
+    }
+    if (cur.length) entries.push(cur)
+    return entries
+  }
+
+  // Fallback: split on a clear vertical gap or a bold header after bullets only.
   const entries: Line[][] = []
   let cur: Line[] = []
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const prev = lines[i - 1]
-    const colJump = prev && (line.col !== prev.col || line.page !== prev.page)
-    const bigGap = prev && !colJump && line.top - prev.top > g.lineGap * 1.55
-    // A new entry starts when a non-indented header-ish line (bold or dated)
-    // follows a highlight from the previous entry.
-    const newEntryHeader = prev && cur.length && !isHL(line) && (line.bold || RANGE_RE.test(line.text)) && isHL(prev)
-    if (cur.length && (bigGap || colJump || newEntryHeader)) {
+    const sameStream = prev && line.page === prev.page && line.col === prev.col
+    const bigGap = sameStream && line.top - prev.top > g.lineGap * 1.8
+    const boldHeader = prev && cur.length && !isHL(line) && line.bold && isHL(prev)
+    if (cur.length && (bigGap || boldHeader)) {
       entries.push(cur)
       cur = []
     }
@@ -347,21 +387,37 @@ function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education
 }
 
 function parseSkills(lines: Line[]): ResumeContent['skills'] {
+  // Dedupe (case-insensitive), drop junk/sentence-length entries, and cap per
+  // group — some ATS-stuffed résumés list hundreds of comma-separated keywords.
+  const clean = (arr: string[]): string[] => {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const raw of arr) {
+      const s = raw.trim()
+      if (!s || s.length > 40 || !/[A-Za-z0-9]/.test(s)) continue
+      const k = s.toLowerCase()
+      if (seen.has(k)) continue
+      seen.add(k)
+      out.push(s)
+      if (out.length >= 40) break
+    }
+    return out
+  }
   const groups: ResumeContent['skills'] = []
-  let loose: string[] = []
+  const loose: string[] = []
   for (const line of lines) {
     const t = stripBullet(line.text)
     const m = t.match(/^([A-Za-z][A-Za-z /&+#.-]{1,28}):\s*(.+)$/)
     if (m) {
-      const keywords = m[2].split(/[,;|•·]/).map((s) => s.trim()).filter(Boolean)
+      const keywords = clean(m[2].split(/[,;|•·]/))
       if (keywords.length) groups.push({ id: uid(), name: m[1].trim(), level: '', keywords })
     } else {
-      loose.push(...t.split(/[,;|•·]/).map((s) => s.trim()).filter(Boolean))
+      loose.push(...t.split(/[,;|•·]/))
     }
   }
-  loose = loose.filter((s) => s.length <= 40)
-  if (loose.length) groups.push({ id: uid(), name: groups.length ? 'Additional' : 'Skills', level: '', keywords: loose })
-  return groups
+  const looseClean = clean(loose)
+  if (looseClean.length) groups.push({ id: uid(), name: groups.length ? 'Additional' : 'Skills', level: '', keywords: looseClean })
+  return groups.slice(0, 12)
 }
 
 function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects'] {
