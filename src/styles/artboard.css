@@ -84,7 +84,7 @@
   font-size: var(--rm-name-size, calc(var(--rm-fs) * 2.4));
   font-weight: 700;
   line-height: 1.05;
-  margin: 0 0 0.08em;
+  margin: 0 0 0.2em;
   color: var(--rm-text);
   letter-spacing: -0.01em;
   /* Optical alignment: a large, heavy name carries more left side-bearing than
@@ -102,7 +102,8 @@
   font-size: calc(var(--rm-fs) * 1.15);
   font-weight: 500;
   color: var(--rm-primary);
-  margin-bottom: 0.6em;
+  margin-bottom: 0.55em;
+  line-height: 1.2;
 }
 .rm-contacts {
   display: flex;
