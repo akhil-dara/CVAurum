@@ -302,6 +302,20 @@
 .rm-item-summary {
   margin-bottom: 0.22em;
 }
+/* Project / item link line — a visible, clickable URL (shows in print & PDF). */
+.rm-item-link {
+  font-size: calc(var(--rm-fs) * 0.92);
+  color: var(--rm-primary);
+  margin-bottom: 0.22em;
+  word-break: break-word;
+}
+.rm-item-link a {
+  color: inherit;
+  text-decoration: none;
+}
+.rm-item-link a:hover {
+  text-decoration: underline;
+}
 
 /* rich text */
 .rm-rich p,

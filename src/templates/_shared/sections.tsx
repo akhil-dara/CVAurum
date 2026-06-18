@@ -10,7 +10,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
 import { pushNewItem, ADD_LABEL } from '@/lib/sections'
-import { Chips, Dots, LevelBar, Stars, RichText } from './atoms'
+import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
 
@@ -338,6 +338,13 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
             date={rangeDate(edit, show(opts?.showDates), p.startDate, p.endDate, (c, v) => { c.projects[i].startDate = v }, (c, v) => { c.projects[i].endDate = v })}
           />
+          {edit ? (
+            <div className="rm-item-link">
+              <Ed edit={edit} value={p.url} apply={(c, v) => { c.projects[i].url = v }} placeholder="Project link (e.g. github.com/you/project)" />
+            </div>
+          ) : p.url ? (
+            <div className="rm-item-link">{safeHref(p.url) ? <a href={safeHref(p.url)}>{prettyUrl(p.url)}</a> : prettyUrl(p.url)}</div>
+          ) : null}
           {edit || p.description ? (
             <div className="rm-item-summary">
               <Ed edit={edit} value={p.description} apply={(c, v) => { c.projects[i].description = v }} placeholder="One-line description" />

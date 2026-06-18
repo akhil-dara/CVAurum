@@ -222,6 +222,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       out.push(heading(label, C))
       for (const p of content.projects) {
         out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate), C, width))
+        if (p.url) out.push(new Paragraph({ spacing: { after: 24 }, children: [new TextRun({ text: prettyUrl(p.url), color: C.accent, size: SIZE.sub })] }))
         if (p.description) out.push(sub(p.description, C))
         out.push(...bulletsOf(p.highlights ?? [], C))
         if (p.keywords?.length) out.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: p.keywords.join('  ·  '), color: C.muted, size: SIZE.sub })] }))
