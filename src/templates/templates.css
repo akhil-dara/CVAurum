@@ -837,43 +837,43 @@
 }
 
 /* ===================================================== Onyx Noir (dark full-page) */
-.tpl-onyx-noir .rm-name {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-name {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--rm-text);
 }
-.tpl-onyx-noir .rm-headline {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-headline {
   color: var(--rm-primary);
   font-weight: 600;
 }
-.tpl-onyx-noir .rm-section-title {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section-title {
   color: var(--rm-text);
   font-weight: 700;
   letter-spacing: 0.12em;
 }
-.tpl-onyx-noir .rm-section-title::after {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section-title::after {
   background: var(--rm-primary);
   opacity: 0.6;
 }
-.tpl-onyx-noir .rm-item-title {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-item-title {
   color: var(--rm-text);
   font-weight: 600;
 }
 /* chips read as soft glass on the dark page */
-.tpl-onyx-noir .rm-chip {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-chip {
   background: color-mix(in srgb, var(--rm-text) 8%, transparent);
   border-color: color-mix(in srgb, var(--rm-text) 16%, transparent);
   color: color-mix(in srgb, var(--rm-text) 86%, transparent);
 }
-.tpl-onyx-noir .rm-skill-group-name {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-skill-group-name {
   color: var(--rm-primary);
 }
 /* proficiency meters glow in the accent */
-.tpl-onyx-noir .rm-dot.on,
-.tpl-onyx-noir .rm-level-fill {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-dot.on,
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-level-fill {
   background: var(--rm-primary);
 }
-.tpl-onyx-noir .rm-dot {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-dot {
   background: color-mix(in srgb, var(--rm-text) 18%, transparent);
 }
 
