@@ -449,6 +449,10 @@
 .rm-header-centered .rm-photo {
   margin: 0 auto 10px;
 }
+.rm-header-centered .rm-monogram {
+  margin-left: auto;
+  margin-right: auto;
+}
 
 .rm-header-banner {
   background: var(--rm-primary);
