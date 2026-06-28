@@ -35,6 +35,75 @@ function defs(
 
 export const TEMPLATES: TemplateConfig[] = [
   {
+    id: 'onyx-noir',
+    name: 'Onyx Noir',
+    description: 'A full-bleed charcoal résumé with an electric-teal accent and crisp white type — the dark, high-contrast look that turns heads. Selectable text throughout, so it still reads clean for ATS.',
+    tags: ['single-column', 'creative', 'premium'],
+    atsSafe: true,
+    class: 'tpl-onyx-noir',
+    header: 'standard',
+    section: 'rule-after',
+    skills: 'grouped-chips',
+    sectionIcons: false,
+    defaults: defs(
+      'onyx-noir',
+      { primary: '#2dd4bf', text: '#e8ebef', muted: '#98a1ad', background: '#15181e', sidebar: '#0c0e12', sidebarText: '#e8ebef' },
+      { fontFamily: 'Inter', headingFamily: 'Inter', nameFamily: 'Inter', fontSize: 9.8, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
+      { columns: 1, icons: true, showPhoto: false, sectionGap: 12, itemGap: 7 }
+    ),
+  },
+  {
+    id: 'cascade',
+    name: 'Cascade',
+    description: 'A confident two-column with a deep-teal sidebar carrying your photo, skills and languages, and a clean white main column for experience. Bold, colorful, instantly modern.',
+    tags: ['two-column', 'modern', 'premium', 'photo'],
+    atsSafe: false,
+    class: 'tpl-cascade',
+    header: 'standard',
+    section: 'underline',
+    skills: 'chips',
+    defaults: defs(
+      'cascade',
+      { primary: '#0d9488', text: '#1f2933', muted: '#5b6776', sidebar: '#0d9488', sidebarText: '#ecfeff' },
+      { fontFamily: 'Inter', headingFamily: 'Inter', nameFamily: 'Inter', fontSize: 9.7, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true, proficiency: 'bars' },
+      { columns: 2, sidebar: 'left', sidebarWidth: 0.34, showPhoto: true, photoShape: 'circle' }
+    ),
+  },
+  {
+    id: 'sapphire',
+    name: 'Sapphire',
+    description: 'Corporate two-column with a deep-navy sidebar, a squared photo, and dot-meter skills — the polished, recruiter-ready look that dominates modern builders.',
+    tags: ['two-column', 'modern', 'premium', 'photo'],
+    atsSafe: false,
+    class: 'tpl-sapphire',
+    header: 'standard',
+    section: 'bar',
+    skills: 'chips',
+    defaults: defs(
+      'sapphire',
+      { primary: '#1e3a8a', text: '#1b2330', muted: '#54607a', sidebar: '#1e293b', sidebarText: '#e2e8f0' },
+      { fontFamily: 'Inter', headingFamily: 'Inter', nameFamily: 'Inter', fontSize: 9.7, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true, proficiency: 'dots' },
+      { columns: 2, sidebar: 'left', sidebarWidth: 0.33, showPhoto: true, photoShape: 'square' }
+    ),
+  },
+  {
+    id: 'garnet',
+    name: 'Garnet',
+    description: 'A warm, editorial two-column with a burgundy sidebar on the right, a rounded photo, and bar-meter skills — distinctive and premium without shouting.',
+    tags: ['two-column', 'creative', 'premium', 'photo'],
+    atsSafe: false,
+    class: 'tpl-garnet',
+    header: 'standard',
+    section: 'underline',
+    skills: 'chips',
+    defaults: defs(
+      'garnet',
+      { primary: '#9f1239', text: '#2a2024', muted: '#6e5b60', sidebar: '#7f1d1d', sidebarText: '#fde8e8' },
+      { fontFamily: 'Lato', headingFamily: 'Lato', nameFamily: 'Lato', fontSize: 9.7, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true, proficiency: 'bars' },
+      { columns: 2, sidebar: 'right', sidebarWidth: 0.33, showPhoto: true, photoShape: 'rounded' }
+    ),
+  },
+  {
     id: 'aurum',
     name: 'Aurum',
     description: 'Our signature. Editorial ink layout with a serif name and a hairline gold accent — premium and unmistakably yours, still fully ATS-safe.',

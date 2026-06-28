@@ -835,3 +835,61 @@
 .tpl-opal .rm-chip {
   border-radius: 9999px;
 }
+
+/* ===================================================== Onyx Noir (dark full-page) */
+.tpl-onyx-noir .rm-name {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--rm-text);
+}
+.tpl-onyx-noir .rm-headline {
+  color: var(--rm-primary);
+  font-weight: 600;
+}
+.tpl-onyx-noir .rm-section-title {
+  color: var(--rm-text);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.tpl-onyx-noir .rm-section-title::after {
+  background: var(--rm-primary);
+  opacity: 0.6;
+}
+.tpl-onyx-noir .rm-item-title {
+  color: var(--rm-text);
+  font-weight: 600;
+}
+/* chips read as soft glass on the dark page */
+.tpl-onyx-noir .rm-chip {
+  background: color-mix(in srgb, var(--rm-text) 8%, transparent);
+  border-color: color-mix(in srgb, var(--rm-text) 16%, transparent);
+  color: color-mix(in srgb, var(--rm-text) 86%, transparent);
+}
+.tpl-onyx-noir .rm-skill-group-name {
+  color: var(--rm-primary);
+}
+/* proficiency meters glow in the accent */
+.tpl-onyx-noir .rm-dot.on,
+.tpl-onyx-noir .rm-level-fill {
+  background: var(--rm-primary);
+}
+.tpl-onyx-noir .rm-dot {
+  background: color-mix(in srgb, var(--rm-text) 18%, transparent);
+}
+
+/* ===================================================== Cascade / Sapphire / Garnet
+   (bold colored-sidebar two-columns — base .rm-col-aside carries the fill; these
+   just refine the name + chips) */
+.tpl-cascade .rm-name,
+.tpl-sapphire .rm-name,
+.tpl-garnet .rm-name {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.tpl-cascade .rm-col-aside .rm-chip,
+.tpl-sapphire .rm-col-aside .rm-chip,
+.tpl-garnet .rm-col-aside .rm-chip {
+  background: color-mix(in srgb, #fff 16%, transparent);
+  border-color: color-mix(in srgb, #fff 26%, transparent);
+  color: inherit;
+}
