@@ -107,8 +107,10 @@ export const LayoutSchema = z.object({
   icons: z.boolean().default(true),
   /** show the photo (if provided) */
   showPhoto: z.boolean().default(false),
-  /** photo shape */
-  photoShape: z.enum(['circle', 'rounded', 'square']).default('circle'),
+  /** show a monogram (initials in a colored badge) instead of a photo */
+  monogram: z.boolean().default(false),
+  /** photo / monogram shape */
+  photoShape: z.enum(['circle', 'rounded', 'square', 'diamond']).default('circle'),
   /** photo size */
   photoSize: z.enum(['s', 'm', 'l']).default('m'),
 })

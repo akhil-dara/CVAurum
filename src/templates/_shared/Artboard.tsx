@@ -126,15 +126,38 @@ function Photo({ doc }: { doc: ResumeDocument }) {
   return <img className={`rm-photo ${photoShape}`} src={img} alt={doc.content.basics.name} />
 }
 
+/** Initials badge (in a colored circle / square / diamond) — the "monogram" look. */
+function Monogram({ doc }: { doc: ResumeDocument }) {
+  const { monogram, photoShape } = doc.metadata.layout
+  if (!monogram) return null
+  const initials =
+    (doc.content.basics.name || '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() || '')
+      .join('') || 'A'
+  return (
+    <div className={`rm-monogram ${photoShape}`} aria-hidden>
+      <span>{initials}</span>
+    </div>
+  )
+}
+
+/** Header visual: a monogram if the template enables it, else the photo. */
+function HeaderVisual({ doc }: { doc: ResumeDocument }) {
+  return doc.metadata.layout.monogram ? <Monogram doc={doc} /> : <Photo doc={doc} />
+}
+
 function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn }) {
   const b = doc.content.basics
   const icons = doc.metadata.layout.icons
   const entries = buildContacts(doc)
   const name = b.name || 'Your Name'
   const variant = config.header
-  // In two-column layouts the sidebar owns the photo, so the header omits it.
+  // In two-column layouts the sidebar owns the photo/monogram, so the header omits it.
   const twoCol = doc.metadata.layout.columns === 2
-  const HeaderPhoto = twoCol ? null : <Photo doc={doc} />
+  const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} />
 
   const nameEl = edit ? (
     <Ed edit={edit} as="h1" className="rm-name" value={b.name} apply={(c, v) => { c.basics.name = v }} placeholder="Your Name" />
@@ -303,7 +326,7 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
 
   const AsideCol = twoCol ? (
     <aside className="rm-col-aside">
-      {doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} /> : null}
+      {doc.metadata.layout.monogram ? <Monogram doc={doc} /> : doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} /> : null}
       {aside.map((key) => (
         <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
       ))}

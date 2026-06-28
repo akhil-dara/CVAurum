@@ -104,6 +104,41 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    id: 'initials',
+    name: 'Initials',
+    description: 'Monogram-led two-column: your initials in a diamond badge atop a deep sidebar, with a crisp white main column. Distinctive, confident, unmistakably modern.',
+    tags: ['two-column', 'modern', 'premium'],
+    atsSafe: false,
+    class: 'tpl-initials',
+    header: 'standard',
+    section: 'bar',
+    skills: 'chips',
+    defaults: defs(
+      'initials',
+      { primary: '#0ea5e9', text: '#1b2330', muted: '#54607a', sidebar: '#0f172a', sidebarText: '#e2e8f0' },
+      { fontFamily: 'Inter', headingFamily: 'Inter', nameFamily: 'Inter', fontSize: 9.7, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
+      { columns: 2, sidebar: 'left', sidebarWidth: 0.33, monogram: true, photoShape: 'diamond', showPhoto: false }
+    ),
+  },
+  {
+    id: 'emblem',
+    name: 'Emblem',
+    description: 'A centered single-column with a circular monogram crest over a tracked serif name — formal, balanced, and ruthlessly ATS-clean.',
+    tags: ['ats-safe', 'single-column', 'classic', 'premium'],
+    atsSafe: true,
+    class: 'tpl-emblem',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'emblem',
+      { primary: '#334155', text: '#1b2230', muted: '#5b6776' },
+      { fontFamily: 'Source Sans 3', headingFamily: 'Source Serif 4', nameFamily: 'Source Serif 4', fontSize: 10, lineHeight: 1.34, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
+      { columns: 1, icons: false, monogram: true, photoShape: 'circle', showPhoto: false }
+    ),
+  },
+  {
     id: 'aurum',
     name: 'Aurum',
     description: 'Our signature. Editorial ink layout with a serif name and a hairline gold accent — premium and unmistakably yours, still fully ATS-safe.',

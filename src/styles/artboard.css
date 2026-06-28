@@ -134,6 +134,42 @@
 .rm-photo.circle { border-radius: 9999px; }
 .rm-photo.rounded { border-radius: 0.85em; }
 .rm-photo.square { border-radius: 0; }
+.rm-photo.diamond { border-radius: 0; transform: none; }
+
+/* Monogram: initials in a colored badge (photo alternative). */
+.rm-monogram {
+  flex: none;
+  width: calc(var(--rm-photo-size, 7.6em) * 0.62);
+  height: calc(var(--rm-photo-size, 7.6em) * 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rm-primary);
+  color: #fff;
+  font-family: var(--rm-font-name);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  /* scale initials to the badge size */
+  font-size: calc(var(--rm-photo-size, 7.6em) * 0.26);
+}
+.rm-monogram.circle { border-radius: 9999px; }
+.rm-monogram.rounded { border-radius: 0.85em; }
+.rm-monogram.square { border-radius: 0; }
+.rm-monogram.diamond { border-radius: 0.6em; transform: rotate(45deg); }
+.rm-monogram.diamond > span { transform: rotate(-45deg); }
+/* a diamond's rotated corners overflow its box (~0.2× each side), so reserve room */
+.rm-monogram.diamond { margin-bottom: 1em; margin-top: 0.6em; }
+/* On a colored sidebar, the monogram inverts (light badge, dark initials) and
+   sits with clear breathing room above the first section. */
+.rm-col-aside .rm-monogram {
+  background: color-mix(in srgb, #fff 92%, transparent);
+  color: var(--rm-sidebar-bg);
+  margin-bottom: 1.1em;
+}
+.rm-col-aside .rm-monogram.diamond {
+  margin-bottom: 1.8em;
+}
 
 /* ---- section ---- */
 .rm-section {

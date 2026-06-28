@@ -69,7 +69,10 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // if they enabled it, but let a photo-oriented template light it up by
       // default. Keep their chosen shape/size unless they had no photo before.
       showPhoto: cur.layout.showPhoto || defaults.layout.showPhoto,
-      photoShape: cur.layout.showPhoto ? cur.layout.photoShape : defaults.layout.photoShape,
+      // Monogram is a template-identity choice (initials badge), so adopt it.
+      monogram: defaults.layout.monogram,
+      // A monogram defines its own badge shape; otherwise keep the user's photo shape.
+      photoShape: defaults.layout.monogram ? defaults.layout.photoShape : cur.layout.showPhoto ? cur.layout.photoShape : defaults.layout.photoShape,
       photoSize: cur.layout.showPhoto ? cur.layout.photoSize : defaults.layout.photoSize,
       sectionGap: defaults.layout.sectionGap,
       itemGap: defaults.layout.itemGap,
