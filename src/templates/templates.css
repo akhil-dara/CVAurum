@@ -1293,3 +1293,21 @@
 .rm-root .rm-col-aside .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before {
   background: currentColor;
 }
+
+
+/* --- education score placement (user's pick in the gear) --- */
+.rm-root .rm-section.score-ov-right .rm-item-score {
+  margin-left: auto;
+  padding-left: 0.85em;
+  border-left: 1.5px solid color-mix(in srgb, var(--rm-muted) 38%, transparent);
+  color: var(--rm-primary);
+  font-weight: 700;
+}
+.rm-root .rm-section.score-ov-pill .rm-item-score {
+  margin-left: 0.35em;
+  background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
+  color: var(--rm-primary);
+  border-radius: 9999px;
+  padding: 0.04em 0.6em;
+  font-weight: 600;
+}

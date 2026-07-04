@@ -308,6 +308,7 @@ function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: stri
     ss?.headingStyle ? `sec-ov-${ss.headingStyle}` : '',
     ss?.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '',
     ss?.entryLayout ? `lay-ov-${ss.entryLayout}` : '',
+    ss?.scoreStyle ? `score-ov-${ss.scoreStyle}` : '',
   ]
     .filter(Boolean)
     .join(' ')

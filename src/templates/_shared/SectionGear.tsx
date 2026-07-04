@@ -20,6 +20,13 @@ const HEADING_STYLES: { label: string; value: string }[] = [
   { label: 'Plain', value: 'plain' },
 ]
 
+/** Education score placements ('' = inline, the classic look). */
+const SCORE_STYLES: { label: string; value: string }[] = [
+  { label: 'Inline', value: '' },
+  { label: 'Right', value: 'right' },
+  { label: 'Pill', value: 'pill' },
+]
+
 /** Skills display styles ('' = the template's own default). */
 const SKILL_STYLES: { label: string; value: string }[] = [
   { label: 'Auto', value: '' },
@@ -132,6 +139,29 @@ function Mini({ kind }: { kind: string }) {
           ))}
         </span>
       )
+    // score placements
+    case 'g:':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[3px] w-3 ${t}`} />
+          <span className={`h-[3px] w-2 rounded-[1px] bg-primary/70`} />
+        </span>
+      )
+    case 'g:right':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[3px] w-3 ${t}`} />
+          <span className="ml-auto h-[8px] w-px bg-foreground/40" />
+          <span className={`h-[3px] w-2 rounded-[1px] bg-primary/70`} />
+        </span>
+      )
+    case 'g:pill':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[3px] w-3 ${t}`} />
+          <span className="ml-auto h-[9px] w-3.5 rounded-full border border-primary/60 bg-primary/15" />
+        </span>
+      )
     // entry layouts
     case 'e:':
       return <span className="h-[10px] w-6 rounded-[3px] border border-dashed border-muted-foreground/60" />
@@ -213,7 +243,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
     })
 
   // Per-section style overrides — applied live on the canvas as you click.
-  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout', value?: string) =>
+  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout' | 'scoreStyle', value?: string) =>
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
@@ -264,10 +294,10 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
         contentEditable={false}
         onMouseDown={(e) => e.preventDefault()}
         onClick={openPopover}
-        title="Section settings"
-        aria-label="Section settings"
+        title="Style & settings for this section"
+        aria-label="Section style and settings"
       >
-        <Settings2 />
+        <Settings2 /> Style
       </button>
       {open &&
         createPortal(
@@ -318,6 +348,24 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                         kind={`e:${s.value}`}
                         on={(opts.entryLayout ?? '') === s.value}
                         onClick={() => setStyle('entryLayout', s.value || undefined)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Score placement — education only */}
+              {sectionKey === 'education' && (
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Score (GPA) placement</div>
+                  <div className="flex flex-wrap gap-1">
+                    {SCORE_STYLES.map((s) => (
+                      <StyleChip
+                        key={s.value || 'inline'}
+                        label={s.label}
+                        kind={`g:${s.value}`}
+                        on={(opts.scoreStyle ?? '') === s.value}
+                        onClick={() => setStyle('scoreStyle', s.value || undefined)}
                       />
                     ))}
                   </div>

@@ -37,7 +37,7 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
         title="Header style"
         aria-label="Header style"
       >
-        <Settings2 />
+        <Settings2 /> Style
       </button>
       {open &&
         createPortal(

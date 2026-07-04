@@ -182,18 +182,22 @@
 /* Per-section settings gear (edit canvas only) — appears on hover. */
 .rm-section-gear {
   position: absolute;
-  top: -0.1em;
+  top: -0.2em;
   right: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.7em;
-  height: 1.7em;
-  padding: 0;
-  border-radius: 0.4em;
+  gap: 0.32em;
+  width: auto;
+  height: 1.9em;
+  padding: 0 0.6em;
+  border-radius: 9999px;
   background: var(--rm-bg);
-  border: 1px solid color-mix(in srgb, var(--rm-text) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rm-text) 20%, transparent);
   color: var(--rm-muted);
+  font-size: max(10px, 0.72em);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
@@ -206,7 +210,7 @@
 /* Discoverable: gears are softly visible the whole time you edit, and light up
    on hover/focus — users can SEE that every section (and the header) has one. */
 .mode-preview .rm-section-gear {
-  opacity: 0.38;
+  opacity: 0.6;
 }
 .mode-preview .rm-section:hover .rm-section-gear,
 .mode-preview .rm-header:hover .rm-section-gear,
@@ -342,14 +346,9 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-/* Education score (GPA/CGPA): pushed to the row's right with a hairline divider
-   — never cramped against the location. Every template inherits this. */
+/* Education score (GPA/CGPA): placement is the USER'S choice per section —
+   inline by default; 'right' / 'pill' variants live in templates.css. */
 .rm-item-sub .rm-item-score {
-  margin-left: auto;
-  padding-left: 0.85em;
-  border-left: 1.5px solid color-mix(in srgb, var(--rm-muted) 38%, transparent);
-  color: var(--rm-primary);
-  font-weight: 700;
   white-space: nowrap;
 }
 .rm-item-summary {

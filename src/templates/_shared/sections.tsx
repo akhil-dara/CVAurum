@@ -30,6 +30,7 @@ export type SecOpts = {
   skillsStyle?: string
   entryLayout?: string
   showBadges?: boolean
+  scoreStyle?: string
 }
 const show = (v?: boolean) => v !== false
 
