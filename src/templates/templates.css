@@ -1194,32 +1194,41 @@
 }
 
 /* --- entry-layout overrides: how a section's entries flow --- */
-/* timeline: accent dot + connecting rail down the left of each entry */
+/* timeline: ONE continuous rail down the section with an accent dot per entry
+   (drawn on the body, not per item, so flex gaps can never break it) */
+.rm-root .rm-section.lay-ov-timeline .rm-section-body {
+  position: relative;
+}
+.rm-root .rm-section.lay-ov-timeline .rm-section-body::before {
+  content: '';
+  position: absolute;
+  left: calc(0.25em - 1px);
+  top: 0.55em;
+  bottom: 0.55em;
+  width: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--rm-primary) 42%, transparent);
+}
 .rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item {
   position: relative;
-  padding-left: 1.2em;
+  padding-left: 1.25em;
 }
 .rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.4em;
-  width: 0.5em;
-  height: 0.5em;
+  top: 0.32em;
+  width: 0.52em;
+  height: 0.52em;
   border-radius: 50%;
   background: var(--rm-primary);
+  /* a ring of page color so the dot reads crisply ON the rail */
+  box-shadow: 0 0 0 2px var(--rm-bg);
+  z-index: 1;
 }
-.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item::after {
-  content: '';
-  position: absolute;
-  left: calc(0.25em - 0.75px);
-  top: 1.15em;
-  bottom: calc(-1 * var(--rm-item-gap));
-  width: 1.5px;
-  background: color-mix(in srgb, var(--rm-primary) 28%, transparent);
-}
-.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item:last-of-type::after {
-  content: none;
+/* the edit-only "+ Add" row indents to align with the rail */
+.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-add-entry-row {
+  padding-left: 1.25em;
 }
 /* cards: each entry on its own soft card (adapts to light & dark pages) */
 .rm-root .rm-section.lay-ov-cards .rm-section-body > .rm-item {
@@ -1263,11 +1272,12 @@
   background: color-mix(in srgb, #fff 88%, transparent);
   color: var(--rm-sidebar-bg);
 }
+.rm-root .rm-col-aside .rm-section.lay-ov-timeline .rm-section-body::before {
+  background: color-mix(in srgb, currentColor 40%, transparent);
+}
 .rm-root .rm-col-aside .rm-section.lay-ov-timeline .rm-section-body > .rm-item::before {
   background: currentColor;
-}
-.rm-root .rm-col-aside .rm-section.lay-ov-timeline .rm-section-body > .rm-item::after {
-  background: color-mix(in srgb, currentColor 35%, transparent);
+  box-shadow: 0 0 0 2px var(--rm-sidebar-bg);
 }
 .rm-root .rm-col-aside .rm-section.lay-ov-cards .rm-section-body > .rm-item {
   background: color-mix(in srgb, #fff 9%, transparent);

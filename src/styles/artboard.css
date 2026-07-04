@@ -740,3 +740,11 @@
 .mode-preview .rm-section:hover:has(.rm-item:hover) {
   box-shadow: none;
 }
+
+/* header gear (edit canvas only) — same affordance as section gears */
+.rm-header {
+  position: relative;
+}
+.mode-preview .rm-header:hover .rm-section-gear {
+  opacity: 1;
+}

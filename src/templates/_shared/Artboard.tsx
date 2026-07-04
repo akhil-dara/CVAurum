@@ -14,6 +14,7 @@ import { SectionBody } from './sections'
 import { ContactIcons, networkIcon, prettyUrl, cleanEmail } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { SectionGear } from './SectionGear'
+import { HeaderGear } from './HeaderGear'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 
 /** Traditional templates render headings without icon chips. */
@@ -115,6 +116,49 @@ function Contacts({ entries, icons }: { entries: ContactEntry[]; icons: boolean 
   )
 }
 
+/**
+ * Edit-mode contacts: email / phone / location / website are editable right on
+ * the canvas (empty ones show placeholders so they're discoverable). Profiles
+ * (LinkedIn, GitHub…) stay as links — they're URL-backed, managed in the panel.
+ */
+function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: EditFn; icons: boolean }) {
+  const b = doc.content.basics
+  const { Mail, Phone, Globe, MapPin } = ContactIcons
+  const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
+  const field = (icon: ReactNode, el: ReactNode, key: string) => (
+    <span className="rm-contact" key={key}>
+      {icons ? icon : null}
+      {el}
+    </span>
+  )
+  return (
+    <div className="rm-contacts">
+      {field(<Mail />, <Ed edit={edit} value={cleanEmail(b.email)} apply={(c, v) => { c.basics.email = v.trim() }} placeholder="email@example.com" />, 'em')}
+      {field(<Phone />, <Ed edit={edit} value={b.phone} apply={(c, v) => { c.basics.phone = v.trim() }} placeholder="+1 555 000 0000" />, 'ph')}
+      {field(
+        <MapPin />,
+        <Ed
+          edit={edit}
+          value={loc}
+          apply={(c, v) => {
+            const [city, ...rest] = v.split(',')
+            c.basics.location = { ...c.basics.location, city: (city || '').trim(), region: rest.join(',').trim() }
+          }}
+          placeholder="City, Region"
+        />,
+        'loc',
+      )}
+      {field(<Globe />, <Ed edit={edit} value={prettyUrl(b.url)} apply={(c, v) => { c.basics.url = v.trim() }} placeholder="yoursite.com" />, 'url')}
+      {(b.profiles ?? []).map((p, i) => {
+        const Icon = networkIcon(p.network)
+        const handle = (p.username || '').replace(/^@+/, '')
+        const text = prettyUrl(p.url) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
+        return text ? field(<Icon />, <span>{text}</span>, `p${i}`) : null
+      })}
+    </div>
+  )
+}
+
 function Photo({ doc }: { doc: ResumeDocument }) {
   const { showPhoto, photoShape } = doc.metadata.layout
   const img = doc.content.basics.image
@@ -149,7 +193,7 @@ function HeaderVisual({ doc }: { doc: ResumeDocument }) {
   return doc.metadata.layout.monogram ? <Monogram doc={doc} /> : <Photo doc={doc} />
 }
 
-function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn }) {
+function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
   const b = doc.content.basics
   const icons = doc.metadata.layout.icons
   const entries = buildContacts(doc)
@@ -159,6 +203,9 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   // In two-column layouts the sidebar owns the photo/monogram, so the header omits it.
   const twoCol = doc.metadata.layout.columns === 2
   const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} />
+  // On-canvas gear to recompose the header (edit mode only).
+  const Gear = editMeta ? <HeaderGear doc={doc} editMeta={editMeta} /> : null
+  const ContactsEl = edit ? <EditableContacts doc={doc} edit={edit} icons={icons} /> : <Contacts entries={entries} icons={icons}/>
 
   const nameEl = edit ? (
     <Ed edit={edit} as="h1" className="rm-name" value={b.name} apply={(c, v) => { c.basics.name = v }} placeholder="Your Name" />
@@ -181,11 +228,12 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   if (variant === 'centered') {
     return (
       <header className="rm-header rm-header-centered">
+        {Gear}
         <div className="rm-header-main">
           {HeaderPhoto}
           {nameEl}
           {headlineEl}
-          <Contacts entries={entries} icons={icons} />
+          {ContactsEl}
         </div>
       </header>
     )
@@ -194,10 +242,11 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   if (variant === 'banner') {
     return (
       <header className="rm-header rm-header-banner">
+        {Gear}
         <div className="rm-header-main">
           {nameEl}
           {headlineEl}
-          <Contacts entries={entries} icons={icons} />
+          {ContactsEl}
         </div>
         {HeaderPhoto}
       </header>
@@ -207,12 +256,13 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   if (variant === 'split') {
     return (
       <header className="rm-header rm-header-split">
+        {Gear}
         <div className="rm-header-lead">
           {HeaderPhoto}
           {NameBlock}
         </div>
         <div className="rm-header-aside">
-          <Contacts entries={entries} icons={icons} />
+          {ContactsEl}
         </div>
       </header>
     )
@@ -221,13 +271,14 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   if (variant === 'compact') {
     return (
       <header className="rm-header rm-header-compact">
+        {Gear}
         {HeaderPhoto}
         <div className="rm-header-main">
           <h1 className="rm-name">
             {edit ? <Ed edit={edit} value={b.name} apply={(c, v) => { c.basics.name = v }} placeholder="Your Name" /> : name}
             {b.label ? <span className="rm-headline-inline"> — {b.label}</span> : null}
           </h1>
-          <Contacts entries={entries} icons={icons} />
+          {ContactsEl}
         </div>
       </header>
     )
@@ -236,10 +287,11 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   // standard
   return (
     <header className="rm-header rm-header-standard">
+        {Gear}
       <div className="rm-header-main">
         {nameEl}
         {headlineEl}
-        <Contacts entries={entries} icons={icons} />
+        {ContactsEl}
       </div>
       {HeaderPhoto}
     </header>
@@ -350,7 +402,7 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
       <div className={`rm-body ${twoCol ? '' : 'rm-single'}`}>
         {twoCol && doc.metadata.layout.sidebar === 'left' ? AsideCol : null}
         <main className="rm-col-main">
-          <Header doc={doc} config={config} edit={edit} />
+          <Header doc={doc} config={config} edit={edit} editMeta={editMeta} />
           {main.map((key) => (
             <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
           ))}
