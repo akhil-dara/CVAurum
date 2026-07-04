@@ -3,6 +3,7 @@ import { useResumeStore } from '@/store/useResumeStore'
 import { cn } from '@/lib/utils'
 import { Slider, Toggle, Segmented, ColorField, FieldGroup } from '../fields/Controls'
 import { FontSelect } from '../fields/FontSelect'
+import { HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 
 const BULLET_OPTIONS = [
   ['disc', '●'],
@@ -29,73 +30,6 @@ const PALETTES: { name: string; color: string }[] = [
   { name: 'Navy', color: '#1e3a5f' },
   { name: 'Slate', color: '#475569' },
 ]
-
-/** Header compositions ('' = the template's own default). */
-const HEADER_STYLES: { label: string; value: string }[] = [
-  { label: 'Auto', value: '' },
-  { label: 'Classic', value: 'standard' },
-  { label: 'Centered', value: 'centered' },
-  { label: 'Split', value: 'split' },
-  { label: 'Banner', value: 'banner' },
-  { label: 'Compact', value: 'compact' },
-]
-
-/** Tiny visual mock of each header composition, so users see what they pick. */
-function HeaderMini({ kind }: { kind: string }) {
-  const bar = 'rounded-[1px] bg-slate-600'
-  const line = 'rounded-[1px] bg-slate-300'
-  switch (kind) {
-    case 'standard':
-      return (
-        <span className="flex w-full flex-col gap-[3px]">
-          <span className={`h-[4px] w-1/2 ${bar}`} />
-          <span className={`h-[2px] w-2/3 ${line}`} />
-          <span className={`h-[2px] w-full ${line}`} />
-        </span>
-      )
-    case 'centered':
-      return (
-        <span className="flex w-full flex-col items-center gap-[3px]">
-          <span className={`h-[4px] w-1/2 ${bar}`} />
-          <span className={`h-[2px] w-2/3 ${line}`} />
-          <span className={`h-[2px] w-4/5 ${line}`} />
-        </span>
-      )
-    case 'split':
-      return (
-        <span className="flex w-full items-start justify-between gap-1">
-          <span className="flex w-1/2 flex-col gap-[3px]">
-            <span className={`h-[4px] w-full ${bar}`} />
-            <span className={`h-[2px] w-3/4 ${line}`} />
-          </span>
-          <span className="flex w-1/3 flex-col items-end gap-[2px]">
-            <span className={`h-[2px] w-full ${line}`} />
-            <span className={`h-[2px] w-4/5 ${line}`} />
-            <span className={`h-[2px] w-full ${line}`} />
-          </span>
-        </span>
-      )
-    case 'banner':
-      return (
-        <span className="flex w-full flex-col gap-[3px]">
-          <span className="flex w-full flex-col gap-[2px] rounded-[2px] bg-primary p-[3px]">
-            <span className="h-[3px] w-1/2 rounded-[1px] bg-white/90" />
-            <span className="h-[2px] w-2/3 rounded-[1px] bg-white/60" />
-          </span>
-          <span className={`h-[2px] w-full ${line}`} />
-        </span>
-      )
-    case 'compact':
-      return (
-        <span className="flex w-full items-center gap-[4px]">
-          <span className={`h-[4px] w-1/3 ${bar}`} />
-          <span className={`h-[2px] flex-1 ${line}`} />
-        </span>
-      )
-    default:
-      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
-  }
-}
 
 export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateMetadata)
