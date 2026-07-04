@@ -203,7 +203,14 @@
   width: 1em;
   height: 1em;
 }
+/* Discoverable: gears are softly visible the whole time you edit, and light up
+   on hover/focus — users can SEE that every section (and the header) has one. */
+.mode-preview .rm-section-gear {
+  opacity: 0.38;
+}
 .mode-preview .rm-section:hover .rm-section-gear,
+.mode-preview .rm-header:hover .rm-section-gear,
+.rm-section-gear:hover,
 .rm-section-gear:focus-visible {
   opacity: 1;
 }
@@ -335,6 +342,16 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+/* Education score (GPA/CGPA): pushed to the row's right with a hairline divider
+   — never cramped against the location. Every template inherits this. */
+.rm-item-sub .rm-item-score {
+  margin-left: auto;
+  padding-left: 0.85em;
+  border-left: 1.5px solid color-mix(in srgb, var(--rm-muted) 38%, transparent);
+  color: var(--rm-primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
 .rm-item-summary {
   margin-bottom: 0.22em;
 }
@@ -461,14 +478,15 @@
   padding: var(--rm-pad);
   align-items: center;
 }
-.rm-header-banner .rm-name {
+.rm-root .rm-header-banner .rm-name {
   color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.18); /* keeps the name crisp on mid-tone banners */
 }
-.rm-header-banner .rm-headline {
-  color: rgba(255, 255, 255, 0.92);
+.rm-root .rm-header-banner .rm-headline {
+  color: rgba(255, 255, 255, 0.94);
 }
-.rm-header-banner .rm-contacts {
-  color: rgba(255, 255, 255, 0.85);
+.rm-root .rm-header-banner .rm-contacts {
+  color: rgba(255, 255, 255, 0.88);
 }
 .rm-header-banner .rm-contact a {
   color: inherit;
@@ -747,4 +765,29 @@
 }
 .mode-preview .rm-header:hover .rm-section-gear {
   opacity: 1;
+}
+
+/* Entry monogram badge — the ATS-safe "company logo" stand-in (pure text). */
+.rm-item-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65em;
+  height: 1.65em;
+  border-radius: 0.4em;
+  background: color-mix(in srgb, var(--rm-primary) 13%, transparent);
+  color: var(--rm-primary);
+  font-weight: 700;
+  font-size: calc(var(--rm-fs) * 0.95);
+  margin-right: 0.55em;
+  align-self: flex-start;
+}
+.rm-col-aside .rm-item-badge {
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: inherit;
+}
+/* with a badge, title + date stay on the badge's first line */
+.rm-item-head {
+  align-items: flex-start;
 }

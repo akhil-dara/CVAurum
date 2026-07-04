@@ -81,7 +81,10 @@ export function CanvasDate({
     return a != null && b != null && b < a
   })()
 
-  const label = range ? formatDateRange(start, end) || 'Add dates' : formatDate(start) || 'Add date'
+  // A range with NO dates at all must invite ("Add dates"), not claim "Present"
+  // (formatDateRange treats an empty end as Present, which is wrong when the
+  // start is empty too — that's a brand-new, untouched entry).
+  const label = range ? (start.trim() || (end || '').trim() ? formatDateRange(start, end) : 'Add dates') : formatDate(start) || 'Add date'
 
   const openAt = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()

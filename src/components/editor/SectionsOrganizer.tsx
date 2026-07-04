@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useState } from 'react'
 import {
   GripVertical,
@@ -183,6 +184,7 @@ function SectionCard({
   onRename: (label: string) => void
 }) {
   const [menu, setMenu] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [renaming, setRenaming] = useState(false)
   const Icon = iconFor(sectionKey)
   const label = sectionLabel(sectionKey, doc)
@@ -225,27 +227,41 @@ function SectionCard({
           {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
         <div className="relative">
-          <button type="button" className="btn-icon h-7 w-7" onClick={() => setMenu((m) => !m)} aria-label="Section options">
+          <button
+            type="button"
+            className="btn-icon h-7 w-7"
+            onClick={(e) => {
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              setMenuPos({ top: r.bottom + 4, left: Math.max(8, Math.min(r.right - 160, window.innerWidth - 168)) })
+              setMenu((m) => !m)
+            }}
+            aria-label="Section options"
+          >
             <MoreHorizontal className="h-4 w-4" />
           </button>
-          {menu && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-              <div className="card absolute right-0 z-20 mt-1 w-40 overflow-hidden p-1 shadow-float">
-                <button className="btn-ghost w-full justify-start" onClick={() => { setRenaming(true); setMenu(false) }}>
-                  <Check className="h-4 w-4" /> Rename
-                </button>
-                {twoCol && (
-                  <button className="btn-ghost w-full justify-start" onClick={() => { onMove(); setMenu(false) }}>
-                    <ArrowLeftRight className="h-4 w-4" /> Switch column
+          {/* Portaled to <body>: inside a sortable row the menu is trapped in the
+              row's stacking context — sibling rows paint over it and its backdrop
+              can't cover the other rows' buttons (menus could stack/overlap). */}
+          {menu &&
+            createPortal(
+              <>
+                <div className="fixed inset-0 z-[60]" onClick={() => setMenu(false)} />
+                <div className="card fixed z-[61] w-40 overflow-hidden p-1 shadow-float" style={{ top: menuPos.top, left: menuPos.left }}>
+                  <button className="btn-ghost w-full justify-start" onClick={() => { setRenaming(true); setMenu(false) }}>
+                    <Check className="h-4 w-4" /> Rename
                   </button>
-                )}
-                <button className="btn-ghost w-full justify-start text-danger hover:bg-danger/10" onClick={() => { onRemove(); setMenu(false) }}>
-                  <Trash2 className="h-4 w-4" /> {isCustom ? 'Delete' : 'Remove'}
-                </button>
-              </div>
-            </>
-          )}
+                  {twoCol && (
+                    <button className="btn-ghost w-full justify-start" onClick={() => { onMove(); setMenu(false) }}>
+                      <ArrowLeftRight className="h-4 w-4" /> Switch column
+                    </button>
+                  )}
+                  <button className="btn-ghost w-full justify-start text-danger hover:bg-danger/10" onClick={() => { onRemove(); setMenu(false) }}>
+                    <Trash2 className="h-4 w-4" /> {isCustom ? 'Delete' : 'Remove'}
+                  </button>
+                </div>
+              </>,
+              document.body,
+            )}
         </div>
         <button type="button" className="btn-icon h-7 w-7" onClick={onToggle} aria-label={open ? 'Collapse' : 'Expand'}>
           <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
