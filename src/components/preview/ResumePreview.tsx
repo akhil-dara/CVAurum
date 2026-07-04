@@ -33,6 +33,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
   const fitToWidth = useEditorStore((s) => s.autoFit)
   const atsView = useEditorStore((s) => s.atsView)
+  const previewExact = useEditorStore((s) => s.previewExact)
   const updateContent = useResumeStore((s) => s.updateContent)
   const updateMetadata = useResumeStore((s) => s.updateMetadata)
   const updateDoc = useResumeStore((s) => s.updateDoc)
@@ -240,7 +241,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             }}
           >
             <div ref={innerRef} style={{ width: pageW }}>
-              <TemplateRenderer doc={doc} mode="preview" edit={updateContent} editMeta={updateMetadata} fitScale={fitScale} onAddSection={() => setAddOpen(true)} />
+              {previewExact ? (
+                // Exact-PDF mode: the print render — no edit chrome, placeholders,
+                // hover rings, or empty sections. What you see here is the export.
+                <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
+              ) : (
+                <TemplateRenderer doc={doc} mode="preview" edit={updateContent} editMeta={updateMetadata} fitScale={fitScale} onAddSection={() => setAddOpen(true)} />
+              )}
             </div>
 
             {/* page-break guides */}

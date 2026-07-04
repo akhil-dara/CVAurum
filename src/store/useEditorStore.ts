@@ -21,6 +21,8 @@ interface EditorState {
   onePageScale: number
   /** show the resume as the plain text an ATS parser reads (instead of the canvas) */
   atsView: boolean
+  /** render the canvas exactly as the exported PDF (no edit chrome/placeholders) */
+  previewExact: boolean
 
   setLeftTab: (t: LeftTab) => void
   setActiveSection: (s: string | null) => void
@@ -35,6 +37,7 @@ interface EditorState {
   setFocusItem: (id: string | null) => void
   setOnePageScale: (v: number) => void
   setAtsView: (v: boolean) => void
+  setPreviewExact: (v: boolean) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -47,6 +50,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   focusItem: null,
   onePageScale: 1,
   atsView: false,
+  previewExact: false,
 
   setLeftTab: (leftTab) => set({ leftTab }),
   setActiveSection: (activeSection) => set({ activeSection }),
@@ -61,4 +65,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setFocusItem: (focusItem) => set({ focusItem }),
   setOnePageScale: (onePageScale) => set({ onePageScale }),
   setAtsView: (atsView) => set({ atsView }),
+  setPreviewExact: (previewExact) => set({ previewExact }),
 }))

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   HelpCircle,
   ScanText,
+  Eye,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -28,7 +29,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const setTitle = useResumeStore((s) => s.setTitle)
   const dirty = useResumeStore((s) => s.dirty)
-  const { zoom, autoFit, zoomIn, zoomOut, setAutoFit, atsView, setAtsView } = useEditorStore()
+  const { zoom, autoFit, zoomIn, zoomOut, setAutoFit, atsView, setAtsView, previewExact, setPreviewExact } = useEditorStore()
 
   const past = useStore(useResumeStore.temporal, (s) => s.pastStates.length)
   const future = useStore(useResumeStore.temporal, (s) => s.futureStates.length)
@@ -101,9 +102,18 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
           <div className="mx-1 h-6 w-px bg-border" />
 
+          {/* Exact preview: render the canvas precisely as the exported PDF */}
+          <button
+            className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition ${previewExact ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setPreviewExact(!previewExact)}
+            title="See the resume exactly as it will export — no editing hints, placeholders, or empty sections"
+          >
+            <Eye className="h-4 w-4" /> Preview
+          </button>
+
           {/* "What ATS sees": swap the canvas for the plain text a parser reads */}
           <button
-            className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition ${atsView ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+            className={`ml-1 flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition ${atsView ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
             onClick={() => setAtsView(!atsView)}
             title="Toggle between the designed resume and the plain text an ATS parser reads"
           >

@@ -68,6 +68,8 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Edit directly on the resume** — click any text on the canvas (name, title, summary, company, bullets…) and type. Changes sync live to the form panel, undo/redo, and autosave. Prefer forms? Both work, always in sync.
 - **Live WYSIWYG preview** on an A4 / US-Letter page with **page-break guides** and full multi-page support.
 - **Rich text** (TipTap) for summaries and bullet points.
+- **Per-section style switching, live on the canvas** — every section has a gear with **heading styles** (underline, rule, on-line, bar, filled, lead, badge, plain) and the skills section adds **display styles** (pills, tags, inline, grid). Click a style and the resume restyles instantly — mix styles per section, per resume.
+- **Exact-PDF preview** — one click strips all editing chrome and renders precisely what will export, so there are never surprises.
 - **Drag-and-drop section reordering** (dnd-kit), show/hide sections, custom sections, and section renaming.
 - **Visual "Add a section" gallery** — each section is shown as a **live preview rendered in your actual template**, so you see exactly how it will look before adding it.
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Shift+Z` (powered by zundo).
