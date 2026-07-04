@@ -5,7 +5,7 @@
  */
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import {
   FileText,
   Plus,
@@ -106,58 +106,13 @@ export function Landing() {
       </header>
 
       <main>
-        {/* hero */}
-        <section className="relative overflow-hidden">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.07]"
-            style={{ background: 'radial-gradient(60% 50% at 70% 0%, #d4982f 0%, transparent 70%)' }}
-          />
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-2 md:py-24">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-success" /> Local-first · Free · Open source
-              </span>
-              <h1 className="mt-5 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl">
-                A beautiful resume that never leaves your <span style={goldText}>browser</span>.
-              </h1>
-              <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground">
-                CVAurum is the only resume builder that's <strong className="text-foreground">private</strong> and{' '}
-                <strong className="text-foreground">open-source</strong> and genuinely beautiful — with 30+ templates, a
-                built-in ATS check, and true offline use. <strong className="text-foreground">Free, forever.</strong>
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <button className="btn-primary" onClick={() => setChooser(true)}>
-                  <Plus className="h-4 w-4" /> Create my resume
-                </button>
-                <button className="btn-outline" onClick={() => setSampleOpen(true)}>
-                  <FileText className="h-4 w-4" /> Start with an example
-                </button>
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground">No account. No tracking. Works offline.</p>
-              {/* PDF import now works — parsed locally. The JSON option stays in the create modal. */}
-              <p className="mt-3 text-xs text-muted-foreground">
-                Already have a résumé?{' '}
-                <button onClick={() => pdfRef.current?.click()} className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline">
-                  <FileUp className="h-3.5 w-3.5" /> Import your PDF
-                </button>
-                <span className="block text-muted-foreground/70">Read &amp; parsed entirely in your browser — never uploaded.</span>
-              </p>
-            </motion.div>
-
-            {/* floating template preview */}
-            <motion.div
-              initial={{ opacity: 0, y: 24, rotate: -3 }}
-              animate={{ opacity: 1, y: 0, rotate: -3 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="relative mx-auto hidden w-full max-w-sm md:block"
-            >
-              <div className="absolute -inset-6 -z-10 rounded-[2rem] opacity-20 blur-2xl" style={{ background: GOLD }} />
-              <div className="overflow-hidden rounded-xl border border-border bg-white shadow-card">
-                <div className="aspect-[210/297] overflow-hidden">{showcase[0] && <PreviewThumb doc={showcase[0].doc} width={384} />}</div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        {/* hero — the cinematic stage */}
+        <HeroCinema
+          onCreate={() => setChooser(true)}
+          onSample={() => setSampleOpen(true)}
+          onImportPdf={() => pdfRef.current?.click()}
+          cards={showcase.slice(0, 3)}
+        />
 
         {/* how it works */}
         <section id="how" className="border-y border-border bg-surface-muted/40">
@@ -355,5 +310,147 @@ function Faq({ q, a }: { q: string; a: string }) {
       </summary>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{a}</p>
     </details>
+  )
+}
+
+/**
+ * The cinematic hero: a self-contained dark stage with a drifting aurora,
+ * a shimmering headline, and a mouse-parallax 3D fan of live template cards.
+ * Pure CSS + framer-motion (zero external assets); honors reduced-motion.
+ */
+function HeroCinema({
+  onCreate,
+  onSample,
+  onImportPdf,
+  cards,
+}: {
+  onCreate: () => void
+  onSample: () => void
+  onImportPdf: () => void
+  cards: { id: string; doc: ReturnType<typeof createDocument> }[]
+}) {
+  const reduce = useReducedMotion()
+  const mx = useMotionValue(0)
+  const my = useMotionValue(0)
+  const rx = useSpring(useTransform(my, [-0.5, 0.5], [7, -7]), { stiffness: 110, damping: 16 })
+  const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-9, 9]), { stiffness: 110, damping: 16 })
+  const onMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (reduce) return
+    const r = e.currentTarget.getBoundingClientRect()
+    mx.set((e.clientX - r.left) / r.width - 0.5)
+    my.set((e.clientY - r.top) / r.height - 0.5)
+  }
+
+  return (
+    <section className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
+      {/* drifting aurora */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 left-[8%] h-[34rem] w-[34rem] rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(closest-side,#d4982f55,transparent)' }}
+        animate={reduce ? undefined : { x: [0, 60, -30, 0], y: [0, 30, 10, 0] }}
+        transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-56 right-[4%] h-[38rem] w-[38rem] rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(closest-side,#5b5df033,transparent)' }}
+        animate={reduce ? undefined : { x: [0, -70, 20, 0], y: [0, -30, 20, 0] }}
+        transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute right-1/3 top-1/3 h-[26rem] w-[26rem] rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(closest-side,#2dd4bf22,transparent)' }}
+        animate={reduce ? undefined : { x: [0, 40, -40, 0], y: [0, -40, 24, 0] }}
+        transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* fine dot grid for depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.13]"
+        style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.4px)', backgroundSize: '26px 26px' }}
+      />
+
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 md:grid-cols-[1.05fr_1fr] md:py-28">
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Local-first · Free · Open source
+          </span>
+          <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+            A resume this beautiful
+            <br />
+            never leaves your{' '}
+            <span
+              className="hero-shimmer bg-clip-text text-transparent"
+              style={{ backgroundImage: 'linear-gradient(110deg,#8a5a12 0%,#d4982f 25%,#f7d774 50%,#d4982f 75%,#8a5a12 100%)' }}
+            >
+              browser
+            </span>
+            .
+          </h1>
+          <p className="mt-5 max-w-md text-base leading-relaxed text-white/65">
+            52 designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a built-in ATS check with a
+            parser&apos;s-eye view, PDF import with on-device OCR — and not a single byte of your career story sent to any server.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-[#1c1503] shadow-[0_10px_44px_-10px_rgba(212,152,47,0.65)] transition hover:scale-[1.03] active:scale-[0.99]"
+              style={{ background: GOLD }}
+              onClick={onCreate}
+            >
+              <Plus className="h-4 w-4" /> Create my resume
+            </button>
+            <button
+              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/[0.12]"
+              onClick={onSample}
+            >
+              <FileText className="h-4 w-4" /> Start with an example
+            </button>
+          </div>
+          <p className="mt-5 text-xs text-white/50">
+            Already have one?{' '}
+            <button onClick={onImportPdf} className="inline-flex items-center gap-1 font-medium text-amber-300/90 underline-offset-2 hover:underline">
+              <FileUp className="h-3.5 w-3.5" /> Import your PDF
+            </button>{' '}
+            — parsed entirely on your device.
+          </p>
+        </motion.div>
+
+        {/* parallax 3D fan of live templates */}
+        <div className="hidden [perspective:1200px] md:block" aria-hidden>
+          <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }} className="relative mx-auto h-[26rem] w-[24rem]">
+            {cards.map((c, i) => (
+              <motion.div
+                key={c.id}
+                className="absolute overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_70px_-18px_rgba(0,0,0,0.75)]"
+                style={{
+                  width: '15rem',
+                  left: `${i * 3.4}rem`,
+                  top: `${i * 1.6}rem`,
+                  zIndex: 3 - i,
+                  rotate: `${(i - 1) * 7}deg`,
+                  transform: `translateZ(${(2 - i) * 46}px)`,
+                }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={reduce ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, i % 2 ? -8 : -14, 0] }}
+                transition={
+                  reduce
+                    ? { duration: 0.6, delay: 0.15 + i * 0.12 }
+                    : {
+                        opacity: { duration: 0.6, delay: 0.15 + i * 0.12 },
+                        y: { duration: 7 + i * 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.8 },
+                      }
+                }
+              >
+                <div className="aspect-[210/297] overflow-hidden">
+                  <PreviewThumb doc={c.doc} width={240} />
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </section>
   )
 }

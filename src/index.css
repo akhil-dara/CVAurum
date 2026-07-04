@@ -253,3 +253,17 @@
     user-select: none;
   }
 }
+
+
+/* Landing hero: shimmering gold sweep across the key word. */
+@keyframes hero-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.hero-shimmer {
+  background-size: 200% auto;
+  animation: hero-shimmer 3.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-shimmer { animation: none; }
+}
