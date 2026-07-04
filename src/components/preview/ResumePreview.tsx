@@ -16,6 +16,7 @@ import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
+import { AtsSheet } from './AtsSheet'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
 // is throttled to ~never, which would stall the fit loop and leave a stale page
@@ -31,6 +32,7 @@ const raf2 = () =>
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
   const fitToWidth = useEditorStore((s) => s.autoFit)
+  const atsView = useEditorStore((s) => s.atsView)
   const updateContent = useResumeStore((s) => s.updateContent)
   const updateMetadata = useResumeStore((s) => s.updateMetadata)
   const updateDoc = useResumeStore((s) => s.updateDoc)
@@ -203,6 +205,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // The white sheet must be tall enough to hold the edit-only "+ Add" chrome too,
   // so it never spills onto the gray — but page breaks are drawn at PDF boundaries.
   const sheetH = Math.max(pages * pageH, contentH)
+
+  // "What ATS sees": swap the designed canvas for the parser's-eye plain text.
+  // (After all hooks, so the canvas machinery keeps its state while toggled.)
+  if (atsView) return <AtsSheet doc={doc} />
 
   return (
     <>

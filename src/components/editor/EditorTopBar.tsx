@@ -14,6 +14,7 @@ import {
   Cloud,
   ChevronDown,
   HelpCircle,
+  ScanText,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -27,7 +28,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const setTitle = useResumeStore((s) => s.setTitle)
   const dirty = useResumeStore((s) => s.dirty)
-  const { zoom, autoFit, zoomIn, zoomOut, setAutoFit } = useEditorStore()
+  const { zoom, autoFit, zoomIn, zoomOut, setAutoFit, atsView, setAtsView } = useEditorStore()
 
   const past = useStore(useResumeStore.temporal, (s) => s.pastStates.length)
   const future = useStore(useResumeStore.temporal, (s) => s.futureStates.length)
@@ -97,6 +98,17 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
               <Maximize className="h-4 w-4" />
             </button>
           </div>
+
+          <div className="mx-1 h-6 w-px bg-border" />
+
+          {/* "What ATS sees": swap the canvas for the plain text a parser reads */}
+          <button
+            className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition ${atsView ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setAtsView(!atsView)}
+            title="Toggle between the designed resume and the plain text an ATS parser reads"
+          >
+            <ScanText className="h-4 w-4" /> ATS view
+          </button>
 
           <div className="mx-1 h-6 w-px bg-border" />
         </div>
