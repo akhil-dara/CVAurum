@@ -92,10 +92,10 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
     setExpanded(key)
     setAddOpen(false)
   }
-  const addCustom = () => {
+  const addCustom = (name?: string) => {
     const id = uid()
     updateDoc((d) => {
-      d.content.custom.push({ id, name: 'Custom Section', items: [] })
+      d.content.custom.push({ id, name: name || 'Custom Section', items: [] })
       d.metadata.layout.main.push(customKey(id))
     })
     setExpanded(customKey(id))

@@ -7,6 +7,16 @@ import { SectionPreview } from '@/templates/_shared/Artboard'
 import { DEFAULT_LABELS } from '@/lib/sections'
 import { PREVIEW_CONTENT } from '@/data/previewSections'
 
+/** Ready-made custom-section ideas — one click creates a pre-named section. */
+const CUSTOM_STARTERS = [
+  'Key Achievements',
+  'Strengths',
+  'Courses & Training',
+  'Conferences & Talks',
+  'Extracurriculars',
+  'Portfolio',
+]
+
 /**
  * The "Add a section" gallery. Each card renders a live preview of the
  * section in the user's *current* template (theme, fonts, heading style), so you
@@ -22,7 +32,7 @@ export function SectionGallery({
   doc: ResumeDocument
   available: string[]
   onAdd: (key: string) => void
-  onAddCustom: () => void
+  onAddCustom: (name?: string) => void
   onClose: () => void
 }) {
   const config = getTemplate(doc.metadata.template)
@@ -78,19 +88,26 @@ export function SectionGallery({
             </button>
           ))}
 
-          <button
-            className="group flex flex-col overflow-hidden rounded-xl border border-dashed border-border bg-white text-left transition hover:-translate-y-0.5 hover:border-primary hover:shadow-soft"
-            onClick={onAddCustom}
-          >
-            <div className="flex h-[152px] flex-col items-center justify-center gap-2 border-b border-border bg-muted/30 text-muted-foreground">
-              <Plus className="h-7 w-7" />
-              <span className="text-xs">Your own heading & items</span>
+          <div className="group flex flex-col overflow-hidden rounded-xl border border-dashed border-border bg-white text-left">
+            <div className="flex h-[152px] flex-col justify-center gap-2 border-b border-border bg-muted/30 px-3.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Popular ideas — one click</span>
+              <div className="flex flex-wrap gap-1.5">
+                {CUSTOM_STARTERS.map((n) => (
+                  <button
+                    key={n}
+                    className="rounded-full border border-border bg-white px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:bg-primary hover:text-white"
+                    onClick={() => onAddCustom(n)}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
-              <span className="truncate text-sm font-semibold text-foreground">Custom section</span>
+            <button className="flex items-center justify-between gap-2 px-3.5 py-2.5 transition hover:bg-muted/40" onClick={() => onAddCustom()}>
+              <span className="truncate text-sm font-semibold text-foreground">Custom section — your own heading & items</span>
               {PlusBadge}
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
       </div>
     </div>,
