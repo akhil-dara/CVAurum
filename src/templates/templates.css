@@ -1245,3 +1245,41 @@
   border-top: 1px dotted color-mix(in srgb, var(--rm-muted) 55%, transparent);
   padding-top: calc(var(--rm-item-gap) * 0.9);
 }
+
+/* --- override styles on a COLORED SIDEBAR: accents follow the sidebar text so
+       they never vanish against the fill (e.g. teal-on-teal) --- */
+.rm-root .rm-col-aside .rm-section.sec-ov-boxed .rm-section-title {
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: inherit;
+}
+.rm-root .rm-col-aside .rm-section.sec-ov-bar .rm-section-title {
+  border-left-color: currentColor;
+}
+.rm-root .rm-col-aside .rm-section.sec-ov-lead-rule .rm-section-title::before,
+.rm-root .rm-col-aside .rm-section.sec-ov-badge .rm-section-title:not(:has(.rm-section-icon))::before {
+  background: currentColor;
+}
+.rm-root .rm-col-aside .rm-section.sec-ov-badge .rm-section-icon {
+  background: color-mix(in srgb, #fff 88%, transparent);
+  color: var(--rm-sidebar-bg);
+}
+.rm-root .rm-col-aside .rm-section.lay-ov-timeline .rm-section-body > .rm-item::before {
+  background: currentColor;
+}
+.rm-root .rm-col-aside .rm-section.lay-ov-timeline .rm-section-body > .rm-item::after {
+  background: color-mix(in srgb, currentColor 35%, transparent);
+}
+.rm-root .rm-col-aside .rm-section.lay-ov-cards .rm-section-body > .rm-item {
+  background: color-mix(in srgb, #fff 9%, transparent);
+  border-color: color-mix(in srgb, #fff 22%, transparent);
+}
+.rm-root .rm-col-aside .rm-section.skl-ov-chips :is(.rm-chip, .rm-chip-edit) {
+  background: color-mix(in srgb, #fff 14%, transparent);
+  border-color: color-mix(in srgb, #fff 30%, transparent);
+}
+.rm-root .rm-col-aside .rm-section.skl-ov-tags :is(.rm-chip, .rm-chip-edit) {
+  border-bottom-color: color-mix(in srgb, currentColor 50%, transparent);
+}
+.rm-root .rm-col-aside .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before {
+  background: currentColor;
+}

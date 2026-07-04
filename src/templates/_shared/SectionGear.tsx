@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2, EyeOff, ArrowLeftRight } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
+import { sectionLabel } from '@/lib/sections'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords'
@@ -44,7 +45,7 @@ function Mini({ kind }: { kind: string }) {
   switch (kind) {
     // heading styles
     case 'h:':
-      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+      return <span className="h-[10px] w-6 rounded-[3px] border border-dashed border-muted-foreground/60" />
     case 'h:underline':
       return (
         <span className="flex w-8 flex-col gap-[3px]">
@@ -97,7 +98,7 @@ function Mini({ kind }: { kind: string }) {
       return <span className={`h-[3px] w-5 ${t}`} />
     // skills styles
     case 's:':
-      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+      return <span className="h-[10px] w-6 rounded-[3px] border border-dashed border-muted-foreground/60" />
     case 's:chips':
       return (
         <span className="flex w-8 gap-[3px]">
@@ -133,7 +134,7 @@ function Mini({ kind }: { kind: string }) {
       )
     // entry layouts
     case 'e:':
-      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+      return <span className="h-[10px] w-6 rounded-[3px] border border-dashed border-muted-foreground/60" />
     case 'e:timeline':
       return (
         <span className="flex w-8 gap-[4px]">
@@ -233,7 +234,14 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
 
   const openPopover = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - 300, window.innerWidth - 312)) })
+    const W = 304
+    // Pin to the viewport's right edge, level with the gear: the popover sits in
+    // the page margin (or over the dates column at worst), so the section stays
+    // visible while its styles change live.
+    setPos({
+      top: Math.max(8, Math.min(r.top - 4, window.innerHeight - 560)),
+      left: Math.max(8, window.innerWidth - W - 12),
+    })
     setOpen(true)
   }
 
@@ -262,10 +270,12 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[61] w-[19rem] rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
+              className="fixed z-[61] max-h-[85vh] w-[19rem] overflow-y-auto rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
               style={{ top: pos.top, left: pos.left }}
             >
-              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section settings</div>
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {sectionLabel(sectionKey, doc)} <span className="font-normal normal-case">— style &amp; settings</span>
+              </div>
               {rows.map((r) => (
                 <ToggleRow key={r.field} label={r.label} on={opts[r.field] !== false} onClick={() => toggle(r.field)} />
               ))}

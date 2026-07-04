@@ -139,37 +139,45 @@ export function allSectionKeys(content: ResumeContent): string[] {
   return [...BODY_SECTION_KEYS, ...content.custom.map((c) => customKey(c.id))]
 }
 
+const txt = (s?: string) => !!s && s.trim().length > 0
+const anyTxt = (arr?: string[]) => !!arr && arr.some(txt)
+
+/**
+ * Does the section carry REAL text? An array of blank items (added, never
+ * filled) does not count — otherwise an empty "References" heading leaks into
+ * the printed PDF with nothing under it.
+ */
 export function sectionHasContent(key: string, content: ResumeContent): boolean {
   switch (key) {
     case 'summary':
       return has(content.basics.summary)
     case 'work':
-      return content.work.length > 0
+      return content.work.some((w) => txt(w.position) || txt(w.name) || has(w.summary) || anyTxt(w.highlights))
     case 'education':
-      return content.education.length > 0
+      return content.education.some((e) => txt(e.institution) || txt(e.area) || txt(e.studyType))
     case 'projects':
-      return content.projects.length > 0
+      return content.projects.some((p) => txt(p.name) || has(p.description) || anyTxt(p.highlights))
     case 'skills':
-      return content.skills.length > 0
+      return content.skills.some((s) => txt(s.name) || anyTxt(s.keywords) || typeof s.rating === 'number')
     case 'languages':
-      return content.languages.length > 0
+      return content.languages.some((l) => txt(l.language))
     case 'certificates':
-      return content.certificates.length > 0
+      return content.certificates.some((c) => txt(c.name))
     case 'awards':
-      return content.awards.length > 0
+      return content.awards.some((a) => txt(a.title))
     case 'publications':
-      return content.publications.length > 0
+      return content.publications.some((p) => txt(p.name))
     case 'volunteer':
-      return content.volunteer.length > 0
+      return content.volunteer.some((v) => txt(v.position) || txt(v.organization) || anyTxt(v.highlights))
     case 'interests':
-      return content.interests.length > 0
+      return content.interests.some((i) => txt(i.name) || anyTxt(i.keywords))
     case 'references':
-      return content.references.length > 0
+      return content.references.some((r) => txt(r.name) || has(r.reference))
     default:
       if (key.startsWith('custom-')) {
         const id = key.slice('custom-'.length)
         const sec = content.custom.find((c) => c.id === id)
-        return !!sec && sec.items.length > 0
+        return !!sec && sec.items.some((it) => txt(it.name) || txt(it.subtitle) || has(it.summary) || anyTxt(it.highlights))
       }
       return false
   }

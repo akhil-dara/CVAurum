@@ -15,6 +15,9 @@ import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
+/** Any of these values carries real text? (strings or string arrays) */
+const anyText = (...vals: Array<string | string[] | undefined>) =>
+  vals.some((v) => (Array.isArray(v) ? v.some((x) => htmlToText(x).trim().length > 0) : !!v && htmlToText(v).trim().length > 0))
 
 /** Per-section visibility + style overrides (undefined = shown / template default). */
 export type SecOpts = {
@@ -280,7 +283,9 @@ function Summary({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
 function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   return (
     <>
-      {doc.content.work.map((w, i) => (
+      {doc.content.work.map((w, i) => {
+        if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
+        return (
         <article className="rm-item rm-keep" key={w.id}>
           <ItemHead
             title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title" />}
@@ -307,7 +312,8 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
             />
           ) : null}
         </article>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -316,6 +322,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
   return (
     <>
       {doc.content.education.map((e, i) => {
+        if (!edit && !anyText(e.institution, e.area, e.studyType)) return null
         const title = [e.studyType, e.area].filter(Boolean).join(', ') || e.institution
         return (
           <article className="rm-item rm-keep" key={e.id}>
@@ -340,7 +347,9 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
 function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   return (
     <>
-      {doc.content.projects.map((p, i) => (
+      {doc.content.projects.map((p, i) => {
+        if (!edit && !anyText(p.name, p.description, p.highlights)) return null
+        return (
         <article className="rm-item rm-keep" key={p.id}>
           <ItemHead
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
@@ -384,7 +393,8 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
             ) : p.keywords?.length ? <Chips items={p.keywords} /> : null
           ) : null}
         </article>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -442,7 +452,9 @@ function Languages({ doc, edit }: { doc: ResumeDocument; config: TemplateConfig;
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
   return (
     <>
-      {doc.content.languages.map((l, i) => (
+      {doc.content.languages.map((l, i) => {
+        if (!edit && !anyText(l.language)) return null
+        return (
         <div className="rm-mini" key={l.id}>
           {meter && typeof l.rating === 'number' ? (
             <div className="rm-level">
@@ -460,7 +472,8 @@ function Languages({ doc, edit }: { doc: ResumeDocument; config: TemplateConfig;
             </div>
           )}
         </div>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -468,7 +481,9 @@ function Languages({ doc, edit }: { doc: ResumeDocument; config: TemplateConfig;
 function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
   return (
     <>
-      {doc.content.certificates.map((cert, i) => (
+      {doc.content.certificates.map((cert, i) => {
+        if (!edit && !anyText(cert.name, cert.issuer)) return null
+        return (
         <div className="rm-mini" key={cert.id}>
           <div className="rm-item-head">
             <span className="rm-mini-title">{edit ? <Ed edit={edit} value={cert.name} apply={(c, v) => { c.certificates[i].name = v }} placeholder="Certificate" /> : safeHref(cert.url) ? <a href={safeHref(cert.url)}>{cert.name}</a> : cert.name}</span>
@@ -476,7 +491,8 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           </div>
           {edit || cert.issuer ? <Ed edit={edit} value={cert.issuer} apply={(c, v) => { c.certificates[i].issuer = v }} className="rm-mini-sub" placeholder="Issuer" /> : null}
         </div>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -484,7 +500,9 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
 function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
   return (
     <>
-      {doc.content.awards.map((a, i) => (
+      {doc.content.awards.map((a, i) => {
+        if (!edit && !anyText(a.title, a.awarder, a.summary)) return null
+        return (
         <div className="rm-mini" key={a.id}>
           <div className="rm-item-head">
             <Ed edit={edit} value={a.title} apply={(c, v) => { c.awards[i].title = v }} className="rm-mini-title" placeholder="Award" />
@@ -493,7 +511,8 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           {edit || a.awarder ? <Ed edit={edit} value={a.awarder} apply={(c, v) => { c.awards[i].awarder = v }} className="rm-mini-sub" placeholder="Awarder" /> : null}
           {has(a.summary) ? <RichText html={a.summary} /> : null}
         </div>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -501,7 +520,9 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
 function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
   return (
     <>
-      {doc.content.publications.map((p, i) => (
+      {doc.content.publications.map((p, i) => {
+        if (!edit && !anyText(p.name, p.publisher, p.summary)) return null
+        return (
         <div className="rm-mini" key={p.id}>
           <div className="rm-item-head">
             <span className="rm-mini-title">{edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.publications[i].name = v }} placeholder="Title" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}</span>
@@ -510,7 +531,8 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           {edit || p.publisher ? <Ed edit={edit} value={p.publisher} apply={(c, v) => { c.publications[i].publisher = v }} className="rm-mini-sub" placeholder="Publisher" /> : null}
           {has(p.summary) ? <RichText html={p.summary} /> : null}
         </div>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -518,7 +540,9 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
 function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   return (
     <>
-      {doc.content.volunteer.map((v, i) => (
+      {doc.content.volunteer.map((v, i) => {
+        if (!edit && !anyText(v.position, v.organization, v.summary, v.highlights)) return null
+        return (
         <article className="rm-item rm-keep" key={v.id}>
           <ItemHead
             title={<Ed edit={edit} value={v.position} apply={(c, val) => { c.volunteer[i].position = val }} placeholder="Role" />}
@@ -542,7 +566,8 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             />
           ) : null}
         </article>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -550,7 +575,9 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
 function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
   return (
     <>
-      {doc.content.interests.map((it, i) => (
+      {doc.content.interests.map((it, i) => {
+        if (!edit && !anyText(it.name, it.keywords)) return null
+        return (
         <div className="rm-mini" key={it.id}>
           <Ed edit={edit} value={it.name} apply={(c, v) => { c.interests[i].name = v }} className="rm-mini-title" placeholder="Interest" />
           {edit ? (
@@ -566,7 +593,8 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
             />
           ) : it.keywords?.length ? <span className="rm-skill-inline"> — {it.keywords.join(', ')}</span> : null}
         </div>
-      ))}
+        )
+      })}
     </>
   )
 }
@@ -574,12 +602,15 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
 function References({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
   return (
     <>
-      {doc.content.references.map((r, i) => (
-        <div className="rm-mini" key={r.id}>
-          <Ed edit={edit} value={r.name} apply={(c, v) => { c.references[i].name = v }} className="rm-mini-title" placeholder="Name" />
-          {edit || r.reference ? <Ed edit={edit} value={r.reference} apply={(c, v) => { c.references[i].reference = v }} className="rm-mini-sub" placeholder="Reference / “Available on request”" /> : null}
-        </div>
-      ))}
+      {doc.content.references.map((r, i) => {
+        if (!edit && !anyText(r.name, r.reference)) return null // blank rows never print
+        return (
+          <div className="rm-mini" key={r.id}>
+            <Ed edit={edit} as="div" value={r.name} apply={(c, v) => { c.references[i].name = v }} className="rm-mini-title" placeholder="Name" />
+            {edit || r.reference ? <Ed edit={edit} as="div" value={r.reference} apply={(c, v) => { c.references[i].reference = v }} className="rm-mini-sub" placeholder="“Available on request”" /> : null}
+          </div>
+        )
+      })}
     </>
   )
 }
@@ -591,7 +622,9 @@ function Custom({ doc, sectionKey, edit, opts }: { doc: ResumeDocument; sectionK
   if (!sec) return null
   return (
     <>
-      {sec.items.map((it, i) => (
+      {sec.items.map((it, i) => {
+        if (!edit && !anyText(it.name, it.subtitle, it.summary, it.highlights)) return null
+        return (
         <article className="rm-item rm-keep" key={it.id}>
           <ItemHead
             title={<Ed edit={edit} value={it.name} apply={(c, v) => { c.custom[secIndex].items[i].name = v }} placeholder="Title" />}
@@ -618,7 +651,8 @@ function Custom({ doc, sectionKey, edit, opts }: { doc: ResumeDocument; sectionK
             />
           ) : null}
         </article>
-      ))}
+        )
+      })}
     </>
   )
 }
