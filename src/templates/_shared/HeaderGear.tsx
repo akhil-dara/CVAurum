@@ -69,7 +69,41 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                   )
                 })}
               </div>
-              <p className="px-2 pb-1 text-[10px] leading-snug text-muted-foreground">Changes apply live — Auto uses the template's own header.</p>
+              <div className="mx-2 my-1 border-t border-border" />
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Identity mark
+              </div>
+              <div className="flex flex-col gap-0.5 px-1 pb-1">
+                <label className="flex cursor-pointer items-center justify-between rounded-md px-1.5 py-1 text-xs hover:bg-muted/60">
+                  <span>Monogram (initials)</span>
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-[var(--rm-accent,#2563eb)]"
+                    checked={doc.metadata.layout.monogram}
+                    onChange={() =>
+                      editMeta((m) => {
+                        m.layout.monogram = !m.layout.monogram
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between rounded-md px-1.5 py-1 text-xs hover:bg-muted/60">
+                  <span>Photo</span>
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-[var(--rm-accent,#2563eb)]"
+                    checked={doc.metadata.layout.showPhoto}
+                    onChange={() =>
+                      editMeta((m) => {
+                        m.layout.showPhoto = !m.layout.showPhoto
+                      })
+                    }
+                  />
+                </label>
+              </div>
+              <p className="px-2 pb-1 text-[10px] leading-snug text-muted-foreground">
+                Your photo always wins; the monogram shows only when no photo is displayed. Changes apply live — Auto uses the template's own header.
+              </p>
             </div>
           </>,
           document.body,

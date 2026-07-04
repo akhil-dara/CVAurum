@@ -419,18 +419,19 @@ function HeroCinema({
 
         {/* parallax 3D fan of live templates */}
         <div className="hidden [perspective:1200px] md:block" aria-hidden>
-          <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }} className="relative mx-auto h-[26rem] w-[24rem]">
+          <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }} className="relative mx-auto h-[30rem] w-[28rem]">
             {cards.map((c, i) => (
               <motion.div
                 key={c.id}
                 className="absolute overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_70px_-18px_rgba(0,0,0,0.75)]"
                 style={{
-                  width: '15rem',
-                  left: `${i * 3.4}rem`,
-                  top: `${i * 1.6}rem`,
+                  width: '18rem',
+                  left: `${i * 3.6}rem`,
+                  top: `${i * 1.5}rem`,
                   zIndex: 3 - i,
-                  rotate: `${(i - 1) * 7}deg`,
+                  rotate: `${(i - 1) * 6}deg`,
                   transform: `translateZ(${(2 - i) * 46}px)`,
+                  willChange: 'transform',
                 }}
                 initial={{ opacity: 0, y: 30 }}
                 animate={reduce ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, i % 2 ? -8 : -14, 0] }}
@@ -444,7 +445,7 @@ function HeroCinema({
                 }
               >
                 <div className="aspect-[210/297] overflow-hidden">
-                  <PreviewThumb doc={c.doc} width={240} />
+                  <PreviewThumb doc={c.doc} width={288} />
                 </div>
               </motion.div>
             ))}

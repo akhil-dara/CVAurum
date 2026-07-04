@@ -9,8 +9,10 @@ export const SAMPLE_CONTENT: ResumeContent = {
   basics: {
     name: 'Alex Morgan',
     label: 'Senior Software Engineer',
+    // an intentional monogram mark (not a grey silhouette that reads as a
+    // broken image) — demos the photo slot with something deliberate
     image:
-      "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%23cbd5e1'/%3E%3Cstop%20offset='1'%20stop-color='%2364748b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='240'%20height='240'%20fill='url(%23g)'/%3E%3Ccircle%20cx='120'%20cy='94'%20r='40'%20fill='%23f1f5f9'/%3E%3Cpath%20d='M50%20208c0-39%2031-62%2070-62s70%2023%2070%2062z'%20fill='%23f1f5f9'/%3E%3C/svg%3E",
+      "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%232a3142'/%3E%3Cstop%20offset='1'%20stop-color='%2312151d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='240'%20height='240'%20fill='url(%23g)'/%3E%3Ccircle%20cx='120'%20cy='120'%20r='84'%20fill='none'%20stroke='%23d4982f'%20stroke-opacity='0.55'%20stroke-width='2.5'/%3E%3Ctext%20x='120'%20y='149'%20font-family='Georgia,serif'%20font-size='80'%20fill='%23f5efe2'%20text-anchor='middle'%3EAM%3C/text%3E%3C/svg%3E",
     email: 'alex.morgan@email.com',
     phone: '(555) 234-9981',
     url: 'https://alexmorgan.dev',

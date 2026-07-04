@@ -1,9 +1,11 @@
-import { memo } from 'react'
+import { memo, useLayoutEffect, useRef, useState } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS } from '@/types/metadata'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 
-/** A scaled, non-interactive single-page thumbnail of a resume. */
+/** A scaled, non-interactive single-page thumbnail of a resume.
+ *  It sizes itself to its parent's CONTENT box (ResizeObserver), so responsive
+ *  grid cells never crop the page — `width` is only the pre-measure fallback. */
 export const PreviewThumb = memo(function PreviewThumb({
   doc,
   width = 150,
@@ -12,9 +14,21 @@ export const PreviewThumb = memo(function PreviewThumb({
   width?: number
 }) {
   const { w: pageW, h: pageH } = PAGE_DIMENSIONS[doc.metadata.page.format]
-  const scale = width / pageW
+  const ref = useRef<HTMLDivElement>(null)
+  const [w, setW] = useState(width)
+  useLayoutEffect(() => {
+    const parent = ref.current?.parentElement
+    if (!parent || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver((entries) => {
+      const cw = entries[0]?.contentRect.width
+      if (cw) setW((prev) => (Math.abs(cw - prev) > 0.5 ? cw : prev))
+    })
+    ro.observe(parent)
+    return () => ro.disconnect()
+  }, [])
+  const scale = w / pageW
   return (
-    <div className="overflow-hidden bg-white" style={{ width, height: pageH * scale }} aria-hidden>
+    <div ref={ref} className="overflow-hidden bg-white" style={{ width: w, height: pageH * scale }} aria-hidden>
       <div
         style={{
           width: pageW,

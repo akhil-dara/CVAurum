@@ -188,9 +188,12 @@ function Monogram({ doc }: { doc: ResumeDocument }) {
   )
 }
 
-/** Header visual: a monogram if the template enables it, else the photo. */
+/** Header visual: the user's PHOTO always wins; the monogram is the fallback
+ *  identity mark when no photo is shown (so the two can never conflict). */
 function HeaderVisual({ doc }: { doc: ResumeDocument }) {
-  return doc.metadata.layout.monogram ? <Monogram doc={doc} /> : <Photo doc={doc} />
+  const hasPhoto = doc.metadata.layout.showPhoto && !!doc.content.basics.image
+  if (hasPhoto) return <Photo doc={doc} />
+  return doc.metadata.layout.monogram ? <Monogram doc={doc} /> : null
 }
 
 function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
@@ -391,7 +394,7 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
 
   const AsideCol = twoCol ? (
     <aside className="rm-col-aside">
-      {doc.metadata.layout.monogram ? <Monogram doc={doc} /> : doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} /> : null}
+      {doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} /> : doc.metadata.layout.monogram ? <Monogram doc={doc} /> : null}
       {aside.map((key) => (
         <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
       ))}

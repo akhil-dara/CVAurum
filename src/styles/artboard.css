@@ -60,6 +60,8 @@
 }
 .rm-col-aside {
   flex: 0 0 var(--rm-aside-w, 34%);
+  min-width: 0; /* never let content force the column (and page) wider */
+  overflow-wrap: break-word;
   padding: var(--rm-pad);
   background: var(--rm-sidebar-bg);
   color: var(--rm-sidebar-text);
@@ -345,6 +347,9 @@
   color: var(--rm-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  /* short titles must not leave the date floating mid-row */
+  margin-left: auto;
+  padding-left: 1em;
 }
 /* Education score (GPA/CGPA): placement is the USER'S choice per section —
    inline by default; 'right' / 'pill' variants live in templates.css. */
@@ -758,9 +763,16 @@
   box-shadow: none;
 }
 
-/* header gear (edit canvas only) — same affordance as section gears */
+/* header gear (edit canvas only) — same affordance as section gears.
+   It floats ABOVE the header in the page's top margin so it can never sit on
+   top of the contacts (which own the header's top-right in most layouts). */
 .rm-header {
   position: relative;
+}
+.rm-header > .rm-section-gear {
+  top: auto;
+  bottom: 100%;
+  margin-bottom: 0.45em;
 }
 .mode-preview .rm-header:hover .rm-section-gear {
   opacity: 1;
