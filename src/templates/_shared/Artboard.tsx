@@ -247,8 +247,14 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
 
 function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: string; doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
   const showIcon = config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id)
+  // Per-section style overrides (user picks in the section gear) — scoped classes
+  // that beat the template's root-level sec-*/skl-* defaults.
+  const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
+  const cls = ['rm-section', ss?.headingStyle ? `sec-ov-${ss.headingStyle}` : '', ss?.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '']
+    .filter(Boolean)
+    .join(' ')
   return (
-    <section className="rm-section" data-section={sectionKey}>
+    <section className={cls} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
       <h2 className="rm-section-title">
         {showIcon ? <SectionIcon sectionKey={sectionKey} /> : null}

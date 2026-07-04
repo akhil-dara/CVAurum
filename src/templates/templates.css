@@ -1019,3 +1019,176 @@
   border-color: color-mix(in srgb, #fff 26%, transparent);
   color: inherit;
 }
+
+/* =====================================================================
+   PER-SECTION STYLE OVERRIDES (user-picked in the canvas section gear).
+   Scoped .sec-ov-* / .skl-ov-* classes on one .rm-section — they must beat
+   any template's root-level default, so they live at the END of this file
+   with .rm-root-anchored specificity. Each block fully resets what other
+   heading styles set (rules, bars, boxes, pseudo-elements).
+   ===================================================================== */
+
+/* --- heading: shared reset --- */
+.rm-root .rm-section[class*='sec-ov-'] .rm-section-title {
+  background: transparent;
+  border-left: none;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+.rm-root .rm-section[class*='sec-ov-'] .rm-section-title::before,
+.rm-root .rm-section[class*='sec-ov-'] .rm-section-title::after {
+  content: none;
+}
+
+.rm-root .rm-section.sec-ov-underline .rm-section-title {
+  border-bottom: 1.5px solid color-mix(in srgb, currentColor 60%, transparent);
+  padding-bottom: 0.25em;
+}
+.rm-root .rm-section.sec-ov-rule-after .rm-section-title {
+  border-bottom: none;
+}
+.rm-root .rm-section.sec-ov-rule-after .rm-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: currentColor;
+  opacity: 0.32;
+}
+.rm-root .rm-section.sec-ov-bar .rm-section-title {
+  border-bottom: none;
+  border-left: 3px solid var(--rm-primary);
+  padding: 1px 0 1px 10px;
+}
+.rm-root .rm-section.sec-ov-boxed .rm-section-title {
+  border-bottom: none;
+  background: var(--rm-primary);
+  color: #fff;
+  padding: 3px 9px;
+  border-radius: 4px;
+  display: inline-flex;
+}
+.rm-root .rm-section.sec-ov-lead-rule .rm-section-title {
+  border-bottom: none;
+}
+.rm-root .rm-section.sec-ov-lead-rule .rm-section-title::before {
+  content: '';
+  width: 1.5em;
+  height: 2.2px;
+  flex: none;
+  background: var(--rm-primary);
+  border-radius: 2px;
+}
+.rm-root .rm-section.sec-ov-plain .rm-section-title {
+  border-bottom: none;
+}
+/* badge: the accent diamond chip beside the heading (MPR signature) */
+.rm-root .rm-section.sec-ov-badge .rm-section-title {
+  border-bottom: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+  padding-bottom: 0.28em;
+}
+.rm-root .rm-section.sec-ov-badge .rm-section-icon {
+  display: inline-flex;
+  background: var(--rm-primary);
+  color: #fff;
+  border: none;
+  border-radius: 2.5px;
+  width: 1.5em;
+  height: 1.5em;
+  margin-right: 0.2em;
+  transform: rotate(45deg) scale(0.86);
+}
+.rm-root .rm-section.sec-ov-badge .rm-section-icon svg {
+  transform: rotate(-45deg);
+}
+/* no icon chip (traditional templates)? draw a plain accent diamond */
+.rm-root .rm-section.sec-ov-badge .rm-section-title:not(:has(.rm-section-icon))::before {
+  content: '';
+  width: 0.52em;
+  height: 0.52em;
+  flex: none;
+  background: var(--rm-primary);
+  transform: rotate(45deg);
+}
+/* strike: the title sits ON a full-width rule (MPR cbg2 signature) */
+.rm-root .rm-section.sec-ov-strike .rm-section-title {
+  border-bottom: none;
+  position: relative;
+}
+.rm-root .rm-section.sec-ov-strike .rm-section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.2px;
+  background: currentColor;
+  opacity: 0.38;
+}
+.rm-root .rm-section.sec-ov-strike .rm-section-title-text,
+.rm-root .rm-section.sec-ov-strike .rm-section-icon {
+  position: relative;
+  background: var(--rm-bg);
+  padding-right: 0.55em;
+}
+.rm-root .rm-col-aside .rm-section.sec-ov-strike .rm-section-title-text,
+.rm-root .rm-col-aside .rm-section.sec-ov-strike .rm-section-icon {
+  background: var(--rm-sidebar-bg);
+}
+
+/* --- skills display overrides (view chips + live edit chips) --- */
+.rm-root .rm-section.skl-ov-chips :is(.rm-chip, .rm-chip-edit) {
+  background: color-mix(in srgb, var(--rm-primary) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rm-primary) 26%, transparent);
+  border-radius: 9999px;
+  color: inherit;
+  font-weight: 500;
+}
+.rm-root .rm-section.skl-ov-tags :is(.rm-chip, .rm-chip-edit) {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--rm-muted) 55%, transparent);
+  border-radius: 0;
+  padding-left: 0.12em;
+  padding-right: 0.12em;
+  font-weight: 600;
+}
+.rm-root .rm-section.skl-ov-inline :is(.rm-chip, .rm-chip-edit) {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0 0.1em;
+}
+.rm-root .rm-section.skl-ov-inline :is(.rm-chip:not(:last-child), .rm-chip-edit:not(:nth-last-child(2)))::after {
+  content: '·';
+  margin-left: 0.55em;
+  color: var(--rm-muted);
+}
+.rm-root .rm-section.skl-ov-grid :is(.rm-chips, .rm-chips-edit) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3em 1.3em;
+}
+.rm-root .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit) {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+.rm-root .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before {
+  content: '';
+  width: 0.34em;
+  height: 0.34em;
+  flex: none;
+  border-radius: 1px;
+  background: var(--rm-primary);
+  transform: rotate(45deg) translateY(-1px);
+}
+.rm-root .rm-section.skl-ov-grid .rm-add-btn {
+  grid-column: 1 / -1;
+}

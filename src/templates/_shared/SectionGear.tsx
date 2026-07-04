@@ -6,6 +6,28 @@ import type { MetaEditFn } from './Editable'
 
 type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords'
 
+/** Per-section heading treatments ('' = the template's own default). */
+const HEADING_STYLES: { label: string; value: string }[] = [
+  { label: 'Auto', value: '' },
+  { label: 'Underline', value: 'underline' },
+  { label: 'Rule', value: 'rule-after' },
+  { label: 'On-line', value: 'strike' },
+  { label: 'Bar', value: 'bar' },
+  { label: 'Filled', value: 'boxed' },
+  { label: 'Lead', value: 'lead-rule' },
+  { label: 'Badge', value: 'badge' },
+  { label: 'Plain', value: 'plain' },
+]
+
+/** Skills display styles ('' = the template's own default). */
+const SKILL_STYLES: { label: string; value: string }[] = [
+  { label: 'Auto', value: '' },
+  { label: 'Pills', value: 'chips' },
+  { label: 'Tags', value: 'tags' },
+  { label: 'Inline', value: 'inline' },
+  { label: 'Grid', value: 'grid' },
+]
+
 const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
 const HAS_DATES = new Set(['work', 'education', 'projects', 'volunteer', 'certificates', 'awards', 'publications', 'custom'])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
@@ -33,6 +55,16 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
       const cur = m.layout.sectionSettings[sectionKey] ?? {}
       const shown = cur[field] !== false
       m.layout.sectionSettings[sectionKey] = { ...cur, [field]: shown ? false : true }
+    })
+
+  // Per-section style overrides — applied live on the canvas as you click.
+  const setStyle = (field: 'headingStyle' | 'skillsStyle', value?: string) =>
+    editMeta((m) => {
+      if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
+      const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
+      if (value) (cur as Record<string, unknown>)[field] = value
+      else delete (cur as Record<string, unknown>)[field]
+      m.layout.sectionSettings[sectionKey] = cur
     })
 
   const hide = () =>
@@ -83,10 +115,42 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
               style={{ top: pos.top, left: pos.left }}
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section settings</div>
-              {rows.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">No field options for this section.</div>}
               {rows.map((r) => (
                 <ToggleRow key={r.field} label={r.label} on={opts[r.field] !== false} onClick={() => toggle(r.field)} />
               ))}
+              {rows.length > 0 && <div className="my-1 h-px bg-border" />}
+
+              {/* Heading style — live restyle of THIS section's heading */}
+              <div className="px-2 pb-1 pt-0.5">
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Heading style</div>
+                <div className="flex flex-wrap gap-1">
+                  {HEADING_STYLES.map((s) => (
+                    <StyleChip
+                      key={s.value || 'auto'}
+                      label={s.label}
+                      on={(opts.headingStyle ?? '') === s.value}
+                      onClick={() => setStyle('headingStyle', s.value || undefined)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Skills display — only for the skills section */}
+              {sectionKey === 'skills' && (
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Skills as</div>
+                  <div className="flex flex-wrap gap-1">
+                    {SKILL_STYLES.map((s) => (
+                      <StyleChip
+                        key={s.value || 'auto'}
+                        label={s.label}
+                        on={(opts.skillsStyle ?? '') === s.value}
+                        onClick={() => setStyle('skillsStyle', s.value || undefined)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="my-1 h-px bg-border" />
               {twoCol && (
                 <button
@@ -107,6 +171,20 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
           document.body,
         )}
     </>
+  )
+}
+
+function StyleChip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition ${
+        on ? 'border-primary bg-primary text-white' : 'border-border bg-muted text-muted-foreground hover:border-primary/50 hover:text-foreground'
+      }`}
+    >
+      {label}
+    </button>
   )
 }
 

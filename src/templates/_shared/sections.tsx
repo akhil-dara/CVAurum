@@ -16,8 +16,16 @@ import { CanvasDate } from './CanvasDate'
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 
-/** Per-section visibility overrides (undefined = shown). */
-export type SecOpts = { showBullets?: boolean; showDates?: boolean; showLocation?: boolean; showSummary?: boolean; showKeywords?: boolean }
+/** Per-section visibility + style overrides (undefined = shown / template default). */
+export type SecOpts = {
+  showBullets?: boolean
+  showDates?: boolean
+  showLocation?: boolean
+  showSummary?: boolean
+  showKeywords?: boolean
+  headingStyle?: string
+  skillsStyle?: string
+}
 const show = (v?: boolean) => v !== false
 
 type Apply = (c: ResumeDocument['content'], v: string) => void
@@ -381,8 +389,11 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
   )
 }
 
-function Skills({ doc, config, edit }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn }) {
-  const style = config.skills
+function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; opts?: SecOpts }) {
+  // The user's per-section display choice wins over the template's default.
+  // tags/grid reuse the chips markup (distinct keyword elements) restyled by CSS.
+  const override = opts?.skillsStyle
+  const style = override ? (override === 'inline' ? 'inline' : 'chips') : config.skills
   const prof = doc.metadata.typography.proficiency as ProfStyle
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
   return (
@@ -642,7 +653,7 @@ function sectionRenderer(sectionKey: string, doc: ResumeDocument, config: Templa
     case 'projects':
       return <Projects doc={doc} edit={edit} opts={opts} />
     case 'skills':
-      return <Skills doc={doc} config={config} edit={edit} />
+      return <Skills doc={doc} config={config} edit={edit} opts={opts} />
     case 'languages':
       return <Languages doc={doc} config={config} edit={edit} />
     case 'certificates':

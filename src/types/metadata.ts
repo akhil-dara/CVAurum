@@ -87,7 +87,7 @@ export const LayoutSchema = z.object({
   hidden: z.array(z.string()).default([]),
   /** custom heading label overrides keyed by section key */
   headings: z.record(z.string()).default({}),
-  /** per-section field/visibility overrides, keyed by section key */
+  /** per-section field/visibility + style overrides, keyed by section key */
   sectionSettings: z
     .record(
       z.object({
@@ -96,6 +96,12 @@ export const LayoutSchema = z.object({
         showLocation: z.boolean().optional(),
         showSummary: z.boolean().optional(),
         showKeywords: z.boolean().optional(),
+        /** per-section heading treatment (overrides the template's) */
+        headingStyle: z
+          .enum(['underline', 'rule-after', 'bar', 'boxed', 'lead-rule', 'badge', 'strike', 'plain'])
+          .optional(),
+        /** how the skills section displays its keywords (skills section only) */
+        skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid']).optional(),
       }),
     )
     .default({}),
