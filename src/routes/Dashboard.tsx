@@ -62,7 +62,12 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="relative min-h-full overflow-x-clip bg-background">
+      {/* ambient aurora — quiet in light mode, cinematic in dark */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
+        <div className="absolute -top-48 right-[-8%] h-[30rem] w-[30rem] rounded-full opacity-[0.10] blur-3xl dark:opacity-[0.22]" style={{ background: 'radial-gradient(closest-side,#d4982f,transparent)' }} />
+        <div className="absolute top-1/2 left-[-10%] h-[26rem] w-[26rem] rounded-full opacity-[0.06] blur-3xl dark:opacity-[0.14]" style={{ background: 'radial-gradient(closest-side,#5b5df0,transparent)' }} />
+      </div>
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Logo to="/" />
@@ -166,7 +171,7 @@ function EmptyState({ onNew, onExample, onImport }: { onNew: () => void; onExamp
           <FileUp className="h-4 w-4" /> Import JSON
         </button>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground/70">Import takes a JSON Resume file — PDF and Word résumés can't be imported.</p>
+      <p className="mt-3 text-xs text-muted-foreground/70">Import a JSON Resume file — or use Import PDF above to bring in an existing PDF résumé.</p>
     </div>
   )
 }

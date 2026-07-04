@@ -27,6 +27,7 @@ import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
@@ -72,12 +73,12 @@ export function Landing() {
   const hasResumes = library.length > 0
 
   return (
-    <div className="dark min-h-full bg-[#0a0c12] text-foreground">
+    <div className="min-h-full bg-background">
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
 
       {/* nav */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0a0c12]/75 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
@@ -91,6 +92,7 @@ export function Landing() {
               <Github className="h-4 w-4" /> GitHub
             </a>
             <InstallButton />
+            <ThemeToggle />
             <Link className={hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'} to="/app">
               <span className="sm:hidden">Resumes</span>
               <span className="hidden sm:inline">My resumes{hasResumes ? ` (${library.length})` : ''}</span>

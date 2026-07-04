@@ -37,8 +37,8 @@
     --muted-foreground: 220 9% 46%;
     --border: 220 16% 90%;
     --input: 220 16% 87%;
-    --ring: 243 75% 59%;
-    --primary: 243 75% 59%;
+    --ring: 36 68% 42%;
+    --primary: 36 68% 42%;
     --primary-foreground: 0 0% 100%;
     --accent: 189 94% 43%;
     --accent-foreground: 222 47% 11%;
@@ -51,23 +51,23 @@
   }
 
   .dark {
-    --background: 222 24% 8%;
-    --foreground: 220 20% 92%;
-    --surface: 222 22% 11%;
-    --surface-muted: 222 20% 14%;
-    --muted: 222 16% 18%;
-    --muted-foreground: 220 12% 62%;
-    --border: 222 14% 21%;
-    --input: 222 14% 24%;
-    --ring: 243 75% 66%;
-    --primary: 243 80% 68%;
-    --primary-foreground: 222 47% 9%;
+    --background: 225 26% 6%;
+    --foreground: 220 20% 93%;
+    --surface: 224 22% 9%;
+    --surface-muted: 224 20% 12%;
+    --muted: 224 16% 16%;
+    --muted-foreground: 220 12% 64%;
+    --border: 224 14% 19%;
+    --input: 224 14% 23%;
+    --ring: 40 78% 60%;
+    --primary: 40 78% 60%;
+    --primary-foreground: 36 90% 8%;
     --accent: 189 90% 52%;
     --accent-foreground: 222 47% 11%;
     --success: 142 60% 48%;
     --warning: 38 92% 55%;
     --danger: 0 75% 60%;
-    --canvas: 222 24% 6%;
+    --canvas: 225 30% 4.5%;
     color-scheme: dark;
   }
 
@@ -115,7 +115,8 @@
       transition-all duration-150 disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn h-9 px-4 bg-primary text-primary-foreground shadow-soft hover:brightness-110 active:brightness-95;
+    @apply btn h-9 px-4 bg-primary text-primary-foreground hover:brightness-110 active:brightness-95;
+    box-shadow: 0 6px 22px -8px hsl(var(--primary) / 0.55);
   }
   .btn-secondary {
     @apply btn h-9 px-4 bg-muted text-foreground hover:bg-muted/70 border border-border;
