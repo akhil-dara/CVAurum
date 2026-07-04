@@ -28,6 +28,157 @@ const SKILL_STYLES: { label: string; value: string }[] = [
   { label: 'Grid', value: 'grid' },
 ]
 
+/** Entry-flow layouts ('' = the template's own default). */
+const ENTRY_LAYOUTS: { label: string; value: string }[] = [
+  { label: 'Auto', value: '' },
+  { label: 'Timeline', value: 'timeline' },
+  { label: 'Cards', value: 'cards' },
+  { label: 'Grid', value: 'grid' },
+  { label: 'Divided', value: 'divided' },
+]
+
+/* Tiny visual mock of each style so users SEE what they're picking. */
+function Mini({ kind }: { kind: string }) {
+  const t = 'rounded-[1px] bg-foreground/55' // fake text bar
+  const a = 'bg-primary' // accent
+  switch (kind) {
+    // heading styles
+    case 'h:':
+      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+    case 'h:underline':
+      return (
+        <span className="flex w-8 flex-col gap-[3px]">
+          <span className={`h-[3px] w-4 ${t}`} />
+          <span className="h-px w-full bg-foreground/50" />
+        </span>
+      )
+    case 'h:rule-after':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[3px] w-3 ${t}`} />
+          <span className="h-px flex-1 bg-foreground/40" />
+        </span>
+      )
+    case 'h:strike':
+      return (
+        <span className="relative flex w-8 items-center">
+          <span className="absolute left-0 right-0 top-1/2 h-px bg-foreground/40" />
+          <span className={`relative h-[3px] w-3.5 ${t} ring-2 ring-surface`} />
+        </span>
+      )
+    case 'h:bar':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[9px] w-[3px] ${a}`} />
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'h:boxed':
+      return (
+        <span className={`flex h-[11px] w-7 items-center justify-center rounded-[3px] ${a}`}>
+          <span className="h-[3px] w-4 rounded-[1px] bg-white/90" />
+        </span>
+      )
+    case 'h:lead-rule':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[2.5px] w-2 rounded ${a}`} />
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'h:badge':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className={`h-[7px] w-[7px] rotate-45 rounded-[1.5px] ${a}`} />
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'h:plain':
+      return <span className={`h-[3px] w-5 ${t}`} />
+    // skills styles
+    case 's:':
+      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+    case 's:chips':
+      return (
+        <span className="flex w-8 gap-[3px]">
+          <span className="h-[8px] w-3.5 rounded-full border border-primary/60 bg-primary/15" />
+          <span className="h-[8px] w-3 rounded-full border border-primary/60 bg-primary/15" />
+        </span>
+      )
+    case 's:tags':
+      return (
+        <span className="flex w-8 gap-[4px]">
+          <span className="flex flex-col gap-[2px]"><span className={`h-[3px] w-3 ${t}`} /><span className="h-px w-full bg-foreground/50" /></span>
+          <span className="flex flex-col gap-[2px]"><span className={`h-[3px] w-2.5 ${t}`} /><span className="h-px w-full bg-foreground/50" /></span>
+        </span>
+      )
+    case 's:inline':
+      return (
+        <span className="flex w-8 items-center gap-[3px]">
+          <span className={`h-[3px] w-2.5 ${t}`} />
+          <span className="h-[3px] w-[3px] rounded-full bg-foreground/45" />
+          <span className={`h-[3px] w-2.5 ${t}`} />
+        </span>
+      )
+    case 's:grid':
+      return (
+        <span className="grid w-8 grid-cols-2 gap-[3px]">
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className="flex items-center gap-[2px]">
+              <span className={`h-[4px] w-[4px] rotate-45 ${a}`} />
+              <span className={`h-[2.5px] flex-1 ${t}`} />
+            </span>
+          ))}
+        </span>
+      )
+    // entry layouts
+    case 'e:':
+      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+    case 'e:timeline':
+      return (
+        <span className="flex w-8 gap-[4px]">
+          <span className="relative w-[7px]">
+            <span className="absolute left-[2.5px] top-0 bottom-0 w-px bg-primary/40" />
+            <span className={`absolute left-0 top-[1px] h-[6px] w-[6px] rounded-full ${a}`} />
+            <span className={`absolute left-0 top-[12px] h-[6px] w-[6px] rounded-full ${a}`} />
+          </span>
+          <span className="flex flex-1 flex-col gap-[5px] pt-[1px]">
+            <span className={`h-[3px] w-full ${t}`} />
+            <span className={`h-[3px] w-4/5 ${t}`} />
+          </span>
+        </span>
+      )
+    case 'e:cards':
+      return (
+        <span className="flex w-8 flex-col gap-[3px]">
+          <span className="flex h-[8px] items-center rounded-[2px] border border-foreground/30 px-[3px]"><span className={`h-[2.5px] w-3 ${t}`} /></span>
+          <span className="flex h-[8px] items-center rounded-[2px] border border-foreground/30 px-[3px]"><span className={`h-[2.5px] w-2.5 ${t}`} /></span>
+        </span>
+      )
+    case 'e:grid':
+      return (
+        <span className="grid w-8 grid-cols-2 gap-[3px]">
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className={`h-[5px] rounded-[1px] bg-foreground/25`} />
+          ))}
+        </span>
+      )
+    case 'e:divided':
+      return (
+        <span className="flex w-8 flex-col gap-[3px]">
+          <span className={`h-[3px] w-full ${t}`} />
+          <span className="h-0 w-full border-t border-dotted border-foreground/50" />
+          <span className={`h-[3px] w-4/5 ${t}`} />
+        </span>
+      )
+    default:
+      return null
+  }
+}
+
+/** Sections whose bodies aren't entry lists (entry-layout doesn't apply). */
+const NO_ENTRY_LAYOUT = new Set(['summary', 'skills', 'languages'])
+
 const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
 const HAS_DATES = new Set(['work', 'education', 'projects', 'volunteer', 'certificates', 'awards', 'publications', 'custom'])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
@@ -58,7 +209,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
     })
 
   // Per-section style overrides — applied live on the canvas as you click.
-  const setStyle = (field: 'headingStyle' | 'skillsStyle', value?: string) =>
+  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout', value?: string) =>
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
@@ -82,7 +233,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
 
   const openPopover = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - 232, window.innerWidth - 240)) })
+    setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - 300, window.innerWidth - 312)) })
     setOpen(true)
   }
 
@@ -111,7 +262,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[61] w-[15rem] rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
+              className="fixed z-[61] w-[19rem] rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
               style={{ top: pos.top, left: pos.left }}
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Section settings</div>
@@ -128,12 +279,31 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                     <StyleChip
                       key={s.value || 'auto'}
                       label={s.label}
+                      kind={`h:${s.value}`}
                       on={(opts.headingStyle ?? '') === s.value}
                       onClick={() => setStyle('headingStyle', s.value || undefined)}
                     />
                   ))}
                 </div>
               </div>
+
+              {/* Entry layout — how this section's entries flow on the page */}
+              {!NO_ENTRY_LAYOUT.has(base) && (
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Entries layout</div>
+                  <div className="flex flex-wrap gap-1">
+                    {ENTRY_LAYOUTS.map((s) => (
+                      <StyleChip
+                        key={s.value || 'auto'}
+                        label={s.label}
+                        kind={`e:${s.value}`}
+                        on={(opts.entryLayout ?? '') === s.value}
+                        onClick={() => setStyle('entryLayout', s.value || undefined)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Skills display — only for the skills section */}
               {sectionKey === 'skills' && (
@@ -144,6 +314,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                       <StyleChip
                         key={s.value || 'auto'}
                         label={s.label}
+                        kind={`s:${s.value}`}
                         on={(opts.skillsStyle ?? '') === s.value}
                         onClick={() => setStyle('skillsStyle', s.value || undefined)}
                       />
@@ -174,16 +345,21 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   )
 }
 
-function StyleChip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+/** A style option: a small visual mock of the style + its name underneath. */
+function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; on: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition ${
-        on ? 'border-primary bg-primary text-white' : 'border-border bg-muted text-muted-foreground hover:border-primary/50 hover:text-foreground'
+      title={label}
+      className={`flex w-[52px] flex-col items-center gap-1 rounded-lg border p-1.5 transition ${
+        on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'
       }`}
     >
-      {label}
+      <span className="flex h-5 w-full items-center justify-center">
+        <Mini kind={kind} />
+      </span>
+      <span className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{label}</span>
     </button>
   )
 }

@@ -30,6 +30,73 @@ const PALETTES: { name: string; color: string }[] = [
   { name: 'Slate', color: '#475569' },
 ]
 
+/** Header compositions ('' = the template's own default). */
+const HEADER_STYLES: { label: string; value: string }[] = [
+  { label: 'Auto', value: '' },
+  { label: 'Classic', value: 'standard' },
+  { label: 'Centered', value: 'centered' },
+  { label: 'Split', value: 'split' },
+  { label: 'Banner', value: 'banner' },
+  { label: 'Compact', value: 'compact' },
+]
+
+/** Tiny visual mock of each header composition, so users see what they pick. */
+function HeaderMini({ kind }: { kind: string }) {
+  const bar = 'rounded-[1px] bg-slate-600'
+  const line = 'rounded-[1px] bg-slate-300'
+  switch (kind) {
+    case 'standard':
+      return (
+        <span className="flex w-full flex-col gap-[3px]">
+          <span className={`h-[4px] w-1/2 ${bar}`} />
+          <span className={`h-[2px] w-2/3 ${line}`} />
+          <span className={`h-[2px] w-full ${line}`} />
+        </span>
+      )
+    case 'centered':
+      return (
+        <span className="flex w-full flex-col items-center gap-[3px]">
+          <span className={`h-[4px] w-1/2 ${bar}`} />
+          <span className={`h-[2px] w-2/3 ${line}`} />
+          <span className={`h-[2px] w-4/5 ${line}`} />
+        </span>
+      )
+    case 'split':
+      return (
+        <span className="flex w-full items-start justify-between gap-1">
+          <span className="flex w-1/2 flex-col gap-[3px]">
+            <span className={`h-[4px] w-full ${bar}`} />
+            <span className={`h-[2px] w-3/4 ${line}`} />
+          </span>
+          <span className="flex w-1/3 flex-col items-end gap-[2px]">
+            <span className={`h-[2px] w-full ${line}`} />
+            <span className={`h-[2px] w-4/5 ${line}`} />
+            <span className={`h-[2px] w-full ${line}`} />
+          </span>
+        </span>
+      )
+    case 'banner':
+      return (
+        <span className="flex w-full flex-col gap-[3px]">
+          <span className="flex w-full flex-col gap-[2px] rounded-[2px] bg-primary p-[3px]">
+            <span className="h-[3px] w-1/2 rounded-[1px] bg-white/90" />
+            <span className="h-[2px] w-2/3 rounded-[1px] bg-white/60" />
+          </span>
+          <span className={`h-[2px] w-full ${line}`} />
+        </span>
+      )
+    case 'compact':
+      return (
+        <span className="flex w-full items-center gap-[4px]">
+          <span className={`h-[4px] w-1/3 ${bar}`} />
+          <span className={`h-[2px] flex-1 ${line}`} />
+        </span>
+      )
+    default:
+      return <span className="text-[9px] font-semibold text-muted-foreground">Auto</span>
+  }
+}
+
 export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateMetadata)
   const m = doc.metadata
@@ -109,6 +176,29 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
       </FieldGroup>
 
       <FieldGroup title="Layout">
+        <div>
+          <label className="label">Header layout</label>
+          <div className="flex flex-wrap gap-1.5">
+            {HEADER_STYLES.map((h) => {
+              const on = (m.layout.headerStyle ?? '') === h.value
+              return (
+                <button
+                  key={h.value || 'auto'}
+                  type="button"
+                  title={h.label}
+                  onClick={() => update((md) => { md.layout.headerStyle = (h.value || undefined) as typeof md.layout.headerStyle })}
+                  className={`flex w-[64px] flex-col items-center gap-1 rounded-lg border p-1.5 transition ${on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'}`}
+                >
+                  <span className="flex h-8 w-full items-center justify-center overflow-hidden rounded-[3px] border border-border/70 bg-white p-1">
+                    <HeaderMini kind={h.value} />
+                  </span>
+                  <span className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{h.label}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="-mt-0 text-[11px] text-muted-foreground">How your name &amp; contacts compose — on top of any template.</p>
+        </div>
         <div>
           <label className="label">Columns</label>
           <Segmented

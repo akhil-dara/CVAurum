@@ -154,7 +154,8 @@ function Header({ doc, config, edit }: { doc: ResumeDocument; config: TemplateCo
   const icons = doc.metadata.layout.icons
   const entries = buildContacts(doc)
   const name = b.name || 'Your Name'
-  const variant = config.header
+  // The user's header-composition choice (Design panel) wins over the template's.
+  const variant = doc.metadata.layout.headerStyle ?? config.header
   // In two-column layouts the sidebar owns the photo/monogram, so the header omits it.
   const twoCol = doc.metadata.layout.columns === 2
   const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} />
@@ -250,7 +251,12 @@ function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: stri
   // Per-section style overrides (user picks in the section gear) — scoped classes
   // that beat the template's root-level sec-*/skl-* defaults.
   const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
-  const cls = ['rm-section', ss?.headingStyle ? `sec-ov-${ss.headingStyle}` : '', ss?.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '']
+  const cls = [
+    'rm-section',
+    ss?.headingStyle ? `sec-ov-${ss.headingStyle}` : '',
+    ss?.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '',
+    ss?.entryLayout ? `lay-ov-${ss.entryLayout}` : '',
+  ]
     .filter(Boolean)
     .join(' ')
   return (

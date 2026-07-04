@@ -75,6 +75,8 @@ export const TypographySchema = z.object({
 export const LayoutSchema = z.object({
   /** 1 = single column, 2 = main + sidebar */
   columns: z.union([z.literal(1), z.literal(2)]).default(1),
+  /** header composition override (unset = the template's own header) */
+  headerStyle: z.enum(['standard', 'centered', 'split', 'banner', 'compact']).optional(),
   /** which side the sidebar sits on (only used when columns === 2) */
   sidebar: z.enum(['left', 'right']).default('left'),
   /** sidebar width as a fraction of content width (0.28 - 0.42) */
@@ -102,6 +104,8 @@ export const LayoutSchema = z.object({
           .optional(),
         /** how the skills section displays its keywords (skills section only) */
         skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid']).optional(),
+        /** how the section's entries are laid out (overrides the template's flow) */
+        entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided']).optional(),
       }),
     )
     .default({}),

@@ -1192,3 +1192,56 @@
 .rm-root .rm-section.skl-ov-grid .rm-add-btn {
   grid-column: 1 / -1;
 }
+
+/* --- entry-layout overrides: how a section's entries flow --- */
+/* timeline: accent dot + connecting rail down the left of each entry */
+.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item {
+  position: relative;
+  padding-left: 1.2em;
+}
+.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.4em;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--rm-primary);
+}
+.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item::after {
+  content: '';
+  position: absolute;
+  left: calc(0.25em - 0.75px);
+  top: 1.15em;
+  bottom: calc(-1 * var(--rm-item-gap));
+  width: 1.5px;
+  background: color-mix(in srgb, var(--rm-primary) 28%, transparent);
+}
+.rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item:last-of-type::after {
+  content: none;
+}
+/* cards: each entry on its own soft card (adapts to light & dark pages) */
+.rm-root .rm-section.lay-ov-cards .rm-section-body > .rm-item {
+  background: color-mix(in srgb, var(--rm-text) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rm-text) 11%, transparent);
+  border-radius: 10px;
+  padding: 0.65em 0.85em;
+}
+/* grid: entries in two columns (great for certifications / awards / education) */
+.rm-root .rm-section.lay-ov-grid .rm-section-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--rm-item-gap) * 0.9) 1.6em;
+}
+.rm-root .rm-section.lay-ov-grid .rm-section-body > .rm-item {
+  margin: 0;
+}
+.rm-root .rm-section.lay-ov-grid .rm-section-body > :is(.rm-add-entry-row, .rm-add-btn) {
+  grid-column: 1 / -1;
+}
+/* divided: a dotted hairline between entries */
+.rm-root .rm-section.lay-ov-divided .rm-section-body > .rm-item + .rm-item {
+  border-top: 1px dotted color-mix(in srgb, var(--rm-muted) 55%, transparent);
+  padding-top: calc(var(--rm-item-gap) * 0.9);
+}
