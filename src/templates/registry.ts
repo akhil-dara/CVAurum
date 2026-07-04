@@ -35,6 +35,42 @@ function defs(
 
 export const TEMPLATES: TemplateConfig[] = [
   {
+    id: 'clarity',
+    name: 'Clarity',
+    description: 'The modern professional standard: heavy ruled headings, dotted entry dividers, accent-blue employers, a right rail on white, score blocks for education, and underlined skill tags. Rich, structured, endlessly scannable.',
+    tags: ['two-column', 'modern', 'premium'],
+    atsSafe: true,
+    class: 'tpl-clarity',
+    header: 'standard',
+    section: 'underline',
+    skills: 'chips',
+    sectionIcons: false,
+    defaults: defs(
+      'clarity',
+      { primary: '#2b7fd4', text: '#1e2532', muted: '#6a7686', sidebar: '#ffffff', sidebarText: '#1e2532' },
+      { fontFamily: 'Lato', headingFamily: 'Poppins', nameFamily: 'Poppins', fontSize: 9.6, lineHeight: 1.38, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true },
+      { columns: 2, sidebar: 'right', sidebarWidth: 0.32, showPhoto: true, photoShape: 'rounded' }
+    ),
+  },
+  {
+    id: 'obsidian',
+    name: 'Obsidian',
+    description: 'Layered blacks, tactile entry cards, and tracked gold labels — a dark, luxury-fintech aesthetic. Every word stays selectable text, so the drama costs nothing in parsing.',
+    tags: ['single-column', 'creative', 'premium'],
+    atsSafe: true,
+    class: 'tpl-obsidian',
+    header: 'standard',
+    section: 'plain',
+    skills: 'grouped-chips',
+    sectionIcons: false,
+    defaults: defs(
+      'obsidian',
+      { primary: '#e3bd6d', text: '#eceef2', muted: '#98a1b0', background: '#0d0e12', sidebar: '#0a0b0e', sidebarText: '#eceef2' },
+      { fontFamily: 'Inter', headingFamily: 'Archivo', nameFamily: 'Archivo', fontSize: 9.7, lineHeight: 1.44, letterSpacing: 0, headingScale: 1.6, uppercaseHeadings: true },
+      { columns: 1, icons: false, showPhoto: false, sectionGap: 13, itemGap: 8 }
+    ),
+  },
+  {
     id: 'onyx-noir',
     name: 'Onyx Noir',
     description: 'A full-bleed charcoal résumé with an electric-teal accent and crisp white type — the dark, high-contrast look that turns heads. Selectable text throughout, so it still reads clean for ATS.',

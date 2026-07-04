@@ -836,6 +836,132 @@
   border-radius: 9999px;
 }
 
+/* ===================================================== Clarity (structured pro) */
+.tpl-clarity .rm-name {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.tpl-clarity .rm-headline {
+  font-weight: 600;
+  color: var(--rm-primary);
+}
+/* heavy, confident section rule */
+.tpl-clarity .rm-section-title {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid color-mix(in srgb, var(--rm-text) 78%, transparent);
+  padding-bottom: 0.28em;
+}
+/* white right rail with a hairline divider instead of a colored slab */
+.tpl-clarity .rm-col-aside {
+  border-left: 1px solid #e3e7ee;
+}
+/* dotted separators between entries (main column) */
+.tpl-clarity .rm-col-main .rm-section-body > .rm-item + .rm-item {
+  border-top: 1px dotted color-mix(in srgb, var(--rm-muted) 55%, transparent);
+  padding-top: calc(var(--rm-item-gap) * 0.9);
+}
+.tpl-clarity .rm-item-title {
+  font-weight: 700;
+}
+/* employer / institution pops in the accent */
+.tpl-clarity .rm-item-org {
+  color: var(--rm-primary);
+  font-weight: 600;
+}
+/* pipe separators inside the meta row */
+.tpl-clarity .rm-item-sub > *:not(:first-child)::before {
+  content: '|';
+  margin-right: 0.85em;
+  color: color-mix(in srgb, var(--rm-muted) 45%, transparent);
+}
+/* education score block: pushed right, divided by a vertical hairline */
+.tpl-clarity .rm-item-score {
+  margin-left: auto;
+  padding-left: 0.9em;
+  border-left: 1.5px solid #dbe1ea;
+  color: var(--rm-primary);
+  font-weight: 700;
+}
+.tpl-clarity .rm-item-score::before {
+  content: none !important; /* no pipe before the score block — it has its divider */
+}
+/* skills as underlined tags */
+.tpl-clarity .rm-chip {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--rm-muted) 50%, transparent);
+  border-radius: 0;
+  padding: 0.02em 0.1em 0.22em;
+  font-weight: 600;
+}
+/* certifications & awards read as a two-column grid in the main flow */
+.tpl-clarity .rm-col-main .rm-section[data-section='certificates'] .rm-section-body,
+.tpl-clarity .rm-col-main .rm-section[data-section='awards'] .rm-section-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--rm-item-gap) * 0.9) 1.6em;
+}
+.tpl-clarity .rm-col-main .rm-section[data-section='certificates'] .rm-item + .rm-item,
+.tpl-clarity .rm-col-main .rm-section[data-section='awards'] .rm-item + .rm-item {
+  border-top: none; /* grid cells don't stack, so no dotted rule */
+  padding-top: 0;
+}
+
+/* ===================================================== Obsidian (dark luxury cards) */
+.tpl-obsidian .rm-name {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.tpl-obsidian .rm-headline {
+  color: var(--rm-primary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.tpl-obsidian .rm-header-standard {
+  border-bottom: 1px solid #23262e;
+  padding-bottom: 0.7em;
+}
+/* tiny tracked gold labels instead of big headings */
+.tpl-obsidian .rm-section-title {
+  color: var(--rm-primary);
+  font-size: calc(var(--rm-fs) * 0.82);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+/* every entry is a tactile card on the layered black */
+.tpl-obsidian .rm-section-body > .rm-item {
+  background: #15171d;
+  border: 1px solid #262a33;
+  border-radius: 12px;
+  padding: 0.75em 0.95em;
+}
+.tpl-obsidian .rm-item-title {
+  color: #f4f5f8;
+  font-weight: 700;
+}
+.tpl-obsidian .rm-item-org {
+  color: var(--rm-primary);
+}
+.tpl-obsidian .rm-chip {
+  background: #191c23;
+  border-color: #2c313c;
+  color: #cfd5e0;
+}
+.tpl-obsidian .rm-skill-group-name {
+  color: #f4f5f8;
+}
+.tpl-obsidian .rm-dot.on,
+.tpl-obsidian .rm-level-fill {
+  background: var(--rm-primary);
+}
+.tpl-obsidian .rm-dot {
+  background: #262a33;
+}
+.tpl-obsidian .rm-bullets li::marker {
+  color: var(--rm-primary);
+}
+
 /* ===================================================== Onyx Noir (dark full-page) */
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-name {
   font-weight: 700;

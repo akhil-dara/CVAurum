@@ -318,7 +318,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             <div className="rm-item-sub">
               <Ed edit={edit} value={e.institution} apply={(c, v) => { c.education[i].institution = v }} className="rm-item-org" placeholder="Institution" />
               {show(opts?.showLocation) && (edit || e.location) ? <Ed edit={edit} value={e.location} apply={(c, v) => { c.education[i].location = v }} className="rm-item-loc" placeholder="Location" /> : null}
-              {edit || e.score ? <Ed edit={edit} value={e.score} apply={(c, v) => { c.education[i].score = v }} placeholder="GPA" /> : null}
+              {edit || e.score ? <Ed edit={edit} value={e.score} apply={(c, v) => { c.education[i].score = v }} className="rm-item-score" placeholder="GPA" /> : null}
             </div>
             {has(e.summary) ? <RichText html={e.summary} /> : null}
             {e.courses?.length ? <div className="rm-skill-inline">{e.courses.join(' · ')}</div> : null}
