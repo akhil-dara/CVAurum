@@ -27,7 +27,6 @@ import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
@@ -73,12 +72,12 @@ export function Landing() {
   const hasResumes = library.length > 0
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="dark min-h-full bg-[#0a0c12] text-foreground">
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
 
       {/* nav */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0a0c12]/75 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
@@ -92,7 +91,6 @@ export function Landing() {
               <Github className="h-4 w-4" /> GitHub
             </a>
             <InstallButton />
-            <ThemeToggle />
             <Link className={hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'} to="/app">
               <span className="sm:hidden">Resumes</span>
               <span className="hidden sm:inline">My resumes{hasResumes ? ` (${library.length})` : ''}</span>
@@ -116,7 +114,7 @@ export function Landing() {
 
         {/* how it works */}
         <section id="how" className="border-y border-border bg-surface-muted/40">
-          <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="mx-auto max-w-6xl px-6 py-14 land-reveal">
             <div className="text-center">
               <h2 className="text-2xl font-semibold tracking-tight">Three steps to a polished résumé</h2>
               <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
@@ -124,7 +122,7 @@ export function Landing() {
               </p>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
-              <Step n={1} icon={<LayoutGrid className="h-5 w-5" />} title="Pick a template" body="Choose from 30+ recruiter-ready designs. Switch anytime — your content carries over." />
+              <Step n={1} icon={<LayoutGrid className="h-5 w-5" />} title="Pick a template" body="Choose from 52 recruiter-ready designs. Switch anytime — your content carries over." />
               <Step n={2} icon={<PencilLine className="h-5 w-5" />} title="Fill it in" body="Edit right on the page. A live ATS score and keyword match keep you on track." />
               <Step n={3} icon={<Download className="h-5 w-5" />} title="Export & apply" body="Download a crisp, selectable PDF or an ATS-friendly Word file in one click." />
             </div>
@@ -132,7 +130,7 @@ export function Landing() {
         </section>
 
         {/* template showcase */}
-        <section id="templates" className="mx-auto max-w-6xl px-6 py-14">
+        <section id="templates" className="mx-auto max-w-6xl px-6 py-14 land-reveal">
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Start from a recruiter-ready template</h2>
@@ -154,7 +152,7 @@ export function Landing() {
                   <PreviewThumb doc={doc} width={210} />
                 </div>
                 <div className="flex items-center justify-between border-t border-border px-2.5 py-1.5">
-                  <span className="text-xs font-medium">{getTemplate(id).name}</span>
+                  <span className="text-xs font-medium text-slate-800">{getTemplate(id).name}</span>
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
               </button>
@@ -164,7 +162,7 @@ export function Landing() {
 
         {/* feature band */}
         <section className="border-y border-border bg-surface-muted/40">
-          <div className="mx-auto grid max-w-6xl gap-6 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto grid max-w-6xl gap-6 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4 land-reveal">
             <Feature icon={<ShieldCheck className="h-5 w-5" />} title="Private by architecture" body="No server, no account, no tracking. Your data lives only in this browser." />
             <Feature icon={<Target className="h-5 w-5" />} title="ATS built in" body="A live, deterministic ATS score and job-description keyword matching." />
             <Feature icon={<FileDown className="h-5 w-5" />} title="PDF & Word export" body="Pixel-perfect PDF plus a clean, ATS-friendly .docx — generated in-browser." />
@@ -173,7 +171,7 @@ export function Landing() {
         </section>
 
         {/* comparison */}
-        <section id="compare" className="mx-auto max-w-5xl px-6 py-14">
+        <section id="compare" className="mx-auto max-w-5xl px-6 py-14 land-reveal">
           <div className="text-center">
             <h2 className="text-2xl font-semibold tracking-tight">Most builders win one thing. CVAurum wins them all.</h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -208,8 +206,8 @@ export function Landing() {
         </section>
 
         {/* privacy callout */}
-        <section id="privacy" className="mx-auto max-w-6xl px-6 py-16">
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface p-8 sm:p-12">
+        <section id="privacy" className="mx-auto max-w-6xl px-6 py-16 land-reveal">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface p-8 shadow-[0_0_90px_-30px_rgba(212,152,47,0.4)] sm:p-12">
             <div className="grid items-center gap-8 md:grid-cols-[auto,1fr]">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-white" style={{ background: GOLD }}>
                 <ShieldCheck className="h-8 w-8" />
@@ -235,7 +233,7 @@ export function Landing() {
         </section>
 
         {/* faq */}
-        <section className="mx-auto max-w-3xl px-6 pb-16">
+        <section className="mx-auto max-w-3xl px-6 pb-16 land-reveal">
           <h2 className="text-center text-xl font-semibold tracking-tight">Questions</h2>
           <div className="mt-6 space-y-3">
             <Faq q="How do I know my data is really private?" a="Because you can check. CVAurum runs entirely in your browser — your resume is stored locally and never sent anywhere. There's no account, no server, and no analytics. Open your browser's network tab and you'll see zero outbound requests, even for fonts, which we self-host." />

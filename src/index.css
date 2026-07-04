@@ -267,3 +267,20 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-shimmer { animation: none; }
 }
+
+
+/* Landing: scroll-driven section reveals (CSS-only; static where unsupported). */
+@supports (animation-timeline: view()) {
+  .land-reveal {
+    animation: land-rise both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+  @keyframes land-rise {
+    from { opacity: 0.12; transform: translateY(30px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .land-reveal { animation: none; }
+  }
+}
