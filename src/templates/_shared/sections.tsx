@@ -28,6 +28,8 @@ export type SecOpts = {
   showKeywords?: boolean
   headingStyle?: string
   skillsStyle?: string
+  entryLayout?: string
+  showBadges?: boolean
 }
 const show = (v?: boolean) => v !== false
 
@@ -160,9 +162,17 @@ function Bullets({
   )
 }
 
-function ItemHead({ title, date }: { title: ReactNode; date?: ReactNode }) {
+/** First letter of the org/name — the ATS-safe stand-in for a company logo. */
+const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
+
+function ItemHead({ title, date, badge }: { title: ReactNode; date?: ReactNode; badge?: string }) {
   return (
     <div className="rm-item-head">
+      {badge ? (
+        <span className="rm-item-badge" aria-hidden>
+          {badge}
+        </span>
+      ) : null}
       <div className="rm-item-title">{title}</div>
       {date ? <div className="rm-item-date">{date}</div> : null}
     </div>
@@ -288,6 +298,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
         return (
         <article className="rm-item rm-keep" key={w.id}>
           <ItemHead
+            badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
             title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title" />}
             date={rangeDate(edit, show(opts?.showDates), w.startDate, w.endDate, (c, v) => { c.work[i].startDate = v }, (c, v) => { c.work[i].endDate = v })}
           />
@@ -327,6 +338,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         return (
           <article className="rm-item rm-keep" key={e.id}>
             <ItemHead
+            badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
               title={edit ? <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field of study" /> : title}
               date={rangeDate(edit, show(opts?.showDates), e.startDate, e.endDate, (c, v) => { c.education[i].startDate = v }, (c, v) => { c.education[i].endDate = v })}
             />
@@ -352,6 +364,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
         return (
         <article className="rm-item rm-keep" key={p.id}>
           <ItemHead
+            badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
             date={rangeDate(edit, show(opts?.showDates), p.startDate, p.endDate, (c, v) => { c.projects[i].startDate = v }, (c, v) => { c.projects[i].endDate = v })}
           />
@@ -545,6 +558,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         return (
         <article className="rm-item rm-keep" key={v.id}>
           <ItemHead
+            badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
             title={<Ed edit={edit} value={v.position} apply={(c, val) => { c.volunteer[i].position = val }} placeholder="Role" />}
             date={rangeDate(edit, show(opts?.showDates), v.startDate, v.endDate, (c, val) => { c.volunteer[i].startDate = val }, (c, val) => { c.volunteer[i].endDate = val })}
           />
@@ -627,6 +641,7 @@ function Custom({ doc, sectionKey, edit, opts }: { doc: ResumeDocument; sectionK
         return (
         <article className="rm-item rm-keep" key={it.id}>
           <ItemHead
+            badge={opts?.showBadges ? badgeLetter(it.name || it.subtitle) : undefined}
             title={<Ed edit={edit} value={it.name} apply={(c, v) => { c.custom[secIndex].items[i].name = v }} placeholder="Title" />}
             date={singleDate(edit, show(opts?.showDates), it.date ?? '', (c, v) => { c.custom[secIndex].items[i].date = v })}
           />

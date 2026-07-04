@@ -106,6 +106,8 @@ export const LayoutSchema = z.object({
         skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid']).optional(),
         /** how the section's entries are laid out (overrides the template's flow) */
         entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided']).optional(),
+        /** show a monogram badge (company/institution initial) beside each entry */
+        showBadges: z.boolean().optional(),
       }),
     )
     .default({}),

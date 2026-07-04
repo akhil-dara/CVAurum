@@ -5,7 +5,7 @@ import type { ResumeDocument } from '@/types/document'
 import { sectionLabel } from '@/lib/sections'
 import type { MetaEditFn } from './Editable'
 
-type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords'
+type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords' | 'showBadges'
 
 /** Per-section heading treatments ('' = the template's own default). */
 const HEADING_STYLES: { label: string; value: string }[] = [
@@ -179,6 +179,8 @@ function Mini({ kind }: { kind: string }) {
 
 /** Sections whose bodies aren't entry lists (entry-layout doesn't apply). */
 const NO_ENTRY_LAYOUT = new Set(['summary', 'skills', 'languages'])
+/** Badge = org/name initial; only meaningful on title-led entry sections. */
+const NO_BADGES = new Set(['certificates', 'awards', 'publications', 'interests', 'references'])
 
 const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
 const HAS_DATES = new Set(['work', 'education', 'projects', 'volunteer', 'certificates', 'awards', 'publications', 'custom'])
@@ -205,7 +207,8 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = m.layout.sectionSettings[sectionKey] ?? {}
-      const shown = cur[field] !== false
+      // showBadges is opt-IN (off by default); the rest are opt-OUT (shown by default).
+      const shown = field === 'showBadges' ? cur.showBadges === true : cur[field] !== false
       m.layout.sectionSettings[sectionKey] = { ...cur, [field]: shown ? false : true }
     })
 
@@ -251,6 +254,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   if (HAS_LOCATION.has(base)) rows.push({ label: 'Location', field: 'showLocation' })
   if (HAS_SUMMARY.has(base)) rows.push({ label: 'Role summary', field: 'showSummary' })
   if (HAS_KEYWORDS.has(base)) rows.push({ label: 'Tech tags', field: 'showKeywords' })
+  if (!NO_ENTRY_LAYOUT.has(base) && !NO_BADGES.has(base)) rows.push({ label: 'Entry badges (initial)', field: 'showBadges' })
 
   return (
     <>
@@ -277,7 +281,12 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                 {sectionLabel(sectionKey, doc)} <span className="font-normal normal-case">— style &amp; settings</span>
               </div>
               {rows.map((r) => (
-                <ToggleRow key={r.field} label={r.label} on={opts[r.field] !== false} onClick={() => toggle(r.field)} />
+                <ToggleRow
+                  key={r.field}
+                  label={r.label}
+                  on={r.field === 'showBadges' ? opts.showBadges === true : opts[r.field] !== false}
+                  onClick={() => toggle(r.field)}
+                />
               ))}
               {rows.length > 0 && <div className="my-1 h-px bg-border" />}
 
