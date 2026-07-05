@@ -86,14 +86,19 @@ export async function saveTracker(apps: JobApplication[]): Promise<void> {
   await set(TRACKER_KEY, apps, store)
 }
 
-/** The retired grey-silhouette sample avatar. Docs created from older sample
- *  content still carry it, and in a PDF it reads as a "no dp" placeholder —
- *  strip it on load so nothing placeholder-looking can ever print. */
-export const RETIRED_AVATAR =
+/** Retired sample avatars. Docs created from older sample content still carry
+ *  them, and in a PDF they read as a "no dp" placeholder — strip them on load
+ *  so nothing placeholder-looking can ever print. */
+const RETIRED_AVATAR =
   "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%23cbd5e1'/%3E%3Cstop%20offset='1'%20stop-color='%2364748b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='240'%20height='240'%20fill='url(%23g)'/%3E%3Ccircle%20cx='120'%20cy='94'%20r='40'%20fill='%23f1f5f9'/%3E%3Cpath%20d='M50%20208c0-39%2031-62%2070-62s70%2023%2070%2062z'%20fill='%23f1f5f9'/%3E%3C/svg%3E"
 
+const RETIRED_AVATAR_AM =
+  "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%232a3142'/%3E%3Cstop%20offset='1'%20stop-color='%2312151d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='240'%20height='240'%20fill='url(%23g)'/%3E%3Ccircle%20cx='120'%20cy='120'%20r='84'%20fill='none'%20stroke='%23d4982f'%20stroke-opacity='0.55'%20stroke-width='2.5'/%3E%3Ctext%20x='120'%20y='149'%20font-family='Georgia,serif'%20font-size='80'%20fill='%23f5efe2'%20text-anchor='middle'%3EAM%3C/text%3E%3C/svg%3E"
+
+export const RETIRED_AVATARS = [RETIRED_AVATAR, RETIRED_AVATAR_AM]
+
 function scrubRetiredAvatar(doc: ResumeDocument): ResumeDocument {
-  if (doc.content?.basics?.image === RETIRED_AVATAR) doc.content.basics.image = ''
+  if (doc.content?.basics?.image && RETIRED_AVATARS.includes(doc.content.basics.image)) doc.content.basics.image = ''
   return doc
 }
 

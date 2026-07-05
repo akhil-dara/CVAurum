@@ -5,7 +5,7 @@
  * defensive: invalid entries are skipped, never the whole import.
  */
 import { uid, downloadBlob } from '@/lib/utils'
-import { RETIRED_AVATAR } from './storage'
+import { RETIRED_AVATARS } from './storage'
 import { ResumeDocumentSchema, type ResumeDocument } from '@/types/document'
 import type { AppSettings } from '@/lib/storage'
 import {
@@ -92,7 +92,7 @@ export async function importFullBackup(file: File, mode: 'merge' | 'replace' = '
     }
     // Drop any non-local (remote) photo src so a crafted backup can't trigger
     // external image requests on render — this path never re-encodes images.
-    if (d.content.basics.image === RETIRED_AVATAR) d.content.basics.image = ''
+    if (d.content.basics.image && RETIRED_AVATARS.includes(d.content.basics.image)) d.content.basics.image = ''
     if (d.content.basics.image && !/^data:image\//i.test(d.content.basics.image)) {
       d.content.basics.image = ''
     }

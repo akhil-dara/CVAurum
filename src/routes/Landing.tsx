@@ -37,7 +37,7 @@ const goldText = { backgroundImage: GOLD, WebkitBackgroundClip: 'text', backgrou
 const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** Templates shown live (with sample content) in the showcase strip. */
-const SHOWCASE = ['mercury', 'halcyon', 'aria', 'deedy', 'onyx', 'portrait']
+const SHOWCASE = ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnacle']
 
 /** Honest head-to-head: what CVAurum does vs. what most resume builders do. */
 const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
@@ -350,7 +350,7 @@ function HeroCinema({
   // designs — the template engine demonstrating itself.
   const morph = useMemo(
     () =>
-      ['mercury', 'onyx', 'aria', 'deedy', 'halcyon', 'portrait'].map((id) => {
+      ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnacle'].map((id) => {
         const d = createDocument({ sample: true })
         d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
         return { id, name: getTemplate(id).name, doc: d }
@@ -484,7 +484,7 @@ function HeroCinema({
                 <div className="hero-sheen" aria-hidden />
               </div>
               {/* live template name — proof it's the same content, restyled */}
-              <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
+              <div className="pointer-events-none absolute bottom-3 right-3">
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
                     key={morph[ti].id}
@@ -503,7 +503,7 @@ function HeroCinema({
 
             {/* floating proof chips */}
             <motion.div
-              className="absolute -left-10 top-16 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
+              className="absolute -top-7 left-4 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
               style={{ z: 90 }}
               animate={reduce ? undefined : { y: [0, -7, 0] }}
               transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -512,7 +512,7 @@ function HeroCinema({
               <div className="mt-0.5 text-white/60">everything stays on this device</div>
             </motion.div>
             <motion.div
-              className="absolute -right-6 top-40 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
+              className="absolute -right-16 top-44 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
               style={{ z: 80 }}
               animate={reduce ? undefined : { y: [0, -9, 0] }}
               transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
@@ -521,7 +521,7 @@ function HeroCinema({
               <div className="mt-0.5 text-white/60">restyle section by section</div>
             </motion.div>
             <motion.div
-              className="absolute -left-4 bottom-10 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
+              className="absolute -bottom-14 left-2 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
               style={{ z: 70 }}
               animate={reduce ? undefined : { y: [0, -6, 0] }}
               transition={{ duration: 5.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}

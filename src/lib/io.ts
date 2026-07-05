@@ -23,7 +23,7 @@ import {
   CustomSectionSchema,
 } from '@/types/resume'
 import { MetadataSchema } from '@/types/metadata'
-import { RETIRED_AVATAR } from './storage'
+import { RETIRED_AVATARS } from './storage'
 import { defaultMetadata, ensureIds } from '@/data/defaults'
 import { downscaleDataUrl } from '@/lib/image'
 
@@ -148,6 +148,6 @@ export async function importDocumentFromFile(file: File): Promise<ResumeDocument
 export async function sanitizeImportedImage(image?: string): Promise<string> {
   if (!image) return ''
   if (!/^data:image\//i.test(image)) return ''
-  if (image === RETIRED_AVATAR) return '' // old placeholder avatar — never re-import
+  if (RETIRED_AVATARS.includes(image)) return '' // old placeholder avatars — never re-import
   return downscaleDataUrl(image, 512)
 }

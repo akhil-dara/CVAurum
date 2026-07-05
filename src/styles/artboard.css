@@ -205,10 +205,12 @@
   transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   z-index: 6;
 }
-/* narrow sidebar columns: long headings would run under the pill — reserve the
-   pill's footprint so the title wraps short of it (edit mode only, via :has) */
-.rm-col-aside .rm-section:has(> .rm-section-gear) .rm-section-title {
-  padding-right: 5.4em;
+/* narrow sidebar columns: a compact pill floats clear ABOVE the title line —
+   never reserve title space (padding made headings break mid-word, breaking
+   WYSIWYG between the edit canvas and print) */
+.rm-col-aside .rm-section > .rm-section-gear {
+  font-size: 9px;
+  top: -2.3em;
 }
 
 /* on-canvas photo/monogram hide control (edit mode only) */
