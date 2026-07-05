@@ -448,6 +448,33 @@ function HeroCinema({
             </button>{' '}
             — parsed entirely on your device.
           </p>
+
+          {/* phones: the same live morph, compact — the product stays visible */}
+          <div className="mt-10 flex justify-center md:hidden" aria-hidden>
+            <div className="relative w-64 overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_60px_-18px_rgba(0,0,0,0.8)]">
+              <div className="relative aspect-[210/297] overflow-hidden">
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={morph[ti].id}
+                    className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.45, ease: 'easeInOut' }}
+                  >
+                    <PreviewThumb doc={morph[ti].doc} width={256} />
+                  </motion.div>
+                </AnimatePresence>
+                <div className="hero-sheen" aria-hidden />
+              </div>
+              <div className="pointer-events-none absolute bottom-2 right-2">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-[#0a0c12]/85 px-2.5 py-1 text-[10px] font-medium text-white shadow-lg backdrop-blur">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#d4982f' }} />
+                  {morph[ti].name} — same content, one click
+                </span>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* the product, demonstrated: ONE resume re-skinning itself live */}

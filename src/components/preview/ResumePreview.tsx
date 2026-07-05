@@ -233,7 +233,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
           <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-            Exact PDF preview — this is precisely what exports
+            <span className="whitespace-nowrap">
+              Exact PDF preview<span className="hidden sm:inline"> — this is precisely what exports</span>
+            </span>
             <button
               className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"
               onClick={() => useEditorStore.getState().setPreviewExact(false)}
