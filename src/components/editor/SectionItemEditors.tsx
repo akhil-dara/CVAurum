@@ -209,6 +209,12 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
               <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent />
             </div>
           </Row>
+          <TextAreaField
+            label="Role summary"
+            value={item.summary ?? ''}
+            onChange={set('summary')}
+            placeholder="One or two lines on the scope of the role (optional) — also editable right on the resume"
+          />
           <BulletsEditor label="Achievements" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
       )
