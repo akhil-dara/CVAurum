@@ -25,8 +25,10 @@ const STEPS: Step[] = [
   { sel: '[data-tour="nav"]', title: '1 · Choose a section', body: 'Switch between Content, Design, Templates, and the ATS check here.' },
   { sel: '[data-tour="panel"]', title: '2 · Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
   { sel: '[data-tour="canvas"]', title: '3 · Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.' },
-  { sel: '[data-tour="templates"]', title: '4 · Switch templates', body: 'Try any of 36 designs — your content flows in instantly, no re-typing.' },
-  { sel: '[data-tour="export"]', title: '5 · Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
+  { sel: '[data-tour="canvas"]', title: '4 · Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The header has one too, with photo/monogram options.' },
+  { sel: '[data-tour="modes"]', title: '5 · Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads.' },
+  { sel: '[data-tour="templates"]', title: '6 · Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.' },
+  { sel: '[data-tour="export"]', title: '7 · Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
 ]
 
 export function EditorTour() {

@@ -6,6 +6,7 @@ import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
+import { HoverZoom } from '@/components/preview/HoverZoom'
 import { cn } from '@/lib/utils'
 
 export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
@@ -54,6 +55,7 @@ function TemplateCard({
   )
 
   return (
+    <HoverZoom doc={previewDoc} label={`${tpl.name} — with your content`}>
     <button
       onClick={onPick}
       className={cn(
@@ -80,5 +82,6 @@ function TemplateCard({
         )}
       </div>
     </button>
+    </HoverZoom>
   )
 }

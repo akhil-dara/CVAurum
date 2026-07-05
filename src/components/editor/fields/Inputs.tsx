@@ -90,9 +90,11 @@ export function DateField({
 
   return (
     <Labeled label={label}>
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* month/year always get half the field each — the Present checkbox lives
+          on its own line so narrow cells can never crush the selects */}
+      <div className="grid grid-cols-2 gap-1.5">
         <select
-          className="input h-9 flex-1 px-2 disabled:opacity-50"
+          className="input h-9 min-w-0 px-2 disabled:opacity-50"
           value={present ? '' : m}
           disabled={present}
           onChange={(e) => setYM(y, e.target.value)}
@@ -106,7 +108,7 @@ export function DateField({
           ))}
         </select>
         <select
-          className="input h-9 flex-1 px-2 disabled:opacity-50"
+          className="input h-9 min-w-0 px-2 disabled:opacity-50"
           value={present ? '' : y}
           disabled={present}
           onChange={(e) => setYM(e.target.value, m)}
@@ -119,26 +121,26 @@ export function DateField({
             </option>
           ))}
         </select>
-        {allowPresent && (
-          <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              className="h-3.5 w-3.5 accent-primary"
-              checked={present}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setPickMode(false)
-                  onChange('') // empty end date renders as "Present" and stays JSON-Resume clean
-                } else {
-                  setPickMode(true)
-                  onChange('')
-                }
-              }}
-            />
-            Present
-          </label>
-        )}
       </div>
+      {allowPresent && (
+        <label className="mt-1.5 flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 accent-primary"
+            checked={present}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setPickMode(false)
+                onChange('') // empty end date renders as "Present" and stays JSON-Resume clean
+              } else {
+                setPickMode(true)
+                onChange('')
+              }
+            }}
+          />
+          Currently here (Present)
+        </label>
+      )}
     </Labeled>
   )
 }

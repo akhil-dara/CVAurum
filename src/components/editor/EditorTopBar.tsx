@@ -16,6 +16,7 @@ import {
   HelpCircle,
   ScanText,
   Eye,
+  PencilLine,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -102,23 +103,33 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
           <div className="mx-1 h-6 w-px bg-border" />
 
-          {/* Exact preview: render the canvas precisely as the exported PDF */}
-          <button
-            className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition ${previewExact ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setPreviewExact(!previewExact)}
-            title="See the resume exactly as it will export — no editing hints, placeholders, or empty sections"
-          >
-            <Eye className="h-4 w-4" /> Preview
-          </button>
-
-          {/* "What ATS sees": swap the canvas for the plain text a parser reads */}
-          <button
-            className={`ml-1 flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition ${atsView ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setAtsView(!atsView)}
-            title="Toggle between the designed resume and the plain text an ATS parser reads"
-          >
-            <ScanText className="h-4 w-4" /> ATS view
-          </button>
+          {/* canvas mode — one segmented control, always shows where you are */}
+          <div data-tour="modes" className="flex items-center rounded-lg bg-muted p-0.5" role="tablist" aria-label="Canvas mode">
+            {(
+              [
+                { key: 'edit', label: 'Edit', icon: <PencilLine className="h-3.5 w-3.5" />, title: 'Edit right on the page' },
+                { key: 'preview', label: 'Preview', icon: <Eye className="h-3.5 w-3.5" />, title: 'Exactly what exports — no editing hints or empty sections' },
+                { key: 'ats', label: 'ATS', icon: <ScanText className="h-3.5 w-3.5" />, title: 'The plain text an ATS parser reads' },
+              ] as const
+            ).map((m) => {
+              const active = m.key === 'ats' ? atsView : m.key === 'preview' ? previewExact && !atsView : !previewExact && !atsView
+              return (
+                <button
+                  key={m.key}
+                  role="tab"
+                  aria-selected={active}
+                  className={`flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${active ? 'bg-primary text-primary-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => {
+                    setPreviewExact(m.key === 'preview')
+                    setAtsView(m.key === 'ats')
+                  }}
+                  title={m.title}
+                >
+                  {m.icon} {m.label}
+                </button>
+              )
+            })}
+          </div>
 
           <div className="mx-1 h-6 w-px bg-border" />
         </div>

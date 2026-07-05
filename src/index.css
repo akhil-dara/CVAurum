@@ -257,6 +257,42 @@
 
 
 /* Landing hero: shimmering gold sweep across the key word. */
+/* hero cards: a slow specular sheen sweeping across the paper */
+.hero-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.hero-sheen::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  left: -45%;
+  width: 38%;
+  transform: skewX(-18deg) translateX(0);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  mix-blend-mode: soft-light;
+  animation: hero-sheen-sweep 8.5s ease-in-out infinite;
+  animation-delay: var(--sheen-delay, 0s);
+}
+@keyframes hero-sheen-sweep {
+  0%, 55% { transform: skewX(-18deg) translateX(-40%); opacity: 0; }
+  70% { opacity: 1; }
+  85%, 100% { transform: skewX(-18deg) translateX(480%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-sheen::before { animation: none; opacity: 0; }
+}
+
+/* template hover flyout — quick, quiet scale-in */
+@keyframes zoom-pop {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+.zoom-pop { animation: zoom-pop 0.15s ease-out; }
+
 @keyframes hero-shimmer {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }

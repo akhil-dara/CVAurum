@@ -15,6 +15,7 @@ import { saveDoc } from '@/lib/storage'
 import { importDocumentFromFile } from '@/lib/io'
 import { SAMPLES, type SamplePersona } from '@/data/samples'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
+import { HoverZoom } from '@/components/preview/HoverZoom'
 import type { ResumeContent } from '@/types/document'
 
 /** Create/import a resume and land the user in the editor. */
@@ -164,8 +165,8 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
         <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
         <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-3">
           {docs.map(({ persona, doc }) => (
+            <HoverZoom key={persona.id} doc={doc} label={`${persona.role} example`}>
             <button
-              key={persona.id}
               onClick={() => onPick(persona)}
               className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
               title={`Start from the ${persona.role} example`}
@@ -178,6 +179,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
                 <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{persona.blurb}</div>
               </div>
             </button>
+            </HoverZoom>
           ))}
         </div>
       </div>

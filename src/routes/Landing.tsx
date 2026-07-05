@@ -3,7 +3,7 @@
  * what it is, how it works, why it's private — with clear ways in. The actual
  * resume library/dashboard lives at /app.
  */
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import {
@@ -43,7 +43,7 @@ const SHOWCASE = ['mercury', 'halcyon', 'aria', 'deedy', 'onyx', 'portrait']
 const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
   { capability: 'Where your data lives', cvaurum: 'Only in your browser — no server, no account, no tracking', others: 'Uploaded to a server behind a login' },
   { capability: 'Source code', cvaurum: 'Fully open source (MIT) — read it, fork it, self-host it', others: 'Closed — you take the privacy claims on faith' },
-  { capability: 'Templates', cvaurum: '30+ premium templates, edited live on the canvas', others: 'A few basic layouts, polish behind a paywall' },
+  { capability: 'Templates', cvaurum: '52 designer templates, restylable section by section', others: 'A few basic layouts, polish behind a paywall' },
   { capability: 'ATS check', cvaurum: 'Built-in deterministic score + job-description keyword match', others: 'None, or an opaque AI score you can’t reproduce' },
   { capability: 'Offline', cvaurum: 'All fonts self-hosted — zero external requests, truly offline', others: 'Pulls fonts/assets from CDNs — still phones home' },
   { capability: 'Export formats', cvaurum: 'Vector PDF (selectable text), Word .docx, and JSON Resume', others: 'PDF only, often a flattened image' },
@@ -58,6 +58,23 @@ export function Landing() {
   const pdfRef = useRef<HTMLInputElement>(null)
   const [chooser, setChooser] = useState(false)
   const [sampleOpen, setSampleOpen] = useState(false)
+  // The sticky nav sits on the dark hero first, then on token-colored sections.
+  // A light glass bar over the hero looks like a rendering glitch — so the nav
+  // wears ink glass while the hero is under it and swaps to theme glass after.
+  const [overHero, setOverHero] = useState(true)
+  useEffect(() => {
+    const onScroll = () => {
+      const hero = document.getElementById('hero-stage')
+      setOverHero(window.scrollY < (hero ? hero.offsetHeight : 600) - 56)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
 
   // Throwaway sample docs (one per showcased template) for the live thumbnails.
   const showcase = useMemo(
@@ -77,15 +94,21 @@ export function Landing() {
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
 
-      {/* nav */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
+      {/* nav — ink glass over the hero, theme glass past it */}
+      <header
+        className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
+          overHero
+            ? 'border-white/10 bg-[#0a0c12]/70 text-white [&_.btn-ghost]:text-white/85 [&_.btn-ghost:hover]:bg-white/10 [&_.btn-outline]:border-white/25 [&_.btn-outline]:bg-transparent [&_.btn-outline]:text-white [&_.btn-outline:hover]:bg-white/10'
+            : 'border-border bg-background/80'
+        }`}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
-          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-            <a href="#how" className="transition hover:text-foreground">How it works</a>
-            <a href="#templates" className="transition hover:text-foreground">Templates</a>
-            <a href="#compare" className="transition hover:text-foreground">Compare</a>
-            <a href="#privacy" className="transition hover:text-foreground">Privacy</a>
+          <nav className={`hidden items-center gap-6 text-sm md:flex ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}>
+            <a href="#how" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>How it works</a>
+            <a href="#templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>Templates</a>
+            <a href="#compare" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>Compare</a>
+            <a href="#privacy" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>Privacy</a>
           </nav>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <a className="btn-ghost btn-sm hidden sm:inline-flex" href={REPO_URL} target="_blank" rel="noreferrer" title="View source on GitHub">
@@ -342,7 +365,7 @@ function HeroCinema({
   }
 
   return (
-    <section className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
+    <section id="hero-stage" className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
       {/* drifting aurora */}
       <motion.div
         aria-hidden
@@ -434,19 +457,20 @@ function HeroCinema({
                   willChange: 'transform',
                 }}
                 initial={{ opacity: 0, y: 30 }}
-                animate={reduce ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, i % 2 ? -8 : -14, 0] }}
+                animate={reduce ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, i % 2 ? -5 : -9, 0] }}
                 transition={
                   reduce
                     ? { duration: 0.6, delay: 0.15 + i * 0.12 }
                     : {
                         opacity: { duration: 0.6, delay: 0.15 + i * 0.12 },
-                        y: { duration: 7 + i * 1.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.8 },
+                        y: { duration: 9 + i * 1.6, repeat: Infinity, ease: 'easeInOut', delay: i * 0.8 },
                       }
                 }
               >
                 <div className="aspect-[210/297] overflow-hidden">
                   <PreviewThumb doc={c.doc} width={288} />
                 </div>
+                <div className="hero-sheen" style={{ '--sheen-delay': `${i * 1.4}s` } as React.CSSProperties} aria-hidden />
               </motion.div>
             ))}
           </motion.div>

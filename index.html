@@ -21,6 +21,9 @@
     <!-- Catch the install prompt before the app bundle loads (see the file). -->
     <script src="/pwa-install.js"></script>
 
+    <!-- LCP: the UI font renders the hero headline — fetch it before CSS asks. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" />
+
     <!-- Primary SEO. Canonical host is https://cvaurum.com (custom domain on
          Cloudflare Pages). If the domain changes, update it in index.html,
          public/robots.txt and public/sitemap.xml. -->
@@ -92,6 +95,8 @@
         "Inline WYSIWYG canvas editing",
         "Per-section heading, skills and entry-layout styles with visual previews, live on the canvas",
         "Header layout switching (classic, centered, split, banner, compact)",
+        "Photo or monogram identity mark — user's choice, never a placeholder",
+        "Full-size hover previews of every template with your own content",
         "Exact-PDF preview mode",
         "Open source (MIT) — free forever"
       ]

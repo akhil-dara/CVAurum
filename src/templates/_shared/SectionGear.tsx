@@ -304,7 +304,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[61] max-h-[85vh] w-[19rem] overflow-y-auto rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
+              className="fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
               style={{ top: pos.top, left: pos.left }}
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

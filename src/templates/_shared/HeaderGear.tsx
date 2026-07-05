@@ -10,6 +10,50 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import type { MetaEditFn } from './Editable'
 import { HEADER_STYLES, HeaderMini } from './headerStyles'
+import { FONTS } from '@/data/fonts'
+
+/** Curated accent palette — enough range for any industry, all print-safe. */
+const ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#b91c1c', '#d4982f', '#a16207', '#db2777', '#15803d', '#475569', '#0f172a']
+
+/** Identity mark: exactly ONE of none / monogram / photo — never a placeholder. */
+function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
+  const { monogram, showPhoto } = doc.metadata.layout
+  const hasImage = !!doc.content.basics.image
+  const current: 'none' | 'monogram' | 'photo' = showPhoto && hasImage ? 'photo' : monogram ? 'monogram' : showPhoto ? 'photo' : 'none'
+  const pick = (v: 'none' | 'monogram' | 'photo') =>
+    editMeta((m) => {
+      m.layout.monogram = v === 'monogram'
+      m.layout.showPhoto = v === 'photo'
+    })
+  const OPTIONS: { v: 'none' | 'monogram' | 'photo'; label: string }[] = [
+    { v: 'none', label: 'None' },
+    { v: 'monogram', label: 'Monogram' },
+    { v: 'photo', label: 'Photo' },
+  ]
+  return (
+    <div className="px-2 pb-1.5">
+      <div className="flex gap-1" role="radiogroup" aria-label="Identity mark">
+        {OPTIONS.map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            role="radio"
+            aria-checked={current === o.v}
+            onClick={() => pick(o.v)}
+            className={`flex-1 rounded-md border px-1.5 py-1 text-[11px] font-medium transition ${current === o.v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50'}`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {current === 'photo' && !hasImage && (
+        <p className="mt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
+          No photo uploaded yet — add one under Content → Personal details. Nothing prints until you do (no placeholder, ever).
+        </p>
+      )}
+    </div>
+  )
+}
 
 export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
   const [open, setOpen] = useState(false)
@@ -18,7 +62,7 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
 
   const openPopover = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setTop(Math.max(8, Math.min(r.top - 4, window.innerHeight - 320)))
+    setTop(Math.max(8, Math.min(r.top - 4, window.innerHeight - 420)))
     setOpen(true)
   }
   const pick = (value: string) =>
@@ -44,7 +88,7 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[61] w-[19rem] rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
+              className="fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
               style={{ top, left: Math.max(8, window.innerWidth - 304 - 12) }}
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -73,36 +117,53 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Identity mark
               </div>
-              <div className="flex flex-col gap-0.5 px-1 pb-1">
-                <label className="flex cursor-pointer items-center justify-between rounded-md px-1.5 py-1 text-xs hover:bg-muted/60">
-                  <span>Monogram (initials)</span>
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 accent-[var(--rm-accent,#2563eb)]"
-                    checked={doc.metadata.layout.monogram}
-                    onChange={() =>
-                      editMeta((m) => {
-                        m.layout.monogram = !m.layout.monogram
-                      })
-                    }
-                  />
-                </label>
-                <label className="flex cursor-pointer items-center justify-between rounded-md px-1.5 py-1 text-xs hover:bg-muted/60">
-                  <span>Photo</span>
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 accent-[var(--rm-accent,#2563eb)]"
-                    checked={doc.metadata.layout.showPhoto}
-                    onChange={() =>
-                      editMeta((m) => {
-                        m.layout.showPhoto = !m.layout.showPhoto
-                      })
-                    }
-                  />
-                </label>
+              <IdentityMarkPicker doc={doc} editMeta={editMeta} />
+              <div className="mx-2 my-1 border-t border-border" />
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Accent color
+              </div>
+              <div className="flex flex-wrap gap-1.5 px-2 pb-1.5" role="radiogroup" aria-label="Accent color">
+                {ACCENTS.map((c) => {
+                  const on = doc.metadata.theme.primary.toLowerCase() === c.toLowerCase()
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      title={c}
+                      onClick={() =>
+                        editMeta((m) => {
+                          m.theme.primary = c
+                        })
+                      }
+                      className={`h-6 w-6 rounded-full border transition ${on ? 'ring-2 ring-primary ring-offset-2 ring-offset-surface border-transparent' : 'border-black/10 hover:scale-110'}`}
+                      style={{ background: c }}
+                    />
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 px-2 pb-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Font</span>
+                <select
+                  className="input h-7 min-w-0 flex-1 px-1.5 text-xs"
+                  value={doc.metadata.typography.fontFamily}
+                  onChange={(e) =>
+                    editMeta((m) => {
+                      m.typography.fontFamily = e.target.value
+                    })
+                  }
+                  aria-label="Body font"
+                >
+                  {FONTS.filter((f) => f.category === 'sans' || f.category === 'serif').map((f) => (
+                    <option key={f.name} value={f.name}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <p className="px-2 pb-1 text-[10px] leading-snug text-muted-foreground">
-                Your photo always wins; the monogram shows only when no photo is displayed. Changes apply live — Auto uses the template's own header.
+                Changes apply live — Auto uses the template's own header. Full controls live in the Design panel.
               </p>
             </div>
           </>,
