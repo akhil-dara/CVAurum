@@ -68,7 +68,14 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
         strip(d.metadata.layout, key)
       })
     } else {
-      updateMetadata((m) => strip(m.layout, key))
+      // Standard sections auto-populate back into the layout whenever they're
+      // absent but have content (that's how new sections reach old docs) — so
+      // "removed" must land in `hidden`, or the section reappears on the very
+      // next render. It leaves the board and returns via "Add a section".
+      updateMetadata((m) => {
+        strip(m.layout, key)
+        m.layout.hidden.push(key)
+      })
     }
   }
   const renameSection = (key: string, label: string) => {
