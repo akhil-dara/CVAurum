@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import {
   FileText,
   Plus,
@@ -130,12 +130,7 @@ export function Landing() {
 
       <main>
         {/* hero — the cinematic stage */}
-        <HeroCinema
-          onCreate={() => setChooser(true)}
-          onSample={() => setSampleOpen(true)}
-          onImportPdf={() => pdfRef.current?.click()}
-          cards={showcase.slice(0, 3)}
-        />
+        <HeroCinema onCreate={() => setChooser(true)} onSample={() => setSampleOpen(true)} onImportPdf={() => pdfRef.current?.click()} />
 
         {/* how it works */}
         <section id="how" className="border-y border-border bg-surface-muted/40">
@@ -345,14 +340,29 @@ function HeroCinema({
   onCreate,
   onSample,
   onImportPdf,
-  cards,
 }: {
   onCreate: () => void
   onSample: () => void
   onImportPdf: () => void
-  cards: { id: string; doc: ReturnType<typeof createDocument> }[]
 }) {
   const reduce = useReducedMotion()
+  // The morph reel: identical sample content flowing through contrasting
+  // designs — the template engine demonstrating itself.
+  const morph = useMemo(
+    () =>
+      ['mercury', 'onyx', 'aria', 'deedy', 'halcyon', 'portrait'].map((id) => {
+        const d = createDocument({ sample: true })
+        d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
+        return { id, name: getTemplate(id).name, doc: d }
+      }),
+    [],
+  )
+  const [ti, setTi] = useState(0)
+  useEffect(() => {
+    if (reduce) return
+    const t = setInterval(() => setTi((i) => (i + 1) % morph.length), 3400)
+    return () => clearInterval(t)
+  }, [reduce, morph.length])
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [7, -7]), { stiffness: 110, damping: 16 })
@@ -440,39 +450,85 @@ function HeroCinema({
           </p>
         </motion.div>
 
-        {/* parallax 3D fan of live templates */}
-        <div className="hidden [perspective:1200px] md:block" aria-hidden>
-          <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }} className="relative mx-auto h-[30rem] w-[28rem]">
-            {cards.map((c, i) => (
-              <motion.div
-                key={c.id}
-                className="absolute overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_70px_-18px_rgba(0,0,0,0.75)]"
-                style={{
-                  width: '18rem',
-                  left: `${i * 3.6}rem`,
-                  top: `${i * 1.5}rem`,
-                  zIndex: 3 - i,
-                  rotate: `${(i - 1) * 6}deg`,
-                  transform: `translateZ(${(2 - i) * 46}px)`,
-                  willChange: 'transform',
-                }}
-                initial={{ opacity: 0, y: 30 }}
-                animate={reduce ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, i % 2 ? -5 : -9, 0] }}
-                transition={
-                  reduce
-                    ? { duration: 0.6, delay: 0.15 + i * 0.12 }
-                    : {
-                        opacity: { duration: 0.6, delay: 0.15 + i * 0.12 },
-                        y: { duration: 9 + i * 1.6, repeat: Infinity, ease: 'easeInOut', delay: i * 0.8 },
-                      }
-                }
-              >
-                <div className="aspect-[210/297] overflow-hidden">
-                  <PreviewThumb doc={c.doc} width={288} />
-                </div>
-                <div className="hero-sheen" style={{ '--sheen-delay': `${i * 1.4}s` } as React.CSSProperties} aria-hidden />
-              </motion.div>
-            ))}
+        {/* the product, demonstrated: ONE resume re-skinning itself live */}
+        <div className="hidden [perspective:1400px] md:block" aria-hidden>
+          <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }} className="relative mx-auto h-[34rem] w-[30rem]">
+            {/* depth: the NEXT design waits behind */}
+            <div
+              className="absolute left-20 top-8 w-[24rem] overflow-hidden rounded-xl border border-white/10 opacity-35 shadow-2xl"
+              style={{ transform: 'translateZ(-70px) rotate(5deg)' }}
+            >
+              <div className="aspect-[210/297] overflow-hidden bg-white">
+                <PreviewThumb doc={morph[(ti + 1) % morph.length].doc} width={384} />
+              </div>
+            </div>
+
+            {/* front card — crossfades between templates */}
+            <div
+              className="absolute left-0 top-0 w-[26rem] overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]"
+              style={{ transform: 'translateZ(50px) rotate(-2deg)' }}
+            >
+              <div className="relative aspect-[210/297] overflow-hidden">
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={morph[ti].id}
+                    className="absolute inset-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.45, ease: 'easeInOut' }}
+                  >
+                    <PreviewThumb doc={morph[ti].doc} width={416} />
+                  </motion.div>
+                </AnimatePresence>
+                <div className="hero-sheen" aria-hidden />
+              </div>
+              {/* live template name — proof it's the same content, restyled */}
+              <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={morph[ti].id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.4 }}
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-[#0a0c12]/85 px-3 py-1 text-[11px] font-medium text-white shadow-lg backdrop-blur"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#d4982f' }} />
+                    {morph[ti].name} — same content, one click
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* floating proof chips */}
+            <motion.div
+              className="absolute -left-10 top-16 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
+              style={{ z: 90 }}
+              animate={reduce ? undefined : { y: [0, -7, 0] }}
+              transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <div className="font-semibold text-emerald-300">0 bytes uploaded</div>
+              <div className="mt-0.5 text-white/60">everything stays on this device</div>
+            </motion.div>
+            <motion.div
+              className="absolute -right-6 top-40 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
+              style={{ z: 80 }}
+              animate={reduce ? undefined : { y: [0, -9, 0] }}
+              transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
+            >
+              <div className="font-semibold" style={{ color: '#f7d774' }}>52 designs, one resume</div>
+              <div className="mt-0.5 text-white/60">restyle section by section</div>
+            </motion.div>
+            <motion.div
+              className="absolute -left-4 bottom-10 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
+              style={{ z: 70 }}
+              animate={reduce ? undefined : { y: [0, -6, 0] }}
+              transition={{ duration: 5.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+            >
+              <div className="font-semibold text-sky-300">See what the ATS sees</div>
+              <div className="mt-0.5 text-white/60">parser's-eye view, built in</div>
+            </motion.div>
           </motion.div>
         </div>
       </div>

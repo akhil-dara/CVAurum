@@ -211,6 +211,43 @@
   padding-right: 5.4em;
 }
 
+/* on-canvas photo/monogram hide control (edit mode only) */
+.rm-visual-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.rm-visual-hide {
+  position: absolute;
+  top: -0.45em;
+  right: -0.45em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #475569;
+  font-size: 0.95em;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.rm-visual-wrap:hover .rm-visual-hide {
+  opacity: 1;
+}
+.rm-visual-hide:hover {
+  transform: scale(1.12);
+  color: #b91c1c;
+}
+.mode-print .rm-visual-hide,
+.mode-thumbnail .rm-visual-hide {
+  display: none;
+}
+
 .rm-section-gear svg {
   width: 1em;
   height: 1em;

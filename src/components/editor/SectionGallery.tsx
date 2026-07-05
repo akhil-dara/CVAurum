@@ -36,6 +36,7 @@ export function SectionGallery({
   onClose: () => void
 }) {
   const config = getTemplate(doc.metadata.template)
+  const pageBg = doc.metadata.theme.background || '#ffffff'
   const previewDoc: ResumeDocument = {
     ...doc,
     content: PREVIEW_CONTENT,
@@ -68,18 +69,19 @@ export function SectionGallery({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 overflow-auto p-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="grid grid-cols-1 gap-3.5 p-5 pb-8 sm:grid-cols-2 lg:grid-cols-3">
           {available.map((key) => (
             <button
               key={key}
               className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white text-left transition hover:-translate-y-0.5 hover:border-primary hover:shadow-soft"
               onClick={() => onAdd(key)}
             >
-              <div className="relative h-[152px] overflow-hidden border-b border-border bg-white px-3.5 pt-3.5">
+              <div className="relative h-[152px] overflow-hidden border-b border-border px-3.5 pt-3.5" style={{ background: pageBg }}>
                 <div className="pointer-events-none select-none" style={{ zoom: 0.72 } as React.CSSProperties}>
                   <SectionPreview doc={previewDoc} config={config} sectionKey={key} />
                 </div>
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12" style={{ background: `linear-gradient(to top, ${pageBg}, transparent)` }} />
               </div>
               <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
                 <span className="truncate text-sm font-semibold text-foreground">{DEFAULT_LABELS[key] ?? key}</span>
@@ -108,6 +110,9 @@ export function SectionGallery({
               {PlusBadge}
             </button>
           </div>
+        </div>
+        {/* sticky scroll hint: fades the cut row so "there's more below" is obvious */}
+        <div className="pointer-events-none sticky bottom-0 -mt-8 h-8 bg-gradient-to-t from-surface to-transparent" />
         </div>
       </div>
     </div>,

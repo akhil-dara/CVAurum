@@ -8,23 +8,28 @@ import { useAppStore } from '@/store/useAppStore'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { cn } from '@/lib/utils'
+import { SAMPLE_CONTENT } from '@/data/sample'
 
 export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   const applyTemplate = useResumeStore((s) => s.applyTemplate)
   const toast = useAppStore((s) => s.toast)
   const current = doc.metadata.template
+  // A blank resume would render 52 EMPTY thumbnails — impossible to judge.
+  // Preview with sample content until the user has real content of their own.
+  const isBlank = !doc.content.basics.name && !doc.content.work.length && !doc.content.education.length && !doc.content.skills.length
+  const previewBase = isBlank ? { ...doc, content: SAMPLE_CONTENT } : doc
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        {TEMPLATES.length} templates. Your content flows into every one — switch any time.
+        {TEMPLATES.length} templates — every one ATS-friendly. {isBlank ? 'Previews show example content until you add yours.' : 'Your content flows into every one — switch any time.'} Hover a card for a full-size look.
       </p>
       <div className="grid grid-cols-2 gap-3">
         {TEMPLATES.map((tpl) => (
           <TemplateCard
             key={tpl.id}
             tpl={tpl}
-            doc={doc}
+            doc={previewBase}
             active={current === tpl.id}
             onPick={() => {
               applyTemplate(tpl.defaults)

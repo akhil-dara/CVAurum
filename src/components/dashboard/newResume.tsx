@@ -29,6 +29,15 @@ export function useResumeActions() {
     if (templateId) doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(templateId).defaults)
     await saveDoc(doc)
     await refreshLibrary()
+    // A blank start with no chosen design: open the editor on the Templates
+    // panel so "pick your look" is the natural first step, not a hunt.
+    if (!sample && !content && !templateId) {
+      try {
+        sessionStorage.setItem('cvaurum:pick-design', doc.id)
+      } catch {
+        /* private mode — skip the nudge */
+      }
+    }
     navigate(`/resume/${doc.id}`)
   }
 

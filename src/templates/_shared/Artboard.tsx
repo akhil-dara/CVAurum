@@ -159,7 +159,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   )
 }
 
-function Photo({ doc }: { doc: ResumeDocument }) {
+function Photo({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaEditFn }) {
   const { showPhoto, photoShape } = doc.metadata.layout
   const img = doc.content.basics.image
   if (!showPhoto || !img) return null
@@ -167,11 +167,32 @@ function Photo({ doc }: { doc: ResumeDocument }) {
   // crafted import) would fire an external request on render — breaking the
   // zero-external-requests promise — so it's dropped here too.
   if (!/^(data:image\/|blob:)/i.test(img)) return null
-  return <img className={`rm-photo ${photoShape}`} src={img} alt={doc.content.basics.name} />
+  const photo = <img className={`rm-photo ${photoShape}`} src={img} alt={doc.content.basics.name} />
+  if (!editMeta) return photo
+  return (
+    <span className="rm-visual-wrap">
+      {photo}
+      <button
+        type="button"
+        className="rm-visual-hide no-print"
+        contentEditable={false}
+        title="Hide photo (turn back on via the header's Style button)"
+        aria-label="Hide photo"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() =>
+          editMeta((m) => {
+            m.layout.showPhoto = false
+          })
+        }
+      >
+        ×
+      </button>
+    </span>
+  )
 }
 
 /** Initials badge (in a colored circle / square / diamond) — the "monogram" look. */
-function Monogram({ doc }: { doc: ResumeDocument }) {
+function Monogram({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaEditFn }) {
   const { monogram, photoShape } = doc.metadata.layout
   if (!monogram) return null
   const initials =
@@ -181,19 +202,40 @@ function Monogram({ doc }: { doc: ResumeDocument }) {
       .slice(0, 2)
       .map((w) => w[0]?.toUpperCase() || '')
       .join('') || 'A'
-  return (
+  const mark = (
     <div className={`rm-monogram ${photoShape}`} aria-hidden>
       <span>{initials}</span>
     </div>
+  )
+  if (!editMeta) return mark
+  return (
+    <span className="rm-visual-wrap">
+      {mark}
+      <button
+        type="button"
+        className="rm-visual-hide no-print"
+        contentEditable={false}
+        title="Hide monogram (turn back on via the header's Style button)"
+        aria-label="Hide monogram"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() =>
+          editMeta((m) => {
+            m.layout.monogram = false
+          })
+        }
+      >
+        ×
+      </button>
+    </span>
   )
 }
 
 /** Header visual: the user's PHOTO always wins; the monogram is the fallback
  *  identity mark when no photo is shown (so the two can never conflict). */
-function HeaderVisual({ doc }: { doc: ResumeDocument }) {
+function HeaderVisual({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaEditFn }) {
   const hasPhoto = doc.metadata.layout.showPhoto && !!doc.content.basics.image
-  if (hasPhoto) return <Photo doc={doc} />
-  return doc.metadata.layout.monogram ? <Monogram doc={doc} /> : null
+  if (hasPhoto) return <Photo doc={doc} editMeta={editMeta} />
+  return doc.metadata.layout.monogram ? <Monogram doc={doc} editMeta={editMeta} /> : null
 }
 
 function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
@@ -205,7 +247,7 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
   const variant = doc.metadata.layout.headerStyle ?? config.header
   // In two-column layouts the sidebar owns the photo/monogram, so the header omits it.
   const twoCol = doc.metadata.layout.columns === 2
-  const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} />
+  const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} editMeta={editMeta} />
   // On-canvas gear to recompose the header (edit mode only).
   const Gear = editMeta ? <HeaderGear doc={doc} editMeta={editMeta} /> : null
   const ContactsEl = edit ? <EditableContacts doc={doc} edit={edit} icons={icons} /> : <Contacts entries={entries} icons={icons}/>
@@ -394,7 +436,7 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
 
   const AsideCol = twoCol ? (
     <aside className="rm-col-aside">
-      {doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} /> : doc.metadata.layout.monogram ? <Monogram doc={doc} /> : null}
+      {doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} editMeta={editMeta} /> : doc.metadata.layout.monogram ? <Monogram doc={doc} editMeta={editMeta} /> : null}
       {aside.map((key) => (
         <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
       ))}

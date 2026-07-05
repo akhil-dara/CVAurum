@@ -4,6 +4,7 @@ import { Eye } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useAppStore } from '@/store/useAppStore'
 import { EditorTopBar } from './EditorTopBar'
 import { EditorTour } from './EditorTour'
 import { LeftRail } from './LeftRail'
@@ -45,6 +46,22 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
   }, [])
 
   const setLeftOpen = useEditorStore((s) => s.setLeftOpen)
+
+  // Fresh blank resume: open on Templates so "pick your design" is step one —
+  // 52 live previews of THIS (empty) doc beat guessing at names.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('cvaurum:pick-design') === doc.id) {
+        sessionStorage.removeItem('cvaurum:pick-design')
+        useEditorStore.getState().setLeftTab('templates')
+        useEditorStore.getState().setLeftOpen(true)
+        useAppStore.getState().toast('Start by picking a design — hover any card for a full-size preview. Your content will flow into whichever you choose.', 'info')
+      }
+    } catch {
+      /* private mode */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id])
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
