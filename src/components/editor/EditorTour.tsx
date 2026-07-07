@@ -26,9 +26,11 @@ const STEPS: Step[] = [
   { sel: '[data-tour="panel"]', title: '2 · Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
   { sel: '[data-tour="canvas"]', title: '3 · Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.' },
   { sel: '[data-tour="canvas"]', title: '4 · Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The header has one too, with photo/monogram options.' },
-  { sel: '[data-tour="modes"]', title: '5 · Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads.' },
+  { sel: '[data-tour="modes"]', title: '5 · Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads — plus a per-system parse simulation (Workday, Greenhouse, Lever, Taleo, iCIMS) and an on-device writing coach.' },
   { sel: '[data-tour="templates"]', title: '6 · Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.' },
-  { sel: '[data-tour="export"]', title: '7 · Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
+  { sel: '[data-tour="share"]', title: '7 · Share privately', body: 'Send an encrypted link — your résumé is sealed with a passphrase inside the link and never touches a server, so even a cached link can’t be read without it.' },
+  { sel: '[data-tour="palette"]', title: '8 · Do anything with ⌘K', body: 'Press ⌘K / Ctrl+K for a command palette — switch templates, fonts, accents, add sections, change mode. Inside a summary, type “/” for quick inserts.' },
+  { sel: '[data-tour="export"]', title: '9 · Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
 ]
 
 export function EditorTour() {

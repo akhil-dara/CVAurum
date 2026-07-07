@@ -147,6 +147,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
         {/* share */}
         <button
+          data-tour="share"
           className="btn-icon"
           onClick={() => window.dispatchEvent(new Event('cvaurum:open-share'))}
           title="Share privately"
@@ -157,6 +158,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
         {/* command palette (Ctrl/Cmd+K) */}
         <button
+          data-tour="palette"
           className="btn-icon hidden sm:flex"
           onClick={() => window.dispatchEvent(new Event('cvaurum:open-palette'))}
           title="Command palette (Ctrl+K)"

@@ -47,6 +47,25 @@ export function Dashboard() {
   useTitle('Your Resumes · CVAurum')
   const navigate = useNavigate()
   const library = useAppStore((s) => s.library)
+  // Durability reminder: local-first means a cleared browser = lost résumés.
+  // If there's real work and no recent backup, nudge once per session.
+  useEffect(() => {
+    try {
+      if (!library.length) return
+      if (sessionStorage.getItem('cvaurum:backup-nudged')) return
+      const last = Number(localStorage.getItem('cvaurum:last-backup') || 0)
+      const stale = !last || Date.now() - last > 14 * 24 * 60 * 60 * 1000
+      // Skip brand-new users (nothing worth backing up yet).
+      const oldest = Math.min(...library.map((r) => r.createdAt || Date.now()))
+      const settledIn = Date.now() - oldest > 2 * 24 * 60 * 60 * 1000
+      if (stale && settledIn) {
+        sessionStorage.setItem('cvaurum:backup-nudged', '1')
+        useAppStore.getState().toast('Tip: back up your résumés (Backup → Export) so a cleared browser can never lose them.', 'info')
+      }
+    } catch {
+      /* never block the dashboard over a nudge */
+    }
+  }, [library])
   const refreshLibrary = useAppStore((s) => s.refreshLibrary)
   const toast = useAppStore((s) => s.toast)
   const { create, importFile, importPdf } = useResumeActions()

@@ -47,6 +47,7 @@ export async function exportFullBackup(): Promise<number> {
   }
   const stamp = new Date().toISOString().slice(0, 10)
   downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }), `cvaurum-backup-${stamp}.json`)
+  try { localStorage.setItem('cvaurum:last-backup', String(Date.now())) } catch { /* private mode */ }
   return resumes.length
 }
 
