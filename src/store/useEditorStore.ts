@@ -1,6 +1,9 @@
 /** Editor-only UI state (not persisted with the document). */
 import { create } from 'zustand'
 
+/** The per-section visual style fields the style painter copies. */
+export type CopiedStyle = Record<string, string>
+
 export type LeftTab = 'content' | 'design' | 'templates' | 'ats'
 
 interface EditorState {
@@ -25,6 +28,8 @@ interface EditorState {
   previewExact: boolean
   /** dim everything except the section under the cursor (zen editing) */
   focusMode: boolean
+  /** style painter clipboard — a section's visual style, ready to paint */
+  copiedStyle: CopiedStyle | null
 
   setLeftTab: (t: LeftTab) => void
   setActiveSection: (s: string | null) => void
@@ -41,6 +46,7 @@ interface EditorState {
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
+  setCopiedStyle: (v: CopiedStyle | null) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -53,6 +59,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   focusItem: null,
   onePageScale: 1,
   atsView: false,
+  copiedStyle: null,
   previewExact: false,
   focusMode: false,
 
@@ -71,4 +78,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),
   setFocusMode: (focusMode) => set({ focusMode }),
+  setCopiedStyle: (copiedStyle) => set({ copiedStyle }),
 }))

@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, EyeOff, ArrowLeftRight } from 'lucide-react'
+import { Settings2, EyeOff, ArrowLeftRight, Copy, ClipboardPaste, Paintbrush } from 'lucide-react'
+import { useEditorStore } from '@/store/useEditorStore'
 import type { ResumeDocument } from '@/types/document'
+import type { Metadata } from '@/types/metadata'
 import { sectionLabel } from '@/lib/sections'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords' | 'showBadges'
+
+/** The visual-style fields the painter copies (NOT the show* content toggles). */
+const STYLE_FIELDS = ['headingStyle', 'skillsStyle', 'entryLayout', 'scoreStyle', 'bulletStyle', 'meterStyle', 'badgeSize', 'badgeShape'] as const
 
 /** Per-section heading treatments ('' = the template's own default). */
 const HEADING_STYLES: { label: string; value: string }[] = [
@@ -289,6 +294,32 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
       m.layout[to] = [...m.layout[to], sectionKey]
     })
 
+  // Style painter: copy this section's visual style, then paint it onto another
+  // section (or all of them) — like Figma's paint-format. Only the visual-style
+  // fields travel; each section keeps its own content-visibility toggles.
+  const copiedStyle = useEditorStore((s) => s.copiedStyle)
+  const setCopiedStyle = useEditorStore((s) => s.setCopiedStyle)
+  const copyStyle = () => {
+    const picked: Record<string, string> = {}
+    for (const f of STYLE_FIELDS) {
+      const v = (opts as Record<string, string | undefined>)[f]
+      if (v) picked[f] = v
+    }
+    setCopiedStyle(picked)
+  }
+  const applyStyleTo = (m: Metadata, key: string) => {
+    if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
+    const cur = { ...(m.layout.sectionSettings[key] ?? {}) } as Record<string, unknown>
+    for (const f of STYLE_FIELDS) delete cur[f] // clear then apply, so Auto (unset) paints too
+    Object.assign(cur, copiedStyle ?? {})
+    m.layout.sectionSettings[key] = cur
+  }
+  const pasteStyle = () => editMeta((m) => applyStyleTo(m, sectionKey))
+  const paintAll = () =>
+    editMeta((m) => {
+      for (const key of [...m.layout.main, ...m.layout.aside]) applyStyleTo(m, key)
+    })
+
   const openPopover = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const W = 304
@@ -506,6 +537,34 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                   </div>
                 </div>
               )}
+              <div className="my-1 h-px bg-border" />
+              <div className="flex items-center gap-1 px-1 pb-1">
+                <button
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
+                  onClick={copyStyle}
+                  title="Copy this section's style"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy style
+                </button>
+                {copiedStyle && (
+                  <>
+                    <button
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
+                      onClick={pasteStyle}
+                      title="Paste the copied style onto this section"
+                    >
+                      <ClipboardPaste className="h-3.5 w-3.5" /> Paste
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+                      onClick={() => { paintAll(); setOpen(false) }}
+                      title="Paint the copied style onto every section"
+                    >
+                      <Paintbrush className="h-3.5 w-3.5" /> All
+                    </button>
+                  </>
+                )}
+              </div>
               <div className="my-1 h-px bg-border" />
               {twoCol && (
                 <button
