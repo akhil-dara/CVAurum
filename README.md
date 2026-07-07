@@ -29,10 +29,10 @@ That's the entire setup. No Docker, no Postgres, no Redis, no headless Chromium.
 
 A resume tool should be beautiful, private, and instant — without asking you to sign up, pay, or trust a server with your career history. CVAurum is built around four ideas:
 
-- **🎨 Design-first.** 52 hand-crafted templates with real typographic hierarchy, icon-chip section headings, and an auto-fit engine that keeps your resume looking sharp on a single page.
-- **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked.
-- **⚡ Instant to run, instant to use.** One command to start. Edit directly on the resume, drag sections around, undo/redo, and watch a live ATS score update as you type.
-- **🧩 Yours to own.** 100% open source (MIT), built on the open JSON Resume schema, and easy to extend — adding a template is a config object and a CSS block.
+- **🎨 Design-first.** 52 hand-crafted templates with real typographic hierarchy, icon-chip section headings, per-section style switching, and an auto-fit engine that keeps your resume looking sharp on a single page.
+- **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked — and even sharing is an **AES-256 encrypted link** that never touches a server.
+- **⚡ Instant, keyboard-first.** One command to start. Edit directly on the resume, drive everything from a **⌘K command palette**, type `/` for quick inserts, and watch a live ATS score update as you type.
+- **📊 ATS you can trust.** A deterministic score plus a **per-ATS parse simulation** (Workday · Greenhouse · Lever · Taleo · iCIMS) and an on-device writing coach — no LLM, no network, same input always the same advice.
 
 ---
 
@@ -71,7 +71,12 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Per-section style switching, live on the canvas** — every section’s gear shows **visual previews** of 8 heading styles, 4 skills display styles, and 4 **entry layouts** (timeline, cards, grid, divided). Click a swatch and that section restyles instantly — mix freely per resume, on top of any template.
 - **Header layouts** — pick how your name & contacts compose (classic, centered, split, banner, compact) from visual previews in the Design panel, independent of the template.
 - **One-click section starters** — the Add-section gallery offers ready-made ideas (Key Achievements, Strengths, Courses & Training, Conferences & Talks…) beside fully custom sections.
-- **Exact-PDF preview** — one click strips all editing chrome and renders precisely what will export, so there are never surprises.
+- **Exact-PDF preview** — a segmented **Edit · Preview · ATS** control: Preview strips all editing chrome and renders precisely what will export; ATS shows the plain text a parser reads.
+- **⌘K / Ctrl+K command palette** — a keyboard-first, fuzzy-searchable menu for every action: switch any template, set a font or accent, add a section, change canvas mode, export, toggle theme — without touching the mouse.
+- **Slash commands** — type `/` in any summary for a quick-insert menu (quantified-bullet template, strong action verbs, %/$ metric placeholders, dates). On-device, no dependency.
+- **Focus mode** — dim everything except the section under your cursor for distraction-free editing.
+- **Per-entry logos** — add a small company / institution logo beside any experience, education, or volunteering entry, with a friendly cropper and per-section size & shape controls.
+- **Per-section bullet & meter styles** — pick the bullet marker (disc, circle, square, dash, arrow, check, diamond, none) and the skills/languages proficiency meter (dots, bars, stars, text, none) per section.
 - **Drag-and-drop section reordering** (dnd-kit), show/hide sections, custom sections, and section renaming.
 - **Visual "Add a section" gallery** — each section is shown as a **live preview rendered in your actual template**, so you see exactly how it will look before adding it.
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Shift+Z` (powered by zundo).
@@ -81,6 +86,8 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 ### 📊 ATS & Job Tailoring
 - **Deterministic ATS analysis** — instant, private, and **no LLM required**. Structural checks for contact info, summary, quantified bullets, action verbs, length, ATS-safe layout, and standard headings, plus an overall **ATS score**.
+- **Per-ATS parse simulation** — a deterministic, on-device emulation of how five real applicant-tracking systems (**Workday, Greenhouse, Lever, Taleo, iCIMS**) each read your résumé, with a per-system parse score, the profile it would extract, and the specific structural risks (two-column reading order, photos, non-standard headings, keyword stuffing…). The weakest system is the one that gates you. Framed honestly as guidance, not a claim about any vendor's internals.
+- **On-device writing coach** — flags weak/vague openers, passive voice, first-person pronouns, clichés, missing metrics, and over-long bullets, each with a concrete fix and stronger-verb suggestions. Pure string analysis; zero network.
 - **“What ATS sees” view:** one click swaps the designed resume for the exact plain text an ATS parser reads — in its true reading order — so you can verify nothing is lost or scrambled before you apply.
 - **Live job-description tailoring:** paste a JD and instantly see **matched vs. missing keywords** and a **match score**.
 
@@ -89,6 +96,9 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **One-click PDF export** via the browser's native "Save as PDF" of a dedicated print route — **selectable, ATS-parseable text** (not a rasterized image), pixel-identical to the preview.
 - **Word (.docx) export** — a clean, single-column, **ATS-friendly** Word document with real bullet lists, preserved bold, and your template's accent color and fonts. Generated entirely in your browser; nothing is uploaded.
 - **Import & export JSON Resume files** — built on the [JSON Resume schema](https://jsonresume.org/schema) so your data round-trips with the wider ecosystem.
+
+### 🔐 Secure Sharing
+- **Encrypted share links** — send a private link whose résumé rides **inside the URL fragment** (which browsers never send to a server). The payload is **AES-256-GCM** encrypted with a key stretched from your passphrase via **PBKDF2-SHA-256 (600k iterations)** — so even if the link is cached or logged somewhere, it's unreadable without the passphrase (which you share through a different channel). Copy the link, use the native share sheet, or send it over WhatsApp; there is no plaintext link. For full-fidelity sharing with trusted people, export JSON.
 
 ### 📲 Installable & Offline (PWA)
 - **Install it like a native app** on desktop or mobile (Add to Home Screen / Install).
@@ -101,25 +111,21 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 ## 📸 Screenshots
 
-> _Run `npm run dev` to see it live. To populate this section, drop PNGs into `docs/screenshots/`
-> (`editor.png`, `preview.png`, `templates.png`, `ats.png`) and uncomment the table below._
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="CVAurum — a résumé this beautiful never leaves your browser" width="100%" />
+</p>
 
-<!--
-| Editor | Live Preview |
+| Edit right on the page | See how 5 ATS parse it |
 | --- | --- |
-| ![Editor](docs/screenshots/editor.png) | ![Preview](docs/screenshots/preview.png) |
+| ![Editor](docs/screenshots/editor.png) | ![ATS parser simulation](docs/screenshots/ats.png) |
 
-| Templates Gallery | ATS Analysis |
+| Restyle any section, live | Share an encrypted link |
 | --- | --- |
-| ![Templates](docs/screenshots/templates.png) | ![ATS](docs/screenshots/ats.png) |
--->
+| ![Per-section styles](docs/screenshots/styles.png) | ![Encrypted sharing](docs/screenshots/share.png) |
 
-A quick tour of what you get:
-
-- **Dashboard** — your private resume library, all stored locally.
-- **Editor** — left panel (Content · Design · Templates · ATS) with a live, paginated A4/Letter preview.
-- **Templates gallery** — 52 templates rendered live with *your* content.
-- **ATS panel** — an instant score plus a checklist and job-description keyword matching.
+<p align="center">
+  <img src="docs/screenshots/templates.png" alt="52 recruiter-ready templates rendered live with your content" width="100%" />
+</p>
 
 ---
 
@@ -243,8 +249,10 @@ Planned and under consideration:
 
 - **More templates** _(ongoing)_
 - **Sharper PDF import** — better reading order for dense two-column layouts, and a confidence/review pass on imported fields _(planned)_
+- **Constraint-solver one-page auto-fit**, **style painter** (copy a section's look onto others), and **version history** with visual diff _(planned)_
+- **On-device semantic JD matching** (transformers.js, MiniLM) as an optional upgrade to keyword overlap _(planned)_
 
-✅ **Shipped:** local PDF résumé import (text + on-device OCR), Word (.docx) export, 38 templates, full offline PWA.
+✅ **Shipped:** 52 templates · per-section style switching · per-entry logos · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · vector PDF & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
 
 Have an idea? Open an issue and let's talk.
 
