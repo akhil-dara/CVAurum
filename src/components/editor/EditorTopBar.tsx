@@ -18,6 +18,7 @@ import {
   Eye,
   PencilLine,
   Command,
+  Share2,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -143,6 +144,16 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
             )
           })}
         </div>
+
+        {/* share */}
+        <button
+          className="btn-icon"
+          onClick={() => window.dispatchEvent(new Event('cvaurum:open-share'))}
+          title="Share privately"
+          aria-label="Share résumé privately"
+        >
+          <Share2 className="h-[18px] w-[18px]" />
+        </button>
 
         {/* command palette (Ctrl/Cmd+K) */}
         <button

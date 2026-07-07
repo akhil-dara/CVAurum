@@ -44,6 +44,15 @@ export function useResumeActions() {
   const importFile = async (file?: File) => {
     if (!file) return
     try {
+      // Encrypted share file? Detect the magic bytes and hand off to the
+      // passphrase modal (decryption happens there, on-device).
+      const { isEncryptedShare } = await import('@/lib/share')
+      const head = new Uint8Array(await file.slice(0, 40).arrayBuffer())
+      if (isEncryptedShare(head)) {
+        const full = new Uint8Array(await file.arrayBuffer())
+        window.dispatchEvent(new CustomEvent('cvaurum:open-encrypted', { detail: full }))
+        return
+      }
       const doc = await importDocumentFromFile(file)
       await saveDoc(doc)
       await refreshLibrary()

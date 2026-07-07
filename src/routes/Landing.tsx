@@ -91,7 +91,7 @@ export function Landing() {
 
   return (
     <div className="min-h-full bg-background">
-      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
+      <input ref={fileRef} type="file" accept="application/json,.json,.cvaurum" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
 
       {/* nav — ink glass over the hero, theme glass past it */}

@@ -48,6 +48,7 @@ const Dashboard = lazyRoute(() => import('@/routes/Dashboard').then((m) => ({ de
 const EditorRoute = lazyRoute(() => import('@/routes/EditorRoute').then((m) => ({ default: m.EditorRoute })))
 const Tracker = lazyRoute(() => import('@/routes/Tracker').then((m) => ({ default: m.Tracker })))
 const PrintPage = lazyRoute(() => import('@/routes/PrintPage').then((m) => ({ default: m.PrintPage })))
+const ShareReceive = lazyRoute(() => import('@/routes/ShareReceive').then((m) => ({ default: m.ShareReceive })))
 
 function Loader() {
   return (
@@ -122,6 +123,7 @@ export const router = createBrowserRouter([
       { path: '/app', element: s(<Dashboard />) },
       { path: '/resume/:id', element: s(<EditorRoute />) },
       { path: '/tracker', element: s(<Tracker />) },
+      { path: '/r', element: s(<ShareReceive />) },
     ],
   },
   // Standalone, chrome-free page used for native "Save as PDF".

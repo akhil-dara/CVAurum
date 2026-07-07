@@ -126,6 +126,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         },
       },
       { id: 'export-menu', group: 'Export', label: 'Open export menu…', hint: 'Word, JSON Resume, PDF', run: () => window.dispatchEvent(new Event('cvaurum:open-export')) },
+      { id: 'share', group: 'Export', label: 'Share privately…', hint: 'private link or encrypted file', run: () => window.dispatchEvent(new Event('cvaurum:open-share')) },
     )
 
     // undo / redo
