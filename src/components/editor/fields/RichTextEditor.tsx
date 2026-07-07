@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
-import { Bold, Italic, Underline as UnderlineIcon, List, Link2 } from 'lucide-react'
+import { Bold, Italic, Underline as UnderlineIcon, List, Link2, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -15,7 +16,52 @@ interface Props {
   minHeight?: number
 }
 
+/** Slash-command snippets — a Notion-style quick menu, 100% on-device. */
+interface Slash {
+  title: string
+  hint: string
+  /** text to insert; `¦` marks where the caret lands afterwards. */
+  insert: string
+}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const nowMonthYear = () => {
+  const d = new Date()
+  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}
+const SLASH_COMMANDS: Slash[] = [
+  { title: 'Quantified bullet', hint: 'impact template', insert: '¦ by X%, saving $Y — via ' },
+  { title: 'Action verb: Led', hint: 'strong opener', insert: 'Led ¦' },
+  { title: 'Action verb: Built', hint: 'strong opener', insert: 'Built ¦' },
+  { title: 'Action verb: Drove', hint: 'strong opener', insert: 'Drove ¦' },
+  { title: 'Action verb: Launched', hint: 'strong opener', insert: 'Launched ¦' },
+  { title: 'Action verb: Streamlined', hint: 'strong opener', insert: 'Streamlined ¦' },
+  { title: 'Percentage metric', hint: 'placeholder', insert: 'X%¦' },
+  { title: 'Dollar metric', hint: 'placeholder', insert: '$X¦' },
+  { title: 'Insert this month', hint: nowMonthYear(), insert: `${nowMonthYear()}¦` },
+]
+
 export function RichTextEditor({ value, onChange, placeholder, withLists = true, minHeight = 64 }: Props) {
+  // Slash menu state, mirrored into a ref so the ProseMirror keydown handler
+  // (bound once at editor creation) always sees the latest values.
+  const [menu, setMenu] = useState<{ open: boolean; items: Slash[]; index: number; top: number; left: number; from: number; to: number }>(
+    { open: false, items: [], index: 0, top: 0, left: 0, from: 0, to: 0 },
+  )
+  const menuRef = useRef(menu)
+  menuRef.current = menu
+  const editorRef = useRef<Editor | null>(null)
+
+  const closeMenu = () => setMenu((m) => (m.open ? { ...m, open: false } : m))
+  const runSlash = (cmd: Slash) => {
+    const ed = editorRef.current
+    const m = menuRef.current
+    if (!ed) return
+    const caretMark = cmd.insert.indexOf('¦')
+    const text = cmd.insert.replace('¦', '')
+    ed.chain().focus().deleteRange({ from: m.from, to: m.to }).insertContent(text).run()
+    if (caretMark >= 0) ed.commands.setTextSelection(m.from + caretMark)
+    closeMenu()
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -38,12 +84,43 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
     ],
     content: value || '',
     editorProps: {
-      attributes: {
-        class: 'rt-content focus:outline-none',
+      attributes: { class: 'rt-content focus:outline-none' },
+      // Intercept navigation keys ONLY while the slash menu is open.
+      handleKeyDown: (_view, event) => {
+        const m = menuRef.current
+        if (!m.open) return false
+        if (event.key === 'ArrowDown') { event.preventDefault(); setMenu((s) => ({ ...s, index: (s.index + 1) % s.items.length })); return true }
+        if (event.key === 'ArrowUp') { event.preventDefault(); setMenu((s) => ({ ...s, index: (s.index - 1 + s.items.length) % s.items.length })); return true }
+        if (event.key === 'Enter') { event.preventDefault(); runSlash(m.items[m.index]); return true }
+        if (event.key === 'Escape') { event.preventDefault(); closeMenu(); return true }
+        return false
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   })
+  editorRef.current = editor
+
+  // Detect a trailing "/query" at the caret → open + filter the slash menu.
+  useEffect(() => {
+    if (!editor) return
+    const onTx = () => {
+      const { from, empty } = editor.state.selection
+      if (!empty) return closeMenu()
+      const before = editor.state.doc.textBetween(Math.max(0, from - 30), from, '\n', '￼')
+      const mt = before.match(/(?:^|\s)\/([\w-]*)$/)
+      if (!mt) return closeMenu()
+      const query = mt[1].toLowerCase()
+      const items = SLASH_COMMANDS.filter((c) => (c.title + ' ' + c.hint).toLowerCase().includes(query))
+      if (!items.length) return closeMenu()
+      const slashFrom = from - query.length - 1
+      let coords: { top: number; left: number; bottom: number }
+      try { coords = editor.view.coordsAtPos(slashFrom) } catch { return closeMenu() }
+      setMenu({ open: true, items, index: 0, top: coords.bottom + 4, left: coords.left, from: slashFrom, to: from })
+    }
+    editor.on('transaction', onTx)
+    editor.on('blur', closeMenu)
+    return () => { editor.off('transaction', onTx); editor.off('blur', closeMenu) }
+  }, [editor]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync external value changes (undo/redo, template/import swaps) into the
   // editor. During normal typing `value` equals the current HTML, so this is a
@@ -66,6 +143,32 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
     <div className="rt-wrap rounded-md border border-input bg-surface focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40">
       {editor && <Toolbar editor={editor} withLists={withLists} />}
       <EditorContent editor={editor} style={{ minHeight }} className="px-2.5 py-2 text-sm leading-relaxed" />
+      {menu.open &&
+        createPortal(
+          <div
+            data-slash-menu
+            className="fixed z-[75] w-64 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-float"
+            style={{ top: menu.top, left: menu.left }}
+          >
+            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Insert</div>
+            {menu.items.map((c, i) => (
+              <button
+                key={c.title}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); runSlash(c) }}
+                onMouseEnter={() => setMenu((s) => ({ ...s, index: i }))}
+                className={cn('flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm', i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60')}
+              >
+                <span className="truncate">{c.title}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="max-w-[7rem] truncate text-[11px] text-muted-foreground">{c.hint}</span>
+                  {i === menu.index && <CornerDownLeft className="h-3 w-3 text-muted-foreground" />}
+                </span>
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -126,6 +229,7 @@ function Toolbar({ editor, withLists }: { editor: Editor; withLists: boolean }) 
       <TBtn title="Link" active={editor.isActive('link')} onClick={setLink}>
         <Link2 className="h-3.5 w-3.5" />
       </TBtn>
+      <span className="ml-auto pr-1 text-[10px] text-muted-foreground">Type <kbd className="rounded border border-border px-1">/</kbd> to insert</span>
     </div>
   )
 }
