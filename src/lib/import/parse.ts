@@ -175,6 +175,25 @@ function pullLocation(text: string): { location: string; rest: string } {
 // Section labels and monograms masquerade as names in some templates' headers.
 const NOT_A_NAME = /^(contact(\s*(info|information|details))?|profile|summary|objective|about(\s*me)?|skills?|experience|education|resume|cv|curriculum\s*vitae|projects?|certifications?|references?)\.?$/i
 
+/**
+ * Trim a name line that over-captured trailing non-name tokens (a website,
+ * handle, or role that shared the visual row), e.g. "Alex Morgan alexmorgan.dev"
+ * → "Alex Morgan". Keeps the leading run of plain name tokens.
+ */
+function cleanName(t: string): string {
+  const toks = cleanEdge(t).split(/\s+/)
+  const out: string[] = []
+  for (let tok of toks) {
+    tok = tok.replace(/[,|]+$/, '')
+    if (/@|https?:|\.[a-z]{2,}$|\d/i.test(tok)) break
+    if (!/^[A-Za-z][A-Za-z.'\u2019-]*$/.test(tok)) break
+    out.push(tok)
+    if (out.length >= 4) break
+  }
+  const s = out.join(' ').trim()
+  return s.length >= 2 ? s : cleanEdge(t)
+}
+
 function scoreName(line: Line): number {
   const t = line.text.trim()
   if (NOT_A_NAME.test(t)) return -10
@@ -252,7 +271,7 @@ function parseHeader(header: Line[], content: ResumeContent) {
     .filter((x) => x.s > 0)
     .sort((a, c) => c.s - a.s || c.l.height - a.l.height || a.i - c.i)[0]
   if (named) {
-    b.name = cleanEdge(named.l.text)
+    b.name = cleanName(named.l.text)
     // headline = the nearest following non-contact, letter-ish header line
     const after = header.slice(named.i + 1).find((l) => {
       const t = l.text
@@ -278,6 +297,54 @@ function parseHeader(header: Line[], content: ResumeContent) {
       }
       break
     }
+  }
+}
+
+/**
+ * Recover any basics the header pass missed — the name/contact block often sits
+ * outside the "header" section on two-column résumés (a sidebar heading can come
+ * first in reading order), so fall back to scanning the whole document. Only
+ * fills fields that are still empty, so a header hit always wins.
+ */
+function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: LayoutGraph) {
+  const b = content.basics
+  const blob = allLines.map((l) => l.text).join('  \u00b7  ')
+  if (!b.email) b.email = blob.match(EMAIL_RE)?.[0] ?? ''
+  if (!b.phone) {
+    const cands = (blob.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [])
+      .map((x) => x.trim())
+      .filter((x) => { const d = x.replace(/\D/g, ''); return d.length >= 9 && d.length <= 15 })
+    b.phone = cands.sort((a, c) => c.replace(/\D/g, '').length - a.replace(/\D/g, '').length)[0] ?? ''
+  }
+  const httpify = (u: string) => (/^https?:\/\//.test(u) ? u : 'https://' + u.replace(/^\/+/, ''))
+  if (!b.profiles || !b.profiles.length) {
+    const linkedin = blob.match(LINKEDIN_RE)?.[0]
+    const github = blob.match(GITHUB_RE)?.[0]
+    const profiles: { id: string; network: string; username: string; url: string }[] = []
+    if (linkedin) profiles.push({ id: uid(), network: 'LinkedIn', username: '', url: httpify(linkedin) })
+    if (github) profiles.push({ id: uid(), network: 'GitHub', username: '', url: httpify(github) })
+    if (profiles.length) b.profiles = profiles
+  }
+  if (!b.location || (!b.location.city && !b.location.region)) {
+    const locM = blob.match(LOCATION_RE)
+    if (locM) { const [city, region] = locM[1].split(',').map((x) => x.trim()); b.location = { city, region } }
+  }
+  if (!b.name) {
+    // The name is almost always the LARGEST text near the top. Require a clean
+    // 2–4 token name shape (no colon/comma/digits) so a skills line like
+    // "Languages: TypeScript" or a heading can never be mistaken for it.
+    const NAME_SHAPE = /^[A-Za-z][A-Za-z.'’-]+(?: [A-Za-z][A-Za-z.'’-]+){1,3}$/
+    // Scan the whole first page (not just reading-order-early lines): on a
+    // two-column résumé the name sits in the main column, after the sidebar in
+    // reading order, but it is the LARGEST text on the page. Pick biggest font,
+    // tie-break topmost.
+    const firstPage = (allLines[0]?.page ?? 0)
+    const cands = allLines
+      .filter((l) => (l.page ?? 0) === firstPage)
+      .map((l) => ({ l, clean: cleanName(l.text) }))
+      .filter((x) => NAME_SHAPE.test(x.clean) && !headingKey(x.l, g) && !NOT_A_NAME.test(x.clean))
+      .sort((a, c) => c.l.height - a.l.height || a.l.top - c.l.top)
+    if (cands[0]) b.name = cands[0].clean
   }
 }
 
@@ -591,6 +658,7 @@ export function parseLayout(g: LayoutGraph): ImportResult {
   const sections = splitSections(g)
   const header = sections.find((s) => s.key === 'header')
   if (header) parseHeader(header.lines, content)
+  recoverMissingBasics(content, g.lines, g)
 
   for (const sec of sections) {
     const lines = sec.lines.filter((l) => l.text.trim())
