@@ -68,6 +68,7 @@ interface Signals {
   title: boolean
   emptySkillMeters: number
   skillKeywordCount: number
+  maxSkillGroup: number
   workCount: number
   datedWork: number
   standardPresent: string[]
@@ -97,9 +98,11 @@ function collectSignals(doc: ResumeDocument): Signals {
 
   let emptySkillMeters = 0
   let skillKeywordCount = 0
+  let maxSkillGroup = 0
   for (const g of c.skills) {
     const kw = (g.keywords ?? []).filter(Boolean)
     skillKeywordCount += kw.length
+    maxSkillGroup = Math.max(maxSkillGroup, kw.length)
     if (kw.length === 0 && typeof g.rating === 'number') emptySkillMeters++
   }
 
@@ -123,6 +126,7 @@ function collectSignals(doc: ResumeDocument): Signals {
     title: !!(c.basics.label && c.basics.label.trim()),
     emptySkillMeters,
     skillKeywordCount,
+    maxSkillGroup,
     workCount: c.work.filter((w) => w.position || w.name || (w.highlights ?? []).some((h) => htmlToText(h))).length,
     datedWork,
     standardPresent: ['work', 'education', 'skills'].filter((k) => allKeys.includes(k)),
@@ -154,6 +158,17 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
       detail: 'A rating bar with no words is invisible to every parser — add the actual skill keywords so they are captured.',
     })
     penalty += 10 * Math.min(sig.emptySkillMeters, 3)
+  }
+
+  // keyword stuffing — a wall of skills. Parsers ingest them, but recruiters
+  // skim past it and some systems weight an over-stuffed skills block down.
+  if (sig.skillKeywordCount > 60 || sig.maxSkillGroup > 30) {
+    findings.push({
+      severity: sig.skillKeywordCount > 100 ? 'risk' : 'minor',
+      title: `Possible keyword stuffing (${sig.skillKeywordCount} skills)`,
+      detail: 'A parser will read them, but a wall of keywords reads as padding to recruiters and some systems discount it. Group and prioritise the ~15–25 skills that match your target roles.',
+    })
+    penalty += sig.skillKeywordCount > 100 ? 10 : 5
   }
 
   // two-column reading order
