@@ -121,7 +121,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <input ref={fileRef} type="file" accept="application/json,.json,.cvaurum" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
+      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
       <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
       <input ref={backupRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onRestore(e.target.files?.[0])} />
 
