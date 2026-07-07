@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from 'zustand'
 import {
   Undo2,
@@ -17,6 +17,7 @@ import {
   ScanText,
   Eye,
   PencilLine,
+  Command,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -37,6 +38,12 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const { undo, redo } = useResumeStore.temporal.getState()
 
   const [exportOpen, setExportOpen] = useState(false)
+  // the command palette can open the export menu
+  useEffect(() => {
+    const onOpen = () => setExportOpen(true)
+    window.addEventListener('cvaurum:open-export', onOpen)
+    return () => window.removeEventListener('cvaurum:open-export', onOpen)
+  }, [])
   const [exportFmt, setExportFmt] = useState<ExportFormat | null>(null)
 
   const chooseExport = (fmt: ExportFormat) => {
@@ -136,6 +143,16 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
             )
           })}
         </div>
+
+        {/* command palette (Ctrl/Cmd+K) */}
+        <button
+          className="btn-icon hidden sm:flex"
+          onClick={() => window.dispatchEvent(new Event('cvaurum:open-palette'))}
+          title="Command palette (Ctrl+K)"
+          aria-label="Open command palette"
+        >
+          <Command className="h-[18px] w-[18px]" />
+        </button>
 
         {/* re-open the guided tour */}
         <button

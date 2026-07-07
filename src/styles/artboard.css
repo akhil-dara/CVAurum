@@ -859,3 +859,22 @@
 .rm-item-head {
   align-items: flex-start;
 }
+
+/* Focus (zen) mode — dim everything except the section under the cursor.
+   Edit canvas only; print/preview renders never carry the class. */
+.focus-mode .rm-section {
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+.focus-mode .rm-root:not(:has(.rm-section:hover)) .rm-section {
+  opacity: 1; /* nothing hovered: show all */
+}
+.focus-mode .rm-root:has(.rm-section:hover) .rm-section:not(:hover):not(:focus-within) {
+  opacity: 0.3;
+  filter: saturate(0.65);
+}
+.focus-mode .rm-header {
+  transition: opacity 0.25s ease;
+}
+.focus-mode .rm-root:has(.rm-section:hover) .rm-header {
+  opacity: 0.45;
+}

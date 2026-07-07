@@ -23,6 +23,8 @@ interface EditorState {
   atsView: boolean
   /** render the canvas exactly as the exported PDF (no edit chrome/placeholders) */
   previewExact: boolean
+  /** dim everything except the section under the cursor (zen editing) */
+  focusMode: boolean
 
   setLeftTab: (t: LeftTab) => void
   setActiveSection: (s: string | null) => void
@@ -38,6 +40,7 @@ interface EditorState {
   setOnePageScale: (v: number) => void
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
+  setFocusMode: (v: boolean) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -51,6 +54,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   onePageScale: 1,
   atsView: false,
   previewExact: false,
+  focusMode: false,
 
   setLeftTab: (leftTab) => set({ leftTab }),
   setActiveSection: (activeSection) => set({ activeSection }),
@@ -66,4 +70,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setOnePageScale: (onePageScale) => set({ onePageScale }),
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),
+  setFocusMode: (focusMode) => set({ focusMode }),
 }))

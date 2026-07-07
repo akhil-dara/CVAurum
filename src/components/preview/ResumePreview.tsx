@@ -34,6 +34,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const fitToWidth = useEditorStore((s) => s.autoFit)
   const atsView = useEditorStore((s) => s.atsView)
   const previewExact = useEditorStore((s) => s.previewExact)
+  const focusMode = useEditorStore((s) => s.focusMode)
   const updateContent = useResumeStore((s) => s.updateContent)
   const updateMetadata = useResumeStore((s) => s.updateMetadata)
   const updateDoc = useResumeStore((s) => s.updateDoc)
@@ -227,7 +228,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       </div>,
       document.body,
     )}
-    <div ref={scrollRef} className="canvas-bg relative h-full w-full overflow-auto">
+    <div ref={scrollRef} className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !previewExact ? ' focus-mode' : ''}`}>
       {/* unmistakable mode flag — floating over the canvas while previewing */}
       {previewExact && (
         <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">

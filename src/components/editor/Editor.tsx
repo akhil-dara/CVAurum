@@ -7,6 +7,7 @@ import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
 import { EditorTopBar } from './EditorTopBar'
 import { EditorTour } from './EditorTour'
+import { CommandPalette } from './CommandPalette'
 import { LeftRail } from './LeftRail'
 import { ContentPanel } from './panels/ContentPanel'
 import { DesignPanel } from './panels/DesignPanel'
@@ -101,6 +102,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
         </div>
       </div>
       <EditorTour />
+      <CommandPalette doc={doc} />
     </div>
   )
 }
