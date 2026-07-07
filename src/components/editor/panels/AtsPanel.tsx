@@ -3,6 +3,7 @@ import { CheckCircle2, AlertTriangle, XCircle, Target, FileText, PenLine, Sparkl
 import type { ResumeDocument } from '@/types/document'
 import { analyzeResume, type CheckStatus } from '@/lib/ats'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
+import { AtsSimulator } from './AtsSimulator'
 import { useResumeStore } from '@/store/useResumeStore'
 import { cn } from '@/lib/utils'
 
@@ -162,6 +163,8 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
           <p className="mt-1 text-xs text-muted-foreground">{report.quantifiedCount}/{report.bulletCount} bullets quantified</p>
         </div>
       </div>
+
+      <AtsSimulator doc={doc} />
 
       {/* checks */}
       <div className="space-y-1.5">
