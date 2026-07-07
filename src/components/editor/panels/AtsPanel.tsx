@@ -61,7 +61,10 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
   const report = useMemo(() => analyzeWriting(doc), [doc])
   const [openAll, setOpenAll] = useState(false)
   if (report.bulletCount === 0) return null
-  const shown = openAll ? report.issues : report.issues.slice(0, 4)
+  // Focus the list on real problems — a bullet whose only note is the advisory
+  // "add a metric" is covered by the ratio line, not worth its own row.
+  const worthShowing = report.issues.filter((b) => b.issues.some((i) => i.kind !== 'no-metric') || b.issues.length >= 2)
+  const shown = openAll ? worthShowing : worthShowing.slice(0, 4)
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -84,7 +87,7 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
           </p>
         </div>
       </div>
-      {report.issues.length === 0 ? (
+      {worthShowing.length === 0 ? (
         <p className="rounded-lg border border-success/30 bg-success/5 p-2.5 text-xs text-muted-foreground">
           Every bullet reads clean — strong action verbs, active voice, and concrete detail. Nice work.
         </p>
@@ -111,9 +114,9 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
               </div>
             ))}
           </div>
-          {report.issues.length > 4 && (
+          {worthShowing.length > 4 && (
             <button className="btn-ghost btn-sm w-full" onClick={() => setOpenAll((o) => !o)}>
-              {openAll ? 'Show fewer' : `Show all ${report.issues.length} bullets with tips`}
+              {openAll ? 'Show fewer' : `Show all ${worthShowing.length} bullets with tips`}
             </button>
           )}
         </>

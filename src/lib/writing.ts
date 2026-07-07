@@ -83,6 +83,45 @@ const FILLER = [
   'really',
 ]
 
+/** Overused clichés recruiters penalize — say the concrete thing instead. */
+const CLICHES = [
+  'team player',
+  'hard worker',
+  'hard-working',
+  'hardworking',
+  'detail-oriented',
+  'detail oriented',
+  'results-driven',
+  'results driven',
+  'go-getter',
+  'self-starter',
+  'think outside the box',
+  'outside the box',
+  'synergy',
+  'synergies',
+  'proactive',
+  'fast learner',
+  'quick learner',
+  'proven track record',
+  'best of breed',
+  'move the needle',
+  'ninja',
+  'rockstar',
+  'guru',
+]
+
+/** How much each issue kind drags the writing score (0–1 per bullet, capped). */
+const KIND_WEIGHT: Record<string, number> = {
+  'weak-opener': 1,
+  cliche: 0.7,
+  passive: 0.65,
+  'first-person': 0.65,
+  'weak-verb': 0.5,
+  filler: 0.5,
+  'too-long': 0.35,
+  'no-metric': 0.25, // advisory — the ATS panel already reports the quantified ratio
+}
+
 /** Passive voice: a "to be" form followed by a past participle (regular -ed or
  *  a common irregular). Adverbs between them ("was quickly rebuilt") still match. */
 const PASSIVE_RE = /\b(was|were|been|being|is|are|be)\b\s+(?:\w+ly\s+)?(\w+ed|\w*built|\w*made|\w*written|\w*driven|\w*taken|\w*given|\w*shown|\w*grown|done|led|kept|held|sent|found|run|met|set|put|read|split|spent|won|chosen|drawn|thrown)\b/i
@@ -158,6 +197,20 @@ function analyzeText(text: string, opts: { requireMetric: boolean }): WritingIss
     }
   }
 
+  for (const cl of CLICHES) {
+    const re = new RegExp(`\\b${cl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    const m = t.match(re)
+    if (m) {
+      issues.push({
+        kind: 'cliche',
+        severity: 'suggestion',
+        message: `Cliché "${m[0]}" — recruiters skim past it. Show it with a concrete result instead.`,
+        match: m[0],
+      })
+      break
+    }
+  }
+
   if (opts.requireMetric && !QUANT_RE.test(t)) {
     issues.push({
       kind: 'no-metric',
@@ -208,10 +261,19 @@ export function analyzeWriting(doc: ResumeDocument): WritingReport {
 
   const bulletCount = bullets.length
   const cleanCount = bulletCount - withIssues.length
-  // Weighted deductions; warnings hurt more than gentle suggestions.
-  let penalty = 0
-  for (const b of withIssues) for (const i of b.issues) penalty += i.severity === 'warning' ? 9 : 4
-  const score = bulletCount === 0 ? 100 : Math.max(0, Math.min(100, Math.round(100 - penalty / Math.max(1, bulletCount) - (bulletCount ? 0 : 0))))
+  // Score off the AVERAGE per-bullet "badness" so it spreads across a usable
+  // range instead of clustering near 100. Each bullet's badness is the sum of
+  // its issue weights, capped at 1 (one bad bullet can't sink the whole score),
+  // then averaged and scaled — a résumé where every bullet has a real problem
+  // lands in the 20s, a clean one at 100. Advisory kinds (no-metric) barely move it.
+  let badnessSum = 0
+  for (const b of withIssues) {
+    let w = 0
+    for (const i of b.issues) w += KIND_WEIGHT[i.kind] ?? 0.5
+    badnessSum += Math.min(1, w)
+  }
+  const avgBad = bulletCount === 0 ? 0 : badnessSum / bulletCount
+  const score = Math.max(0, Math.min(100, Math.round(100 - avgBad * 78)))
 
   // Sort worst-first for the UI.
   withIssues.sort((a, b) => b.issues.length - a.issues.length)
