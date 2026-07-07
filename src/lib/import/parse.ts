@@ -28,6 +28,7 @@ const HEAD_PHRASES: { key: string; re: RegExp }[] = [
   { key: 'volunteer', re: /^(volunteer\w*|community\s*service)\b/i },
   { key: 'languages', re: /^languages?\b/i },
   { key: 'interests', re: /^(interests|hobbies)\b/i },
+  { key: 'references', re: /^(references?|referees?)\b/i },
   { key: 'summary', re: /^(summary|professional\s*summary|profile|objective|career\s*objective|about(\s*me)?)\b/i },
 ]
 
@@ -49,6 +50,7 @@ const CONTAIN_KEYWORDS: { key: string; re: RegExp }[] = [
   { key: 'publications', re: /\bpublications?\b/i },
   { key: 'languages', re: /\blanguages?\b/i },
   { key: 'interests', re: /\b(interests|hobbies)\b/i },
+  { key: 'references', re: /\b(references?|referees?)\b/i },
   { key: 'summary', re: /\b(summary|objective)\b/i },
 ]
 
@@ -588,6 +590,19 @@ function parseSkills(lines: Line[]): ResumeContent['skills'] {
     }
     return out
   }
+  // A leftover line only becomes skills if it reads like a keyword list — never
+  // prose. Trailing content that merged in from an unrecognised heading
+  // (a declaration, "references available on request", personal details) must
+  // NOT be shredded into random "skills".
+  const NONSKILL = /\b(available\s+(up)?on\s+request|references?|declaration|hereby|i\s+declare|date\s+of\s+birth|d\.?o\.?b\.?|marital|nationality|passport|gender|father'?s?\s+name|mother'?s?\s+name|permanent\s+address|current\s+address|languages?\s+known)\b/i
+  const looksLikeSkillList = (t: string): boolean => {
+    const s = t.trim()
+    if (!s || NONSKILL.test(s)) return false
+    const words = s.split(/\s+/)
+    if (/[.!?]$/.test(s) && words.length > 8) return false // a sentence, not a skill line
+    if (/[,;|•·]/.test(s)) return true // a delimited keyword list (incl. stuffed)
+    return words.length <= 4 // a lone short term is plausibly one skill
+  }
   const groups: ResumeContent['skills'] = []
   const loose: string[] = []
   for (const line of lines) {
@@ -596,7 +611,7 @@ function parseSkills(lines: Line[]): ResumeContent['skills'] {
     if (m) {
       const keywords = clean(m[2].split(/[,;|•·]/))
       if (keywords.length) groups.push({ id: uid(), name: m[1].trim(), level: '', keywords })
-    } else {
+    } else if (looksLikeSkillList(t)) {
       loose.push(...t.split(/[,;|•·]/))
     }
   }
@@ -691,6 +706,14 @@ export function parseLayout(g: LayoutGraph): ImportResult {
       case 'interests':
         content.interests.push(...(parseSimpleList(lines, 'interests') as ResumeContent['interests']))
         break
+      case 'references': {
+        const rtxt = lines.map((l) => stripBullet(l.text)).filter(Boolean)
+        for (const t of rtxt) {
+          if (/available\s+(up)?on\s+request/i.test(t)) continue // placeholder, not a referee
+          content.references.push({ id: uid(), name: t.slice(0, 80), reference: '' })
+        }
+        break
+      }
       default:
         if (sec.key.startsWith('custom:')) {
           const bullets = lines.filter((l) => isBullet(l.text)).map((l) => esc(stripBullet(l.text)))
