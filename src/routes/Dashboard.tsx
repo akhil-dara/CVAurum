@@ -24,6 +24,26 @@ import { useTitle } from '@/lib/useTitle'
 
 /** The resume library / dashboard (/app). The explainer homepage lives at /. */
 export function Dashboard() {
+  // Safari (not installed as an app) deletes ALL site data after 7 days
+  // without a visit — for a local-first app that means losing resumes.
+  // One honest, one-time heads-up with the two real mitigations.
+  useEffect(() => {
+    try {
+      const ua = navigator.userAgent
+      const isSafari = /safari/i.test(ua) && !/chrome|crios|chromium|android|edg|fxios/i.test(ua)
+      const installed =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as unknown as { standalone?: boolean }).standalone === true
+      if (isSafari && !installed && !localStorage.getItem('cvaurum:safari-nudge')) {
+        localStorage.setItem('cvaurum:safari-nudge', '1')
+        useAppStore
+          .getState()
+          .toast('Heads-up: Safari clears local site data after 7 days without a visit. Install CVAurum as an app or export a backup to keep your resumes safe.', 'info')
+      }
+    } catch {
+      /* never block the dashboard over a nudge */
+    }
+  }, [])
   useTitle('Your Resumes · CVAurum')
   const navigate = useNavigate()
   const library = useAppStore((s) => s.library)

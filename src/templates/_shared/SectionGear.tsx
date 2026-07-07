@@ -216,6 +216,30 @@ const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
 const HAS_DATES = new Set(['work', 'education', 'projects', 'volunteer', 'certificates', 'awards', 'publications', 'custom'])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 const HAS_SUMMARY = new Set(['work'])
+
+/** Per-section bullet markers (glyph chips — the marker itself is the preview). */
+const BULLET_CHOICES: { v: string; label: string; title: string }[] = [
+  { v: '', label: 'Auto', title: 'Use the resume-wide bullet style (Design panel)' },
+  { v: 'disc', label: '•', title: 'Disc' },
+  { v: 'circle', label: '○', title: 'Circle' },
+  { v: 'square', label: '▪', title: 'Square' },
+  { v: 'dash', label: '–', title: 'Dash' },
+  { v: 'arrow', label: '›', title: 'Arrow' },
+  { v: 'check', label: '✓', title: 'Check' },
+  { v: 'diamond', label: '◆', title: 'Diamond' },
+  { v: 'none', label: 'None', title: 'No bullet markers' },
+]
+
+/** Per-section proficiency meters (skills & languages). */
+const METER_CHOICES: { v: string; label: string; title: string }[] = [
+  { v: '', label: 'Auto', title: 'Use the resume-wide meter style (Design panel)' },
+  { v: 'dots', label: '●●●○○', title: 'Dots' },
+  { v: 'bars', label: '▰▰▰▱▱', title: 'Bars' },
+  { v: 'stars', label: '★★★☆☆', title: 'Stars' },
+  { v: 'text', label: 'Text', title: 'Written level (e.g. Native, Professional)' },
+  { v: 'none', label: 'None', title: 'Hide proficiency' },
+]
+const HAS_METER = new Set(['skills', 'languages'])
 const HAS_KEYWORDS = new Set(['projects'])
 
 /**
@@ -243,7 +267,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
     })
 
   // Per-section style overrides — applied live on the canvas as you click.
-  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout' | 'scoreStyle', value?: string) =>
+  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout' | 'scoreStyle' | 'bulletStyle' | 'meterStyle', value?: string) =>
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
@@ -319,6 +343,52 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                 />
               ))}
               {rows.length > 0 && <div className="my-1 h-px bg-border" />}
+
+              {/* Bullet marker — per-section override of the global bullet style */}
+              {HAS_BULLETS.has(base) && opts.showBullets !== false && (
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bullet style</div>
+                  <div className="flex flex-wrap gap-1">
+                    {BULLET_CHOICES.map((b) => {
+                      const on = (opts.bulletStyle ?? '') === b.v
+                      return (
+                        <button
+                          key={b.v || 'auto'}
+                          type="button"
+                          title={b.title}
+                          onClick={() => setStyle('bulletStyle', b.v)}
+                          className={`min-w-[2rem] rounded-md border px-1.5 py-1 text-xs font-medium transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                        >
+                          {b.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Proficiency meter — skills & languages only */}
+              {HAS_METER.has(base) && (
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Meter style</div>
+                  <div className="flex flex-wrap gap-1">
+                    {METER_CHOICES.map((b) => {
+                      const on = (opts.meterStyle ?? '') === b.v
+                      return (
+                        <button
+                          key={b.v || 'auto'}
+                          type="button"
+                          title={b.title}
+                          onClick={() => setStyle('meterStyle', b.v)}
+                          className={`rounded-md border px-1.5 py-1 text-[11px] font-medium tracking-tight transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                        >
+                          {b.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Heading style — live restyle of THIS section's heading */}
               <div className="px-2 pb-1 pt-0.5">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { Toaster } from '@/components/ui/Toaster'
+import { UpdatePrompt } from '@/components/ui/UpdatePrompt'
 
 export function RootLayout() {
   const init = useAppStore((s) => s.init)
@@ -24,6 +25,7 @@ export function RootLayout() {
   return (
     <>
       <Outlet />
+      <UpdatePrompt />
       <Toaster />
     </>
   )

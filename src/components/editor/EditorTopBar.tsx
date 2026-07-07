@@ -125,8 +125,9 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                 onClick={() => {
                   setPreviewExact(m.key === 'preview')
                   setAtsView(m.key === 'ats')
-                  // phones: the edit panel covers the canvas — reveal it to actually preview
-                  if (m.key !== 'edit' && window.innerWidth < 768) useEditorStore.getState().setLeftOpen(false)
+                  // phones: the edit panel covers the canvas — close it to preview,
+                  // and bring it back when the user returns to Edit
+                  if (window.innerWidth < 768) useEditorStore.getState().setLeftOpen(m.key === 'edit')
                 }}
                 title={m.title}
               >

@@ -357,8 +357,11 @@ function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: stri
   ]
     .filter(Boolean)
     .join(' ')
+  // Per-section bullet marker: the list-style var cascades, so setting it on
+  // the section scopes the override without any extra CSS.
+  const secStyle = ss?.bulletStyle ? ({ '--rm-bullet-type': BULLET_TYPE[ss.bulletStyle] } as CSSProperties) : undefined
   return (
-    <section className={cls} data-section={sectionKey}>
+    <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
       <h2 className="rm-section-title">
         {showIcon ? <SectionIcon sectionKey={sectionKey} /> : null}

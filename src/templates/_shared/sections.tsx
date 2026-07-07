@@ -25,6 +25,8 @@ export type SecOpts = {
   showDates?: boolean
   showLocation?: boolean
   showSummary?: boolean
+  bulletStyle?: string
+  meterStyle?: string
   showKeywords?: boolean
   headingStyle?: string
   skillsStyle?: string
@@ -418,7 +420,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
   // tags/grid reuse the chips markup (distinct keyword elements) restyled by CSS.
   const override = opts?.skillsStyle
   const style = override ? (override === 'inline' ? 'inline' : 'chips') : config.skills
-  const prof = doc.metadata.typography.proficiency as ProfStyle
+  const prof = (opts?.meterStyle ?? doc.metadata.typography.proficiency) as ProfStyle
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
   return (
     <>
@@ -461,8 +463,8 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
   )
 }
 
-function Languages({ doc, edit }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn }) {
-  const prof = doc.metadata.typography.proficiency as ProfStyle
+function Languages({ doc, edit, opts }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; opts?: SecOpts }) {
+  const prof = (opts?.meterStyle ?? doc.metadata.typography.proficiency) as ProfStyle
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
   return (
     <>
@@ -705,7 +707,7 @@ function sectionRenderer(sectionKey: string, doc: ResumeDocument, config: Templa
     case 'skills':
       return <Skills doc={doc} config={config} edit={edit} opts={opts} />
     case 'languages':
-      return <Languages doc={doc} config={config} edit={edit} />
+      return <Languages doc={doc} config={config} edit={edit} opts={opts} />
     case 'certificates':
       return <Certificates doc={doc} edit={edit} />
     case 'awards':

@@ -1,0 +1,5 @@
+# CVAurum vulnerability disclosure policy
+Contact: https://github.com/akhil-dara/cvaurum/security/advisories/new
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://cvaurum.com/.well-known/security.txt

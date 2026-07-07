@@ -47,7 +47,20 @@ export async function loadDoc(id: string): Promise<ResumeDocument | null> {
   return raw ? safeParseDoc(raw) : null
 }
 
+let durabilityRequested = false
+
 export async function saveDoc(doc: ResumeDocument): Promise<void> {
+  // Ask the browser to mark our storage durable (defeats routine eviction on
+  // Chromium; Safari still caps non-installed sites at 7 days — see the
+  // dashboard nudge). Once per session, fire-and-forget.
+  if (!durabilityRequested) {
+    durabilityRequested = true
+    try {
+      void navigator.storage?.persist?.()
+    } catch {
+      /* unsupported */
+    }
+  }
   await set(DOC_PREFIX + doc.id, doc, store)
 }
 

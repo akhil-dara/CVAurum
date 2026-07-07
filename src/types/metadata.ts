@@ -110,6 +110,10 @@ export const LayoutSchema = z.object({
         scoreStyle: z.enum(['inline', 'right', 'pill']).optional(),
         /** show a monogram badge (company/institution initial) beside each entry */
         showBadges: z.boolean().optional(),
+        /** per-section bullet marker (overrides the global typography choice) */
+        bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'none']).optional(),
+        /** per-section proficiency meter for skills/languages (overrides typography.proficiency) */
+        meterStyle: z.enum(['dots', 'bars', 'stars', 'text', 'none']).optional(),
       }),
     )
     .default({}),
