@@ -67,6 +67,12 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
     commit()
   }
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Escape commits and leaves the field (keyboard users need a way out).
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      ;(e.target as HTMLElement).blur()
+      return
+    }
     if (e.key !== 'Enter') return
     // Bullet-style entries: Enter commits this entry and adds the next one.
     if (onEnter && !e.shiftKey) {
@@ -99,6 +105,10 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
       contentEditable
       suppressContentEditableWarning
       spellCheck
+      role="textbox"
+      tabIndex={0}
+      aria-label={placeholder || 'Editable field'}
+      aria-multiline={rich && multiline ? true : undefined}
       data-placeholder={placeholder}
       onInput={onInput}
       onBlur={onBlur}
