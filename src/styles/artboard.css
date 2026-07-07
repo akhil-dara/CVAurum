@@ -824,14 +824,26 @@
 }
 
 /* Entry monogram badge — the ATS-safe "company logo" stand-in (pure text). */
+.rm-item-logo {
+  flex: none;
+  width: var(--rm-badge-size, 1.65em);
+  height: var(--rm-badge-size, 1.65em);
+  object-fit: contain;
+  border-radius: var(--rm-badge-radius, 0.25em);
+  /* logos read on any page/sidebar color */
+  background: #fff;
+  padding: 0.08em;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
 .rm-item-badge {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.65em;
-  height: 1.65em;
-  border-radius: 0.4em;
+  width: var(--rm-badge-size, 1.65em);
+  height: var(--rm-badge-size, 1.65em);
+  border-radius: var(--rm-badge-radius, 0.4em);
   background: color-mix(in srgb, var(--rm-primary) 13%, transparent);
   color: var(--rm-primary);
   font-weight: 700;

@@ -114,6 +114,10 @@ export const LayoutSchema = z.object({
         bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'none']).optional(),
         /** per-section proficiency meter for skills/languages (overrides typography.proficiency) */
         meterStyle: z.enum(['dots', 'bars', 'stars', 'text', 'none']).optional(),
+        /** entry logo / letter-badge size */
+        badgeSize: z.enum(['s', 'm', 'l']).optional(),
+        /** entry logo / letter-badge shape */
+        badgeShape: z.enum(['rounded', 'circle', 'square']).optional(),
       }),
     )
     .default({}),

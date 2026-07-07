@@ -267,7 +267,7 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
     })
 
   // Per-section style overrides — applied live on the canvas as you click.
-  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout' | 'scoreStyle' | 'bulletStyle' | 'meterStyle', value?: string) =>
+  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout' | 'scoreStyle' | 'bulletStyle' | 'meterStyle' | 'badgeSize' | 'badgeShape', value?: string) =>
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
@@ -381,6 +381,53 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                           title={b.title}
                           onClick={() => setStyle('meterStyle', b.v)}
                           className={`rounded-md border px-1.5 py-1 text-[11px] font-medium tracking-tight transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                        >
+                          {b.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Logo / badge size — sections with entry marks */}
+              {!NO_BADGES.has(base) && (
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Logo &amp; badge size</div>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { v: '', label: 'Auto' },
+                      { v: 's', label: 'S' },
+                      { v: 'm', label: 'M' },
+                      { v: 'l', label: 'L' },
+                    ].map((b) => {
+                      const on = (opts.badgeSize ?? '') === b.v
+                      return (
+                        <button
+                          key={b.v || 'auto'}
+                          type="button"
+                          onClick={() => setStyle('badgeSize', b.v)}
+                          className={`min-w-[2rem] rounded-md border px-1.5 py-1 text-xs font-medium transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                        >
+                          {b.label}
+                        </button>
+                      )
+                    })}
+                    <span className="mx-0.5 w-px self-stretch bg-border" aria-hidden />
+                    {[
+                      { v: '', label: 'Auto', title: 'Template default shape' },
+                      { v: 'rounded', label: '▢', title: 'Rounded corners' },
+                      { v: 'circle', label: '◯', title: 'Circle' },
+                      { v: 'square', label: '□', title: 'Square' },
+                    ].map((b) => {
+                      const on = (opts.badgeShape ?? '') === b.v
+                      return (
+                        <button
+                          key={'sh-' + (b.v || 'auto')}
+                          type="button"
+                          title={b.title}
+                          onClick={() => setStyle('badgeShape', b.v)}
+                          className={`min-w-[2rem] rounded-md border px-1.5 py-1 text-xs font-medium transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
                         >
                           {b.label}
                         </button>

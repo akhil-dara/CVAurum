@@ -46,6 +46,8 @@ export const BasicsSchema = z.object({
 export const WorkSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional().default(''), // company
+  /** small company logo, locally-encoded data URI only (CVAurum extension) */
+  logo: z.string().optional(),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   location: z.string().optional().default(''),
@@ -60,6 +62,8 @@ export const WorkSchema = z.object({
 export const EducationSchema = z.object({
   id: z.string().optional(),
   institution: z.string().optional().default(''),
+  /** small institution logo, locally-encoded data URI only (CVAurum extension) */
+  logo: z.string().optional(),
   url: z.string().optional().default(''),
   area: z.string().optional().default(''),
   studyType: z.string().optional().default(''),
@@ -139,6 +143,8 @@ export const ReferenceSchema = z.object({
 export const VolunteerSchema = z.object({
   id: z.string().optional(),
   organization: z.string().optional().default(''),
+  /** small organization logo, locally-encoded data URI only (CVAurum extension) */
+  logo: z.string().optional(),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   startDate: z.string().optional().default(''),

@@ -357,9 +357,18 @@ function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: stri
   ]
     .filter(Boolean)
     .join(' ')
-  // Per-section bullet marker: the list-style var cascades, so setting it on
-  // the section scopes the override without any extra CSS.
-  const secStyle = ss?.bulletStyle ? ({ '--rm-bullet-type': BULLET_TYPE[ss.bulletStyle] } as CSSProperties) : undefined
+  // Per-section vars (bullet marker, logo/badge size) cascade from the section
+  // element, so overrides scope themselves without any extra CSS.
+  const BADGE_SIZE: Record<string, string> = { s: '1.3em', m: '1.65em', l: '2.3em' }
+  const BADGE_RADIUS: Record<string, string> = { rounded: '0.28em', circle: '9999px', square: '0px' }
+  const secStyle =
+    ss?.bulletStyle || ss?.badgeSize || ss?.badgeShape
+      ? ({
+          ...(ss?.bulletStyle ? { '--rm-bullet-type': BULLET_TYPE[ss.bulletStyle] } : {}),
+          ...(ss?.badgeSize ? { '--rm-badge-size': BADGE_SIZE[ss.badgeSize] } : {}),
+          ...(ss?.badgeShape ? { '--rm-badge-radius': BADGE_RADIUS[ss.badgeShape] } : {}),
+        } as CSSProperties)
+      : undefined
   return (
     <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}

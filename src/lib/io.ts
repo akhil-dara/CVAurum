@@ -135,6 +135,12 @@ export async function importDocumentFromFile(file: File): Promise<ResumeDocument
   }
   const doc = fromJsonResume(json)
   doc.content.basics.image = await sanitizeImportedImage(doc.content.basics.image)
+  // Entry logos are attacker-controllable on import too — same funnel.
+  for (const list of [doc.content.work, doc.content.education, doc.content.volunteer]) {
+    for (const it of list as { logo?: string }[]) {
+      if (it.logo) it.logo = await sanitizeImportedImage(it.logo)
+    }
+  }
   return doc
 }
 

@@ -168,10 +168,15 @@ function Bullets({
 /** First letter of the org/name — the ATS-safe stand-in for a company logo. */
 const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
 
-function ItemHead({ title, date, badge }: { title: ReactNode; date?: ReactNode; badge?: string }) {
+function ItemHead({ title, date, badge, logo }: { title: ReactNode; date?: ReactNode; badge?: string; logo?: string }) {
+  // A real uploaded logo wins over the letter badge. Locally-encoded only —
+  // remote URLs would break the zero-external-requests promise.
+  const logoOk = logo && /^(data:image\/|blob:)/i.test(logo)
   return (
     <div className="rm-item-head">
-      {badge ? (
+      {logoOk ? (
+        <img className="rm-item-logo" src={logo} alt="" aria-hidden />
+      ) : badge ? (
         <span className="rm-item-badge" aria-hidden>
           {badge}
         </span>
@@ -302,6 +307,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
         <article className="rm-item rm-keep" key={w.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
+            logo={w.logo}
             title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title" />}
             date={rangeDate(edit, show(opts?.showDates), w.startDate, w.endDate, (c, v) => { c.work[i].startDate = v }, (c, v) => { c.work[i].endDate = v })}
           />
@@ -342,6 +348,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
           <article className="rm-item rm-keep" key={e.id}>
             <ItemHead
             badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
+            logo={e.logo}
               title={edit ? <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field of study" /> : title}
               date={rangeDate(edit, show(opts?.showDates), e.startDate, e.endDate, (c, v) => { c.education[i].startDate = v }, (c, v) => { c.education[i].endDate = v })}
             />
@@ -562,6 +569,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         <article className="rm-item rm-keep" key={v.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
+            logo={v.logo}
             title={<Ed edit={edit} value={v.position} apply={(c, val) => { c.volunteer[i].position = val }} placeholder="Role" />}
             date={rangeDate(edit, show(opts?.showDates), v.startDate, v.endDate, (c, val) => { c.volunteer[i].startDate = val }, (c, val) => { c.volunteer[i].endDate = val })}
           />
