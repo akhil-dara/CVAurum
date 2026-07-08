@@ -100,8 +100,12 @@ export function collectResumeLines(doc: ResumeDocument): string[] {
   const c = doc.content
   const lines: string[] = []
   const push = (s?: string) => {
-    const t = clean(htmlToText(s || ''))
-    if (t.length >= 8) lines.push(t)
+    let t = clean(htmlToText(s || ''))
+    if (t.length < 8) return
+    // Cap what goes through the tokenizer — keyword walls (200+ skills in one
+    // line) made a single embedding take seconds for no signal gain.
+    if (t.length > 240) t = t.slice(0, 240)
+    lines.push(t)
   }
   if (c.basics.label) push(c.basics.label)
   for (const s of htmlToText(c.basics.summary || '').split(/(?<=[.!?])\s+/)) push(s)
@@ -162,11 +166,13 @@ export interface SemanticReport {
   resumeLineCount: number
 }
 
-// MiniLM cosine landscape (calibrated on real JD/resume pairs in the probe):
-// clearly-related statements land ≥ ~0.60, loosely related ~0.45–0.6,
-// unrelated < ~0.40.
-const STRONG = 0.6
-const PARTIAL = 0.44
+// MiniLM cosine landscape, CALIBRATED against the real résumé corpus (not
+// synthetic text): across genuinely-matching resume/JD pairs the best sims
+// land 0.35–0.56, while unrelated professions top out around 0.33 (rare
+// outlier 0.43). Real JD duty-lines vs real achievement-bullets never reach
+// the 0.6+ that mirror-worded synthetic pairs do.
+const STRONG = 0.5
+const PARTIAL = 0.38
 
 export async function analyzeSemanticMatch(doc: ResumeDocument, jd: string): Promise<SemanticReport | null> {
   const resume = collectResumeLines(doc)
@@ -179,19 +185,22 @@ export async function analyzeSemanticMatch(doc: ResumeDocument, jd: string): Pro
 
   const items: SemanticItem[] = reqs.map((jdLine, j) => {
     const q = vec(resume.length + j)
-    let best = 0
+    // Track the top three resume lines: one JD requirement is often covered by
+    // SEVERAL bullets together ("Spark pipelines" + "Airflow orchestration"),
+    // so corroborating evidence earns a small, capped bonus over the best line.
+    let s1 = 0, s2 = 0, s3 = 0
     let bestIdx = 0
     for (let r = 0; r < resume.length; r++) {
       const v = vec(r)
       let dot = 0
       for (let k = 0; k < dim; k++) dot += q[k] * v[k]
-      if (dot > best) {
-        best = dot
-        bestIdx = r
-      }
+      if (dot > s1) { s3 = s2; s2 = s1; s1 = dot; bestIdx = r }
+      else if (dot > s2) { s3 = s2; s2 = dot }
+      else if (dot > s3) s3 = dot
     }
-    const bucket: CoverageBucket = best >= STRONG ? 'strong' : best >= PARTIAL ? 'partial' : 'gap'
-    return { jd: jdLine, best: resume[bestIdx], sim: Math.round(best * 100) / 100, bucket }
+    const sim = Math.min(1, s1 + 0.25 * Math.max(0, s2 - 0.3) + 0.15 * Math.max(0, s3 - 0.3))
+    const bucket: CoverageBucket = sim >= STRONG ? 'strong' : sim >= PARTIAL ? 'partial' : 'gap'
+    return { jd: jdLine, best: resume[bestIdx], sim: Math.round(sim * 100) / 100, bucket }
   })
 
   const strong = items.filter((i) => i.bucket === 'strong').length

@@ -112,6 +112,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
       { id: 'panel-design', group: 'View', label: 'Open Design panel', run: () => { ed.setLeftTab('design'); ed.setLeftOpen(true) } },
       { id: 'panel-templates', group: 'View', label: 'Open Templates panel', run: () => { ed.setLeftTab('templates'); ed.setLeftOpen(true) } },
       { id: 'panel-ats', group: 'View', label: 'Open ATS & Tailoring panel', run: () => { ed.setLeftTab('ats'); ed.setLeftOpen(true) } },
+      { id: 'semantic', group: 'View', label: 'Semantic JD match', hint: 'meaning-level match — in the ATS panel', run: () => { ed.setLeftTab('ats'); ed.setLeftOpen(true) } },
       { id: 'tour', group: 'View', label: 'Show the quick tour', run: () => window.dispatchEvent(new Event('cvaurum:open-tour')) },
     )
 

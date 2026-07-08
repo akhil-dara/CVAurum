@@ -81,26 +81,27 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
     }
   }, [jd])
 
+  const hasJd = jd.trim().length >= 40
+
   // Auto-run when enabled and the JD changes (debounced). Résumé edits are
   // re-checked on demand — recomputing per keystroke would burn CPU for nothing.
   useEffect(() => {
-    if (phase === 'off' || jd.trim().length < 40) return
+    if (phase === 'off' || !hasJd) return
     const t = setTimeout(run, 700)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jd, phase === 'off'])
 
-  if (jd.trim().length < 40) return null
-
+  // Always visible (discoverable even before a JD is pasted).
   if (phase === 'off') {
     return (
-      <div className="card space-y-2 p-4">
+      <div className="card space-y-2 border-primary/25 p-4" data-semantic-card>
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />
           <h4 className="text-sm font-semibold">Semantic match <span className="font-normal text-muted-foreground">(optional)</span></h4>
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Goes beyond keywords: a small on-device language model checks whether each JD requirement is actually <em>expressed</em> in your résumé — even when the wording differs.
+          Goes beyond keywords: a small on-device language model checks whether each JD requirement is actually <em>expressed</em> in your résumé — even when the wording differs (&ldquo;built CI pipelines&rdquo; ≈ &ldquo;automated build &amp; deploy&rdquo;).
         </p>
         <button className="btn-primary btn-sm w-full" onClick={() => { setSemanticEnabled(true); setPhase('idle') }}>
           Enable — one-time ~34&nbsp;MB download
@@ -112,8 +113,32 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
     )
   }
 
+  if (!hasJd) {
+    return (
+      <div className="card space-y-2 p-4" data-semantic-card>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-primary" />
+            <h4 className="text-sm font-semibold">Semantic match</h4>
+          </div>
+          <button
+            className="btn-icon h-6 w-6"
+            onClick={() => { setSemanticEnabled(false); disposeSemantic(); setPhase('off'); setReport(null) }}
+            title="Turn semantic matching off"
+            aria-label="Turn semantic matching off"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Ready — paste a job description above and I&apos;ll check, requirement by requirement, whether your résumé expresses its <em>meaning</em>, not just its keywords.
+        </p>
+      </div>
+    )
+  }
+
   return (
-    <div className="card space-y-2.5 p-4">
+    <div className="card space-y-2.5 p-4" data-semantic-card>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />

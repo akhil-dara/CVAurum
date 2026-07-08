@@ -240,6 +240,10 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
           onBlur={() => { if (jdLocal !== (doc.jobDescription ?? '')) setJd(jdLocal) }}
         />
 
+        {/* meaning-level match — strictly opt-in (downloads a local model).
+            Sits right under the JD box so it's discoverable before pasting. */}
+        <SemanticMatchCard doc={doc} jd={jdLocal} />
+
         {report.jd && report.jd.keywords.length > 0 && (
           <div className="space-y-3">
             <div className="card flex items-center gap-4 p-4">
@@ -276,9 +280,6 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
             )}
           </div>
         )}
-
-        {/* meaning-level match — strictly opt-in (downloads a local model) */}
-        <SemanticMatchCard doc={doc} jd={jdLocal} />
       </div>
     </div>
   )
