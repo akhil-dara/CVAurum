@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, EyeOff, ArrowLeftRight, Copy, ClipboardPaste, Paintbrush } from 'lucide-react'
+import { Settings2, EyeOff, ArrowLeftRight, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
@@ -247,20 +247,33 @@ const METER_CHOICES: { v: string; label: string; title: string }[] = [
 const HAS_METER = new Set(['skills', 'languages'])
 const HAS_KEYWORDS = new Set(['projects'])
 
+const POP_W = 308 // popover width (px) — must match w-[308px] below
+
 /**
  * Per-section "super customization" gear that appears on the canvas (edit mode).
- * Opens a popover to toggle that section's fields (bullets, dates, location…) and
- * to move/hide the section — writing straight to layout metadata.
+ * Opens a popover to toggle that section's fields (bullets, dates, location…),
+ * restyle it live, and move/hide it — writing straight to layout metadata.
+ * Desktop: a floating panel clamped fully on-screen with its own scroll area.
+ * Phones: a bottom sheet (floating panels are unusable at that size).
  */
 export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string; doc: ResumeDocument; editMeta: MetaEditFn }) {
   const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
+  const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false })
 
   const layout = doc.metadata.layout
   const base = sectionKey.startsWith('custom-') ? 'custom' : sectionKey
   const opts = layout.sectionSettings?.[sectionKey] ?? {}
   const twoCol = layout.columns === 2
   const inAside = layout.aside.includes(sectionKey)
+
+  // Keep the panel usable if the window changes underneath it.
+  useEffect(() => {
+    if (!open) return
+    const onResize = () => setOpen(false)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [open])
 
   const toggle = (field: ToggleField) =>
     editMeta((m) => {
@@ -322,14 +335,21 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
 
   const openPopover = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    const W = 304
-    // Pin to the viewport's right edge, level with the gear: the popover sits in
-    // the page margin (or over the dates column at worst), so the section stays
-    // visible while its styles change live.
-    setPos({
-      top: Math.max(8, Math.min(r.top - 4, window.innerHeight - 560)),
-      left: Math.max(8, window.innerWidth - W - 12),
-    })
+    // clientWidth excludes the page scrollbar — innerWidth would tuck the panel
+    // underneath it on Windows (the clipping users saw).
+    const vw = document.documentElement.clientWidth
+    const vh = window.innerHeight
+    if (vw < 640) {
+      setPos({ top: 0, left: 0, maxH: Math.round(vh * 0.76), sheet: true })
+      setOpen(true)
+      return
+    }
+    const maxH = Math.min(620, vh - 16)
+    // Sit in the page's right margin, level with the gear — the section stays
+    // visible while its styles change live. Clamped fully on-screen.
+    const left = Math.max(8, Math.min(r.right + 12, vw - POP_W - 8))
+    const top = Math.max(8, Math.min(r.top - 4, vh - maxH - 8))
+    setPos({ top, left, maxH, sheet: false })
     setOpen(true)
   }
 
@@ -357,234 +377,236 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
       {open &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+            <div className={`fixed inset-0 z-[60] ${pos.sheet ? 'bg-black/35' : ''}`} onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
-              style={{ top: pos.top, left: pos.left }}
+              role="dialog"
+              aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}
+              className={
+                pos.sheet
+                  ? 'fixed inset-x-0 bottom-0 z-[61] flex flex-col rounded-t-2xl border-t border-border bg-surface text-foreground shadow-float'
+                  : 'fixed z-[61] flex w-[308px] flex-col rounded-xl border border-border bg-surface text-foreground shadow-float'
+              }
+              style={pos.sheet ? { maxHeight: pos.maxH } : { top: pos.top, left: pos.left, maxHeight: pos.maxH }}
             >
-              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {sectionLabel(sectionKey, doc)} <span className="font-normal normal-case">— style &amp; settings</span>
-              </div>
-              {rows.map((r) => (
-                <ToggleRow
-                  key={r.field}
-                  label={r.label}
-                  on={r.field === 'showBadges' ? opts.showBadges === true : opts[r.field] !== false}
-                  onClick={() => toggle(r.field)}
-                />
-              ))}
-              {rows.length > 0 && <div className="my-1 h-px bg-border" />}
-
-              {/* Bullet marker — per-section override of the global bullet style */}
-              {HAS_BULLETS.has(base) && opts.showBullets !== false && (
-                <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bullet style</div>
-                  <div className="flex flex-wrap gap-1">
-                    {BULLET_CHOICES.map((b) => {
-                      const on = (opts.bulletStyle ?? '') === b.v
-                      return (
-                        <button
-                          key={b.v || 'auto'}
-                          type="button"
-                          title={b.title}
-                          onClick={() => setStyle('bulletStyle', b.v)}
-                          className={`min-w-[2rem] rounded-md border px-1.5 py-1 text-xs font-medium transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
-                        >
-                          {b.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+              {/* Header — stays put while the controls scroll underneath. */}
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold leading-tight">{sectionLabel(sectionKey, doc)}</div>
+                  <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Style &amp; settings</div>
                 </div>
-              )}
-
-              {/* Proficiency meter — skills & languages only */}
-              {HAS_METER.has(base) && (
-                <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Meter style</div>
-                  <div className="flex flex-wrap gap-1">
-                    {METER_CHOICES.map((b) => {
-                      const on = (opts.meterStyle ?? '') === b.v
-                      return (
-                        <button
-                          key={b.v || 'auto'}
-                          type="button"
-                          title={b.title}
-                          onClick={() => setStyle('meterStyle', b.v)}
-                          className={`rounded-md border px-1.5 py-1 text-[11px] font-medium tracking-tight transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
-                        >
-                          {b.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Logo / badge size — sections with entry marks */}
-              {!NO_BADGES.has(base) && (
-                <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Logo &amp; badge size</div>
-                  <div className="flex flex-wrap gap-1">
-                    {[
-                      { v: '', label: 'Auto' },
-                      { v: 's', label: 'S' },
-                      { v: 'm', label: 'M' },
-                      { v: 'l', label: 'L' },
-                    ].map((b) => {
-                      const on = (opts.badgeSize ?? '') === b.v
-                      return (
-                        <button
-                          key={b.v || 'auto'}
-                          type="button"
-                          onClick={() => setStyle('badgeSize', b.v)}
-                          className={`min-w-[2rem] rounded-md border px-1.5 py-1 text-xs font-medium transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
-                        >
-                          {b.label}
-                        </button>
-                      )
-                    })}
-                    <span className="mx-0.5 w-px self-stretch bg-border" aria-hidden />
-                    {[
-                      { v: '', label: 'Auto', title: 'Template default shape' },
-                      { v: 'rounded', label: '▢', title: 'Rounded corners' },
-                      { v: 'circle', label: '◯', title: 'Circle' },
-                      { v: 'square', label: '□', title: 'Square' },
-                    ].map((b) => {
-                      const on = (opts.badgeShape ?? '') === b.v
-                      return (
-                        <button
-                          key={'sh-' + (b.v || 'auto')}
-                          type="button"
-                          title={b.title}
-                          onClick={() => setStyle('badgeShape', b.v)}
-                          className={`min-w-[2rem] rounded-md border px-1.5 py-1 text-xs font-medium transition ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
-                        >
-                          {b.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Heading style — live restyle of THIS section's heading */}
-              <div className="px-2 pb-1 pt-0.5">
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Heading style</div>
-                <div className="flex flex-wrap gap-1">
-                  {HEADING_STYLES.map((s) => (
-                    <StyleChip
-                      key={s.value || 'auto'}
-                      label={s.label}
-                      kind={`h:${s.value}`}
-                      on={(opts.headingStyle ?? '') === s.value}
-                      onClick={() => setStyle('headingStyle', s.value || undefined)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Entry layout — how this section's entries flow on the page */}
-              {!NO_ENTRY_LAYOUT.has(base) && (
-                <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Entries layout</div>
-                  <div className="flex flex-wrap gap-1">
-                    {ENTRY_LAYOUTS.map((s) => (
-                      <StyleChip
-                        key={s.value || 'auto'}
-                        label={s.label}
-                        kind={`e:${s.value}`}
-                        on={(opts.entryLayout ?? '') === s.value}
-                        onClick={() => setStyle('entryLayout', s.value || undefined)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Score placement — education only */}
-              {sectionKey === 'education' && (
-                <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Score (GPA) placement</div>
-                  <div className="flex flex-wrap gap-1">
-                    {SCORE_STYLES.map((s) => (
-                      <StyleChip
-                        key={s.value || 'inline'}
-                        label={s.label}
-                        kind={`g:${s.value}`}
-                        on={(opts.scoreStyle ?? '') === s.value}
-                        onClick={() => setStyle('scoreStyle', s.value || undefined)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Skills display — only for the skills section */}
-              {sectionKey === 'skills' && (
-                <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Skills as</div>
-                  <div className="flex flex-wrap gap-1">
-                    {SKILL_STYLES.map((s) => (
-                      <StyleChip
-                        key={s.value || 'auto'}
-                        label={s.label}
-                        kind={`s:${s.value}`}
-                        on={(opts.skillsStyle ?? '') === s.value}
-                        onClick={() => setStyle('skillsStyle', s.value || undefined)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="my-1 h-px bg-border" />
-              <div className="flex items-center gap-1 px-1 pb-1">
-                <button
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
-                  onClick={copyStyle}
-                  title="Copy this section's style"
-                >
-                  <Copy className="h-3.5 w-3.5" /> Copy style
+                <button className="btn-icon h-7 w-7 shrink-0" onClick={() => setOpen(false)} aria-label="Close">
+                  <X className="h-4 w-4" />
                 </button>
-                {copiedStyle && (
+              </div>
+
+              {/* Scrollable body — vertical only; sideways clipping can never happen. */}
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-2">
+                {rows.length > 0 && (
+                  <Group label="Show">
+                    {rows.map((r) => (
+                      <ToggleRow
+                        key={r.field}
+                        label={r.label}
+                        on={r.field === 'showBadges' ? opts.showBadges === true : opts[r.field] !== false}
+                        onClick={() => toggle(r.field)}
+                      />
+                    ))}
+                  </Group>
+                )}
+
+                {/* Bullet marker — per-section override of the global bullet style */}
+                {HAS_BULLETS.has(base) && opts.showBullets !== false && (
+                  <Group label="Bullet style">
+                    <div className="grid grid-cols-5 gap-1">
+                      {BULLET_CHOICES.map((b) => (
+                        <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.bulletStyle ?? '') === b.v} onClick={() => setStyle('bulletStyle', b.v)} />
+                      ))}
+                    </div>
+                  </Group>
+                )}
+
+                {/* Proficiency meter — skills & languages only */}
+                {HAS_METER.has(base) && (
+                  <Group label="Meter style">
+                    <div className="grid grid-cols-3 gap-1">
+                      {METER_CHOICES.map((b) => (
+                        <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.meterStyle ?? '') === b.v} onClick={() => setStyle('meterStyle', b.v)} />
+                      ))}
+                    </div>
+                  </Group>
+                )}
+
+                {/* Logo / badge size + shape — sections with entry marks */}
+                {!NO_BADGES.has(base) && (
                   <>
-                    <button
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
-                      onClick={pasteStyle}
-                      title="Paste the copied style onto this section"
-                    >
-                      <ClipboardPaste className="h-3.5 w-3.5" /> Paste
-                    </button>
-                    <button
-                      className="flex items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
-                      onClick={() => { paintAll(); setOpen(false) }}
-                      title="Paint the copied style onto every section"
-                    >
-                      <Paintbrush className="h-3.5 w-3.5" /> All
-                    </button>
+                    <Group label="Logo & badge size">
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { v: '', label: 'Auto' },
+                          { v: 's', label: 'S' },
+                          { v: 'm', label: 'M' },
+                          { v: 'l', label: 'L' },
+                        ].map((b) => (
+                          <ChipBtn key={b.v || 'auto'} label={b.label} on={(opts.badgeSize ?? '') === b.v} onClick={() => setStyle('badgeSize', b.v)} />
+                        ))}
+                      </div>
+                    </Group>
+                    <Group label="Logo & badge shape">
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { v: '', label: 'Auto', title: 'Template default shape' },
+                          { v: 'rounded', label: '▢', title: 'Rounded corners' },
+                          { v: 'circle', label: '◯', title: 'Circle' },
+                          { v: 'square', label: '□', title: 'Square' },
+                        ].map((b) => (
+                          <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.badgeShape ?? '') === b.v} onClick={() => setStyle('badgeShape', b.v)} />
+                        ))}
+                      </div>
+                    </Group>
                   </>
                 )}
-              </div>
-              <div className="my-1 h-px bg-border" />
-              {twoCol && (
+
+                {/* Heading style — live restyle of THIS section's heading */}
+                <Group label="Heading style">
+                  <div className="grid grid-cols-3 gap-1">
+                    {HEADING_STYLES.map((s) => (
+                      <StyleChip
+                        key={s.value || 'auto'}
+                        label={s.label}
+                        kind={`h:${s.value}`}
+                        on={(opts.headingStyle ?? '') === s.value}
+                        onClick={() => setStyle('headingStyle', s.value || undefined)}
+                      />
+                    ))}
+                  </div>
+                </Group>
+
+                {/* Entry layout — how this section's entries flow on the page */}
+                {!NO_ENTRY_LAYOUT.has(base) && (
+                  <Group label="Entries layout">
+                    <div className="grid grid-cols-3 gap-1">
+                      {ENTRY_LAYOUTS.map((s) => (
+                        <StyleChip
+                          key={s.value || 'auto'}
+                          label={s.label}
+                          kind={`e:${s.value}`}
+                          on={(opts.entryLayout ?? '') === s.value}
+                          onClick={() => setStyle('entryLayout', s.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                  </Group>
+                )}
+
+                {/* Score placement — education only */}
+                {sectionKey === 'education' && (
+                  <Group label="Score (GPA) placement">
+                    <div className="grid grid-cols-3 gap-1">
+                      {SCORE_STYLES.map((s) => (
+                        <StyleChip
+                          key={s.value || 'inline'}
+                          label={s.label}
+                          kind={`g:${s.value}`}
+                          on={(opts.scoreStyle ?? '') === s.value}
+                          onClick={() => setStyle('scoreStyle', s.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                  </Group>
+                )}
+
+                {/* Skills display — only for the skills section */}
+                {sectionKey === 'skills' && (
+                  <Group label="Skills as">
+                    <div className="grid grid-cols-3 gap-1">
+                      {SKILL_STYLES.map((s) => (
+                        <StyleChip
+                          key={s.value || 'auto'}
+                          label={s.label}
+                          kind={`s:${s.value}`}
+                          on={(opts.skillsStyle ?? '') === s.value}
+                          onClick={() => setStyle('skillsStyle', s.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                  </Group>
+                )}
+
+                <div className="my-1.5 h-px bg-border" />
+                <div className="flex items-center gap-1 px-1 pb-1">
+                  <button
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
+                    onClick={copyStyle}
+                    title="Copy this section's style"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copy style
+                  </button>
+                  {copiedStyle && (
+                    <>
+                      <button
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
+                        onClick={pasteStyle}
+                        title="Paste the copied style onto this section"
+                      >
+                        <ClipboardPaste className="h-3.5 w-3.5" /> Paste
+                      </button>
+                      <button
+                        className="flex items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
+                        onClick={() => { paintAll(); setOpen(false) }}
+                        title="Paint the copied style onto every section"
+                      >
+                        <Paintbrush className="h-3.5 w-3.5" /> All
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="my-1.5 h-px bg-border" />
+                {twoCol && (
+                  <button
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                    onClick={() => { move(); setOpen(false) }}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" /> Move to {inAside ? 'main column' : 'sidebar'}
+                  </button>
+                )}
                 <button
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                  onClick={() => { move(); setOpen(false) }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10"
+                  onClick={() => { hide(); setOpen(false) }}
                 >
-                  <ArrowLeftRight className="h-4 w-4" /> Move to {inAside ? 'main column' : 'sidebar'}
+                  <EyeOff className="h-4 w-4" /> Hide section
                 </button>
-              )}
-              <button
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10"
-                onClick={() => { hide(); setOpen(false) }}
-              >
-                <EyeOff className="h-4 w-4" /> Hide section
-              </button>
+              </div>
             </div>
           </>,
           document.body,
         )}
     </>
+  )
+}
+
+/** A labeled cluster of controls — consistent rhythm instead of one long list. */
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="px-1 pb-2 pt-1">
+      <div className="mb-1 px-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+      {children}
+    </div>
+  )
+}
+
+/** A compact text/glyph option chip (bullet marker, meter, size, shape). */
+function ChipBtn({ label, title, on, onClick }: { label: string; title?: string; on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={title || label}
+      onClick={onClick}
+      className={`min-w-0 truncate rounded-md border px-1 py-1.5 text-xs font-medium transition ${
+        on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+      }`}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -595,14 +617,14 @@ function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; 
       type="button"
       onClick={onClick}
       title={label}
-      className={`flex w-[52px] flex-col items-center gap-1 rounded-lg border p-1.5 transition ${
+      className={`flex min-w-0 flex-col items-center gap-1 rounded-lg border p-1.5 transition ${
         on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'
       }`}
     >
       <span className="flex h-5 w-full items-center justify-center">
         <Mini kind={kind} />
       </span>
-      <span className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{label}</span>
+      <span className={`w-full truncate text-center text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{label}</span>
     </button>
   )
 }
@@ -610,7 +632,7 @@ function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; 
 function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
       <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
         <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${on ? 'left-[14px]' : 'left-0.5'}`} />
       </span>

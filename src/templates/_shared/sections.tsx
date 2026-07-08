@@ -5,7 +5,8 @@
  * (<Ed>) and write straight back to the store; otherwise they render plain so
  * print/thumbnail stay clean.
  */
-import { useEffect, useRef, type ReactNode, type FocusEvent } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
@@ -168,14 +169,100 @@ function Bullets({
 /** First letter of the org/name — the ATS-safe stand-in for a company logo. */
 const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
 
-function ItemHead({ title, date, badge, logo }: { title: ReactNode; date?: ReactNode; badge?: string; logo?: string }) {
+/* Cropper is editor-only chrome — lazy so print/thumbnail renders never load it. */
+const LazyCropper = lazy(() => import('@/components/editor/ImageCropper').then((m) => ({ default: m.ImageCropper })))
+
+/**
+ * The entry mark, editable right on the canvas: click a logo to replace/remove
+ * it, click the letter badge (or the hover "+" chip) to add one. Uploads go
+ * through the same crop → downscale flow as the panel's logo picker, and the
+ * result is a small local data URI — nothing ever leaves the device.
+ */
+function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; onChange: (v: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [menu, setMenu] = useState<{ top: number; left: number } | null>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+
+  const pick = (file?: File) => {
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => setCropSrc(String(reader.result))
+    reader.readAsDataURL(file)
+  }
+  const onCropSave = async (dataUrl: string) => {
+    setCropSrc(null)
+    try {
+      const { downscaleDataUrl } = await import('@/lib/image')
+      onChange(await downscaleDataUrl(dataUrl, 128))
+    } catch {
+      /* unreadable image — keep whatever was there */
+    }
+  }
+
+  const onClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (logo) {
+      const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      setMenu({ top: Math.min(r.bottom + 6, window.innerHeight - 96), left: Math.max(8, Math.min(r.left, window.innerWidth - 176)) })
+    } else {
+      inputRef.current?.click()
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`rm-logo-btn${logo ? '' : badge ? '' : ' rm-logo-btn-empty no-print'}`}
+        contentEditable={false}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onClick}
+        title={logo ? 'Change or remove this logo' : 'Add a small logo (company / institution mark)'}
+        aria-label={logo ? 'Change or remove logo' : 'Add logo'}
+      >
+        {logo ? (
+          <img className="rm-item-logo" src={logo} alt="" aria-hidden />
+        ) : badge ? (
+          <span className="rm-item-badge" aria-hidden>{badge}</span>
+        ) : (
+          <span className="rm-item-badge rm-logo-add" aria-hidden>+</span>
+        )}
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" aria-label="Logo image" onChange={(e) => { pick(e.target.files?.[0] ?? undefined); e.target.value = '' }} />
+      {menu &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[60]" onClick={() => setMenu(null)} />
+            <div className="fixed z-[61] w-40 rounded-lg border border-border bg-surface p-1 text-foreground shadow-float" style={{ top: menu.top, left: menu.left }}>
+              <button type="button" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted" onClick={() => { setMenu(null); inputRef.current?.click() }}>
+                Replace logo
+              </button>
+              <button type="button" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10" onClick={() => { setMenu(null); onChange('') }}>
+                Remove logo
+              </button>
+            </div>
+          </>,
+          document.body,
+        )}
+      {cropSrc && (
+        <Suspense fallback={null}>
+          <LazyCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
+        </Suspense>
+      )}
+    </>
+  )
+}
+
+function ItemHead({ title, date, badge, logo, edit, setLogo }: { title: ReactNode; date?: ReactNode; badge?: string; logo?: string; edit?: EditFn; setLogo?: Apply }) {
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
-  const logoOk = logo && /^(data:image\/|blob:)/i.test(logo)
+  const logoOk = logo && /^(data:image\/|blob:)/i.test(logo) ? logo : undefined
   return (
     <div className="rm-item-head">
-      {logoOk ? (
-        <img className="rm-item-logo" src={logo} alt="" aria-hidden />
+      {edit && setLogo ? (
+        <CanvasLogo logo={logoOk} badge={badge} onChange={(v) => edit((c) => setLogo(c, v))} />
+      ) : logoOk ? (
+        <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
       ) : badge ? (
         <span className="rm-item-badge" aria-hidden>
           {badge}
@@ -308,6 +395,8 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
             logo={w.logo}
+            edit={edit}
+            setLogo={(c, v) => { c.work[i].logo = v }}
             title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title" />}
             date={rangeDate(edit, show(opts?.showDates), w.startDate, w.endDate, (c, v) => { c.work[i].startDate = v }, (c, v) => { c.work[i].endDate = v })}
           />
@@ -349,6 +438,8 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             <ItemHead
             badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
             logo={e.logo}
+            edit={edit}
+            setLogo={(c, v) => { c.education[i].logo = v }}
               title={edit ? <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field of study" /> : title}
               date={rangeDate(edit, show(opts?.showDates), e.startDate, e.endDate, (c, v) => { c.education[i].startDate = v }, (c, v) => { c.education[i].endDate = v })}
             />
@@ -570,6 +661,8 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
             logo={v.logo}
+            edit={edit}
+            setLogo={(c, val) => { c.volunteer[i].logo = val }}
             title={<Ed edit={edit} value={v.position} apply={(c, val) => { c.volunteer[i].position = val }} placeholder="Role" />}
             date={rangeDate(edit, show(opts?.showDates), v.startDate, v.endDate, (c, val) => { c.volunteer[i].startDate = val }, (c, val) => { c.volunteer[i].endDate = val })}
           />

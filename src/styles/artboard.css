@@ -834,6 +834,52 @@
   background: #fff;
   padding: 0.08em;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  margin-right: 0.55em; /* same breathing room as the letter badge */
+}
+
+/* On-canvas logo control (edit mode): the mark itself is the button. */
+.rm-logo-btn {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+}
+.rm-logo-btn:hover .rm-item-logo,
+.rm-logo-btn:hover .rm-item-badge,
+.rm-logo-btn:focus-visible .rm-item-logo,
+.rm-logo-btn:focus-visible .rm-item-badge {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rm-primary) 55%, transparent);
+}
+/* No logo & no badge yet: a quiet "+" chip that only shows while the entry is
+   hovered (or the chip is focused) — discoverable without cluttering the page.
+   It floats in the margin BESIDE the title (absolute, right:100%) so the hidden
+   chip never reserves layout space: edit canvas and print stay identical. */
+.rm-item-head {
+  position: relative;
+}
+.rm-logo-btn-empty {
+  position: absolute;
+  right: 100%;
+  top: 0;
+  margin-right: 0.3em;
+}
+.rm-logo-add {
+  opacity: 0;
+  margin-right: 0;
+  color: color-mix(in srgb, var(--rm-primary) 80%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--rm-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--rm-primary) 7%, transparent);
+  transition: opacity 0.15s ease;
+}
+.rm-item:hover .rm-logo-add,
+.rm-logo-btn:focus-visible .rm-logo-add {
+  opacity: 1;
 }
 
 .rm-item-badge {
