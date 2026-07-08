@@ -170,6 +170,12 @@ function Bullets({
 /** First letter of the org/name — the ATS-safe stand-in for a company logo. */
 const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
 
+/** Locally-encoded image only — remote URLs would break zero-external-requests. */
+const isLocalImg = (s?: string) => !!s && /^(data:image\/|blob:)/i.test(s)
+/** Entries showing a logo/badge get a left "mark gutter" so the whole entry
+ *  (title, org, meta, bullets) keeps ONE aligned left edge. */
+const markClass = (logo?: string, badge?: string) => (isLocalImg(logo) || badge ? ' rm-has-mark' : '')
+
 /* Cropper is editor-only chrome — lazy so print/thumbnail renders never load it. */
 const LazyCropper = lazy(() => import('@/components/editor/ImageCropper').then((m) => ({ default: m.ImageCropper })))
 
@@ -398,7 +404,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
       {doc.content.work.map((w, i) => {
         if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
         return (
-        <article className="rm-item rm-keep" key={w.id}>
+        <article className={`rm-item rm-keep${markClass(w.logo, opts?.showBadges ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
             logo={w.logo}
@@ -441,7 +447,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         if (!edit && !anyText(e.institution, e.area, e.studyType)) return null
         const title = [e.studyType, e.area].filter(Boolean).join(', ') || e.institution
         return (
-          <article className="rm-item rm-keep" key={e.id}>
+          <article className={`rm-item rm-keep${markClass(e.logo, opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id}>
             <ItemHead
             badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
             logo={e.logo}
@@ -483,7 +489,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
       {doc.content.projects.map((p, i) => {
         if (!edit && !anyText(p.name, p.description, p.highlights)) return null
         return (
-        <article className="rm-item rm-keep" key={p.id}>
+        <article className={`rm-item rm-keep${markClass(undefined, opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
@@ -677,7 +683,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
       {doc.content.volunteer.map((v, i) => {
         if (!edit && !anyText(v.position, v.organization, v.summary, v.highlights)) return null
         return (
-        <article className="rm-item rm-keep" key={v.id}>
+        <article className={`rm-item rm-keep${markClass(v.logo, opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
             logo={v.logo}

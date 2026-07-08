@@ -916,6 +916,30 @@
   align-items: flex-start;
 }
 
+/* Entry-mark gutter (the reference look): the logo/badge hangs in a TIGHT
+   left gutter and the WHOLE entry — title, org, meta, bullets — shares one
+   aligned left edge. Without this, only the title was pushed right, which
+   read as a big ragged gap. --rm-mark-left lets padded layouts (timeline,
+   cards) shift the gutter inward instead of fighting over padding. */
+.rm-item.rm-has-mark {
+  padding-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
+}
+/* The mark anchors to the HEAD (its positioned ancestor) and hangs one full
+   gutter-width to its left — which is exactly the gutter start no matter how
+   much extra padding the layout (timeline, cards) added before it. */
+.rm-item.rm-has-mark > .rm-item-head .rm-item-logo,
+.rm-item.rm-has-mark > .rm-item-head .rm-item-badge,
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn {
+  position: absolute;
+  left: calc(-1 * (var(--rm-badge-size, 1.65em) + 0.5em));
+  top: 0.05em;
+}
+/* inside the edit-mode logo button, the mark itself stays in normal flow */
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-logo,
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-badge {
+  position: static;
+}
+
 /* Focus (zen) mode — dim everything except the section under the cursor.
    Edit canvas only; print/preview renders never carry the class. */
 .focus-mode .rm-section {
