@@ -292,7 +292,7 @@ export function Landing() {
         />
       )}
       {sampleOpen && (
-        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content) }} />
+        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content, p.tweaks) }} />
       )}
     </div>
   )

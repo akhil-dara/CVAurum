@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   FileText,
@@ -25,7 +25,7 @@ import { useTitle } from '@/lib/useTitle'
 /** The resume library / dashboard (/app). The explainer homepage lives at /. */
 export function Dashboard() {
   // Safari (not installed as an app) deletes ALL site data after 7 days
-  // without a visit — for a local-first app that means losing resumes.
+  // without a visit â€” for a local-first app that means losing resumes.
   // One honest, one-time heads-up with the two real mitigations.
   useEffect(() => {
     try {
@@ -44,10 +44,10 @@ export function Dashboard() {
       /* never block the dashboard over a nudge */
     }
   }, [])
-  useTitle('Your Resumes · CVAurum')
+  useTitle('Your Resumes Â· CVAurum')
   const navigate = useNavigate()
   const library = useAppStore((s) => s.library)
-  // Durability reminder: local-first means a cleared browser = lost résumés.
+  // Durability reminder: local-first means a cleared browser = lost rÃ©sumÃ©s.
   // If there's real work and no recent backup, nudge once per session.
   useEffect(() => {
     try {
@@ -60,7 +60,7 @@ export function Dashboard() {
       const settledIn = Date.now() - oldest > 2 * 24 * 60 * 60 * 1000
       if (stale && settledIn) {
         sessionStorage.setItem('cvaurum:backup-nudged', '1')
-        useAppStore.getState().toast('Tip: back up your résumés (Backup → Export) so a cleared browser can never lose them.', 'info')
+        useAppStore.getState().toast('Tip: back up your rÃ©sumÃ©s (Backup â†’ Export) so a cleared browser can never lose them.', 'info')
       }
     } catch {
       /* never block the dashboard over a nudge */
@@ -102,7 +102,7 @@ export function Dashboard() {
 
   return (
     <div className="relative min-h-full overflow-x-clip bg-background">
-      {/* ambient aurora — quiet in light mode, cinematic in dark */}
+      {/* ambient aurora â€” quiet in light mode, cinematic in dark */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
         <div className="absolute -top-48 right-[-8%] h-[30rem] w-[30rem] rounded-full opacity-[0.10] blur-3xl dark:opacity-[0.22]" style={{ background: 'radial-gradient(closest-side,#d4982f,transparent)' }} />
         <div className="absolute top-1/2 left-[-10%] h-[26rem] w-[26rem] rounded-full opacity-[0.06] blur-3xl dark:opacity-[0.14]" style={{ background: 'radial-gradient(closest-side,#5b5df0,transparent)' }} />
@@ -148,10 +148,10 @@ export function Dashboard() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Your resumes</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Private &amp; local — everything is saved in this browser. Nothing leaves your device.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Private &amp; local â€” everything is saved in this browser. Nothing leaves your device.</p>
           </div>
           <div className="flex gap-2">
-            <button className="btn-ghost btn-sm" onClick={() => pdfRef.current?.click()} title="Import an existing PDF résumé — parsed in your browser, never uploaded">
+            <button className="btn-ghost btn-sm" onClick={() => pdfRef.current?.click()} title="Import an existing PDF rÃ©sumÃ© â€” parsed in your browser, never uploaded">
               <FileUp className="h-4 w-4" /> Import PDF
             </button>
             <button className="btn-outline btn-sm" onClick={() => setSampleOpen(true)} title="Start from a complete example resume">
@@ -185,7 +185,7 @@ export function Dashboard() {
         />
       )}
       {sampleOpen && (
-        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content) }} />
+        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content, p.tweaks) }} />
       )}
     </div>
   )
@@ -198,7 +198,7 @@ function EmptyState({ onNew, onExample, onImport }: { onNew: () => void; onExamp
         <FileText className="h-7 w-7" />
       </div>
       <h2 className="mt-4 text-lg font-semibold">No resumes yet</h2>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">Create your first résumé from a blank canvas or a ready-made example — it stays private to this browser.</p>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">Create your first rÃ©sumÃ© from a blank canvas or a ready-made example â€” it stays private to this browser.</p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <button className="btn-primary btn-sm" onClick={onNew}>
           <Plus className="h-4 w-4" /> New resume
@@ -206,11 +206,11 @@ function EmptyState({ onNew, onExample, onImport }: { onNew: () => void; onExamp
         <button className="btn-outline btn-sm" onClick={onExample}>
           <FileText className="h-4 w-4" /> Start with an example
         </button>
-        <button className="btn-ghost btn-sm" onClick={onImport} title="Import a JSON Resume file (.json) — not a PDF or Word doc">
+        <button className="btn-ghost btn-sm" onClick={onImport} title="Import a JSON Resume file (.json) â€” not a PDF or Word doc">
           <FileUp className="h-4 w-4" /> Import JSON
         </button>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground/70">Import a JSON Resume file — or use Import PDF above to bring in an existing PDF résumé.</p>
+      <p className="mt-3 text-xs text-muted-foreground/70">Import a JSON Resume file â€” or use Import PDF above to bring in an existing PDF rÃ©sumÃ©.</p>
     </div>
   )
 }

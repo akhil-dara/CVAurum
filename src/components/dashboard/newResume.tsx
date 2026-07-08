@@ -24,9 +24,12 @@ export function useResumeActions() {
   const refreshLibrary = useAppStore((s) => s.refreshLibrary)
   const toast = useAppStore((s) => s.toast)
 
-  const create = async (sample: boolean, templateId?: string, content?: ResumeContent) => {
+  const create = async (sample: boolean, templateId?: string, content?: ResumeContent, tweak?: (m: import('@/types/metadata').Metadata) => void) => {
     const doc = createDocument({ sample: sample || !!content, content })
     if (templateId) doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(templateId).defaults)
+    // Persona polish (per-section styles, badges…) — applied after the template
+    // defaults so sample resumes demonstrate the customization system.
+    tweak?.(doc.metadata)
     await saveDoc(doc)
     await refreshLibrary()
     // A blank start with no chosen design: open the editor on the Templates
@@ -162,6 +165,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
       SAMPLES.map((s) => {
         const doc = createDocument({ sample: true, content: s.content, title: s.name })
         doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(s.template).defaults)
+        s.tweaks?.(doc.metadata) // previews show the same persona polish
         return { persona: s, doc }
       }),
     [],
@@ -169,7 +173,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float">
+      <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Pick a starting example</h2>
           <button className="btn-icon" onClick={onClose} aria-label="Close">
@@ -177,7 +181,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
           </button>
         </div>
         <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
-        <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-2 lg:grid-cols-4">
           {docs.map(({ persona, doc }) => (
             <HoverZoom key={persona.id} doc={doc} label={`${persona.role} example`}>
             <button
