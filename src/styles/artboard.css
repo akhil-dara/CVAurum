@@ -836,7 +836,8 @@
   background: #fff;
   padding: 0.08em;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
-  margin-right: 0.55em; /* same breathing room as the letter badge */
+  /* NO margin: .rm-item-head's flex gap is the single source of spacing —
+     an extra margin here doubled the logo→title distance. */
 }
 
 /* On-canvas logo control (edit mode): the mark itself is the button. */
@@ -903,7 +904,7 @@
   color: var(--rm-primary);
   font-weight: 700;
   font-size: calc(var(--rm-fs) * 0.95);
-  margin-right: 0.55em;
+  /* NO margin: .rm-item-head's flex gap is the single source of spacing. */
   align-self: flex-start;
 }
 .rm-col-aside .rm-item-badge {
