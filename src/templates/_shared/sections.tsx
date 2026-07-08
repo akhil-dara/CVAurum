@@ -14,6 +14,7 @@ import { pushNewItem, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
+import { usePopoverA11y } from './popoverA11y'
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 /** Any of these values carries real text? (strings or string arrays) */
@@ -182,6 +183,8 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
   const inputRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<{ top: number; left: number } | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  usePopoverA11y(menu != null, () => setMenu(null), menuRef)
 
   const pick = (file?: File) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -233,22 +236,26 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
         createPortal(
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setMenu(null)} />
-            <div className="fixed z-[61] w-40 rounded-lg border border-border bg-surface p-1 text-foreground shadow-float" style={{ top: menu.top, left: menu.left }}>
-              <button type="button" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted" onClick={() => { setMenu(null); inputRef.current?.click() }}>
+            <div ref={menuRef} role="menu" aria-label="Logo options" tabIndex={-1} className="fixed z-[61] w-40 rounded-lg border border-border bg-surface p-1 text-foreground shadow-float" style={{ top: menu.top, left: menu.left }}>
+              <button type="button" role="menuitem" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted" onClick={() => { setMenu(null); inputRef.current?.click() }}>
                 Replace logo
               </button>
-              <button type="button" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10" onClick={() => { setMenu(null); onChange('') }}>
+              <button type="button" role="menuitem" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10" onClick={() => { setMenu(null); onChange('') }}>
                 Remove logo
               </button>
             </div>
           </>,
           document.body,
         )}
-      {cropSrc && (
-        <Suspense fallback={null}>
-          <LazyCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
-        </Suspense>
-      )}
+      {cropSrc &&
+        // Portaled OUT of .rm-root: inside it the dialog inherits the resume's
+        // print ink color, which is illegible on the app's dark-mode surface.
+        createPortal(
+          <Suspense fallback={null}>
+            <LazyCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
+          </Suspense>,
+          document.body,
+        )}
     </>
   )
 }
@@ -440,7 +447,20 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             logo={e.logo}
             edit={edit}
             setLogo={(c, v) => { c.education[i].logo = v }}
-              title={edit ? <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field of study" /> : title}
+              title={
+                edit ? (
+                  // Degree + field are BOTH on the canvas (they both print) —
+                  // hiding studyType here broke WYSIWYG and invited retyping
+                  // the degree into the field box.
+                  <>
+                    <Ed edit={edit} value={e.studyType} apply={(c, v) => { c.education[i].studyType = v }} placeholder="Degree" />
+                    <span aria-hidden>{', '}</span>
+                    <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field of study" />
+                  </>
+                ) : (
+                  title
+                )
+              }
               date={rangeDate(edit, show(opts?.showDates), e.startDate, e.endDate, (c, v) => { c.education[i].startDate = v }, (c, v) => { c.education[i].endDate = v })}
             />
             <div className="rm-item-sub">

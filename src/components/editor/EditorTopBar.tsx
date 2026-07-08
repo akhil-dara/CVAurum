@@ -19,10 +19,14 @@ import {
   PencilLine,
   Command,
   Share2,
+  MoreVertical,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
+import { useAppStore } from '@/store/useAppStore'
 import { saveDoc } from '@/lib/storage'
 import { openPrintWindow } from '@/lib/pdf'
 import { ExportDialog, type ExportFormat } from './ExportDialog'
@@ -46,6 +50,11 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     return () => window.removeEventListener('cvaurum:open-export', onOpen)
   }, [])
   const [exportFmt, setExportFmt] = useState<ExportFormat | null>(null)
+  // phone overflow ("⋮") menu — holds the controls that don't fit at <768px
+  const [moreOpen, setMoreOpen] = useState(false)
+  const theme = useAppStore((s) => s.settings.theme)
+  const updateSettings = useAppStore((s) => s.updateSettings)
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches)
 
   const chooseExport = (fmt: ExportFormat) => {
     setExportOpen(false)
@@ -60,14 +69,15 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-3">
+    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-2 sm:gap-3 sm:px-3">
       <Logo compact />
-      <div className="mx-1 h-6 w-px bg-border" />
+      <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
 
+      {/* On phones the title yields space — Export must NEVER leave the screen. */}
       <input
         value={doc.title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-44 max-w-[40vw] rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40"
+        className="w-24 min-w-0 max-w-[20vw] rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40 sm:w-44 sm:max-w-[40vw]"
         aria-label="Resume title"
       />
 
@@ -145,10 +155,10 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           })}
         </div>
 
-        {/* share */}
+        {/* share — moves into the ⋮ menu on the narrowest screens */}
         <button
           data-tour="share"
-          className="btn-icon"
+          className="btn-icon hidden sm:flex"
           onClick={() => window.dispatchEvent(new Event('cvaurum:open-share'))}
           title="Share privately"
           aria-label="Share résumé privately"
@@ -167,9 +177,9 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           <Command className="h-[18px] w-[18px]" />
         </button>
 
-        {/* re-open the guided tour */}
+        {/* re-open the guided tour — in the ⋮ menu below md */}
         <button
-          className="btn-icon"
+          className="btn-icon hidden md:flex"
           onClick={() => window.dispatchEvent(new Event('cvaurum:open-tour'))}
           title="Show the quick tour"
           aria-label="Show the quick tour"
@@ -179,8 +189,8 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
         {/* export */}
         <div className="relative">
-          <button data-tour="export" className="btn-primary btn-sm" onClick={() => setExportOpen((o) => !o)}>
-            <Download className="h-4 w-4" /> Export <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+          <button data-tour="export" className="btn-primary btn-sm" onClick={() => setExportOpen((o) => !o)} aria-label="Export">
+            <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export</span> <ChevronDown className="h-3.5 w-3.5 opacity-70" />
           </button>
           {exportOpen && (
             <>
@@ -203,7 +213,42 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           )}
         </div>
 
-        <ThemeToggle />
+        <div className="hidden md:block">
+          <ThemeToggle />
+        </div>
+
+        {/* phone overflow menu — everything that left the bar stays reachable */}
+        <div className="relative md:hidden">
+          <button className="btn-icon" onClick={() => setMoreOpen((o) => !o)} title="More" aria-label="More options" aria-expanded={moreOpen}>
+            <MoreVertical className="h-[18px] w-[18px]" />
+          </button>
+          {moreOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
+              <div className="card absolute right-0 z-20 mt-1 w-56 overflow-hidden p-1.5 shadow-float">
+                <button
+                  className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
+                  onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-share')) }}
+                >
+                  <Share2 className="h-4 w-4 text-primary" /> Share privately
+                </button>
+                <button
+                  className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
+                  onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-tour')) }}
+                >
+                  <HelpCircle className="h-4 w-4 text-primary" /> Show the quick tour
+                </button>
+                <button
+                  className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
+                  onClick={() => { setMoreOpen(false); updateSettings({ theme: isDark ? 'light' : 'dark' }) }}
+                >
+                  {isDark ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-primary" />}
+                  {isDark ? 'Light mode' : 'Dark mode'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {exportFmt && <ExportDialog fmt={exportFmt} doc={doc} onClose={() => setExportFmt(null)} />}

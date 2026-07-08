@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2, EyeOff, ArrowLeftRight, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
+import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel } from '@/lib/sections'
@@ -260,6 +261,9 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   const [open, setOpen] = useState(false)
   // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
   const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false })
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Escape closes; focus moves in on open and back to the gear on close.
+  usePopoverA11y(open, () => setOpen(false), panelRef)
 
   const layout = doc.metadata.layout
   const base = sectionKey.startsWith('custom-') ? 'custom' : sectionKey
@@ -379,7 +383,10 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
           <>
             <div className={`fixed inset-0 z-[60] ${pos.sheet ? 'bg-black/35' : ''}`} onClick={() => setOpen(false)} />
             <div
+              ref={panelRef}
               role="dialog"
+              aria-modal="true"
+              tabIndex={-1}
               aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}
               className={
                 pos.sheet
@@ -600,6 +607,7 @@ function ChipBtn({ label, title, on, onClick }: { label: string; title?: string;
     <button
       type="button"
       title={title || label}
+      aria-pressed={on}
       onClick={onClick}
       className={`min-w-0 truncate rounded-md border px-1 py-1.5 text-xs font-medium transition ${
         on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
@@ -617,6 +625,7 @@ function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; 
       type="button"
       onClick={onClick}
       title={label}
+      aria-pressed={on}
       className={`flex min-w-0 flex-col items-center gap-1 rounded-lg border p-1.5 transition ${
         on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'
       }`}
@@ -631,7 +640,7 @@ function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; 
 
 function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+    <button type="button" role="switch" aria-checked={on} onClick={onClick} className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
       <span className="truncate">{label}</span>
       <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
         <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${on ? 'left-[14px]' : 'left-0.5'}`} />

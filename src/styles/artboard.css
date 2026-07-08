@@ -255,9 +255,11 @@
   height: 1em;
 }
 /* Discoverable: gears are softly visible the whole time you edit, and light up
-   on hover/focus — users can SEE that every section (and the header) has one. */
+   on hover/focus — users can SEE that every section (and the header) has one.
+   The resting label must stay readable (≥4.5:1) so low-vision users find it. */
 .mode-preview .rm-section-gear {
-  opacity: 0.6;
+  opacity: 0.92;
+  color: color-mix(in srgb, var(--rm-text) 72%, var(--rm-muted));
 }
 .mode-preview .rm-section:hover .rm-section-gear,
 .mode-preview .rm-header:hover .rm-section-gear,

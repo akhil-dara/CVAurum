@@ -26,7 +26,10 @@ export function ImageCropper({ src, onCancel, onSave }: { src: string; onCancel:
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={onCancel}>
-      <div className="card w-full max-w-sm overflow-hidden p-0 shadow-float" onClick={(e) => e.stopPropagation()}>
+      {/* text-foreground is explicit: when this dialog is opened from inside the
+          resume canvas it would otherwise inherit the page's print-ink color,
+          which is unreadable on the dark-mode surface. */}
+      <div className="card w-full max-w-sm overflow-hidden p-0 text-foreground shadow-float" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
           <h2 className="text-sm font-semibold">Crop photo</h2>
           <button className="btn-icon" onClick={onCancel} aria-label="Close">

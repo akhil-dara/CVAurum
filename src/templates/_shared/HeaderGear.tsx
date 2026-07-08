@@ -3,7 +3,7 @@
  * where you see it (mirrors the per-section gear). Pinned to the viewport's
  * right edge so the header stays visible while it changes live.
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -11,6 +11,7 @@ import type { Metadata } from '@/types/metadata'
 import type { MetaEditFn } from './Editable'
 import { HEADER_STYLES, HeaderMini } from './headerStyles'
 import { FONTS } from '@/data/fonts'
+import { usePopoverA11y } from './popoverA11y'
 
 /** Curated accent palette — enough range for any industry, all print-safe. */
 const ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#b91c1c', '#d4982f', '#a16207', '#db2777', '#15803d', '#475569', '#0f172a']
@@ -59,6 +60,9 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
   const [open, setOpen] = useState(false)
   const [top, setTop] = useState(0)
   const current = doc.metadata.layout.headerStyle ?? ''
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Escape closes; focus moves in on open and back to the gear on close.
+  usePopoverA11y(open, () => setOpen(false), panelRef)
 
   const openPopover = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -88,8 +92,13 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
-              style={{ top, left: Math.max(8, window.innerWidth - 304 - 12) }}
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              tabIndex={-1}
+              aria-label="Header style and layout"
+              className="fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
+              style={{ top, left: Math.max(8, document.documentElement.clientWidth - 304 - 12) }}
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Header <span className="font-normal normal-case">— layout</span>

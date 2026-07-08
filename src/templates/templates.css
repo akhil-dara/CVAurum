@@ -875,6 +875,15 @@
   margin-right: 0.85em;
   color: color-mix(in srgb, var(--rm-muted) 45%, transparent);
 }
+/* …but an EMPTY editable keeps its placeholder — the pipe shares the same
+   ::before and would otherwise clobber it, leaving a stray separator and a
+   near-invisible click target on the edit canvas. */
+.tpl-clarity .rm-item-sub > .rm-editable:empty:not(:first-child)::before {
+  content: attr(data-placeholder);
+  margin-right: 0;
+  color: inherit;
+  opacity: 0.4;
+}
 /* education score block: pushed right, divided by a vertical hairline */
 .tpl-clarity .rm-item-score {
   margin-left: auto;
