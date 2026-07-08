@@ -4,6 +4,7 @@ import type { ResumeDocument } from '@/types/document'
 import { analyzeResume, type CheckStatus } from '@/lib/ats'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
+import { SemanticMatchCard } from './SemanticMatch'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
@@ -275,6 +276,9 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
             )}
           </div>
         )}
+
+        {/* meaning-level match — strictly opt-in (downloads a local model) */}
+        <SemanticMatchCard doc={doc} jd={jdLocal} />
       </div>
     </div>
   )

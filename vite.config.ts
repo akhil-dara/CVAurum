@@ -37,7 +37,9 @@ export default defineConfig({
         // OCR engine assets (tesseract worker/core/traineddata, ~10MB) are only
         // needed when a user imports a scanned PDF — keep them OUT of the precache
         // so first load stays lean; they fetch on demand, same-origin, from /ocr/.
-        globIgnores: ['**/ocr/**'],
+        // Same for the opt-in semantic-match engine (~34MB) under /semantic/,
+        // and its worker chunk — it must download only after the user opts in.
+        globIgnores: ['**/ocr/**', '**/semantic/**', '**/semantic.worker-*.js'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',
         // The print route renders client-side; never serve the SPA shell for it from cache wrongly.

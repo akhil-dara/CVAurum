@@ -91,6 +91,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Recruiter skim heatmap** — see where a ~7-second first skim actually lands on *your* page: translucent heat over the live canvas plus a numbered **1→6 likely-gaze path**. Fully deterministic (type size · weight · F-pattern position · structure) and fully on-device — the same résumé always produces the same map, so you can iterate against it while you type. Toggle it from the ATS panel or ⌘K.
 - **“What ATS sees” view:** one click swaps the designed resume for the exact plain text an ATS parser reads — in its true reading order — so you can verify nothing is lost or scrambled before you apply.
 - **Live job-description tailoring:** paste a JD and instantly see **matched vs. missing keywords** and a **match score**.
+- **Semantic JD match (optional)** — goes beyond keywords: a small on-device language model ([MiniLM](https://huggingface.co/Xenova/all-MiniLM-L6-v2), Apache-2.0) checks whether each JD requirement is actually *expressed* in your résumé, even when the wording differs — “built CI pipelines” ≈ “automated build & deploy”. Strictly **opt-in** (a one-time ~34 MB download, **self-hosted from this site — never a third-party CDN**), runs in a worker on your device, and works offline after the first load.
 
 ### 📄 Import & Export
 - **Import an existing PDF résumé** — drop in a PDF and CVAurum reconstructs it into editable, structured sections (contact, experience, education, skills…) **entirely in your browser — nothing is uploaded.** Text-based PDFs work best; scanned / image-only PDFs are read with **on-device OCR** (self-hosted [Tesseract](https://github.com/naptha/tesseract.js), no cloud). Always give the result a quick review.
@@ -253,7 +254,7 @@ Planned and under consideration:
 - **Constraint-solver one-page auto-fit**, **style painter** (copy a section's look onto others), and **version history** with visual diff _(planned)_
 - **On-device semantic JD matching** (transformers.js, MiniLM) as an optional upgrade to keyword overlap _(planned)_
 
-✅ **Shipped:** 52 templates · per-section style switching · per-entry logos (editable right on the canvas) · recruiter skim heatmap · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · vector PDF & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
+✅ **Shipped:** 52 templates · per-section style switching · per-entry logos (editable right on the canvas) · recruiter skim heatmap · opt-in on-device semantic JD matching (MiniLM) · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · vector PDF & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
 
 Have an idea? Open an issue and let's talk.
 
