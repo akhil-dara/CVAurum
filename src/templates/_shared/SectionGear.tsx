@@ -443,8 +443,10 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                   </Group>
                 )}
 
-                {/* Logo / badge size + shape — sections with entry marks */}
-                {!NO_BADGES.has(base) && (
+                {/* Logo / badge size + shape — ONLY for sections whose entries
+                    can carry a mark (work/education/…); summary/skills have
+                    nothing to size, so showing these rows there was confusing */}
+                {!NO_ENTRY_LAYOUT.has(base) && !NO_BADGES.has(base) && (
                   <>
                     <Group label="Logo & badge size">
                       <div className="grid grid-cols-4 gap-1">
@@ -457,6 +459,9 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                           <ChipBtn key={b.v || 'auto'} label={b.label} on={(opts.badgeSize ?? '') === b.v} onClick={() => setStyle('badgeSize', b.v)} />
                         ))}
                       </div>
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                        To add a company / school mark: hover an entry on the page and click the <span className="font-medium text-primary">+ Logo</span> chip beside its title (or use the entry&apos;s form in the Content panel).
+                      </p>
                     </Group>
                     <Group label="Logo & badge shape">
                       <div className="grid grid-cols-4 gap-1">
@@ -540,6 +545,14 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                 )}
 
                 <div className="my-1.5 h-px bg-border" />
+                <div className="px-2 pb-1 pt-0.5">
+                  <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">Style painter</div>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    {copiedStyle
+                      ? 'Style copied — Paste it here, or paint it onto All sections at once.'
+                      : 'Like Figma’s paint-format: Copy this section’s look (heading, layout, bullets…), then open another section’s Style panel and Paste it there.'}
+                  </p>
+                </div>
                 <div className="flex items-center gap-1 px-1 pb-1">
                   <button
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"

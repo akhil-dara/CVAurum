@@ -30,6 +30,41 @@ const raf2 = () =>
     setTimeout(finish, 400)
   })
 
+/** One-time helper over a BLANK resume: teaches the three canvas moves. */
+function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return !!localStorage.getItem('cvaurum:canvas-tip')
+    } catch {
+      return false
+    }
+  })
+  const c = doc.content
+  const blank = !c.basics.name && !c.basics.summary && !c.work.some((w) => w.position || w.name) && !c.education.some((e) => e.institution || e.area)
+  if (dismissed || !blank) return null
+  const close = () => {
+    setDismissed(true)
+    try {
+      localStorage.setItem('cvaurum:canvas-tip', '1')
+    } catch {
+      /* private mode */
+    }
+  }
+  return (
+    <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
+      <div className="pointer-events-auto mx-3 flex max-w-xl items-start gap-2.5 rounded-xl border border-primary/30 bg-surface/95 px-3.5 py-2.5 text-xs leading-relaxed text-foreground shadow-float backdrop-blur">
+        <span aria-hidden>✍️</span>
+        <span>
+          The gray hints show <strong>what to type where</strong> — click any of them and start writing (it prints only what you fill in). Inside a bullet, type <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">/</kbd> for quick inserts. Hover a section for its <strong>Style</strong> button.
+        </span>
+        <button className="btn-icon h-6 w-6 shrink-0" onClick={close} aria-label="Dismiss tip" title="Got it">
+          ✕
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
   const fitToWidth = useEditorStore((s) => s.autoFit)
@@ -233,6 +268,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     <div ref={scrollRef} className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !previewExact ? ' focus-mode' : ''}`}>
       {/* skim-heat status pill — floats over the canvas while the heat is on */}
       {skimView && <SkimPill />}
+      {/* first-time hint on a blank resume — the canvas interactions aren't
+          guessable ("what do I click? what do I type where?") */}
+      {!previewExact && <BlankCanvasTip doc={doc} />}
       {/* unmistakable mode flag — floating over the canvas while previewing */}
       {previewExact && (
         <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">

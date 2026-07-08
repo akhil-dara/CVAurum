@@ -16,29 +16,9 @@ interface Props {
   minHeight?: number
 }
 
-/** Slash-command snippets — a Notion-style quick menu, 100% on-device. */
-interface Slash {
-  title: string
-  hint: string
-  /** text to insert; `¦` marks where the caret lands afterwards. */
-  insert: string
-}
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const nowMonthYear = () => {
-  const d = new Date()
-  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
-}
-const SLASH_COMMANDS: Slash[] = [
-  { title: 'Quantified bullet', hint: 'impact template', insert: '¦ by X%, saving $Y — via ' },
-  { title: 'Action verb: Led', hint: 'strong opener', insert: 'Led ¦' },
-  { title: 'Action verb: Built', hint: 'strong opener', insert: 'Built ¦' },
-  { title: 'Action verb: Drove', hint: 'strong opener', insert: 'Drove ¦' },
-  { title: 'Action verb: Launched', hint: 'strong opener', insert: 'Launched ¦' },
-  { title: 'Action verb: Streamlined', hint: 'strong opener', insert: 'Streamlined ¦' },
-  { title: 'Percentage metric', hint: 'placeholder', insert: 'X%¦' },
-  { title: 'Dollar metric', hint: 'placeholder', insert: '$X¦' },
-  { title: 'Insert this month', hint: nowMonthYear(), insert: `${nowMonthYear()}¦` },
-]
+// Slash-command snippets live in a shared module so "/" works identically on
+// the canvas and in this panel editor.
+import { SLASH_COMMANDS, type Slash } from '@/lib/slashCommands'
 
 export function RichTextEditor({ value, onChange, placeholder, withLists = true, minHeight = 64 }: Props) {
   // Slash menu state, mirrored into a ref so the ProseMirror keydown handler

@@ -124,7 +124,7 @@ function Bullets({
             rich
             onEnter={onInsertAfter ? () => { pendingFocus.current = bi + 1; onInsertAfter(bi) } : undefined}
             apply={(c, v) => setItem?.(c, bi, v)}
-            placeholder="Describe an achievement, ideally with a metric…"
+            placeholder="e.g. Cut deploy time 40% by automating the CI pipeline"
           />
           {onRemove && (
             <button
@@ -228,7 +228,7 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
         ) : badge ? (
           <span className="rm-item-badge" aria-hidden>{badge}</span>
         ) : (
-          <span className="rm-item-badge rm-logo-add" aria-hidden>+</span>
+          <span className="rm-logo-add" aria-hidden>+ Logo</span>
         )}
       </button>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" aria-label="Logo image" onChange={(e) => { pick(e.target.files?.[0] ?? undefined); e.target.value = '' }} />
@@ -387,7 +387,7 @@ function Summary({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       as="div"
       className="rm-item"
       apply={(c, v) => { c.basics.summary = v }}
-      placeholder="Write a short professional summary…"
+      placeholder="2–3 lines: who you are, your specialty, one standout win — e.g. “Data analyst, 4 yrs — built dashboards that cut reporting time 60%.”"
     />
   )
 }
@@ -404,11 +404,11 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
             logo={w.logo}
             edit={edit}
             setLogo={(c, v) => { c.work[i].logo = v }}
-            title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title" />}
+            title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title — e.g. Product Manager" />}
             date={rangeDate(edit, show(opts?.showDates), w.startDate, w.endDate, (c, v) => { c.work[i].startDate = v }, (c, v) => { c.work[i].endDate = v })}
           />
           <div className="rm-item-sub">
-            <Ed edit={edit} value={w.name} apply={(c, v) => { c.work[i].name = v }} className="rm-item-org" placeholder="Company" />
+            <Ed edit={edit} value={w.name} apply={(c, v) => { c.work[i].name = v }} className="rm-item-org" placeholder="Company — e.g. Acme Corp" />
             {show(opts?.showLocation) && (edit || w.location) ? <Ed edit={edit} value={w.location} apply={(c, v) => { c.work[i].location = v }} className="rm-item-loc" placeholder="Location" /> : null}
           </div>
           {show(opts?.showSummary) && (has(w.summary) || edit) ? (
@@ -453,9 +453,9 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                   // hiding studyType here broke WYSIWYG and invited retyping
                   // the degree into the field box.
                   <>
-                    <Ed edit={edit} value={e.studyType} apply={(c, v) => { c.education[i].studyType = v }} placeholder="Degree" />
+                    <Ed edit={edit} value={e.studyType} apply={(c, v) => { c.education[i].studyType = v }} placeholder="Degree — e.g. B.S." />
                     <span aria-hidden>{', '}</span>
-                    <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field of study" />
+                    <Ed edit={edit} value={e.area} apply={(c, v) => { c.education[i].area = v }} placeholder="Field — e.g. Computer Science" />
                   </>
                 ) : (
                   title
@@ -464,7 +464,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               date={rangeDate(edit, show(opts?.showDates), e.startDate, e.endDate, (c, v) => { c.education[i].startDate = v }, (c, v) => { c.education[i].endDate = v })}
             />
             <div className="rm-item-sub">
-              <Ed edit={edit} value={e.institution} apply={(c, v) => { c.education[i].institution = v }} className="rm-item-org" placeholder="Institution" />
+              <Ed edit={edit} value={e.institution} apply={(c, v) => { c.education[i].institution = v }} className="rm-item-org" placeholder="School — e.g. State University" />
               {show(opts?.showLocation) && (edit || e.location) ? <Ed edit={edit} value={e.location} apply={(c, v) => { c.education[i].location = v }} className="rm-item-loc" placeholder="Location" /> : null}
               {edit || e.score ? <Ed edit={edit} value={e.score} apply={(c, v) => { c.education[i].score = v }} className="rm-item-score" placeholder="GPA" /> : null}
             </div>

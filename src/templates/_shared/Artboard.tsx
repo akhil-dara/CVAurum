@@ -258,7 +258,7 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
     <h1 className="rm-name">{name}</h1>
   )
   const headlineEl = edit ? (
-    <Ed edit={edit} as="div" className="rm-headline" value={b.label ?? ''} apply={(c, v) => { c.basics.label = v }} placeholder="Your professional headline" />
+    <Ed edit={edit} as="div" className="rm-headline" value={b.label ?? ''} apply={(c, v) => { c.basics.label = v }} placeholder="Headline — e.g. Senior Software Engineer" />
   ) : b.label ? (
     <div className="rm-headline">{b.label}</div>
   ) : null

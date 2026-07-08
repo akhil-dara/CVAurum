@@ -873,10 +873,17 @@
 }
 .rm-logo-add {
   opacity: 0;
-  margin-right: 0;
-  color: color-mix(in srgb, var(--rm-primary) 80%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--rm-primary) 55%, transparent);
-  background: color-mix(in srgb, var(--rm-primary) 7%, transparent);
+  white-space: nowrap;
+  font-size: max(9px, 0.6em);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 0.35em 0.6em;
+  border-radius: 9999px;
+  color: var(--rm-primary);
+  border: 1px dashed color-mix(in srgb, var(--rm-primary) 60%, transparent);
+  /* solid-ish backing so the label reads over sidebars and the gray canvas */
+  background: color-mix(in srgb, var(--rm-primary) 8%, #fff);
   transition: opacity 0.15s ease;
 }
 .rm-item:hover .rm-logo-add,
