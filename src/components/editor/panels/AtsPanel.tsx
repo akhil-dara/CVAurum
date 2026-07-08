@@ -5,6 +5,7 @@ import { analyzeResume, type CheckStatus } from '@/lib/ats'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
 
 const STATUS_ICON = { pass: CheckCircle2, warn: AlertTriangle, fail: XCircle }
@@ -55,6 +56,38 @@ const WSEV_COLOR: Record<WritingSeverity, string> = {
   strong: 'text-success',
   suggestion: 'text-primary',
   warning: 'text-warning',
+}
+
+/** Toggle for the recruiter-skim saliency heat on the canvas. Lives here (not
+ *  just the ⌘K palette) so phone users — who have no palette button — find it. */
+function SkimCard() {
+  const skimView = useEditorStore((s) => s.skimView)
+  const setSkimView = useEditorStore((s) => s.setSkimView)
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface p-2.5">
+      <span className="mt-0.5 h-2 w-9 shrink-0 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(245,158,11,0.35), rgba(220,38,38,0.65))' }} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium">Recruiter skim heat</p>
+        <p className="text-xs leading-snug text-muted-foreground">
+          See where a ~7-second first skim lands on your page — numbered 1→6 fixations. Deterministic (size · weight · position · structure), fully on-device.
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={skimView}
+        aria-label="Toggle recruiter skim heat"
+        onClick={() => {
+          setSkimView(!skimView)
+          // phones: the panel covers the canvas — close it so the heat is visible
+          if (!skimView && window.innerWidth < 768) useEditorStore.getState().setLeftOpen(false)
+        }}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${skimView ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+      >
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${skimView ? 'left-[18px]' : 'left-0.5'}`} />
+      </button>
+    </div>
+  )
 }
 
 function WritingCard({ doc }: { doc: ResumeDocument }) {
@@ -168,6 +201,8 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
       </div>
 
       <AtsSimulator doc={doc} />
+
+      <SkimCard />
 
       {/* checks */}
       <div className="space-y-1.5">

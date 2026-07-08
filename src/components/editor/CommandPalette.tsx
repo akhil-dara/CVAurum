@@ -39,7 +39,9 @@ const ACCENTS: { name: string; hex: string }[] = [
   { name: 'Ink', hex: '#0f172a' },
 ]
 
-/** Subsequence fuzzy score: smaller is better; null = no match. */
+/** Subsequence fuzzy score: smaller is better; null = no match. Gaps between
+ *  matched letters cost 4× a late start, so a CONTIGUOUS "skim" deep in a label
+ *  always beats scattered s…k…i…m letters near the front. */
 function fuzzy(query: string, target: string): number | null {
   const q = query.toLowerCase().replace(/\s+/g, '')
   const t = target.toLowerCase()
@@ -49,7 +51,7 @@ function fuzzy(query: string, target: string): number | null {
   let last = -1
   for (let ti = 0; ti < t.length && qi < q.length; ti++) {
     if (t[ti] === q[qi]) {
-      score += last >= 0 ? ti - last - 1 : ti // gaps + late start cost
+      score += last >= 0 ? (ti - last - 1) * 4 : ti // gap cost ≫ late-start cost
       last = ti
       qi++
     }
@@ -105,6 +107,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
       { id: 'mode-preview', group: 'View', label: 'Exact PDF preview', hint: 'canvas mode', run: () => { ed.setPreviewExact(true); ed.setAtsView(false) } },
       { id: 'mode-ats', group: 'View', label: 'What the ATS sees', hint: 'canvas mode', run: () => { ed.setAtsView(true); ed.setPreviewExact(false) } },
       { id: 'focus', group: 'View', label: 'Toggle focus mode', hint: 'dim everything but the section under your cursor', run: () => { useEditorStore.getState().setFocusMode(!useEditorStore.getState().focusMode) } },
+      { id: 'skim', group: 'View', label: 'Toggle recruiter skim heatmap', hint: 'where a 7-second skim lands — deterministic, on-device', run: () => { useEditorStore.getState().setSkimView(!useEditorStore.getState().skimView) } },
       { id: 'panel-content', group: 'View', label: 'Open Content panel', run: () => { ed.setLeftTab('content'); ed.setLeftOpen(true) } },
       { id: 'panel-design', group: 'View', label: 'Open Design panel', run: () => { ed.setLeftTab('design'); ed.setLeftOpen(true) } },
       { id: 'panel-templates', group: 'View', label: 'Open Templates panel', run: () => { ed.setLeftTab('templates'); ed.setLeftOpen(true) } },
@@ -248,7 +251,10 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
             <button
               key={c.id}
               className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
-              onMouseEnter={() => setSel(i)}
+              // mouseMOVE, not mouseenter: when the list re-renders under a
+              // stationary cursor, mouseenter fires and silently steals the
+              // selection from the keyboard — Enter then runs the wrong command.
+              onMouseMove={() => setSel(i)}
               onClick={() => runSel(i)}
             >
               <span className="flex min-w-0 items-center gap-2.5">

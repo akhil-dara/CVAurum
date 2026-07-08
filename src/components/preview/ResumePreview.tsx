@@ -17,6 +17,7 @@ import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
 import { AtsSheet } from './AtsSheet'
+import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
 // is throttled to ~never, which would stall the fit loop and leave a stale page
@@ -35,6 +36,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const atsView = useEditorStore((s) => s.atsView)
   const previewExact = useEditorStore((s) => s.previewExact)
   const focusMode = useEditorStore((s) => s.focusMode)
+  const skimView = useEditorStore((s) => s.skimView)
   const updateContent = useResumeStore((s) => s.updateContent)
   const updateMetadata = useResumeStore((s) => s.updateMetadata)
   const updateDoc = useResumeStore((s) => s.updateDoc)
@@ -229,6 +231,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       document.body,
     )}
     <div ref={scrollRef} className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !previewExact ? ' focus-mode' : ''}`}>
+      {/* skim-heat status pill — floats over the canvas while the heat is on */}
+      {skimView && <SkimPill />}
       {/* unmistakable mode flag — floating over the canvas while previewing */}
       {previewExact && (
         <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
@@ -267,6 +271,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 <TemplateRenderer doc={doc} mode="preview" edit={updateContent} editMeta={updateMetadata} fitScale={fitScale} onAddSection={() => setAddOpen(true)} />
               )}
             </div>
+
+            {/* recruiter skim heat — measured off the live canvas, updates as you type */}
+            {skimView && <SkimHeatmap rootRef={innerRef} zoom={effectiveZoom} pageH={pageH} docKey={doc} />}
 
             {/* page-break guides */}
             {Array.from({ length: pages - 1 }).map((_, i) => {

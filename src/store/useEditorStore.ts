@@ -30,6 +30,8 @@ interface EditorState {
   focusMode: boolean
   /** style painter clipboard — a section's visual style, ready to paint */
   copiedStyle: CopiedStyle | null
+  /** recruiter skim heatmap overlay on the canvas */
+  skimView: boolean
 
   setLeftTab: (t: LeftTab) => void
   setActiveSection: (s: string | null) => void
@@ -47,6 +49,7 @@ interface EditorState {
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
   setCopiedStyle: (v: CopiedStyle | null) => void
+  setSkimView: (v: boolean) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -60,6 +63,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   onePageScale: 1,
   atsView: false,
   copiedStyle: null,
+  skimView: false,
   previewExact: false,
   focusMode: false,
 
@@ -79,4 +83,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setPreviewExact: (previewExact) => set({ previewExact }),
   setFocusMode: (focusMode) => set({ focusMode }),
   setCopiedStyle: (copiedStyle) => set({ copiedStyle }),
+  setSkimView: (skimView) => set({ skimView }),
 }))
