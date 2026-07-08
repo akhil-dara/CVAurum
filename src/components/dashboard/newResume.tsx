@@ -75,7 +75,12 @@ export function useResumeActions() {
       // Even OCR couldn't pull readable text — show a clear message, not a blank.
       const empty = !content.basics.name && !content.basics.email && !content.work.length && !content.education.length && !content.skills.length
       if (meta.chars < 30 || empty) {
-        toast("Couldn't read this PDF, even with OCR — it may be very low quality or image-only. Try a clearer or text-based PDF.", 'error')
+        toast(
+          meta.ocrEngineFailed
+            ? "The on-device text-recognition engine couldn't start (offline or blocked by the browser). Reload the page and try again — or use a text-based PDF."
+            : "Couldn't read this PDF, even with OCR — the scan may be very low quality. Try a sharper scan or a text-based PDF.",
+          'error',
+        )
         return
       }
       const name = content.basics.name?.trim()

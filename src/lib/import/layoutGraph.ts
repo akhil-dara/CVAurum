@@ -52,6 +52,8 @@ export interface LayoutGraph {
   twoColumn: boolean
   /** 1-based page numbers that were recovered via OCR. */
   ocrPages: number[]
+  /** OCR was needed but the engine itself failed to start (blocked/offline). */
+  ocrEngineFailed: boolean
 }
 
 export interface BuildOptions {
@@ -286,7 +288,7 @@ function buildLines(items: Item[]): Line[] {
   return lines
 }
 
-function assemble(items: Item[], pageWidth: Map<number, number>, pageCount: number, ocrPages: number[]): LayoutGraph {
+function assemble(items: Item[], pageWidth: Map<number, number>, pageCount: number, ocrPages: number[], ocrEngineFailed = false): LayoutGraph {
   const twoColumn = assignColumns(items, pageWidth)
   const lines = buildLines(items)
   const bodyLines = lines.filter((l) => l.text.length > 12)
@@ -306,6 +308,7 @@ function assemble(items: Item[], pageWidth: Map<number, number>, pageCount: numb
     charCount: lines.reduce((n, l) => n + l.text.length, 0),
     twoColumn,
     ocrPages,
+    ocrEngineFailed,
   }
 }
 
@@ -327,32 +330,40 @@ export async function buildLayoutGraph(file: File | ArrayBuffer, opts: BuildOpti
 
     // Route unreadable pages through OCR (lazy-loaded; only touched if needed).
     const ocrPages: number[] = []
+    let ocrEngineFailed = false
     if (opts.ocr !== false) {
       const needy = pages.filter(pageNeedsOcr)
       if (needy.length) {
-        const { ocrPage, disposeOcr } = await import('./ocr')
         try {
-          for (let i = 0; i < needy.length; i++) {
-            const pt = needy[i]
-            const page = await doc.getPage(pt.num)
-            const got = await ocrPage(page, pt.num, (ratio) =>
-              opts.onOcrProgress?.({ page: i + 1, pages: needy.length, ratio }),
-            )
-            page.cleanup()
-            if (got.length) {
-              // OCR fully replaces this page's (unreadable) native items.
-              for (let j = items.length - 1; j >= 0; j--) if (items[j].page === pt.num) items.splice(j, 1)
-              items.push(...got)
-              ocrPages.push(pt.num)
+          const { ocrPage, disposeOcr } = await import('./ocr')
+          try {
+            for (let i = 0; i < needy.length; i++) {
+              const pt = needy[i]
+              const page = await doc.getPage(pt.num)
+              const got = await ocrPage(page, pt.num, (ratio) =>
+                opts.onOcrProgress?.({ page: i + 1, pages: needy.length, ratio }),
+              )
+              page.cleanup()
+              if (got.length) {
+                // OCR fully replaces this page's (unreadable) native items.
+                for (let j = items.length - 1; j >= 0; j--) if (items[j].page === pt.num) items.splice(j, 1)
+                items.push(...got)
+                ocrPages.push(pt.num)
+              }
             }
+          } finally {
+            await disposeOcr()
           }
-        } finally {
-          await disposeOcr()
+        } catch (e) {
+          // The engine itself (worker / wasm / model) couldn't start — an
+          // environment problem, not a scan-quality problem. Say so upstream.
+          console.error('[ocr] engine failed to start', e)
+          ocrEngineFailed = true
         }
       }
     }
 
-    return assemble(items, pageWidth, pageCount, ocrPages)
+    return assemble(items, pageWidth, pageCount, ocrPages, ocrEngineFailed)
   } finally {
     doc.destroy()
   }

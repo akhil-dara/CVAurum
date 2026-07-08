@@ -44,14 +44,32 @@ interface OcrWord {
 
 let workerPromise: Promise<TesseractWorker> | null = null
 
+/**
+ * Reject if `p` doesn't settle in time. A worker whose wasm was refused (CSP,
+ * corrupted download) can die WITHOUT rejecting its promises — without a
+ * watchdog the import would spin forever instead of reporting the failure.
+ */
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((res, rej) => {
+    const t = setTimeout(() => rej(new Error(`OCR ${what} timed out after ${Math.round(ms / 1000)}s`)), ms)
+    p.then(
+      (v) => { clearTimeout(t); res(v) },
+      (e) => { clearTimeout(t); rej(e) },
+    )
+  })
+}
+
 /** Lazily create one shared Tesseract worker pointed at our self-hosted assets. */
 async function getWorker(onLoad?: (ratio: number) => void): Promise<TesseractWorker> {
   if (!workerPromise) {
-    workerPromise = (async () => {
+    const boot = (async () => {
       const { createWorker, OEM } = await import('tesseract.js')
       // oem=LSTM_ONLY → loads the smaller `-lstm` core variant we vendored.
       const worker = await createWorker('eng', OEM.LSTM_ONLY, {
         workerPath: `${OCR_BASE}/worker.min.js`,
+        // The default blob-URL worker is BLOCKED by our production CSP
+        // (worker-src 'self'); a plain same-origin worker satisfies it.
+        workerBlobURL: false,
         corePath: OCR_BASE, // directory → runtime picks the simd-lstm / lstm build
         langPath: OCR_BASE,
         gzip: true, // eng.traineddata.gz
@@ -60,8 +78,11 @@ async function getWorker(onLoad?: (ratio: number) => void): Promise<TesseractWor
         },
       })
       return worker as unknown as TesseractWorker
-    })().catch((e) => {
+    })()
+    // Engine start is ~6 MB of same-origin assets — generous timeout, but firm.
+    workerPromise = withTimeout(boot, 120_000, 'engine start').catch((e) => {
       workerPromise = null // allow a later retry rather than caching the failure
+      boot.then((w) => w.terminate()).catch(() => {}) // reap a late-arriving worker
       throw e
     })
   }
@@ -124,14 +145,20 @@ export async function ocrPage(
         (canvas as HTMLCanvasElement).toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'),
       )
 
+  // Engine start-up failures (worker/wasm/model blocked or offline) PROPAGATE —
+  // the caller reports "engine couldn't start" instead of blaming scan quality.
+  const worker = await getWorker((r) => onProgress?.(r * 0.5))
+
   let words: OcrWord[] = []
   try {
-    const worker = await getWorker((r) => onProgress?.(r * 0.5))
-    const { data } = await worker.recognize(blob)
+    // A page that can't finish in minutes means the worker is wedged — abort the
+    // whole import (propagates as an engine failure) rather than hanging.
+    const { data } = await withTimeout(worker.recognize(blob), 180_000, `page ${pageNumber} recognition`)
     words = data.words ?? []
     onProgress?.(1)
   } catch (e) {
     console.error('[ocr] recognition failed on page', pageNumber, e)
+    if (e instanceof Error && /timed out/.test(e.message)) throw e
     return []
   } finally {
     // Free the (large) raster immediately.

@@ -659,7 +659,7 @@ function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awa
 
 export interface ImportResult {
   content: ResumeContent
-  meta: { pages: number; chars: number; sections: string[]; lowText: boolean; ocrPages: number[] }
+  meta: { pages: number; chars: number; sections: string[]; lowText: boolean; ocrPages: number[]; ocrEngineFailed: boolean }
 }
 
 const BLANK = (): ResumeContent => ({
@@ -735,6 +735,7 @@ export function parseLayout(g: LayoutGraph): ImportResult {
       // After OCR has had its turn, still-thin text means a genuinely unreadable PDF.
       lowText: g.charCount < 80 * g.pageCount,
       ocrPages: g.ocrPages,
+      ocrEngineFailed: g.ocrEngineFailed,
     },
   }
 }
