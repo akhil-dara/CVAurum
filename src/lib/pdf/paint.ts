@@ -19,6 +19,18 @@ function hasMagic(bytes: Uint8Array, magic: number[]): boolean {
   return magic.every((b, i) => bytes[i] === b)
 }
 
+/** Rounded-rect SVG path in PDF user space, drawn from the TOP-left corner
+ *  (drawSvgPath's y axis points down from the given origin). A radius that's
+ *  at least half the shorter side collapses to a stadium/circle, which is how
+ *  chips, the GPA pill, and proficiency dots (all `border-radius: 9999px` in
+ *  CSS) fall out of the same code — no separate "is this a circle" branch. */
+function roundedRectPath(w: number, h: number, r: number): string {
+  const rr = Math.min(r, w / 2, h / 2)
+  return `M ${rr} 0 H ${w - rr} A ${rr} ${rr} 0 0 1 ${w} ${rr} V ${h - rr} ` +
+         `A ${rr} ${rr} 0 0 1 ${w - rr} ${h} H ${rr} ` +
+         `A ${rr} ${rr} 0 0 1 0 ${h - rr} V ${rr} A ${rr} ${rr} 0 0 1 ${rr} 0 Z`
+}
+
 /** Fetches `src`, embeds its ORIGINAL bytes (no re-encode/resize), once per src. */
 async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise<PDFImage | null>>): Promise<PDFImage | null> {
   let pending = cache.get(src)
@@ -80,14 +92,27 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
       switch (op.kind) {
         case 'rect': {
           if (!op.fill || op.fill.a <= 0) break
-          page.drawRectangle({
-            x: pxToPt(op.xPx),
-            y: flipY(pxToPt(op.yPx + op.hPx), pageHeightPt),
-            width: pxToPt(op.wPx),
-            height: pxToPt(op.hPx),
-            color: rgb(op.fill.r, op.fill.g, op.fill.b),
-            opacity: op.fill.a,
-          })
+          const color = rgb(op.fill.r, op.fill.g, op.fill.b)
+          if (op.radiusPx && op.radiusPx > 0.5) {
+            // drawSvgPath's origin is the TOP-left with y increasing downward,
+            // unlike drawRectangle's bottom-left-with-height origin — flip
+            // against the box's TOP edge (yPx), not yPx + hPx.
+            page.drawSvgPath(roundedRectPath(pxToPt(op.wPx), pxToPt(op.hPx), pxToPt(op.radiusPx)), {
+              x: pxToPt(op.xPx),
+              y: flipY(pxToPt(op.yPx), pageHeightPt),
+              color,
+              opacity: op.fill.a,
+            })
+          } else {
+            page.drawRectangle({
+              x: pxToPt(op.xPx),
+              y: flipY(pxToPt(op.yPx + op.hPx), pageHeightPt),
+              width: pxToPt(op.wPx),
+              height: pxToPt(op.hPx),
+              color,
+              opacity: op.fill.a,
+            })
+          }
           break
         }
         case 'line': {

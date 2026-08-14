@@ -1,6 +1,10 @@
 import { parseColor, parsePx } from './style'
 import { extractRuns } from './text'
-import type { DrawOp } from './types'
+import { parseCssColorFunction, type DrawOp } from './types'
+
+/** parseColor only understands rgb()/rgba(); color-mix(..., transparent)
+ *  backgrounds/borders serialize as color(srgb ...) instead — see types.ts. */
+const bgColor = (css: string) => parseColor(css) ?? parseCssColorFunction(css)
 
 /**
  * Resolve a computed `content` value (own or pseudo-element) to the literal
@@ -35,7 +39,7 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const cs = getComputedStyle(el)
   const box = boxOf(el, root)
 
-  const bg = parseColor(cs.backgroundColor)
+  const bg = bgColor(cs.backgroundColor)
   if (bg && bg.a > 0) {
     ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bg, radiusPx: parsePx(cs.borderTopLeftRadius) })
   }
@@ -44,7 +48,7 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     const width = parsePx(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-width`))
     const style = cs.getPropertyValue(`border-${edge.side.toLowerCase()}-style`)
     if (width <= 0 || style === 'none' || style === 'hidden') continue
-    const color = parseColor(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-color`))
+    const color = bgColor(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-color`))
     if (!color || color.a === 0) continue
     ops.push({
       kind: 'line',
@@ -64,7 +68,7 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     const cs = getComputedStyle(el, which)
     if (cs.content === 'none' || cs.display === 'none') continue
 
-    const bg = parseColor(cs.backgroundColor)
+    const bg = bgColor(cs.backgroundColor)
     if (!bg || bg.a === 0) continue
 
     const box = boxOf(el, root)

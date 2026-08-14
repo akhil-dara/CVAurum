@@ -1,5 +1,9 @@
 import { parseColor, parseFontWeight, parsePx } from './style'
-import type { TextRun } from './types'
+import { parseCssColorFunction, type TextRun } from './types'
+
+/** parseColor only understands rgb()/rgba(); color-mix(..., transparent)
+ *  text colors serialize as color(srgb ...) instead — see types.ts. */
+const textColor = (css: string) => parseColor(css) ?? parseCssColorFunction(css)
 
 /** The browser paints the TRANSFORMED text, not the source text node. */
 export function applyTextTransform(text: string, transform: string): string {
@@ -44,7 +48,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   const cs = getComputedStyle(parent)
   if (cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity || '1') === 0) return []
 
-  const color = parseColor(cs.color)
+  const color = textColor(cs.color)
   if (!color || color.a === 0) return []
 
   const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
