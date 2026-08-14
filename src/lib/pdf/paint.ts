@@ -672,12 +672,57 @@ export async function paintOps(
         case 'image': {
           const img = await embedImage(page, op.src, images)
           if (!img) break
-          page.drawImage(img, {
-            x: pxToPt(op.xPx),
-            y: flipY(pxToPt(op.yPx + op.hPx), pageHeightPt),
-            width: pxToPt(op.wPx),
-            height: pxToPt(op.hPx),
-          })
+          const xPt = pxToPt(op.xPx)
+          const yPt = flipY(pxToPt(op.yPx + op.hPx), pageHeightPt) // bottom-left, page space (y-up)
+          const wPt = pxToPt(op.wPx)
+          const hPt = pxToPt(op.hPx)
+          const radii = opRadii(op)
+          const hasRadius = radii.tl > 0.5 || radii.tr > 0.5 || radii.br > 0.5 || radii.bl > 0.5
+          if (hasRadius) {
+            // Clip to the (per-corner) rounded box before drawing — reuses the
+            // SAME clamped bezier corner math fillGradientRect uses for
+            // gradient fills. Without this every raster image (most commonly
+            // a profile photo — DEFAULT photoShape is 'circle', metadata.ts/
+            // artboard.css) drew as a plain square over the correctly-rounded
+            // placeholder box painted underneath it (task 17, ship blocker).
+            //
+            // Unlike fillGradientRect, this does NOT remap into a top-left/
+            // y-down local space: page.drawImage's x/y/width/height already
+            // assume the same bottom-left-origin, y-up convention as the page
+            // itself, so composing an extra y-flip `cm` here would draw the
+            // image upside down. A plain translate keeps that convention, but
+            // roundedRectOperators still hard-codes its OWN "tl at (low-x,
+            // y=0)" y-down layout, so passed straight through it would clip
+            // the box's BOTTOM corners as if they were the top ones. Swapping
+            // tl<->bl and tr<->br corrects for that single vertical mirror —
+            // the only difference from a page-space rounded rect.
+            const r = radiiToPt(radii)
+            page.pushOperators(
+              pushGraphicsState(),
+              concatTransformationMatrix(1, 0, 0, 1, xPt, yPt),
+              ...roundedRectOperators(wPt, hPt, { tl: r.bl, tr: r.br, br: r.tr, bl: r.tl }),
+              PDFOperator.of(PDFOperatorNames.ClipNonZero),
+              PDFOperator.of(PDFOperatorNames.EndPath),
+            )
+            // Local frame's origin is now the box's own bottom-left (the cm
+            // above only translated, never flipped), so drawImage's own x/y
+            // convention lines up with (0, 0) directly — same box, no
+            // separate offset math needed.
+            page.drawImage(img, { x: 0, y: 0, width: wPt, height: hPt })
+            page.pushOperators(popGraphicsState())
+          } else {
+            // Zero-radii images keep this direct path — no graphics-state /
+            // clip operator overhead for the common (non-photo) case.
+            page.drawImage(img, { x: xPt, y: yPt, width: wPt, height: hPt })
+          }
+          // NOT implemented: CSS `object-fit: cover` for non-square sources
+          // (DOM crops via CSS; drawImage above still stretches to the box).
+          // Scoped out per the task-17 brief ("if this exceeds an hour...
+          // SKIP with a documented note") — ImageCropper already makes square
+          // sources the normal case, and doing it only for the radius>0
+          // branch above (the zero-radii branch must stay clip-free, per the
+          // ship-blocker test) would make cover behavior inconsistent between
+          // rounded and square photo boxes rather than fixing it uniformly.
           break
         }
         case 'svg': {

@@ -23,11 +23,25 @@ const FONT_INDEX = { 'arimo|700': FONT_FILE }
 // PdfFontCache fetches font bytes over HTTP in the real app; stub fetch so
 // paintOps exercises the real production font-loading path against a real
 // embedded .ttf read straight off disk, instead of a hand-rolled substitute.
+//
+// Also serves a real (not stubbed/decoded) 1x1 PNG for TEST_PNG_SRC below,
+// so `embedImage`'s magic-byte check and pdf-lib's own `embedPng` both run
+// for real against genuine bytes — the task-17 image-radii-clip tests need
+// `paintOps` to reach a real embedded PDFImage, not bail out early on a null.
+const TEST_PNG_SRC = 'https://example.test/photo.png'
+const TEST_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 let originalFetch: typeof fetch
 beforeAll(() => {
   originalFetch = globalThis.fetch
   globalThis.fetch = (async (input: string | URL) => {
-    const file = String(input).replace(/^\/fonts-pdf\//, '')
+    const url = String(input)
+    if (url === TEST_PNG_SRC) {
+      const bytes = Buffer.from(TEST_PNG_BASE64, 'base64')
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+      return { ok: true, arrayBuffer: async () => ab } as Response
+    }
+    const file = url.replace(/^\/fonts-pdf\//, '')
     const bytes = fs.readFileSync(path.join(FONT_DIR, file))
     const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
     return { ok: true, arrayBuffer: async () => ab } as Response
@@ -510,6 +524,74 @@ describe('paintOps — gradient background fills (task 10c)', () => {
   })
 })
 
+describe('paintOps — raster images clipped to per-corner border radii (task 17, ship blocker)', () => {
+  // DEFAULT photoShape is 'circle' (types/metadata.ts) / `.rm-photo.circle {
+  // border-radius: 9999px }` (artboard.css) — before this fix, paint.ts's
+  // `case 'image'` never applied walk.ts's `radii` to the drawn image at
+  // all, so every uploaded headshot exported as a plain SQUARE over the
+  // correctly-rounded placeholder rect boxOps paints underneath it.
+  const radii80: CornerRadii = { tl: 40, tr: 40, br: 40, bl: 40 }
+  const imageOp = (overrides: Partial<Extract<DrawOp, { kind: 'image' }>> = {}): DrawOp => ({
+    kind: 'image',
+    xPx: 10,
+    yPx: 10,
+    wPx: 80,
+    hPx: 80,
+    src: TEST_PNG_SRC,
+    ...overrides,
+  })
+
+  it('clips a radiused image: pushGraphicsState, clip-path operators (W n), drawImage (Do), then popGraphicsState, in order', async () => {
+    const stream = await renderContentStream([imageOp({ radii: radii80 })])
+    // Our OWN wrapping q/.../W n/.../Q around drawImage, PLUS drawImage's
+    // own internal q/.../Do/.../Q nested inside it — two full push/pop
+    // pairs total, exactly one clip (W n), exactly one image draw (Do).
+    expect(stream.match(/\bq\b/g)?.length).toBe(2)
+    expect(stream.match(/\bQ\b/g)?.length).toBe(2)
+    expect(stream).toMatch(/\bW\b\s*\bn\b/) // clip: W (ClipNonZero) then n (EndPath)
+    expect(stream.match(/\bDo\b/g)?.length).toBe(1)
+    expect(stream).toMatch(/\bc\b/) // bezier curve ops — real corner arcs, not a plain rect
+    // Order: our push comes before the clip, which comes before Do, which
+    // comes before the last (our) pop.
+    const qIdx = stream.indexOf('q')
+    const wIdx = stream.indexOf('W')
+    const doIdx = stream.indexOf('Do')
+    const lastQIdx = stream.lastIndexOf('Q')
+    expect(qIdx).toBeLessThan(wIdx)
+    expect(wIdx).toBeLessThan(doIdx)
+    expect(doIdx).toBeLessThan(lastQIdx)
+  })
+
+  it('zero-radii image keeps the existing direct path: no clip, only drawImage’s own single push/pop pair', async () => {
+    const stream = await renderContentStream([imageOp({ radii: { tl: 0, tr: 0, br: 0, bl: 0 } })])
+    expect(stream.match(/\bq\b/g)?.length).toBe(1) // drawImage's own internal wrap only — no overhead added
+    expect(stream.match(/\bQ\b/g)?.length).toBe(1)
+    expect(stream).not.toMatch(/\bW\b/) // no clip at all
+    expect(stream.match(/\bDo\b/g)?.length).toBe(1)
+  })
+
+  it('falls back to a uniform radiusPx when radii is absent, with the same clip behavior', async () => {
+    const stream = await renderContentStream([imageOp({ radiusPx: 40 })])
+    expect(stream).toMatch(/\bW\b\s*\bn\b/)
+    expect(stream.match(/\bq\b/g)?.length).toBe(2)
+  })
+
+  it('a fully-round photo (radius 9999 on an 80x80 box, the circle photoShape case) still clips, not throws', async () => {
+    // The exact numeric clamp (9999 -> 40 on an 80x80 box) is proven directly
+    // against `clampRadius`'s shared machinery via roundedRectPath below —
+    // this confirms the SAME oversized-radius shape paint.ts's image path
+    // actually sends through end to end.
+    const stream = await renderContentStream([imageOp({ radii: { tl: 9999, tr: 9999, br: 9999, bl: 9999 } })])
+    expect(stream).toMatch(/\bW\b\s*\bn\b/)
+    expect(stream).toMatch(/\bc\b/)
+  })
+
+  it('tolerates an image whose src fails to load (skips painting, does not throw) even with radii set', async () => {
+    const ops: DrawOp[] = [imageOp({ src: 'https://example.test/missing.png', radii: radii80 })]
+    await expect(renderContentStream(ops)).resolves.not.toThrow()
+  })
+})
+
 describe('roundedRectPath (fix round 2 — per-corner border radii)', () => {
   it('reduces to the original single-radius shape when all four corners match', () => {
     const uniform = roundedRectPath(100, 50, { tl: 10, tr: 10, br: 10, bl: 10 })
@@ -540,6 +622,14 @@ describe('roundedRectPath (fix round 2 — per-corner border radii)', () => {
     expect(d).toContain('A 15 15 0 0 1 185 200') // bottom-right
     expect(d).toContain('A 20 20 0 0 1 0 180') // bottom-left
     expect(d).toContain('A 5 5 0 0 1 5 0') // top-left (closing arc)
+  })
+
+  it('clamps a wildly oversized uniform radius (9999, the "circle" photoShape value) on an 80x80 box to a true circle (radius 40)', () => {
+    // task 17: the same `clampRadius` machinery roundedRectOperators uses for
+    // the image-clip path (unexported, tested indirectly there) — proven
+    // here directly via roundedRectPath, which shares the identical clamp.
+    const d = roundedRectPath(80, 80, { tl: 9999, tr: 9999, br: 9999, bl: 9999 })
+    expect(d).toBe('M 40 0 H 40 A 40 40 0 0 1 80 40 V 40 A 40 40 0 0 1 40 80 H 40 A 40 40 0 0 1 0 40 V 40 A 40 40 0 0 1 40 0 Z')
   })
 
   it('clamps each corner independently against the shorter half-dimension, not a single shared value', () => {
