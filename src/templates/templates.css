@@ -1138,7 +1138,16 @@
 }
 .rm-root .rm-section.sec-ov-strike .rm-section-title-text,
 .rm-root .rm-section.sec-ov-strike .rm-section-icon {
+  /* Beats .rm-icons .rm-section-icon (artboard.css), which hangs the chip in
+     the left gutter via position:absolute + right:100%. This rule only wins
+     the position tug-of-war (higher specificity); without resetting the
+     offsets too, right/top/transform survive as a *relative* shift and throw
+     the chip a container-width off-canvas. Same fix as
+     .rm-icons.sec-boxed/.sec-bar/.sec-side (artboard.css) — keep the icon inline. */
   position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
   background: var(--rm-bg);
   padding-right: 0.55em;
 }
