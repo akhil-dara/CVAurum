@@ -7,9 +7,15 @@
  * *drawn* at the box size. That's what keeps the exported PDF's text layer
  * clean, which is the whole reason this renderer exists (see GitHub issue #4).
  */
-import { rgb, setCharacterSpacing, type PDFImage, type PDFPage } from 'pdf-lib'
+import {
+  rgb,
+  setCharacterSpacing,
+  type PDFImage,
+  type PDFPage,
+} from 'pdf-lib'
+import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, flipY } from './units'
-import type { DrawOp } from './types'
+import type { DrawOp, TextRun } from './types'
 import type { PdfFontCache } from './fonts'
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
@@ -53,18 +59,90 @@ async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise
 }
 
 /**
+ * Draws a DECORATIVE text run (SVG logo monogram marks, CSS
+ * `::before`/`::after`/`::marker` separator and bullet glyphs — see
+ * `TextRun.isDecorative` in types.ts) as vector glyph outlines instead of a
+ * real PDF text-showing operator, so the mark stays pixel-identical without
+ * ever entering the extractable text layer an ATS reads (task-10b brief,
+ * defect B — a logo's monogram letter was showing up mid-sentence in real
+ * résumé content, e.g. "EXPERIENCE V Senior Software Engineer").
+ *
+ * fontkit (already registered on the document for real-text font embedding)
+ * exposes each glyph's outline (`glyph.path`) in FONT units with a y-UP axis
+ * (baseline at y=0, ascenders positive — verified empirically against a real
+ * embedded .ttf, not assumed). `page.drawSvgPath` expects an SVG-style y-DOWN
+ * local space that it flips back to PDF's y-up itself via a `scale(1, -1)`
+ * around the given (x, y) anchor (verified by reading pdf-lib's
+ * `operations.js`), so `glyphPathToDrawPath` only needs to negate y (and
+ * scale) — never flip x — before handing coordinates to drawSvgPath.
+ */
+async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
+  const font = await fonts.embedGlyphOutlines(run.family, run.weight)
+  const glyphRun = font.layout(run.text)
+  const scale = pxToPt(run.sizePx) / font.unitsPerEm
+  const color = rgb(run.color.r, run.color.g, run.color.b)
+  const baseX = pxToPt(run.xPx)
+  const baseY = flipY(pxToPt(run.baselinePx), pageHeightPt)
+  const letterSpacingPt = pxToPt(run.letterSpacingPx)
+
+  let cursor = 0
+  for (let i = 0; i < glyphRun.glyphs.length; i++) {
+    const glyph = glyphRun.glyphs[i]
+    const pos = glyphRun.positions[i]
+    const d = glyphPathToDrawPath(glyph.path, scale)
+    if (d) {
+      page.drawSvgPath(d, {
+        x: baseX + cursor + pos.xOffset * scale,
+        y: baseY + pos.yOffset * scale,
+        color,
+        opacity: run.color.a,
+      })
+    }
+    cursor += pos.xAdvance * scale + letterSpacingPt
+  }
+}
+
+const round3 = (n: number): number => Math.round(n * 1000) / 1000
+
+/**
+ * Replays a fontkit glyph `Path` (font units, y-up) via its own
+ * `toFunction()` API into an SVG path data string in the y-down local space
+ * `drawSvgPath` expects, scaled by `size / unitsPerEm`. Exported for testing
+ * against a real embedded font — fontkit works on raw bytes with no DOM or
+ * network needed, so this is verifiable in plain Node.
+ */
+export function glyphPathToDrawPath(path: FontkitPath, scale: number): string {
+  const cmds: string[] = []
+  const x = (v: number) => round3(v * scale)
+  const y = (v: number) => round3(-v * scale)
+  path.toFunction()({
+    moveTo: (px: number, py: number) => cmds.push(`M ${x(px)} ${y(py)}`),
+    lineTo: (px: number, py: number) => cmds.push(`L ${x(px)} ${y(py)}`),
+    quadraticCurveTo: (cpx: number, cpy: number, px: number, py: number) =>
+      cmds.push(`Q ${x(cpx)} ${y(cpy)} ${x(px)} ${y(py)}`),
+    bezierCurveTo: (c1x: number, c1y: number, c2x: number, c2y: number, px: number, py: number) =>
+      cmds.push(`C ${x(c1x)} ${y(c1y)} ${x(c2x)} ${y(c2y)} ${x(px)} ${y(py)}`),
+    closePath: () => cmds.push('Z'),
+  })
+  return cmds.join(' ')
+}
+
+/**
  * Paints every op onto `page`. Never throws for a single bad rect/line/image
  * op — but a text op's font resolution (`fonts.embed`) is NEVER swallowed:
  * any error there (missing font, or a genuine embed failure) propagates out
  * of `paintOps`. A resume that silently lost its text is not a "mostly
  * successful" export — it's a blank page masquerading as one, and the
  * caller's print-export fallback exists exactly to catch that case.
+ * DECORATIVE text (see `isDecorative`) is tolerant like every other cosmetic
+ * op: losing a logo's monogram letter is not the same class of failure as
+ * losing résumé content.
  */
 export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
   const images = new Map<string, Promise<PDFImage | null>>()
 
   for (const op of ops) {
-    if (op.kind === 'text') {
+    if (op.kind === 'text' && !op.run.isDecorative) {
       const { run } = op
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
       // font must propagate, not be swallowed as a cosmetic per-op issue.
@@ -90,6 +168,12 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
 
     try {
       switch (op.kind) {
+        case 'text': {
+          // Reached only for isDecorative runs (real content is handled,
+          // and `continue`s past this switch, above).
+          await paintGlyphOutlines(page, op.run, fonts, pageHeightPt)
+          break
+        }
         case 'rect': {
           if (!op.fill || op.fill.a <= 0) break
           const color = rgb(op.fill.r, op.fill.g, op.fill.b)

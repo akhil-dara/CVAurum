@@ -107,6 +107,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       italic: cs.fontStyle === 'italic',
       color,
       letterSpacingPx: cs.letterSpacing === 'normal' ? 0 : parsePx(cs.letterSpacing),
+      isDecorative: false,
     })
   }
 

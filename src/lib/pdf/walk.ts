@@ -162,7 +162,10 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
       const xPx = anchor === 'middle' ? cx - width / 2 : anchor === 'end' ? cx - width : cx
       const baselinePx = box.yPx + (parseFloat(textEl.getAttribute('y') || '0') - vbY) * scaleY
       const fill = parseHexColor(textEl.getAttribute('fill') || '') || { r: 1, g: 1, b: 1, a: 1 }
-      ops.push({ kind: 'text', run: { text: label, xPx, baselinePx, sizePx, family, weight, italic: false, color: fill, letterSpacingPx: 0 } })
+      // DECORATIVE: this is the logo mark's monogram letter, not résumé
+      // content — paint.ts draws it as vector glyph outlines so it can't
+      // leak into the extractable text layer (see types.ts's TextRun.isDecorative).
+      ops.push({ kind: 'text', run: { text: label, xPx, baselinePx, sizePx, family, weight, italic: false, color: fill, letterSpacingPx: 0, isDecorative: true } })
     }
   }
 
@@ -171,7 +174,11 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
 
 /** A run drawn from a computed style rather than a real DOM text node — same
  *  shape text.ts builds for real runs, reused for generated content (pseudo
- *  ::before/::after text, synthesized list markers). */
+ *  ::before/::after text, synthesized list markers). Always DECORATIVE: every
+ *  caller (pseudoOps, markerOps) synthesizes a separator/bullet glyph, never
+ *  real résumé content (confirmed exhaustively against templates.css's own
+ *  `content:` declarations — see the task-10b report) — see types.ts's
+ *  TextRun.isDecorative. */
 function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx: number): TextRun | null {
   const color = parseAnyColor(cs.color)
   if (!color || color.a === 0) return null
@@ -188,6 +195,7 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
     italic: cs.fontStyle === 'italic',
     color,
     letterSpacingPx: cs.letterSpacing === 'normal' ? 0 : parsePx(cs.letterSpacing),
+    isDecorative: true,
   }
 }
 

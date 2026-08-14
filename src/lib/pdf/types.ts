@@ -21,6 +21,16 @@ export function parseCssColorFunction(css: string): Rgba | null {
 export interface TextRun {
   text: string; xPx: number; baselinePx: number; sizePx: number
   family: string; weight: number; italic: boolean; color: Rgba; letterSpacingPx: number
+  /**
+   * True for text that is DECORATION rather than résumé content — SVG logo
+   * monogram marks, CSS `::before`/`::after`/`::marker` separator and bullet
+   * glyphs. paint.ts draws these as vector glyph outlines (fontkit) instead
+   * of a real PDF text-showing operator, so they stay pixel-identical without
+   * polluting the extractable text layer an ATS reads (see GitHub issue #4
+   * and the task-10b brief, defect B). Real DOM text (text.ts's extractRuns)
+   * is always `false` — never touch this rule for actual résumé content.
+   */
+  isDecorative: boolean
 }
 
 export type DrawOp =
