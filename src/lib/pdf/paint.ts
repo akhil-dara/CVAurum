@@ -27,7 +27,7 @@ import {
 } from 'pdf-lib'
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, ptToPx, flipY } from './units'
-import type { DecoBox, DrawOp, LinearGradient, TextRun } from './types'
+import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
 
@@ -46,48 +46,98 @@ function hasMagic(bytes: Uint8Array, magic: number[]): boolean {
   return magic.every((b, i) => bytes[i] === b)
 }
 
+/** Clamps a single corner radius against the SHORTER of the box's two
+ *  half-dimensions — same guard `roundedRectPath`/`roundedRectOperators`
+ *  always applied for a uniform radius, now per corner: each corner is
+ *  independent, so (unlike CSS's own overlap-resolution algorithm, which
+ *  proportionally shrinks ALL radii together when adjacent ones would
+ *  overlap) two large radii on the same edge can still visually meet or
+ *  slightly overlap for a tiny box. None of our own CSS combines a large
+ *  radius with a small box, so this simple per-corner clamp (not CSS's full
+ *  algorithm) has never been visibly wrong. */
+function clampRadius(r: number, w: number, h: number): number {
+  return Math.min(Math.max(r, 0), w / 2, h / 2)
+}
+
+/** Uniform-radius convenience: the shape every corner=r caller (markerOps'
+ *  disc/circle marker dot, svgLogoOps' hand-authored logo mark's `rx`) still
+ *  wants — `radiusPx` on a DrawOp, not the newer per-corner `radii`. */
+function uniformRadii(r: number): CornerRadii {
+  return { tl: r, tr: r, br: r, bl: r }
+}
+
+/** Resolves a rect/image op's corner radii: prefers `op.radii` (fix round 2
+ *  — the four independently-computed `border-*-radius` values) when
+ *  present, otherwise falls back to a uniform box built from the older
+ *  `op.radiusPx` (or all-zero when neither is set). */
+function opRadii(op: { radiusPx?: number; radii?: CornerRadii }): CornerRadii {
+  return op.radii ?? uniformRadii(op.radiusPx ?? 0)
+}
+
+/** `pxToPt` applied to each of a CornerRadii's four values. */
+function radiiToPt(radii: CornerRadii): CornerRadii {
+  return { tl: pxToPt(radii.tl), tr: pxToPt(radii.tr), br: pxToPt(radii.br), bl: pxToPt(radii.bl) }
+}
+
 /** Rounded-rect SVG path in PDF user space, drawn from the TOP-left corner
- *  (drawSvgPath's y axis points down from the given origin). A radius that's
- *  at least half the shorter side collapses to a stadium/circle, which is how
+ *  (drawSvgPath's y axis points down from the given origin), one radius PER
+ *  CORNER (fix round 2 — task 13: `boxOps` used to read only `border-top-
+ *  left-radius` and apply it to all four corners, painting an asymmetric box
+ *  like spotlight's header banner, `border-radius: 0 0 18px 18px`, as a
+ *  plain rectangle). A corner radius that's at least half the shorter side
+ *  collapses that corner to a quarter-stadium/circle arc, which is how
  *  chips, the GPA pill, and proficiency dots (all `border-radius: 9999px` in
- *  CSS) fall out of the same code — no separate "is this a circle" branch. */
-function roundedRectPath(w: number, h: number, r: number): string {
-  const rr = Math.min(r, w / 2, h / 2)
-  return `M ${rr} 0 H ${w - rr} A ${rr} ${rr} 0 0 1 ${w} ${rr} V ${h - rr} ` +
-         `A ${rr} ${rr} 0 0 1 ${w - rr} ${h} H ${rr} ` +
-         `A ${rr} ${rr} 0 0 1 0 ${h - rr} V ${rr} A ${rr} ${rr} 0 0 1 ${rr} 0 Z`
+ *  CSS, i.e. all four corners equal and oversized) fall out of the same
+ *  code — no separate "is this a circle" branch. Reduces to the original
+ *  single-radius shape exactly when tl=tr=br=bl. */
+export function roundedRectPath(w: number, h: number, radii: CornerRadii): string {
+  const tl = clampRadius(radii.tl, w, h)
+  const tr = clampRadius(radii.tr, w, h)
+  const br = clampRadius(radii.br, w, h)
+  const bl = clampRadius(radii.bl, w, h)
+  return `M ${tl} 0 H ${w - tr} A ${tr} ${tr} 0 0 1 ${w} ${tr} V ${h - br} ` +
+         `A ${br} ${br} 0 0 1 ${w - br} ${h} H ${bl} ` +
+         `A ${bl} ${bl} 0 0 1 0 ${h - bl} V ${tl} A ${tl} ${tl} 0 0 1 ${tl} 0 Z`
 }
 
 /**
- * The same rounded-rect shape as `roundedRectPath`, as raw PDF path
- * operators (m/l/c/h) instead of an SVG path string — needed here because a
- * gradient fill can't go through `page.drawSvgPath` (see `fillGradientRect`
- * below for why) so there's no SVG-arc-to-bezier conversion available; each
- * 90° corner is approximated with a single cubic bezier using the standard
- * circle/bezier "kappa" constant (0.5522847498), the same technique
+ * The same per-corner rounded-rect shape as `roundedRectPath`, as raw PDF
+ * path operators (m/l/c/h) instead of an SVG path string — needed here
+ * because a gradient fill can't go through `page.drawSvgPath` (see
+ * `fillGradientRect` below for why) so there's no SVG-arc-to-bezier
+ * conversion available; each 90° corner is approximated with a single cubic
+ * bezier using the standard circle/bezier "kappa" constant (0.5522847498,
+ * scaled by THAT corner's own radius), the same technique
  * `svgPathToOperators` itself uses under the hood for SVG arc commands —
  * accurate to a small fraction of a percent, well below anything visible at
- * PDF/print resolution. Degenerates cleanly to a plain rectangle at r=0 (the
- * control points collapse onto the corner points).
+ * PDF/print resolution. Degenerates cleanly to a plain rectangle at
+ * tl=tr=br=bl=0 (every control point collapses onto its corner point).
  */
-function roundedRectOperators(w: number, h: number, r: number): PDFOperator[] {
-  const rr = Math.min(Math.max(r, 0), w / 2, h / 2)
-  const k = rr * 0.5522847498
+function roundedRectOperators(w: number, h: number, radii: CornerRadii): PDFOperator[] {
+  const tl = clampRadius(radii.tl, w, h)
+  const tr = clampRadius(radii.tr, w, h)
+  const br = clampRadius(radii.br, w, h)
+  const bl = clampRadius(radii.bl, w, h)
+  const kappa = 0.5522847498
+  const kTl = tl * kappa
+  const kTr = tr * kappa
+  const kBr = br * kappa
+  const kBl = bl * kappa
   const num = (n: number) => PDFNumber.of(n)
   const m = (x: number, y: number) => PDFOperator.of(PDFOperatorNames.MoveTo, [num(x), num(y)])
   const l = (x: number, y: number) => PDFOperator.of(PDFOperatorNames.LineTo, [num(x), num(y)])
   const c = (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) =>
     PDFOperator.of(PDFOperatorNames.AppendBezierCurve, [num(x1), num(y1), num(x2), num(y2), num(x3), num(y3)])
   return [
-    m(rr, 0),
-    l(w - rr, 0),
-    c(w - rr + k, 0, w, rr - k, w, rr), // top-right corner
-    l(w, h - rr),
-    c(w, h - rr + k, w - rr + k, h, w - rr, h), // bottom-right corner
-    l(rr, h),
-    c(rr - k, h, 0, h - rr + k, 0, h - rr), // bottom-left corner
-    l(0, rr),
-    c(0, rr - k, rr - k, 0, rr, 0), // top-left corner
+    m(tl, 0),
+    l(w - tr, 0),
+    c(w - tr + kTr, 0, w, tr - kTr, w, tr), // top-right corner
+    l(w, h - br),
+    c(w, h - br + kBr, w - br + kBr, h, w - br, h), // bottom-right corner
+    l(bl, h),
+    c(bl - kBl, h, 0, h - bl + kBl, 0, h - bl), // bottom-left corner
+    l(0, tl),
+    c(0, tl - kTl, tl - kTl, 0, tl, 0), // top-left corner
     PDFOperator.of(PDFOperatorNames.ClosePath),
   ]
 }
@@ -169,7 +219,7 @@ function registerAxialShading(page: PDFPage, coords: [number, number, number, nu
  * top-left, y-down space the path uses — no separate page-space math needed,
  * since the single `cm` maps both consistently.
  */
-function fillGradientRect(page: PDFPage, xPt: number, topYPt: number, wPt: number, hPt: number, radiusPt: number, gradient: LinearGradient): void {
+function fillGradientRect(page: PDFPage, xPt: number, topYPt: number, wPt: number, hPt: number, radiiPt: CornerRadii, gradient: LinearGradient): void {
   const angleRad = (gradient.angleDeg * Math.PI) / 180
   // CSS: direction = (sin A, -cos A) in a y-down space (0deg = "to top" = -y).
   const dx = Math.sin(angleRad)
@@ -187,7 +237,7 @@ function fillGradientRect(page: PDFPage, xPt: number, topYPt: number, wPt: numbe
   page.pushOperators(
     pushGraphicsState(),
     concatTransformationMatrix(1, 0, 0, -1, xPt, topYPt),
-    ...roundedRectOperators(wPt, hPt, radiusPt),
+    ...roundedRectOperators(wPt, hPt, radiiPt),
     PDFOperator.of(PDFOperatorNames.ClipNonZero),
     PDFOperator.of(PDFOperatorNames.EndPath),
     PDFOperator.of(PDFOperatorNames.ShadingFill, [shadingKey]),
@@ -570,13 +620,15 @@ export async function paintOps(
           // splits into two ops, solid pushed first when opaque), but the
           // DrawOp type allows it, so this stays correct either way rather
           // than relying on caller ordering.
+          const radii = opRadii(op)
+          const hasRadius = radii.tl > 0.5 || radii.tr > 0.5 || radii.br > 0.5 || radii.bl > 0.5
           if (op.fill && op.fill.a > 0) {
             const color = rgb(op.fill.r, op.fill.g, op.fill.b)
-            if (op.radiusPx && op.radiusPx > 0.5) {
+            if (hasRadius) {
               // drawSvgPath's origin is the TOP-left with y increasing downward,
               // unlike drawRectangle's bottom-left-with-height origin — flip
               // against the box's TOP edge (yPx), not yPx + hPx.
-              page.drawSvgPath(roundedRectPath(pxToPt(op.wPx), pxToPt(op.hPx), pxToPt(op.radiusPx)), {
+              page.drawSvgPath(roundedRectPath(pxToPt(op.wPx), pxToPt(op.hPx), radiiToPt(radii)), {
                 x: pxToPt(op.xPx),
                 y: flipY(pxToPt(op.yPx), pageHeightPt),
                 color,
@@ -600,7 +652,7 @@ export async function paintOps(
               flipY(pxToPt(op.yPx), pageHeightPt),
               pxToPt(op.wPx),
               pxToPt(op.hPx),
-              pxToPt(op.radiusPx ?? 0),
+              radiiToPt(radii),
               op.fillGradient,
             )
           }

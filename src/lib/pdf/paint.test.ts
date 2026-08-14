@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
-import { paintOps, glyphPathToDrawPath, DRIFT_FRACTION } from './paint'
+import { paintOps, glyphPathToDrawPath, roundedRectPath, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt } from './units'
-import type { DecoBox, DrawOp, LinearGradient, TextRun } from './types'
+import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx guard against.
 const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? fontkitNs) as Parameters<
@@ -490,6 +490,66 @@ describe('paintOps — gradient background fills (task 10c)', () => {
   it('never throws for a gradient rect op — a bad gradient is cosmetic, not real content', async () => {
     const ops: DrawOp[] = [{ kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: { angleDeg: NaN, stops: [opaque, opaque2] } }]
     await expect(renderContentStream(ops)).resolves.not.toThrow()
+  })
+
+  it('a gradient-filled rect with per-corner radii clips to the asymmetric shape, not a uniform one (spotlight header banner)', async () => {
+    // border-radius: 0 0 18px 18px — square top, rounded bottom, the exact
+    // shape that painted as a plain rectangle before fix round 2 (only
+    // border-top-left-radius, 0 here, was read and applied to all corners).
+    const radii: CornerRadii = { tl: 0, tr: 0, br: 18, bl: 18 }
+    const { stream } = await renderPage([
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, radii, fillGradient: gradient },
+    ])
+    // Bezier curve ops (c) appear for the clip path — the exact coordinates
+    // are covered by the roundedRectPath unit tests below (same corner
+    // math); here it's enough that curves are present at all (radius > 0
+    // clips with arcs, not a plain 4-line rectangle) and that the shading
+    // still paints (the clip didn't break the fill).
+    expect(stream).toMatch(/\bc\b/)
+    expect(stream).toMatch(/\bsh\b/)
+  })
+})
+
+describe('roundedRectPath (fix round 2 — per-corner border radii)', () => {
+  it('reduces to the original single-radius shape when all four corners match', () => {
+    const uniform = roundedRectPath(100, 50, { tl: 10, tr: 10, br: 10, bl: 10 })
+    // Every corner's arc uses the same radius (10) and the path starts/ends
+    // at the same points the old single-`r` formula produced.
+    expect(uniform).toBe(
+      'M 10 0 H 90 A 10 10 0 0 1 100 10 V 40 A 10 10 0 0 1 90 50 H 10 A 10 10 0 0 1 0 40 V 10 A 10 10 0 0 1 10 0 Z',
+    )
+  })
+
+  it('degenerates to a plain (zero-radius) rectangle when all four corners are 0', () => {
+    expect(roundedRectPath(100, 50, { tl: 0, tr: 0, br: 0, bl: 0 })).toBe('M 0 0 H 100 A 0 0 0 0 1 100 0 V 50 A 0 0 0 0 1 100 50 H 0 A 0 0 0 0 1 0 50 V 0 A 0 0 0 0 1 0 0 Z')
+  })
+
+  it('applies distinct radii per corner — spotlight header banner shape (square top, rounded bottom)', () => {
+    const d = roundedRectPath(100, 50, { tl: 0, tr: 0, br: 18, bl: 18 })
+    // top edge starts flush at the corner (tl=0) and runs the full width to
+    // the top-right corner (tr=0, no arc radius there)...
+    expect(d.startsWith('M 0 0 H 100 A 0 0 0 0 1 100 0')).toBe(true)
+    // ...while the bottom corners each carve out an 18-radius arc.
+    expect(d).toContain('A 18 18 0 0 1 82 50') // bottom-right
+    expect(d).toContain('A 18 18 0 0 1 0 32') // bottom-left
+  })
+
+  it('applies four DIFFERENT radii, one per corner, with none of them collapsing to another', () => {
+    const d = roundedRectPath(200, 200, { tl: 5, tr: 10, br: 15, bl: 20 })
+    expect(d).toContain('A 10 10 0 0 1 200 10') // top-right
+    expect(d).toContain('A 15 15 0 0 1 185 200') // bottom-right
+    expect(d).toContain('A 20 20 0 0 1 0 180') // bottom-left
+    expect(d).toContain('A 5 5 0 0 1 5 0') // top-left (closing arc)
+  })
+
+  it('clamps each corner independently against the shorter half-dimension, not a single shared value', () => {
+    // A radius bigger than the box: on a 40x100 box, half-dimensions are
+    // 20 (width/2) and 50 (height/2) — every corner clamps to 20 regardless
+    // of the requested radius, same clamp rule as the old uniform version,
+    // just applied per corner instead of once for all four.
+    const d = roundedRectPath(40, 100, { tl: 999, tr: 5, br: 999, bl: 999 })
+    expect(d).toContain('A 5 5 0 0 1 40 5') // tr kept its own (smaller) requested radius
+    expect(d.startsWith('M 20 0')).toBe(true) // tl clamped to 20 (w/2)
   })
 })
 

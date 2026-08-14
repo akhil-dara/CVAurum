@@ -76,10 +76,25 @@ export interface DecoBox {
   hPx: number
 }
 
+/**
+ * Per-corner border radii, CSS order (top-left, top-right, bottom-right,
+ * bottom-left) — fix-round-2 (task 13): `boxOps` used to read only
+ * `border-top-left-radius` and apply that ONE value to all four corners, so
+ * an asymmetric box (spotlight's header banner, `border-radius: 0 0 18px
+ * 18px` — square top, rounded bottom) painted as a plain rectangle. Present
+ * alongside the older `radiusPx?: number` on `rect`/`image` ops rather than
+ * replacing it: `radiusPx` stays the uniform-radius shape for callers that
+ * only ever need one value (markerOps' disc/circle marker dot, svgLogoOps'
+ * hand-authored logo mark's `rx`) — paint.ts prefers `radii` when present
+ * and falls back to a `radiusPx`-uniform box otherwise, so a caller that
+ * only knows one radius never needs to spell out all four.
+ */
+export interface CornerRadii { tl: number; tr: number; br: number; bl: number }
+
 export type DrawOp =
-  | { kind: 'rect'; xPx: number; yPx: number; wPx: number; hPx: number; fill?: Rgba; radiusPx?: number; fillGradient?: LinearGradient }
+  | { kind: 'rect'; xPx: number; yPx: number; wPx: number; hPx: number; fill?: Rgba; radiusPx?: number; radii?: CornerRadii; fillGradient?: LinearGradient }
   | { kind: 'line'; x1Px: number; y1Px: number; x2Px: number; y2Px: number; widthPx: number; color: Rgba; dashed?: boolean }
-  | { kind: 'image'; xPx: number; yPx: number; wPx: number; hPx: number; src: string; radiusPx?: number }
+  | { kind: 'image'; xPx: number; yPx: number; wPx: number; hPx: number; src: string; radiusPx?: number; radii?: CornerRadii }
   /**
    * An inline `<svg>` icon (section-heading chips, contact-row marks — task
    * 13), e.g. lucide's `viewBox="0 0 24 24"` set. `xPx/yPx/wPx/hPx` are the
