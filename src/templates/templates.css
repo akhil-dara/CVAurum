@@ -1107,7 +1107,8 @@
   width: 1.5em;
   height: 1.5em;
   margin-right: 0.2em;
-  transform: rotate(45deg) scale(0.86);
+  rotate: 45deg;
+  scale: 0.86;
 }
 .rm-root .rm-section.sec-ov-badge .rm-section-icon svg {
   transform: rotate(-45deg);
