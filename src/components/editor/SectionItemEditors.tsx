@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'

@@ -23,3 +23,6 @@ pnpm-debug.log*
 /*.pdf
 /*.docx
 /*_Resume_*.json
+
+# SDD scratch (subagent-driven development workspace)
+.superpowers/

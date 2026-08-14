@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Explainer homepage (/). The front door for someone who's never seen the app:
  * what it is, how it works, why it's private — with clear ways in. The actual
  * resume library/dashboard lives at /app.
