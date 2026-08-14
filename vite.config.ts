@@ -39,7 +39,9 @@ export default defineConfig({
         // so first load stays lean; they fetch on demand, same-origin, from /ocr/.
         // Same for the opt-in semantic-match engine (~34MB) under /semantic/,
         // and its worker chunk — it must download only after the user opts in.
-        globIgnores: ['**/ocr/**', '**/semantic/**', '**/semantic.worker-*.js'],
+        // /fonts-pdf/ holds static font instances used ONLY when exporting a
+        // PDF; they are fetched on demand (1–3 families per résumé).
+        globIgnores: ['**/ocr/**', '**/semantic/**', '**/semantic.worker-*.js', '**/fonts-pdf/**'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',
         // The print route renders client-side; never serve the SPA shell for it from cache wrongly.
