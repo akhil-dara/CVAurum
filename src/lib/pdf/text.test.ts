@@ -28,4 +28,13 @@ describe('collapseWhitespace', () => {
   it('handles an empty string', () => {
     expect(collapseWhitespace('', 'normal')).toBe('')
   })
+  it('keeps a single leading/trailing space rather than trimming it', () => {
+    // This is what separates adjacent inline runs on the same line (e.g.
+    // plain text ending "...from 820ms to " immediately followed by a bold
+    // "190ms" span): the trailing space must survive so the drawn text
+    // doesn't read "to190ms".
+    expect(collapseWhitespace('to ', 'normal')).toBe('to ')
+    expect(collapseWhitespace(' 190ms', 'normal')).toBe(' 190ms')
+    expect(collapseWhitespace('a  ', 'normal')).toBe('a ')
+  })
 })
