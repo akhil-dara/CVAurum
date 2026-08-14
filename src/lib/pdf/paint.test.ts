@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -253,6 +253,30 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
     ])
     const [, secondX] = tmXPositions(stream)
     expect(secondX).toBeCloseTo(pxToPt(leftXPx), 6)
+  })
+
+  it('snaps metric-drift overlap (negative gap within 2% of previous run width) to previous end', async () => {
+    // Real failure case from 19 templates: long regular-weight run (372pt)
+    // rendered ~1.84pt narrower by Chromium than embedded font predicts; bold
+    // run placed at Chromium position has -1.84pt gap, exceeding bold space
+    // (1.6pt) but within 0.02 * 372pt = 7.4pt drift allowance. Must snap to
+    // restore missing space: text reads 'to 190ms' not 'to190ms'.
+    const longText = 'Architected and deployed the comprehensive cloud infrastructure migration migration migration from 820ms to '
+    const trueEnd = await trueWidthPt(longText, sizePx)
+    const boldSpaceWidth = await trueWidthPt(' ', 12) // bold font's space
+    // Use a gap that exceeds bold space width but fits within 0.02 * width.
+    // Gap will be 1.2x bold space (which exceeds it) but fit in drift allowance
+    // since 0.02 * trueEnd is much larger at this text length.
+    const gapPt = boldSpaceWidth * 1.2
+    const driftedXPx = (trueEnd - gapPt) / (72 / 96)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: longText, xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: '190ms', xPx: driftedXPx, baselinePx: 20, sizePx, weight: 700 }) },
+    ])
+    const [, boldX] = tmXPositions(stream)
+    // With drift-proportional allowance, -gapPt fits within 0.02 * trueEnd so
+    // snap happens. With plain spaceWidth, -gapPt exceeds it so snap fails.
+    expect(boldX).toBeCloseTo(trueEnd, 6)
   })
 })
 

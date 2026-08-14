@@ -386,8 +386,8 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
   // guess with the EXACT metric pdf.js itself measures against
   // (`font.widthOfTextAtSize`), so there is nothing left to estimate.
   //
-  // The correction is deliberately SYMMETRIC (see the space-width check
-  // below), not "push right only": a boundary meant to be flush (no DOM
+  // The correction is deliberately SYMMETRIC (see the negative-allowance
+  // check below), not "push right only": a boundary meant to be flush (no DOM
   // whitespace between the two elements at all — e.g. a bold "Category"
   // label immediately followed by a ": keywords" span) must land at
   // EXACTLY the previous run's true end regardless of which direction our
@@ -395,7 +395,17 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
   // word-boundary heuristic (task-10b report) reacts to ANY gap above
   // ~10% of the font size, in EITHER direction, with no notion of
   // "acceptable drift" — only an exact match reliably avoids it.
-  let prevRealEnd: { baselinePx: number; endXPt: number } | null = null
+  //
+  // However, negative gaps arise from TWO distinct classes: (1) sub-pixel
+  // overlap from Chromium/embedded-font metric drift (proportional to the
+  // previous run's width, observed 0.49% max: 1.84pt over 372pt; bold space
+  // 1.61pt fits at max drift), and (2) visual-order reversal (CSS
+  // flex-direction: row-reverse, rtl, Grid placement) with tens-of-points
+  // gaps and short previous runs. A drift-proportional allowance separates
+  // them: negAllowancePt = max(spaceWidth, 0.02 * previous width) covers
+  // case 1 (0.02 = 4x worst drift) while keeping case 2 at one space-width
+  // bound since 0.02 * short-run width stays below space width.
+  let prevRealEnd: { baselinePx: number; endXPt: number; widthPt: number } | null = null
 
   for (const op of ops) {
     if (op.kind === 'text' && !op.run.isDecorative) {
@@ -408,16 +418,18 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
       let xPt = pxToPt(run.xPx)
 
       // Snap to the previous run's true end whenever the real DOM gap is
-      // smaller than a genuine space character in THIS run's own font —
-      // covers both overlap (a negative "gap") and a small unintended
-      // positive gap, while a real word-space (much wider than one glyph,
-      // confirmed empirically: ~1.8pt vs the drift cases' ~0.9-1.0pt at the
-      // same font size) safely clears the check and is left exactly where
-      // the browser put it.
+      // smaller than a genuine space character in THIS run's own font,
+      // allowing for metric drift proportional to the previous run's width.
+      // Covers both overlap (negative gap within drift allowance) and small
+      // unintended positive gap, while a real word-space (much wider than one
+      // glyph, confirmed empirically: ~1.8pt vs drift cases' ~0.9-1.0pt at same
+      // font size) safely clears the check and is left exactly where the
+      // browser put it.
       if (prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
         const spaceWidthPt = font.widthOfTextAtSize(' ', sizePt)
+        const negAllowancePt = Math.max(spaceWidthPt, 0.02 * prevRealEnd.widthPt)
         const gapPt = xPt - prevRealEnd.endXPt
-        if (gapPt > -spaceWidthPt && gapPt < spaceWidthPt) xPt = prevRealEnd.endXPt
+        if (gapPt > -negAllowancePt && gapPt < spaceWidthPt) xPt = prevRealEnd.endXPt
       }
 
       if (run.letterSpacingPx !== 0) {
@@ -436,7 +448,8 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
       // The tracked path's extractable layer is drawn UNTRACKED (Tc 0, see
       // paintTrackedHeading), so widthOfTextAtSize — which never applies
       // letter-spacing — is exactly right for both branches above.
-      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + font.widthOfTextAtSize(run.text, sizePt) }
+      const widthPt = font.widthOfTextAtSize(run.text, sizePt)
+      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + widthPt, widthPt }
       continue
     }
 
