@@ -36,6 +36,10 @@ interface EditableProps {
   as?: Tag
   className?: string
   placeholder?: string
+  /** Off for short tag/keyword fields (skills, tech tags, interests) — the browser's
+   *  spellchecker flags most tech terms and proper nouns, drawing a squiggly underline
+   *  under nearly every chip. On (default) everywhere else, prose benefits from it. */
+  spellCheck?: boolean
 }
 
 interface SlashMenu {
@@ -73,7 +77,7 @@ function detectSlash(root: HTMLElement): Omit<SlashMenu, 'items' | 'index'> & { 
   }
 }
 
-function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder }: EditableProps) {
+function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true }: EditableProps) {
   const ref = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // "/" quick-insert menu (rich fields only). Kept in a ref too so the keydown
@@ -209,7 +213,7 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        spellCheck
+        spellCheck={spellCheck}
         role="textbox"
         tabIndex={0}
         aria-label={placeholder || 'Editable field'}
@@ -260,6 +264,7 @@ export function Ed({
   as,
   className,
   placeholder,
+  spellCheck,
 }: {
   edit?: EditFn
   value: string
@@ -270,6 +275,7 @@ export function Ed({
   as?: Tag
   className?: string
   placeholder?: string
+  spellCheck?: boolean
 }) {
   if (!edit) {
     if (rich) return <RichText html={value} className={className} />
@@ -284,6 +290,7 @@ export function Ed({
       multiline={multiline}
       onEnter={onEnter}
       placeholder={placeholder}
+      spellCheck={spellCheck}
       onChange={(v) => edit((c) => apply(c, v))}
     />
   )

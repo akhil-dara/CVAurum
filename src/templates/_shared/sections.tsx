@@ -368,6 +368,7 @@ function EditableChips({
             value={k}
             apply={(c, v) => setItem?.(c, ki, v)}
             placeholder={placeholder}
+            spellCheck={false}
             onEnter={onAdd ? () => { pendingFocus.current = items.length; onAdd() } : undefined}
           />
           {onRemove && (

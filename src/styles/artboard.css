@@ -225,8 +225,20 @@
   right: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.45em;
   z-index: 6;
+}
+/* Narrow aside columns: the controls row floats well above its OWN heading
+   (see the -2.3em rule above) to clear the heading text, which puts it right
+   at the boundary of the section-gap above it. On a short section-gap that
+   reach lands ON the PREVIOUS section's last row (its "+ Add x" footer, most
+   often) — the reported crowding. Give aside sections (after the first) a
+   little extra breathing room above; margins collapse with the existing
+   section-gap, so this only ever WIDENS a too-tight gap, never doubles it.
+   Edit canvas only — print never carries .mode-preview, so export spacing
+   (the shared --rm-section-gap) is untouched. */
+.mode-preview .rm-col-aside .rm-section + .rm-section {
+  margin-top: 2.4em;
 }
 .rm-section-controls .rm-section-gear {
   position: static;
@@ -533,6 +545,27 @@
 .rm-col-aside .rm-level-fill { background: currentColor; }
 .rm-col-aside .rm-star.on { color: currentColor; }
 
+/* Edit-canvas-only fix: .rm-level-fill is a <span> (inline) and .rm-level-track
+   is not a flex container, so per CSS the fill's inline `width:%` style and its
+   own `height:100%` are silently ignored on a non-replaced inline box — it
+   collapses to 0x0, so filled vs empty bars look identical (both just the faint
+   track). Absolutely positioning the fill inside the (now relative) track is
+   the standard progress-bar-fill technique — it keeps the JS-set inline
+   `width:%` in charge and sidesteps inline/inline-block layout edge cases.
+   Scoped to .mode-preview ONLY: the shared, unscoped rules above (used by
+   print/export too) are left exactly as they were — fixing this for real
+   requires touching print-affecting CSS, which is out of bounds here; see the
+   task report for a follow-up flag. */
+.mode-preview .rm-level-track {
+  position: relative;
+}
+.mode-preview .rm-level-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
 /* two-line entries used by aside lists */
 .rm-mini { margin-bottom: var(--rm-item-gap); position: relative; }
 .rm-mini:last-child { margin-bottom: 0; }
@@ -744,25 +777,46 @@
 .mode-preview .rm-chip-edit {
   display: inline-flex;
   align-items: center;
-  gap: 0.2em;
+  gap: 0.3em;
 }
 .mode-preview .rm-chip-edit .rm-editable {
   outline: none;
   min-width: 0.6em;
 }
+/* The x is its own small ghost-icon circle (same recipe as the item trash
+   button) so it reads as an integrated control, not a bare glyph floating
+   after the word — with a real hover target instead of just opacity. */
 .mode-preview .rm-chip-del {
   cursor: pointer;
   border: none;
   background: transparent;
   color: inherit;
-  font-size: 1.05em;
+  font-size: 1em;
   line-height: 1;
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
   padding: 0;
-  opacity: 0.5;
-  transition: opacity 0.12s ease;
+  opacity: 0.55;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
-.mode-preview .rm-chip-edit:hover .rm-chip-del {
+.mode-preview .rm-chip-edit:hover .rm-chip-del,
+.rm-chip-del:focus-visible {
   opacity: 1;
+}
+.rm-chip-del:hover,
+.rm-chip-del:focus-visible {
+  color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 20%, transparent);
+}
+/* Match the chip's own padding rhythm so "+ skill" sits at the same height as
+   the chips beside it, instead of a slightly mismatched pill in the wrap. */
+.mode-preview .rm-chips-edit .rm-add-btn {
+  padding: 0.14em 0.6em;
 }
 
 /* Inline "Add <entry>" row under each section (editable preview only). */
@@ -793,20 +847,23 @@
 /* On-canvas item delete (editable preview only): a small ghost trash button
    that hangs just past the item's right edge — in the page's margin gutter,
    the same trick the "+ Logo" chip uses on the LEFT (.rm-logo-btn-empty) —
-   so it never reserves layout space inside the item itself. Sized to still
-   clear the 1.6em gap the "Grid" entry layout puts between its two columns. */
+   so it never reserves layout space inside the item itself. Same ghost-icon
+   recipe as .rm-section-hide/.rm-visual-hide: a circular pill in the page's
+   OWN background color (not a flat dark overlay — that read as a plain dark
+   square on colored sidebars), transparent border until hover/focus. Sized to
+   still clear the 1.6em gap the "Grid" entry layout puts between its columns. */
 .mode-preview .rm-item-del {
   position: absolute;
   left: 100%;
   top: 0;
-  margin-left: 0.2em;
-  width: 1.3em;
-  height: 1.3em;
+  margin-left: 0.3em;
+  width: 1.5em;
+  height: 1.5em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.3em;
-  border: 1px solid transparent;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--rm-text) 20%, transparent);
   color: var(--rm-muted);
   background: var(--rm-bg);
   cursor: pointer;
@@ -815,8 +872,8 @@
   z-index: 5;
 }
 .mode-preview .rm-item-del svg {
-  width: 0.85em;
-  height: 0.85em;
+  width: 0.9em;
+  height: 0.9em;
 }
 .mode-preview .rm-item:hover .rm-item-del,
 .mode-preview .rm-mini:hover .rm-item-del,
@@ -824,16 +881,11 @@
 .rm-item-del:focus-visible {
   opacity: 1;
 }
-.rm-item-del:hover {
+.rm-item-del:hover,
+.rm-item-del:focus-visible {
   color: #b91c1c;
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  border-color: color-mix(in srgb, #ef4444 35%, transparent);
-}
-/* On a colored sidebar the page background var isn't dark-safe as a chip fill —
-   fall back to a translucent dark backing so the icon still reads. */
-.rm-col-aside .rm-item-del {
-  background: color-mix(in srgb, #000 55%, transparent);
-  color: inherit;
+  border-color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 12%, var(--rm-bg));
 }
 
 /* Discoverability hint under an empty section (editable preview only): the
