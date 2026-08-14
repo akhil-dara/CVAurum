@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity } from './walk'
+import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity, BORDER_EDGES } from './walk'
 
 describe('pseudoContentText', () => {
   it('unwraps a quoted content string', () => {
@@ -170,6 +170,47 @@ describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
     expect(pseudoBox(cs({ position: 'relative', left: '4px', top: '1px', width: '5px', height: '5px' }), host)).toEqual({
       xPx: 53, yPx: 128, wPx: 5, hPx: 5,
     })
+  })
+})
+
+describe('BORDER_EDGES (task 14 — border lines inset by half their width)', () => {
+  // CSS paints a border INSIDE the element box: border-bottom's OUTER edge is
+  // the box's own bottom edge, the stroke occupies [bottom - width, bottom].
+  // pdf-lib's drawLine strokes CENTERED on the given coordinates, so the line
+  // must be drawn width/2 INSIDE the box edge for its centerline to land
+  // where CSS's own stroke centerline does.
+  const box = { xPx: 10, yPx: 20, wPx: 200, hPx: 50 } // right edge x=210, bottom edge y=70
+
+  it('insets a 2px bottom border upward from the box bottom edge (the brief\'s worked example)', () => {
+    const bottom = BORDER_EDGES.find((e) => e.side === 'Bottom')!
+    expect(bottom.y1(box, 2)).toBe(69) // 70 - 2/2
+    expect(bottom.y2(box, 2)).toBe(69)
+    // x runs the full box width, untouched by the vertical inset
+    expect(bottom.x1(box, 2)).toBe(10)
+    expect(bottom.x2(box, 2)).toBe(210)
+  })
+
+  it('insets a top border downward from the box top edge', () => {
+    const top = BORDER_EDGES.find((e) => e.side === 'Top')!
+    expect(top.y1(box, 4)).toBe(22) // 20 + 4/2
+    expect(top.y2(box, 4)).toBe(22)
+  })
+
+  it('insets a left border rightward from the box left edge', () => {
+    const left = BORDER_EDGES.find((e) => e.side === 'Left')!
+    expect(left.x1(box, 3)).toBe(11.5) // 10 + 3/2
+    expect(left.x2(box, 3)).toBe(11.5)
+  })
+
+  it('insets a right border leftward from the box right edge', () => {
+    const right = BORDER_EDGES.find((e) => e.side === 'Right')!
+    expect(right.x1(box, 3)).toBe(208.5) // 210 - 3/2
+    expect(right.x2(box, 3)).toBe(208.5)
+  })
+
+  it('a zero-width border does not move at all (degenerate but harmless)', () => {
+    const bottom = BORDER_EDGES.find((e) => e.side === 'Bottom')!
+    expect(bottom.y1(box, 0)).toBe(70)
   })
 })
 

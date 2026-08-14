@@ -62,12 +62,26 @@ function boxOf(el: Element, root: HTMLElement) {
   return { xPx: r.left - rootRect.left, yPx: r.top - rootRect.top, wPx: r.width, hPx: r.height }
 }
 
-const BORDER_EDGES = [
-  { side: 'Top', x1: (b: ReturnType<typeof boxOf>) => b.xPx, y1: (b: ReturnType<typeof boxOf>) => b.yPx, x2: (b: ReturnType<typeof boxOf>) => b.xPx + b.wPx, y2: (b: ReturnType<typeof boxOf>) => b.yPx },
-  { side: 'Right', x1: (b: ReturnType<typeof boxOf>) => b.xPx + b.wPx, y1: (b: ReturnType<typeof boxOf>) => b.yPx, x2: (b: ReturnType<typeof boxOf>) => b.xPx + b.wPx, y2: (b: ReturnType<typeof boxOf>) => b.yPx + b.hPx },
-  { side: 'Bottom', x1: (b: ReturnType<typeof boxOf>) => b.xPx, y1: (b: ReturnType<typeof boxOf>) => b.yPx + b.hPx, x2: (b: ReturnType<typeof boxOf>) => b.xPx + b.wPx, y2: (b: ReturnType<typeof boxOf>) => b.yPx + b.hPx },
-  { side: 'Left', x1: (b: ReturnType<typeof boxOf>) => b.xPx, y1: (b: ReturnType<typeof boxOf>) => b.yPx, x2: (b: ReturnType<typeof boxOf>) => b.xPx, y2: (b: ReturnType<typeof boxOf>) => b.yPx + b.hPx },
-] as const
+/** CSS paints a border INSIDE the element's box (e.g. border-bottom's OUTER
+ *  edge is the element's own bottom edge; the stroke occupies [bottom -
+ *  width, bottom]), but pdf-lib's `drawLine` strokes CENTERED on the given
+ *  coordinates — passing the box edge straight through (as this used to)
+ *  paints half the stroke width OUTSIDE the box. Each edge is inset by
+ *  width/2 toward the box interior so the drawn line's centerline lands
+ *  where the CSS stroke's own centerline does. Every coordinate fn takes the
+ *  same (box, borderWidthPx) signature, even the ones that don't need the
+ *  width, so the four edges share one uniform, TS-friendly shape. */
+type EdgeCoord = (b: ReturnType<typeof boxOf>, w: number) => number
+/** Exported so the border-inset arithmetic (task 14) can be unit-tested
+ *  directly against a plain `{xPx, yPx, wPx, hPx}` box, without needing a
+ *  real `Element`/`getComputedStyle` (boxOps itself isn't independently
+ *  testable outside a DOM). */
+export const BORDER_EDGES: Array<{ side: string; x1: EdgeCoord; y1: EdgeCoord; x2: EdgeCoord; y2: EdgeCoord }> = [
+  { side: 'Top', x1: (b) => b.xPx, y1: (b, w) => b.yPx + w / 2, x2: (b) => b.xPx + b.wPx, y2: (b, w) => b.yPx + w / 2 },
+  { side: 'Right', x1: (b, w) => b.xPx + b.wPx - w / 2, y1: (b) => b.yPx, x2: (b, w) => b.xPx + b.wPx - w / 2, y2: (b) => b.yPx + b.hPx },
+  { side: 'Bottom', x1: (b) => b.xPx, y1: (b, w) => b.yPx + b.hPx - w / 2, x2: (b) => b.xPx + b.wPx, y2: (b, w) => b.yPx + b.hPx - w / 2 },
+  { side: 'Left', x1: (b, w) => b.xPx + w / 2, y1: (b) => b.yPx, x2: (b, w) => b.xPx + w / 2, y2: (b) => b.yPx + b.hPx },
+]
 
 /** Computed `opacity`, defaulting to 1 for anything unparseable — shared by
  *  boxOps and pseudoOps so a `position: absolute` accent rule painted at
@@ -113,7 +127,7 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     if (!color || color.a === 0) continue
     ops.push({
       kind: 'line',
-      x1Px: edge.x1(box), y1Px: edge.y1(box), x2Px: edge.x2(box), y2Px: edge.y2(box),
+      x1Px: edge.x1(box, width), y1Px: edge.y1(box, width), x2Px: edge.x2(box, width), y2Px: edge.y2(box, width),
       widthPx: width, color: { ...color, a: color.a * opacityMul }, dashed: style === 'dashed' || style === 'dotted',
     })
   }
