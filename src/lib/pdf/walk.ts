@@ -1,10 +1,49 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { ascentPx, extractRuns, measureTextWidthPx } from './text'
-import { parseCssColorFunction, type DrawOp, type TextRun } from './types'
+import { parseCssColorFunction, type DrawOp, type LinearGradient, type TextRun } from './types'
 
 /** parseColor only understands rgb()/rgba(); color-mix(..., transparent)
  *  backgrounds/borders serialize as color(srgb ...) instead — see types.ts. */
 const parseAnyColor = (css: string) => parseColor(css) ?? parseCssColorFunction(css)
+
+/**
+ * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
+ * image`, not `background-color` — `getComputedStyle().backgroundColor` for
+ * such an element is transparent, so `boxOps` used to draw nothing at all
+ * for creative's header banner/sidebar and spotlight's header banner (task-
+ * 10c report — confirmed the single biggest contributor to both templates'
+ * pixel diffs, including losing the name/contact text painted on top, which
+ * became invisible without its background). Chromium serializes the two
+ * color stops as `rgb()` or `color(srgb ...)` (see types.ts's
+ * `parseCssColorFunction` for why `color-mix()` shows up as the latter) — by
+ * the time getComputedStyle reports it, custom properties and color-mix()
+ * are already resolved to concrete numbers, verified empirically against a
+ * real element rather than assumed. Only the exact 2-stop, degree-angle
+ * shape our own CSS uses is matched; anything else (keyword direction,
+ * radial-gradient, 3+ stops) returns null and falls through to no
+ * background, same as before this existed.
+ *
+ * The angle segment is OPTIONAL: `180deg` ("to bottom") is CSS's own default
+ * direction for a bare `linear-gradient(c1, c2)`, and Chromium's computed-
+ * style serializer OMITS the angle whenever it equals that default —
+ * confirmed empirically against `.tpl-creative .rm-col-aside`, which is
+ * authored with an EXPLICIT `linear-gradient(180deg, …)` in templates.css
+ * but reports back as `linear-gradient(rgb(...), color(...))` with no `deg`
+ * token at all. Missing the angle group entirely (rather than requiring it)
+ * was the reason the sidebar's gradient still failed to parse on the first
+ * pass even after the header banner's (120deg, never elided) started
+ * working.
+ */
+export function parseLinearGradient(backgroundImage: string): LinearGradient | null {
+  const m = (backgroundImage || '').match(
+    /^linear-gradient\(\s*(?:([\d.]+)deg\s*,\s*)?((?:rgba?|color)\([^)]*\))\s*,\s*((?:rgba?|color)\([^)]*\))\s*\)$/i,
+  )
+  if (!m) return null
+  const c1 = parseAnyColor(m[2])
+  const c2 = parseAnyColor(m[3])
+  if (!c1 || !c2) return null
+  return { angleDeg: m[1] === undefined ? 180 : Number(m[1]), stops: [c1, c2] }
+}
 
 /**
  * Resolve a computed `content` value (own or pseudo-element) to the literal
@@ -40,7 +79,18 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const box = boxOf(el, root)
 
   const bg = parseAnyColor(cs.backgroundColor)
-  if (bg && bg.a > 0) {
+  const gradient = parseLinearGradient(cs.backgroundImage)
+  if (gradient) {
+    // background-image paints OVER background-color in CSS paint order —
+    // matched here by only emitting the gradient when both are present
+    // (never happens in our own CSS today: `background: linear-gradient(…)`
+    // never sets background-color, confirmed empirically) but future-proof
+    // either way since a solid fill is drawn first if bg is also opaque.
+    if (bg && bg.a > 0) {
+      ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bg, radiusPx: parsePx(cs.borderTopLeftRadius) })
+    }
+    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, radiusPx: parsePx(cs.borderTopLeftRadius), fillGradient: gradient })
+  } else if (bg && bg.a > 0) {
     ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bg, radiusPx: parsePx(cs.borderTopLeftRadius) })
   }
 

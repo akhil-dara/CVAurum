@@ -2,13 +2,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { paintOps, glyphPathToDrawPath } from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt } from './units'
-import type { DrawOp, TextRun } from './types'
+import type { DrawOp, LinearGradient, TextRun } from './types'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx guard against.
 const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? fontkitNs) as Parameters<
@@ -53,18 +53,23 @@ function baseRun(overrides: Partial<TextRun> = {}): TextRun {
   }
 }
 
-/** Runs paintOps against a fresh page and returns the RAW (unencoded)
- *  content-stream operator text — pdf-lib's own PDFOperator.toString(), not
- *  a saved/reparsed PDF — so assertions can look for Tr/Tj/vector-fill
- *  operators directly without a full PDF round-trip. */
-async function renderContentStream(ops: DrawOp[]): Promise<string> {
+/** Runs paintOps against a fresh page, returning the page itself (for
+ *  Resources-dict inspection) plus the RAW (unencoded) content-stream
+ *  operator text — pdf-lib's own PDFOperator.toString(), not a saved/
+ *  reparsed PDF — so assertions can look for Tr/Tj/vector-fill operators
+ *  directly without a full PDF round-trip. */
+async function renderPage(ops: DrawOp[]) {
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
   const page = doc.addPage([300, 300])
   const fonts = new PdfFontCache(doc, FONT_INDEX)
   await paintOps(page, ops, fonts, 300)
   const contentStream = (page as unknown as { getContentStream: () => { getContentsString(): string } }).getContentStream()
-  return contentStream.getContentsString()
+  return { page, stream: contentStream.getContentsString() }
+}
+
+async function renderContentStream(ops: DrawOp[]): Promise<string> {
+  return (await renderPage(ops)).stream
 }
 
 /** The x values pdf-lib actually wrote for each `Tm` (text-positioning)
@@ -241,6 +246,90 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
     const [firstX, secondX] = tmXPositions(stream)
     expect(firstX).toBeCloseTo(0, 6)
     expect(secondX).toBeCloseTo(trueEnd, 6)
+  })
+})
+
+describe('paintOps — gradient background fills (task 10c)', () => {
+  // creative's header banner/sidebar and spotlight's header banner all use
+  // `background: linear-gradient(...)`, which only sets background-IMAGE —
+  // boxOps used to only read backgroundColor (transparent for these), so
+  // the entire panel (including the name/contact text painted on top,
+  // which became invisible without it) silently failed to render at all.
+  const opaque = { r: 0.5, g: 0.1, b: 0.9, a: 1 }
+  const opaque2 = { r: 0.1, g: 0.8, b: 0.6, a: 1 }
+  const gradient: LinearGradient = { angleDeg: 120, stops: [opaque, opaque2] }
+
+  async function shadingResource(page: Awaited<ReturnType<typeof renderPage>>['page']) {
+    page.node.normalizedEntries()
+    const resources = page.node.Resources()!
+    const shadingDict = resources.lookupMaybe(PDFName.of('Shading'), PDFDict)
+    expect(shadingDict).toBeTruthy()
+    const keys = shadingDict!.keys()
+    expect(keys.length).toBe(1)
+    return shadingDict!.lookup(keys[0], PDFDict)
+  }
+
+  it('paints a true vector shading (sh), never a raster image or a solid rg fallback', async () => {
+    const { page, stream } = await renderPage([
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: gradient },
+    ])
+    expect(stream).toMatch(/\bsh\b/)
+    expect(stream).toMatch(/\bW\b/) // clip
+    expect(stream).not.toMatch(/\brg\b/) // no solid-color fallback painted
+    expect(stream).not.toMatch(/\/(Image|XObject)\d* Do\b/) // no image XObject
+
+    const shading = await shadingResource(page)
+    expect(shading.lookup(PDFName.of('ShadingType'))?.toString()).toBe('2') // axial
+    expect(shading.lookup(PDFName.of('ColorSpace'))?.toString()).toBe('/DeviceRGB')
+  })
+
+  it('registers a Type 2 (exponential) Function with the two stop colors as C0/C1', async () => {
+    const { page } = await renderPage([{ kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: gradient }])
+    const shading = await shadingResource(page)
+    const fn = shading.lookup(PDFName.of('Function'), PDFDict)
+    expect(fn.lookup(PDFName.of('FunctionType'))?.toString()).toBe('2')
+    expect(fn.lookup(PDFName.of('C0'))?.toString()).toBe(`[ ${opaque.r} ${opaque.g} ${opaque.b} ]`)
+    expect(fn.lookup(PDFName.of('C1'))?.toString()).toBe(`[ ${opaque2.r} ${opaque2.g} ${opaque2.b} ]`)
+  })
+
+  it('computes an axial gradient line spanning the box using the CSS gradient-line formula', async () => {
+    // A 0deg ("to top") gradient over a 100x50 (CSS px) box: stop 0 (C0) is
+    // at the BOTTOM (0%) and stop 1 (C1) at the TOP (100%) — "to top"
+    // describes where the gradient is headed, i.e. where the SECOND color
+    // ends up. In PDF points (x1 CSS px = 0.75pt) that's a 75x37.5pt box;
+    // length = |75*sin(0)| + |37.5*cos(0)| = 37.5, centered at (37.5,18.75)
+    // in this local (0,0)-top-left, y-DOWN space, so Coords run from the
+    // bottom center (37.5,37.5) to the top center (37.5,0).
+    const { page } = await renderPage([
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: { angleDeg: 0, stops: [opaque, opaque2] } },
+    ])
+    const shading = await shadingResource(page)
+    const coords = shading.lookup(PDFName.of('Coords'))!.toString()
+    expect(coords).toBe('[ 37.5 37.5 37.5 0 ]')
+  })
+
+  it('draws the solid fill UNDER the gradient when both are present (CSS paint order)', async () => {
+    const { stream } = await renderPage([
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fill: { r: 1, g: 1, b: 1, a: 1 }, fillGradient: gradient },
+    ])
+    const rgIdx = stream.indexOf('rg')
+    const shIdx = stream.indexOf('sh')
+    expect(rgIdx).toBeGreaterThan(-1)
+    expect(shIdx).toBeGreaterThan(rgIdx)
+  })
+
+  it('skips a translucent stop rather than painting the wrong opacity', async () => {
+    const translucent: LinearGradient = { angleDeg: 120, stops: [opaque, { ...opaque2, a: 0.5 }] }
+    const { page, stream } = await renderPage([{ kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: translucent }])
+    expect(stream).not.toMatch(/\bsh\b/)
+    page.node.normalizedEntries()
+    const resources = page.node.Resources()!
+    expect(resources.lookupMaybe(PDFName.of('Shading'), PDFDict)).toBeUndefined()
+  })
+
+  it('never throws for a gradient rect op — a bad gradient is cosmetic, not real content', async () => {
+    const ops: DrawOp[] = [{ kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: { angleDeg: NaN, stops: [opaque, opaque2] } }]
+    await expect(renderContentStream(ops)).resolves.not.toThrow()
   })
 })
 

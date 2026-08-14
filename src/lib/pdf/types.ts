@@ -33,8 +33,24 @@ export interface TextRun {
   isDecorative: boolean
 }
 
+/**
+ * A CSS `linear-gradient(<angle>deg, <color1>, <color2>)` — the only shape
+ * our own templates.css uses (creative's header banner and sidebar,
+ * spotlight's header banner; see task-10c report). `angleDeg` follows CSS's
+ * own convention (0deg = "to top", clockwise) so paint.ts can reuse the CSS
+ * spec's own gradient-line-length formula directly, and stops are plain RGBA
+ * (already resolved from any `color-mix()`/custom property by the time
+ * `getComputedStyle` reports them). Not a general N-stop/keyword-direction/
+ * radial-gradient parser — anything else falls through to no background,
+ * same as before this existed.
+ */
+export interface LinearGradient {
+  angleDeg: number
+  stops: [Rgba, Rgba]
+}
+
 export type DrawOp =
-  | { kind: 'rect'; xPx: number; yPx: number; wPx: number; hPx: number; fill?: Rgba; radiusPx?: number }
+  | { kind: 'rect'; xPx: number; yPx: number; wPx: number; hPx: number; fill?: Rgba; radiusPx?: number; fillGradient?: LinearGradient }
   | { kind: 'line'; x1Px: number; y1Px: number; x2Px: number; y2Px: number; widthPx: number; color: Rgba; dashed?: boolean }
   | { kind: 'image'; xPx: number; yPx: number; wPx: number; hPx: number; src: string; radiusPx?: number }
   | { kind: 'svg'; xPx: number; yPx: number; wPx: number; hPx: number; d: string; stroke?: Rgba; fill?: Rgba; strokeWidthPx: number; viewBox: [number, number, number, number] }

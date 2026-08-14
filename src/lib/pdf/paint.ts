@@ -8,16 +8,26 @@
  * clean, which is the whole reason this renderer exists (see GitHub issue #4).
  */
 import {
+  concatTransformationMatrix,
+  popGraphicsState,
+  pushGraphicsState,
+  PDFDict,
+  PDFName,
+  PDFNumber,
+  PDFOperator,
+  PDFOperatorNames,
   rgb,
   setTextRenderingMode,
   TextRenderingMode,
   type PDFFont,
   type PDFImage,
   type PDFPage,
+  type PDFRef,
 } from 'pdf-lib'
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, flipY } from './units'
-import type { DrawOp, TextRun } from './types'
+import type { DrawOp, LinearGradient, TextRun } from './types'
+import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
@@ -37,6 +47,143 @@ function roundedRectPath(w: number, h: number, r: number): string {
   return `M ${rr} 0 H ${w - rr} A ${rr} ${rr} 0 0 1 ${w} ${rr} V ${h - rr} ` +
          `A ${rr} ${rr} 0 0 1 ${w - rr} ${h} H ${rr} ` +
          `A ${rr} ${rr} 0 0 1 0 ${h - rr} V ${rr} A ${rr} ${rr} 0 0 1 ${rr} 0 Z`
+}
+
+/**
+ * The same rounded-rect shape as `roundedRectPath`, as raw PDF path
+ * operators (m/l/c/h) instead of an SVG path string — needed here because a
+ * gradient fill can't go through `page.drawSvgPath` (see `fillGradientRect`
+ * below for why) so there's no SVG-arc-to-bezier conversion available; each
+ * 90° corner is approximated with a single cubic bezier using the standard
+ * circle/bezier "kappa" constant (0.5522847498), the same technique
+ * `svgPathToOperators` itself uses under the hood for SVG arc commands —
+ * accurate to a small fraction of a percent, well below anything visible at
+ * PDF/print resolution. Degenerates cleanly to a plain rectangle at r=0 (the
+ * control points collapse onto the corner points).
+ */
+function roundedRectOperators(w: number, h: number, r: number): PDFOperator[] {
+  const rr = Math.min(Math.max(r, 0), w / 2, h / 2)
+  const k = rr * 0.5522847498
+  const num = (n: number) => PDFNumber.of(n)
+  const m = (x: number, y: number) => PDFOperator.of(PDFOperatorNames.MoveTo, [num(x), num(y)])
+  const l = (x: number, y: number) => PDFOperator.of(PDFOperatorNames.LineTo, [num(x), num(y)])
+  const c = (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) =>
+    PDFOperator.of(PDFOperatorNames.AppendBezierCurve, [num(x1), num(y1), num(x2), num(y2), num(x3), num(y3)])
+  return [
+    m(rr, 0),
+    l(w - rr, 0),
+    c(w - rr + k, 0, w, rr - k, w, rr), // top-right corner
+    l(w, h - rr),
+    c(w, h - rr + k, w - rr + k, h, w - rr, h), // bottom-right corner
+    l(rr, h),
+    c(rr - k, h, 0, h - rr + k, 0, h - rr), // bottom-left corner
+    l(0, rr),
+    c(0, rr - k, rr - k, 0, rr, 0), // top-left corner
+    PDFOperator.of(PDFOperatorNames.ClosePath),
+  ]
+}
+
+/**
+ * Registers a PDF Type 2 (axial) shading — a true vector gradient primitive,
+ * not a raster — for a 2-stop linear gradient, as a named resource in the
+ * page's `/Shading` resource dictionary, returning its resource name for use
+ * with the `sh` operator. `coords` are `[x0, y0, x1, y1]` in whatever space
+ * is CURRENT when `sh` later executes (subject to the active `cm`, unlike a
+ * Pattern's Matrix, which is fixed relative to the page's default space —
+ * confirmed against the PDF spec, §8.7.4.3).
+ *
+ * Scope: only fully-opaque stops. Our 3 known gradient usages (creative's
+ * header/sidebar, spotlight's header) are all opaque `color-mix()` results
+ * with no `transparent` side, so this is not a real limitation today; a
+ * translucent stop would need either per-stop alpha (shadings have none —
+ * PDF requires a separate soft-mask group) or a single blended `/ca` via an
+ * ExtGState, neither of which is needed yet. Returns null rather than
+ * approximate, so a translucent gradient falls through to no background
+ * (unchanged from before this existed) instead of silently painting the
+ * wrong opacity.
+ */
+function registerAxialShading(page: PDFPage, coords: [number, number, number, number], stops: [Rgba, Rgba]): PDFName | null {
+  if (stops[0].a < 0.999 || stops[1].a < 0.999) return null
+  const context = page.doc.context
+
+  const fn = context.register(
+    context.obj({
+      FunctionType: 2,
+      Domain: [0, 1],
+      C0: [stops[0].r, stops[0].g, stops[0].b],
+      C1: [stops[1].r, stops[1].g, stops[1].b],
+      N: 1,
+    }),
+  )
+  const shading = context.register(
+    context.obj({
+      ShadingType: 2,
+      ColorSpace: 'DeviceRGB',
+      Coords: coords,
+      Function: fn,
+      Extend: [true, true],
+    }),
+  )
+
+  // Resource-dict plumbing pdf-lib doesn't have a public helper for (it only
+  // exposes Font/XObject/ExtGState convenience methods) — same pattern those
+  // use internally: normalize() first so Resources definitely exists, then
+  // get-or-create the /Shading sub-dictionary and register under a unique key.
+  page.node.normalizedEntries()
+  const resources = page.node.Resources()!
+  let shadingDict = resources.lookupMaybe(PDFName.of('Shading'), PDFDict)
+  if (!shadingDict) {
+    shadingDict = context.obj({}) as PDFDict
+    resources.set(PDFName.of('Shading'), shadingDict)
+  }
+  const key = shadingDict.uniqueKey('Sh')
+  shadingDict.set(key, shading as PDFRef)
+  return key
+}
+
+/**
+ * Fills a (possibly rounded) rect with a true vector axial gradient, clipped
+ * to its shape, reusing the CSS spec's own gradient-line-length formula
+ * (https://drafts.csswg.org/css-images-3/#linear-gradients) so the direction
+ * and stop positions match the browser exactly rather than approximating.
+ *
+ * Can't reuse `page.drawSvgPath` (used for the plain-fill rounded-rect case)
+ * because it always sets the fill color via `rg`/`g`/`k` — there's no way to
+ * ask it for a Pattern/Shading fill instead — so this replicates just enough
+ * of its machinery by hand: the SAME `translate(x,y) + scale(1,-1)` local-
+ * to-device transform (combined into one `cm`, verified equivalent by
+ * reading pdf-lib's own `drawSvgPath` source), the SAME rounded-rect corner
+ * geometry (`roundedRectOperators`, the bezier-based twin of
+ * `roundedRectPath`), and `W n` to turn that path into a clip instead of a
+ * filled shape, then `sh` to paint the shading into the clipped region.
+ * Coordinates for the gradient line are computed in the SAME local (0,0)
+ * top-left, y-down space the path uses — no separate page-space math needed,
+ * since the single `cm` maps both consistently.
+ */
+function fillGradientRect(page: PDFPage, xPt: number, topYPt: number, wPt: number, hPt: number, radiusPt: number, gradient: LinearGradient): void {
+  const angleRad = (gradient.angleDeg * Math.PI) / 180
+  // CSS: direction = (sin A, -cos A) in a y-down space (0deg = "to top" = -y).
+  const dx = Math.sin(angleRad)
+  const dy = -Math.cos(angleRad)
+  // CSS spec formula for the gradient line's length within a W x H box.
+  const lineLen = Math.abs(wPt * dx) + Math.abs(hPt * dy)
+  const cx = wPt / 2
+  const cy = hPt / 2
+  const half = lineLen / 2
+  const coords: [number, number, number, number] = [cx - half * dx, cy - half * dy, cx + half * dx, cy + half * dy]
+
+  const shadingKey = registerAxialShading(page, coords, gradient.stops)
+  if (!shadingKey) return // translucent stop — see registerAxialShading
+
+  page.pushOperators(
+    pushGraphicsState(),
+    concatTransformationMatrix(1, 0, 0, -1, xPt, topYPt),
+    ...roundedRectOperators(wPt, hPt, radiusPt),
+    PDFOperator.of(PDFOperatorNames.ClipNonZero),
+    PDFOperator.of(PDFOperatorNames.EndPath),
+    PDFOperator.of(PDFOperatorNames.ShadingFill, [shadingKey]),
+    popGraphicsState(),
+  )
 }
 
 /** Fetches `src`, embeds its ORIGINAL bytes (no re-encode/resize), once per src. */
@@ -301,27 +448,45 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
           break
         }
         case 'rect': {
-          if (!op.fill || op.fill.a <= 0) break
-          const color = rgb(op.fill.r, op.fill.g, op.fill.b)
-          if (op.radiusPx && op.radiusPx > 0.5) {
-            // drawSvgPath's origin is the TOP-left with y increasing downward,
-            // unlike drawRectangle's bottom-left-with-height origin — flip
-            // against the box's TOP edge (yPx), not yPx + hPx.
-            page.drawSvgPath(roundedRectPath(pxToPt(op.wPx), pxToPt(op.hPx), pxToPt(op.radiusPx)), {
-              x: pxToPt(op.xPx),
-              y: flipY(pxToPt(op.yPx), pageHeightPt),
-              color,
-              opacity: op.fill.a,
-            })
-          } else {
-            page.drawRectangle({
-              x: pxToPt(op.xPx),
-              y: flipY(pxToPt(op.yPx + op.hPx), pageHeightPt),
-              width: pxToPt(op.wPx),
-              height: pxToPt(op.hPx),
-              color,
-              opacity: op.fill.a,
-            })
+          // Solid fill (background-color) paints BEFORE the gradient
+          // (background-image) — CSS paint order. walk.ts never actually
+          // emits both on the same op today (a gradient background always
+          // splits into two ops, solid pushed first when opaque), but the
+          // DrawOp type allows it, so this stays correct either way rather
+          // than relying on caller ordering.
+          if (op.fill && op.fill.a > 0) {
+            const color = rgb(op.fill.r, op.fill.g, op.fill.b)
+            if (op.radiusPx && op.radiusPx > 0.5) {
+              // drawSvgPath's origin is the TOP-left with y increasing downward,
+              // unlike drawRectangle's bottom-left-with-height origin — flip
+              // against the box's TOP edge (yPx), not yPx + hPx.
+              page.drawSvgPath(roundedRectPath(pxToPt(op.wPx), pxToPt(op.hPx), pxToPt(op.radiusPx)), {
+                x: pxToPt(op.xPx),
+                y: flipY(pxToPt(op.yPx), pageHeightPt),
+                color,
+                opacity: op.fill.a,
+              })
+            } else {
+              page.drawRectangle({
+                x: pxToPt(op.xPx),
+                y: flipY(pxToPt(op.yPx + op.hPx), pageHeightPt),
+                width: pxToPt(op.wPx),
+                height: pxToPt(op.hPx),
+                color,
+                opacity: op.fill.a,
+              })
+            }
+          }
+          if (op.fillGradient) {
+            fillGradientRect(
+              page,
+              pxToPt(op.xPx),
+              flipY(pxToPt(op.yPx), pageHeightPt),
+              pxToPt(op.wPx),
+              pxToPt(op.hPx),
+              pxToPt(op.radiusPx ?? 0),
+              op.fillGradient,
+            )
           }
           break
         }
