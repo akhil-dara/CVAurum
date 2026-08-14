@@ -22,7 +22,11 @@ export function collapseWhitespace(text: string, whiteSpace: string): string {
 const ascentCache = new Map<string, number>()
 let measureCtx: CanvasRenderingContext2D | null = null
 
-/** Distance from the top of the text box down to the alphabetic baseline. */
+/** Distance from the top of the text box down to the alphabetic baseline, per
+ *  canvas TextMetrics. Kept as `layoutMetricsFor`'s fallback source (canvas
+ *  font-bounding-box ascent is NOT the ascent Chromium's own line layout
+ *  uses — see layoutMetricsFor's doc comment) and by walk.ts's synthesized
+ *  (pseudo/marker/logo) runs, which have no real line box to probe. */
 export function ascentPx(cssFont: string): number {
   let a = ascentCache.get(cssFont)
   if (a == null) {
@@ -33,6 +37,140 @@ export function ascentPx(cssFont: string): number {
     ascentCache.set(cssFont, a)
   }
   return a
+}
+
+/** Per-font layout metrics from `layoutMetricsFor`'s DOM probe: the ascent
+ *  (top of line box -> alphabetic baseline) and the full line-box height
+ *  (ascent + descent) it was measured against, for `line-height: normal`.
+ *  `heightPx: null` means the probe was unavailable/unusable and `ascentPx`
+ *  is the canvas fallback — callers must then skip the half-leading term
+ *  entirely (there is no matching height to subtract against) rather than
+ *  mixing a canvas ascent with a real DOM height. */
+interface LayoutMetrics {
+  ascentPx: number
+  heightPx: number | null
+}
+
+const layoutMetricsCache = new Map<string, LayoutMetrics>()
+let measureDiv: HTMLDivElement | null = null
+let measureProbe: HTMLSpanElement | null = null
+
+/** Lazily builds the hidden measurement container used by `layoutMetricsFor`:
+ *  a positioned-off-screen div (own subtree, never a descendant of the
+ *  render's own off-screen container — never touched by/visible to
+ *  buildDrawList's walk) holding "Hxg" plus a zero-size `inline-block` probe
+ *  span. An `inline-block` of height 0 sits exactly ON the alphabetic
+ *  baseline, so the probe's own top edge IS the baseline. Reused across every
+ *  font measured (only its `font` shorthand changes per call) rather than
+ *  rebuilt each time. Returns null when no real DOM is available (e.g. under
+ *  vitest's node environment, or a minimal test stub) so the caller can fall
+ *  back rather than throw. */
+function getMeasureElements(): { div: HTMLDivElement; probe: HTMLSpanElement } | null {
+  if (measureDiv && measureProbe) return { div: measureDiv, probe: measureProbe }
+  if (typeof document === 'undefined' || !document.body) return null
+  const div = document.createElement('div')
+  div.style.position = 'fixed'
+  div.style.left = '-100000px'
+  div.style.top = '0'
+  div.style.margin = '0'
+  div.style.padding = '0'
+  div.style.border = '0'
+  div.style.lineHeight = 'normal'
+  div.style.whiteSpace = 'nowrap'
+  div.appendChild(document.createTextNode('Hxg'))
+  const probe = document.createElement('span')
+  probe.style.display = 'inline-block'
+  probe.style.width = '0'
+  probe.style.height = '0'
+  probe.style.overflow = 'hidden'
+  div.appendChild(probe)
+  document.body.appendChild(div)
+  measureDiv = div
+  measureProbe = probe
+  return { div, probe }
+}
+
+function layoutMetricsFallback(cssFont: string, reason: string): LayoutMetrics {
+  if (import.meta.env.DEV) {
+    console.warn(`[pdf] layout baseline probe unavailable for font "${cssFont}" (${reason}); falling back to canvas ascent`)
+  }
+  return { ascentPx: ascentPx(cssFont), heightPx: null }
+}
+
+/**
+ * True DOM-layout baseline metrics for one (family|weight|style|sizePx) font
+ * shorthand, memoized. Canvas TextMetrics' `fontBoundingBoxAscent` is NOT the
+ * ascent Chromium's own line layout uses (Windows: usWin vs typo metrics
+ * divergence) — this asks Chromium's line layout directly instead of
+ * guessing a metric source: an `inline-block` of height 0 sits exactly ON
+ * the alphabetic baseline, so
+ *   layoutAscentPx = probeRect.top - divRect.top
+ *   layoutHeightPx = divRect.height     (ascent + descent, line-height normal)
+ * Guarded: if the probe yields nonsense (ascent <= 0 or >= height) or the DOM
+ * isn't usable at all, falls back to the canvas ascent and dev-warns (see
+ * layoutMetricsFallback) — callers then skip the half-leading term.
+ */
+export function layoutMetricsFor(cssFont: string): LayoutMetrics {
+  const cached = layoutMetricsCache.get(cssFont)
+  if (cached) return cached
+  let m: LayoutMetrics
+  try {
+    const els = getMeasureElements()
+    if (!els) {
+      m = layoutMetricsFallback(cssFont, 'no DOM available')
+    } else {
+      const { div, probe } = els
+      div.style.font = cssFont
+      const divRect = div.getBoundingClientRect()
+      const probeRect = probe.getBoundingClientRect()
+      const a = probeRect.top - divRect.top
+      const h = divRect.height
+      m = a > 0 && a < h ? { ascentPx: a, heightPx: h } : layoutMetricsFallback(cssFont, `nonsense probe result (ascent=${a}, height=${h})`)
+    }
+  } catch (e) {
+    m = layoutMetricsFallback(cssFont, e instanceof Error ? e.message : String(e))
+  }
+  layoutMetricsCache.set(cssFont, m)
+  return m
+}
+
+/**
+ * The baseline y (relative to `root`'s top) for one line rect, folding in
+ * half-leading: with `line-height` > the font's own (ascent+descent) box,
+ * the font box is centered in the taller line box rather than pinned to its
+ * top, so `rect.top + ascent` alone is wrong whenever a GENUINELY generous
+ * line-height is set.
+ *   baseline = rect.top - rootTop + max(0, (rect.height - layoutHeightPx) / 2) + layoutAscentPx
+ * `layoutHeightPx: null` (the DOM-probe fallback case) skips the centering
+ * term entirely and degrades to the old `rect.top - rootTop + layoutAscentPx`
+ * formula — mixing a canvas-derived ascent with a real DOM line-box height
+ * would be worse than either alone.
+ *
+ * The centering term is CLAMPED to >= 0 rather than applied verbatim as
+ * `(rect.height - layoutHeightPx) / 2` — measured empirically (task 14,
+ * probe-baseline runs against the real off-screen print container across
+ * all 4 gate templates, see the task-14 report) `layoutHeightPx` (measured
+ * under a probe div forced to `line-height: normal`) is a reliable proxy for
+ * a font's true (ascent+descent) box for SOME families — Source Sans 3's
+ * probe height matches the real rendered line's rect.height almost exactly
+ * — but OVERSHOOTS it for others with a larger line-gap metric: Poppins
+ * Bold's probe height came back 47px vs the real single line's measured
+ * rect.height of only 44px, for a heading whose OWN authored line-height
+ * (33px) is tighter than Poppins' idea of "normal". Applied unclamped, that
+ * overshoot produces a NEGATIVE centering term even though there is no such
+ * thing as negative leading on a single line — confirmed against the live
+ * app (clarity template's name heading REGRESSED from dy=-0.66pt to
+ * dy=-1.03pt vs print ground truth with the unclamped formula, then to
+ * dy=+0.09pt — passing — once clamped, with zero change to every other
+ * measured probe line across all 4 templates). Clamping at 0 keeps the term
+ * for its actual intended case (an author-set line-height genuinely taller
+ * than the font's own normal box, where rect.height > layoutHeightPx is
+ * real) while never letting an unreliable "normal" reference pull the
+ * baseline the wrong direction.
+ */
+export function halfLeadingBaselinePx(rectTop: number, rootTop: number, rectHeight: number, metrics: LayoutMetrics): number {
+  if (metrics.heightPx == null) return rectTop - rootTop + metrics.ascentPx
+  return rectTop - rootTop + Math.max(0, (rectHeight - metrics.heightPx) / 2) + metrics.ascentPx
 }
 
 /** Rendered width of `text` in `cssFont` (a canvas font shorthand, e.g.
@@ -87,6 +225,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   }
   segments.push({ start: segStart, end: len })
 
+  const metrics = layoutMetricsFor(font)
   const runs: TextRun[] = []
   for (const seg of segments) {
     if (seg.end <= seg.start) continue
@@ -101,7 +240,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       text,
       xPx: rect.left - rootRect.left,
       widthPx: rect.right - rect.left,
-      baselinePx: rect.top - rootRect.top + ascentPx(font),
+      baselinePx: halfLeadingBaselinePx(rect.top, rootRect.top, rect.bottom - rect.top, metrics),
       sizePx: parsePx(cs.fontSize),
       family: cs.fontFamily,
       weight: parseFontWeight(cs.fontWeight),
