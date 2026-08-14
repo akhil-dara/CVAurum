@@ -530,10 +530,23 @@
   font-weight: 500;
 }
 
-/* level meters (skills/languages) */
+/* level meters (skills/languages). .rm-level-fill is a <span> — a
+   non-replaced INLINE box — sitting inside .rm-level-track, which is not a
+   flex container. Per CSS, a plain inline box silently ignores both its own
+   `height` and React's inline `style="width: X%"`: it collapses to a real,
+   measured 0x0 and never paints, so filled vs empty always looked identical
+   (a genuine bug in shipped output — screen, print, AND the native PDF
+   exporter, which walks this same DOM/CSS via getBoundingClientRect, so it
+   inherited the 0x0 box too). Fixed the standard way: take the fill out of
+   normal flow and stretch it inside the now-`position: relative` track —
+   the inline `width: X%` then sizes a real box that both the browser and the
+   PDF walker paint correctly. (A `display: inline-block` fill also gets
+   correct CSSOM dimensions, but pixel-sampling showed it still fails to
+   PAINT over the track in this rendering path — position:absolute paints
+   correctly, verified the same way.) */
 .rm-level { display: flex; align-items: center; gap: 8px; }
-.rm-level-track { flex: 1; height: 4px; border-radius: 9999px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; }
-.rm-level-fill { height: 100%; background: var(--rm-primary); border-radius: inherit; }
+.rm-level-track { flex: 1; height: 4px; border-radius: 9999px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; position: relative; }
+.rm-level-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--rm-primary); border-radius: inherit; }
 .rm-dots { display: inline-flex; gap: 3px; }
 .rm-dot { width: 7px; height: 7px; border-radius: 9999px; background: color-mix(in srgb, currentColor 22%, transparent); }
 .rm-dot.on { background: var(--rm-primary); }
@@ -544,27 +557,6 @@
 .rm-col-aside .rm-dot.on,
 .rm-col-aside .rm-level-fill { background: currentColor; }
 .rm-col-aside .rm-star.on { color: currentColor; }
-
-/* Edit-canvas-only fix: .rm-level-fill is a <span> (inline) and .rm-level-track
-   is not a flex container, so per CSS the fill's inline `width:%` style and its
-   own `height:100%` are silently ignored on a non-replaced inline box — it
-   collapses to 0x0, so filled vs empty bars look identical (both just the faint
-   track). Absolutely positioning the fill inside the (now relative) track is
-   the standard progress-bar-fill technique — it keeps the JS-set inline
-   `width:%` in charge and sidesteps inline/inline-block layout edge cases.
-   Scoped to .mode-preview ONLY: the shared, unscoped rules above (used by
-   print/export too) are left exactly as they were — fixing this for real
-   requires touching print-affecting CSS, which is out of bounds here; see the
-   task report for a follow-up flag. */
-.mode-preview .rm-level-track {
-  position: relative;
-}
-.mode-preview .rm-level-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-}
 
 /* two-line entries used by aside lists */
 .rm-mini { margin-bottom: var(--rm-item-gap); position: relative; }
