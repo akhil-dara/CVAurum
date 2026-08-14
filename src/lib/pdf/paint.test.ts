@@ -7,7 +7,7 @@ import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { paintOps, glyphPathToDrawPath, roundedRectPath, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
-import { pxToPt } from './units'
+import { pxToPt, ptToPx } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx guard against.
@@ -114,6 +114,23 @@ async function trueWidthPt(text: string, sizePx: number): Promise<number> {
   return font.widthOfTextAtSize(text, pxToPt(sizePx))
 }
 
+/** Independently computes the SAME visible-tracked-width accumulation
+ *  `paintGlyphOutlines` uses (glyph advance*scale + one letterSpacingPt
+ *  increment per glyph, including the last) directly against the real
+ *  embedded .ttf via fontkit — used by the task-16 tests below to assert an
+ *  EXACT expected Tz value against the real font metric, not a re-read of
+ *  paint.ts's own output (which would be tautological). */
+function trackedVisibleWidthPt(text: string, sizePx: number, letterSpacingPx: number): number {
+  const bytes = new Uint8Array(fs.readFileSync(path.join(FONT_DIR, FONT_FILE)))
+  const font = fontkit.create(bytes)
+  const glyphRun = font.layout(text)
+  const scale = pxToPt(sizePx) / font.unitsPerEm
+  const letterSpacingPt = pxToPt(letterSpacingPx)
+  let cursor = 0
+  for (const pos of glyphRun.positions) cursor += pos.xAdvance * scale + letterSpacingPt
+  return cursor
+}
+
 describe('paintOps — tracked (letter-spaced) headings draw two layers', () => {
   // /ActualText was tried first (per the task-10b brief) and rejected with
   // evidence — pdf.js's getTextContent() never reads it (see paint.ts's
@@ -153,6 +170,107 @@ describe('paintOps — tracked (letter-spaced) headings draw two layers', () => 
   it('propagates a font-embed failure for a tracked heading (real content, hard-fail)', async () => {
     const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5, family: 'Nonexistent Font' }) }]
     await expect(renderContentStream(ops)).rejects.toThrow()
+  })
+})
+
+describe('paintOps — tracked-heading selection geometry via Tz (task 16)', () => {
+  // Selecting text in the exported PDF used to highlight only ~60-70% of
+  // every letter-spaced heading, because a viewer builds a text item's
+  // selection box from its ADVERTISED ADVANCE, and the invisible extractable
+  // layer (deliberately drawn UNTRACKED — see the describe block above) is
+  // narrower than the visible tracked outlines actually painted over it. The
+  // fix stretches the invisible layer's advance via `Tz` (not `Tc`, which
+  // would reintroduce the tracked-split extraction bug) to match the visible
+  // tracked width.
+  const sizePx = 12
+
+  it('emits a Tz pair (set to 100*visible/untracked, reset to 100) around the single invisible drawText', async () => {
+    const text = 'SUMMARY'
+    const letterSpacingPx = 1.5
+    const untrackedWidthPt = await trueWidthPt(text, sizePx)
+    const visibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
+    const expectedTz = (100 * visibleWidthPt) / untrackedWidthPt
+    expect(expectedTz).toBeGreaterThan(100) // sanity: tracking really does widen the run
+
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text, letterSpacingPx }) }])
+    const tz = tzValues(stream)
+    expect(tz.length).toBe(2) // set once, reset once — no Tz left active for later ops
+    expect(tz[0]).toBeCloseTo(expectedTz, 3)
+    expect(tz[1]).toBe(100)
+  })
+
+  it('the Tz set/reset wraps the SAME (still single) invisible drawText call, in order: Tz set -> Tr 3 -> Tj -> Tr 0 -> Tz reset', async () => {
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) }])
+    expect(stream.match(/\bTj\b/g)?.length).toBe(1) // still exactly ONE drawText for the invisible layer
+    const tzSetIdx = stream.indexOf('Tz')
+    const tr3Idx = stream.indexOf('3 Tr')
+    const tjIdx = stream.indexOf('Tj')
+    const tr0Idx = stream.indexOf('0 Tr')
+    const tzResetIdx = stream.lastIndexOf('Tz')
+    expect(tzSetIdx).toBeLessThan(tr3Idx)
+    expect(tr3Idx).toBeLessThan(tjIdx)
+    expect(tjIdx).toBeLessThan(tr0Idx)
+    expect(tr0Idx).toBeLessThanOrEqual(tzResetIdx)
+  })
+
+  it('clamps an absurd letterSpacing implying a >400% ratio down to 400', async () => {
+    // One glyph with a huge letterSpacingPx (paintGlyphOutlines still adds
+    // one letterSpacingPt increment even for a single glyph) pushes the raw
+    // ratio far past 400 — the clamp must cap it, not apply it verbatim.
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'S', letterSpacingPx: 500 }) }])
+    const tz = tzValues(stream)
+    expect(tz[0]).toBe(400)
+    expect(tz[1]).toBe(100)
+  })
+
+  it('clamps a raw ratio just under 100 (real font-metric noise at a tiny letterSpacing) up to exactly 100 — never emits a sub-100 Tz', async () => {
+    // fontkit's own glyph-advance sum (what paintGlyphOutlines/this test's
+    // trackedVisibleWidthPt helper both compute) is not bit-identical to
+    // pdf-lib's widthOfTextAtSize for the same text/font/size — a small,
+    // real mismatch unrelated to letter-spacing. At a tiny letterSpacingPx
+    // that gap isn't yet covered by the added tracking, so the RAW ratio
+    // actually lands just BELOW 100 here — exactly the case the clamp's
+    // lower bound exists for. Confirmed independently before asserting the
+    // clamped behavior, so this isn't just re-reading paint.ts's own output.
+    const text = 'SUMMARY'
+    const letterSpacingPx = 0.01
+    const untrackedWidthPt = await trueWidthPt(text, sizePx)
+    const rawVisibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
+    const rawRatio = (100 * rawVisibleWidthPt) / untrackedWidthPt
+    expect(rawRatio).toBeLessThan(100)
+
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text, letterSpacingPx }) }])
+    const tz = tzValues(stream)
+    // Clamped to exactly 100 -> the `tzPct !== 100` guard correctly emits NO
+    // Tz at all (same as the unscaled case), rather than a sub-100 value
+    // that would shrink the invisible layer's advance below what the
+    // visible tracked outlines need it to cover.
+    expect(tz.length).toBe(0)
+  })
+
+  it('a run placed at the OLD (pre-fix, untracked) end now overlaps and gets pushed to the TRUE tracked end', async () => {
+    // Direct proof that prevRealEnd bookkeeping now advances by the VISIBLE
+    // (Tz-stretched) width, not the untracked metric: a small enough
+    // letterSpacingPx keeps the induced overlap within the same-line snap's
+    // drift allowance, so the second run must land exactly at the tracked
+    // end, not at the untracked one it was positioned against.
+    const text = 'Languages'
+    const letterSpacingPx = 0.1
+    const untrackedWidthPt = await trueWidthPt(text, sizePx)
+    const visibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
+    expect(visibleWidthPt).toBeGreaterThan(untrackedWidthPt) // sanity
+
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, letterSpacingPx }) },
+      { kind: 'text', run: baseRun({ text: 'X', xPx: ptToPx(untrackedWidthPt), baselinePx: 20, sizePx }) },
+    ])
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(visibleWidthPt, 3)
+  })
+
+  it('normal (non-tracked) runs are unaffected: still no Tz at all when widthPx is unset (task 12 behavior preserved)', async () => {
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'Senior Software Engineer', letterSpacingPx: 0 }) }])
+    expect(tzValues(stream).length).toBe(0)
   })
 })
 
@@ -252,6 +370,11 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
   })
 
   it('applies the same exact-metric snap to a tracked heading invisible extractable layer', async () => {
+    // task 16: the tracked branch's invisible layer is now Tz-stretched to
+    // the VISIBLE (tracked) width, so the snap target is that stretched end,
+    // not the plain untracked metric `trueWidthPt` gives — read the actual
+    // Tz this run drew (self-consistent with paintTrackedHeading's own
+    // computation, not re-derived) to get the expected end.
     const trueEnd = await trueWidthPt('Languages', sizePx)
     const spaceWidth = await trueWidthPt(' ', sizePx)
     const smallGapXPx = (trueEnd + spaceWidth * 0.5) / (72 / 96)
@@ -260,8 +383,10 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
       { kind: 'text', run: baseRun({ text: ': ', xPx: smallGapXPx, baselinePx: 20, sizePx, letterSpacingPx: 0.1 }) },
     ])
     const [firstX, secondX] = tmXPositions(stream)
+    const [firstTz] = tzValues(stream)
+    const trueEndTracked = trueEnd * (firstTz / 100)
     expect(firstX).toBeCloseTo(0, 6)
-    expect(secondX).toBeCloseTo(trueEnd, 6)
+    expect(secondX).toBeCloseTo(trueEndTracked, 6)
   })
 
   it('rejects a large negative gap and keeps the second run position', async () => {

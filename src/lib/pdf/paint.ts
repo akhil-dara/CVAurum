@@ -402,9 +402,73 @@ export function glyphPathToDrawPath(path: FontkitPath, scale: number): string {
  * both this call's invisible layer and its visible vector layer (via
  * `paintGlyphOutlines`) use the exact same x as every other real-content run
  * on the page.
+ *
+ * Selection geometry (task 16): a viewer builds a text item's SELECTION BOX
+ * from its advertised advance width, not from any glyph actually painted —
+ * so the invisible layer (drawn UNTRACKED, `Tc` stays 0, on purpose, per the
+ * heuristic above) advertises a narrower advance than the visible tracked
+ * outlines actually span, and the selection highlight stops short of every
+ * tracked heading's last couple of letters. The fix stretches the INVISIBLE
+ * layer horizontally with `Tz` (text horizontal scaling) so its advance
+ * equals the VISIBLE tracked width, while its glyph SPACING stays untracked
+ * (`Tz` scales a glyph's advance and its rendered width together, uniformly
+ * — unlike `Tc`, it never inserts an artificial gap BETWEEN glyphs, so
+ * pdf.js's gap-based tracked-split heuristic still never fires; Task 12
+ * already ships `Tz` on every normal run with exact 70/70 extraction, so
+ * this is the same mechanism, just applied on the tracked path too).
+ *
+ * The visible width is measured by actually calling `paintGlyphOutlines`
+ * (this function's own Layer 2, drawn FIRST here so its return value is
+ * available before Layer 1 needs it — text rendering mode 3 means Layer 1
+ * paints nothing either way, so swapping draw order has no visual or
+ * extraction-order effect) rather than re-deriving a second copy of its
+ * glyph-advance-plus-letter-spacing accumulation: reusing the actual drawn
+ * value guarantees the invisible layer's stretched advance can never drift
+ * from the real ink, even by the small embedded-font-vs-Chromium metric
+ * differences Task 12 documents elsewhere. `run.widthPx` (the DOM
+ * client-rect width) was the other option the task brief raised, but it was
+ * NOT used: Chromium's own trailing-letter-spacing behavior at the end of a
+ * run is not guaranteed to match `paintGlyphOutlines`' own accumulation
+ * (which adds one letter-spacing increment per glyph, including the last),
+ * so it risks a small but real mismatch between the advertised (DOM-based)
+ * and actual (vector-outline) advances — reusing the outline painter's own
+ * number instead makes the two layers self-consistent by construction.
+ *
+ * Returns the `Tz` percentage actually used (100 when unscaled), clamped to
+ * [100, 400] — a tracked heading's visible width is never SHORTER than its
+ * untracked one, and 400 is far beyond any real letter-spacing. `paintOps`
+ * folds this back into its own shared `tzPct`-based `prevRealEnd` bookkeeping
+ * (the same formula the non-tracked branch uses), so the next run's same-line
+ * snap targets the TRUE (tracked) drawn end, not the untracked one.
  */
-async function paintTrackedHeading(page: PDFPage, run: TextRun, font: PDFFont, fonts: PdfFontCache, pageHeightPt: number, xPt: number): Promise<void> {
-  // Layer 1: invisible, untracked, extractable.
+async function paintTrackedHeading(
+  page: PDFPage,
+  run: TextRun,
+  font: PDFFont,
+  fonts: PdfFontCache,
+  pageHeightPt: number,
+  xPt: number,
+  untrackedWidthPt: number,
+): Promise<number> {
+  // Layer 2: visible, tracked, vector — not part of the text layer at all.
+  // Drawn first so its real drawn advance is known before Layer 1 needs it.
+  const visibleWidthPx = await paintGlyphOutlines(page, run, fonts, pageHeightPt, xPt)
+  const visibleWidthPt = pxToPt(visibleWidthPx)
+
+  let tzPct = 100
+  if (untrackedWidthPt > 0) {
+    tzPct = Math.min(400, Math.max(100, (100 * visibleWidthPt) / untrackedWidthPt))
+  }
+
+  // Layer 1: invisible, untracked (Tc stays 0), extractable — stretched via
+  // Tz (set immediately before, reset in a finally) so its advertised
+  // advance matches the visible tracked width above. Exactly the Task 12
+  // Tz set/reset discipline; this path and the non-tracked path never run
+  // for the same op (letterSpacingPx selects one or the other in paintOps),
+  // so there is no Tz state to fight over between them.
+  if (tzPct !== 100) {
+    page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(tzPct)]))
+  }
   page.pushOperators(setTextRenderingMode(TextRenderingMode.Invisible))
   try {
     page.drawText(run.text, {
@@ -416,13 +480,16 @@ async function paintTrackedHeading(page: PDFPage, run: TextRun, font: PDFFont, f
       opacity: run.color.a,
     })
   } finally {
-    // Always restore normal (filled) rendering mode, even if drawText threw
-    // — otherwise every op after this one would silently paint nothing.
+    // Always restore normal (filled) rendering mode and 100% horizontal
+    // scaling, even if drawText threw — otherwise every op after this one
+    // would silently paint nothing, or every run after it would stay scaled.
     page.pushOperators(setTextRenderingMode(TextRenderingMode.Fill))
+    if (tzPct !== 100) {
+      page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(100)]))
+    }
   }
 
-  // Layer 2: visible, tracked, vector — not part of the text layer at all.
-  await paintGlyphOutlines(page, run, fonts, pageHeightPt, xPt)
+  return tzPct
 }
 
 /**
@@ -534,16 +601,23 @@ export async function paintOps(
         }
       }
 
-      // The tracked path's extractable layer is drawn UNTRACKED (Tc 0, see
-      // paintTrackedHeading), so widthOfTextAtSize — which never applies
-      // letter-spacing — is exactly right for both branches below.
+      // widthOfTextAtSize never applies letter-spacing, so this is the
+      // UNTRACKED width either way — exactly what the non-tracked branch's
+      // Tz ratio needs, AND exactly the "untracked width" the tracked
+      // branch's OWN Tz ratio needs (see paintTrackedHeading's doc comment)
+      // as the denominator against the visible tracked width.
       const embeddedWidthPt = font.widthOfTextAtSize(run.text, sizePt)
       let tzPct = 100
 
       if (run.letterSpacingPx !== 0) {
-        // Tracked headings are UNTOUCHED by Tz scaling — tzPct stays 100, so
-        // the shared endXPt formula below reduces to the pre-task-12 value.
-        await paintTrackedHeading(page, run, font, fonts, pageHeightPt, xPt)
+        // Tracked headings (task 16): paintTrackedHeading stretches its OWN
+        // invisible extractable layer via Tz so its selection geometry
+        // matches the visible tracked width, and returns the ratio it used
+        // — folded into the SAME tzPct the non-tracked branch below sets, so
+        // the shared endXPt formula just past this if/else advances by the
+        // true (tracked) drawn width instead of the untracked one, with no
+        // separate bookkeeping path needed.
+        tzPct = await paintTrackedHeading(page, run, font, fonts, pageHeightPt, xPt, embeddedWidthPt)
       } else {
         // Exact-DOM-width scaling (task 12): our embedded static fonts
         // measure runs slightly (Inter, ~0.5%) to noticeably (Montserrat,
@@ -581,12 +655,13 @@ export async function paintOps(
         }
       }
 
-      // When scaling is active the run's TRUE drawn width IS the DOM width,
-      // so bookkeeping must advance by that scaled width, not the embedded
-      // metric, or the next run's same-line snap would target the wrong
-      // (embedded-font) endpoint. tzPct stays 100 for the tracked branch and
-      // whenever scaling didn't apply, so this reduces to the old
-      // `xPt + embeddedWidthPt` there.
+      // When scaling is active the run's TRUE drawn width is the SCALED one
+      // (DOM width for the non-tracked branch, visible tracked-outline width
+      // for the tracked branch — task 16), so bookkeeping must advance by
+      // that, not the embedded (untracked) metric, or the next run's
+      // same-line snap would target the wrong endpoint. tzPct stays 100
+      // whenever neither branch's scaling applied, so this reduces to the
+      // old `xPt + embeddedWidthPt` there.
       const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
       prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + embeddedWidthPt * (tzPct / 100), chainStartXPt: nextChainStartXPt }
       continue
