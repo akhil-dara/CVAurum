@@ -26,8 +26,8 @@ import {
   type PDFRef,
 } from 'pdf-lib'
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
-import { pxToPt, flipY } from './units'
-import type { DrawOp, LinearGradient, TextRun } from './types'
+import { pxToPt, ptToPx, flipY } from './units'
+import type { DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
 
@@ -244,8 +244,16 @@ async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise
  * calls. `paintTrackedHeading` passes the SAME (possibly same-line-adjusted)
  * x its invisible extractable layer used, so both layers stay aligned — see
  * `paintOps`'s adjacency handling.
+ *
+ * Returns the run's total drawn advance width in CSS px (the same `cursor`
+ * accumulation already needed to position every glyph, just handed back
+ * instead of discarded) — task 15's decorative-box capture hook in `paintOps`
+ * uses this as the "measured advance width" for a decorative run's bounding
+ * box, so callers that don't care (the tracked-heading real-content path)
+ * simply ignore the return value; computing it is free either way, since the
+ * loop below runs regardless of who's listening.
  */
-async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number, xPt: number = pxToPt(run.xPx)): Promise<void> {
+async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number, xPt: number = pxToPt(run.xPx)): Promise<number> {
   const font = await fonts.embedGlyphOutlines(run.family, run.weight)
   const glyphRun = font.layout(run.text)
   const scale = pxToPt(run.sizePx) / font.unitsPerEm
@@ -269,6 +277,7 @@ async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCac
     }
     cursor += pos.xAdvance * scale + letterSpacingPt
   }
+  return ptToPx(cursor)
 }
 
 const round3 = (n: number): number => Math.round(n * 1000) / 1000
@@ -376,8 +385,25 @@ async function paintTrackedHeading(page: PDFPage, run: TextRun, font: PDFFont, f
  * DECORATIVE text (see `isDecorative`) is tolerant like every other cosmetic
  * op: losing a logo's monogram letter is not the same class of failure as
  * losing résumé content.
+ *
+ * `captureDecoBoxes` (task 15) is the dev-only gate-instrumentation hook:
+ * when the CALLER passes an array (render.tsx does so only behind
+ * `window.__cvaCaptureRenderBoxes === true`), every DECORATIVE glyph-outline
+ * run painted below (the `case 'text':` branch a few lines down — reached
+ * ONLY for `isDecorative` runs, real content never takes this path) pushes
+ * its approximate on-page box onto it. `paintOps` itself never touches
+ * `window` — that stays render.tsx's job — so this module has no globals and
+ * no environment assumptions, same as every other function here, and is
+ * exercised directly in tests by just passing an array. `undefined` (the
+ * default) costs a single `if` check per decorative run and nothing else.
  */
-export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
+export async function paintOps(
+  page: PDFPage,
+  ops: DrawOp[],
+  fonts: PdfFontCache,
+  pageHeightPt: number,
+  captureDecoBoxes?: DecoBox[],
+): Promise<void> {
   const images = new Map<string, Promise<PDFImage | null>>()
   // Same-line adjacency for REAL (non-decorative) text runs: when one DOM
   // text node ends and the next begins on the same line (e.g. plain text
@@ -521,7 +547,20 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
         case 'text': {
           // Reached only for isDecorative runs (real content is handled,
           // and `continue`s past this switch, above).
-          await paintGlyphOutlines(page, op.run, fonts, pageHeightPt)
+          const drawnWidthPx = await paintGlyphOutlines(page, op.run, fonts, pageHeightPt)
+          if (captureDecoBoxes) {
+            // Approximate box, per the task-15 brief: x/baseline/size are
+            // already exact (the same values the paint above used); the
+            // consumer (a gate harness excluding these from its structural-
+            // diff detector) pads before comparing, so an exact glyph-ink
+            // bound isn't needed here.
+            captureDecoBoxes.push({
+              xPx: op.run.xPx,
+              yPx: op.run.baselinePx - op.run.sizePx,
+              wPx: drawnWidthPx,
+              hPx: op.run.sizePx * 1.2,
+            })
+          }
           break
         }
         case 'rect': {

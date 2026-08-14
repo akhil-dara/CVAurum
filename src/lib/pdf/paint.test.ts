@@ -8,7 +8,7 @@ import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { paintOps, glyphPathToDrawPath, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt } from './units'
-import type { DrawOp, LinearGradient, TextRun } from './types'
+import type { DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx guard against.
 const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? fontkitNs) as Parameters<
@@ -59,12 +59,12 @@ function baseRun(overrides: Partial<TextRun> = {}): TextRun {
  *  operator text — pdf-lib's own PDFOperator.toString(), not a saved/
  *  reparsed PDF — so assertions can look for Tr/Tj/vector-fill operators
  *  directly without a full PDF round-trip. */
-async function renderPage(ops: DrawOp[]) {
+async function renderPage(ops: DrawOp[], captureDecoBoxes?: DecoBox[]) {
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
   const page = doc.addPage([300, 300])
   const fonts = new PdfFontCache(doc, FONT_INDEX)
-  await paintOps(page, ops, fonts, 300)
+  await paintOps(page, ops, fonts, 300, captureDecoBoxes)
   const contentStream = (page as unknown as { getContentStream: () => { getContentsString(): string } }).getContentStream()
   return { page, stream: contentStream.getContentsString() }
 }
@@ -580,5 +580,62 @@ describe('glyphPathToDrawPath', () => {
     const font = fontkit.create(bytes)
     const glyph = font.layout(' ').glyphs[0]
     expect(glyphPathToDrawPath(glyph.path, 0.01)).toBe('')
+  })
+})
+
+describe('paintOps — decorative-box capture hook (task 15, gate instrumentation)', () => {
+  // render.tsx only allocates and passes this array when
+  // window.__cvaCaptureRenderBoxes === true (see its own doc comment) — from
+  // paintOps's side, the array's mere presence/absence IS the flag, so these
+  // tests exercise that directly rather than through window, keeping this
+  // module's tests free of any DOM/global assumptions (paintOps itself never
+  // touches `window`).
+  it('flag off (no array passed): captures nothing, behaves exactly as before', async () => {
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'V', isDecorative: true }) }])
+    // No captureDecoBoxes argument at all — same call shape every other
+    // paintOps test in this file already uses. Just confirms it still paints
+    // the decorative glyph normally (no behavior change).
+    expect(stream).toMatch(/\bf\b/)
+  })
+
+  it('flag on (array passed): populates one box per decorative glyph-outline run painted', async () => {
+    const boxes: DecoBox[] = []
+    await renderPage(
+      [
+        { kind: 'text', run: baseRun({ text: 'V', isDecorative: true, xPx: 40, baselinePx: 60, sizePx: 14 }) },
+        { kind: 'text', run: baseRun({ text: 'UC', isDecorative: true, xPx: 100, baselinePx: 60, sizePx: 10 }) },
+      ],
+      boxes,
+    )
+    expect(boxes.length).toBe(2)
+    // x/baseline-size/size*1.2 come straight off the run, per the brief's
+    // approximate-box formula — exact, not estimated.
+    expect(boxes[0]).toEqual({ xPx: 40, yPx: 60 - 14, wPx: expect.any(Number), hPx: 14 * 1.2 })
+    expect(boxes[1]).toEqual({ xPx: 100, yPx: 60 - 10, wPx: expect.any(Number), hPx: 10 * 1.2 })
+    // wPx is a real measured advance (font-derived), not zero/guessed.
+    expect(boxes[0].wPx).toBeGreaterThan(0)
+    expect(boxes[1].wPx).toBeGreaterThan(0)
+    // "UC" (2 letters) should measure wider than "V" (1 letter) at a SMALLER
+    // font size — confirms wPx tracks the real glyph run, not just sizePx.
+    expect(boxes[1].wPx).toBeGreaterThan(boxes[0].wPx)
+  })
+
+  it('never captures REAL (non-decorative) text, even a tracked heading\'s visible vector layer', async () => {
+    const boxes: DecoBox[] = []
+    await renderPage(
+      [
+        { kind: 'text', run: baseRun({ text: 'Senior Software Engineer', isDecorative: false }) },
+        { kind: 'text', run: baseRun({ text: 'SUMMARY', isDecorative: false, letterSpacingPx: 1.5 }) }, // tracked: draws vector outlines too, but is real content
+      ],
+      boxes,
+    )
+    expect(boxes).toEqual([])
+  })
+
+  it('never changes the painted content stream — same ops paint identically whether or not the array is passed', async () => {
+    const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'NYU', isDecorative: true }) }]
+    const withoutCapture = await renderContentStream(ops)
+    const { stream: withCapture } = await renderPage(ops, [])
+    expect(withCapture).toBe(withoutCapture)
   })
 })

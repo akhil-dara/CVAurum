@@ -18,6 +18,20 @@ import { pxToPt } from './units'
 import { buildDrawList } from './walk'
 import { loadPdfFontIndex, PdfFontCache } from './fonts'
 import { paintOps } from './paint'
+import type { DecoBox } from './types'
+
+// Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
+// = true` BEFORE calling `renderResumePdf`, and reads `window.__cvaLastDecoBoxes`
+// after it resolves. See paint.ts's `paintOps` doc comment for what gets
+// captured and why. Declared here (not globally) since this is the only
+// module that touches these — everything else in src/lib/pdf stays free of
+// `window` globals and environment assumptions, so it's directly unit-testable.
+declare global {
+  interface Window {
+    __cvaCaptureRenderBoxes?: boolean
+    __cvaLastDecoBoxes?: DecoBox[]
+  }
+}
 
 /** Thrown when the mounted sheet is still taller than one page after auto-fit.
  * Multi-page pagination is a separate task — the caller should fall back to
@@ -89,7 +103,13 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     const sheet = container.firstElementChild as HTMLElement
     const ops = buildDrawList(sheet)
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
-    await paintOps(page, ops, fonts, pxToPt(pageHpx))
+    // Dev-only gate-instrumentation hook (task 15) — see the `declare global`
+    // block above. Single if-check: zero cost for every real (non-harness)
+    // caller, which never sets the flag.
+    const capturing = import.meta.env.DEV && window.__cvaCaptureRenderBoxes === true
+    const decoBoxes: DecoBox[] | undefined = capturing ? [] : undefined
+    await paintOps(page, ops, fonts, pxToPt(pageHpx), decoBoxes)
+    if (capturing) window.__cvaLastDecoBoxes = decoBoxes
 
     return await pdfDoc.save()
   } finally {

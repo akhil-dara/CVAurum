@@ -57,6 +57,25 @@ export interface LinearGradient {
   stops: [Rgba, Rgba]
 }
 
+/**
+ * A decorative glyph-outline run's approximate on-page bounding box, in CSS
+ * px relative to the page — task 15's gate-instrumentation hook (see
+ * render.tsx's `renderResumePdf` and paint.ts's `paintOps`). The gate's
+ * structural-diff detector excludes blobs that overlap a pdf.js text-item
+ * box, but DECORATIVE marks (entry-logo monograms, marker glyphs) are vector
+ * outlines with no pdf.js text item at all, so they flag as false-positive
+ * structural blobs; exposing their boxes lets a harness fold them into the
+ * same exclusion set. `wPx` is the font's own measured advance width for the
+ * run (not a guess), `hPx` is `sizePx * 1.2` — an approximation the consumer
+ * is expected to pad, not an exact glyph-ink bound.
+ */
+export interface DecoBox {
+  xPx: number
+  yPx: number
+  wPx: number
+  hPx: number
+}
+
 export type DrawOp =
   | { kind: 'rect'; xPx: number; yPx: number; wPx: number; hPx: number; fill?: Rgba; radiusPx?: number; fillGradient?: LinearGradient }
   | { kind: 'line'; x1Px: number; y1Px: number; x2Px: number; y2Px: number; widthPx: number; color: Rgba; dashed?: boolean }

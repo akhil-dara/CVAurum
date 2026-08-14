@@ -11,5 +11,8 @@ export const PT_PER_PX = 72 / 96
 
 export const pxToPt = (px: number): number => px * PT_PER_PX
 
+/** Inverse of `pxToPt` — PDF points back to CSS px. */
+export const ptToPx = (pt: number): number => pt / PT_PER_PX
+
 /** DOM y grows downward, PDF y grows upward. */
 export const flipY = (yDomPt: number, pageHeightPt: number): number => pageHeightPt - yDomPt
