@@ -14,6 +14,10 @@ import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000
+// Settling grace before the backup-staleness notice can fire — same window the
+// old per-session toast nudge used, so a user importing/creating resumes in one
+// sitting (or a brand-new library) isn't nagged immediately.
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000
 const DURABILITY_DISMISS_KEY = 'cvaurum:durability-notice-dismissed'
 const BACKUP_DISMISS_KEY = 'cvaurum:backup-notice-dismissed'
 
@@ -33,7 +37,40 @@ function writeTimestamp(key: string) {
   }
 }
 
-type StorageNoticeKind = 'durability' | 'backup'
+export type StorageNoticeKind = 'durability' | 'backup'
+
+export interface StorageNoticeInput {
+  durability: DurabilityStatus
+  library: { createdAt: number }[]
+  lastBackup: number
+  dismissedAt: { durability: number; backup: number }
+  now: number
+}
+
+/**
+ * Pure decision for which (if any) storage notice to show — no React, no DOM, so
+ * it's directly unit-testable. Durability-denied (real risk of silent data loss)
+ * always wins over backup staleness (one notice at a time). Backup staleness
+ * restores the coverage the old per-session toast nudge had: ANY library with
+ * >= 1 resume, once the OLDEST one has settled in for two days (skips brand-new
+ * users/imports so they aren't nagged immediately), with no backup on record or
+ * one older than 14 days.
+ */
+export function computeStorageNotice({
+  durability,
+  library,
+  lastBackup,
+  dismissedAt,
+  now,
+}: StorageNoticeInput): StorageNoticeKind | null {
+  if (durability === 'denied' && now - dismissedAt.durability > FOURTEEN_DAYS_MS) return 'durability'
+  if (!library.length) return null
+  const oldest = Math.min(...library.map((r) => r.createdAt || now))
+  const settledIn = now - oldest > TWO_DAYS_MS
+  const backupStale = !lastBackup || now - lastBackup > FOURTEEN_DAYS_MS
+  if (settledIn && backupStale && now - dismissedAt.backup > FOURTEEN_DAYS_MS) return 'backup'
+  return null
+}
 
 /** Dismissible inline notice — same visual language as the canvas's BlankCanvasTip hint. */
 function StorageNotice({
@@ -114,14 +151,8 @@ export function Dashboard() {
     backup: readTimestamp(BACKUP_DISMISS_KEY),
   }))
   const now = Date.now()
-  const durabilityDenied = durability === 'denied' && now - dismissedAt.durability > FOURTEEN_DAYS_MS
   const lastBackup = readTimestamp('cvaurum:last-backup')
-  const backupStale =
-    library.length >= 3 &&
-    (!lastBackup || now - lastBackup > FOURTEEN_DAYS_MS) &&
-    now - dismissedAt.backup > FOURTEEN_DAYS_MS
-  // Only one notice at a time — durability (real risk of silent data loss) wins.
-  const notice: StorageNoticeKind | null = durabilityDenied ? 'durability' : backupStale ? 'backup' : null
+  const notice = computeStorageNotice({ durability, library, lastBackup, dismissedAt, now })
   const dismissNotice = () => {
     if (!notice) return
     const key = notice === 'durability' ? DURABILITY_DISMISS_KEY : BACKUP_DISMISS_KEY
