@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity, BORDER_EDGES } from './walk'
+import { describe, it, expect, afterEach } from 'vitest'
+import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity, BORDER_EDGES, buildDrawList } from './walk'
+import type { DrawOp } from './types'
 
 describe('pseudoContentText', () => {
   it('unwraps a quoted content string', () => {
@@ -113,7 +114,7 @@ describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
 
 describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
   const host = { xPx: 49, yPx: 127, wPx: 695, hPx: 16 }
-  const cs = (over: Partial<Record<string, string>>): CSSStyleDeclaration => {
+  const cs = (over: Record<string, string>): CSSStyleDeclaration => {
     const base: Record<string, string> = {
       position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
     }
@@ -225,5 +226,143 @@ describe('elementOpacity (task 13 — opacity multiplication)', () => {
   })
   it('reads a full 1 unchanged', () => {
     expect(elementOpacity(cs('1'))).toBe(1)
+  })
+})
+
+describe('buildDrawList — root paints its own box first (task 15, defect 1)', () => {
+  // This suite runs under vitest's plain 'node' environment (see
+  // vitest.config.ts — no jsdom/happy-dom), so buildDrawList's DOM entry
+  // points (document.createTreeWalker, getComputedStyle, Node, NodeFilter,
+  // HTMLImageElement) are stubbed with the minimum fakes needed to drive a
+  // tiny two-element tree (root + one child), following the same
+  // stub-just-the-DOM-entry-points pattern text.test.ts and paint.test.ts use
+  // rather than pulling in a real DOM implementation for one test.
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const g = globalThis as unknown as { Node?: unknown; NodeFilter?: unknown; HTMLImageElement?: unknown }
+  const originalNode = g.Node
+  const originalNodeFilter = g.NodeFilter
+  const originalHTMLImageElement = g.HTMLImageElement
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    g.Node = originalNode
+    g.NodeFilter = originalNodeFilter
+    g.HTMLImageElement = originalHTMLImageElement
+  })
+
+  interface FakeRect { left: number; top: number; width: number; height: number }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: FakeEl[]
+    getBoundingClientRect: () => FakeRect
+    contains: (n: FakeEl) => boolean
+    cs: Record<string, string>
+  }
+
+  const BASE_CS: Record<string, string> = {
+    backgroundColor: 'rgba(0, 0, 0, 0)', backgroundImage: 'none', borderTopLeftRadius: '0px',
+    borderTopWidth: '0px', borderTopStyle: 'none', borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px', borderRightStyle: 'none', borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px', borderBottomStyle: 'none', borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px', borderLeftStyle: 'none', borderLeftColor: 'rgba(0,0,0,0)',
+    opacity: '1', display: 'block', visibility: 'visible', content: 'none',
+  }
+
+  function makeCs(overrides: Record<string, string>): CSSStyleDeclaration {
+    const merged: Record<string, string> = { ...BASE_CS, ...overrides }
+    return {
+      ...merged,
+      getPropertyValue: (name: string) => merged[name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] ?? '',
+    } as unknown as CSSStyleDeclaration
+  }
+
+  function makeEl(rect: FakeRect, cs: Record<string, string>, children: FakeEl[] = []): FakeEl {
+    const el: FakeEl = {
+      nodeType: 1,
+      tagName: 'DIV',
+      classList: { contains: () => false },
+      childNodes: children,
+      getBoundingClientRect: () => rect,
+      contains: (n) => n === el || children.some((c) => c === n || c.contains(n)),
+      cs: { ...BASE_CS, ...cs },
+    }
+    return el
+  }
+
+  // Faithful-enough fake of document.createTreeWalker for a filter that only
+  // ever returns FILTER_ACCEPT/FILTER_REJECT (never FILTER_SKIP — matches
+  // buildDrawList's own acceptNode exactly): a REJECTed node's whole subtree
+  // is skipped, exactly like a real TreeWalker does for TreeWalker (as
+  // opposed to NodeIterator, where REJECT behaves like SKIP).
+  function fakeCreateTreeWalker(root: FakeEl, acceptNode: (n: FakeEl) => number) {
+    const ACCEPT = 1
+    const seq: FakeEl[] = []
+    const visit = (node: FakeEl) => {
+      for (const child of node.childNodes) {
+        if (acceptNode(child) === ACCEPT) {
+          seq.push(child)
+          visit(child)
+        }
+      }
+    }
+    visit(root)
+    let idx = -1
+    const walker = {
+      currentNode: root as unknown as Node,
+      nextNode: () => {
+        idx++
+        if (idx >= seq.length) return null
+        walker.currentNode = seq[idx] as unknown as Node
+        return walker.currentNode
+      },
+    }
+    return walker
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
+    g.HTMLImageElement = class {} // no fake element in this suite is ever one
+    globalThis.document = {
+      createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
+        fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl) => number),
+    } as unknown as Document
+    globalThis.getComputedStyle = ((el: unknown, pseudo?: string) =>
+      pseudo ? makeCs({ content: 'none' }) : makeCs((el as FakeEl).cs)) as unknown as typeof getComputedStyle
+  }
+
+  it('emits a rect op at (0,0) with the ROOT element\'s own dimensions, before any child ops', () => {
+    install()
+    const child = makeEl({ left: 5, top: 5, width: 50, height: 20 }, { backgroundColor: 'rgb(255, 0, 0)' })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, { backgroundColor: 'rgb(13, 14, 18)' }, [child])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+
+    // Root's own background is the FIRST op emitted, at (0,0) with root's
+    // own full dimensions — not (say) skipped in favor of starting at root's
+    // children (the walker.currentNode quirk this now deliberately avoids
+    // relying on — see buildDrawList's own comment).
+    expect(ops[0]).toMatchObject({ kind: 'rect', xPx: 0, yPx: 0, wPx: 800, hPx: 1000 })
+    const rootOp = ops[0] as Extract<DrawOp, { kind: 'rect' }>
+    expect(rootOp.fill).toEqual({ r: 13 / 255, g: 14 / 255, b: 18 / 255, a: 1 })
+
+    // The child's own rect op exists and comes strictly AFTER root's.
+    const childOpIndex = ops.findIndex((o) => o.kind === 'rect' && o.xPx === 5)
+    expect(childOpIndex).toBeGreaterThan(0)
+  })
+
+  it('root with no background paints no rect for itself, but still walks its children', () => {
+    install()
+    const child = makeEl({ left: 5, top: 5, width: 50, height: 20 }, { backgroundColor: 'rgb(9, 9, 9)' })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, { backgroundColor: 'rgba(0, 0, 0, 0)' }, [child])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+
+    expect(ops.length).toBe(1) // just the child's own background rect
+    expect(ops[0]).toMatchObject({ kind: 'rect', xPx: 5, yPx: 5 })
   })
 })

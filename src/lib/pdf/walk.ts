@@ -595,8 +595,31 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
     }
   }
 
-  // visit the root itself first, then every accepted node exactly once
-  for (let n: Node | null = walker.currentNode; n; n = walker.nextNode()) {
+  // Paint the ROOT's own box (background + borders, plus its own ::before —
+  // rm-root never puts generated content directly on itself, so this is a
+  // no-op in practice, kept only for parity with every other element's
+  // treatment) FIRST, explicitly — dark templates set the page color via
+  // `background: var(--rm-bg)` on `.rm-root` itself (artboard.css), and an
+  // inner column container then covers most, but not necessarily all, of the
+  // page, so root's own fill has to land before any descendant, exactly like
+  // every other element's own box paints before its children's.
+  //
+  // This is deliberately NOT left to fall out implicitly of starting the walk
+  // from `walker.currentNode` (which happens to equal `root` immediately
+  // after `document.createTreeWalker(root, ...)`, per the DOM spec's own
+  // createTreeWalker steps — `current` is set to `root` UNCONDITIONALLY,
+  // bypassing `acceptNode` entirely). Relying on that spec quirk silently
+  // is a trap for the next reader: the more obviously-idiomatic
+  // `for (let n = walker.nextNode(); n; ...)` looks equivalent and reads
+  // cleaner, but would silently drop root's own background again. boxOf
+  // measures every element relative to `root`'s own rect, so root's own box
+  // falls out as exactly (0,0,rootW,rootH) here too — see walk.test.ts.
+  boxOps(root, root, ops)
+  pseudoOps(root, root, ops, '::before')
+  markerOps(root, root, ops)
+  openForAfter.push(root)
+
+  for (let n: Node | null = walker.nextNode(); n; n = walker.nextNode()) {
     closeUpTo(n)
     if (n.nodeType === Node.ELEMENT_NODE) {
       const el = n as HTMLElement
