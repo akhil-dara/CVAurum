@@ -72,14 +72,19 @@ export function DateField({
   value,
   onChange,
   allowPresent,
+  singleWith,
 }: {
   label?: string
   value: string
   onChange: (v: string) => void
   allowPresent?: boolean
+  /** When given (the entry's START date), offers a "single date" toggle that
+   *  collapses the range by storing end === start (issue #7). */
+  singleWith?: string
 }) {
   const [pickMode, setPickMode] = useState(false)
-  const present = !!allowPresent && !pickMode && (!value.trim() || isPresent(value))
+  const single = singleWith != null && !!singleWith.trim() && singleWith.trim() === (value || '').trim()
+  const present = !!allowPresent && !single && !pickMode && (!value.trim() || isPresent(value))
   const { y, m } = parseYM(value)
 
   const setYM = (year: string, month: string) => {
@@ -92,7 +97,7 @@ export function DateField({
     <Labeled label={label}>
       {/* month/year always get half the field each — the Present checkbox lives
           on its own line so narrow cells can never crush the selects */}
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className={`grid grid-cols-2 gap-1.5${single ? ' hidden' : ''}`}>
         <select
           className="input h-9 min-w-0 px-2 disabled:opacity-50"
           value={present ? '' : m}
@@ -122,7 +127,22 @@ export function DateField({
           ))}
         </select>
       </div>
-      {allowPresent && (
+      {singleWith != null && (
+        <label className="mt-1.5 flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 accent-primary"
+            checked={single}
+            onChange={(e) => {
+              setPickMode(true)
+              // end === start collapses the range to one date everywhere
+              onChange(e.target.checked ? singleWith.trim() || String(NOW_YEAR) : '')
+            }}
+          />
+          Single date (no range)
+        </label>
+      )}
+      {allowPresent && !single && (
         <label className="mt-1.5 flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
           <input
             type="checkbox"

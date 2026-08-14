@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
@@ -186,7 +186,7 @@ function SummaryEditor({ doc }: { doc: ResumeDocument }) {
     <RichTextEditor
       value={doc.content.basics.summary ?? ''}
       onChange={(v) => update((c) => { c.basics.summary = v })}
-      placeholder="2–3 punchy lines: who you are, your strongest skills, and the impact you bring…"
+      placeholder="2â€“3 punchy lines: who you are, your strongest skills, and the impact you bringâ€¦"
       minHeight={110}
     />
   )
@@ -207,14 +207,14 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <TextField label="Location" value={item.location} onChange={set('location')} placeholder="San Francisco, CA" />
             <div className="grid grid-cols-2 gap-2">
               <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-              <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent />
+              <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
             </div>
           </Row>
           <TextAreaField
             label="Role summary"
             value={item.summary ?? ''}
             onChange={set('summary')}
-            placeholder="One or two lines on the scope of the role (optional) — also editable right on the resume"
+            placeholder="One or two lines on the scope of the role (optional) â€” also editable right on the resume"
           />
           <LogoPicker label="Company logo" value={item.logo} onChange={set('logo')} />
           <BulletsEditor label="Achievements" items={item.highlights ?? []} onChange={set('highlights')} />
@@ -230,7 +230,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
           </Row>
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent />
+            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
           </Row>
           <Row>
             <TextField label="Location" value={item.location} onChange={set('location')} placeholder="Berkeley, CA" />
@@ -243,11 +243,11 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
     case 'projects':
       return (
         <>
-          <TextField label="Project name" value={item.name} onChange={set('name')} placeholder="Pulse — Observability" />
-          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://github.com/…" />
+          <TextField label="Project name" value={item.name} onChange={set('name')} placeholder="Pulse â€” Observability" />
+          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://github.com/â€¦" />
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent />
+            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
           </Row>
           <TextField label="One-line description" value={item.description} onChange={set('description')} placeholder="What is it?" />
           <BulletsEditor label="Highlights" items={item.highlights ?? []} onChange={set('highlights')} />
@@ -257,7 +257,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
     case 'skills':
       return (
         <>
-          <TextField label="Category" value={item.name} onChange={set('name')} placeholder="Languages, Frontend, Cloud…" />
+          <TextField label="Category" value={item.name} onChange={set('name')} placeholder="Languages, Frontend, Cloudâ€¦" />
           <TagInput label="Skills" value={item.keywords ?? []} onChange={set('keywords')} placeholder="Add a skill and press Enter" />
           <RatingField label="Proficiency (optional, shows a meter)" value={item.rating} onChange={(v) => patch((it) => { it.rating = v || undefined })} />
         </>
@@ -269,7 +269,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <TextField label="Language" value={item.language} onChange={set('language')} placeholder="Spanish" />
             <Labeled label="Fluency">
               <select className="input" value={item.fluency || ''} onChange={(e) => set('fluency')(e.target.value)}>
-                <option value="">Select level…</option>
+                <option value="">Select levelâ€¦</option>
                 {FLUENCY_LEVELS.map((l) => (
                   <option key={l} value={l}>{l}</option>
                 ))}
@@ -288,7 +288,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <TextField label="Issuer" value={item.issuer} onChange={set('issuer')} placeholder="Amazon Web Services" />
             <DateField label="Date" value={item.date} onChange={set('date')} />
           </Row>
-          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://…" />
+          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://â€¦" />
         </>
       )
     case 'awards':
@@ -300,7 +300,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <DateField label="Date" value={item.date} onChange={set('date')} />
           </Row>
           <Labeled label="Summary">
-            <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} placeholder="Why you earned it…" />
+            <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} placeholder="Why you earned itâ€¦" />
           </Labeled>
         </>
       )
@@ -312,7 +312,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <TextField label="Publisher" value={item.publisher} onChange={set('publisher')} />
             <DateField label="Date" value={item.releaseDate} onChange={set('releaseDate')} />
           </Row>
-          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://…" />
+          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://â€¦" />
           <Labeled label="Summary">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />
           </Labeled>
@@ -327,7 +327,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
           </Row>
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent />
+            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
           </Row>
           <Labeled label="Summary">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />
@@ -346,8 +346,8 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
     case 'references':
       return (
         <>
-          <TextField label="Name" value={item.name} onChange={set('name')} placeholder="Jane Doe — Manager at …" />
-          <TextAreaField label="Reference" value={item.reference} onChange={set('reference')} placeholder="“Alex is…”  or  Available on request" />
+          <TextField label="Name" value={item.name} onChange={set('name')} placeholder="Jane Doe â€” Manager at â€¦" />
+          <TextAreaField label="Reference" value={item.reference} onChange={set('reference')} placeholder="â€œAlex isâ€¦â€  or  Available on request" />
         </>
       )
     default:
@@ -362,7 +362,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <DateField label="Date" value={item.date} onChange={set('date')} />
             <TextField label="Location" value={item.location} onChange={set('location')} />
           </Row>
-          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://…" />
+          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://â€¦" />
           <Labeled label="Description">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />
           </Labeled>

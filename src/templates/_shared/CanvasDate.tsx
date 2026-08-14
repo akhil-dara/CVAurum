@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeContent } from '@/types/document'
-import { formatDate, formatDateRange } from '@/lib/utils'
+import { formatDate, formatDateRange, isSingleDate } from '@/lib/utils'
 import type { EditFn } from './Editable'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -74,8 +74,11 @@ export function CanvasDate({
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const present = !!range && !(end || '').trim()
+  // A single date (one year / one month) is stored as end === start, so it
+  // renders once everywhere and stays valid JSON Resume.
+  const single = !!range && isSingleDate(start, end)
   const endBeforeStart = (() => {
-    if (!range || present) return false
+    if (!range || present || single) return false
     const a = ymValue(start)
     const b = ymValue(end || '')
     return a != null && b != null && b < a
@@ -102,20 +105,46 @@ export function CanvasDate({
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
             <div className="fixed z-[61] w-60 rounded-xl border border-border bg-surface p-3 text-foreground shadow-float" style={{ top: pos.top, left: pos.left }}>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{range ? 'Start' : 'Date'}</div>
-              <MonthYear value={start} onChange={(v) => edit((c) => applyStart(c, v))} />
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {range ? (single ? 'Date' : 'Start') : 'Date'}
+              </div>
+              <MonthYear
+                value={start}
+                onChange={(v) =>
+                  edit((c) => {
+                    applyStart(c, v)
+                    // keep a single-date entry collapsed as the start moves
+                    if (single && applyEnd) applyEnd(c, v)
+                  })
+                }
+              />
               {range && applyEnd && (
                 <>
-                  <div className="mb-1 mt-3 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">End</span>
-                    <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
-                      <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={present} onChange={(e) => edit((c) => applyEnd(c, e.target.checked ? '' : start || `${NOW_YEAR}`))} />
-                      Present
-                    </label>
-                  </div>
-                  <MonthYear value={end || ''} present={present} onChange={(v) => edit((c) => applyEnd(c, v))} />
-                  {endBeforeStart && (
-                    <p className="mt-1.5 text-[11px] font-medium text-danger">End date is before the start date.</p>
+                  {/* One-off entries (a single year) — issue #7. Stored as
+                      end === start so every renderer shows just one date. */}
+                  <label className="mt-2.5 flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 accent-primary"
+                      checked={single}
+                      onChange={(e) => edit((c) => applyEnd(c, e.target.checked ? start || `${NOW_YEAR}` : ''))}
+                    />
+                    Single date (no range)
+                  </label>
+                  {!single && (
+                    <>
+                      <div className="mb-1 mt-3 flex items-center justify-between">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">End</span>
+                        <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
+                          <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={present} onChange={(e) => edit((c) => applyEnd(c, e.target.checked ? '' : start || `${NOW_YEAR}`))} />
+                          Present
+                        </label>
+                      </div>
+                      <MonthYear value={end || ''} present={present} onChange={(v) => edit((c) => applyEnd(c, v))} />
+                      {endBeforeStart && (
+                        <p className="mt-1.5 text-[11px] font-medium text-danger">End date is before the start date.</p>
+                      )}
+                    </>
                   )}
                 </>
               )}

@@ -30,7 +30,11 @@ const raf2 = () =>
     setTimeout(finish, 400)
   })
 
-/** One-time helper over a BLANK resume: teaches the three canvas moves. */
+/**
+ * One-time helper for a BLANK resume: teaches the three canvas moves.
+ * Deliberately in NORMAL FLOW above the page (not a floating overlay) — as an
+ * overlay it covered the résumé header and repainted badly while scrolling.
+ */
 function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
   const [dismissed, setDismissed] = useState(() => {
     try {
@@ -51,11 +55,11 @@ function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
     }
   }
   return (
-    <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
-      <div className="pointer-events-auto mx-3 flex max-w-xl items-start gap-2.5 rounded-xl border border-primary/30 bg-surface/95 px-3.5 py-2.5 text-xs leading-relaxed text-foreground shadow-float backdrop-blur">
+    <div className="flex justify-center px-6 pt-5">
+      <div className="flex w-full max-w-[210mm] items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
         <span aria-hidden>✍️</span>
-        <span>
-          The gray hints show <strong>what to type where</strong> — click any of them and start writing (it prints only what you fill in). Inside a bullet, type <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">/</kbd> for quick inserts. Hover a section for its <strong>Style</strong> button.
+        <span className="min-w-0">
+          Click any <strong>gray hint</strong> on the page to type there — only what you fill in prints. Type <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">/</kbd> inside a bullet for quick inserts, and hover a section for its <strong>Style</strong> button.
         </span>
         <button className="btn-icon h-6 w-6 shrink-0" onClick={close} aria-label="Dismiss tip" title="Got it">
           ✕

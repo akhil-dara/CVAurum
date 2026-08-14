@@ -107,7 +107,19 @@ export function formatDateRange(start?: string, end?: string, opts?: { month?: '
   if (!s && !e) return ''
   if (!s) return e
   if (!e) return s
+  // A SINGLE-date entry (a one-year course, a one-off engagement) is stored as
+  // start === end — render it once, never as "2024 — 2024". Keeping it in the
+  // start/end fields means it stays valid JSON Resume and flows through the
+  // canvas, the ATS text view, and the Word export unchanged.
+  if (isSingleDate(start, end)) return s
   return `${s} — ${e}`
+}
+
+/** True when a start/end pair represents one single date rather than a range. */
+export function isSingleDate(start?: string, end?: string): boolean {
+  const a = (start || '').trim()
+  const b = (end || '').trim()
+  return !!a && a === b
 }
 
 /** Strip HTML tags to plain text (used for ATS extraction & previews). */
