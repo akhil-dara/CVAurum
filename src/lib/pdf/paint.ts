@@ -434,12 +434,37 @@ export function glyphPathToDrawPath(path: FontkitPath, scale: number): string {
  * and actual (vector-outline) advances — reusing the outline painter's own
  * number instead makes the two layers self-consistent by construction.
  *
- * Returns the `Tz` percentage actually used (100 when unscaled), clamped to
- * [100, 400] — a tracked heading's visible width is never SHORTER than its
- * untracked one, and 400 is far beyond any real letter-spacing. `paintOps`
- * folds this back into its own shared `tzPct`-based `prevRealEnd` bookkeeping
- * (the same formula the non-tracked branch uses), so the next run's same-line
- * snap targets the TRUE (tracked) drawn end, not the untracked one.
+ * Returns the `Tz` percentage actually used (100 when unscaled or inside the
+ * noise dead-band — see below), clamped to [50, 400]. NOT [100, 400]: that
+ * was the original (task-16) bound on the assumption a tracked heading's
+ * visible width is never shorter than its untracked one, which is false —
+ * 17 rules across templates.css apply NEGATIVE letter-spacing to `.rm-name`
+ * (base -0.01em on every template, several override to -0.02em), and those
+ * runs go through this same function. Genuine negative tracking shrinks the
+ * visible width below the untracked metric (empirically ~95-99% of it), and
+ * flooring Tz at 100 for that case leaves the invisible layer WIDER than the
+ * visible (negatively-tracked) ink, overshooting the selection box past the
+ * run's true right edge — the same class of bug task 16 fixed for positive
+ * tracking, just unnoticed here since it doesn't regress anything task 16
+ * itself touched. 50 is a symmetric sanity floor (never scaled to half-width
+ * by tracking alone); 400 stays the upper bound (far beyond any real
+ * positive letter-spacing).
+ *
+ * Ratios within +-1 percentage point of 100 snap to exactly 100 (no Tz
+ * emitted at all) instead of the raw ratio: fontkit's own glyph-advance sum
+ * (what `visibleWidthPt` above is built from) and pdf-lib's
+ * `widthOfTextAtSize` (`untrackedWidthPt`) are not bit-identical for the
+ * SAME text/font/size even at zero letter-spacing — a small, real,
+ * tracking-unrelated metric difference (discovered testing the original
+ * clamp) that would otherwise emit a spurious near-100 Tz on every tracked
+ * run. Genuine negative tracking lands well outside this band (~95-99%,
+ * confirmed against `.rm-name`'s real -0.01em/-0.02em), so the dead-band
+ * only absorbs noise, never real tracking.
+ *
+ * `paintOps` folds the returned percentage back into its own shared
+ * `tzPct`-based `prevRealEnd` bookkeeping (the same formula the non-tracked
+ * branch uses), so the next run's same-line snap targets this (possibly
+ * clamped or dead-banded) extractable advance, not the plain untracked one.
  */
 async function paintTrackedHeading(
   page: PDFPage,
@@ -457,7 +482,12 @@ async function paintTrackedHeading(
 
   let tzPct = 100
   if (untrackedWidthPt > 0) {
-    tzPct = Math.min(400, Math.max(100, (100 * visibleWidthPt) / untrackedWidthPt))
+    const rawRatio = (100 * visibleWidthPt) / untrackedWidthPt
+    // +-1pp dead-band absorbs fontkit-vs-pdf-lib metric noise (see the doc
+    // comment above) as an exact no-op rather than a spurious near-100 Tz;
+    // outside it, allow SHRINKING to 50% (negative letter-spacing, e.g.
+    // .rm-name) as well as stretching, up to 400%.
+    tzPct = Math.abs(rawRatio - 100) <= 1 ? 100 : Math.min(400, Math.max(50, rawRatio))
   }
 
   // Layer 1: invisible, untracked (Tc stays 0), extractable — stretched via
@@ -656,12 +686,15 @@ export async function paintOps(
       }
 
       // When scaling is active the run's TRUE drawn width is the SCALED one
-      // (DOM width for the non-tracked branch, visible tracked-outline width
-      // for the tracked branch — task 16), so bookkeeping must advance by
-      // that, not the embedded (untracked) metric, or the next run's
-      // same-line snap would target the wrong endpoint. tzPct stays 100
-      // whenever neither branch's scaling applied, so this reduces to the
-      // old `xPt + embeddedWidthPt` there.
+      // (DOM width for the non-tracked branch; for the tracked branch, the
+      // — possibly clamped or dead-band-snapped — Tz-stretched extractable
+      // advance paintTrackedHeading actually emitted, which is not always
+      // exactly equal to the raw visible-outline width once the [50,400]
+      // clamp or the +-1pp noise dead-band engages), so bookkeeping must
+      // advance by that, not the embedded (untracked) metric, or the next
+      // run's same-line snap would target the wrong endpoint. tzPct stays
+      // 100 whenever neither branch's scaling applied, so this reduces to
+      // the old `xPt + embeddedWidthPt` there.
       const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
       prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + embeddedWidthPt * (tzPct / 100), chainStartXPt: nextChainStartXPt }
       continue
@@ -783,8 +816,21 @@ export async function paintOps(
             // above only translated, never flipped), so drawImage's own x/y
             // convention lines up with (0, 0) directly — same box, no
             // separate offset math needed.
-            page.drawImage(img, { x: 0, y: 0, width: wPt, height: hPt })
-            page.pushOperators(popGraphicsState())
+            //
+            // try/finally around the pop (matching every other push/pop pair
+            // in this file, e.g. paintTrackedHeading's Tr/Tz reset): a throw
+            // from drawImage as a bare statement would otherwise leave the
+            // clip and translate `cm` active on the graphics state with no
+            // matching Q — paintOps' outer per-op catch swallows the error,
+            // so every op painted AFTER this one would silently inherit this
+            // image's clip region and offset. Proved by a test that monkey-
+            // patches drawImage to throw once and asserts balanced q/Q counts
+            // plus an unclipped following op.
+            try {
+              page.drawImage(img, { x: 0, y: 0, width: wPt, height: hPt })
+            } finally {
+              page.pushOperators(popGraphicsState())
+            }
           } else {
             // Zero-radii images keep this direct path — no graphics-state /
             // clip operator overhead for the common (non-photo) case.

@@ -229,23 +229,79 @@ describe('paintOps — tracked-heading selection geometry via Tz (task 16)', () 
     // pdf-lib's widthOfTextAtSize for the same text/font/size — a small,
     // real mismatch unrelated to letter-spacing. At a tiny letterSpacingPx
     // that gap isn't yet covered by the added tracking, so the RAW ratio
-    // actually lands just BELOW 100 here — exactly the case the clamp's
-    // lower bound exists for. Confirmed independently before asserting the
-    // clamped behavior, so this isn't just re-reading paint.ts's own output.
+    // actually lands just BELOW 100 here — inside the +-1pp noise dead-band
+    // (fix round), which snaps it to exactly 100. Confirmed independently
+    // before asserting the resulting behavior, so this isn't just re-reading
+    // paint.ts's own output.
     const text = 'SUMMARY'
     const letterSpacingPx = 0.01
     const untrackedWidthPt = await trueWidthPt(text, sizePx)
     const rawVisibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
     const rawRatio = (100 * rawVisibleWidthPt) / untrackedWidthPt
     expect(rawRatio).toBeLessThan(100)
+    expect(rawRatio).toBeGreaterThan(99) // inside the dead-band, not the real negative-tracking regime
 
     const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text, letterSpacingPx }) }])
     const tz = tzValues(stream)
-    // Clamped to exactly 100 -> the `tzPct !== 100` guard correctly emits NO
-    // Tz at all (same as the unscaled case), rather than a sub-100 value
-    // that would shrink the invisible layer's advance below what the
+    // Dead-band snaps to exactly 100 -> the `tzPct !== 100` guard correctly
+    // emits NO Tz at all (same as the unscaled case), rather than a sub-100
+    // value that would shrink the invisible layer's advance below what the
     // visible tracked outlines need it to cover.
     expect(tz.length).toBe(0)
+  })
+
+  it('a mid-band noise ratio (~99.7) also stays inside the dead-band and emits NO Tz pair', async () => {
+    // Distinct from the previous case (ratio ~99.4, near the band's edge) —
+    // this lands closer to the middle of the +-1pp dead-band, proving the
+    // band isn't just barely catching edge values.
+    const text = 'SUMMARY'
+    const letterSpacingPx = 0.04
+    const untrackedWidthPt = await trueWidthPt(text, sizePx)
+    const rawVisibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
+    const rawRatio = (100 * rawVisibleWidthPt) / untrackedWidthPt
+    expect(rawRatio).toBeGreaterThan(99)
+    expect(rawRatio).toBeLessThan(100.5) // comfortably mid-band, not just under the 101 edge
+
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text, letterSpacingPx }) }])
+    expect(tzValues(stream).length).toBe(0)
+  })
+
+  it('genuine negative letter-spacing (e.g. .rm-name) emits a Tz BELOW 100 matching the computed ratio, not floored', async () => {
+    // Fix round: the original [100, 400] clamp assumed a tracked heading's
+    // visible width is never shorter than its untracked one — false for the
+    // 17 negative-letter-spacing rules in templates.css (all on .rm-name,
+    // which goes through this same paintTrackedHeading path). Flooring Tz at
+    // 100 for negative tracking left the invisible layer WIDER than the
+    // (narrower, negatively-tracked) visible ink, overshooting the selection
+    // box past the run's true right edge.
+    const text = 'SUMMARY'
+    const letterSpacingPx = -1
+    const untrackedWidthPt = await trueWidthPt(text, sizePx)
+    const visibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
+    const rawRatio = (100 * visibleWidthPt) / untrackedWidthPt
+    expect(rawRatio).toBeLessThan(99) // clearly outside the +-1pp noise dead-band
+    expect(rawRatio).toBeGreaterThan(50) // and above the floor, so it passes through unclamped
+
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text, letterSpacingPx }) }])
+    const tz = tzValues(stream)
+    expect(tz.length).toBe(2) // set once, reset once
+    expect(tz[0]).toBeCloseTo(rawRatio, 3)
+    expect(tz[0]).toBeLessThan(100)
+    expect(tz[1]).toBe(100)
+  })
+
+  it('clamps an absurdly negative letterSpacing implying a ratio below 50% up to exactly 50', async () => {
+    const text = 'SUMMARY'
+    const letterSpacingPx = -6 // wildly oversized negative tracking
+    const untrackedWidthPt = await trueWidthPt(text, sizePx)
+    const visibleWidthPt = trackedVisibleWidthPt(text, sizePx, letterSpacingPx)
+    const rawRatio = (100 * visibleWidthPt) / untrackedWidthPt
+    expect(rawRatio).toBeLessThan(50) // sanity: this really would go below the floor unclamped
+
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text, letterSpacingPx }) }])
+    const tz = tzValues(stream)
+    expect(tz[0]).toBe(50)
+    expect(tz[1]).toBe(100)
   })
 
   it('a run placed at the OLD (pre-fix, untracked) end now overlaps and gets pushed to the TRUE tracked end', async () => {
@@ -714,6 +770,119 @@ describe('paintOps — raster images clipped to per-corner border radii (task 17
   it('tolerates an image whose src fails to load (skips painting, does not throw) even with radii set', async () => {
     const ops: DrawOp[] = [imageOp({ src: 'https://example.test/missing.png', radii: radii80 })]
     await expect(renderContentStream(ops)).resolves.not.toThrow()
+  })
+
+  it('a throw from drawImage on a radiused image does not leak the clip/transform into later ops (fix round: try/finally guard)', async () => {
+    // Reviewer-proved defect: the clip/transform push was a bare
+    // `page.drawImage(...)` statement followed by `popGraphicsState()` — a
+    // throw from drawImage skipped the pop entirely. paintOps' outer per-op
+    // catch swallows the error, so the leak was SILENT: every op painted
+    // after this one would inherit the dead image's clip region and offset.
+    // Fixed with the same try/finally discipline used everywhere else in
+    // this file (e.g. paintTrackedHeading's Tr/Tz reset).
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const page = doc.addPage([300, 300])
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+
+    let calls = 0
+    const originalDrawImage = page.drawImage.bind(page)
+    ;(page as unknown as { drawImage: typeof page.drawImage }).drawImage = ((
+      ...args: Parameters<typeof page.drawImage>
+    ) => {
+      calls++
+      if (calls === 1) throw new Error('boom: simulated drawImage failure')
+      return originalDrawImage(...args)
+    }) as typeof page.drawImage
+
+    const ops: DrawOp[] = [
+      imageOp({ radii: radii80 }), // throws once, mid-case, AFTER the clip is already pushed
+      { kind: 'rect', xPx: 200, yPx: 10, wPx: 50, hPx: 50, fill: { r: 1, g: 0, b: 0, a: 1 } }, // must paint unclipped
+    ]
+    await expect(paintOps(page, ops, fonts, 300)).resolves.not.toThrow()
+
+    const stream = (page as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+
+    // Balanced push/pop: with the fix, our own `q` (pushed before the
+    // failing drawImage call) is always matched by a `Q` from the finally,
+    // even though drawImage itself threw before emitting its own internal
+    // q/Do/Q. Before the fix this would be 1 q / 0 Q — unbalanced.
+    const qCount = stream.match(/\bq\b/g)?.length ?? 0
+    const QCount = stream.match(/\bQ\b/g)?.length ?? 0
+    expect(qCount).toBe(QCount)
+
+    // The following rect still paints (fill color `rg`), and it does so
+    // strictly AFTER the FIRST `Q` in the stream — the image op's own
+    // closing pop from the finally, since the image op is processed before
+    // the rect — i.e. outside the graphics-state scope the failed image
+    // opened, proving the rect is not painted through a leaked clip/
+    // transform. (The rect's own drawRectangle call pushes and pops its OWN
+    // separate q/Q pair around its fill — that later Q is not what's being
+    // checked here; the image op's own scope closing first is.)
+    const imageOwnQIdx = stream.indexOf('Q')
+    const rectFillIdx = stream.indexOf('rg')
+    expect(imageOwnQIdx).toBeGreaterThan(-1)
+    expect(rectFillIdx).toBeGreaterThan(-1)
+    expect(imageOwnQIdx).toBeLessThan(rectFillIdx)
+  })
+
+  it('asymmetric per-corner radii: the tl<->bl / tr<->br swap lands on the EXACT expected clip-path bezier coordinates', async () => {
+    // The tl<->bl / tr<->br swap (paint.ts's case 'image' — correcting
+    // roundedRectOperators' own top-left/y-down corner layout for the
+    // page's bottom-left/y-up space) is new, easy-to-get-backwards geometry
+    // that was previously protected only by a hand trace in review. This
+    // asserts the REAL emitted bezier path numbers land where an
+    // independent replica of roundedRectOperators' own kappa-bezier corner
+    // math (computed here, not re-read from paint.ts) says they should.
+    const wPx = 100
+    const hPx = 50
+    const radii: CornerRadii = { tl: 5, tr: 10, br: 15, bl: 20 } // four DISTINCT radii
+    const stream = await renderContentStream([imageOp({ xPx: 0, yPx: 0, wPx, hPx, radii })])
+
+    const wPt = pxToPt(wPx)
+    const hPt = pxToPt(hPx)
+    const kappa = 0.5522847498
+    const clamp = (r: number) => Math.min(Math.max(r, 0), wPt / 2, hPt / 2)
+    // paint.ts swaps tl<->bl and tr<->br in PX before converting to pt and
+    // calling roundedRectOperators — replicate both the swap and the
+    // clamped kappa-bezier math independently.
+    const tl = clamp(pxToPt(radii.bl))
+    const tr = clamp(pxToPt(radii.br))
+    const br = clamp(pxToPt(radii.tr))
+    const bl = clamp(pxToPt(radii.tl))
+    const kTl = tl * kappa
+    const kTr = tr * kappa
+    const kBr = br * kappa
+    const kBl = bl * kappa
+    const expected: Array<[string, number[]]> = [
+      ['m', [tl, 0]],
+      ['l', [wPt - tr, 0]],
+      ['c', [wPt - tr + kTr, 0, wPt, tr - kTr, wPt, tr]],
+      ['l', [wPt, hPt - br]],
+      ['c', [wPt, hPt - br + kBr, wPt - br + kBr, hPt, wPt - br, hPt]],
+      ['l', [bl, hPt]],
+      ['c', [bl - kBl, hPt, 0, hPt - bl + kBl, 0, hPt - bl]],
+      ['l', [0, tl]],
+      ['c', [0, tl - kTl, tl - kTl, 0, tl, 0]],
+    ]
+
+    // Only the clip path uses raw m/l/c path-construction operators — image
+    // drawing (this op's own `Do`) only ever emits `cm`/`Do`, never m/l/c —
+    // so every m/l/c line in this single-image-op stream belongs to it.
+    const actual = [...stream.matchAll(/^([-\d.\s]+)\s(m|l|c)$/gm)].map(
+      (match): [string, number[]] => [match[2], match[1].trim().split(/\s+/).map(Number)],
+    )
+
+    expect(actual.length).toBe(expected.length)
+    for (let i = 0; i < expected.length; i++) {
+      expect(actual[i][0]).toBe(expected[i][0])
+      expect(actual[i][1].length).toBe(expected[i][1].length)
+      for (let j = 0; j < expected[i][1].length; j++) {
+        expect(actual[i][1][j]).toBeCloseTo(expected[i][1][j], 4)
+      }
+    }
   })
 })
 
