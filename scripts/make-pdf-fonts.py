@@ -26,7 +26,9 @@ import json
 import pathlib
 import re
 import sys
+import tempfile
 
+from fontTools.merge import Merger
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
@@ -60,14 +62,27 @@ def parse_font_faces(css_text: str) -> list[tuple[str, int, str, str]]:
 
 
 # Google serves each family as SEVERAL woff2 subsets (latin, latin-ext, ...).
-# They are disjoint, so picking the wrong one silently drops common characters
-# and every affected glyph embeds as .notdef (text extracts as NUL). Score each
-# candidate against the characters résumés actually contain and keep the best.
+# They are disjoint on-disk, but the BROWSER unions them at render time via
+# each @font-face block's unicode-range, so a résumé using Polish/Czech/
+# Hungarian/Croatian/Turkish letters renders correctly on screen. A static
+# PDF-embeddable TTF can't do that per-run unicode-range trick, so below we
+# MERGE every subset file for a (family, weight) into one TTF instead of
+# picking a single winner (see the merge loop in main()). coverage() is still
+# used to rank candidates — merge order matters (best-coverage file first
+# keeps its metrics/naming as the merged font's base) and it doubles as the
+# fallback if merging a family's subsets fails.
 REQUIRED_CHARS = (
     [ord(c) for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"]
     + [ord(c) for c in " .,;:!?'\"()[]{}/\\|&@#%$+-*=<>_~^`"]
     + [0x2013, 0x2014, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x00B7, 0x2026]  # – — ‘ ’ “ ” • · …
     + list(range(0x00C0, 0x0100))  # Latin-1 accented letters
+    + [0x0105, 0x0107, 0x010D, 0x0119, 0x0151, 0x0159, 0x015F, 0x017E, 0x0142, 0x0111, 0x0131, 0x0130, 0x011F]
+    # ą           ć           č           ę           ő           ř           ş           ž           ł           đ           ı           İ           ğ
+    # Latin Extended-A (Central European / Turkish) — the charset harness's
+    # latin-ext must-pass corpus. These live in the `latin-ext` Google subset
+    # file, never the `latin` one, so before this fix they never contributed
+    # to coverage() and `latin` always "won" a selection that no longer
+    # exists (we merge instead of selecting).
 )
 
 
@@ -77,6 +92,34 @@ def coverage(font: TTFont) -> int:
     except Exception:  # noqa: BLE001
         return 0
     return sum(1 for cp in REQUIRED_CHARS if cp in cmap)
+
+
+def instance_static(font_path: pathlib.Path, weight: int, label: str) -> TTFont | None:
+    """Load font_path and return a static (non-variable) TTFont instanced at
+    `weight`. fontTools.merge.Merger cannot handle variable fonts, so every
+    subset candidate must be instanced BEFORE merging (per-family, not just
+    the eventual winner). Returns None on failure so the caller can drop this
+    one candidate without aborting the whole (family, weight) group."""
+    try:
+        font = TTFont(font_path)
+    except Exception as exc:  # noqa: BLE001 - report and continue
+        print(f"  skip {font_path.name}: {exc}")
+        return None
+    try:
+        if "fvar" in font:
+            axes = {a.axisTag: (a.minValue, a.maxValue) for a in font["fvar"].axes}
+            lo, hi = axes.get("wght", (weight, weight))
+            target = min(max(weight, lo), hi)
+            if target != weight:
+                print(f"  warn {label}: weight {weight} outside wght axis [{lo},{hi}], using {target}")
+            font = instancer.instantiateVariableFont(
+                font, {"wght": target}, inplace=True, updateFontNames=False
+            )
+        font.flavor = None  # plain TTF, not woff2
+        return font
+    except Exception as exc:  # noqa: BLE001
+        print(f"  fail instancing {font_path.name}: {exc}")
+        return None
 
 
 def main() -> int:
@@ -101,54 +144,87 @@ def main() -> int:
     index: dict[str, str] = {}
     seen_static: set[str] = set()
 
+    merge_failures: list[str] = []
+
     for (family, weight), srcs in sorted(groups.items()):
         slug = family_slug(family)
         if not slug:
             print(f"  skip {family!r} {weight}: no usable slug")
             continue
 
-        # Pick the subset file with the best glyph coverage.
-        best_score = -1
-        best_path: pathlib.Path | None = None
+        label = f"{slug}-{weight}"
+
+        # Instance EVERY unicode-subset file for this (family, weight) — not
+        # just the best one. Google's subsets are disjoint (latin has ASCII,
+        # latin-ext has Central European letters, neither has both), so we
+        # need all of them in hand to merge below.
+        candidates: list[tuple[int, pathlib.Path, TTFont]] = []
         for src in dict.fromkeys(srcs):  # de-dupe, keep order
             font_path = PUBLIC / src.lstrip("/")
-            try:
-                probe = TTFont(font_path)
-            except Exception as exc:  # noqa: BLE001 - report and continue
-                print(f"  skip {font_path.name}: {exc}")
+            inst = instance_static(font_path, weight, label)
+            if inst is None:
                 continue
-            score = coverage(probe)
-            probe.close()
-            if score > best_score:
-                best_score, best_path = score, font_path
+            candidates.append((coverage(inst), font_path, inst))
 
-        if best_path is None:
-            print(f"  skip {slug}-{weight}: no readable source file")
+        if not candidates:
+            print(f"  skip {label}: no readable source file")
             continue
+
+        # Best coverage first: this is the merge base (Merger keeps the
+        # first font's metrics/naming) and also the single-file fallback if
+        # merging fails outright.
+        candidates.sort(key=lambda c: c[0], reverse=True)
+        best_score = candidates[0][0]
         if best_score < 60:
-            print(f"  warn {slug}-{weight}: low glyph coverage ({best_score}/{len(REQUIRED_CHARS)})")
+            print(f"  warn {label}: low glyph coverage ({best_score}/{len(REQUIRED_CHARS)})")
 
         key = f"{slug}|{weight}"
-        out_name = f"{slug}-{weight}.ttf"
+        out_name = f"{label}.ttf"
+
+        if len(candidates) == 1:
+            merged: TTFont | None = candidates[0][2]
+        else:
+            merged = None
+            try:
+                # pyftmerge's designed use case: joining disjoint-coverage
+                # subsets of the same family into one font. Merger._openFonts
+                # reopens its input list from scratch (by path) TWICE per
+                # merge() call, so real temp files are required here — handing
+                # it in-memory buffers would read past EOF on the second pass.
+                with tempfile.TemporaryDirectory(prefix="pdf-fonts-merge-") as tmp:
+                    tmp_paths = []
+                    for i, (_score, _path, inst) in enumerate(candidates):
+                        p = pathlib.Path(tmp) / f"{i}.ttf"
+                        inst.save(p)
+                        tmp_paths.append(str(p))
+                    merged = Merger().merge(tmp_paths)
+                    merged.flavor = None
+            except Exception as exc:  # noqa: BLE001
+                # Merging can fail on GSUB/glyph-name conflicts between a
+                # family's subset files. Never silently drop latin-ext
+                # coverage: warn loudly and fall back to the best single
+                # subset (pre-fix behaviour) instead of aborting the run.
+                print(f"  warn {label}: merge failed ({exc}), latin-ext dropped")
+                merge_failures.append(label)
+                merged = candidates[0][2]
+
+        for _score, _path, inst in candidates:
+            if inst is not merged:
+                inst.close()
+
         try:
-            font = TTFont(best_path)
-            if "fvar" in font:
-                axes = {a.axisTag: (a.minValue, a.maxValue) for a in font["fvar"].axes}
-                lo, hi = axes.get("wght", (weight, weight))
-                target = min(max(weight, lo), hi)
-                if target != weight:
-                    print(f"  warn {out_name}: weight {weight} outside wght axis [{lo},{hi}], using {target}")
-                font = instancer.instantiateVariableFont(
-                    font, {"wght": target}, inplace=True, updateFontNames=False
-                )
-            font.flavor = None  # write a plain TTF, not woff2
-            font.save(OUT / out_name)
-            font.close()
+            merged.save(OUT / out_name)
+            merged.close()
         except Exception as exc:  # noqa: BLE001
             print(f"  fail {out_name}: {exc}")
             continue
         index[key] = out_name
         seen_static.add(out_name)
+
+    if merge_failures:
+        print(f"\n{len(merge_failures)} family/weight pair(s) fell back to single-subset (latin-ext dropped):")
+        for label in merge_failures:
+            print(f"  - {label}")
 
     # Drop stale outputs from earlier runs so the directory always matches the
     # index exactly (family slugs can change as the generator improves).
