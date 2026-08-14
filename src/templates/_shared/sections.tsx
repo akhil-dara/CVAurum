@@ -7,10 +7,11 @@
  */
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { Trash2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
-import { pushNewItem, ADD_LABEL } from '@/lib/sections'
+import { pushNewItem, removeItem, sectionHasContent, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
@@ -288,6 +289,30 @@ function ItemHead({ title, date, badge, logo, edit, setLogo }: { title: ReactNod
 }
 
 /**
+ * On-canvas item delete (edit mode only): a small ghost trash button that sits
+ * in the item's right gutter, revealed on hover/focus. Splices the item out via
+ * the SAME store mutation the side panel's Trash2 delete uses — see removeItem
+ * in lib/sections.ts — so there's one splice-by-id implementation, not two.
+ * Never rendered in print/thumbnail (no `edit` there).
+ */
+function ItemDelete({ edit, sectionKey, id, label }: { edit?: EditFn; sectionKey: string; id?: string; label: string }) {
+  if (!edit || !id) return null
+  return (
+    <button
+      type="button"
+      className="rm-item-del no-print"
+      contentEditable={false}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => edit((c) => removeItem(c, sectionKey, id))}
+      aria-label={`Remove ${label}`}
+      title={`Remove ${label}`}
+    >
+      <Trash2 />
+    </button>
+  )
+}
+
+/**
  * Inline-editable keyword chips on the canvas (skills, etc.). Mirrors Bullets:
  * each chip is editable text + an × to remove, with a "+" to add, blank chips
  * pruned when focus leaves. Without `edit` it renders plain, print-clean chips.
@@ -433,6 +458,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               onPruneEmpty={edit ? () => edit((c) => { c.work[i].highlights = c.work[i].highlights.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
+          <ItemDelete edit={edit} sectionKey="work" id={w.id} label={ADD_LABEL.work} />
         </article>
         )
       })}
@@ -476,6 +502,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             </div>
             {has(e.summary) ? <RichText html={e.summary} /> : null}
             {e.courses?.length ? <div className="rm-skill-inline">{e.courses.join(' · ')}</div> : null}
+            <ItemDelete edit={edit} sectionKey="education" id={e.id} label={ADD_LABEL.education} />
           </article>
         )
       })}
@@ -532,6 +559,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
               />
             ) : p.keywords?.length ? <Chips items={p.keywords} /> : null
           ) : null}
+          <ItemDelete edit={edit} sectionKey="projects" id={p.id} label={ADD_LABEL.projects} />
         </article>
         )
       })}
@@ -557,6 +585,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
                 <span className="rm-skill-group-name" style={{ minWidth: '40%' }}>{s.name}</span>
                 <Proficiency rating={s.rating} style={prof} />
               </div>
+              <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
             </div>
           )
         }
@@ -580,6 +609,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
             ) : hasKeywords ? (
               <span className="rm-skill-inline">{s.name ? ': ' : ''}{s.keywords!.join(' · ')}</span>
             ) : null}
+            <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
           </div>
         )
       })}
@@ -611,6 +641,7 @@ function Languages({ doc, edit, opts }: { doc: ResumeDocument; config: TemplateC
               {prof !== 'none' && (edit || l.fluency) ? <Ed edit={edit} value={l.fluency} apply={(c, v) => { c.languages[i].fluency = v }} className="rm-mini-sub" placeholder="Fluency" /> : null}
             </div>
           )}
+          <ItemDelete edit={edit} sectionKey="languages" id={l.id} label={ADD_LABEL.languages} />
         </div>
         )
       })}
@@ -630,6 +661,7 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
             {edit || cert.date ? <span className="rm-item-date">{singleDate(edit, true, cert.date, (c, v) => { c.certificates[i].date = v })}</span> : null}
           </div>
           {edit || cert.issuer ? <Ed edit={edit} value={cert.issuer} apply={(c, v) => { c.certificates[i].issuer = v }} className="rm-mini-sub" placeholder="Issuer" /> : null}
+          <ItemDelete edit={edit} sectionKey="certificates" id={cert.id} label={ADD_LABEL.certificates} />
         </div>
         )
       })}
@@ -650,6 +682,7 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           </div>
           {edit || a.awarder ? <Ed edit={edit} value={a.awarder} apply={(c, v) => { c.awards[i].awarder = v }} className="rm-mini-sub" placeholder="Awarder" /> : null}
           {has(a.summary) ? <RichText html={a.summary} /> : null}
+          <ItemDelete edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
         </div>
         )
       })}
@@ -670,6 +703,7 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           </div>
           {edit || p.publisher ? <Ed edit={edit} value={p.publisher} apply={(c, v) => { c.publications[i].publisher = v }} className="rm-mini-sub" placeholder="Publisher" /> : null}
           {has(p.summary) ? <RichText html={p.summary} /> : null}
+          <ItemDelete edit={edit} sectionKey="publications" id={p.id} label={ADD_LABEL.publications} />
         </div>
         )
       })}
@@ -709,6 +743,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               onPruneEmpty={edit ? () => edit((c) => { c.volunteer[i].highlights = c.volunteer[i].highlights.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
+          <ItemDelete edit={edit} sectionKey="volunteer" id={v.id} label={ADD_LABEL.volunteer} />
         </article>
         )
       })}
@@ -736,6 +771,7 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
               placeholder="Keyword"
             />
           ) : it.keywords?.length ? <span className="rm-skill-inline"> — {it.keywords.join(', ')}</span> : null}
+          <ItemDelete edit={edit} sectionKey="interests" id={it.id} label={ADD_LABEL.interests} />
         </div>
         )
       })}
@@ -752,6 +788,7 @@ function References({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           <div className="rm-mini" key={r.id}>
             <Ed edit={edit} as="div" value={r.name} apply={(c, v) => { c.references[i].name = v }} className="rm-mini-title" placeholder="Name" />
             {edit || r.reference ? <Ed edit={edit} as="div" value={r.reference} apply={(c, v) => { c.references[i].reference = v }} className="rm-mini-sub" placeholder="“Available on request”" /> : null}
+            <ItemDelete edit={edit} sectionKey="references" id={r.id} label={ADD_LABEL.references} />
           </div>
         )
       })}
@@ -795,6 +832,7 @@ function Custom({ doc, sectionKey, edit, opts }: { doc: ResumeDocument; sectionK
               onPruneEmpty={edit ? () => edit((c) => { const a = c.custom[secIndex].items[i].highlights; if (a) c.custom[secIndex].items[i].highlights = a.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
+          <ItemDelete edit={edit} sectionKey={sectionKey} id={it.id} label={ADD_LABEL[sectionKey] ?? 'entry'} />
         </article>
         )
       })}
@@ -818,6 +856,18 @@ function AddEntry({ sectionKey, edit }: { sectionKey: string; edit: EditFn }) {
         + Add {label}
       </button>
     </div>
+  )
+}
+
+/** Discoverability hint under a section that hasn't got real content yet — the
+ *  ghost placeholder text (Title, Publisher, …) looks like a normal entry, so
+ *  this makes clear it's not what will show up in the exported PDF. Canvas-only,
+ *  one muted line, never affects layout in print/thumbnail (no `edit` there). */
+function EmptyHint() {
+  return (
+    <p className="rm-empty-hint no-print" contentEditable={false}>
+      Empty sections are not exported
+    </p>
   )
 }
 
@@ -864,6 +914,7 @@ export function SectionBody({ sectionKey, doc, config, edit }: { sectionKey: str
   return (
     <>
       {body}
+      {!sectionHasContent(sectionKey, doc.content) ? <EmptyHint /> : null}
       <AddEntry sectionKey={sectionKey} edit={edit} />
     </>
   )

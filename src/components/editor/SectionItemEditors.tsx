@@ -3,7 +3,7 @@ import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { cn } from '@/lib/utils'
-import { newItem, ADD_LABEL } from '@/lib/sections'
+import { newItem, removeItem, ADD_LABEL } from '@/lib/sections'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
 import { LogoPicker } from './fields/LogoPicker'
@@ -92,11 +92,7 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
       const it = list.find((x) => x.id === id)
       if (it) fn(it)
     })
-  const removeById = (id: string) =>
-    mutate((list) => {
-      const idx = list.findIndex((x) => x.id === id)
-      if (idx >= 0) list.splice(idx, 1)
-    })
+  const removeById = (id: string) => update((c) => removeItem(c, sectionKey, id))
   const reorder = (order: string[]) =>
     mutate((list) => {
       const byId = new Map(list.map((x) => [x.id, x]))

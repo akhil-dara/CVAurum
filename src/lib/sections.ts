@@ -69,6 +69,24 @@ export function pushNewItem(content: ResumeContent, sectionKey: string): void {
   if (Array.isArray(list)) list.push(item)
 }
 
+/** Remove an item by id from the right content array for a section key (standard or
+ *  custom). Shared by the side panel's Trash2 delete and the canvas's hover trash
+ *  button — one splice-by-id implementation, so both stay in sync. */
+export function removeItem(content: ResumeContent, sectionKey: string, id: string): void {
+  if (sectionKey.startsWith('custom-')) {
+    const scId = sectionKey.slice('custom-'.length)
+    const list = content.custom.find((c) => c.id === scId)?.items
+    if (!list) return
+    const idx = list.findIndex((x) => x.id === id)
+    if (idx >= 0) list.splice(idx, 1)
+    return
+  }
+  const list = (content as any)[sectionKey]
+  if (!Array.isArray(list)) return
+  const idx = list.findIndex((x: AnyItem) => x.id === id)
+  if (idx >= 0) list.splice(idx, 1)
+}
+
 /** Header-rendered, not reorderable. */
 export const HEADER_KEYS = ['profiles'] as const
 

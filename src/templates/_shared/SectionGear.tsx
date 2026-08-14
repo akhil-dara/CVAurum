@@ -367,17 +367,30 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
 
   return (
     <>
-      <button
-        type="button"
-        className="rm-section-gear no-print"
-        contentEditable={false}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={openPopover}
-        title="Style & settings for this section"
-        aria-label="Section style and settings"
-      >
-        <Settings2 /> Style
-      </button>
+      <div className="rm-section-controls no-print">
+        <button
+          type="button"
+          className="rm-section-gear"
+          contentEditable={false}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={openPopover}
+          title="Style & settings for this section"
+          aria-label="Section style and settings"
+        >
+          <Settings2 /> Style
+        </button>
+        <button
+          type="button"
+          className="rm-section-hide"
+          contentEditable={false}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={hide}
+          title="Hide section (restore from Sections panel)"
+          aria-label="Hide section"
+        >
+          <EyeOff />
+        </button>
+      </div>
       {open &&
         createPortal(
           <>
