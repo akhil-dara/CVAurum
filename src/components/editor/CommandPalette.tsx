@@ -122,8 +122,18 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         group: 'Export',
         label: 'Download PDF',
         hint: 'crisp, selectable, ATS-exact',
+        // Same in-flight guard as the top bar's Download PDF button (shared
+        // via useEditorStore's pdfExporting flag) — a no-op if an export
+        // triggered elsewhere is already running, rather than firing a
+        // second concurrent exportResumePdf/download.
         run: async () => {
-          await exportResumePdf(useResumeStore.getState().doc ?? doc)
+          if (useEditorStore.getState().pdfExporting) return
+          useEditorStore.getState().setPdfExporting(true)
+          try {
+            await exportResumePdf(useResumeStore.getState().doc ?? doc)
+          } finally {
+            useEditorStore.getState().setPdfExporting(false)
+          }
         },
       },
       { id: 'export-menu', group: 'Export', label: 'Open export menu…', hint: 'Word, JSON Resume, PDF', run: () => window.dispatchEvent(new Event('cvaurum:open-export')) },

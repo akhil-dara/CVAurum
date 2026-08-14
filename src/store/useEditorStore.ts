@@ -32,6 +32,11 @@ interface EditorState {
   copiedStyle: CopiedStyle | null
   /** recruiter skim heatmap overlay on the canvas */
   skimView: boolean
+  /** true while a "Download PDF" export is in flight (top bar menu or the
+   *  command palette both go through this) — guards against a second click
+   *  firing a duplicate exportResumePdf/download while the first is still
+   *  running. */
+  pdfExporting: boolean
 
   setLeftTab: (t: LeftTab) => void
   setActiveSection: (s: string | null) => void
@@ -50,6 +55,7 @@ interface EditorState {
   setFocusMode: (v: boolean) => void
   setCopiedStyle: (v: CopiedStyle | null) => void
   setSkimView: (v: boolean) => void
+  setPdfExporting: (v: boolean) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -66,6 +72,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   skimView: false,
   previewExact: false,
   focusMode: false,
+  pdfExporting: false,
 
   setLeftTab: (leftTab) => set({ leftTab }),
   setActiveSection: (activeSection) => set({ activeSection }),
@@ -84,4 +91,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setFocusMode: (focusMode) => set({ focusMode }),
   setCopiedStyle: (copiedStyle) => set({ copiedStyle }),
   setSkimView: (skimView) => set({ skimView }),
+  setPdfExporting: (pdfExporting) => set({ pdfExporting }),
 }))
