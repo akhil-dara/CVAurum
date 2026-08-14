@@ -92,7 +92,9 @@ function getMeasureElements(): { div: HTMLDivElement; probe: HTMLSpanElement } |
 
 function layoutMetricsFallback(cssFont: string, reason: string): LayoutMetrics {
   if (import.meta.env.DEV) {
-    console.warn(`[pdf] layout baseline probe unavailable for font "${cssFont}" (${reason}); falling back to canvas ascent`)
+    console.warn(
+      `[pdf] layout baseline probe unavailable for font "${cssFont}" (${reason}); falling back to canvas ascent`
+    )
   }
   return { ascentPx: ascentPx(cssFont), heightPx: null }
 }
@@ -125,7 +127,10 @@ export function layoutMetricsFor(cssFont: string): LayoutMetrics {
       const probeRect = probe.getBoundingClientRect()
       const a = probeRect.top - divRect.top
       const h = divRect.height
-      m = a > 0 && a < h ? { ascentPx: a, heightPx: h } : layoutMetricsFallback(cssFont, `nonsense probe result (ascent=${a}, height=${h})`)
+      m =
+        a > 0 && a < h
+          ? { ascentPx: a, heightPx: h }
+          : layoutMetricsFallback(cssFont, `nonsense probe result (ascent=${a}, height=${h})`)
     }
   } catch (e) {
     m = layoutMetricsFallback(cssFont, e instanceof Error ? e.message : String(e))
@@ -168,7 +173,12 @@ export function layoutMetricsFor(cssFont: string): LayoutMetrics {
  * real) while never letting an unreliable "normal" reference pull the
  * baseline the wrong direction.
  */
-export function halfLeadingBaselinePx(rectTop: number, rootTop: number, rectHeight: number, metrics: LayoutMetrics): number {
+export function halfLeadingBaselinePx(
+  rectTop: number,
+  rootTop: number,
+  rectHeight: number,
+  metrics: LayoutMetrics
+): number {
   if (metrics.heightPx == null) return rectTop - rootTop + metrics.ascentPx
   return rectTop - rootTop + Math.max(0, (rectHeight - metrics.heightPx) / 2) + metrics.ascentPx
 }

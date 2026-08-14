@@ -20,13 +20,22 @@ export function loadPdfFontIndex(): Promise<Record<string, string>> {
   if (!indexPromise) {
     indexPromise = fetch('/fonts-pdf/index.json')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('font index missing'))))
-      .catch((e) => { indexPromise = null; throw e })
+      .catch((e) => {
+        indexPromise = null
+        throw e
+      })
   }
   return indexPromise
 }
 
 const slug = (family: string) =>
-  family.replace(/^['"]|['"]$/g, '').split(',')[0].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  family
+    .replace(/^['"]|['"]$/g, '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 
 /** Pure font-key resolution, exported for testing. */
 export function resolveFontKey(index: Record<string, string>, family: string, weight: number): string | null {
@@ -44,7 +53,10 @@ export class PdfFontCache {
   private cache = new Map<string, Promise<PDFFont>>()
   private glyphFontCache = new Map<string, Promise<FontkitFont>>()
   private bytesCache = new Map<string, Promise<Uint8Array>>()
-  constructor(private doc: PDFDocument, private index: Record<string, string>) {}
+  constructor(
+    private doc: PDFDocument,
+    private index: Record<string, string>
+  ) {}
 
   embed(family: string, weight: number): Promise<PDFFont> {
     const key = this.resolve(family, weight)

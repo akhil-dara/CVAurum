@@ -1,9 +1,17 @@
-export interface Rgba { r: number; g: number; b: number; a: number }
+export interface Rgba {
+  r: number
+  g: number
+  b: number
+  a: number
+}
 
 function parseRgbFunction(s: string): Rgba | null {
   const m = s.match(/^rgba?\(([^)]+)\)$/i)
   if (!m) return null
-  const parts = m[1].split(/[,\s/]+/).filter(Boolean).map(Number)
+  const parts = m[1]
+    .split(/[,\s/]+/)
+    .filter(Boolean)
+    .map(Number)
   if (parts.length < 3 || parts.slice(0, 3).some(Number.isNaN)) return null
   return { r: parts[0] / 255, g: parts[1] / 255, b: parts[2] / 255, a: parts.length > 3 ? parts[3] : 1 }
 }
@@ -23,7 +31,11 @@ function parseHexColor(s: string): Rgba | null {
   const m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
   if (!m) return null
   let hex = m[1]
-  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('')
+  if (hex.length === 3)
+    hex = hex
+      .split('')
+      .map((c) => c + c)
+      .join('')
   const n = parseInt(hex, 16)
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }
 }

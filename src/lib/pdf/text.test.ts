@@ -88,7 +88,9 @@ describe('extractRuns — widthPx (task 12)', () => {
 
     const parent = {} as unknown as HTMLElement
     const node = { data: 'Hi', parentElement: parent } as unknown as Text
-    const root = { getBoundingClientRect: () => ({ top: 0, left: 0, right: 200, bottom: 300 }) } as unknown as HTMLElement
+    const root = {
+      getBoundingClientRect: () => ({ top: 0, left: 0, right: 200, bottom: 300 }),
+    } as unknown as HTMLElement
 
     const runs = extractRuns(node, root)
 
@@ -171,9 +173,20 @@ describe('layoutMetricsFor / extractRuns — DOM layout probe (task 14)', () => 
   // 'span' -> the inline-block probe, 'canvas' -> the ascentPx fallback's
   // measurement context (fontBoundingBoxAscent = canvasAscent).
   function fakeDocument(opts: { divTop: number; divHeight: number; probeTop: number; canvasAscent?: number }) {
-    const div = { style: {} as Record<string, string>, appendChild: () => {}, getBoundingClientRect: () => ({ top: opts.divTop, height: opts.divHeight }) }
+    const div = {
+      style: {} as Record<string, string>,
+      appendChild: () => {},
+      getBoundingClientRect: () => ({ top: opts.divTop, height: opts.divHeight }),
+    }
     const probe = { style: {} as Record<string, string>, getBoundingClientRect: () => ({ top: opts.probeTop }) }
-    const canvasCtx = { font: '', measureText: () => ({ width: 6, fontBoundingBoxAscent: opts.canvasAscent ?? 9, actualBoundingBoxAscent: opts.canvasAscent ?? 9 }) }
+    const canvasCtx = {
+      font: '',
+      measureText: () => ({
+        width: 6,
+        fontBoundingBoxAscent: opts.canvasAscent ?? 9,
+        actualBoundingBoxAscent: opts.canvasAscent ?? 9,
+      }),
+    }
     const doc = {
       body: { appendChild: () => {} },
       createElement: (tag: string) => (tag === 'div' ? div : tag === 'span' ? probe : { getContext: () => canvasCtx }),
@@ -215,8 +228,13 @@ describe('layoutMetricsFor / extractRuns — DOM layout probe (task 14)', () => 
 
   it('falls back to the canvas ascent entirely when no usable DOM is available (e.g. document.body missing)', async () => {
     vi.resetModules()
-    const canvasCtx = { font: '', measureText: () => ({ width: 6, fontBoundingBoxAscent: 9, actualBoundingBoxAscent: 9 }) }
-    globalThis.document = { createElement: (tag: string) => (tag === 'canvas' ? { getContext: () => canvasCtx } : {}) } as unknown as Document
+    const canvasCtx = {
+      font: '',
+      measureText: () => ({ width: 6, fontBoundingBoxAscent: 9, actualBoundingBoxAscent: 9 }),
+    }
+    globalThis.document = {
+      createElement: (tag: string) => (tag === 'canvas' ? { getContext: () => canvasCtx } : {}),
+    } as unknown as Document
     const { layoutMetricsFor } = await import('./text')
     expect(layoutMetricsFor('normal 400 12px Arial')).toEqual({ ascentPx: 9, heightPx: null })
   })
@@ -231,15 +249,25 @@ describe('layoutMetricsFor / extractRuns — DOM layout probe (task 14)', () => 
     const { doc } = fakeDocument({ divTop: 0, divHeight: 14, probeTop: 10 })
     globalThis.document = { ...doc, createRange: () => fakeRange } as unknown as Document
     globalThis.getComputedStyle = (() => ({
-      visibility: 'visible', display: 'inline', opacity: '1', color: 'rgb(20, 20, 20)',
-      fontStyle: 'normal', fontWeight: '400', fontSize: '12px', fontFamily: 'Arial',
-      whiteSpace: 'normal', textTransform: 'none', letterSpacing: 'normal',
+      visibility: 'visible',
+      display: 'inline',
+      opacity: '1',
+      color: 'rgb(20, 20, 20)',
+      fontStyle: 'normal',
+      fontWeight: '400',
+      fontSize: '12px',
+      fontFamily: 'Arial',
+      whiteSpace: 'normal',
+      textTransform: 'none',
+      letterSpacing: 'normal',
     })) as unknown as typeof getComputedStyle
 
     const { extractRuns } = await import('./text')
     const parent = {} as unknown as HTMLElement
     const node = { data: 'Hi', parentElement: parent } as unknown as Text
-    const root = { getBoundingClientRect: () => ({ top: 0, left: 0, right: 200, bottom: 300 }) } as unknown as HTMLElement
+    const root = {
+      getBoundingClientRect: () => ({ top: 0, left: 0, right: 200, bottom: 300 }),
+    } as unknown as HTMLElement
 
     const runs = extractRuns(node, root)
     expect(runs.length).toBe(1)

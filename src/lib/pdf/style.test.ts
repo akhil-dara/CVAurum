@@ -30,7 +30,10 @@ describe('parseColor', () => {
     })
     it('parses color(srgb R G B / A) with an explicit 0..1 alpha (aurum chip bg)', () => {
       expect(parseColor('color(srgb 0.752941 0.564706 0.184314 / 0.15)')).toEqual({
-        r: 0.752941, g: 0.564706, b: 0.184314, a: 0.15,
+        r: 0.752941,
+        g: 0.564706,
+        b: 0.184314,
+        a: 0.15,
       })
     })
     it('parses color(srgb ...) with percentage R/G/B channels', () => {
@@ -41,7 +44,10 @@ describe('parseColor', () => {
     })
     it('parses color(srgb ...) mixing float channels with a percentage alpha (section-icon chip bg)', () => {
       expect(parseColor('color(srgb 0.109804 0.101961 0.0901961 / 0.14)')).toEqual({
-        r: 0.109804, g: 0.101961, b: 0.0901961, a: 0.14,
+        r: 0.109804,
+        g: 0.101961,
+        b: 0.0901961,
+        a: 0.14,
       })
     })
     it('returns null for a malformed color() function rather than a garbage partial match', () => {

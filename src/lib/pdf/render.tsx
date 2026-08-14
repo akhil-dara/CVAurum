@@ -69,7 +69,12 @@ const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? font
 function raf2(): Promise<void> {
   return new Promise((resolve) => {
     let done = false
-    const finish = () => { if (!done) { done = true; resolve() } }
+    const finish = () => {
+      if (!done) {
+        done = true
+        resolve()
+      }
+    }
     requestAnimationFrame(() => requestAnimationFrame(finish))
     setTimeout(finish, 400)
   })
@@ -92,7 +97,11 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
   try {
     root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
 
-    await ensureFontsReady([doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
+    await ensureFontsReady([
+      doc.metadata.typography.fontFamily,
+      doc.metadata.typography.headingFamily,
+      doc.metadata.typography.nameFamily,
+    ])
     await raf2()
 
     if (doc.metadata.page.autoFit) {

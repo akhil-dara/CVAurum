@@ -1,5 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity, cornerRadii, BORDER_EDGES, buildDrawList } from './walk'
+import {
+  parseLinearGradient,
+  pseudoContentText,
+  svgShapeToPathD,
+  pseudoBox,
+  elementOpacity,
+  cornerRadii,
+  BORDER_EDGES,
+  buildDrawList,
+} from './walk'
 import type { DrawOp } from './types'
 
 describe('pseudoContentText', () => {
@@ -54,7 +63,9 @@ describe('parseLinearGradient', () => {
   it('returns null for gradient shapes it does not claim to support (radial, keyword direction, 3+ stops)', () => {
     expect(parseLinearGradient('radial-gradient(circle, red, blue)')).toBeNull()
     expect(parseLinearGradient('linear-gradient(to right, rgb(0, 0, 0), rgb(255, 255, 255))')).toBeNull()
-    expect(parseLinearGradient('linear-gradient(90deg, rgb(0, 0, 0), rgb(128, 128, 128), rgb(255, 255, 255))')).toBeNull()
+    expect(
+      parseLinearGradient('linear-gradient(90deg, rgb(0, 0, 0), rgb(128, 128, 128), rgb(255, 255, 255))')
+    ).toBeNull()
   })
 })
 
@@ -62,9 +73,12 @@ describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
   // attr() closures below mirror reading Element.getAttribute(name): missing
   // attributes return null, exactly like the DOM does — svgIconOps passes
   // `(name) => child.getAttribute(name)` directly.
-  const attrs = (a: Record<string, string>) => (name: string): string | null => a[name] ?? null
+  const attrs =
+    (a: Record<string, string>) =>
+    (name: string): string | null =>
+      a[name] ?? null
 
-  it('returns a path\'s own `d` verbatim (no re-parsing/transforming its commands)', () => {
+  it("returns a path's own `d` verbatim (no re-parsing/transforming its commands)", () => {
     const d = 'M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16'
     expect(svgShapeToPathD('path', attrs({ d }))).toBe(d)
   })
@@ -72,7 +86,7 @@ describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
     expect(svgShapeToPathD('path', attrs({}))).toBeNull()
   })
 
-  it('converts a line to a single M/L segment (AlignLeft\'s 3 lines)', () => {
+  it("converts a line to a single M/L segment (AlignLeft's 3 lines)", () => {
     expect(svgShapeToPathD('line', attrs({ x1: '21', x2: '3', y1: '6', y2: '6' }))).toBe('M 21 6 L 3 6')
   })
 
@@ -89,18 +103,18 @@ describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
     expect(svgShapeToPathD('polyline', attrs({ points: '3,6 21' }))).toBeNull()
   })
 
-  it('converts a circle to a two-arc closed path (Award\'s badge ring)', () => {
+  it("converts a circle to a two-arc closed path (Award's badge ring)", () => {
     expect(svgShapeToPathD('circle', attrs({ cx: '12', cy: '8', r: '6' }))).toBe(
-      'M 6 8 A 6 6 0 1 0 18 8 A 6 6 0 1 0 6 8 Z',
+      'M 6 8 A 6 6 0 1 0 18 8 A 6 6 0 1 0 6 8 Z'
     )
   })
   it('returns null for a non-positive circle radius', () => {
     expect(svgShapeToPathD('circle', attrs({ cx: '12', cy: '8', r: '0' }))).toBeNull()
   })
 
-  it('converts a rect to a plain M/L/Z rectangle, ignoring rx (Briefcase\'s body)', () => {
+  it("converts a rect to a plain M/L/Z rectangle, ignoring rx (Briefcase's body)", () => {
     expect(svgShapeToPathD('rect', attrs({ x: '2', y: '6', width: '20', height: '14', rx: '2' }))).toBe(
-      'M 2 6 L 22 6 L 22 20 L 2 20 Z',
+      'M 2 6 L 22 6 L 22 20 L 2 20 Z'
     )
   })
   it('returns null for a zero/negative-area rect', () => {
@@ -116,7 +130,14 @@ describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
   const host = { xPx: 49, yPx: 127, wPx: 695, hPx: 16 }
   const cs = (over: Record<string, string>): CSSStyleDeclaration => {
     const base: Record<string, string> = {
-      position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
+      position: 'static',
+      left: 'auto',
+      right: 'auto',
+      top: 'auto',
+      bottom: 'auto',
+      width: 'auto',
+      height: 'auto',
+      fontSize: '12px',
     }
     return { ...base, ...over } as unknown as CSSStyleDeclaration
   }
@@ -128,12 +149,17 @@ describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
   })
 
   it('applies an absolute left/top offset from the host origin', () => {
-    expect(pseudoBox(cs({ position: 'absolute', left: '5px', top: '3px', width: '10px', height: '2px' }), host)).toEqual({
-      xPx: 54, yPx: 130, wPx: 10, hPx: 2,
+    expect(
+      pseudoBox(cs({ position: 'absolute', left: '5px', top: '3px', width: '10px', height: '2px' }), host)
+    ).toEqual({
+      xPx: 54,
+      yPx: 130,
+      wPx: 10,
+      hPx: 2,
     })
   })
 
-  it('derives width from host width minus left+right insets when width is auto (.sec-ov-strike\'s full-width rule)', () => {
+  it("derives width from host width minus left+right insets when width is auto (.sec-ov-strike's full-width rule)", () => {
     // Real computed values captured from .sec-ov-strike's ::before (task-13
     // report): left:0, right:0, top resolved from 50%, height explicit.
     const box = pseudoBox(cs({ position: 'absolute', left: '0px', right: '0px', top: '8px', height: '1.2px' }), host)
@@ -161,16 +187,24 @@ describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
     // bottom:0, width:1.9em (17.2969px), height:2px, top/right:auto. Before
     // this fix the pseudo painted at the host's TOP (box.yPx) instead,
     // landing the accent bar across the heading text instead of below it.
-    const box = pseudoBox(cs({ position: 'absolute', left: '0px', bottom: '0px', width: '17.2969px', height: '2px' }), host)
+    const box = pseudoBox(
+      cs({ position: 'absolute', left: '0px', bottom: '0px', width: '17.2969px', height: '2px' }),
+      host
+    )
     expect(box.xPx).toBe(49)
     expect(box.wPx).toBe(17.2969)
     expect(box.yPx).toBe(host.yPx + host.hPx - 2) // bottom-aligned within the host box, not top-aligned
   })
 
   it('relative positioning applies the same left/top math as absolute (both share one containing-block model here)', () => {
-    expect(pseudoBox(cs({ position: 'relative', left: '4px', top: '1px', width: '5px', height: '5px' }), host)).toEqual({
-      xPx: 53, yPx: 128, wPx: 5, hPx: 5,
-    })
+    expect(pseudoBox(cs({ position: 'relative', left: '4px', top: '1px', width: '5px', height: '5px' }), host)).toEqual(
+      {
+        xPx: 53,
+        yPx: 128,
+        wPx: 5,
+        hPx: 5,
+      }
+    )
   })
 })
 
@@ -191,12 +225,25 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
   const textSpanBox = { xPx: 49.125, yPx: 141.344, wPx: 65.063, hPx: 14.906 }
   const cs = (over: Record<string, string>): CSSStyleDeclaration => {
     const base: Record<string, string> = {
-      position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
+      position: 'static',
+      left: 'auto',
+      right: 'auto',
+      top: 'auto',
+      bottom: 'auto',
+      width: 'auto',
+      height: 'auto',
+      fontSize: '12px',
     }
     return { ...base, ...over } as unknown as CSSStyleDeclaration
   }
   const flexHostCs = (over: Record<string, string> = {}): CSSStyleDeclaration =>
-    ({ display: 'flex', alignItems: 'center', columnGap: '10px', flexDirection: 'row', ...over }) as unknown as CSSStyleDeclaration
+    ({
+      display: 'flex',
+      alignItems: 'center',
+      columnGap: '10px',
+      flexDirection: 'row',
+      ...over,
+    }) as unknown as CSSStyleDeclaration
 
   it('positions a static ::after flex item right after the last real child + gap, not at the host origin', () => {
     const box = pseudoBox(cs({ height: '1.5px', width: '620.375px' }), host, '::after', flexHostCs(), textSpanBox)
@@ -215,7 +262,13 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
   })
 
   it('honors align-items: flex-start by top-aligning the flex item within the row (host-origin y, unchanged)', () => {
-    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ alignItems: 'flex-start' }), textSpanBox)
+    const box = pseudoBox(
+      cs({ height: '1.5px' }),
+      host,
+      '::after',
+      flexHostCs({ alignItems: 'flex-start' }),
+      textSpanBox
+    )
     expect(box.yPx).toBe(host.yPx)
   })
 
@@ -242,7 +295,13 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
     // column IS handled (fix round 2, see the dedicated describe block below)
     // -- row-reverse is the one standard flex-direction value this module
     // still falls back to the plain host-origin approximation for.
-    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ flexDirection: 'row-reverse' }), textSpanBox)
+    const box = pseudoBox(
+      cs({ height: '1.5px' }),
+      host,
+      '::after',
+      flexHostCs({ flexDirection: 'row-reverse' }),
+      textSpanBox
+    )
     expect(box.xPx).toBe(host.xPx)
     expect(box.yPx).toBe(host.yPx)
   })
@@ -254,7 +313,10 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
     // (or blending with) the flex-item branch.
     const box = pseudoBox(
       cs({ position: 'absolute', left: '0px', right: '0px', top: '8px', height: '1.2px' }),
-      host, '::before', flexHostCs(), textSpanBox,
+      host,
+      '::before',
+      flexHostCs(),
+      textSpanBox
     )
     expect(box.xPx).toBe(49.125) // host.xPx + left(0), same as the plain absolute case
     expect(box.wPx).toBeCloseTo(695.438, 3) // host.wPx - left(0) - right(0)
@@ -269,7 +331,7 @@ describe('BORDER_EDGES (task 14 — border lines inset by half their width)', ()
   // where CSS's own stroke centerline does.
   const box = { xPx: 10, yPx: 20, wPx: 200, hPx: 50 } // right edge x=210, bottom edge y=70
 
-  it('insets a 2px bottom border upward from the box bottom edge (the brief\'s worked example)', () => {
+  it("insets a 2px bottom border upward from the box bottom edge (the brief's worked example)", () => {
     const bottom = BORDER_EDGES.find((e) => e.side === 'Bottom')!
     expect(bottom.y1(box, 2)).toBe(69) // 70 - 2/2
     expect(bottom.y2(box, 2)).toBe(69)
@@ -303,7 +365,7 @@ describe('BORDER_EDGES (task 14 — border lines inset by half their width)', ()
 })
 
 describe('elementOpacity (task 13 — opacity multiplication)', () => {
-  const cs = (opacity: string): CSSStyleDeclaration => ({ opacity } as unknown as CSSStyleDeclaration)
+  const cs = (opacity: string): CSSStyleDeclaration => ({ opacity }) as unknown as CSSStyleDeclaration
 
   it('reads a fractional computed opacity', () => {
     expect(elementOpacity(cs('0.38'))).toBe(0.38) // .sec-ov-strike's heading rule
@@ -321,21 +383,46 @@ describe('cornerRadii (fix round 2, defect B — per-corner border radii)', () =
   // value to all four corners, so an asymmetric box (spotlight's header
   // banner, `border-radius: 0 0 18px 18px` — square top, rounded bottom
   // only) painted as a plain rectangle. cornerRadii reads all four.
-  const cs = (over: Partial<Record<'borderTopLeftRadius' | 'borderTopRightRadius' | 'borderBottomRightRadius' | 'borderBottomLeftRadius', string>>): CSSStyleDeclaration =>
+  const cs = (
+    over: Partial<
+      Record<
+        'borderTopLeftRadius' | 'borderTopRightRadius' | 'borderBottomRightRadius' | 'borderBottomLeftRadius',
+        string
+      >
+    >
+  ): CSSStyleDeclaration =>
     ({
-      borderTopLeftRadius: '0px', borderTopRightRadius: '0px', borderBottomRightRadius: '0px', borderBottomLeftRadius: '0px',
+      borderTopLeftRadius: '0px',
+      borderTopRightRadius: '0px',
+      borderBottomRightRadius: '0px',
+      borderBottomLeftRadius: '0px',
       ...over,
     }) as unknown as CSSStyleDeclaration
 
   it('reads all four corners, not just top-left', () => {
-    expect(cornerRadii(cs({ borderTopLeftRadius: '1px', borderTopRightRadius: '2px', borderBottomRightRadius: '3px', borderBottomLeftRadius: '4px' }))).toEqual({
-      tl: 1, tr: 2, br: 3, bl: 4,
+    expect(
+      cornerRadii(
+        cs({
+          borderTopLeftRadius: '1px',
+          borderTopRightRadius: '2px',
+          borderBottomRightRadius: '3px',
+          borderBottomLeftRadius: '4px',
+        })
+      )
+    ).toEqual({
+      tl: 1,
+      tr: 2,
+      br: 3,
+      bl: 4,
     })
   })
 
-  it('captures spotlight header banner\'s exact asymmetric shape (border-radius: 0 0 18px 18px)', () => {
+  it("captures spotlight header banner's exact asymmetric shape (border-radius: 0 0 18px 18px)", () => {
     expect(cornerRadii(cs({ borderBottomRightRadius: '18px', borderBottomLeftRadius: '18px' }))).toEqual({
-      tl: 0, tr: 0, br: 18, bl: 18,
+      tl: 0,
+      tr: 0,
+      br: 18,
+      bl: 18,
     })
   })
 
@@ -372,48 +459,94 @@ describe('pseudoBox — flex-column hosts (fix round 2, defect A — sienna acce
   const lastChildBox = { xPx: 49.125, yPx: 49.125, wPx: 695.438, hPx: 65.313 }
   const cs = (over: Record<string, string>): CSSStyleDeclaration => {
     const base: Record<string, string> = {
-      position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
-      marginTop: '0px', marginLeft: '0px', marginRight: '0px',
+      position: 'static',
+      left: 'auto',
+      right: 'auto',
+      top: 'auto',
+      bottom: 'auto',
+      width: 'auto',
+      height: 'auto',
+      fontSize: '12px',
+      marginTop: '0px',
+      marginLeft: '0px',
+      marginRight: '0px',
     }
     return { ...base, ...over } as unknown as CSSStyleDeclaration
   }
   const columnHostCs = (over: Record<string, string> = {}): CSSStyleDeclaration =>
-    ({ display: 'flex', alignItems: 'flex-start', columnGap: '20px', rowGap: '20px', flexDirection: 'column', ...over }) as unknown as CSSStyleDeclaration
+    ({
+      display: 'flex',
+      alignItems: 'flex-start',
+      columnGap: '20px',
+      rowGap: '20px',
+      flexDirection: 'column',
+      ...over,
+    }) as unknown as CSSStyleDeclaration
 
   it('positions a static ::after column-flex item after the last child + row-gap + its own margin-top (sienna accent rule)', () => {
     const box = pseudoBox(
       cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }),
-      host, '::after', columnHostCs(), lastChildBox,
+      host,
+      '::after',
+      columnHostCs(),
+      lastChildBox
     )
     expect(box.yPx).toBeCloseTo(146.438, 2) // lastChildBox bottom(114.438) + rowGap(20) + marginTop(12)
   })
 
-  it('horizontally centers via the pseudo\'s own resolved auto margins, not align-items', () => {
+  it("horizontally centers via the pseudo's own resolved auto margins, not align-items", () => {
     const box = pseudoBox(
       cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }),
-      host, '::after', columnHostCs(), lastChildBox,
+      host,
+      '::after',
+      columnHostCs(),
+      lastChildBox
     )
     expect(box.xPx).toBeCloseTo(374.844, 2) // host.xPx(49.125) + marginLeft(325.719) -- centers the 44px rule
     expect(box.xPx + box.wPx / 2).toBeCloseTo(host.xPx + host.wPx / 2, 1) // true center of the 44px rule = host's own center
   })
 
   it('falls back to align-items on the cross axis when the pseudo has no margin (0 on both sides)', () => {
-    const box = pseudoBox(cs({ width: '10px', height: '2px' }), host, '::after', columnHostCs({ alignItems: 'center' }), lastChildBox)
+    const box = pseudoBox(
+      cs({ width: '10px', height: '2px' }),
+      host,
+      '::after',
+      columnHostCs({ alignItems: 'center' }),
+      lastChildBox
+    )
     expect(box.xPx).toBeCloseTo(host.xPx + (host.wPx - 10) / 2, 6)
   })
 
   it('a ::before column-flex item skips the "after last child" main-axis shift but still gets its own margin-top', () => {
-    const box = pseudoBox(cs({ width: '44px', height: '1px', marginTop: '5px' }), host, '::before', columnHostCs(), lastChildBox)
+    const box = pseudoBox(
+      cs({ width: '44px', height: '1px', marginTop: '5px' }),
+      host,
+      '::before',
+      columnHostCs(),
+      lastChildBox
+    )
     expect(box.yPx).toBe(host.yPx + 5) // NOT shifted past lastChildBox — ::before is first in box order
   })
 
   it('falls back to the host origin for ::after when there is no last-child box (empty host)', () => {
-    const box = pseudoBox(cs({ width: '44px', height: '1px', marginTop: '12px' }), host, '::after', columnHostCs(), null)
+    const box = pseudoBox(
+      cs({ width: '44px', height: '1px', marginTop: '12px' }),
+      host,
+      '::after',
+      columnHostCs(),
+      null
+    )
     expect(box.yPx).toBe(host.yPx + 12) // host origin + its own margin-top, no lastChildBox to shift past
   })
 
   it('does not apply column flex-item positioning when the host is not a flex container', () => {
-    const box = pseudoBox(cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }), host, '::after', undefined, lastChildBox)
+    const box = pseudoBox(
+      cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }),
+      host,
+      '::after',
+      undefined,
+      lastChildBox
+    )
     expect(box.xPx).toBe(host.xPx)
     expect(box.yPx).toBe(host.yPx)
   })
@@ -442,7 +575,12 @@ describe('buildDrawList — root paints its own box first (task 15, defect 1)', 
     g.HTMLImageElement = originalHTMLImageElement
   })
 
-  interface FakeRect { left: number; top: number; width: number; height: number }
+  interface FakeRect {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
   interface FakeEl {
     nodeType: number
     tagName: string
@@ -454,12 +592,25 @@ describe('buildDrawList — root paints its own box first (task 15, defect 1)', 
   }
 
   const BASE_CS: Record<string, string> = {
-    backgroundColor: 'rgba(0, 0, 0, 0)', backgroundImage: 'none', borderTopLeftRadius: '0px',
-    borderTopWidth: '0px', borderTopStyle: 'none', borderTopColor: 'rgba(0,0,0,0)',
-    borderRightWidth: '0px', borderRightStyle: 'none', borderRightColor: 'rgba(0,0,0,0)',
-    borderBottomWidth: '0px', borderBottomStyle: 'none', borderBottomColor: 'rgba(0,0,0,0)',
-    borderLeftWidth: '0px', borderLeftStyle: 'none', borderLeftColor: 'rgba(0,0,0,0)',
-    opacity: '1', display: 'block', visibility: 'visible', content: 'none',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    borderTopLeftRadius: '0px',
+    borderTopWidth: '0px',
+    borderTopStyle: 'none',
+    borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px',
+    borderRightStyle: 'none',
+    borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px',
+    borderBottomStyle: 'none',
+    borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px',
+    borderLeftStyle: 'none',
+    borderLeftColor: 'rgba(0,0,0,0)',
+    opacity: '1',
+    display: 'block',
+    visibility: 'visible',
+    content: 'none',
   }
 
   function makeCs(overrides: Record<string, string>): CSSStyleDeclaration {
@@ -525,7 +676,7 @@ describe('buildDrawList — root paints its own box first (task 15, defect 1)', 
       pseudo ? makeCs({ content: 'none' }) : makeCs((el as FakeEl).cs)) as unknown as typeof getComputedStyle
   }
 
-  it('emits a rect op at (0,0) with the ROOT element\'s own dimensions, before any child ops', () => {
+  it("emits a rect op at (0,0) with the ROOT element's own dimensions, before any child ops", () => {
     install()
     const child = makeEl({ left: 5, top: 5, width: 50, height: 20 }, { backgroundColor: 'rgb(255, 0, 0)' })
     const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, { backgroundColor: 'rgb(13, 14, 18)' }, [child])
@@ -582,7 +733,12 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
     g.HTMLImageElement = originalHTMLImageElement
   })
 
-  interface FakeRect { left: number; top: number; width: number; height: number }
+  interface FakeRect {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
   interface FakeEl {
     nodeType: number
     tagName: string
@@ -599,14 +755,34 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
   // which never resolves actual pseudo TEXT content) so styledTextRun
   // produces a real run for a non-'none' ::before/::after content string.
   const BASE_CS: Record<string, string> = {
-    backgroundColor: 'rgba(0, 0, 0, 0)', backgroundImage: 'none',
-    borderTopLeftRadius: '0px', borderTopRightRadius: '0px', borderBottomRightRadius: '0px', borderBottomLeftRadius: '0px',
-    borderTopWidth: '0px', borderTopStyle: 'none', borderTopColor: 'rgba(0,0,0,0)',
-    borderRightWidth: '0px', borderRightStyle: 'none', borderRightColor: 'rgba(0,0,0,0)',
-    borderBottomWidth: '0px', borderBottomStyle: 'none', borderBottomColor: 'rgba(0,0,0,0)',
-    borderLeftWidth: '0px', borderLeftStyle: 'none', borderLeftColor: 'rgba(0,0,0,0)',
-    opacity: '1', display: 'block', visibility: 'visible', content: 'none',
-    color: 'rgb(0, 0, 0)', fontSize: '10px', fontStyle: 'normal', fontWeight: '400', fontFamily: 'Arial', letterSpacing: 'normal',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    borderTopLeftRadius: '0px',
+    borderTopRightRadius: '0px',
+    borderBottomRightRadius: '0px',
+    borderBottomLeftRadius: '0px',
+    borderTopWidth: '0px',
+    borderTopStyle: 'none',
+    borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px',
+    borderRightStyle: 'none',
+    borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px',
+    borderBottomStyle: 'none',
+    borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px',
+    borderLeftStyle: 'none',
+    borderLeftColor: 'rgba(0,0,0,0)',
+    opacity: '1',
+    display: 'block',
+    visibility: 'visible',
+    content: 'none',
+    color: 'rgb(0, 0, 0)',
+    fontSize: '10px',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontFamily: 'Arial',
+    letterSpacing: 'normal',
   }
 
   function makeCsFrom(fields: Record<string, string>): CSSStyleDeclaration {
@@ -616,7 +792,12 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
     } as unknown as CSSStyleDeclaration
   }
 
-  function makeEl(rect: FakeRect, csOverrides: Record<string, string>, children: FakeEl[] = [], pseudo: { before?: string; after?: string } = {}): FakeEl {
+  function makeEl(
+    rect: FakeRect,
+    csOverrides: Record<string, string>,
+    children: FakeEl[] = [],
+    pseudo: { before?: string; after?: string } = {}
+  ): FakeEl {
     const el: FakeEl = {
       nodeType: 1,
       tagName: 'DIV',
@@ -660,7 +841,10 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
     g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
     g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
     g.HTMLImageElement = class {} // no fake element in this suite is ever one
-    const canvasCtx = { font: '', measureText: () => ({ width: 6, fontBoundingBoxAscent: 9, actualBoundingBoxAscent: 9 }) }
+    const canvasCtx = {
+      font: '',
+      measureText: () => ({ width: 6, fontBoundingBoxAscent: 9, actualBoundingBoxAscent: 9 }),
+    }
     globalThis.document = {
       createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
         fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl) => number),
@@ -676,7 +860,7 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
     }) as unknown as typeof getComputedStyle
   }
 
-  it('orders a host\'s ops as: host box -> host ::before -> child ops -> host ::after, before the next sibling', () => {
+  it("orders a host's ops as: host box -> host ::before -> child ops -> host ::after, before the next sibling", () => {
     install()
 
     const child = makeEl({ left: 10, top: 10, width: 30, height: 10 }, { backgroundColor: 'rgb(255, 0, 0)' })
@@ -684,10 +868,13 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
       { left: 0, top: 0, width: 100, height: 50 },
       { backgroundColor: 'rgb(0, 0, 255)' },
       [child],
-      { before: '"«"', after: '"»"' }, // « and » — distinct, greppable sentinel glyphs
+      { before: '"«"', after: '"»"' } // « and » — distinct, greppable sentinel glyphs
     )
     const sibling = makeEl({ left: 0, top: 50, width: 100, height: 20 }, { backgroundColor: 'rgb(0, 255, 0)' })
-    const root = makeEl({ left: 0, top: 0, width: 100, height: 70 }, { backgroundColor: 'rgba(0, 0, 0, 0)' }, [host, sibling])
+    const root = makeEl({ left: 0, top: 0, width: 100, height: 70 }, { backgroundColor: 'rgba(0, 0, 0, 0)' }, [
+      host,
+      sibling,
+    ])
 
     const ops = buildDrawList(root as unknown as HTMLElement)
 
@@ -697,7 +884,8 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
     const hostAfterIdx = ops.findIndex((o) => o.kind === 'text' && o.run.text === '»')
     const siblingBoxIdx = ops.findIndex((o) => o.kind === 'rect' && o.fill?.g === 1)
 
-    for (const idx of [hostBoxIdx, hostBeforeIdx, childBoxIdx, hostAfterIdx, siblingBoxIdx]) expect(idx).toBeGreaterThanOrEqual(0)
+    for (const idx of [hostBoxIdx, hostBeforeIdx, childBoxIdx, hostAfterIdx, siblingBoxIdx])
+      expect(idx).toBeGreaterThanOrEqual(0)
 
     // host's own box paints before its ::before.
     expect(hostBoxIdx).toBeLessThan(hostBeforeIdx)

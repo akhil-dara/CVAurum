@@ -32,7 +32,7 @@ import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
  */
 export function parseLinearGradient(backgroundImage: string): LinearGradient | null {
   const m = (backgroundImage || '').match(
-    /^linear-gradient\(\s*(?:([\d.]+)deg\s*,\s*)?((?:rgba?|color)\([^)]*\))\s*,\s*((?:rgba?|color)\([^)]*\))\s*\)$/i,
+    /^linear-gradient\(\s*(?:([\d.]+)deg\s*,\s*)?((?:rgba?|color)\([^)]*\))\s*,\s*((?:rgba?|color)\([^)]*\))\s*\)$/i
   )
   if (!m) return null
   const c1 = parseColor(m[2])
@@ -78,9 +78,27 @@ type EdgeCoord = (b: ReturnType<typeof boxOf>, w: number) => number
  *  testable outside a DOM). */
 export const BORDER_EDGES: Array<{ side: string; x1: EdgeCoord; y1: EdgeCoord; x2: EdgeCoord; y2: EdgeCoord }> = [
   { side: 'Top', x1: (b) => b.xPx, y1: (b, w) => b.yPx + w / 2, x2: (b) => b.xPx + b.wPx, y2: (b, w) => b.yPx + w / 2 },
-  { side: 'Right', x1: (b, w) => b.xPx + b.wPx - w / 2, y1: (b) => b.yPx, x2: (b, w) => b.xPx + b.wPx - w / 2, y2: (b) => b.yPx + b.hPx },
-  { side: 'Bottom', x1: (b) => b.xPx, y1: (b, w) => b.yPx + b.hPx - w / 2, x2: (b) => b.xPx + b.wPx, y2: (b, w) => b.yPx + b.hPx - w / 2 },
-  { side: 'Left', x1: (b, w) => b.xPx + w / 2, y1: (b) => b.yPx, x2: (b, w) => b.xPx + w / 2, y2: (b) => b.yPx + b.hPx },
+  {
+    side: 'Right',
+    x1: (b, w) => b.xPx + b.wPx - w / 2,
+    y1: (b) => b.yPx,
+    x2: (b, w) => b.xPx + b.wPx - w / 2,
+    y2: (b) => b.yPx + b.hPx,
+  },
+  {
+    side: 'Bottom',
+    x1: (b) => b.xPx,
+    y1: (b, w) => b.yPx + b.hPx - w / 2,
+    x2: (b) => b.xPx + b.wPx,
+    y2: (b, w) => b.yPx + b.hPx - w / 2,
+  },
+  {
+    side: 'Left',
+    x1: (b, w) => b.xPx + w / 2,
+    y1: (b) => b.yPx,
+    x2: (b, w) => b.xPx + w / 2,
+    y2: (b) => b.yPx + b.hPx,
+  },
 ]
 
 /** Computed `opacity`, defaulting to 1 for anything unparseable — shared by
@@ -146,8 +164,13 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     if (!color || color.a === 0) continue
     ops.push({
       kind: 'line',
-      x1Px: edge.x1(box, width), y1Px: edge.y1(box, width), x2Px: edge.x2(box, width), y2Px: edge.y2(box, width),
-      widthPx: width, color: { ...color, a: color.a * opacityMul }, dashed: style === 'dashed' || style === 'dotted',
+      x1Px: edge.x1(box, width),
+      y1Px: edge.y1(box, width),
+      x2Px: edge.x2(box, width),
+      y2Px: edge.y2(box, width),
+      widthPx: width,
+      color: { ...color, a: color.a * opacityMul },
+      dashed: style === 'dashed' || style === 'dotted',
     })
   }
 
@@ -165,7 +188,11 @@ function parseHexColor(s: string): Rgba | null {
   const m = (s || '').trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
   if (!m) return null
   let hex = m[1]
-  if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('')
+  if (hex.length === 3)
+    hex = hex
+      .split('')
+      .map((c) => c + c)
+      .join('')
   const n = parseInt(hex, 16)
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255, a: 1 }
 }
@@ -213,7 +240,10 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
   }
   if (!svg || svg.nodeName !== 'svg' || svg.querySelector('parsererror')) return false
 
-  const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number)
+  const vb = (svg.getAttribute('viewBox') || '')
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number)
   const [vbX, vbY, vbW, vbH] = vb.length === 4 && vb.every(Number.isFinite) ? vb : [0, 0, box.wPx, box.hPx]
   if (vbW <= 0 || vbH <= 0) return false
   const scaleX = box.wPx / vbW
@@ -233,7 +263,10 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
         kind: 'rect',
         xPx: box.xPx + (parseFloat(rectEl.getAttribute('x') || '0') - vbX) * scaleX,
         yPx: box.yPx + (parseFloat(rectEl.getAttribute('y') || '0') - vbY) * scaleY,
-        wPx, hPx, fill, radiusPx,
+        wPx,
+        hPx,
+        fill,
+        radiusPx,
       })
     }
   }
@@ -262,7 +295,22 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
       // widthPx: 0 — no measured DOM rect backs this synthesized run (see
       // types.ts's TextRun.widthPx); it's also isDecorative so paint.ts's
       // Tz scaling never looks at it anyway.
-      ops.push({ kind: 'text', run: { text: label, xPx, widthPx: 0, baselinePx, sizePx, family, weight, italic: false, color: fill, letterSpacingPx: 0, isDecorative: true } })
+      ops.push({
+        kind: 'text',
+        run: {
+          text: label,
+          xPx,
+          widthPx: 0,
+          baselinePx,
+          sizePx,
+          family,
+          weight,
+          italic: false,
+          color: fill,
+          letterSpacingPx: 0,
+          isDecorative: true,
+        },
+      })
     }
   }
 
@@ -367,7 +415,7 @@ export function pseudoBox(
   host: Box,
   which: '::before' | '::after' = '::before',
   hostCs?: FlexHostStyle,
-  lastChildBox?: Box | null,
+  lastChildBox?: Box | null
 ): Box {
   let xPx = host.xPx
   let yPx = host.yPx
@@ -453,15 +501,24 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
   const bg = parseColor(cs.backgroundColor)
   if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {
     ops.push({
-      kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx,
-      fill: { ...bg, a: bg.a * opacityMul }, radii: cornerRadii(cs),
+      kind: 'rect',
+      xPx: box.xPx,
+      yPx: box.yPx,
+      wPx: box.wPx,
+      hPx: box.hPx,
+      fill: { ...bg, a: bg.a * opacityMul },
+      radii: cornerRadii(cs),
     })
   }
 
   const text = pseudoContentText(cs.content)
   if (!text) return
   const run = styledTextRun(cs, text, box.xPx, box.yPx)
-  if (run) ops.push({ kind: 'text', run: opacityMul === 1 ? run : { ...run, color: { ...run.color, a: run.color.a * opacityMul } } })
+  if (run)
+    ops.push({
+      kind: 'text',
+      run: opacityMul === 1 ? run : { ...run, color: { ...run.color, a: run.color.a * opacityMul } },
+    })
 }
 
 /** Bullet glyph implied by `list-style-type`, for marker kinds that are
@@ -559,7 +616,11 @@ export function svgShapeToPathD(tag: string, attr: (name: string) => string | nu
       return `M ${num('x1')} ${num('y1')} L ${num('x2')} ${num('y2')}`
     case 'polyline':
     case 'polygon': {
-      const pts = (attr('points') || '').trim().split(/[\s,]+/).filter(Boolean).map(Number)
+      const pts = (attr('points') || '')
+        .trim()
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map(Number)
       if (pts.length < 4 || pts.length % 2 !== 0 || pts.some((n) => !Number.isFinite(n))) return null
       const cmds = [`M ${pts[0]} ${pts[1]}`]
       for (let i = 2; i < pts.length; i += 2) cmds.push(`L ${pts[i]} ${pts[i + 1]}`)
@@ -567,7 +628,9 @@ export function svgShapeToPathD(tag: string, attr: (name: string) => string | nu
       return cmds.join(' ')
     }
     case 'circle': {
-      const cx = num('cx'), cy = num('cy'), r = num('r')
+      const cx = num('cx'),
+        cy = num('cy'),
+        r = num('r')
       if (r <= 0) return null
       // Two 180deg arcs trace the full circumference — same "two-arc circle"
       // shape as roundedRectPath's stadium collapse in paint.ts, just via
@@ -575,7 +638,10 @@ export function svgShapeToPathD(tag: string, attr: (name: string) => string | nu
       return `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`
     }
     case 'rect': {
-      const x = num('x'), y = num('y'), w = num('width'), h = num('height')
+      const x = num('x'),
+        y = num('y'),
+        w = num('width'),
+        h = num('height')
       if (w <= 0 || h <= 0) return null
       return `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`
     }
@@ -608,7 +674,10 @@ function svgIconOps(svg: Element, root: HTMLElement, ops: DrawOp[]): void {
   const box = boxOf(svg, root)
   if (box.wPx <= 0 || box.hPx <= 0) return
 
-  const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number)
+  const vb = (svg.getAttribute('viewBox') || '')
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number)
   if (vb.length !== 4 || vb.some((n) => !Number.isFinite(n)) || vb[2] <= 0 || vb[3] <= 0) {
     if (import.meta.env.DEV) console.warn('[pdf] inline <svg> has no usable viewBox, skipping icon', svg)
     return
@@ -625,9 +694,11 @@ function svgIconOps(svg: Element, root: HTMLElement, ops: DrawOp[]): void {
     if (SVG_SHAPE_TAGS.has(tag)) {
       const d = svgShapeToPathD(tag, (name) => child.getAttribute(name))
       if (d) dParts.push(d)
-      else if (import.meta.env.DEV) console.warn(`[pdf] inline <svg> <${tag}> has no usable geometry, skipping shape`, child)
+      else if (import.meta.env.DEV)
+        console.warn(`[pdf] inline <svg> <${tag}> has no usable geometry, skipping shape`, child)
     } else if (!SVG_STRUCTURAL_TAGS.has(tag)) {
-      if (import.meta.env.DEV) console.warn(`[pdf] inline <svg> has an unsupported child <${tag}>, skipping shape`, child)
+      if (import.meta.env.DEV)
+        console.warn(`[pdf] inline <svg> has an unsupported child <${tag}>, skipping shape`, child)
     }
   }
   if (!dParts.length) return
@@ -640,16 +711,24 @@ function svgIconOps(svg: Element, root: HTMLElement, ops: DrawOp[]): void {
   // see types.ts's `svg` DrawOp doc comment for why paint.ts wants it this way.
   const strokeWidthPx = parsePx(cs.strokeWidth)
 
-  const stroke = strokeColor && strokeColor.a > 0 && strokeWidthPx > 0 ? { ...strokeColor, a: strokeColor.a * opacityMul } : undefined
+  const stroke =
+    strokeColor && strokeColor.a > 0 && strokeWidthPx > 0
+      ? { ...strokeColor, a: strokeColor.a * opacityMul }
+      : undefined
   const fill = fillColor && fillColor.a > 0 ? { ...fillColor, a: fillColor.a * opacityMul } : undefined
   if (!stroke && !fill) return
 
   ops.push({
     kind: 'svg',
-    xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx,
+    xPx: box.xPx,
+    yPx: box.yPx,
+    wPx: box.wPx,
+    hPx: box.hPx,
     d: dParts.join(' '),
     viewBox: [vbX, vbY, vbW, vbH],
-    stroke, fill, strokeWidthPx,
+    stroke,
+    fill,
+    strokeWidthPx,
   })
 }
 

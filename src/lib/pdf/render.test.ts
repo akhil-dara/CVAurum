@@ -12,7 +12,7 @@ describe('resolveDecoBoxesGlobal (task 15 fix round — no stale capture data ac
     expect(resolveDecoBoxesGlobal(false, undefined)).toBeUndefined()
   })
 
-  it('transition — capture on, then off: the second render must NOT leave the first render\'s boxes visible', () => {
+  it("transition — capture on, then off: the second render must NOT leave the first render's boxes visible", () => {
     // Mirrors exactly how renderResumePdf uses this: each render assigns
     // `window.__cvaLastDecoBoxes = resolveDecoBoxesGlobal(capturing, decoBoxes)`
     // unconditionally. The bug this guards against was `if (capturing)

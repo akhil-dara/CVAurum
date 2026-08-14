@@ -95,9 +95,11 @@ export function roundedRectPath(w: number, h: number, radii: CornerRadii): strin
   const tr = clampRadius(radii.tr, w, h)
   const br = clampRadius(radii.br, w, h)
   const bl = clampRadius(radii.bl, w, h)
-  return `M ${tl} 0 H ${w - tr} A ${tr} ${tr} 0 0 1 ${w} ${tr} V ${h - br} ` +
-         `A ${br} ${br} 0 0 1 ${w - br} ${h} H ${bl} ` +
-         `A ${bl} ${bl} 0 0 1 0 ${h - bl} V ${tl} A ${tl} ${tl} 0 0 1 ${tl} 0 Z`
+  return (
+    `M ${tl} 0 H ${w - tr} A ${tr} ${tr} 0 0 1 ${w} ${tr} V ${h - br} ` +
+    `A ${br} ${br} 0 0 1 ${w - br} ${h} H ${bl} ` +
+    `A ${bl} ${bl} 0 0 1 0 ${h - bl} V ${tl} A ${tl} ${tl} 0 0 1 ${tl} 0 Z`
+  )
 }
 
 /**
@@ -161,7 +163,11 @@ function roundedRectOperators(w: number, h: number, radii: CornerRadii): PDFOper
  * (unchanged from before this existed) instead of silently painting the
  * wrong opacity.
  */
-function registerAxialShading(page: PDFPage, coords: [number, number, number, number], stops: [Rgba, Rgba]): PDFName | null {
+function registerAxialShading(
+  page: PDFPage,
+  coords: [number, number, number, number],
+  stops: [Rgba, Rgba]
+): PDFName | null {
   if (stops[0].a < 0.999 || stops[1].a < 0.999) return null
   const context = page.doc.context
 
@@ -172,7 +178,7 @@ function registerAxialShading(page: PDFPage, coords: [number, number, number, nu
       C0: [stops[0].r, stops[0].g, stops[0].b],
       C1: [stops[1].r, stops[1].g, stops[1].b],
       N: 1,
-    }),
+    })
   )
   const shading = context.register(
     context.obj({
@@ -181,7 +187,7 @@ function registerAxialShading(page: PDFPage, coords: [number, number, number, nu
       Coords: coords,
       Function: fn,
       Extend: [true, true],
-    }),
+    })
   )
 
   // Resource-dict plumbing pdf-lib doesn't have a public helper for (it only
@@ -219,7 +225,15 @@ function registerAxialShading(page: PDFPage, coords: [number, number, number, nu
  * top-left, y-down space the path uses — no separate page-space math needed,
  * since the single `cm` maps both consistently.
  */
-function fillGradientRect(page: PDFPage, xPt: number, topYPt: number, wPt: number, hPt: number, radiiPt: CornerRadii, gradient: LinearGradient): void {
+function fillGradientRect(
+  page: PDFPage,
+  xPt: number,
+  topYPt: number,
+  wPt: number,
+  hPt: number,
+  radiiPt: CornerRadii,
+  gradient: LinearGradient
+): void {
   const angleRad = (gradient.angleDeg * Math.PI) / 180
   // CSS: direction = (sin A, -cos A) in a y-down space (0deg = "to top" = -y).
   const dx = Math.sin(angleRad)
@@ -241,12 +255,16 @@ function fillGradientRect(page: PDFPage, xPt: number, topYPt: number, wPt: numbe
     PDFOperator.of(PDFOperatorNames.ClipNonZero),
     PDFOperator.of(PDFOperatorNames.EndPath),
     PDFOperator.of(PDFOperatorNames.ShadingFill, [shadingKey]),
-    popGraphicsState(),
+    popGraphicsState()
   )
 }
 
 /** Fetches `src`, embeds its ORIGINAL bytes (no re-encode/resize), once per src. */
-async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise<PDFImage | null>>): Promise<PDFImage | null> {
+async function embedImage(
+  page: PDFPage,
+  src: string,
+  cache: Map<string, Promise<PDFImage | null>>
+): Promise<PDFImage | null> {
   let pending = cache.get(src)
   if (!pending) {
     pending = (async () => {
@@ -303,7 +321,13 @@ async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise
  * simply ignore the return value; computing it is free either way, since the
  * loop below runs regardless of who's listening.
  */
-async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number, xPt: number = pxToPt(run.xPx)): Promise<number> {
+async function paintGlyphOutlines(
+  page: PDFPage,
+  run: TextRun,
+  fonts: PdfFontCache,
+  pageHeightPt: number,
+  xPt: number = pxToPt(run.xPx)
+): Promise<number> {
   const font = await fonts.embedGlyphOutlines(run.family, run.weight)
   const glyphRun = font.layout(run.text)
   const scale = pxToPt(run.sizePx) / font.unitsPerEm
@@ -473,7 +497,7 @@ async function paintTrackedHeading(
   fonts: PdfFontCache,
   pageHeightPt: number,
   xPt: number,
-  untrackedWidthPt: number,
+  untrackedWidthPt: number
 ): Promise<number> {
   // Layer 2: visible, tracked, vector — not part of the text layer at all.
   // Drawn first so its real drawn advance is known before Layer 1 needs it.
@@ -549,7 +573,7 @@ export async function paintOps(
   ops: DrawOp[],
   fonts: PdfFontCache,
   pageHeightPt: number,
-  captureDecoBoxes?: DecoBox[],
+  captureDecoBoxes?: DecoBox[]
 ): Promise<void> {
   const images = new Map<string, Promise<PDFImage | null>>()
   // Same-line adjacency for REAL (non-decorative) text runs: when one DOM
@@ -696,7 +720,11 @@ export async function paintOps(
       // 100 whenever neither branch's scaling applied, so this reduces to
       // the old `xPt + embeddedWidthPt` there.
       const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
-      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + embeddedWidthPt * (tzPct / 100), chainStartXPt: nextChainStartXPt }
+      prevRealEnd = {
+        baselinePx: run.baselinePx,
+        endXPt: xPt + embeddedWidthPt * (tzPct / 100),
+        chainStartXPt: nextChainStartXPt,
+      }
       continue
     }
 
@@ -761,7 +789,7 @@ export async function paintOps(
               pxToPt(op.wPx),
               pxToPt(op.hPx),
               radiiToPt(radii),
-              op.fillGradient,
+              op.fillGradient
             )
           }
           break
@@ -810,7 +838,7 @@ export async function paintOps(
               concatTransformationMatrix(1, 0, 0, 1, xPt, yPt),
               ...roundedRectOperators(wPt, hPt, { tl: r.bl, tr: r.br, br: r.tr, bl: r.tl }),
               PDFOperator.of(PDFOperatorNames.ClipNonZero),
-              PDFOperator.of(PDFOperatorNames.EndPath),
+              PDFOperator.of(PDFOperatorNames.EndPath)
             )
             // Local frame's origin is now the box's own bottom-left (the cm
             // above only translated, never flipped), so drawImage's own x/y

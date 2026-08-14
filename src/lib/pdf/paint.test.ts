@@ -79,7 +79,9 @@ async function renderPage(ops: DrawOp[], captureDecoBoxes?: DecoBox[]) {
   const page = doc.addPage([300, 300])
   const fonts = new PdfFontCache(doc, FONT_INDEX)
   await paintOps(page, ops, fonts, 300, captureDecoBoxes)
-  const contentStream = (page as unknown as { getContentStream: () => { getContentsString(): string } }).getContentStream()
+  const contentStream = (
+    page as unknown as { getContentStream: () => { getContentsString(): string } }
+  ).getContentStream()
   return { page, stream: contentStream.getContentsString() }
 }
 
@@ -140,7 +142,9 @@ describe('paintOps — tracked (letter-spaced) headings draw two layers', () => 
   // vector glyph outlines (pixel-identical, not part of the text layer).
 
   it('draws an invisible (Tr 3) untracked Tj for the real, extractable text', async () => {
-    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) }])
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) },
+    ])
     expect(stream).toMatch(/\b3 Tr\b/) // invisible rendering mode set...
     expect(stream).toMatch(/\b0 Tr\b/) // ...and restored to fill afterward
     expect(stream).toMatch(/\bTj\b/)
@@ -151,8 +155,12 @@ describe('paintOps — tracked (letter-spaced) headings draw two layers', () => 
   })
 
   it('also draws visible vector glyph outlines carrying the full tracked spacing', async () => {
-    const tracked = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) }])
-    const untracked = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 0 }) }])
+    const tracked = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) },
+    ])
+    const untracked = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 0 }) },
+    ])
     // The tracked case draws the SAME word as decorative-style vector fills
     // (7 letters -> 7 fill ops) on top of the invisible Tj; the untracked
     // case draws only the single ordinary Tj, no vector fills at all.
@@ -161,14 +169,18 @@ describe('paintOps — tracked (letter-spaced) headings draw two layers', () => 
   })
 
   it('draws ordinary (non-tracked) text as a single plain, visible Tj — no Tr, no vector layer', async () => {
-    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'Senior Software Engineer', letterSpacingPx: 0 }) }])
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Senior Software Engineer', letterSpacingPx: 0 }) },
+    ])
     expect(stream).not.toMatch(/\bTr\b/)
     expect(stream).not.toMatch(/\bTc\b/)
     expect(stream.match(/\bTj\b/g)?.length).toBe(1)
   })
 
   it('propagates a font-embed failure for a tracked heading (real content, hard-fail)', async () => {
-    const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5, family: 'Nonexistent Font' }) }]
+    const ops: DrawOp[] = [
+      { kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5, family: 'Nonexistent Font' }) },
+    ]
     await expect(renderContentStream(ops)).rejects.toThrow()
   })
 })
@@ -200,7 +212,9 @@ describe('paintOps — tracked-heading selection geometry via Tz (task 16)', () 
   })
 
   it('the Tz set/reset wraps the SAME (still single) invisible drawText call, in order: Tz set -> Tr 3 -> Tj -> Tr 0 -> Tz reset', async () => {
-    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) }])
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) },
+    ])
     expect(stream.match(/\bTj\b/g)?.length).toBe(1) // still exactly ONE drawText for the invisible layer
     const tzSetIdx = stream.indexOf('Tz')
     const tr3Idx = stream.indexOf('3 Tr')
@@ -325,7 +339,9 @@ describe('paintOps — tracked-heading selection geometry via Tz (task 16)', () 
   })
 
   it('normal (non-tracked) runs are unaffected: still no Tz at all when widthPx is unset (task 12 behavior preserved)', async () => {
-    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'Senior Software Engineer', letterSpacingPx: 0 }) }])
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Senior Software Engineer', letterSpacingPx: 0 }) },
+    ])
     expect(tzValues(stream).length).toBe(0)
   })
 })
@@ -354,12 +370,16 @@ describe('paintOps — decorative runs draw vector glyph outlines, never real te
   })
 
   it('tolerates a decorative run whose font is missing, without throwing', async () => {
-    const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'X', isDecorative: true, family: 'Nonexistent Font' }) }]
+    const ops: DrawOp[] = [
+      { kind: 'text', run: baseRun({ text: 'X', isDecorative: true, family: 'Nonexistent Font' }) },
+    ]
     await expect(renderContentStream(ops)).resolves.not.toThrow()
   })
 
   it('still propagates a font-embed failure for REAL (non-decorative) content', async () => {
-    const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'Real résumé content', isDecorative: false, family: 'Nonexistent Font' }) }]
+    const ops: DrawOp[] = [
+      { kind: 'text', run: baseRun({ text: 'Real résumé content', isDecorative: false, family: 'Nonexistent Font' }) },
+    ]
     await expect(renderContentStream(ops)).rejects.toThrow()
   })
 })
@@ -463,7 +483,8 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
     // run placed at Chromium position has -1.84pt gap, exceeding bold space
     // (1.6pt) but within 0.02 * 372pt = 7.4pt drift allowance. Must snap to
     // restore missing space: text reads 'to 190ms' not 'to190ms'.
-    const longText = 'Architected and deployed the comprehensive cloud infrastructure migration migration migration from 820ms to '
+    const longText =
+      'Architected and deployed the comprehensive cloud infrastructure migration migration migration from 820ms to '
     const trueEnd = await trueWidthPt(longText, sizePx)
     const boldSpaceWidth = await trueWidthPt(' ', 12) // bold font's space
     // Use a gap that exceeds bold space width but fits within 0.02 * width.
@@ -675,7 +696,9 @@ describe('paintOps — gradient background fills (task 10c)', () => {
 
   it('skips a translucent stop rather than painting the wrong opacity', async () => {
     const translucent: LinearGradient = { angleDeg: 120, stops: [opaque, { ...opaque2, a: 0.5 }] }
-    const { page, stream } = await renderPage([{ kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: translucent }])
+    const { page, stream } = await renderPage([
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: translucent },
+    ])
     expect(stream).not.toMatch(/\bsh\b/)
     page.node.normalizedEntries()
     const resources = page.node.Resources()!
@@ -683,7 +706,9 @@ describe('paintOps — gradient background fills (task 10c)', () => {
   })
 
   it('never throws for a gradient rect op — a bad gradient is cosmetic, not real content', async () => {
-    const ops: DrawOp[] = [{ kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: { angleDeg: NaN, stops: [opaque, opaque2] } }]
+    const ops: DrawOp[] = [
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 100, hPx: 50, fillGradient: { angleDeg: NaN, stops: [opaque, opaque2] } },
+    ]
     await expect(renderContentStream(ops)).resolves.not.toThrow()
   })
 
@@ -871,9 +896,10 @@ describe('paintOps — raster images clipped to per-corner border radii (task 17
     // Only the clip path uses raw m/l/c path-construction operators — image
     // drawing (this op's own `Do`) only ever emits `cm`/`Do`, never m/l/c —
     // so every m/l/c line in this single-image-op stream belongs to it.
-    const actual = [...stream.matchAll(/^([-\d.\s]+)\s(m|l|c)$/gm)].map(
-      (match): [string, number[]] => [match[2], match[1].trim().split(/\s+/).map(Number)],
-    )
+    const actual = [...stream.matchAll(/^([-\d.\s]+)\s(m|l|c)$/gm)].map((match): [string, number[]] => [
+      match[2],
+      match[1].trim().split(/\s+/).map(Number),
+    ])
 
     expect(actual.length).toBe(expected.length)
     for (let i = 0; i < expected.length; i++) {
@@ -892,12 +918,14 @@ describe('roundedRectPath (fix round 2 — per-corner border radii)', () => {
     // Every corner's arc uses the same radius (10) and the path starts/ends
     // at the same points the old single-`r` formula produced.
     expect(uniform).toBe(
-      'M 10 0 H 90 A 10 10 0 0 1 100 10 V 40 A 10 10 0 0 1 90 50 H 10 A 10 10 0 0 1 0 40 V 10 A 10 10 0 0 1 10 0 Z',
+      'M 10 0 H 90 A 10 10 0 0 1 100 10 V 40 A 10 10 0 0 1 90 50 H 10 A 10 10 0 0 1 0 40 V 10 A 10 10 0 0 1 10 0 Z'
     )
   })
 
   it('degenerates to a plain (zero-radius) rectangle when all four corners are 0', () => {
-    expect(roundedRectPath(100, 50, { tl: 0, tr: 0, br: 0, bl: 0 })).toBe('M 0 0 H 100 A 0 0 0 0 1 100 0 V 50 A 0 0 0 0 1 100 50 H 0 A 0 0 0 0 1 0 50 V 0 A 0 0 0 0 1 0 0 Z')
+    expect(roundedRectPath(100, 50, { tl: 0, tr: 0, br: 0, bl: 0 })).toBe(
+      'M 0 0 H 100 A 0 0 0 0 1 100 0 V 50 A 0 0 0 0 1 100 50 H 0 A 0 0 0 0 1 0 50 V 0 A 0 0 0 0 1 0 0 Z'
+    )
   })
 
   it('applies distinct radii per corner — spotlight header banner shape (square top, rounded bottom)', () => {
@@ -923,7 +951,9 @@ describe('roundedRectPath (fix round 2 — per-corner border radii)', () => {
     // the image-clip path (unexported, tested indirectly there) — proven
     // here directly via roundedRectPath, which shares the identical clamp.
     const d = roundedRectPath(80, 80, { tl: 9999, tr: 9999, br: 9999, bl: 9999 })
-    expect(d).toBe('M 40 0 H 40 A 40 40 0 0 1 80 40 V 40 A 40 40 0 0 1 40 80 H 40 A 40 40 0 0 1 0 40 V 40 A 40 40 0 0 1 40 0 Z')
+    expect(d).toBe(
+      'M 40 0 H 40 A 40 40 0 0 1 80 40 V 40 A 40 40 0 0 1 40 80 H 40 A 40 40 0 0 1 0 40 V 40 A 40 40 0 0 1 40 0 Z'
+    )
   })
 
   it('clamps each corner independently against the shorter half-dimension, not a single shared value', () => {
@@ -942,7 +972,10 @@ describe('paintOps — inline SVG icons (task 13)', () => {
   // shape every section-heading chip icon actually is.
   const strokedIcon: DrawOp = {
     kind: 'svg',
-    xPx: 10, yPx: 10, wPx: 14, hPx: 14,
+    xPx: 10,
+    yPx: 10,
+    wPx: 14,
+    hPx: 14,
     d: 'M 21 6 L 3 6',
     viewBox: [0, 0, 24, 24],
     stroke: { r: 0.1, g: 0.1, b: 0.1, a: 1 },
@@ -958,7 +991,9 @@ describe('paintOps — inline SVG icons (task 13)', () => {
   })
 
   it('draws a filled icon with the fill operator, no stroke, when only `fill` is set', async () => {
-    const stream = await renderContentStream([{ ...strokedIcon, stroke: undefined, fill: { r: 0.2, g: 0.3, b: 0.4, a: 1 } }])
+    const stream = await renderContentStream([
+      { ...strokedIcon, stroke: undefined, fill: { r: 0.2, g: 0.3, b: 0.4, a: 1 } },
+    ])
     expect(stream).toMatch(/\bf\b/)
     expect(stream).not.toMatch(/\bS\b/)
   })
@@ -1049,7 +1084,7 @@ describe('paintOps — decorative-box capture hook (task 15, gate instrumentatio
         { kind: 'text', run: baseRun({ text: 'V', isDecorative: true, xPx: 40, baselinePx: 60, sizePx: 14 }) },
         { kind: 'text', run: baseRun({ text: 'UC', isDecorative: true, xPx: 100, baselinePx: 60, sizePx: 10 }) },
       ],
-      boxes,
+      boxes
     )
     expect(boxes.length).toBe(2)
     // x/baseline-size/size*1.2 come straight off the run, per the brief's
@@ -1064,14 +1099,14 @@ describe('paintOps — decorative-box capture hook (task 15, gate instrumentatio
     expect(boxes[1].wPx).toBeGreaterThan(boxes[0].wPx)
   })
 
-  it('never captures REAL (non-decorative) text, even a tracked heading\'s visible vector layer', async () => {
+  it("never captures REAL (non-decorative) text, even a tracked heading's visible vector layer", async () => {
     const boxes: DecoBox[] = []
     await renderPage(
       [
         { kind: 'text', run: baseRun({ text: 'Senior Software Engineer', isDecorative: false }) },
         { kind: 'text', run: baseRun({ text: 'SUMMARY', isDecorative: false, letterSpacingPx: 1.5 }) }, // tracked: draws vector outlines too, but is real content
       ],
-      boxes,
+      boxes
     )
     expect(boxes).toEqual([])
   })
