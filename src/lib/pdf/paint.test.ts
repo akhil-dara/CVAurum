@@ -7,7 +7,7 @@ import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { paintOps, glyphPathToDrawPath, roundedRectPath, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
-import { pxToPt, ptToPx } from './units'
+import { pxToPt, ptToPx, flipY } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx guard against.
@@ -964,6 +964,83 @@ describe('roundedRectPath (fix round 2 — per-corner border radii)', () => {
     const d = roundedRectPath(40, 100, { tl: 999, tr: 5, br: 999, bl: 999 })
     expect(d).toContain('A 5 5 0 0 1 40 5') // tr kept its own (smaller) requested radius
     expect(d.startsWith('M 20 0')).toBe(true) // tl clamped to 20 (w/2)
+  })
+})
+
+describe("paintOps — case 'roundedBorder' (task 22 — radius-aware borders)", () => {
+  // walk.ts hands paint.ts an ALREADY-inset box+radii (see types.ts's
+  // `roundedBorder` doc comment) — these numbers are deliberately simple
+  // round pt-friendly values so the emitted operators are easy to eyeball,
+  // not meant to represent a literal walk.ts inset computation (that
+  // arithmetic is covered directly in walk.test.ts).
+  const ringOp = (overrides: Partial<Extract<DrawOp, { kind: 'roundedBorder' }>> = {}): DrawOp => ({
+    kind: 'roundedBorder',
+    xPx: 10,
+    yPx: 10,
+    wPx: 80,
+    hPx: 40,
+    radii: { tl: 8, tr: 8, br: 8, bl: 8 },
+    widthPx: 2,
+    color: { r: 1, g: 0, b: 0, a: 1 },
+    ...overrides,
+  })
+
+  it('strokes the rounded path (S) with NO fill (f/B) — a border-only op paints no background', async () => {
+    const stream = await renderContentStream([ringOp()])
+    expect(stream).toMatch(/\bS\b/)
+    expect(stream).not.toMatch(/\bf\b/)
+    expect(stream).not.toMatch(/\bB\b/)
+    expect(stream).toMatch(/\bc\b/) // real corner arcs (bezier), not a plain 4-line rect
+  })
+
+  it('sets the stroke width (w) to the op’s widthPx converted to pt', async () => {
+    const stream = await renderContentStream([ringOp({ widthPx: 4 })])
+    const wMatch = stream.match(/(-?[\d.]+)\s+w\b/)
+    expect(wMatch).not.toBeNull()
+    expect(Number(wMatch![1])).toBeCloseTo(pxToPt(4), 6)
+  })
+
+  it('positions the path at the op’s own (already-inset) x/y, flipped into PDF page space', async () => {
+    const pageHeightPt = 300
+    const { stream } = await renderPage([ringOp({ xPx: 10, yPx: 20 })])
+    // drawSvgPath emits its own translate `cm` (1 0 0 1 x y cm) ahead of the
+    // y-flip scale `cm` — same two-step sequence the existing glyph-outline
+    // test below (`drawSvgPath emits translate/rotate/scale as three
+    // separate cm ops`) already documents for this exact pdf-lib internal.
+    const expectedX = pxToPt(10)
+    const expectedY = flipY(pxToPt(20), pageHeightPt)
+    const cmMatch = stream.match(/1 0 0 1 (-?[\d.]+) (-?[\d.]+) cm/)
+    expect(cmMatch).not.toBeNull()
+    expect(Number(cmMatch![1])).toBeCloseTo(expectedX, 6)
+    expect(Number(cmMatch![2])).toBeCloseTo(expectedY, 6)
+  })
+
+  it('a solid border sets an empty dash array ([] 0 d) — no dash pattern active', async () => {
+    const stream = await renderContentStream([ringOp({ dashed: false })])
+    expect(stream).toMatch(/\[\s*\]\s+0\s+d/)
+  })
+
+  it('a dashed/dotted border sets the same [2px, 2px] dash pattern the straight-line case uses', async () => {
+    const stream = await renderContentStream([ringOp({ dashed: true })])
+    const dMatch = stream.match(/\[([^\]]*)\]\s+(-?[\d.]+)\s+d/)
+    expect(dMatch).not.toBeNull()
+    const nums = dMatch![1].trim().split(/\s+/).map(Number)
+    expect(nums).toEqual([pxToPt(2), pxToPt(2)])
+  })
+
+  it('never throws for a bad roundedBorder op — a cosmetic border failure must not sink the export', async () => {
+    const ops: DrawOp[] = [ringOp({ wPx: NaN })]
+    await expect(renderContentStream(ops)).resolves.not.toThrow()
+  })
+
+  it('degenerates to a plain (non-curved) rectangle outline when every corner radius is 0', async () => {
+    // Not actually reachable via walk.ts (zero-radius boxes never emit a
+    // roundedBorder op at all — see walk.test.ts's regression test — but
+    // paint.ts's own case should still degrade gracefully, same as
+    // roundedRectPath itself does at tl=tr=br=bl=0).
+    const stream = await renderContentStream([ringOp({ radii: { tl: 0, tr: 0, br: 0, bl: 0 } })])
+    expect(stream).toMatch(/\bS\b/)
+    expect(stream).not.toMatch(/\bf\b/)
   })
 })
 

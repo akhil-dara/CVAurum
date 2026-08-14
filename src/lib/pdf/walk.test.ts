@@ -902,3 +902,350 @@ describe('buildDrawList — ::before/::after document-order invariant (fix round
     expect(hostAfterIdx).toBeLessThan(siblingBoxIdx)
   })
 })
+
+describe('boxOps/pseudoOps — radius-aware borders and pseudo borders (task 22)', () => {
+  // Same stub-just-the-DOM-entry-points harness the two buildDrawList suites
+  // above use, extended with a per-element `beforeCs` so a ::before pseudo
+  // can carry its OWN border/radius/position, independent of its host's.
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const originalConsoleWarn = console.warn
+  const g = globalThis as unknown as { Node?: unknown; NodeFilter?: unknown; HTMLImageElement?: unknown }
+  const originalNode = g.Node
+  const originalNodeFilter = g.NodeFilter
+  const originalHTMLImageElement = g.HTMLImageElement
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    console.warn = originalConsoleWarn
+    g.Node = originalNode
+    g.NodeFilter = originalNodeFilter
+    g.HTMLImageElement = originalHTMLImageElement
+  })
+
+  interface FakeRect {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: FakeEl[]
+    lastElementChild: FakeEl | null
+    getBoundingClientRect: () => FakeRect
+    contains: (n: FakeEl) => boolean
+    cs: Record<string, string>
+    beforeCs: Record<string, string> | null
+  }
+
+  const NO_BORDER_NO_RADIUS: Record<string, string> = {
+    borderTopWidth: '0px',
+    borderTopStyle: 'none',
+    borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px',
+    borderRightStyle: 'none',
+    borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px',
+    borderBottomStyle: 'none',
+    borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px',
+    borderLeftStyle: 'none',
+    borderLeftColor: 'rgba(0,0,0,0)',
+    borderTopLeftRadius: '0px',
+    borderTopRightRadius: '0px',
+    borderBottomRightRadius: '0px',
+    borderBottomLeftRadius: '0px',
+  }
+  const BASE_CS: Record<string, string> = {
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    ...NO_BORDER_NO_RADIUS,
+    opacity: '1',
+    display: 'block',
+    visibility: 'visible',
+    content: 'none',
+    position: 'static',
+    left: 'auto',
+    top: 'auto',
+    right: 'auto',
+    bottom: 'auto',
+    width: 'auto',
+    height: 'auto',
+  }
+
+  function makeCs(overrides: Record<string, string>): CSSStyleDeclaration {
+    const merged: Record<string, string> = { ...BASE_CS, ...overrides }
+    return {
+      ...merged,
+      getPropertyValue: (name: string) => merged[name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] ?? '',
+    } as unknown as CSSStyleDeclaration
+  }
+
+  function makeEl(
+    rect: FakeRect,
+    csOverrides: Record<string, string> = {},
+    children: FakeEl[] = [],
+    beforeCs: Record<string, string> | null = null
+  ): FakeEl {
+    const el: FakeEl = {
+      nodeType: 1,
+      tagName: 'DIV',
+      classList: { contains: () => false },
+      childNodes: children,
+      lastElementChild: children.length ? children[children.length - 1] : null,
+      getBoundingClientRect: () => rect,
+      contains: (n) => n === el || children.some((c) => c === n || c.contains(n)),
+      cs: { ...BASE_CS, ...csOverrides },
+      beforeCs,
+    }
+    return el
+  }
+
+  function fakeCreateTreeWalker(root: FakeEl, acceptNode: (n: FakeEl) => number) {
+    const ACCEPT = 1
+    const seq: FakeEl[] = []
+    const visit = (node: FakeEl) => {
+      for (const child of node.childNodes) {
+        if (acceptNode(child) === ACCEPT) {
+          seq.push(child)
+          visit(child)
+        }
+      }
+    }
+    visit(root)
+    let idx = -1
+    const walker = {
+      currentNode: root as unknown as Node,
+      nextNode: () => {
+        idx++
+        if (idx >= seq.length) return null
+        walker.currentNode = seq[idx] as unknown as Node
+        return walker.currentNode
+      },
+    }
+    return walker
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
+    g.HTMLImageElement = class {} // no fake element in this suite is ever one
+    globalThis.document = {
+      createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
+        fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl) => number),
+    } as unknown as Document
+    globalThis.getComputedStyle = ((el: unknown, pseudo?: string) => {
+      const fake = el as FakeEl
+      if (pseudo === '::before') return makeCs(fake.beforeCs ?? { content: 'none' })
+      if (pseudo === '::after') return makeCs({ content: 'none' })
+      return makeCs(fake.cs)
+    }) as unknown as typeof getComputedStyle
+  }
+
+  // .tpl-obsidian's real entry-card rule: `background: #15171d; border: 1px
+  // solid #262a33; border-radius: 12px;` — the brief's concretely-reachable
+  // defect 1 worked example.
+  const CARD_BORDER: Record<string, string> = {
+    borderTopWidth: '1px',
+    borderTopStyle: 'solid',
+    borderTopColor: 'rgb(38, 42, 51)',
+    borderRightWidth: '1px',
+    borderRightStyle: 'solid',
+    borderRightColor: 'rgb(38, 42, 51)',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'rgb(38, 42, 51)',
+    borderLeftWidth: '1px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: 'rgb(38, 42, 51)',
+    borderTopLeftRadius: '12px',
+    borderTopRightRadius: '12px',
+    borderBottomRightRadius: '12px',
+    borderBottomLeftRadius: '12px',
+  }
+
+  it('a uniform border on a rounded box emits ONE roundedBorder op, inset by width/2 (obsidian entry card)', () => {
+    install()
+    const card = makeEl({ left: 40, top: 60, width: 300, height: 80 }, CARD_BORDER)
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [card])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+
+    const borderOps = ops.filter((o) => o.kind === 'roundedBorder')
+    const lineOps = ops.filter((o) => o.kind === 'line')
+    expect(borderOps.length).toBe(1) // not four straight lines
+    expect(lineOps.length).toBe(0)
+
+    const op = borderOps[0] as Extract<DrawOp, { kind: 'roundedBorder' }>
+    // width/2 = 0.5 inset, same CSS-edge convention BORDER_EDGES uses.
+    expect(op.xPx).toBeCloseTo(40.5, 6)
+    expect(op.yPx).toBeCloseTo(60.5, 6)
+    expect(op.wPx).toBeCloseTo(299, 6)
+    expect(op.hPx).toBeCloseTo(79, 6)
+    expect(op.widthPx).toBe(1)
+    expect(op.radii).toEqual({ tl: 11.5, tr: 11.5, br: 11.5, bl: 11.5 }) // 12 - 0.5
+    expect(op.color).toEqual({ r: 38 / 255, g: 42 / 255, b: 51 / 255, a: 1 })
+    expect(op.dashed).toBeFalsy()
+  })
+
+  it('clamps the inset radius to 0 rather than going negative when width/2 exceeds the radius', () => {
+    install()
+    const card = makeEl(
+      { left: 0, top: 0, width: 50, height: 50 },
+      {
+        ...CARD_BORDER,
+        borderTopWidth: '20px',
+        borderRightWidth: '20px',
+        borderBottomWidth: '20px',
+        borderLeftWidth: '20px',
+        borderTopLeftRadius: '2px',
+        borderTopRightRadius: '2px',
+        borderBottomRightRadius: '2px',
+        borderBottomLeftRadius: '2px',
+      }
+    )
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [card])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const op = ops.find((o) => o.kind === 'roundedBorder') as Extract<DrawOp, { kind: 'roundedBorder' }>
+    expect(op.radii).toEqual({ tl: 0, tr: 0, br: 0, bl: 0 }) // 2 - 10 clamped to 0, not -8
+  })
+
+  it('a zero-radius bordered box keeps the exact old four-line behavior (no roundedBorder op)', () => {
+    install()
+    const flatCard = makeEl(
+      { left: 40, top: 60, width: 300, height: 80 },
+      {
+        ...CARD_BORDER,
+        borderTopLeftRadius: '0px',
+        borderTopRightRadius: '0px',
+        borderBottomRightRadius: '0px',
+        borderBottomLeftRadius: '0px',
+      }
+    )
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [flatCard])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const lineOps = ops.filter((o) => o.kind === 'line')
+    const roundedOps = ops.filter((o) => o.kind === 'roundedBorder')
+    expect(roundedOps.length).toBe(0)
+    expect(lineOps.length).toBe(4) // exactly the old per-edge BORDER_EDGES behavior
+
+    // Same inset arithmetic BORDER_EDGES' own unit tests assert directly.
+    const top = lineOps.find((o) => (o as Extract<DrawOp, { kind: 'line' }>).y1Px === 60.5)
+    expect(top).toBeDefined() // top border inset DOWN by width/2 (1/2 = 0.5) from y=60
+    const bottom = lineOps.find((o) => (o as Extract<DrawOp, { kind: 'line' }>).y1Px === 139.5)
+    expect(bottom).toBeDefined() // bottom border inset UP by width/2 from y=140
+  })
+
+  it('mixed per-edge borders on a rounded box fall back to straight lines and dev-warn', () => {
+    install()
+    const warnSpy: string[] = []
+    console.warn = ((...args: unknown[]) => {
+      warnSpy.push(String(args[0]))
+    }) as typeof console.warn
+
+    const mixed = makeEl(
+      { left: 0, top: 0, width: 100, height: 100 },
+      {
+        ...CARD_BORDER,
+        borderTopWidth: '2px', // differs from the other three edges (1px)
+      }
+    )
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [mixed])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const roundedOps = ops.filter((o) => o.kind === 'roundedBorder')
+    const lineOps = ops.filter((o) => o.kind === 'line')
+    expect(roundedOps.length).toBe(0) // falls back, does not emit a (wrong) single path
+    expect(lineOps.length).toBe(4) // all four edges still drawn, just as straight lines
+
+    // vitest runs in DEV mode (import.meta.env.DEV === true, confirmed
+    // separately), so the loud dev-warn this fallback is required to emit
+    // actually fires here, not just in a real dev build.
+    expect(warnSpy.some((m) => m.includes('mixed per-edge borders'))).toBe(true)
+  })
+
+  it('a rounded box with only SOME edges bordered (not all four) falls back to straight lines', () => {
+    install()
+    const partial = makeEl(
+      { left: 0, top: 0, width: 100, height: 100 },
+      {
+        ...CARD_BORDER,
+        borderRightStyle: 'none',
+        borderRightWidth: '0px',
+      }
+    )
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [partial])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    expect(ops.filter((o) => o.kind === 'roundedBorder').length).toBe(0)
+    expect(ops.filter((o) => o.kind === 'line').length).toBe(3) // top, bottom, left only
+  })
+
+  // .tpl-timeline's real circular marker rule: `left: -18px; top: 4px; width:
+  // 9px; height: 9px; border-radius: 50%; background: var(--rm-bg); border:
+  // 2px solid var(--rm-primary);` on `.rm-item::before` — the brief's
+  // concretely-reachable defect 2 worked example. getComputedStyle resolves
+  // `50%` to its actual px equivalent for a 9x9 box (4.5px), same as
+  // cornerRadii's own doc comment describes.
+  it('a pseudo-element with border-radius 50% + a uniform border renders its ring (timeline marker)', () => {
+    install()
+    const markerBeforeCs: Record<string, string> = {
+      content: '""',
+      position: 'absolute',
+      left: '-18px',
+      top: '4px',
+      width: '9px',
+      height: '9px',
+      borderTopLeftRadius: '4.5px',
+      borderTopRightRadius: '4.5px',
+      borderBottomRightRadius: '4.5px',
+      borderBottomLeftRadius: '4.5px',
+      borderTopWidth: '2px',
+      borderTopStyle: 'solid',
+      borderTopColor: 'rgb(90, 110, 240)',
+      borderRightWidth: '2px',
+      borderRightStyle: 'solid',
+      borderRightColor: 'rgb(90, 110, 240)',
+      borderBottomWidth: '2px',
+      borderBottomStyle: 'solid',
+      borderBottomColor: 'rgb(90, 110, 240)',
+      borderLeftWidth: '2px',
+      borderLeftStyle: 'solid',
+      borderLeftColor: 'rgb(90, 110, 240)',
+    }
+    const item = makeEl({ left: 100, top: 50, width: 20, height: 20 }, {}, [], markerBeforeCs)
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [item])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const ring = ops.find((o) => o.kind === 'roundedBorder') as Extract<DrawOp, { kind: 'roundedBorder' }> | undefined
+    expect(ring).toBeDefined()
+    // pseudo box: xPx = host.xPx(100) + left(-18) = 82, yPx = host.yPx(50) + top(4) = 54, 9x9.
+    // Inset by width/2 = 1: (83, 55), 7x7, radii 4.5 - 1 = 3.5 each corner.
+    expect(ring!.xPx).toBeCloseTo(83, 6)
+    expect(ring!.yPx).toBeCloseTo(55, 6)
+    expect(ring!.wPx).toBeCloseTo(7, 6)
+    expect(ring!.hPx).toBeCloseTo(7, 6)
+    expect(ring!.radii).toEqual({ tl: 3.5, tr: 3.5, br: 3.5, bl: 3.5 })
+    expect(ring!.widthPx).toBe(2)
+    expect(ring!.color).toEqual({ r: 90 / 255, g: 110 / 255, b: 240 / 255, a: 1 })
+  })
+
+  it('a pseudo-element with no border paints no roundedBorder/line ops (unchanged baseline)', () => {
+    install()
+    const item = makeEl({ left: 100, top: 50, width: 20, height: 20 }, {}, [], {
+      content: '""',
+      width: '5px',
+      height: '5px',
+    })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [item])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    expect(ops.filter((o) => o.kind === 'roundedBorder' || o.kind === 'line').length).toBe(0)
+  })
+})
