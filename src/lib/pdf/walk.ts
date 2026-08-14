@@ -281,6 +281,12 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
   }
 }
 
+/** The subset of a host's computed style `pseudoBox`'s flex-item branch
+ *  needs — a plain `Pick`, not a full `CSSStyleDeclaration`, so tests can
+ *  fake it without a real DOM. */
+type FlexHostStyle = Pick<CSSStyleDeclaration, 'display' | 'alignItems' | 'columnGap' | 'flexDirection'>
+type Box = { xPx: number; yPx: number; wPx: number; hPx: number }
+
 /**
  * Resolves a pseudo's own box from the HOST's box plus the pseudo's computed
  * `left`/`top`/`right`/`bottom`/`width`/`height` — used for `position:
@@ -293,12 +299,38 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
  * `width: auto` (`.sec-ov-strike`'s full-width rule), CSS computes width as
  * the remaining space between them — matched here explicitly since there's
  * no layout engine to derive it for us; ditto `top`+`bottom` with `height:
- * auto`. Static (normal-flow) pseudos are left at the pre-existing
- * approximation: painted at the host's own origin, sized to their own
- * width/height (or the host's width / the pseudo's own font-size as a
- * fallback) — exact static flow position isn't attempted.
+ * auto`.
+ *
+ * A `position: static` pseudo is normally left at the pre-existing
+ * approximation: painted at the host's own origin, sized to its own width/
+ * height (or the host's width / the pseudo's own font-size as a fallback) —
+ * exact static flow position isn't attempted, and that's fine for a simple
+ * inline `content: '•'` separator glyph (most of our own ::before/::after
+ * usage). It is NOT fine when the host is a `display: flex` ROW (e.g.
+ * `.sec-rule-after`'s `.rm-section-title { display:flex; align-items:center
+ * }`, whose `::after { flex: 1 }` rule fills the row's remaining width) —
+ * there the pseudo is a genuine FLEX ITEM laid out by the flex algorithm,
+ * not normal block/inline flow, and the host-origin approximation paints it
+ * starting at the SAME x as the heading text (crossing straight through it)
+ * instead of after it (confirmed live against onyx-noir's DEFAULT heading
+ * style — a fix-round finding, not caught by the original task-13
+ * verification, which never exercised a flex-row heading style; see the
+ * task-13 report's "Fix round" section). `hostCs`/`lastChildBox` are
+ * undefined/null for callers that don't have (or don't need) them, e.g. a
+ * ::before, which is always FIRST in box order so the host-origin x is
+ * already right for it — only the cross-axis (`align-items`) correction
+ * still applies to it. A flex row lays out items left-to-right in box
+ * order, so `::after` (always LAST in box order) starts right after the
+ * last REAL child box the caller supplies; cross-axis position follows
+ * `align-items`, same as the flex algorithm itself would place any item.
  */
-export function pseudoBox(cs: CSSStyleDeclaration, host: { xPx: number; yPx: number; wPx: number; hPx: number }): { xPx: number; yPx: number; wPx: number; hPx: number } {
+export function pseudoBox(
+  cs: CSSStyleDeclaration,
+  host: Box,
+  which: '::before' | '::after' = '::before',
+  hostCs?: FlexHostStyle,
+  lastChildBox?: Box | null,
+): Box {
   let xPx = host.xPx
   let yPx = host.yPx
   let wPx = parsePx(cs.width) || host.wPx
@@ -322,6 +354,17 @@ export function pseudoBox(cs: CSSStyleDeclaration, host: { xPx: number; yPx: num
     } else if (bottom !== null) {
       yPx = host.yPx + host.hPx - bottom - hPx
     }
+    return { xPx, yPx, wPx, hPx }
+  }
+
+  const flexRow = hostCs && (hostCs.display === 'flex' || hostCs.display === 'inline-flex') &&
+    (!hostCs.flexDirection || hostCs.flexDirection === 'row')
+  if (flexRow) {
+    if (which === '::after' && lastChildBox) {
+      xPx = lastChildBox.xPx + lastChildBox.wPx + (parsePx(hostCs!.columnGap) || 0)
+    }
+    if (hostCs!.alignItems === 'center') yPx = host.yPx + (host.hPx - hPx) / 2
+    else if (hostCs!.alignItems === 'flex-end') yPx = host.yPx + host.hPx - hPx
   }
 
   return { xPx, yPx, wPx, hPx }
@@ -343,7 +386,13 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
   if (cs.content === 'none' || cs.display === 'none') return
 
   const opacityMul = elementOpacity(cs)
-  const box = pseudoBox(cs, boxOf(el, root))
+  const hostCs = getComputedStyle(el)
+  // Only fetched when it could actually matter (flex-row host, ::after) —
+  // an extra getBoundingClientRect for every plain static pseudo (the
+  // overwhelming common case) would be wasted work.
+  const isFlexRow = (hostCs.display === 'flex' || hostCs.display === 'inline-flex') && (!hostCs.flexDirection || hostCs.flexDirection === 'row')
+  const lastChildBox = isFlexRow && which === '::after' && el.lastElementChild ? boxOf(el.lastElementChild, root) : null
+  const box = pseudoBox(cs, boxOf(el, root), which, hostCs, lastChildBox)
 
   const bg = parseColor(cs.backgroundColor)
   if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {

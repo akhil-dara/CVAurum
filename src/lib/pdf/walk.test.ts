@@ -174,6 +174,90 @@ describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
   })
 })
 
+describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', () => {
+  // Root cause: onyx-noir's DEFAULT heading style (section:'rule-after',
+  // used with no per-section override at all — NOT sec-ov-strike, which was
+  // the wrong initial suspicion) sets `.rm-section-title { display:flex;
+  // align-items:center; gap:10px }` with a STATIC `::after { flex:1;
+  // height:1.5px }` that fills the row's remaining width. A `position:
+  // static` pseudo inside a flex row is a genuine FLEX ITEM, not normal
+  // block/inline flow — the pre-fix-round host-origin approximation painted
+  // it starting at the SAME x as the heading text (crossing straight
+  // through it) and pinned to the row's TOP instead of vertically centered.
+  // Real computed values captured live (task-13 fix-round report): host
+  // title box {x:49.125, y:141.344, w:695.438, h:17}, text-span box
+  // {x:49.125, w:65.063}, gap:10px, ::after {width:620.375px, height:1.5px}.
+  const host = { xPx: 49.125, yPx: 141.344, wPx: 695.438, hPx: 17 }
+  const textSpanBox = { xPx: 49.125, yPx: 141.344, wPx: 65.063, hPx: 14.906 }
+  const cs = (over: Record<string, string>): CSSStyleDeclaration => {
+    const base: Record<string, string> = {
+      position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
+    }
+    return { ...base, ...over } as unknown as CSSStyleDeclaration
+  }
+  const flexHostCs = (over: Record<string, string> = {}): CSSStyleDeclaration =>
+    ({ display: 'flex', alignItems: 'center', columnGap: '10px', flexDirection: 'row', ...over }) as unknown as CSSStyleDeclaration
+
+  it('positions a static ::after flex item right after the last real child + gap, not at the host origin', () => {
+    const box = pseudoBox(cs({ height: '1.5px', width: '620.375px' }), host, '::after', flexHostCs(), textSpanBox)
+    expect(box.xPx).toBeCloseTo(124.188, 2) // textSpanBox end (49.125+65.063) + gap(10)
+    expect(box.wPx).toBe(620.375) // browser-resolved flex width, untouched
+  })
+
+  it('vertically centers a flex-item pseudo per align-items:center, not pinned to the row top', () => {
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs(), textSpanBox)
+    expect(box.yPx).toBeCloseTo(149.094, 2) // host.yPx(141.344) + (host.hPx(17) - hPx(1.5)) / 2
+  })
+
+  it('honors align-items: flex-end by bottom-aligning the flex item within the row', () => {
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ alignItems: 'flex-end' }), textSpanBox)
+    expect(box.yPx).toBeCloseTo(host.yPx + host.hPx - 1.5, 6)
+  })
+
+  it('honors align-items: flex-start by top-aligning the flex item within the row (host-origin y, unchanged)', () => {
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ alignItems: 'flex-start' }), textSpanBox)
+    expect(box.yPx).toBe(host.yPx)
+  })
+
+  it('a ::before flex item keeps the host-origin x (always first in box order) but still gets align-items centering', () => {
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::before', flexHostCs(), textSpanBox)
+    expect(box.xPx).toBe(host.xPx) // no lastChildBox shift for ::before
+    expect(box.yPx).toBeCloseTo(149.094, 2) // still cross-axis centered
+  })
+
+  it('falls back to the host origin for ::after when there is no last-child box (empty host)', () => {
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs(), null)
+    expect(box.xPx).toBe(host.xPx)
+  })
+
+  it('does not apply flex-item positioning when the host is not a flex container', () => {
+    // A plain block host (the overwhelming common case, e.g. a simple
+    // `content: "•"` separator) must be completely unaffected.
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', undefined, textSpanBox)
+    expect(box.xPx).toBe(host.xPx)
+    expect(box.yPx).toBe(host.yPx)
+  })
+
+  it('does not apply flex-item positioning for flex-direction: column (only row is handled)', () => {
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ flexDirection: 'column' }), textSpanBox)
+    expect(box.xPx).toBe(host.xPx)
+    expect(box.yPx).toBe(host.yPx)
+  })
+
+  it('an absolutely positioned pseudo on a flex host is unaffected (position branch takes priority, e.g. sec-ov-strike)', () => {
+    // sec-ov-strike's ::before is `position:absolute` even though the
+    // generic sec-ov-* reset also sets the host to `display:flex` — the
+    // absolute/relative branch must win outright, never falling through to
+    // (or blending with) the flex-item branch.
+    const box = pseudoBox(
+      cs({ position: 'absolute', left: '0px', right: '0px', top: '8px', height: '1.2px' }),
+      host, '::before', flexHostCs(), textSpanBox,
+    )
+    expect(box.xPx).toBe(49.125) // host.xPx + left(0), same as the plain absolute case
+    expect(box.wPx).toBeCloseTo(695.438, 3) // host.wPx - left(0) - right(0)
+  })
+})
+
 describe('BORDER_EDGES (task 14 — border lines inset by half their width)', () => {
   // CSS paints a border INSIDE the element box: border-bottom's OUTER edge is
   // the box's own bottom edge, the stroke occupies [bottom - width, bottom].
