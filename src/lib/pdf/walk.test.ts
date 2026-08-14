@@ -556,3 +556,161 @@ describe('buildDrawList — root paints its own box first (task 15, defect 1)', 
     expect(ops[0]).toMatchObject({ kind: 'rect', xPx: 5, yPx: 5 })
   })
 })
+
+describe('buildDrawList — ::before/::after document-order invariant (fix round: gap in CI coverage)', () => {
+  // Regression coverage for what buildDrawList's own `openForAfter`/
+  // `closeUpTo` doc comment (and the b772f59 comment on the explicit root
+  // step just above) warn about: an element's ::after must be deferred until
+  // AFTER every one of its descendants' own ops — not fired right after its
+  // own ::before — and must fire as soon as the walk moves on to a node
+  // that's no longer its descendant (a later sibling), not only once at the
+  // very end of the whole walk. Nothing in walk.test.ts exercised this
+  // through buildDrawList itself before now (pseudoBox's own describe blocks
+  // only test box GEOMETRY, in isolation from document order).
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const g = globalThis as unknown as { Node?: unknown; NodeFilter?: unknown; HTMLImageElement?: unknown }
+  const originalNode = g.Node
+  const originalNodeFilter = g.NodeFilter
+  const originalHTMLImageElement = g.HTMLImageElement
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    g.Node = originalNode
+    g.NodeFilter = originalNodeFilter
+    g.HTMLImageElement = originalHTMLImageElement
+  })
+
+  interface FakeRect { left: number; top: number; width: number; height: number }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: FakeEl[]
+    getBoundingClientRect: () => FakeRect
+    contains: (n: FakeEl) => boolean
+    cs: Record<string, string>
+    beforeContent: string
+    afterContent: string
+  }
+
+  // Real color/font fields are needed here (unlike the defect-1 suite above,
+  // which never resolves actual pseudo TEXT content) so styledTextRun
+  // produces a real run for a non-'none' ::before/::after content string.
+  const BASE_CS: Record<string, string> = {
+    backgroundColor: 'rgba(0, 0, 0, 0)', backgroundImage: 'none',
+    borderTopLeftRadius: '0px', borderTopRightRadius: '0px', borderBottomRightRadius: '0px', borderBottomLeftRadius: '0px',
+    borderTopWidth: '0px', borderTopStyle: 'none', borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px', borderRightStyle: 'none', borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px', borderBottomStyle: 'none', borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px', borderLeftStyle: 'none', borderLeftColor: 'rgba(0,0,0,0)',
+    opacity: '1', display: 'block', visibility: 'visible', content: 'none',
+    color: 'rgb(0, 0, 0)', fontSize: '10px', fontStyle: 'normal', fontWeight: '400', fontFamily: 'Arial', letterSpacing: 'normal',
+  }
+
+  function makeCsFrom(fields: Record<string, string>): CSSStyleDeclaration {
+    return {
+      ...fields,
+      getPropertyValue: (name: string) => fields[name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] ?? '',
+    } as unknown as CSSStyleDeclaration
+  }
+
+  function makeEl(rect: FakeRect, csOverrides: Record<string, string>, children: FakeEl[] = [], pseudo: { before?: string; after?: string } = {}): FakeEl {
+    const el: FakeEl = {
+      nodeType: 1,
+      tagName: 'DIV',
+      classList: { contains: () => false },
+      childNodes: children,
+      getBoundingClientRect: () => rect,
+      contains: (n) => n === el || children.some((c) => c === n || c.contains(n)),
+      cs: { ...BASE_CS, ...csOverrides },
+      beforeContent: pseudo.before ?? 'none',
+      afterContent: pseudo.after ?? 'none',
+    }
+    return el
+  }
+
+  function fakeCreateTreeWalker(root: FakeEl, acceptNode: (n: FakeEl) => number) {
+    const ACCEPT = 1
+    const seq: FakeEl[] = []
+    const visit = (node: FakeEl) => {
+      for (const child of node.childNodes) {
+        if (acceptNode(child) === ACCEPT) {
+          seq.push(child)
+          visit(child)
+        }
+      }
+    }
+    visit(root)
+    let idx = -1
+    const walker = {
+      currentNode: root as unknown as Node,
+      nextNode: () => {
+        idx++
+        if (idx >= seq.length) return null
+        walker.currentNode = seq[idx] as unknown as Node
+        return walker.currentNode
+      },
+    }
+    return walker
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
+    g.HTMLImageElement = class {} // no fake element in this suite is ever one
+    const canvasCtx = { font: '', measureText: () => ({ width: 6, fontBoundingBoxAscent: 9, actualBoundingBoxAscent: 9 }) }
+    globalThis.document = {
+      createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
+        fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl) => number),
+      // styledTextRun's ascentPx (text.ts) falls back to a canvas measurement
+      // for a synthesized pseudo run — this is that canvas.
+      createElement: () => ({ getContext: () => canvasCtx }),
+    } as unknown as Document
+    globalThis.getComputedStyle = ((el: unknown, pseudo?: string) => {
+      const fake = el as FakeEl
+      if (pseudo === '::before') return makeCsFrom({ ...BASE_CS, content: fake.beforeContent })
+      if (pseudo === '::after') return makeCsFrom({ ...BASE_CS, content: fake.afterContent })
+      return makeCsFrom(fake.cs)
+    }) as unknown as typeof getComputedStyle
+  }
+
+  it('orders a host\'s ops as: host box -> host ::before -> child ops -> host ::after, before the next sibling', () => {
+    install()
+
+    const child = makeEl({ left: 10, top: 10, width: 30, height: 10 }, { backgroundColor: 'rgb(255, 0, 0)' })
+    const host = makeEl(
+      { left: 0, top: 0, width: 100, height: 50 },
+      { backgroundColor: 'rgb(0, 0, 255)' },
+      [child],
+      { before: '"«"', after: '"»"' }, // « and » — distinct, greppable sentinel glyphs
+    )
+    const sibling = makeEl({ left: 0, top: 50, width: 100, height: 20 }, { backgroundColor: 'rgb(0, 255, 0)' })
+    const root = makeEl({ left: 0, top: 0, width: 100, height: 70 }, { backgroundColor: 'rgba(0, 0, 0, 0)' }, [host, sibling])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+
+    const hostBoxIdx = ops.findIndex((o) => o.kind === 'rect' && o.fill?.r === 0 && o.fill?.g === 0 && o.fill?.b === 1)
+    const hostBeforeIdx = ops.findIndex((o) => o.kind === 'text' && o.run.text === '«')
+    const childBoxIdx = ops.findIndex((o) => o.kind === 'rect' && o.xPx === 10)
+    const hostAfterIdx = ops.findIndex((o) => o.kind === 'text' && o.run.text === '»')
+    const siblingBoxIdx = ops.findIndex((o) => o.kind === 'rect' && o.fill?.g === 1)
+
+    for (const idx of [hostBoxIdx, hostBeforeIdx, childBoxIdx, hostAfterIdx, siblingBoxIdx]) expect(idx).toBeGreaterThanOrEqual(0)
+
+    // host's own box paints before its ::before.
+    expect(hostBoxIdx).toBeLessThan(hostBeforeIdx)
+    // ::before paints before any descendant's ops.
+    expect(hostBeforeIdx).toBeLessThan(childBoxIdx)
+    // ::after paints AFTER every descendant's ops (the defect-3 invariant) —
+    // not immediately following ::before.
+    expect(childBoxIdx).toBeLessThan(hostAfterIdx)
+    // ::after fires as the walk exits host's subtree, strictly BEFORE the
+    // next sibling's own ops — not deferred all the way to the end of the
+    // whole walk (which closeUpTo(null) would also satisfy, but only
+    // coincidentally, since host happens to be the last-but-one root child
+    // here; this asserts the real "exiting a subtree" trigger instead).
+    expect(hostAfterIdx).toBeLessThan(siblingBoxIdx)
+  })
+})

@@ -33,6 +33,21 @@ declare global {
   }
 }
 
+/**
+ * What `renderResumePdf` should assign to `window.__cvaLastDecoBoxes` after
+ * THIS render, given whether it was capturing. Extracted as a pure function
+ * (task 15 fix round) so the no-stale-data invariant — a non-capturing render
+ * must clear whatever a PRIOR capturing render left behind, not just skip
+ * writing — is directly testable without mounting a full render (no DOM,
+ * no React, no font loading needed to exercise this one branch of logic).
+ * Always `undefined` when not capturing, regardless of `decoBoxes` (which is
+ * always `undefined` in that case anyway, from the `capturing ? [] :
+ * undefined` allocation at the call site) — never echoes a stale array back.
+ */
+export function resolveDecoBoxesGlobal(capturing: boolean, decoBoxes: DecoBox[] | undefined): DecoBox[] | undefined {
+  return capturing ? decoBoxes : undefined
+}
+
 /** Thrown when the mounted sheet is still taller than one page after auto-fit.
  * Multi-page pagination is a separate task — the caller should fall back to
  * the browser print export so the user always gets a correct PDF. */
@@ -109,7 +124,14 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     const capturing = import.meta.env.DEV && window.__cvaCaptureRenderBoxes === true
     const decoBoxes: DecoBox[] | undefined = capturing ? [] : undefined
     await paintOps(page, ops, fonts, pxToPt(pageHpx), decoBoxes)
-    if (capturing) window.__cvaLastDecoBoxes = decoBoxes
+    // ALWAYS assign (never a conditional `if (capturing)`) so a non-capturing
+    // render clears any boxes a PRIOR capturing render left behind — task-15
+    // fix round: `if (capturing) window.__cvaLastDecoBoxes = decoBoxes` only
+    // ever wrote when capturing was on, so render N's boxes stayed visible
+    // through render N+1 once the harness turned the flag back off. Still
+    // entirely inside the DEV guard, so the production path never touches
+    // `window` here at all.
+    if (import.meta.env.DEV) window.__cvaLastDecoBoxes = resolveDecoBoxesGlobal(capturing, decoBoxes)
 
     return await pdfDoc.save()
   } finally {
