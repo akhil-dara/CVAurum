@@ -215,7 +215,10 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
       // DECORATIVE: this is the logo mark's monogram letter, not résumé
       // content — paint.ts draws it as vector glyph outlines so it can't
       // leak into the extractable text layer (see types.ts's TextRun.isDecorative).
-      ops.push({ kind: 'text', run: { text: label, xPx, baselinePx, sizePx, family, weight, italic: false, color: fill, letterSpacingPx: 0, isDecorative: true } })
+      // widthPx: 0 — no measured DOM rect backs this synthesized run (see
+      // types.ts's TextRun.widthPx); it's also isDecorative so paint.ts's
+      // Tz scaling never looks at it anyway.
+      ops.push({ kind: 'text', run: { text: label, xPx, widthPx: 0, baselinePx, sizePx, family, weight, italic: false, color: fill, letterSpacingPx: 0, isDecorative: true } })
     }
   }
 
@@ -238,6 +241,10 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
   return {
     text,
     xPx,
+    // No measured DOM rect backs a synthesized pseudo/marker run — 0 rather
+    // than guess (see types.ts's TextRun.widthPx); also always isDecorative,
+    // so paint.ts's Tz scaling never looks at it anyway.
+    widthPx: 0,
     baselinePx: topPx + ascentPx(font),
     sizePx,
     family: cs.fontFamily,

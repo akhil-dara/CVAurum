@@ -100,6 +100,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     runs.push({
       text,
       xPx: rect.left - rootRect.left,
+      widthPx: rect.right - rect.left,
       baselinePx: rect.top - rootRect.top + ascentPx(font),
       sizePx: parsePx(cs.fontSize),
       family: cs.fontFamily,

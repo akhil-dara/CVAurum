@@ -457,25 +457,61 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
         }
       }
 
-      if (run.letterSpacingPx !== 0) {
-        await paintTrackedHeading(page, run, font, fonts, pageHeightPt, xPt)
-      } else {
-        page.drawText(run.text, {
-          x: xPt,
-          y: flipY(pxToPt(run.baselinePx), pageHeightPt),
-          size: sizePt,
-          font,
-          color: rgb(run.color.r, run.color.g, run.color.b),
-          opacity: run.color.a,
-        })
-      }
-
       // The tracked path's extractable layer is drawn UNTRACKED (Tc 0, see
       // paintTrackedHeading), so widthOfTextAtSize — which never applies
-      // letter-spacing — is exactly right for both branches above.
-      const widthPt = font.widthOfTextAtSize(run.text, sizePt)
+      // letter-spacing — is exactly right for both branches below.
+      const embeddedWidthPt = font.widthOfTextAtSize(run.text, sizePt)
+      let tzPct = 100
+
+      if (run.letterSpacingPx !== 0) {
+        // Tracked headings are UNTOUCHED by Tz scaling — tzPct stays 100, so
+        // the shared endXPt formula below reduces to the pre-task-12 value.
+        await paintTrackedHeading(page, run, font, fonts, pageHeightPt, xPt)
+      } else {
+        // Exact-DOM-width scaling (task 12): our embedded static fonts
+        // measure runs slightly (Inter, ~0.5%) to noticeably (Montserrat,
+        // ~1.8%) wider than Chromium actually renders them, so drawn text
+        // drifts right of its on-screen position by the end of a long line —
+        // the same-line snap above keeps EXTRACTION correct but can't fix
+        // that positional drift on its own. Scaling the run horizontally
+        // (PDF `Tz`) so its DRAWN width equals its DOM width makes the ink
+        // land exactly where Chromium's does; pdf.js honors Tz in both
+        // rendering and text-extraction advances (textState.textHScale), so
+        // this stays exact under extraction too. Clamped to a
+        // typographically invisible 90-110% band as a sanity guard against a
+        // bogus widthPx (e.g. a stale/mismeasured rect) ever visibly
+        // squashing or stretching a run; widthPx === 0 (unmeasured — see
+        // types.ts) leaves tzPct at 100, i.e. no scaling.
+        if (run.widthPx > 0 && embeddedWidthPt > 0) {
+          tzPct = Math.min(110, Math.max(90, (100 * pxToPt(run.widthPx)) / embeddedWidthPt))
+        }
+        if (tzPct !== 100) {
+          page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(tzPct)]))
+        }
+        try {
+          page.drawText(run.text, {
+            x: xPt,
+            y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+            size: sizePt,
+            font,
+            color: rgb(run.color.r, run.color.g, run.color.b),
+            opacity: run.color.a,
+          })
+        } finally {
+          if (tzPct !== 100) {
+            page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(100)]))
+          }
+        }
+      }
+
+      // When scaling is active the run's TRUE drawn width IS the DOM width,
+      // so bookkeeping must advance by that scaled width, not the embedded
+      // metric, or the next run's same-line snap would target the wrong
+      // (embedded-font) endpoint. tzPct stays 100 for the tracked branch and
+      // whenever scaling didn't apply, so this reduces to the old
+      // `xPt + embeddedWidthPt` there.
       const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
-      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + widthPt, chainStartXPt: nextChainStartXPt }
+      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + embeddedWidthPt * (tzPct / 100), chainStartXPt: nextChainStartXPt }
       continue
     }
 

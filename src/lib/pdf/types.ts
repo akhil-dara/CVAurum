@@ -22,6 +22,14 @@ export interface TextRun {
   text: string; xPx: number; baselinePx: number; sizePx: number
   family: string; weight: number; italic: boolean; color: Rgba; letterSpacingPx: number
   /**
+   * The run's laid-out width in CSS px, straight off the same client rect(s)
+   * `xPx` came from — 0 when unknown/unmeasured (paint.ts's Tz horizontal-
+   * scaling never applies at 0; see task-12 brief). Only extractRuns (real
+   * DOM text.ts text) sets a real value; every TextRun synthesized elsewhere
+   * (walk.ts's pseudo/marker/logo content) sets 0 rather than guess.
+   */
+  widthPx: number
+  /**
    * True for text that is DECORATION rather than résumé content — SVG logo
    * monogram marks, CSS `::before`/`::after`/`::marker` separator and bullet
    * glyphs. paint.ts draws these as vector glyph outlines (fontkit) instead

@@ -41,6 +41,7 @@ function baseRun(overrides: Partial<TextRun> = {}): TextRun {
   return {
     text: 'SUMMARY',
     xPx: 10,
+    widthPx: 0,
     baselinePx: 20,
     sizePx: 12,
     family: 'Arimo',
@@ -77,6 +78,12 @@ async function renderContentStream(ops: DrawOp[]): Promise<string> {
  *  tracked-heading layer). */
 function tmXPositions(stream: string): number[] {
   return [...stream.matchAll(/1 0 0 1 (-?[\d.]+) -?[\d.]+ Tm/g)].map((m) => Number(m[1]))
+}
+
+/** Every value pdf-lib wrote for a `Tz` (horizontal-scaling) operator, in
+ *  document order — one set/reset pair per Tz-scaled drawText call. */
+function tzValues(stream: string): number[] {
+  return [...stream.matchAll(/(-?[\d.]+) Tz/g)].map((m) => Number(m[1]))
 }
 
 /** The exact width pdf-lib's OWN embedded-font metric gives `text` at
@@ -330,6 +337,75 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
     const [, bX, cX] = tmXPositions(stream)
     expect(bX).toBeCloseTo(trueEndA, 6)
     expect(cX).toBeCloseTo(bDrawnEnd, 6)
+  })
+})
+
+describe('paintOps — Tz horizontal scaling for exact DOM-width runs (task 12)', () => {
+  // Our embedded static fonts measure runs slightly wider than Chromium
+  // renders them (see paint.ts's paintOps comment above the Tz block), so
+  // drawn text drifts right of its on-screen position by the end of a long
+  // line. Scaling each run to its DOM-measured width (widthPx, from a real
+  // client rect — see text.ts's extractRuns) via `Tz` fixes that at the
+  // source. widthPx === 0 (unmeasured — synthesized decorative runs, or a
+  // caller that genuinely doesn't know it) must never trigger scaling.
+  const sizePx = 12
+
+  it('scales a run to its exact DOM width via Tz (set then reset to 100), and prevRealEnd tracks the DOM width for the next run', async () => {
+    const text = 'Senior Software Engineer'
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+    const domWidthPt = embeddedWidthPt * 0.98 // our font measures ~2% wider than Chromium here
+    const domWidthPx = domWidthPt / pxToPt(1)
+
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: domWidthPx }) },
+      // Placed EXACTLY at the DOM-measured end of the first run — under the
+      // OLD (pre-task-12) embedded-metric bookkeeping this would land ~2%
+      // short of prevRealEnd.endXPt and get snapped to the WRONG (embedded-
+      // metric) endpoint; with Tz active the true drawn end IS domWidthPt,
+      // so it must snap flush there instead.
+      { kind: 'text', run: baseRun({ text: 'X', xPx: domWidthPx, baselinePx: 20, sizePx }) },
+    ])
+
+    const tz = tzValues(stream)
+    expect(tz.length).toBe(2) // set once, reset once
+    expect(tz[0]).toBeCloseTo(98, 0)
+    expect(tz[1]).toBe(100)
+
+    const [firstX, secondX] = tmXPositions(stream)
+    expect(firstX).toBeCloseTo(0, 6)
+    expect(secondX).toBeCloseTo(domWidthPt, 6)
+  })
+
+  it('emits no Tz for a run with widthPx 0, and keeps embedded-width bookkeeping (existing behavior)', async () => {
+    const text = 'Senior Software Engineer'
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+    const embeddedEndXPx = embeddedWidthPt / pxToPt(1)
+
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: 0 }) },
+      { kind: 'text', run: baseRun({ text: 'X', xPx: embeddedEndXPx, baselinePx: 20, sizePx }) },
+    ])
+
+    expect(tzValues(stream).length).toBe(0)
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(embeddedWidthPt, 6)
+  })
+
+  it('clamps an extreme widthPx ratio to the 90-110 band instead of applying it verbatim', async () => {
+    const text = 'Senior Software Engineer'
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+
+    const narrowPx = (embeddedWidthPt * 0.6) / pxToPt(1) // implies 60% -> clamps to 90
+    const narrowStream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: narrowPx }) },
+    ])
+    expect(tzValues(narrowStream)).toEqual([90, 100])
+
+    const widePx = (embeddedWidthPt * 1.5) / pxToPt(1) // implies 150% -> clamps to 110
+    const wideStream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: widePx }) },
+    ])
+    expect(tzValues(wideStream)).toEqual([110, 100])
   })
 })
 
