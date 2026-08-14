@@ -8,8 +8,7 @@
  */
 import { createRoot } from 'react-dom/client'
 import { PDFDocument } from 'pdf-lib'
-// @pdf-lib/fontkit has no default export (UMD-style module) — import as namespace.
-import * as fontkit from '@pdf-lib/fontkit'
+import * as fontkitNs from '@pdf-lib/fontkit'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
@@ -24,6 +23,16 @@ import { paintOps } from './paint'
  * Multi-page pagination is a separate task — the caller should fall back to
  * the browser print export so the user always gets a correct PDF. */
 export class PdfMultiPageUnsupportedError extends Error {}
+
+// @pdf-lib/fontkit is CJS: under Vite the real module ends up on `.default`,
+// while under other bundlers/interop settings the namespace import IS the
+// module. Accept either shape rather than assuming one — the wrong guess
+// silently registers an object without `.create`, and every text op then
+// fails with "fontkit.create is not a function" (swallowed by paintOps'
+// per-op tolerance), producing a valid-looking but textless PDF.
+const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? fontkitNs) as Parameters<
+  PDFDocument['registerFontkit']
+>[0]
 
 // Two animation frames — but NEVER hang. If the tab is backgrounded, rAF is
 // throttled and would stall forever, so fall back to a timer. Same helper as

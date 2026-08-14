@@ -11,7 +11,6 @@ import { rgb, setCharacterSpacing, type PDFImage, type PDFPage } from 'pdf-lib'
 import { pxToPt, flipY } from './units'
 import type { DrawOp } from './types'
 import type { PdfFontCache } from './fonts'
-import { PdfFontMissingError } from './fonts'
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
 const JPEG_MAGIC = [0xff, 0xd8, 0xff]
@@ -42,14 +41,41 @@ async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise
 }
 
 /**
- * Paints every op onto `page`. Never throws for a single bad op — except
- * `PdfFontMissingError`, which propagates because a wrong font is a fidelity
- * failure, not a cosmetic one.
+ * Paints every op onto `page`. Never throws for a single bad rect/line/image
+ * op — but a text op's font resolution (`fonts.embed`) is NEVER swallowed:
+ * any error there (missing font, or a genuine embed failure) propagates out
+ * of `paintOps`. A resume that silently lost its text is not a "mostly
+ * successful" export — it's a blank page masquerading as one, and the
+ * caller's print-export fallback exists exactly to catch that case.
  */
 export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
   const images = new Map<string, Promise<PDFImage | null>>()
 
   for (const op of ops) {
+    if (op.kind === 'text') {
+      const { run } = op
+      // Intentionally OUTSIDE the try/catch below: any failure to embed the
+      // font must propagate, not be swallowed as a cosmetic per-op issue.
+      const font = await fonts.embed(run.family, run.weight)
+      const spacingPt = pxToPt(run.letterSpacingPx)
+      try {
+        if (spacingPt !== 0) page.pushOperators(setCharacterSpacing(spacingPt))
+        page.drawText(run.text, {
+          x: pxToPt(run.xPx),
+          y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+          size: pxToPt(run.sizePx),
+          font,
+          color: rgb(run.color.r, run.color.g, run.color.b),
+          opacity: run.color.a,
+        })
+      } finally {
+        // Always restore Tc to 0, even if drawText threw — otherwise a
+        // stale non-zero character spacing would mis-set every run after it.
+        if (spacingPt !== 0) page.pushOperators(setCharacterSpacing(0))
+      }
+      continue
+    }
+
     try {
       switch (op.kind) {
         case 'rect': {
@@ -86,30 +112,13 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
           })
           break
         }
-        case 'text': {
-          const { run } = op
-          const font = await fonts.embed(run.family, run.weight)
-          const spacingPt = pxToPt(run.letterSpacingPx)
-          if (spacingPt !== 0) page.pushOperators(setCharacterSpacing(spacingPt))
-          page.drawText(run.text, {
-            x: pxToPt(run.xPx),
-            y: flipY(pxToPt(run.baselinePx), pageHeightPt),
-            size: pxToPt(run.sizePx),
-            font,
-            color: rgb(run.color.r, run.color.g, run.color.b),
-            opacity: run.color.a,
-          })
-          if (spacingPt !== 0) page.pushOperators(setCharacterSpacing(0))
-          break
-        }
         case 'svg':
           // Not emitted by the walker yet — nothing to paint.
           break
       }
-    } catch (e) {
-      if (e instanceof PdfFontMissingError) throw e
-      // Any other single-op failure is swallowed: one bad rect/line/image
-      // must not sink the whole export.
+    } catch {
+      // Single bad rect/line/image op is swallowed: it must not sink the
+      // whole export the way a lost font would.
     }
   }
 }
