@@ -147,4 +147,22 @@ describe('exportResumePdf', () => {
     expect(console.error).toHaveBeenCalledTimes(1)
     expect(openPrintWindowMock).toHaveBeenCalledWith('doc-1')
   })
+
+  it('a throwing localStorage.getItem (sandboxed/blocked storage) is treated as flag-unset — native path still runs', async () => {
+    globalThis.localStorage = {
+      ...globalThis.localStorage,
+      getItem: () => {
+        throw new Error('SecurityError: storage is blocked')
+      },
+    } as unknown as Storage
+    renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3]))
+
+    const outcome = await exportResumePdf(doc)
+
+    expect(outcome).toBe('native')
+    expect(renderResumePdfMock).toHaveBeenCalledTimes(1)
+    expect(openPrintWindowMock).not.toHaveBeenCalled()
+    expect(lastAnchor?.click).toHaveBeenCalledTimes(1)
+    expect(console.error).not.toHaveBeenCalled()
+  })
 })

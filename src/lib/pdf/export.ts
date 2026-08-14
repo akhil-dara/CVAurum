@@ -25,7 +25,19 @@ export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportOut
   // native path too.
   await saveDoc(doc)
 
-  if (localStorage.getItem(FORCE_PRINT_KEY) === 'print') {
+  // localStorage.getItem can THROW (sandboxed iframes, strict cookie
+  // blocking, some corporate privacy configs) — a throw here must NOT escape
+  // and skip both export paths. Treat it the same as the flag being unset
+  // (matches src/lib/backup.ts's localStorage guard) so the native path
+  // still runs.
+  let forcePrint = false
+  try {
+    forcePrint = localStorage.getItem(FORCE_PRINT_KEY) === 'print'
+  } catch {
+    /* private mode / blocked storage — fall through to the native path */
+  }
+
+  if (forcePrint) {
     openPrintWindow(doc.id)
     return 'print-fallback'
   }
