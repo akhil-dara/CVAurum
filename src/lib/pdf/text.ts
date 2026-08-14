@@ -35,6 +35,16 @@ export function ascentPx(cssFont: string): number {
   return a
 }
 
+/** Rendered width of `text` in `cssFont` (a canvas font shorthand, e.g.
+ *  `700 9px "Source Sans 3"`) — used to right/center-align synthesized
+ *  content (list markers, generated-content pseudo text) we can't lay out
+ *  the way the browser does since we're not actually flowing it. */
+export function measureTextWidthPx(text: string, cssFont: string): number {
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d')
+  measureCtx!.font = cssFont
+  return measureCtx!.measureText(text).width
+}
+
 /**
  * Turn a DOM Text node into per-LINE runs carrying exactly what the painter
  * needs: the rendered string, its x, its baseline y, and its style. Coordinates
