@@ -66,6 +66,48 @@ async function renderContentStream(ops: DrawOp[]): Promise<string> {
   return contentStream.getContentsString()
 }
 
+describe('paintOps — tracked (letter-spaced) headings draw two layers', () => {
+  // /ActualText was tried first (per the task-10b brief) and rejected with
+  // evidence — pdf.js's getTextContent() never reads it (see paint.ts's
+  // paintTrackedHeading doc comment and the task-10b report for the pdfjs
+  // source references and an isolated before/after probe). The shipped fix
+  // is two layers: an invisible untracked real Tj (extractable) plus visible
+  // vector glyph outlines (pixel-identical, not part of the text layer).
+
+  it('draws an invisible (Tr 3) untracked Tj for the real, extractable text', async () => {
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) }])
+    expect(stream).toMatch(/\b3 Tr\b/) // invisible rendering mode set...
+    expect(stream).toMatch(/\b0 Tr\b/) // ...and restored to fill afterward
+    expect(stream).toMatch(/\bTj\b/)
+    // No Tc at all: the extractable layer is intentionally untracked, so
+    // pdf.js's glyph-gap word-boundary heuristic (fontSize * 0.102, see the
+    // paintTrackedHeading doc comment) never fires for it.
+    expect(stream).not.toMatch(/\bTc\b/)
+  })
+
+  it('also draws visible vector glyph outlines carrying the full tracked spacing', async () => {
+    const tracked = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5 }) }])
+    const untracked = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 0 }) }])
+    // The tracked case draws the SAME word as decorative-style vector fills
+    // (7 letters -> 7 fill ops) on top of the invisible Tj; the untracked
+    // case draws only the single ordinary Tj, no vector fills at all.
+    expect(tracked.match(/\bf\b/g)?.length).toBe(7)
+    expect(untracked.match(/\bf\b/g)).toBeNull()
+  })
+
+  it('draws ordinary (non-tracked) text as a single plain, visible Tj — no Tr, no vector layer', async () => {
+    const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'Senior Software Engineer', letterSpacingPx: 0 }) }])
+    expect(stream).not.toMatch(/\bTr\b/)
+    expect(stream).not.toMatch(/\bTc\b/)
+    expect(stream.match(/\bTj\b/g)?.length).toBe(1)
+  })
+
+  it('propagates a font-embed failure for a tracked heading (real content, hard-fail)', async () => {
+    const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 1.5, family: 'Nonexistent Font' }) }]
+    await expect(renderContentStream(ops)).rejects.toThrow()
+  })
+})
+
 describe('paintOps — decorative runs draw vector glyph outlines, never real text', () => {
   it('never emits a text-showing operator (Tj/TJ) or a text object (BT) for a decorative run', async () => {
     const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'V', isDecorative: true }) }])

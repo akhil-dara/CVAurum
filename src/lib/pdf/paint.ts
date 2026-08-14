@@ -9,7 +9,8 @@
  */
 import {
   rgb,
-  setCharacterSpacing,
+  setTextRenderingMode,
+  TextRenderingMode,
   type PDFImage,
   type PDFPage,
 } from 'pdf-lib'
@@ -59,13 +60,19 @@ async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise
 }
 
 /**
- * Draws a DECORATIVE text run (SVG logo monogram marks, CSS
- * `::before`/`::after`/`::marker` separator and bullet glyphs — see
- * `TextRun.isDecorative` in types.ts) as vector glyph outlines instead of a
- * real PDF text-showing operator, so the mark stays pixel-identical without
- * ever entering the extractable text layer an ATS reads (task-10b brief,
- * defect B — a logo's monogram letter was showing up mid-sentence in real
- * résumé content, e.g. "EXPERIENCE V Senior Software Engineer").
+ * Draws a text run's glyph outlines as VECTOR PATHS instead of a real PDF
+ * text-showing operator. Used two ways (see `paintOps` below):
+ *  - DECORATIVE runs (SVG logo monogram marks, CSS `::before`/`::after`/
+ *    `::marker` separator/bullet glyphs — `TextRun.isDecorative` in
+ *    types.ts): this is the ONLY layer painted for them, so a logo letter
+ *    stays pixel-identical without ever entering the extractable text layer
+ *    an ATS reads (task-10b brief, defect B — a logo's monogram letter was
+ *    showing up mid-sentence in real résumé content, e.g. "EXPERIENCE V
+ *    Senior Software Engineer").
+ *  - Tracked (letter-spaced) REAL headings (defect A, see
+ *    `paintTrackedHeading` below): this is the VISIBLE half of a two-layer
+ *    approach, painted alongside a separate invisible, correctly-extractable
+ *    copy of the same text.
  *
  * fontkit (already registered on the document for real-text font embedding)
  * exposes each glyph's outline (`glyph.path`) in FONT units with a y-UP axis
@@ -128,12 +135,77 @@ export function glyphPathToDrawPath(path: FontkitPath, scale: number): string {
 }
 
 /**
+ * Paints a TRACKED (letter-spaced) real-content heading as TWO layers —
+ * see the task-10b report for the full investigation. In short:
+ *
+ * `/ActualText` (the PDF spec's own §14.6.2/§14.9.4 mechanism for telling an
+ * extractor the real string behind unusual glyph positioning) is NOT read by
+ * pdf.js's `getTextContent()` — confirmed by reading pdfjs-dist's worker
+ * source (`beginMarkedContentProps` in evaluator.js only ever reads `MCID`
+ * off the marked-content properties dict; `ActualText` is used solely by the
+ * separate structure-tree/accessibility API, never by plain text extraction)
+ * and by an isolated probe: a minimal PDF with a correctly-formed
+ * `/Span <</ActualText (SUMMARY)>> BDC ... Tj ... EMC` still extracts as
+ * "S U M M A R Y" (see the task-10b report for the exact bytes and pdf.js
+ * output). pdf.js instead reconstructs words from raw GLYPH GEOMETRY: any
+ * gap between consecutive glyphs bigger than `fontSize * 0.102`
+ * (`TRACKING_SPACE_FACTOR` in evaluator.js) is treated as a word boundary and
+ * gets an inserted space, regardless of which operator produced that gap
+ * (`Tc`, a `TJ` array adjustment, and an explicit `Td` all move the pen the
+ * same way from pdf.js's point of view) — our tracked headings use
+ * letter-spacing well above that threshold (e.g. 0.16em), so there is no
+ * "clever operator choice" that keeps the SAME visible spacing invisible to
+ * this heuristic.
+ *
+ * The fix: stop asking one text-showing operator to be both "visually
+ * tracked" and "cleanly extractable" — split those into two layers instead.
+ *  1. An INVISIBLE (text rendering mode 3 — the same standard mechanism
+ *     OCR tools like Tesseract use to lay searchable text under a scanned
+ *     image), UNTRACKED (`Tc` stays 0) real `drawText` call. With no
+ *     artificial gap between glyphs, pdf.js's geometry-based heuristic never
+ *     fires, so this is exactly `run.text` when extracted — verified via
+ *     `_local/gate-pdf.cjs` (TRACKED_TEXT_SPLIT count) after this change.
+ *  2. The VISIBLE glyphs, drawn as vector outlines carrying the FULL tracked
+ *     spacing (`paintGlyphOutlines`, reusing the exact machinery defect B's
+ *     decorative marks use) — pixel-identical to the browser's
+ *     `letter-spacing`, but not a PDF text-showing operator at all, so it
+ *     cannot be misread by ANY glyph-geometry heuristic.
+ *
+ * Both layers still originate from exactly ONE logical `TextRun` and the
+ * extractable layer is exactly ONE `drawText` call — this does not draw
+ * real content character-by-character, and the extractable text is never
+ * dropped, only its rendering mode changes.
+ */
+async function paintTrackedHeading(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
+  // Layer 1: invisible, untracked, extractable.
+  const font = await fonts.embed(run.family, run.weight)
+  page.pushOperators(setTextRenderingMode(TextRenderingMode.Invisible))
+  try {
+    page.drawText(run.text, {
+      x: pxToPt(run.xPx),
+      y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+      size: pxToPt(run.sizePx),
+      font,
+      color: rgb(run.color.r, run.color.g, run.color.b),
+      opacity: run.color.a,
+    })
+  } finally {
+    // Always restore normal (filled) rendering mode, even if drawText threw
+    // — otherwise every op after this one would silently paint nothing.
+    page.pushOperators(setTextRenderingMode(TextRenderingMode.Fill))
+  }
+
+  // Layer 2: visible, tracked, vector — not part of the text layer at all.
+  await paintGlyphOutlines(page, run, fonts, pageHeightPt)
+}
+
+/**
  * Paints every op onto `page`. Never throws for a single bad rect/line/image
- * op — but a text op's font resolution (`fonts.embed`) is NEVER swallowed:
- * any error there (missing font, or a genuine embed failure) propagates out
- * of `paintOps`. A resume that silently lost its text is not a "mostly
- * successful" export — it's a blank page masquerading as one, and the
- * caller's print-export fallback exists exactly to catch that case.
+ * op — but a REAL-CONTENT text op's font resolution (`fonts.embed`) is NEVER
+ * swallowed: any error there (missing font, or a genuine embed failure)
+ * propagates out of `paintOps`. A resume that silently lost its text is not
+ * a "mostly successful" export — it's a blank page masquerading as one, and
+ * the caller's print-export fallback exists exactly to catch that case.
  * DECORATIVE text (see `isDecorative`) is tolerant like every other cosmetic
  * op: losing a logo's monogram letter is not the same class of failure as
  * losing résumé content.
@@ -145,24 +217,21 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
     if (op.kind === 'text' && !op.run.isDecorative) {
       const { run } = op
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
-      // font must propagate, not be swallowed as a cosmetic per-op issue.
-      const font = await fonts.embed(run.family, run.weight)
-      const spacingPt = pxToPt(run.letterSpacingPx)
-      try {
-        if (spacingPt !== 0) page.pushOperators(setCharacterSpacing(spacingPt))
-        page.drawText(run.text, {
-          x: pxToPt(run.xPx),
-          y: flipY(pxToPt(run.baselinePx), pageHeightPt),
-          size: pxToPt(run.sizePx),
-          font,
-          color: rgb(run.color.r, run.color.g, run.color.b),
-          opacity: run.color.a,
-        })
-      } finally {
-        // Always restore Tc to 0, even if drawText threw — otherwise a
-        // stale non-zero character spacing would mis-set every run after it.
-        if (spacingPt !== 0) page.pushOperators(setCharacterSpacing(0))
+      // font (real content, tracked or not) must propagate, not be
+      // swallowed as a cosmetic per-op issue.
+      if (run.letterSpacingPx !== 0) {
+        await paintTrackedHeading(page, run, fonts, pageHeightPt)
+        continue
       }
+      const font = await fonts.embed(run.family, run.weight)
+      page.drawText(run.text, {
+        x: pxToPt(run.xPx),
+        y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+        size: pxToPt(run.sizePx),
+        font,
+        color: rgb(run.color.r, run.color.g, run.color.b),
+        opacity: run.color.a,
+      })
       continue
     }
 
