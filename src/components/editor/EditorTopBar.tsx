@@ -27,8 +27,7 @@ import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
-import { saveDoc } from '@/lib/storage'
-import { openPrintWindow } from '@/lib/pdf'
+import { exportResumePdf } from '@/lib/pdf/export'
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -60,12 +59,13 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     setExportOpen(false)
     setExportFmt(fmt)
   }
-  // PDF is the browser's vector Save-as-PDF (crisp, selectable, identical to the
-  // preview). No in-app filename popup needed — the save dialog names it.
+  // PDF is generated in-app by the native renderer (crisp, selectable, exact —
+  // same DOM/CSS as the preview). No in-app filename popup needed — the
+  // download is named for you. Browser print is an automatic fallback for
+  // resumes that don't fit one page, so the user always gets an export.
   const exportPdf = async () => {
     setExportOpen(false)
-    await saveDoc(useResumeStore.getState().doc ?? doc)
-    openPrintWindow(doc.id)
+    await exportResumePdf(useResumeStore.getState().doc ?? doc)
   }
 
   return (
@@ -198,7 +198,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
               <div className="card absolute right-0 z-20 mt-1 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden p-1.5 shadow-float">
                 <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={exportPdf}>
                   <span className="flex items-center gap-2 font-medium"><FileDown className="h-4 w-4 shrink-0 text-primary" /> Download PDF</span>
-                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Crisp &amp; selectable — exact, via Save&nbsp;as&nbsp;PDF</span>
+                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Crisp, selectable, ATS-exact — generated in-app</span>
                 </button>
                 <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('docx')}>
                   <span className="flex items-center gap-2 font-medium"><FileText className="h-4 w-4 shrink-0 text-primary" /> Download Word (.docx)</span>
