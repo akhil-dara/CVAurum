@@ -300,52 +300,6 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
 }
 
 /**
- * When one text node ends and the next begins on the same line — e.g.
- * "...checkout latency from 820ms to " (plain) immediately followed by a
- * bold "190ms" span — the separating space really is in the first run's
- * `text` (collapseWhitespace only collapses runs of whitespace, it never
- * trims). The problem is what happens after: that text gets drawn with OUR
- * embedded font, and by the time a ~110-character run finishes, our font's
- * cumulative glyph advances can drift a couple of device pixels from what
- * the BROWSER's own layout used to position the run after it (confirmed by
- * instrumenting the real export: canvas's own text-shaping prediction for
- * this exact 112-character run — the best proxy available without loading
- * fontkit here — landed ~3px short of what pdf-lib actually draws, just
- * enough to swallow the ~2px space glyph and print "to190ms"). A longer
- * prior run means more accumulated drift, which is why this only shows up
- * at same-line boundaries after a long stretch of text, not for every space.
- *
- * This has to be a general "runs on the same line never overlap" guarantee
- * rather than a narrow "prev ends in whitespace" patch: pushing one run
- * right to fix its LEFT boundary can make ITS OWN drawn width reach further
- * than before, which can newly overshoot the run after it even when that
- * next run has no trailing/leading whitespace of its own to blame (seen
- * live: fixing "...with " + "8+ years" pushed "8+ years" right, which then
- * overshot the unrelated "8+ years" + " building..." boundary right after
- * it). `run.xPx` (from a real DOM Range) is always trustworthy, so this
- * only ever pushes it FURTHER right — it never pulls a run left, so a
- * boundary that already had plenty of clearance is left untouched.
- */
-function closeInlineGap(prev: TextRun | null, run: TextRun): void {
-  if (!prev) return
-  if (Math.abs(run.baselinePx - prev.baselinePx) > 0.5) return // not the same line
-
-  const font = `${prev.italic ? 'italic' : 'normal'} ${prev.weight} ${prev.sizePx}px ${prev.family}`
-  const drawnWidth = measureTextWidthPx(prev.text, font) + prev.letterSpacingPx * prev.text.length
-  // Canvas's own text shaping (used to predict our embedded font's width)
-  // isn't pixel-identical to fontkit's — measured ~0.6% narrower than
-  // pdf-lib's actual widthOfTextAtSize() for this exact 112-char run, just
-  // enough to make the predicted end look safe while the real draw still
-  // clips into the next run. A small safety margin covers that class of
-  // shaping drift without needing to load fontkit here — kept tight so it
-  // doesn't visibly widen genuinely-correct gaps (0.6% observed drift; 1%
-  // margin, not the ~2% first tried, which over-corrected into a
-  // noticeably wider-than-print gap).
-  const predictedEnd = prev.xPx + drawnWidth * 1.01
-  if (run.xPx < predictedEnd) run.xPx = predictedEnd
-}
-
-/**
  * Walk the rendered print DOM and produce an ordered draw list. Document
  * order matters: later ops paint on top, exactly like CSS paints backgrounds
  * before the text that sits on them.
@@ -364,7 +318,6 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
   })
 
   const ops: DrawOp[] = []
-  let prevTextRun: TextRun | null = null
   // visit the root itself first, then every accepted node exactly once
   for (let n: Node | null = walker.currentNode; n; n = walker.nextNode()) {
     if (n.nodeType === Node.ELEMENT_NODE) {
@@ -372,10 +325,21 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
       pseudoOps(n as HTMLElement, root, ops)
       markerOps(n as HTMLElement, root, ops)
     } else if (n.nodeType === Node.TEXT_NODE) {
+      // Same-line adjacent-run touching/gap prevention used to live here,
+      // estimated with canvas.measureText as a proxy for our EMBEDDED font's
+      // width (task 10a, defect 5). That estimate turned out to drift in
+      // BOTH directions depending on the specific string (confirmed while
+      // diagnosing task 10c's "Languages :" TEXT_MISMATCH: for one string
+      // canvas underestimated our font's width enough to risk overlap, for
+      // an adjacent one on the same line it overestimated enough to leave a
+      // gap pdf.js's word-boundary heuristic read as a real space), so an
+      // estimate with a safety margin can't get every case right no matter
+      // how the margin is tuned. paint.ts now does this exactly, using the
+      // ACTUAL embedded pdf-lib font's widthOfTextAtSize — the very metric
+      // pdf.js itself measures against — which needs the font object this
+      // module doesn't have. See paint.ts's paintOps.
       for (const run of extractRuns(n as Text, root)) {
-        closeInlineGap(prevTextRun, run)
         ops.push({ kind: 'text', run })
-        prevTextRun = run
       }
     }
   }

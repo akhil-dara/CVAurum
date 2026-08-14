@@ -11,6 +11,7 @@ import {
   rgb,
   setTextRenderingMode,
   TextRenderingMode,
+  type PDFFont,
   type PDFImage,
   type PDFPage,
 } from 'pdf-lib'
@@ -82,13 +83,18 @@ async function embedImage(page: PDFPage, src: string, cache: Map<string, Promise
  * around the given (x, y) anchor (verified by reading pdf-lib's
  * `operations.js`), so `glyphPathToDrawPath` only needs to negate y (and
  * scale) — never flip x — before handing coordinates to drawSvgPath.
+ *
+ * `xPt` defaults to the run's own (unadjusted) position, used for decorative
+ * calls. `paintTrackedHeading` passes the SAME (possibly same-line-adjusted)
+ * x its invisible extractable layer used, so both layers stay aligned — see
+ * `paintOps`'s adjacency handling.
  */
-async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
+async function paintGlyphOutlines(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number, xPt: number = pxToPt(run.xPx)): Promise<void> {
   const font = await fonts.embedGlyphOutlines(run.family, run.weight)
   const glyphRun = font.layout(run.text)
   const scale = pxToPt(run.sizePx) / font.unitsPerEm
   const color = rgb(run.color.r, run.color.g, run.color.b)
-  const baseX = pxToPt(run.xPx)
+  const baseX = xPt
   const baseY = flipY(pxToPt(run.baselinePx), pageHeightPt)
   const letterSpacingPt = pxToPt(run.letterSpacingPx)
 
@@ -175,14 +181,19 @@ export function glyphPathToDrawPath(path: FontkitPath, scale: number): string {
  * extractable layer is exactly ONE `drawText` call — this does not draw
  * real content character-by-character, and the extractable text is never
  * dropped, only its rendering mode changes.
+ *
+ * `font` and `xPt` are supplied by `paintOps` (already embedded the font to
+ * compute same-line adjacency — see there) rather than re-resolved here, so
+ * both this call's invisible layer and its visible vector layer (via
+ * `paintGlyphOutlines`) use the exact same x as every other real-content run
+ * on the page.
  */
-async function paintTrackedHeading(page: PDFPage, run: TextRun, fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
+async function paintTrackedHeading(page: PDFPage, run: TextRun, font: PDFFont, fonts: PdfFontCache, pageHeightPt: number, xPt: number): Promise<void> {
   // Layer 1: invisible, untracked, extractable.
-  const font = await fonts.embed(run.family, run.weight)
   page.pushOperators(setTextRenderingMode(TextRenderingMode.Invisible))
   try {
     page.drawText(run.text, {
-      x: pxToPt(run.xPx),
+      x: xPt,
       y: flipY(pxToPt(run.baselinePx), pageHeightPt),
       size: pxToPt(run.sizePx),
       font,
@@ -196,7 +207,7 @@ async function paintTrackedHeading(page: PDFPage, run: TextRun, fonts: PdfFontCa
   }
 
   // Layer 2: visible, tracked, vector — not part of the text layer at all.
-  await paintGlyphOutlines(page, run, fonts, pageHeightPt)
+  await paintGlyphOutlines(page, run, fonts, pageHeightPt, xPt)
 }
 
 /**
@@ -212,6 +223,32 @@ async function paintTrackedHeading(page: PDFPage, run: TextRun, fonts: PdfFontCa
  */
 export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache, pageHeightPt: number): Promise<void> {
   const images = new Map<string, Promise<PDFImage | null>>()
+  // Same-line adjacency for REAL (non-decorative) text runs: when one DOM
+  // text node ends and the next begins on the same line (e.g. plain text
+  // immediately followed by a bold span), walk.ts used to guess where THIS
+  // run's own drawn text would end using canvas.measureText as a proxy for
+  // our EMBEDDED font's width, plus a safety margin (task 10a, defect 5).
+  // That guess drifts in BOTH directions depending on the exact string
+  // (confirmed while diagnosing task 10c's TEXT_MISMATCH cases: for one bold
+  // label on a "Category: keywords" line, canvas's estimate undershot our
+  // embedded font's ACTUAL width, risking touching glyphs; for an adjacent
+  // label on the very SAME line, our embedded font actually drew NARROWER
+  // than the browser did, leaving a small unintended gap the OTHER
+  // direction) — a single fixed-direction margin can't close both at once.
+  // Doing it HERE instead, with the font already embedded, replaces the
+  // guess with the EXACT metric pdf.js itself measures against
+  // (`font.widthOfTextAtSize`), so there is nothing left to estimate.
+  //
+  // The correction is deliberately SYMMETRIC (see the space-width check
+  // below), not "push right only": a boundary meant to be flush (no DOM
+  // whitespace between the two elements at all — e.g. a bold "Category"
+  // label immediately followed by a ": keywords" span) must land at
+  // EXACTLY the previous run's true end regardless of which direction our
+  // font's width happens to differ from the browser's, because pdf.js's own
+  // word-boundary heuristic (task-10b report) reacts to ANY gap above
+  // ~10% of the font size, in EITHER direction, with no notion of
+  // "acceptable drift" — only an exact match reliably avoids it.
+  let prevRealEnd: { baselinePx: number; endXPt: number } | null = null
 
   for (const op of ops) {
     if (op.kind === 'text' && !op.run.isDecorative) {
@@ -219,19 +256,39 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
       // font (real content, tracked or not) must propagate, not be
       // swallowed as a cosmetic per-op issue.
-      if (run.letterSpacingPx !== 0) {
-        await paintTrackedHeading(page, run, fonts, pageHeightPt)
-        continue
-      }
       const font = await fonts.embed(run.family, run.weight)
-      page.drawText(run.text, {
-        x: pxToPt(run.xPx),
-        y: flipY(pxToPt(run.baselinePx), pageHeightPt),
-        size: pxToPt(run.sizePx),
-        font,
-        color: rgb(run.color.r, run.color.g, run.color.b),
-        opacity: run.color.a,
-      })
+      const sizePt = pxToPt(run.sizePx)
+      let xPt = pxToPt(run.xPx)
+
+      // Snap to the previous run's true end whenever the real DOM gap is
+      // smaller than a genuine space character in THIS run's own font —
+      // covers both overlap (a negative "gap") and a small unintended
+      // positive gap, while a real word-space (much wider than one glyph,
+      // confirmed empirically: ~1.8pt vs the drift cases' ~0.9-1.0pt at the
+      // same font size) safely clears the check and is left exactly where
+      // the browser put it.
+      if (prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
+        const spaceWidthPt = font.widthOfTextAtSize(' ', sizePt)
+        if (xPt - prevRealEnd.endXPt < spaceWidthPt) xPt = prevRealEnd.endXPt
+      }
+
+      if (run.letterSpacingPx !== 0) {
+        await paintTrackedHeading(page, run, font, fonts, pageHeightPt, xPt)
+      } else {
+        page.drawText(run.text, {
+          x: xPt,
+          y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+          size: sizePt,
+          font,
+          color: rgb(run.color.r, run.color.g, run.color.b),
+          opacity: run.color.a,
+        })
+      }
+
+      // The tracked path's extractable layer is drawn UNTRACKED (Tc 0, see
+      // paintTrackedHeading), so widthOfTextAtSize — which never applies
+      // letter-spacing — is exactly right for both branches above.
+      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + font.widthOfTextAtSize(run.text, sizePt) }
       continue
     }
 

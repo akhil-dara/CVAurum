@@ -7,6 +7,7 @@ import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { paintOps, glyphPathToDrawPath } from './paint'
 import { PdfFontCache } from './fonts'
+import { pxToPt } from './units'
 import type { DrawOp, TextRun } from './types'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx guard against.
@@ -64,6 +65,27 @@ async function renderContentStream(ops: DrawOp[]): Promise<string> {
   await paintOps(page, ops, fonts, 300)
   const contentStream = (page as unknown as { getContentStream: () => { getContentsString(): string } }).getContentStream()
   return contentStream.getContentsString()
+}
+
+/** The x values pdf-lib actually wrote for each `Tm` (text-positioning)
+ *  operator, in document order — one per drawText call (real or invisible
+ *  tracked-heading layer). */
+function tmXPositions(stream: string): number[] {
+  return [...stream.matchAll(/1 0 0 1 (-?[\d.]+) -?[\d.]+ Tm/g)].map((m) => Number(m[1]))
+}
+
+/** The exact width pdf-lib's OWN embedded-font metric gives `text` at
+ *  `sizePx` — the same metric paint.ts's adjacency logic (and, downstream,
+ *  pdf.js's own gap measurement) uses. A separate PDFDocument instance from
+ *  whatever the test renders into, but the same font FILE, so the metric is
+ *  identical — verified indirectly by every assertion below landing exactly
+ *  on this value, not approximately. */
+async function trueWidthPt(text: string, sizePx: number): Promise<number> {
+  const doc = await PDFDocument.create()
+  doc.registerFontkit(fontkit)
+  const fonts = new PdfFontCache(doc, FONT_INDEX)
+  const font = await fonts.embed('Arimo', 700)
+  return font.widthOfTextAtSize(text, pxToPt(sizePx))
 }
 
 describe('paintOps — tracked (letter-spaced) headings draw two layers', () => {
@@ -139,6 +161,86 @@ describe('paintOps — decorative runs draw vector glyph outlines, never real te
   it('still propagates a font-embed failure for REAL (non-decorative) content', async () => {
     const ops: DrawOp[] = [{ kind: 'text', run: baseRun({ text: 'Real résumé content', isDecorative: false, family: 'Nonexistent Font' }) }]
     await expect(renderContentStream(ops)).rejects.toThrow()
+  })
+})
+
+describe('paintOps — same-line adjacency (task 10c)', () => {
+  // Replaces walk.ts's old canvas.measureText-based estimate (task 10a,
+  // defect 5), which turned out to drift in BOTH directions depending on
+  // the exact string (task-10c report) — no fixed-direction margin can
+  // close both an overlap risk and a spurious-gap risk at once. This uses
+  // pdf-lib's OWN `widthOfTextAtSize` for the ACTUAL embedded font, so
+  // there's nothing to estimate: assertions below land on an EXACT value,
+  // not "close enough".
+  const sizePx = 12
+
+  it('pushes an overlapping second run right to exactly the first run’s true drawn end', async () => {
+    const trueEnd = await trueWidthPt('Languages', sizePx) // first run starts at xPx 0
+    // Placed 2pt BEFORE the true end — i.e. would visually overlap if drawn
+    // as given, simulating our embedded font drawing wider than whatever
+    // produced this xPx.
+    const overlappingXPx = (trueEnd - 2) / (72 / 96)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Languages', xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: ':', xPx: overlappingXPx, baselinePx: 20, sizePx }) },
+    ])
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(trueEnd, 6)
+  })
+
+  it('closes a small unintended gap (smaller than a real space) to exactly zero', async () => {
+    const trueEnd = await trueWidthPt('Cloud & DevOps', sizePx)
+    const spaceWidth = await trueWidthPt(' ', sizePx)
+    // A gap under one space-width — the exact shape of the "Cloud & DevOps"
+    // TEXT_MISMATCH this was diagnosed from: no push was needed (already
+    // past the true end), yet the residual gap alone crossed pdf.js's
+    // word-boundary threshold.
+    const smallGapXPx = (trueEnd + spaceWidth * 0.5) / (72 / 96)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Cloud & DevOps', xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: ':', xPx: smallGapXPx, baselinePx: 20, sizePx }) },
+    ])
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(trueEnd, 6)
+  })
+
+  it('leaves a genuine word-space gap (a full space-width or more) untouched', async () => {
+    const trueEnd = await trueWidthPt('8+ years', sizePx)
+    const spaceWidth = await trueWidthPt(' ', sizePx)
+    const realGapXPx = (trueEnd + spaceWidth * 1.5) / (72 / 96)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: '8+ years', xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: 'building reliable systems', xPx: realGapXPx, baselinePx: 20, sizePx }) },
+    ])
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(pxToPt(realGapXPx), 6)
+  })
+
+  it('never adjusts runs on different lines, however their x values relate', async () => {
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'well-', xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: 'tested', xPx: 0, baselinePx: 40, sizePx }) },
+    ])
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(0, 6) // untouched: real DOM x, not pushed to line 1's end
+  })
+
+  it('applies the same exact-metric snap to a tracked heading’s invisible extractable layer', async () => {
+    // The real bug this was diagnosed from: both runs on an
+    // elegant-template skills line carry nonzero letterSpacingPx (the
+    // template applies slight tracking broadly, not just to headings), so
+    // BOTH go through the two-layer tracked path — the invisible layers'
+    // gap is what pdf.js actually measures, and it must be zero here too.
+    const trueEnd = await trueWidthPt('Languages', sizePx)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Languages', xPx: 0, baselinePx: 20, sizePx, letterSpacingPx: 0.1 }) },
+      { kind: 'text', run: baseRun({ text: ': ', xPx: 0, baselinePx: 20, sizePx, letterSpacingPx: 0.1 }) },
+    ])
+    // Both runs' invisible layers are plain Tj calls (Tm-positioned); the
+    // second's must land exactly at the first's true untracked width.
+    const [firstX, secondX] = tmXPositions(stream)
+    expect(firstX).toBeCloseTo(0, 6)
+    expect(secondX).toBeCloseTo(trueEnd, 6)
   })
 })
 
