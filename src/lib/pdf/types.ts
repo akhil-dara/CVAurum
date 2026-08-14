@@ -107,6 +107,39 @@ export type DrawOp =
       color: Rgba
       dashed?: boolean
     }
+  /**
+   * A STROKED rounded-rect border (task 22) — replaces the four straight
+   * `line` ops a UNIFORM border (same width/style/color on all four edges)
+   * would otherwise produce when the box also has a nonzero corner radius: a
+   * straight line's flat ends overshoot the curve, visible as a straight
+   * sliver poking past a rounded corner (.tpl-obsidian's entry cards,
+   * `border: 1px solid` + `border-radius: 12px`). Paint.ts strokes this via
+   * the same `roundedRectPath` machinery the radiused `rect` fill case uses,
+   * with `color`/`widthPx` as the stroke instead of a fill.
+   *
+   * `xPx/yPx/wPx/hPx` and `radii` are the box ALREADY INSET by `widthPx / 2`
+   * — same CSS-edge convention `BORDER_EDGES` uses for the straight-line case
+   * (task 14: CSS paints a border INSIDE the box, but a centered stroke needs
+   * its centerline pulled in by half the stroke width to land on the same
+   * pixels) — walk.ts computes this inset once, so paint.ts only has to
+   * convert units and stroke, not re-derive it.
+   *
+   * Only ever emitted for the UNIFORM case (see walk.ts's `borderOps`): a
+   * rounded box with MIXED per-edge borders (different width/style/color)
+   * falls back to plain `line` ops instead, since there is no single
+   * centerline that correctly represents edges of different widths.
+   */
+  | {
+      kind: 'roundedBorder'
+      xPx: number
+      yPx: number
+      wPx: number
+      hPx: number
+      radii: CornerRadii
+      widthPx: number
+      color: Rgba
+      dashed?: boolean
+    }
   | {
       kind: 'image'
       xPx: number

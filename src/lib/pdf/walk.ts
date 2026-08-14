@@ -101,6 +101,126 @@ export const BORDER_EDGES: Array<{ side: string; x1: EdgeCoord; y1: EdgeCoord; x
   },
 ]
 
+/** A single resolved border edge — width/style/color all already validated
+ *  non-degenerate (width > 0, style not none/hidden, color not fully
+ *  transparent). Shared shape `readBorderEdge` returns and `borderOps`
+ *  compares across edges to detect the uniform case. */
+type BorderEdgeInfo = { width: number; style: string; color: Rgba }
+
+/** Reads and validates one `border-<side>-{width,style,color}` triple —
+ *  `side` is the LOWERCASE edge name (`top`/`right`/`bottom`/`left`), same
+ *  spelling `boxOps`'s old inline loop built via `edge.side.toLowerCase()`.
+ *  Returns null for a degenerate edge (zero/negative width, `none`/`hidden`
+ *  style, or fully-transparent/unparseable color) exactly like the old
+ *  inline `continue` guards did — same three checks, just factored out so
+ *  `borderOps` can inspect an edge's info WITHOUT immediately committing to
+ *  drawing it (needed to detect the uniform-across-all-four-edges case
+ *  before deciding whether to emit one rounded path or four lines). */
+function readBorderEdge(cs: CSSStyleDeclaration, side: string): BorderEdgeInfo | null {
+  const width = parsePx(cs.getPropertyValue(`border-${side}-width`))
+  const style = cs.getPropertyValue(`border-${side}-style`)
+  if (width <= 0 || style === 'none' || style === 'hidden') return null
+  const color = parseColor(cs.getPropertyValue(`border-${side}-color`))
+  if (!color || color.a === 0) return null
+  return { width, style, color }
+}
+
+/** True when the box has ANY nonzero corner radius — the trigger for
+ *  attempting the rounded-border path in `borderOps` below. */
+function hasAnyRadius(radii: CornerRadii): boolean {
+  return radii.tl > 0 || radii.tr > 0 || radii.br > 0 || radii.bl > 0
+}
+
+/**
+ * Emits border draw op(s) for a box — shared by `boxOps` and `pseudoOps`
+ * (task 22: pseudo-elements previously got NO border handling at all,
+ * `pseudoOps` painted background+text only, so `.tpl-timeline`'s circular
+ * `::before` marker — `border-radius: 50%`, `border: 2px solid` — silently
+ * lost its ring in the export).
+ *
+ * Straight per-edge lines (`BORDER_EDGES`, task 14's width/2 inset) remain
+ * the default and, for a ZERO-radius box, the ONLY path — no operator churn
+ * for the overwhelming common case (plain rectangular borders).
+ *
+ * When the box has ANY nonzero corner radius AND all four edges are
+ * PRESENT and share the exact same width/style/color (the common "rounded
+ * card" shape — `.tpl-obsidian`'s entry cards, `border: 1px solid` +
+ * `border-radius: 12px`, and `.tpl-timeline`'s circular marker, `border: 2px
+ * solid` + `border-radius: 50%`), the four lines are replaced with ONE
+ * stroked rounded-rect path (`roundedBorder` op) instead — a straight
+ * line's flat ends overshoot a curved corner, which a single path traced
+ * around the actual curve does not. A rounded box with MIXED per-edge
+ * borders (missing edges, or different width/style/color across the four
+ * that exist) is rare and has no single centerline that represents every
+ * edge correctly — falls back to the straight-line per-edge behavior, with
+ * a dev-warn since silently drawing a mixed-border rounded box as straight
+ * lines is a real (if minor) fidelity loss worth surfacing loudly in dev.
+ */
+function borderOps(
+  el: Element,
+  cs: CSSStyleDeclaration,
+  box: Box,
+  radii: CornerRadii,
+  opacityMul: number,
+  ops: DrawOp[]
+): void {
+  const present = BORDER_EDGES.map((edge) => ({ edge, info: readBorderEdge(cs, edge.side.toLowerCase()) })).filter(
+    (e): e is { edge: (typeof BORDER_EDGES)[number]; info: BorderEdgeInfo } => e.info !== null
+  )
+  if (!present.length) return
+
+  if (hasAnyRadius(radii)) {
+    const first = present[0].info
+    const uniform =
+      present.length === 4 &&
+      present.every(
+        (e) =>
+          e.info.width === first.width &&
+          e.info.style === first.style &&
+          e.info.color.r === first.color.r &&
+          e.info.color.g === first.color.g &&
+          e.info.color.b === first.color.b &&
+          e.info.color.a === first.color.a
+      )
+    if (uniform) {
+      const inset = first.width / 2
+      ops.push({
+        kind: 'roundedBorder',
+        xPx: box.xPx + inset,
+        yPx: box.yPx + inset,
+        wPx: box.wPx - first.width,
+        hPx: box.hPx - first.width,
+        radii: {
+          tl: Math.max(0, radii.tl - inset),
+          tr: Math.max(0, radii.tr - inset),
+          br: Math.max(0, radii.br - inset),
+          bl: Math.max(0, radii.bl - inset),
+        },
+        widthPx: first.width,
+        color: { ...first.color, a: first.color.a * opacityMul },
+        dashed: first.style === 'dashed' || first.style === 'dotted',
+      })
+      return
+    }
+    if (import.meta.env.DEV) {
+      console.warn('[pdf] rounded box has mixed per-edge borders, falling back to straight-line borders', el)
+    }
+  }
+
+  for (const { edge, info } of present) {
+    ops.push({
+      kind: 'line',
+      x1Px: edge.x1(box, info.width),
+      y1Px: edge.y1(box, info.width),
+      x2Px: edge.x2(box, info.width),
+      y2Px: edge.y2(box, info.width),
+      widthPx: info.width,
+      color: { ...info.color, a: info.color.a * opacityMul },
+      dashed: info.style === 'dashed' || info.style === 'dotted',
+    })
+  }
+}
+
 /** Computed `opacity`, defaulting to 1 for anything unparseable — shared by
  *  boxOps and pseudoOps so a `position: absolute` accent rule painted at
  *  `opacity: 0.38` (e.g. `.sec-ov-strike`'s heading rule) doesn't paint fully
@@ -156,23 +276,7 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radii })
   }
 
-  for (const edge of BORDER_EDGES) {
-    const width = parsePx(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-width`))
-    const style = cs.getPropertyValue(`border-${edge.side.toLowerCase()}-style`)
-    if (width <= 0 || style === 'none' || style === 'hidden') continue
-    const color = parseColor(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-color`))
-    if (!color || color.a === 0) continue
-    ops.push({
-      kind: 'line',
-      x1Px: edge.x1(box, width),
-      y1Px: edge.y1(box, width),
-      x2Px: edge.x2(box, width),
-      y2Px: edge.y2(box, width),
-      widthPx: width,
-      color: { ...color, a: color.a * opacityMul },
-      dashed: style === 'dashed' || style === 'dotted',
-    })
-  }
+  borderOps(el, cs, box, radii, opacityMul, ops)
 
   if (el instanceof HTMLImageElement && el.src) {
     const isSvg = /^data:image\/svg\+xml/i.test(el.src)
@@ -498,6 +602,7 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
   const lastChildBox = isFlex && which === '::after' && el.lastElementChild ? boxOf(el.lastElementChild, root) : null
   const box = pseudoBox(cs, boxOf(el, root), which, hostCs, lastChildBox)
 
+  const radii = cornerRadii(cs)
   const bg = parseColor(cs.backgroundColor)
   if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {
     ops.push({
@@ -507,9 +612,16 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
       wPx: box.wPx,
       hPx: box.hPx,
       fill: { ...bg, a: bg.a * opacityMul },
-      radii: cornerRadii(cs),
+      radii,
     })
   }
+  // Pseudo-elements previously got NO border handling at all (task 22) — a
+  // `::before`/`::after` with a `border` (e.g. .tpl-timeline's circular
+  // marker: `border-radius: 50%`, `border: 2px solid`) silently vanished
+  // from the export. Same box-size guard as the background rect above: a
+  // pseudo's box is SYNTHESIZED (pseudoBox), not measured, and can come out
+  // zero/negative for a degenerate host, unlike boxOps's real elements.
+  if (box.wPx > 0 && box.hPx > 0) borderOps(el, cs, box, radii, opacityMul, ops)
 
   const text = pseudoContentText(cs.content)
   if (!text) return

@@ -805,6 +805,33 @@ export async function paintOps(
           })
           break
         }
+        case 'roundedBorder': {
+          // Reuses the exact same rounded-rect PATH the radiused `rect` fill
+          // case draws (roundedRectPath -> drawSvgPath), just STROKED instead
+          // of filled: no `color` option means drawSvgPath's own `stroke()`
+          // branch fires (verified against pdf-lib's operations.ts — `color
+          // && borderWidth ? fillAndStroke() : color ? fill() : borderColor ?
+          // stroke() : closePath()`), so this paints a pure outline with no
+          // fill, matching a CSS border on a box whose own background (if
+          // any) was already painted by a separate, earlier `rect` op. `x/y`
+          // and the path's own w/h/radii are walk.ts's ALREADY-inset (by
+          // widthPx/2) geometry — same convention as `BORDER_EDGES` — so no
+          // further inset math happens here, only unit conversion.
+          //
+          // borderDashArray: pdf-lib's drawSvgPath supports it directly (see
+          // PDFPageDrawSVGOptions), so a dashed/dotted rounded border needs
+          // no fallback — same [2, 2] pt pattern the straight-line `line`
+          // case above uses, for the same dashed/dotted look.
+          page.drawSvgPath(roundedRectPath(pxToPt(op.wPx), pxToPt(op.hPx), radiiToPt(op.radii)), {
+            x: pxToPt(op.xPx),
+            y: flipY(pxToPt(op.yPx), pageHeightPt),
+            borderColor: rgb(op.color.r, op.color.g, op.color.b),
+            borderWidth: pxToPt(op.widthPx),
+            borderOpacity: op.color.a,
+            borderDashArray: op.dashed ? [pxToPt(2), pxToPt(2)] : undefined,
+          })
+          break
+        }
         case 'image': {
           const img = await embedImage(page, op.src, images)
           if (!img) break
