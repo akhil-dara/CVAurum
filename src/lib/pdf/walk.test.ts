@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity, BORDER_EDGES, buildDrawList } from './walk'
+import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity, cornerRadii, BORDER_EDGES, buildDrawList } from './walk'
 import type { DrawOp } from './types'
 
 describe('pseudoContentText', () => {
@@ -238,8 +238,11 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
     expect(box.yPx).toBe(host.yPx)
   })
 
-  it('does not apply flex-item positioning for flex-direction: column (only row is handled)', () => {
-    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ flexDirection: 'column' }), textSpanBox)
+  it('does not apply row/column flex-item positioning for flex-direction: row-reverse (neither is handled)', () => {
+    // column IS handled (fix round 2, see the dedicated describe block below)
+    // -- row-reverse is the one standard flex-direction value this module
+    // still falls back to the plain host-origin approximation for.
+    const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs({ flexDirection: 'row-reverse' }), textSpanBox)
     expect(box.xPx).toBe(host.xPx)
     expect(box.yPx).toBe(host.yPx)
   })
@@ -310,6 +313,109 @@ describe('elementOpacity (task 13 — opacity multiplication)', () => {
   })
   it('reads a full 1 unchanged', () => {
     expect(elementOpacity(cs('1'))).toBe(1)
+  })
+})
+
+describe('cornerRadii (fix round 2, defect B — per-corner border radii)', () => {
+  // boxOps used to read only border-top-left-radius and apply that ONE
+  // value to all four corners, so an asymmetric box (spotlight's header
+  // banner, `border-radius: 0 0 18px 18px` — square top, rounded bottom
+  // only) painted as a plain rectangle. cornerRadii reads all four.
+  const cs = (over: Partial<Record<'borderTopLeftRadius' | 'borderTopRightRadius' | 'borderBottomRightRadius' | 'borderBottomLeftRadius', string>>): CSSStyleDeclaration =>
+    ({
+      borderTopLeftRadius: '0px', borderTopRightRadius: '0px', borderBottomRightRadius: '0px', borderBottomLeftRadius: '0px',
+      ...over,
+    }) as unknown as CSSStyleDeclaration
+
+  it('reads all four corners, not just top-left', () => {
+    expect(cornerRadii(cs({ borderTopLeftRadius: '1px', borderTopRightRadius: '2px', borderBottomRightRadius: '3px', borderBottomLeftRadius: '4px' }))).toEqual({
+      tl: 1, tr: 2, br: 3, bl: 4,
+    })
+  })
+
+  it('captures spotlight header banner\'s exact asymmetric shape (border-radius: 0 0 18px 18px)', () => {
+    expect(cornerRadii(cs({ borderBottomRightRadius: '18px', borderBottomLeftRadius: '18px' }))).toEqual({
+      tl: 0, tr: 0, br: 18, bl: 18,
+    })
+  })
+
+  it('returns all zeros for an un-rounded box', () => {
+    expect(cornerRadii(cs({}))).toEqual({ tl: 0, tr: 0, br: 0, bl: 0 })
+  })
+
+  it('collapses an elliptical (two-value) corner to its first (horizontal) value', () => {
+    // getComputedStyle serializes an elliptical corner as "Hpx Vpx" (e.g.
+    // `border-top-left-radius: 10px 5px` -> "10px 5px") -- parsePx's
+    // parseFloat already stops at the first non-numeric token, so this
+    // needs no special-casing in cornerRadii itself.
+    expect(cornerRadii(cs({ borderTopLeftRadius: '10px 5px' }))).toEqual({ tl: 10, tr: 0, br: 0, bl: 0 })
+  })
+})
+
+describe('pseudoBox — flex-column hosts (fix round 2, defect A — sienna accent rule)', () => {
+  // Root cause: sienna's (and elegant's) `.rm-header-centered::after` name-
+  // underline rule is a STATIC pseudo whose host, `.rm-header`, is
+  // `display:flex` with `.rm-header-centered { flex-direction: column }` —
+  // a genuine flex item stacked in a COLUMN, not normal block flow. It
+  // centers itself horizontally via `margin: 12px auto 0` (auto-margin
+  // centering) and, being last in box order, should render AFTER all the
+  // header's other content (name/headline/contacts), not at the header's
+  // own top-left corner. The pre-fix host-origin approximation painted a
+  // 44x1px rule at the host's raw top-left origin — confirmed live (task-13
+  // fix-round-2 report) that the DOM has nothing within 16px of that spot;
+  // the real rule renders centered, ~97px further down. Real computed
+  // values captured live: host {x:49.125, y:49.125, w:695.438, h:98.313},
+  // last real child (.rm-header-main) {x:49.125, y:49.125, w:695.438,
+  // h:65.313, bottom:114.438}, host rowGap:20px, pseudo {width:44px,
+  // marginTop:12px, marginLeft:325.719px, marginRight:325.719px}.
+  const host = { xPx: 49.125, yPx: 49.125, wPx: 695.438, hPx: 98.313 }
+  const lastChildBox = { xPx: 49.125, yPx: 49.125, wPx: 695.438, hPx: 65.313 }
+  const cs = (over: Record<string, string>): CSSStyleDeclaration => {
+    const base: Record<string, string> = {
+      position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
+      marginTop: '0px', marginLeft: '0px', marginRight: '0px',
+    }
+    return { ...base, ...over } as unknown as CSSStyleDeclaration
+  }
+  const columnHostCs = (over: Record<string, string> = {}): CSSStyleDeclaration =>
+    ({ display: 'flex', alignItems: 'flex-start', columnGap: '20px', rowGap: '20px', flexDirection: 'column', ...over }) as unknown as CSSStyleDeclaration
+
+  it('positions a static ::after column-flex item after the last child + row-gap + its own margin-top (sienna accent rule)', () => {
+    const box = pseudoBox(
+      cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }),
+      host, '::after', columnHostCs(), lastChildBox,
+    )
+    expect(box.yPx).toBeCloseTo(146.438, 2) // lastChildBox bottom(114.438) + rowGap(20) + marginTop(12)
+  })
+
+  it('horizontally centers via the pseudo\'s own resolved auto margins, not align-items', () => {
+    const box = pseudoBox(
+      cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }),
+      host, '::after', columnHostCs(), lastChildBox,
+    )
+    expect(box.xPx).toBeCloseTo(374.844, 2) // host.xPx(49.125) + marginLeft(325.719) -- centers the 44px rule
+    expect(box.xPx + box.wPx / 2).toBeCloseTo(host.xPx + host.wPx / 2, 1) // true center of the 44px rule = host's own center
+  })
+
+  it('falls back to align-items on the cross axis when the pseudo has no margin (0 on both sides)', () => {
+    const box = pseudoBox(cs({ width: '10px', height: '2px' }), host, '::after', columnHostCs({ alignItems: 'center' }), lastChildBox)
+    expect(box.xPx).toBeCloseTo(host.xPx + (host.wPx - 10) / 2, 6)
+  })
+
+  it('a ::before column-flex item skips the "after last child" main-axis shift but still gets its own margin-top', () => {
+    const box = pseudoBox(cs({ width: '44px', height: '1px', marginTop: '5px' }), host, '::before', columnHostCs(), lastChildBox)
+    expect(box.yPx).toBe(host.yPx + 5) // NOT shifted past lastChildBox — ::before is first in box order
+  })
+
+  it('falls back to the host origin for ::after when there is no last-child box (empty host)', () => {
+    const box = pseudoBox(cs({ width: '44px', height: '1px', marginTop: '12px' }), host, '::after', columnHostCs(), null)
+    expect(box.yPx).toBe(host.yPx + 12) // host origin + its own margin-top, no lastChildBox to shift past
+  })
+
+  it('does not apply column flex-item positioning when the host is not a flex container', () => {
+    const box = pseudoBox(cs({ width: '44px', height: '1px', marginTop: '12px', marginLeft: '325.719px', marginRight: '325.719px' }), host, '::after', undefined, lastChildBox)
+    expect(box.xPx).toBe(host.xPx)
+    expect(box.yPx).toBe(host.yPx)
   })
 })
 

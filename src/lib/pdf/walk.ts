@@ -1,6 +1,6 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { ascentPx, extractRuns, measureTextWidthPx } from './text'
-import type { DrawOp, LinearGradient, TextRun } from './types'
+import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 
 /**
  * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
@@ -96,11 +96,30 @@ export function elementOpacity(cs: CSSStyleDeclaration): number {
   return Number.isFinite(n) ? n : 1
 }
 
+/** Reads all FOUR computed corner radii (fix round 2: `boxOps` used to read
+ *  only `border-top-left-radius` and apply that single value to every
+ *  corner, so an asymmetric box — spotlight's header banner, `border-
+ *  radius: 0 0 18px 18px`, square top / rounded bottom — painted as a plain
+ *  rectangle). An elliptical corner (two values, e.g. `10px 5px` for
+ *  differing horizontal/vertical radii) collapses to its first (horizontal)
+ *  value — `parsePx`'s `parseFloat` already stops at the first non-numeric
+ *  token, so this needs no special-casing; none of our own CSS uses
+ *  elliptical radii today. */
+export function cornerRadii(cs: CSSStyleDeclaration): CornerRadii {
+  return {
+    tl: parsePx(cs.borderTopLeftRadius),
+    tr: parsePx(cs.borderTopRightRadius),
+    br: parsePx(cs.borderBottomRightRadius),
+    bl: parsePx(cs.borderBottomLeftRadius),
+  }
+}
+
 /** background, borders, then image — in that paint order. */
 function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const cs = getComputedStyle(el)
   const box = boxOf(el, root)
   const opacityMul = elementOpacity(cs)
+  const radii = cornerRadii(cs)
 
   const bg = parseColor(cs.backgroundColor)
   const bgFill = bg && bg.a > 0 ? { ...bg, a: bg.a * opacityMul } : null
@@ -112,11 +131,11 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     // never sets background-color, confirmed empirically) but future-proof
     // either way since a solid fill is drawn first if bg is also opaque.
     if (bgFill) {
-      ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radiusPx: parsePx(cs.borderTopLeftRadius) })
+      ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radii })
     }
-    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, radiusPx: parsePx(cs.borderTopLeftRadius), fillGradient: gradient })
+    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, radii, fillGradient: gradient })
   } else if (bgFill) {
-    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radiusPx: parsePx(cs.borderTopLeftRadius) })
+    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radii })
   }
 
   for (const edge of BORDER_EDGES) {
@@ -135,7 +154,7 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   if (el instanceof HTMLImageElement && el.src) {
     const isSvg = /^data:image\/svg\+xml/i.test(el.src)
     if (!isSvg || !svgLogoOps(el, box, ops)) {
-      ops.push({ kind: 'image', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, src: el.src, radiusPx: parsePx(cs.borderTopLeftRadius) })
+      ops.push({ kind: 'image', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, src: el.src, radii })
     }
   }
 }
@@ -284,7 +303,7 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
 /** The subset of a host's computed style `pseudoBox`'s flex-item branch
  *  needs — a plain `Pick`, not a full `CSSStyleDeclaration`, so tests can
  *  fake it without a real DOM. */
-type FlexHostStyle = Pick<CSSStyleDeclaration, 'display' | 'alignItems' | 'columnGap' | 'flexDirection'>
+type FlexHostStyle = Pick<CSSStyleDeclaration, 'display' | 'alignItems' | 'columnGap' | 'rowGap' | 'flexDirection'>
 type Box = { xPx: number; yPx: number; wPx: number; hPx: number }
 
 /**
@@ -306,23 +325,42 @@ type Box = { xPx: number; yPx: number; wPx: number; hPx: number }
  * height (or the host's width / the pseudo's own font-size as a fallback) —
  * exact static flow position isn't attempted, and that's fine for a simple
  * inline `content: '•'` separator glyph (most of our own ::before/::after
- * usage). It is NOT fine when the host is a `display: flex` ROW (e.g.
+ * usage). It is NOT fine when the host is a `display: flex` container (e.g.
  * `.sec-rule-after`'s `.rm-section-title { display:flex; align-items:center
- * }`, whose `::after { flex: 1 }` rule fills the row's remaining width) —
- * there the pseudo is a genuine FLEX ITEM laid out by the flex algorithm,
- * not normal block/inline flow, and the host-origin approximation paints it
- * starting at the SAME x as the heading text (crossing straight through it)
- * instead of after it (confirmed live against onyx-noir's DEFAULT heading
- * style — a fix-round finding, not caught by the original task-13
- * verification, which never exercised a flex-row heading style; see the
- * task-13 report's "Fix round" section). `hostCs`/`lastChildBox` are
- * undefined/null for callers that don't have (or don't need) them, e.g. a
- * ::before, which is always FIRST in box order so the host-origin x is
- * already right for it — only the cross-axis (`align-items`) correction
- * still applies to it. A flex row lays out items left-to-right in box
- * order, so `::after` (always LAST in box order) starts right after the
- * last REAL child box the caller supplies; cross-axis position follows
- * `align-items`, same as the flex algorithm itself would place any item.
+ * }`, whose `::after { flex: 1 }` rule fills the row's remaining width; or
+ * `.rm-header-centered { display:flex; flex-direction:column }`, whose
+ * `.tpl-sienna`/`.tpl-elegant` `::after { width:44px; margin:12px auto 0 }`
+ * name-underline rule centers itself in the column via auto margins) — there
+ * the pseudo is a genuine FLEX ITEM laid out by the flex algorithm, not
+ * normal block/inline flow, and the host-origin approximation either crosses
+ * straight through the row's other content (row case, onyx-noir, task-13
+ * fix round 1) or paints a whole 44px rule at the CONTAINER's own top-left
+ * corner instead of centered below all its other content (column case,
+ * sienna/elegant, fix round 2 — confirmed live: the DOM has NOTHING within
+ * 16px of where our old approximation painted it). `hostCs`/`lastChildBox`
+ * are undefined/null for callers that don't have (or don't need) them.
+ *
+ * ROW: items lay out left-to-right in box order, so `::after` (always LAST
+ * in box order) starts right after the last REAL child box the caller
+ * supplies, plus the container's `column-gap`; cross-axis (Y) position
+ * follows `align-items`, same as the flex algorithm would place any item.
+ * `::before` is always FIRST in box order, so the host-origin x is already
+ * right for it — only the cross-axis correction still applies to it.
+ *
+ * COLUMN: the roles of the two axes swap. Main-axis (Y) position for
+ * `::after` is the last real child's bottom edge plus the container's
+ * `row-gap` plus the pseudo's own `margin-top` (margins and `gap` are
+ * ADDITIVE in flex layout, never collapsed the way block-layout margins
+ * are) — `::before` skips the "after last child" term but still gets its
+ * own `margin-top`. Cross-axis (X) is resolved from the pseudo's OWN
+ * computed `margin-left`/`margin-right` when either is nonzero: a flex
+ * item's `getComputedStyle().marginLeft` reports the actual USED value
+ * whether it was authored as an explicit length or as `auto` (auto-margin
+ * centering — sienna's case, verified live: equal resolved left/right
+ * margins that sum to exactly the container's leftover width) — trusting it
+ * directly needs no "was this literally the word auto" check, which
+ * `getComputedStyle` doesn't expose post-layout anyway. Falls back to
+ * `align-items` only when neither margin is in play (both resolve to 0).
  */
 export function pseudoBox(
   cs: CSSStyleDeclaration,
@@ -357,14 +395,32 @@ export function pseudoBox(
     return { xPx, yPx, wPx, hPx }
   }
 
-  const flexRow = hostCs && (hostCs.display === 'flex' || hostCs.display === 'inline-flex') &&
-    (!hostCs.flexDirection || hostCs.flexDirection === 'row')
-  if (flexRow) {
+  const isFlex = hostCs && (hostCs.display === 'flex' || hostCs.display === 'inline-flex')
+  const isColumn = isFlex && (hostCs!.flexDirection === 'column' || hostCs!.flexDirection === 'column-reverse')
+  const isRow = isFlex && !isColumn && (!hostCs!.flexDirection || hostCs!.flexDirection === 'row')
+
+  if (isRow) {
     if (which === '::after' && lastChildBox) {
       xPx = lastChildBox.xPx + lastChildBox.wPx + (parsePx(hostCs!.columnGap) || 0)
     }
     if (hostCs!.alignItems === 'center') yPx = host.yPx + (host.hPx - hPx) / 2
     else if (hostCs!.alignItems === 'flex-end') yPx = host.yPx + host.hPx - hPx
+  } else if (isColumn) {
+    const marginTopPx = parsePx(cs.marginTop)
+    yPx = host.yPx + marginTopPx
+    if (which === '::after' && lastChildBox) {
+      yPx = lastChildBox.yPx + lastChildBox.hPx + (parsePx(hostCs!.rowGap) || 0) + marginTopPx
+    }
+
+    const marginLeftPx = parsePx(cs.marginLeft)
+    const marginRightPx = parsePx(cs.marginRight)
+    if (marginLeftPx > 0 || marginRightPx > 0) {
+      xPx = host.xPx + marginLeftPx
+    } else if (hostCs!.alignItems === 'center') {
+      xPx = host.xPx + (host.wPx - wPx) / 2
+    } else if (hostCs!.alignItems === 'flex-end') {
+      xPx = host.xPx + host.wPx - wPx
+    }
   }
 
   return { xPx, yPx, wPx, hPx }
@@ -387,18 +443,18 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
 
   const opacityMul = elementOpacity(cs)
   const hostCs = getComputedStyle(el)
-  // Only fetched when it could actually matter (flex-row host, ::after) —
-  // an extra getBoundingClientRect for every plain static pseudo (the
+  // Only fetched when it could actually matter (flex host, ::after) — an
+  // extra getBoundingClientRect for every plain static pseudo (the
   // overwhelming common case) would be wasted work.
-  const isFlexRow = (hostCs.display === 'flex' || hostCs.display === 'inline-flex') && (!hostCs.flexDirection || hostCs.flexDirection === 'row')
-  const lastChildBox = isFlexRow && which === '::after' && el.lastElementChild ? boxOf(el.lastElementChild, root) : null
+  const isFlex = hostCs.display === 'flex' || hostCs.display === 'inline-flex'
+  const lastChildBox = isFlex && which === '::after' && el.lastElementChild ? boxOf(el.lastElementChild, root) : null
   const box = pseudoBox(cs, boxOf(el, root), which, hostCs, lastChildBox)
 
   const bg = parseColor(cs.backgroundColor)
   if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {
     ops.push({
       kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx,
-      fill: { ...bg, a: bg.a * opacityMul }, radiusPx: parsePx(cs.borderTopLeftRadius),
+      fill: { ...bg, a: bg.a * opacityMul }, radii: cornerRadii(cs),
     })
   }
 
