@@ -1,17 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import {
-  FileText,
-  Plus,
-  FileUp,
-  Copy,
-  Trash2,
-  MoreVertical,
-  KanbanSquare,
-  DatabaseBackup,
-} from 'lucide-react'
+import { FileText, Plus, FileUp, Copy, Trash2, MoreVertical, KanbanSquare, DatabaseBackup } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
-import { saveDoc, deleteDoc } from '@/lib/storage'
+import { saveDoc, deleteDoc, requestDurability, getDurabilityStatus, type DurabilityStatus } from '@/lib/storage'
 import { exportFullBackup, importFullBackup } from '@/lib/backup'
 import { uid, timeAgo } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
@@ -21,6 +12,56 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
+
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000
+const DURABILITY_DISMISS_KEY = 'cvaurum:durability-notice-dismissed'
+const BACKUP_DISMISS_KEY = 'cvaurum:backup-notice-dismissed'
+
+/** try/catch guard per the backup.ts precedent — never let a storage read/write block the dashboard. */
+function readTimestamp(key: string): number {
+  try {
+    return Number(localStorage.getItem(key) || 0)
+  } catch {
+    return 0
+  }
+}
+function writeTimestamp(key: string) {
+  try {
+    localStorage.setItem(key, String(Date.now()))
+  } catch {
+    /* private mode */
+  }
+}
+
+type StorageNoticeKind = 'durability' | 'backup'
+
+/** Dismissible inline notice — same visual language as the canvas's BlankCanvasTip hint. */
+function StorageNotice({
+  kind,
+  onBackup,
+  onDismiss,
+}: {
+  kind: StorageNoticeKind
+  onBackup: () => void
+  onDismiss: () => void
+}) {
+  const message =
+    kind === 'durability'
+      ? 'Your browser has not guaranteed permanent storage for this site — it may clear your resumes under disk pressure. Download a backup.'
+      : 'It has been a while since your last backup. Download one so a cleared browser can never lose your resumes.'
+  return (
+    <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
+      <span aria-hidden>⚠️</span>
+      <span className="min-w-0 flex-1">{message}</span>
+      <button className="btn-outline btn-sm h-7 shrink-0" onClick={onBackup}>
+        <DatabaseBackup className="h-3.5 w-3.5" /> Back up now
+      </button>
+      <button className="btn-icon h-6 w-6 shrink-0" onClick={onDismiss} aria-label="Dismiss">
+        ✕
+      </button>
+    </div>
+  )
+}
 
 /** The resume library / dashboard (/app). The explainer homepage lives at /. */
 export function Dashboard() {
@@ -38,7 +79,10 @@ export function Dashboard() {
         localStorage.setItem('cvaurum:safari-nudge', '1')
         useAppStore
           .getState()
-          .toast('Heads-up: Safari clears local site data after 7 days without a visit. Install CVAurum as an app or export a backup to keep your resumes safe.', 'info')
+          .toast(
+            'Heads-up: Safari clears local site data after 7 days without a visit. Install CVAurum as an app or export a backup to keep your resumes safe.',
+            'info'
+          )
       }
     } catch {
       /* never block the dashboard over a nudge */
@@ -47,25 +91,44 @@ export function Dashboard() {
   useTitle('Your Resumes · CVAurum')
   const navigate = useNavigate()
   const library = useAppStore((s) => s.library)
-  // Durability reminder: local-first means a cleared browser = lost résumés.
-  // If there's real work and no recent backup, nudge once per session.
+
+  // Storage durability: local-first means a denied persist() grant can end in
+  // the browser silently evicting all site data under disk pressure. Check the
+  // HONEST outcome (not fire-and-forget) once per session, and if it's denied,
+  // surface it — that's the one case where "just export a backup" is real advice.
+  const [durability, setDurability] = useState<DurabilityStatus>(getDurabilityStatus())
   useEffect(() => {
-    try {
-      if (!library.length) return
-      if (sessionStorage.getItem('cvaurum:backup-nudged')) return
-      const last = Number(localStorage.getItem('cvaurum:last-backup') || 0)
-      const stale = !last || Date.now() - last > 14 * 24 * 60 * 60 * 1000
-      // Skip brand-new users (nothing worth backing up yet).
-      const oldest = Math.min(...library.map((r) => r.createdAt || Date.now()))
-      const settledIn = Date.now() - oldest > 2 * 24 * 60 * 60 * 1000
-      if (stale && settledIn) {
-        sessionStorage.setItem('cvaurum:backup-nudged', '1')
-        useAppStore.getState().toast('Tip: back up your résumés (Backup → Export) so a cleared browser can never lose them.', 'info')
-      }
-    } catch {
-      /* never block the dashboard over a nudge */
+    let alive = true
+    requestDurability().then((status) => {
+      if (alive) setDurability(status)
+    })
+    return () => {
+      alive = false
     }
-  }, [library])
+  }, [])
+
+  // Dismissal for both notices below is remembered in localStorage and re-shown
+  // after 14 days — same snooze window as the staleness check itself.
+  const [dismissedAt, setDismissedAt] = useState(() => ({
+    durability: readTimestamp(DURABILITY_DISMISS_KEY),
+    backup: readTimestamp(BACKUP_DISMISS_KEY),
+  }))
+  const now = Date.now()
+  const durabilityDenied = durability === 'denied' && now - dismissedAt.durability > FOURTEEN_DAYS_MS
+  const lastBackup = readTimestamp('cvaurum:last-backup')
+  const backupStale =
+    library.length >= 3 &&
+    (!lastBackup || now - lastBackup > FOURTEEN_DAYS_MS) &&
+    now - dismissedAt.backup > FOURTEEN_DAYS_MS
+  // Only one notice at a time — durability (real risk of silent data loss) wins.
+  const notice: StorageNoticeKind | null = durabilityDenied ? 'durability' : backupStale ? 'backup' : null
+  const dismissNotice = () => {
+    if (!notice) return
+    const key = notice === 'durability' ? DURABILITY_DISMISS_KEY : BACKUP_DISMISS_KEY
+    writeTimestamp(key)
+    setDismissedAt((s) => ({ ...s, [notice]: Date.now() }))
+  }
+
   const refreshLibrary = useAppStore((s) => s.refreshLibrary)
   const toast = useAppStore((s) => s.toast)
   const { create, importFile, importPdf } = useResumeActions()
@@ -94,7 +157,10 @@ export function Dashboard() {
     try {
       const r = await importFullBackup(file, 'merge')
       await refreshLibrary()
-      toast(`Restored ${r.resumes} resume${r.resumes === 1 ? '' : 's'}${r.tracker ? ` + ${r.tracker} application${r.tracker === 1 ? '' : 's'}` : ''}`, 'success')
+      toast(
+        `Restored ${r.resumes} resume${r.resumes === 1 ? '' : 's'}${r.tracker ? ` + ${r.tracker} application${r.tracker === 1 ? '' : 's'}` : ''}`,
+        'success'
+      )
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Could not restore that backup', 'error')
     }
@@ -104,8 +170,14 @@ export function Dashboard() {
     <div className="relative min-h-full overflow-x-clip bg-background">
       {/* ambient aurora — quiet in light mode, cinematic in dark */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
-        <div className="absolute -top-48 right-[-8%] h-[30rem] w-[30rem] rounded-full opacity-[0.10] blur-3xl dark:opacity-[0.22]" style={{ background: 'radial-gradient(closest-side,#d4982f,transparent)' }} />
-        <div className="absolute top-1/2 left-[-10%] h-[26rem] w-[26rem] rounded-full opacity-[0.06] blur-3xl dark:opacity-[0.14]" style={{ background: 'radial-gradient(closest-side,#5b5df0,transparent)' }} />
+        <div
+          className="absolute -top-48 right-[-8%] h-[30rem] w-[30rem] rounded-full opacity-[0.10] blur-3xl dark:opacity-[0.22]"
+          style={{ background: 'radial-gradient(closest-side,#d4982f,transparent)' }}
+        />
+        <div
+          className="absolute top-1/2 left-[-10%] h-[26rem] w-[26rem] rounded-full opacity-[0.06] blur-3xl dark:opacity-[0.14]"
+          style={{ background: 'radial-gradient(closest-side,#5b5df0,transparent)' }}
+        />
       </div>
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
@@ -116,7 +188,11 @@ export function Dashboard() {
               <KanbanSquare className="h-4 w-4" /> Job Tracker
             </Link>
             <div className="relative">
-              <button className="btn-ghost btn-sm" onClick={() => setBackupMenu((o) => !o)} title="Back up or restore all your data">
+              <button
+                className="btn-ghost btn-sm"
+                onClick={() => setBackupMenu((o) => !o)}
+                title="Back up or restore all your data"
+              >
                 <DatabaseBackup className="h-4 w-4" /> Backup
               </button>
               {backupMenu && (
@@ -125,11 +201,21 @@ export function Dashboard() {
                   <div className="card absolute right-0 z-20 mt-1 w-60 overflow-hidden p-1 shadow-float">
                     <button className="btn-ghost h-auto w-full flex-col items-start gap-0 py-1.5" onClick={onBackup}>
                       <span className="text-sm font-medium">Export backup</span>
-                      <span className="text-[11px] font-normal text-muted-foreground">All resumes + settings + tracker, one file</span>
+                      <span className="text-[11px] font-normal text-muted-foreground">
+                        All resumes + settings + tracker, one file
+                      </span>
                     </button>
-                    <button className="btn-ghost h-auto w-full flex-col items-start gap-0 py-1.5" onClick={() => { setBackupMenu(false); backupRef.current?.click() }}>
+                    <button
+                      className="btn-ghost h-auto w-full flex-col items-start gap-0 py-1.5"
+                      onClick={() => {
+                        setBackupMenu(false)
+                        backupRef.current?.click()
+                      }}
+                    >
                       <span className="text-sm font-medium">Restore from backup</span>
-                      <span className="text-[11px] font-normal text-muted-foreground">Import into this browser (keeps existing)</span>
+                      <span className="text-[11px] font-normal text-muted-foreground">
+                        Import into this browser (keeps existing)
+                      </span>
                     </button>
                   </div>
                 </>
@@ -140,21 +226,50 @@ export function Dashboard() {
         </div>
       </header>
 
-      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
-      <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
-      <input ref={backupRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => onRestore(e.target.files?.[0])} />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => importFile(e.target.files?.[0])}
+      />
+      <input
+        ref={pdfRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        onChange={(e) => importPdf(e.target.files?.[0])}
+      />
+      <input
+        ref={backupRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => onRestore(e.target.files?.[0])}
+      />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        {notice && <StorageNotice kind={notice} onBackup={onBackup} onDismiss={dismissNotice} />}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Your resumes</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Private &amp; local — everything is saved in this browser. Nothing leaves your device.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Private &amp; local — everything is saved in this browser. Nothing leaves your device.
+            </p>
           </div>
           <div className="flex gap-2">
-            <button className="btn-ghost btn-sm" onClick={() => pdfRef.current?.click()} title="Import an existing PDF résumé — parsed in your browser, never uploaded">
+            <button
+              className="btn-ghost btn-sm"
+              onClick={() => pdfRef.current?.click()}
+              title="Import an existing PDF résumé — parsed in your browser, never uploaded"
+            >
               <FileUp className="h-4 w-4" /> Import PDF
             </button>
-            <button className="btn-outline btn-sm" onClick={() => setSampleOpen(true)} title="Start from a complete example resume">
+            <button
+              className="btn-outline btn-sm"
+              onClick={() => setSampleOpen(true)}
+              title="Start from a complete example resume"
+            >
               <FileText className="h-4 w-4" /> Example
             </button>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
@@ -164,12 +279,21 @@ export function Dashboard() {
         </div>
 
         {library.length === 0 ? (
-          <EmptyState onNew={() => setChooser(true)} onExample={() => setSampleOpen(true)} onImport={() => fileRef.current?.click()} />
+          <EmptyState
+            onNew={() => setChooser(true)}
+            onExample={() => setSampleOpen(true)}
+            onImport={() => fileRef.current?.click()}
+          />
         ) : (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             <NewCard onClick={() => setChooser(true)} />
             {library.map((doc) => (
-              <ResumeCard key={doc.id} doc={doc} onOpen={() => navigate(`/resume/${doc.id}`)} onChanged={refreshLibrary} />
+              <ResumeCard
+                key={doc.id}
+                doc={doc}
+                onOpen={() => navigate(`/resume/${doc.id}`)}
+                onChanged={refreshLibrary}
+              />
             ))}
           </div>
         )}
@@ -177,28 +301,56 @@ export function Dashboard() {
 
       {chooser && (
         <NewResumeModal
-          onBlank={() => { setChooser(false); create(false) }}
-          onExample={() => { setChooser(false); setSampleOpen(true) }}
-          onImport={() => { setChooser(false); fileRef.current?.click() }}
-          onImportPdf={() => { setChooser(false); pdfRef.current?.click() }}
+          onBlank={() => {
+            setChooser(false)
+            create(false)
+          }}
+          onExample={() => {
+            setChooser(false)
+            setSampleOpen(true)
+          }}
+          onImport={() => {
+            setChooser(false)
+            fileRef.current?.click()
+          }}
+          onImportPdf={() => {
+            setChooser(false)
+            pdfRef.current?.click()
+          }}
           onClose={() => setChooser(false)}
         />
       )}
       {sampleOpen && (
-        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content, p.tweaks) }} />
+        <SamplePicker
+          onClose={() => setSampleOpen(false)}
+          onPick={(p) => {
+            setSampleOpen(false)
+            create(true, p.template, p.content, p.tweaks)
+          }}
+        />
       )}
     </div>
   )
 }
 
-function EmptyState({ onNew, onExample, onImport }: { onNew: () => void; onExample: () => void; onImport: () => void }) {
+function EmptyState({
+  onNew,
+  onExample,
+  onImport,
+}: {
+  onNew: () => void
+  onExample: () => void
+  onImport: () => void
+}) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <FileText className="h-7 w-7" />
       </div>
       <h2 className="mt-4 text-lg font-semibold">No resumes yet</h2>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">Create your first résumé from a blank canvas or a ready-made example — it stays private to this browser.</p>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        Create your first résumé from a blank canvas or a ready-made example — it stays private to this browser.
+      </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <button className="btn-primary btn-sm" onClick={onNew}>
           <Plus className="h-4 w-4" /> New resume
@@ -206,11 +358,17 @@ function EmptyState({ onNew, onExample, onImport }: { onNew: () => void; onExamp
         <button className="btn-outline btn-sm" onClick={onExample}>
           <FileText className="h-4 w-4" /> Start with an example
         </button>
-        <button className="btn-ghost btn-sm" onClick={onImport} title="Import a JSON Resume file (.json) — not a PDF or Word doc">
+        <button
+          className="btn-ghost btn-sm"
+          onClick={onImport}
+          title="Import a JSON Resume file (.json) — not a PDF or Word doc"
+        >
           <FileUp className="h-4 w-4" /> Import JSON
         </button>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground/70">Import a JSON Resume file — or use Import PDF above to bring in an existing PDF résumé.</p>
+      <p className="mt-3 text-xs text-muted-foreground/70">
+        Import a JSON Resume file — or use Import PDF above to bring in an existing PDF résumé.
+      </p>
     </div>
   )
 }

@@ -47,19 +47,56 @@ export async function loadDoc(id: string): Promise<ResumeDocument | null> {
   return raw ? safeParseDoc(raw) : null
 }
 
+/** Wide status including the pre-check default; the dashboard notice reads this. */
+export type DurabilityStatus = 'unknown' | 'persisted' | 'denied' | 'unsupported'
+
+let durabilityStatus: DurabilityStatus = 'unknown'
+let durabilityPromise: Promise<'persisted' | 'denied' | 'unsupported'> | null = null
+
+/**
+ * Ask the browser to mark our storage durable (defeats routine eviction on
+ * Chromium; Safari still caps non-installed sites at 7 days — see the
+ * dashboard's Safari nudge, a separate mitigation). Checks `persisted()`
+ * first (already granted needs no prompt), otherwise calls `persist()` and
+ * reports the HONEST outcome instead of firing-and-forgetting it — a denial
+ * means the browser may evict all site data under disk pressure, silently.
+ * Memoized: concurrent/repeat callers share one in-flight (then resolved) promise.
+ */
+export function requestDurability(): Promise<'persisted' | 'denied' | 'unsupported'> {
+  if (durabilityPromise) return durabilityPromise
+  durabilityPromise = (async (): Promise<'persisted' | 'denied' | 'unsupported'> => {
+    try {
+      const storage = navigator.storage
+      if (!storage || typeof storage.persisted !== 'function' || typeof storage.persist !== 'function') {
+        durabilityStatus = 'unsupported'
+        return 'unsupported'
+      }
+      if (await storage.persisted()) {
+        durabilityStatus = 'persisted'
+        return 'persisted'
+      }
+      durabilityStatus = (await storage.persist()) ? 'persisted' : 'denied'
+      return durabilityStatus as 'persisted' | 'denied'
+    } catch {
+      durabilityStatus = 'unsupported'
+      return 'unsupported'
+    }
+  })()
+  return durabilityPromise
+}
+
+/** Last known durability outcome ('unknown' until `requestDurability` resolves at least once). */
+export function getDurabilityStatus(): DurabilityStatus {
+  return durabilityStatus
+}
+
 let durabilityRequested = false
 
 export async function saveDoc(doc: ResumeDocument): Promise<void> {
-  // Ask the browser to mark our storage durable (defeats routine eviction on
-  // Chromium; Safari still caps non-installed sites at 7 days — see the
-  // dashboard nudge). Once per session, fire-and-forget.
+  // Once per session, kick off the durability check (see requestDurability above).
   if (!durabilityRequested) {
     durabilityRequested = true
-    try {
-      void navigator.storage?.persist?.()
-    } catch {
-      /* unsupported */
-    }
+    void requestDurability()
   }
   await set(DOC_PREFIX + doc.id, doc, store)
 }
@@ -72,9 +109,7 @@ export async function deleteDoc(id: string): Promise<void> {
 export async function clearAllDocs(): Promise<void> {
   const allKeys = await keys(store)
   await Promise.all(
-    allKeys
-      .filter((k): k is string => typeof k === 'string' && k.startsWith(DOC_PREFIX))
-      .map((k) => del(k, store)),
+    allKeys.filter((k): k is string => typeof k === 'string' && k.startsWith(DOC_PREFIX)).map((k) => del(k, store))
   )
 }
 
