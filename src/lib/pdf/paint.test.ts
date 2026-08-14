@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -230,22 +230,29 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
     expect(secondX).toBeCloseTo(0, 6) // untouched: real DOM x, not pushed to line 1's end
   })
 
-  it('applies the same exact-metric snap to a tracked heading’s invisible extractable layer', async () => {
-    // The real bug this was diagnosed from: both runs on an
-    // elegant-template skills line carry nonzero letterSpacingPx (the
-    // template applies slight tracking broadly, not just to headings), so
-    // BOTH go through the two-layer tracked path — the invisible layers'
-    // gap is what pdf.js actually measures, and it must be zero here too.
+  it('applies the same exact-metric snap to a tracked heading invisible extractable layer', async () => {
     const trueEnd = await trueWidthPt('Languages', sizePx)
+    const spaceWidth = await trueWidthPt(' ', sizePx)
+    const smallGapXPx = (trueEnd + spaceWidth * 0.5) / (72 / 96)
     const stream = await renderContentStream([
       { kind: 'text', run: baseRun({ text: 'Languages', xPx: 0, baselinePx: 20, sizePx, letterSpacingPx: 0.1 }) },
-      { kind: 'text', run: baseRun({ text: ': ', xPx: 0, baselinePx: 20, sizePx, letterSpacingPx: 0.1 }) },
+      { kind: 'text', run: baseRun({ text: ': ', xPx: smallGapXPx, baselinePx: 20, sizePx, letterSpacingPx: 0.1 }) },
     ])
-    // Both runs' invisible layers are plain Tj calls (Tm-positioned); the
-    // second's must land exactly at the first's true untracked width.
     const [firstX, secondX] = tmXPositions(stream)
     expect(firstX).toBeCloseTo(0, 6)
     expect(secondX).toBeCloseTo(trueEnd, 6)
+  })
+
+  it('rejects a large negative gap and keeps the second run position', async () => {
+    const trueEnd = await trueWidthPt('End Text', sizePx)
+    const spaceWidth = await trueWidthPt(' ', sizePx)
+    const leftXPx = (trueEnd - spaceWidth * 3.5) / (72 / 96)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'End Text', xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: 'Start', xPx: leftXPx, baselinePx: 20, sizePx }) },
+    ])
+    const [, secondX] = tmXPositions(stream)
+    expect(secondX).toBeCloseTo(pxToPt(leftXPx), 6)
   })
 })
 

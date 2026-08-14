@@ -416,7 +416,8 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
       // the browser put it.
       if (prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
         const spaceWidthPt = font.widthOfTextAtSize(' ', sizePt)
-        if (xPt - prevRealEnd.endXPt < spaceWidthPt) xPt = prevRealEnd.endXPt
+        const gapPt = xPt - prevRealEnd.endXPt
+        if (gapPt > -spaceWidthPt && gapPt < spaceWidthPt) xPt = prevRealEnd.endXPt
       }
 
       if (run.letterSpacingPx !== 0) {
