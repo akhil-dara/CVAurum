@@ -11,6 +11,7 @@ import {
   concatTransformationMatrix,
   popGraphicsState,
   pushGraphicsState,
+  LineCapStyle,
   PDFDict,
   PDFName,
   PDFNumber,
@@ -588,9 +589,40 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
           })
           break
         }
-        case 'svg':
-          // Not emitted by the walker yet — nothing to paint.
+        case 'svg': {
+          // A decorative inline icon (walk.ts's svgIconOps — section-heading
+          // chips, contact-row marks). `op.d` and `op.strokeWidthPx` are
+          // deliberately in the svg's own viewBox/user-unit space, not
+          // pre-scaled to `op.wPx/hPx` — see types.ts's `svg` DrawOp doc
+          // comment. `scale` maps that space to the page: PDF interprets
+          // line width in the user space active when the path is STROKED
+          // (i.e. after this same `cm` scale applies), so passing
+          // `strokeWidthPx` RAW here lands at the correct final device
+          // thickness for free — verified empirically against a rasterized
+          // probe (task-13 report), not assumed from the PDF spec alone.
+          const [, , vbW] = op.viewBox
+          if (vbW <= 0) break
+          const scale = pxToPt(op.wPx) / vbW
+          const svgOpts: Parameters<PDFPage['drawSvgPath']>[1] = {
+            x: pxToPt(op.xPx),
+            y: flipY(pxToPt(op.yPx), pageHeightPt),
+            scale,
+          }
+          if (op.fill) {
+            svgOpts.color = rgb(op.fill.r, op.fill.g, op.fill.b)
+            svgOpts.opacity = op.fill.a
+          }
+          if (op.stroke) {
+            svgOpts.borderColor = rgb(op.stroke.r, op.stroke.g, op.stroke.b)
+            svgOpts.borderWidth = op.strokeWidthPx
+            svgOpts.borderOpacity = op.stroke.a
+            svgOpts.borderLineCap = LineCapStyle.Round // lucide's own strokeLinecap/strokeLinejoin: round
+          }
+          if (svgOpts.color || svgOpts.borderColor) {
+            page.drawSvgPath(op.d, svgOpts)
+          }
           break
+        }
       }
     } catch {
       // Single bad rect/line/image op is swallowed: it must not sink the

@@ -1,10 +1,6 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { ascentPx, extractRuns, measureTextWidthPx } from './text'
-import { parseCssColorFunction, type DrawOp, type LinearGradient, type TextRun } from './types'
-
-/** parseColor only understands rgb()/rgba(); color-mix(..., transparent)
- *  backgrounds/borders serialize as color(srgb ...) instead — see types.ts. */
-const parseAnyColor = (css: string) => parseColor(css) ?? parseCssColorFunction(css)
+import type { DrawOp, LinearGradient, TextRun } from './types'
 
 /**
  * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
@@ -14,9 +10,9 @@ const parseAnyColor = (css: string) => parseColor(css) ?? parseCssColorFunction(
  * 10c report — confirmed the single biggest contributor to both templates'
  * pixel diffs, including losing the name/contact text painted on top, which
  * became invisible without its background). Chromium serializes the two
- * color stops as `rgb()` or `color(srgb ...)` (see types.ts's
- * `parseCssColorFunction` for why `color-mix()` shows up as the latter) — by
- * the time getComputedStyle reports it, custom properties and color-mix()
+ * color stops as `rgb()` or `color(srgb ...)` (see style.ts's `parseColor`
+ * for why `color-mix()` shows up as the latter) — by the time
+ * getComputedStyle reports it, custom properties and color-mix()
  * are already resolved to concrete numbers, verified empirically against a
  * real element rather than assumed. Only the exact 2-stop, degree-angle
  * shape our own CSS uses is matched; anything else (keyword direction,
@@ -39,8 +35,8 @@ export function parseLinearGradient(backgroundImage: string): LinearGradient | n
     /^linear-gradient\(\s*(?:([\d.]+)deg\s*,\s*)?((?:rgba?|color)\([^)]*\))\s*,\s*((?:rgba?|color)\([^)]*\))\s*\)$/i,
   )
   if (!m) return null
-  const c1 = parseAnyColor(m[2])
-  const c2 = parseAnyColor(m[3])
+  const c1 = parseColor(m[2])
+  const c2 = parseColor(m[3])
   if (!c1 || !c2) return null
   return { angleDeg: m[1] === undefined ? 180 : Number(m[1]), stops: [c1, c2] }
 }
@@ -73,12 +69,27 @@ const BORDER_EDGES = [
   { side: 'Left', x1: (b: ReturnType<typeof boxOf>) => b.xPx, y1: (b: ReturnType<typeof boxOf>) => b.yPx, x2: (b: ReturnType<typeof boxOf>) => b.xPx, y2: (b: ReturnType<typeof boxOf>) => b.yPx + b.hPx },
 ] as const
 
+/** Computed `opacity`, defaulting to 1 for anything unparseable — shared by
+ *  boxOps and pseudoOps so a `position: absolute` accent rule painted at
+ *  `opacity: 0.38` (e.g. `.sec-ov-strike`'s heading rule) doesn't paint fully
+ *  solid; CSS `opacity` is a separate compositing multiplier from whatever
+ *  alpha the color itself already carries (e.g. from `color-mix()`), so this
+ *  always MULTIPLIES rather than replaces. */
+export function elementOpacity(cs: CSSStyleDeclaration): number {
+  const s = (cs.opacity || '').trim()
+  if (!s) return 1 // Number('') is 0, not NaN — guard explicitly so an empty/missing value defaults to opaque
+  const n = Number(s)
+  return Number.isFinite(n) ? n : 1
+}
+
 /** background, borders, then image — in that paint order. */
 function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const cs = getComputedStyle(el)
   const box = boxOf(el, root)
+  const opacityMul = elementOpacity(cs)
 
-  const bg = parseAnyColor(cs.backgroundColor)
+  const bg = parseColor(cs.backgroundColor)
+  const bgFill = bg && bg.a > 0 ? { ...bg, a: bg.a * opacityMul } : null
   const gradient = parseLinearGradient(cs.backgroundImage)
   if (gradient) {
     // background-image paints OVER background-color in CSS paint order —
@@ -86,24 +97,24 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     // (never happens in our own CSS today: `background: linear-gradient(…)`
     // never sets background-color, confirmed empirically) but future-proof
     // either way since a solid fill is drawn first if bg is also opaque.
-    if (bg && bg.a > 0) {
-      ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bg, radiusPx: parsePx(cs.borderTopLeftRadius) })
+    if (bgFill) {
+      ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radiusPx: parsePx(cs.borderTopLeftRadius) })
     }
     ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, radiusPx: parsePx(cs.borderTopLeftRadius), fillGradient: gradient })
-  } else if (bg && bg.a > 0) {
-    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bg, radiusPx: parsePx(cs.borderTopLeftRadius) })
+  } else if (bgFill) {
+    ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radiusPx: parsePx(cs.borderTopLeftRadius) })
   }
 
   for (const edge of BORDER_EDGES) {
     const width = parsePx(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-width`))
     const style = cs.getPropertyValue(`border-${edge.side.toLowerCase()}-style`)
     if (width <= 0 || style === 'none' || style === 'hidden') continue
-    const color = parseAnyColor(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-color`))
+    const color = parseColor(cs.getPropertyValue(`border-${edge.side.toLowerCase()}-color`))
     if (!color || color.a === 0) continue
     ops.push({
       kind: 'line',
       x1Px: edge.x1(box), y1Px: edge.y1(box), x2Px: edge.x2(box), y2Px: edge.y2(box),
-      widthPx: width, color, dashed: style === 'dashed' || style === 'dotted',
+      widthPx: width, color: { ...color, a: color.a * opacityMul }, dashed: style === 'dashed' || style === 'dotted',
     })
   }
 
@@ -233,7 +244,7 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
  *  `content:` declarations — see the task-10b report) — see types.ts's
  *  TextRun.isDecorative. */
 function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx: number): TextRun | null {
-  const color = parseAnyColor(cs.color)
+  const color = parseColor(cs.color)
   if (!color || color.a === 0) return null
   const sizePx = parsePx(cs.fontSize)
   if (sizePx <= 0) return null
@@ -256,34 +267,82 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
   }
 }
 
-/** ::before then ::after: background rect, then generated text — matching
- *  CSS paint order. Most of our own ::before/::after usage is a small
- *  `content: '•'`-style separator glyph before a repeated element (contact
- *  list dots, tag separators); it renders at the pseudo's own host box,
- *  which is where the content is inserted in normal flow. Native `<li>`
- *  bullets are a completely different mechanism (see markerOps) — browsers
- *  never surface those through ::before. */
-function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
-  for (const which of ['::before', '::after'] as const) {
-    const cs = getComputedStyle(el, which)
-    if (cs.content === 'none' || cs.display === 'none') continue
+/**
+ * Resolves a pseudo's own box from the HOST's box plus the pseudo's computed
+ * `left`/`top`/`right`/`bottom`/`width`/`height` — used for `position:
+ * absolute`/`relative` pseudos, whose containing block is the host itself
+ * (every positioned pseudo in our CSS sits on a `position: relative` host,
+ * confirmed against every `sec-ov-*`/`tpl-*` heading-accent rule that uses
+ * one). `getComputedStyle` resolves `left`/`top`/etc to a used PX value
+ * (including percentages, e.g. `.sec-ov-strike`'s `top: 50%`) or the literal
+ * string `'auto'` when unset. When `left` AND `right` are both set with
+ * `width: auto` (`.sec-ov-strike`'s full-width rule), CSS computes width as
+ * the remaining space between them — matched here explicitly since there's
+ * no layout engine to derive it for us; ditto `top`+`bottom` with `height:
+ * auto`. Static (normal-flow) pseudos are left at the pre-existing
+ * approximation: painted at the host's own origin, sized to their own
+ * width/height (or the host's width / the pseudo's own font-size as a
+ * fallback) — exact static flow position isn't attempted.
+ */
+export function pseudoBox(cs: CSSStyleDeclaration, host: { xPx: number; yPx: number; wPx: number; hPx: number }): { xPx: number; yPx: number; wPx: number; hPx: number } {
+  let xPx = host.xPx
+  let yPx = host.yPx
+  let wPx = parsePx(cs.width) || host.wPx
+  let hPx = parsePx(cs.height) || parsePx(cs.fontSize)
 
-    const box = boxOf(el, root)
-
-    const bg = parseAnyColor(cs.backgroundColor)
-    if (bg && bg.a > 0) {
-      const wPx = parsePx(cs.width) || box.wPx
-      const hPx = parsePx(cs.height) || parsePx(cs.fontSize)
-      if (wPx > 0 && hPx > 0) {
-        ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx, hPx, fill: bg, radiusPx: parsePx(cs.borderTopLeftRadius) })
-      }
+  if (cs.position === 'absolute' || cs.position === 'relative') {
+    const left = cs.left === 'auto' ? null : parsePx(cs.left)
+    const right = cs.right === 'auto' ? null : parsePx(cs.right)
+    if (left !== null) {
+      xPx = host.xPx + left
+      if (right !== null && cs.width === 'auto') wPx = host.wPx - left - right
+    } else if (right !== null) {
+      xPx = host.xPx + host.wPx - right - wPx
     }
 
-    const text = pseudoContentText(cs.content)
-    if (!text) continue
-    const run = styledTextRun(cs, text, box.xPx, box.yPx)
-    if (run) ops.push({ kind: 'text', run })
+    const top = cs.top === 'auto' ? null : parsePx(cs.top)
+    const bottom = cs.bottom === 'auto' ? null : parsePx(cs.bottom)
+    if (top !== null) {
+      yPx = host.yPx + top
+      if (bottom !== null && cs.height === 'auto') hPx = host.hPx - top - bottom
+    } else if (bottom !== null) {
+      yPx = host.yPx + host.hPx - bottom - hPx
+    }
   }
+
+  return { xPx, yPx, wPx, hPx }
+}
+
+/** One of `::before`/`::after`: background rect, then generated text —
+ *  matching CSS paint order within the pseudo itself. Caller controls WHICH
+ *  of the two, and WHEN relative to the host's real children, to get the
+ *  document-order requirement right at the buildDrawList level: `::before`
+ *  paints before them, `::after` after — see buildDrawList's `openForAfter`.
+ *  Most of our own ::before/::after usage is a small `content: '•'`-style
+ *  separator glyph before a repeated element (contact list dots, tag
+ *  separators); those are `position: static` and render at the pseudo's own
+ *  host box, which is where the content is inserted in normal flow. Native
+ *  `<li>` bullets are a completely different mechanism (see markerOps) —
+ *  browsers never surface those through ::before. */
+function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::before' | '::after'): void {
+  const cs = getComputedStyle(el, which)
+  if (cs.content === 'none' || cs.display === 'none') return
+
+  const opacityMul = elementOpacity(cs)
+  const box = pseudoBox(cs, boxOf(el, root))
+
+  const bg = parseColor(cs.backgroundColor)
+  if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {
+    ops.push({
+      kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx,
+      fill: { ...bg, a: bg.a * opacityMul }, radiusPx: parsePx(cs.borderTopLeftRadius),
+    })
+  }
+
+  const text = pseudoContentText(cs.content)
+  if (!text) return
+  const run = styledTextRun(cs, text, box.xPx, box.yPx)
+  if (run) ops.push({ kind: 'text', run: opacityMul === 1 ? run : { ...run, color: { ...run.color, a: run.color.a * opacityMul } } })
 }
 
 /** Bullet glyph implied by `list-style-type`, for marker kinds that are
@@ -319,7 +378,7 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const kind = (cs.listStyleType || '').trim()
 
   const box = boxOf(el, root)
-  const color = parseAnyColor(markerCs.color)
+  const color = parseColor(markerCs.color)
   if (!color || color.a === 0) return
   const sizePx = parsePx(markerCs.fontSize)
   if (sizePx <= 0) return
@@ -357,6 +416,125 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
 }
 
 /**
+ * Converts one SVG shape child's geometry to path `d` commands, in the
+ * child's own (viewBox) coordinate space — verbatim for `path` (its `d` IS
+ * already path syntax), translated to M/L(/Z) for the primitive shapes
+ * lucide's icon set actually uses (line, polyline/polygon, circle as a
+ * two-arc path, a plain non-rounded rect — `rx`/`ry` rounding isn't
+ * attempted: lucide barely uses `rect`, and the one case that does
+ * (Briefcase, `rx="2"` on a 20x14 box) is invisible at print resolution).
+ * Returns null for a shape kind this doesn't convert, or for missing/
+ * non-finite geometry — the caller dev-warns and skips it. Pure and DOM-free
+ * (`attr` is a plain getter, not an Element) so it's directly unit-testable.
+ */
+export function svgShapeToPathD(tag: string, attr: (name: string) => string | null): string | null {
+  const num = (name: string): number => {
+    const v = attr(name)
+    const n = v === null ? NaN : parseFloat(v)
+    return Number.isFinite(n) ? n : 0
+  }
+  switch (tag) {
+    case 'path':
+      return attr('d') || null
+    case 'line':
+      return `M ${num('x1')} ${num('y1')} L ${num('x2')} ${num('y2')}`
+    case 'polyline':
+    case 'polygon': {
+      const pts = (attr('points') || '').trim().split(/[\s,]+/).filter(Boolean).map(Number)
+      if (pts.length < 4 || pts.length % 2 !== 0 || pts.some((n) => !Number.isFinite(n))) return null
+      const cmds = [`M ${pts[0]} ${pts[1]}`]
+      for (let i = 2; i < pts.length; i += 2) cmds.push(`L ${pts[i]} ${pts[i + 1]}`)
+      if (tag === 'polygon') cmds.push('Z')
+      return cmds.join(' ')
+    }
+    case 'circle': {
+      const cx = num('cx'), cy = num('cy'), r = num('r')
+      if (r <= 0) return null
+      // Two 180deg arcs trace the full circumference — same "two-arc circle"
+      // shape as roundedRectPath's stadium collapse in paint.ts, just via
+      // SVG arc commands instead of a radius clamp.
+      return `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`
+    }
+    case 'rect': {
+      const x = num('x'), y = num('y'), w = num('width'), h = num('height')
+      if (w <= 0 || h <= 0) return null
+      return `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`
+    }
+    default:
+      return null
+  }
+}
+
+const SVG_SHAPE_TAGS = new Set(['path', 'line', 'polyline', 'polygon', 'circle', 'rect'])
+// Purely structural SVG wrappers our own icon sets never emit shapes inside
+// of directly but that legitimately appear (querySelectorAll('*') walks
+// through them) without themselves being a shape to warn about.
+const SVG_STRUCTURAL_TAGS = new Set(['g', 'defs', 'title', 'desc', 'metadata', 'clippath', 'style'])
+
+/**
+ * Inline lucide-style `<svg>` icons (section-heading chips via
+ * sectionIcons.tsx, contact-row marks via ContactIcons) never went through
+ * the walker at all before this task — only `<img src="data:image/svg+xml">`
+ * "logo" marks did (svgLogoOps above), so every section-icon chip painted as
+ * an empty tinted square. Emits ONE 'svg' op combining every shape child
+ * into a single `d`: lucide icons share one stroke/fill across all their
+ * children (verified against every icon in sectionIcons.tsx/ContactIcons —
+ * `fill="none" stroke="currentColor"` on the `<svg>`, never overridden on a
+ * child), so one `drawSvgPath` call paints the whole icon. Coordinates stay
+ * VERBATIM in the svg's own viewBox/user-unit space — see types.ts's `svg`
+ * DrawOp doc comment for why paint.ts doesn't need this module to pre-scale
+ * them (or the stroke width) itself.
+ */
+function svgIconOps(svg: Element, root: HTMLElement, ops: DrawOp[]): void {
+  const box = boxOf(svg, root)
+  if (box.wPx <= 0 || box.hPx <= 0) return
+
+  const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number)
+  if (vb.length !== 4 || vb.some((n) => !Number.isFinite(n)) || vb[2] <= 0 || vb[3] <= 0) {
+    if (import.meta.env.DEV) console.warn('[pdf] inline <svg> has no usable viewBox, skipping icon', svg)
+    return
+  }
+  const [vbX, vbY, vbW, vbH] = vb
+  if (vbX !== 0 || vbY !== 0) {
+    if (import.meta.env.DEV) console.warn('[pdf] inline <svg> has a non-zero viewBox origin, skipping icon', svg)
+    return
+  }
+
+  const dParts: string[] = []
+  for (const child of Array.from(svg.querySelectorAll('*'))) {
+    const tag = child.tagName.toLowerCase()
+    if (SVG_SHAPE_TAGS.has(tag)) {
+      const d = svgShapeToPathD(tag, (name) => child.getAttribute(name))
+      if (d) dParts.push(d)
+      else if (import.meta.env.DEV) console.warn(`[pdf] inline <svg> <${tag}> has no usable geometry, skipping shape`, child)
+    } else if (!SVG_STRUCTURAL_TAGS.has(tag)) {
+      if (import.meta.env.DEV) console.warn(`[pdf] inline <svg> has an unsupported child <${tag}>, skipping shape`, child)
+    }
+  }
+  if (!dParts.length) return
+
+  const cs = getComputedStyle(svg)
+  const opacityMul = elementOpacity(cs)
+  const strokeColor = parseColor(cs.stroke) ?? parseColor(cs.color)
+  const fillColor = cs.fill === 'none' ? null : (parseColor(cs.fill) ?? parseColor(cs.color))
+  // RAW (un-scaled) stroke-width, in the svg's own viewBox/user-unit space —
+  // see types.ts's `svg` DrawOp doc comment for why paint.ts wants it this way.
+  const strokeWidthPx = parsePx(cs.strokeWidth)
+
+  const stroke = strokeColor && strokeColor.a > 0 && strokeWidthPx > 0 ? { ...strokeColor, a: strokeColor.a * opacityMul } : undefined
+  const fill = fillColor && fillColor.a > 0 ? { ...fillColor, a: fillColor.a * opacityMul } : undefined
+  if (!stroke && !fill) return
+
+  ops.push({
+    kind: 'svg',
+    xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx,
+    d: dParts.join(' '),
+    viewBox: [vbX, vbY, vbW, vbH],
+    stroke, fill, strokeWidthPx,
+  })
+}
+
+/**
  * Walk the rendered print DOM and produce an ordered draw list. Document
  * order matters: later ops paint on top, exactly like CSS paints backgrounds
  * before the text that sits on them.
@@ -365,9 +543,19 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
     acceptNode: (n) => {
       if (n.nodeType === Node.ELEMENT_NODE) {
-        const el = n as HTMLElement
-        if (/\bno-print\b/.test(el.className?.toString?.() ?? '')) return NodeFilter.FILTER_REJECT
-        const cs = getComputedStyle(el)
+        const el = n as Element
+        // `el.className` is an `SVGAnimatedString` (not a plain string) on
+        // SVG elements, so the old `className.toString()` regex silently
+        // never matched `no-print` there — `classList` works uniformly for
+        // both HTML and SVG elements.
+        if (el.classList.contains('no-print')) return NodeFilter.FILTER_REJECT
+        // Inline SVG shape children (path/line/circle/...) are consumed
+        // directly off the <svg> root by svgIconOps below — never walked as
+        // separate elements. `ownerSVGElement` is set on every DESCENDANT of
+        // an <svg> and null on the <svg> root itself, so this rejects
+        // exactly (and only) the subtree svgIconOps already owns.
+        if ((el as SVGElement).ownerSVGElement) return NodeFilter.FILTER_REJECT
+        const cs = getComputedStyle(el as HTMLElement)
         if (cs.display === 'none' || cs.visibility === 'hidden') return NodeFilter.FILTER_REJECT
       }
       return NodeFilter.FILTER_ACCEPT
@@ -375,12 +563,41 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
   })
 
   const ops: DrawOp[] = []
+  // Elements whose ::after is still pending. CSS paints ::after AFTER all of
+  // an element's normal-flow children, but this flat pre-order walk visits
+  // the element itself before any of them (defect 3 — the walker used to
+  // paint ::before AND ::after back-to-back right there, so ::after landed
+  // BEFORE every child, the wrong side of CSS's own stacking order). Every
+  // element is pushed here when first visited and stays "open" until a later
+  // node turns out NOT to be its descendant (`Node.contains`, which reflects
+  // the real DOM regardless of what the walker's own filter skipped), at
+  // which point every open ancestor the walk has now exited gets its
+  // ::after flushed, innermost (most recently opened) first — exactly the
+  // order CSS closes nested elements in.
+  const openForAfter: HTMLElement[] = []
+  const closeUpTo = (n: Node | null) => {
+    while (openForAfter.length && !(n && openForAfter[openForAfter.length - 1].contains(n))) {
+      pseudoOps(openForAfter.pop()!, root, ops, '::after')
+    }
+  }
+
   // visit the root itself first, then every accepted node exactly once
   for (let n: Node | null = walker.currentNode; n; n = walker.nextNode()) {
+    closeUpTo(n)
     if (n.nodeType === Node.ELEMENT_NODE) {
-      boxOps(n as HTMLElement, root, ops)
-      pseudoOps(n as HTMLElement, root, ops)
-      markerOps(n as HTMLElement, root, ops)
+      const el = n as HTMLElement
+      if (el.tagName === 'svg') {
+        // DECORATIVE vector icon — see svgIconOps's doc comment. Not
+        // descended into for text/box processing (its shape children were
+        // already rejected by the walker above) and no ::before/::after
+        // handling: no template CSS puts generated content on an <svg>.
+        svgIconOps(el, root, ops)
+      } else {
+        boxOps(el, root, ops)
+        pseudoOps(el, root, ops, '::before')
+        markerOps(el, root, ops)
+        openForAfter.push(el)
+      }
     } else if (n.nodeType === Node.TEXT_NODE) {
       // Same-line adjacent-run touching/gap prevention used to live here,
       // estimated with canvas.measureText as a proxy for our EMBEDDED font's
@@ -400,5 +617,6 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
       }
     }
   }
+  closeUpTo(null)
   return ops
 }

@@ -5,11 +5,11 @@ import type { Rgba } from './style'
  * `color(srgb r g b / a)` function (0–1 channels) instead of rgb()/rgba() —
  * Chromium does this whenever one side of the mix is `transparent`, which is
  * exactly how our chip/dot/meter/pill/badge tints and several muted-text
- * colors are authored (`color-mix(in srgb, X 12%, transparent)`). style.ts's
- * `parseColor` only recognises rgb()/rgba(), so those backgrounds and text
- * colors were being read as `null` and silently dropped rather than drawn.
- * Shared by walk.ts (backgrounds/borders) and text.ts (text color) as a
- * fallback after `parseColor` returns null.
+ * colors are authored (`color-mix(in srgb, X 12%, transparent)`).
+ * style.ts's `parseColor` now parses this form directly (task 13) — this
+ * copy stays for text.ts's `textColor`, which still calls it as a fallback
+ * after `parseColor` for backward compatibility; the two never disagree
+ * since `parseColor` matches the same syntax first.
  */
 export function parseCssColorFunction(css: string): Rgba | null {
   const m = (css || '').match(/^color\(\s*srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+)(%)?)?\s*\)$/i)
@@ -61,5 +61,20 @@ export type DrawOp =
   | { kind: 'rect'; xPx: number; yPx: number; wPx: number; hPx: number; fill?: Rgba; radiusPx?: number; fillGradient?: LinearGradient }
   | { kind: 'line'; x1Px: number; y1Px: number; x2Px: number; y2Px: number; widthPx: number; color: Rgba; dashed?: boolean }
   | { kind: 'image'; xPx: number; yPx: number; wPx: number; hPx: number; src: string; radiusPx?: number }
+  /**
+   * An inline `<svg>` icon (section-heading chips, contact-row marks — task
+   * 13), e.g. lucide's `viewBox="0 0 24 24"` set. `xPx/yPx/wPx/hPx` are the
+   * svg's own on-page box, same root-relative CSS-px convention as every
+   * other op — but `d` and `strokeWidthPx` are DELIBERATELY left in the
+   * svg's OWN viewBox/user-unit space (min-x/min-y always 0 — walk.ts skips
+   * anything else), NOT pre-scaled to that box: paint.ts's drawSvgPath
+   * `scale` option maps viewBox units to the page at paint time, and PDF
+   * line width is interpreted in the user space active when the path is
+   * STROKED (i.e. after that scale's `cm`), so a raw, unscaled
+   * `strokeWidthPx` comes out the correct final thickness for free —
+   * verified empirically against a rasterized probe, see the task-13
+   * report. Combines every shape child of one `<svg>` into a single `d`
+   * (lucide icons share one stroke/fill across all their children).
+   */
   | { kind: 'svg'; xPx: number; yPx: number; wPx: number; hPx: number; d: string; stroke?: Rgba; fill?: Rgba; strokeWidthPx: number; viewBox: [number, number, number, number] }
   | { kind: 'text'; run: TextRun }

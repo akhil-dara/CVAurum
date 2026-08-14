@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLinearGradient, pseudoContentText } from './walk'
+import { parseLinearGradient, pseudoContentText, svgShapeToPathD, pseudoBox, elementOpacity } from './walk'
 
 describe('pseudoContentText', () => {
   it('unwraps a quoted content string', () => {
@@ -54,5 +54,135 @@ describe('parseLinearGradient', () => {
     expect(parseLinearGradient('radial-gradient(circle, red, blue)')).toBeNull()
     expect(parseLinearGradient('linear-gradient(to right, rgb(0, 0, 0), rgb(255, 255, 255))')).toBeNull()
     expect(parseLinearGradient('linear-gradient(90deg, rgb(0, 0, 0), rgb(128, 128, 128), rgb(255, 255, 255))')).toBeNull()
+  })
+})
+
+describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
+  // attr() closures below mirror reading Element.getAttribute(name): missing
+  // attributes return null, exactly like the DOM does — svgIconOps passes
+  // `(name) => child.getAttribute(name)` directly.
+  const attrs = (a: Record<string, string>) => (name: string): string | null => a[name] ?? null
+
+  it('returns a path\'s own `d` verbatim (no re-parsing/transforming its commands)', () => {
+    const d = 'M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16'
+    expect(svgShapeToPathD('path', attrs({ d }))).toBe(d)
+  })
+  it('returns null for a path with no `d` at all', () => {
+    expect(svgShapeToPathD('path', attrs({}))).toBeNull()
+  })
+
+  it('converts a line to a single M/L segment (AlignLeft\'s 3 lines)', () => {
+    expect(svgShapeToPathD('line', attrs({ x1: '21', x2: '3', y1: '6', y2: '6' }))).toBe('M 21 6 L 3 6')
+  })
+
+  it('converts a polyline to M followed by one L per remaining point, open (no Z)', () => {
+    expect(svgShapeToPathD('polyline', attrs({ points: '3,6 21,6 12,18' }))).toBe('M 3 6 L 21 6 L 12 18')
+  })
+  it('converts a polygon the same way as polyline but closed with Z', () => {
+    expect(svgShapeToPathD('polygon', attrs({ points: '3,6 21,6 12,18' }))).toBe('M 3 6 L 21 6 L 12 18 Z')
+  })
+  it('accepts whitespace-separated polyline points, not just commas', () => {
+    expect(svgShapeToPathD('polyline', attrs({ points: '3 6 21 6' }))).toBe('M 3 6 L 21 6')
+  })
+  it('returns null for a polyline with an odd/missing coordinate', () => {
+    expect(svgShapeToPathD('polyline', attrs({ points: '3,6 21' }))).toBeNull()
+  })
+
+  it('converts a circle to a two-arc closed path (Award\'s badge ring)', () => {
+    expect(svgShapeToPathD('circle', attrs({ cx: '12', cy: '8', r: '6' }))).toBe(
+      'M 6 8 A 6 6 0 1 0 18 8 A 6 6 0 1 0 6 8 Z',
+    )
+  })
+  it('returns null for a non-positive circle radius', () => {
+    expect(svgShapeToPathD('circle', attrs({ cx: '12', cy: '8', r: '0' }))).toBeNull()
+  })
+
+  it('converts a rect to a plain M/L/Z rectangle, ignoring rx (Briefcase\'s body)', () => {
+    expect(svgShapeToPathD('rect', attrs({ x: '2', y: '6', width: '20', height: '14', rx: '2' }))).toBe(
+      'M 2 6 L 22 6 L 22 20 L 2 20 Z',
+    )
+  })
+  it('returns null for a zero/negative-area rect', () => {
+    expect(svgShapeToPathD('rect', attrs({ x: '0', y: '0', width: '0', height: '14' }))).toBeNull()
+  })
+
+  it('returns null for an unsupported shape kind (caller dev-warns and skips it)', () => {
+    expect(svgShapeToPathD('ellipse', attrs({ cx: '1', cy: '1', rx: '1', ry: '1' }))).toBeNull()
+  })
+})
+
+describe('pseudoBox (task 13 — positioned pseudo-element offsets)', () => {
+  const host = { xPx: 49, yPx: 127, wPx: 695, hPx: 16 }
+  const cs = (over: Partial<Record<string, string>>): CSSStyleDeclaration => {
+    const base: Record<string, string> = {
+      position: 'static', left: 'auto', right: 'auto', top: 'auto', bottom: 'auto', width: 'auto', height: 'auto', fontSize: '12px',
+    }
+    return { ...base, ...over } as unknown as CSSStyleDeclaration
+  }
+
+  it('static (normal-flow) pseudos keep the pre-existing host-origin approximation', () => {
+    // No explicit width/height -> falls back to the host's width and the
+    // pseudo's own font-size (12px here) for height, same as before task 13.
+    expect(pseudoBox(cs({}), host)).toEqual({ xPx: 49, yPx: 127, wPx: 695, hPx: 12 })
+  })
+
+  it('applies an absolute left/top offset from the host origin', () => {
+    expect(pseudoBox(cs({ position: 'absolute', left: '5px', top: '3px', width: '10px', height: '2px' }), host)).toEqual({
+      xPx: 54, yPx: 130, wPx: 10, hPx: 2,
+    })
+  })
+
+  it('derives width from host width minus left+right insets when width is auto (.sec-ov-strike\'s full-width rule)', () => {
+    // Real computed values captured from .sec-ov-strike's ::before (task-13
+    // report): left:0, right:0, top resolved from 50%, height explicit.
+    const box = pseudoBox(cs({ position: 'absolute', left: '0px', right: '0px', top: '8px', height: '1.2px' }), host)
+    expect(box.xPx).toBe(49) // host.xPx + left(0)
+    expect(box.wPx).toBe(695) // host.wPx - left(0) - right(0): full width, not left over-narrowed
+    expect(box.yPx).toBe(135) // host.yPx + top(8)
+    expect(box.hPx).toBe(1.2) // explicit height, untouched by the width-derivation branch
+  })
+
+  it('derives height from host height minus top+bottom insets when height is auto', () => {
+    const box = pseudoBox(cs({ position: 'absolute', top: '2px', bottom: '3px', left: '0px', width: '10px' }), host)
+    expect(box.hPx).toBe(11) // host.hPx(16) - top(2) - bottom(3)
+    expect(box.yPx).toBe(129) // host.yPx + top(2)
+  })
+
+  it('positions from the right edge when only `right` (not `left`) is set (real width, not auto)', () => {
+    // .tpl-aurum's ::after: left:0, bottom:0, EXPLICIT width/height — right
+    // is never set here, this covers the mirror case (right set, left auto).
+    const box = pseudoBox(cs({ position: 'absolute', right: '10px', width: '20px', top: '0px' }), host)
+    expect(box.xPx).toBe(host.xPx + host.wPx - 10 - 20) // host right edge - right - own width
+  })
+
+  it('positions from the bottom edge when only `bottom` (not `top`) is set — the aurum ::after case', () => {
+    // Real computed values (task-13 report): position:absolute, left:0,
+    // bottom:0, width:1.9em (17.2969px), height:2px, top/right:auto. Before
+    // this fix the pseudo painted at the host's TOP (box.yPx) instead,
+    // landing the accent bar across the heading text instead of below it.
+    const box = pseudoBox(cs({ position: 'absolute', left: '0px', bottom: '0px', width: '17.2969px', height: '2px' }), host)
+    expect(box.xPx).toBe(49)
+    expect(box.wPx).toBe(17.2969)
+    expect(box.yPx).toBe(host.yPx + host.hPx - 2) // bottom-aligned within the host box, not top-aligned
+  })
+
+  it('relative positioning applies the same left/top math as absolute (both share one containing-block model here)', () => {
+    expect(pseudoBox(cs({ position: 'relative', left: '4px', top: '1px', width: '5px', height: '5px' }), host)).toEqual({
+      xPx: 53, yPx: 128, wPx: 5, hPx: 5,
+    })
+  })
+})
+
+describe('elementOpacity (task 13 — opacity multiplication)', () => {
+  const cs = (opacity: string): CSSStyleDeclaration => ({ opacity } as unknown as CSSStyleDeclaration)
+
+  it('reads a fractional computed opacity', () => {
+    expect(elementOpacity(cs('0.38'))).toBe(0.38) // .sec-ov-strike's heading rule
+  })
+  it('defaults to 1 when opacity is unset/unparseable', () => {
+    expect(elementOpacity(cs(''))).toBe(1)
+  })
+  it('reads a full 1 unchanged', () => {
+    expect(elementOpacity(cs('1'))).toBe(1)
   })
 })

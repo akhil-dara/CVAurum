@@ -493,6 +493,71 @@ describe('paintOps — gradient background fills (task 10c)', () => {
   })
 })
 
+describe('paintOps — inline SVG icons (task 13)', () => {
+  // A lucide AlignLeft-shaped icon: fill:none, stroke:currentColor — the
+  // shape every section-heading chip icon actually is.
+  const strokedIcon: DrawOp = {
+    kind: 'svg',
+    xPx: 10, yPx: 10, wPx: 14, hPx: 14,
+    d: 'M 21 6 L 3 6',
+    viewBox: [0, 0, 24, 24],
+    stroke: { r: 0.1, g: 0.1, b: 0.1, a: 1 },
+    strokeWidthPx: 2.1,
+  }
+
+  it('draws a stroke-only icon with the stroke operator, never fills or enters the text layer', async () => {
+    const stream = await renderContentStream([strokedIcon])
+    expect(stream).toMatch(/\bS\b/) // stroke
+    expect(stream).not.toMatch(/\bf\b/) // no fill — fill: none
+    expect(stream).not.toMatch(/\bBT\b/) // not a text object
+    expect(stream).not.toMatch(/\bTj\b/)
+  })
+
+  it('draws a filled icon with the fill operator, no stroke, when only `fill` is set', async () => {
+    const stream = await renderContentStream([{ ...strokedIcon, stroke: undefined, fill: { r: 0.2, g: 0.3, b: 0.4, a: 1 } }])
+    expect(stream).toMatch(/\bf\b/)
+    expect(stream).not.toMatch(/\bS\b/)
+  })
+
+  it('draws fillAndStroke ("B") when both fill and stroke are set', async () => {
+    const stream = await renderContentStream([{ ...strokedIcon, fill: { r: 0.2, g: 0.3, b: 0.4, a: 1 } }])
+    expect(stream).toMatch(/\bB\b/)
+  })
+
+  it('never throws and paints nothing for an svg op with neither fill nor stroke', async () => {
+    const ops: DrawOp[] = [{ ...strokedIcon, stroke: undefined, fill: undefined }]
+    const stream = await renderContentStream(ops)
+    expect(stream).not.toMatch(/\bS\b/)
+    expect(stream).not.toMatch(/\bf\b/)
+  })
+
+  it('scales viewBox-unit path geometry to the box size via the cm scale factor (pt-per-viewBox-unit)', async () => {
+    const { stream } = await renderPage([strokedIcon])
+    // wPx 14px -> pt = 14 * 0.75 = 10.5pt; viewBox width 24 -> scale = 10.5/24 = 0.4375.
+    // drawSvgPath emits translate/rotate/scale as three separate `cm` ops —
+    // the scale one is uniquely `S 0 0 -S 0 0 cm` (e=f=0, d negative);
+    // translate's e/f are the real (nonzero) position, rotate(0)'s d is +1.
+    const m = stream.match(/([\d.]+) 0 0 (-[\d.]+) 0 0 cm/)
+    expect(m).toBeTruthy()
+    expect(Number(m![1])).toBeCloseTo(10.5 / 24, 6)
+    expect(Number(m![2])).toBeCloseTo(-(10.5 / 24), 6)
+  })
+
+  it('passes the RAW (un-scaled) strokeWidthPx as the border width — the cm scale applies it, not this call', async () => {
+    // Verified empirically against a rasterized probe that this is the
+    // combination that lands on the correct final device-space thickness
+    // (task-13 report) — pre-multiplying strokeWidthPx here would double-
+    // scale it through the same `cm`.
+    const stream = await renderContentStream([strokedIcon])
+    expect(stream).toMatch(/\b2\.1 w\b/)
+  })
+
+  it('never throws for a degenerate viewBox (zero width) — cosmetic, not real content', async () => {
+    const ops: DrawOp[] = [{ ...strokedIcon, viewBox: [0, 0, 0, 24] }]
+    await expect(renderContentStream(ops)).resolves.not.toThrow()
+  })
+})
+
 describe('glyphPathToDrawPath', () => {
   it('scales and negates y (font y-up -> drawSvgPath y-down), leaves x untouched, for a real glyph outline', () => {
     const bytes = new Uint8Array(fs.readFileSync(path.join(FONT_DIR, FONT_FILE)))
