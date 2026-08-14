@@ -1,23 +1,5 @@
 import type { Rgba } from './style'
 
-/**
- * getComputedStyle can serialize a `color-mix()` result as the CSS Color 4
- * `color(srgb r g b / a)` function (0–1 channels) instead of rgb()/rgba() —
- * Chromium does this whenever one side of the mix is `transparent`, which is
- * exactly how our chip/dot/meter/pill/badge tints and several muted-text
- * colors are authored (`color-mix(in srgb, X 12%, transparent)`).
- * style.ts's `parseColor` now parses this form directly (task 13) — this
- * copy stays for text.ts's `textColor`, which still calls it as a fallback
- * after `parseColor` for backward compatibility; the two never disagree
- * since `parseColor` matches the same syntax first.
- */
-export function parseCssColorFunction(css: string): Rgba | null {
-  const m = (css || '').match(/^color\(\s*srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+)(%)?)?\s*\)$/i)
-  if (!m) return null
-  const a = m[4] === undefined ? 1 : m[5] ? Number(m[4]) / 100 : Number(m[4])
-  return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), a }
-}
-
 export interface TextRun {
   text: string
   xPx: number

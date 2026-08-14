@@ -1,9 +1,10 @@
 import { parseColor, parseFontWeight, parsePx } from './style'
-import { parseCssColorFunction, type TextRun } from './types'
+import type { TextRun } from './types'
 
-/** parseColor only understands rgb()/rgba(); color-mix(..., transparent)
- *  text colors serialize as color(srgb ...) instead — see types.ts. */
-const textColor = (css: string) => parseColor(css) ?? parseCssColorFunction(css)
+/** parseColor handles rgb()/rgba(), the `color(srgb ...)` form Chromium
+ *  serializes color-mix() results to (see style.ts), and anything else via
+ *  its canvas-normalization fallback (oklab()/oklch()/named colors/etc). */
+const textColor = (css: string) => parseColor(css)
 
 /** The browser paints the TRANSFORMED text, not the source text node. */
 export function applyTextTransform(text: string, transform: string): string {
