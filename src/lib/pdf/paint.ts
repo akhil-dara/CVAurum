@@ -33,6 +33,14 @@ import type { PdfFontCache } from './fonts'
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
 const JPEG_MAGIC = [0xff, 0xd8, 0xff]
 
+// Same-line snap allowance (see the comment block above `prevRealEnd` in
+// `paintOps`): the fraction of a snapped CHAIN's drawn width tolerated as
+// negative-gap drift before a boundary is treated as a genuine visual-order
+// reversal instead of metric drift. 0.04 gives >2x margin over the worst
+// measured family (Montserrat, 1.76% of chain width) while staying far below
+// the line-scale offsets a real reorder produces.
+export const DRIFT_FRACTION = 0.04
+
 function hasMagic(bytes: Uint8Array, magic: number[]): boolean {
   return magic.every((b, i) => bytes[i] === b)
 }
@@ -397,15 +405,26 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
   // "acceptable drift" — only an exact match reliably avoids it.
   //
   // However, negative gaps arise from TWO distinct classes: (1) sub-pixel
-  // overlap from Chromium/embedded-font metric drift (proportional to the
-  // previous run's width, observed 0.49% max: 1.84pt over 372pt; bold space
-  // 1.61pt fits at max drift), and (2) visual-order reversal (CSS
-  // flex-direction: row-reverse, rtl, Grid placement) with tens-of-points
-  // gaps and short previous runs. A drift-proportional allowance separates
-  // them: negAllowancePt = max(spaceWidth, 0.02 * previous width) covers
-  // case 1 (0.02 = 4x worst drift) while keeping case 2 at one space-width
-  // bound since 0.02 * short-run width stays below space width.
-  let prevRealEnd: { baselinePx: number; endXPt: number; widthPt: number } | null = null
+  // overlap from Chromium/embedded-font metric drift, and (2) visual-order
+  // reversal (CSS flex-direction: row-reverse, rtl, Grid placement) with
+  // tens-of-points gaps and short previous runs. Drift is NOT proportional to
+  // the previous run alone — it accumulates along the whole CHAIN of runs
+  // already snapped together on this baseline, because a snapped run
+  // inherits its predecessor's displacement. Measured on the real corpus
+  // (Montserrat 400/700 at 9.3pt): a long run drifts 1.76% of its own drawn
+  // width vs the embedded metric; a short bold run immediately after it
+  // inherits that full drift, so bounding the allowance by the SHORT run's
+  // own width (as if each boundary were independent) collapses to one
+  // space-width and rejects a legitimate snap. Inter drifts only 0.49% by
+  // comparison, so family matters. A chain-proportional allowance fixes
+  // this: negAllowancePt = max(spaceWidth, DRIFT_FRACTION * chainWidth),
+  // where chainWidth is measured from the START of the current contiguous
+  // snapped chain (not just the immediately previous run) to its drawn end.
+  // DRIFT_FRACTION = 0.04 gives >2x margin over the worst measured family
+  // while reorder offsets (the case the lower bound exists for) stay
+  // line-scale on short chains and remain excluded. The positive bound stays
+  // one space width (a larger positive gap is DOM-intended spacing).
+  let prevRealEnd: { baselinePx: number; endXPt: number; chainStartXPt: number } | null = null
 
   for (const op of ops) {
     if (op.kind === 'text' && !op.run.isDecorative) {
@@ -419,17 +438,23 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
 
       // Snap to the previous run's true end whenever the real DOM gap is
       // smaller than a genuine space character in THIS run's own font,
-      // allowing for metric drift proportional to the previous run's width.
-      // Covers both overlap (negative gap within drift allowance) and small
-      // unintended positive gap, while a real word-space (much wider than one
-      // glyph, confirmed empirically: ~1.8pt vs drift cases' ~0.9-1.0pt at same
-      // font size) safely clears the check and is left exactly where the
-      // browser put it.
+      // allowing for metric drift proportional to the current snapped
+      // chain's drawn width (not just the immediately previous run - see the
+      // comment block above `prevRealEnd`). Covers both overlap (negative gap
+      // within drift allowance) and small unintended positive gap, while a
+      // real word-space (much wider than one glyph, confirmed empirically:
+      // ~1.8pt vs drift cases' ~0.9-1.0pt at same font size) safely clears
+      // the check and is left exactly where the browser put it.
+      let snappedToChain = false
       if (prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
         const spaceWidthPt = font.widthOfTextAtSize(' ', sizePt)
-        const negAllowancePt = Math.max(spaceWidthPt, 0.02 * prevRealEnd.widthPt)
+        const chainWidthPt = prevRealEnd.endXPt - prevRealEnd.chainStartXPt
+        const negAllowancePt = Math.max(spaceWidthPt, DRIFT_FRACTION * chainWidthPt)
         const gapPt = xPt - prevRealEnd.endXPt
-        if (gapPt > -negAllowancePt && gapPt < spaceWidthPt) xPt = prevRealEnd.endXPt
+        if (gapPt > -negAllowancePt && gapPt < spaceWidthPt) {
+          xPt = prevRealEnd.endXPt
+          snappedToChain = true
+        }
       }
 
       if (run.letterSpacingPx !== 0) {
@@ -449,7 +474,8 @@ export async function paintOps(page: PDFPage, ops: DrawOp[], fonts: PdfFontCache
       // paintTrackedHeading), so widthOfTextAtSize — which never applies
       // letter-spacing — is exactly right for both branches above.
       const widthPt = font.widthOfTextAtSize(run.text, sizePt)
-      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + widthPt, widthPt }
+      const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
+      prevRealEnd = { baselinePx: run.baselinePx, endXPt: xPt + widthPt, chainStartXPt: nextChainStartXPt }
       continue
     }
 

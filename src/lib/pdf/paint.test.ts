@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
-import { paintOps, glyphPathToDrawPath } from './paint'
+import { paintOps, glyphPathToDrawPath, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt } from './units'
 import type { DrawOp, LinearGradient, TextRun } from './types'
@@ -277,6 +277,59 @@ describe('paintOps — same-line adjacency (task 10c)', () => {
     // With drift-proportional allowance, -gapPt fits within 0.02 * trueEnd so
     // snap happens. With plain spaceWidth, -gapPt exceeds it so snap fails.
     expect(boldX).toBeCloseTo(trueEnd, 6)
+  })
+
+  it('chain drift: a short mid-chain run must not shrink the allowance', async () => {
+    // The one round-3 gap case (task-10c-fix4-brief.md): three real runs on
+    // one baseline, A -> B -> C, where B is SHORT. B inherits A's drift when
+    // it snaps, but round 3 bounded the NEXT boundary's allowance by B's own
+    // (short) width as if each boundary were independent, collapsing it to
+    // one space-width and rejecting a legitimate snap at B -> C. The fix
+    // measures the allowance from the CHAIN's start (A's x), not just B.
+    const textA =
+      'Reduced infrastructure costs while cutting payment failures across the entire distributed checkout and billing subsystem by '
+    const textB = '38%'
+    const textC = 'and reclaiming'
+
+    const spaceWidth = await trueWidthPt(' ', sizePx)
+    const widthA = await trueWidthPt(textA, sizePx)
+    const widthB = await trueWidthPt(textB, sizePx)
+    const trueEndA = widthA // A starts at xPx 0
+
+    // B: negative gap vs A's true end, within BOTH the old per-run allowance
+    // (0.02 * widthA) and the new chain allowance (0.04 * widthA - chain is
+    // just A at this point) - B snaps under either implementation, same
+    // shape as the "snaps metric-drift overlap" case above.
+    const gapAB = spaceWidth * 1.2
+    expect(gapAB).toBeLessThan(0.02 * widthA) // snaps even under round 3
+    const xBPx = (trueEndA - gapAB) / (72 / 96)
+
+    // Once B snaps, its drawn end is exactly A's true end plus B's own
+    // width, and the chain's start stays A's x (0) - not B's.
+    const bDrawnEnd = trueEndA + widthB
+    const chainWidth = bDrawnEnd - 0
+
+    // C: gap vs B's drawn end must (a) exceed one space width, so a plain
+    // space-width bound rejects it, and (b) exceed 0.02 * B's OWN (short)
+    // width, so round 3's per-run allowance ALSO rejects it - yet (c) stay
+    // under 0.04 * the CHAIN's width (measured from A, not B), so the new
+    // chain-proportional allowance accepts it. B is short enough that (a)
+    // alone dominates (b) - asserted explicitly below.
+    const gapBC = spaceWidth * 1.5
+    expect(gapBC).toBeGreaterThan(spaceWidth) // (a)
+    expect(gapBC).toBeGreaterThan(0.02 * widthB) // (b)
+    expect(gapBC).toBeLessThan(DRIFT_FRACTION * chainWidth) // (c)
+
+    const xCPx = (bDrawnEnd - gapBC) / (72 / 96)
+
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: textA, xPx: 0, baselinePx: 20, sizePx }) },
+      { kind: 'text', run: baseRun({ text: textB, xPx: xBPx, baselinePx: 20, sizePx, weight: 700 }) },
+      { kind: 'text', run: baseRun({ text: textC, xPx: xCPx, baselinePx: 20, sizePx }) },
+    ])
+    const [, bX, cX] = tmXPositions(stream)
+    expect(bX).toBeCloseTo(trueEndA, 6)
+    expect(cX).toBeCloseTo(bDrawnEnd, 6)
   })
 })
 
