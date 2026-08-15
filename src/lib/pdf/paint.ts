@@ -942,3 +942,169 @@ export async function paintOps(
     }
   }
 }
+
+/* --------------------------------------------------- multi-page assembly */
+/**
+ * Native-multipage-pdf plan, task 3: splits ONE document-wide `DrawOp[]`
+ * across N output pages and paints each page with an ordinary (unmodified)
+ * `paintOps` call. Deliberately layered ON TOP of `paintOps` rather than
+ * folded into it — `paintOps` itself stays exactly as it was (every existing
+ * test above this comment, and the plan's global "single-page docs must stay
+ * byte-identical" constraint, both hold for free by construction, not by
+ * careful preservation).
+ */
+
+/**
+ * The single y (CSS px, document space) used to decide which page's band a
+ * `DrawOp` belongs to (spec section 2: "an op's band = band of its top
+ * edge"). For every op EXCEPT `text` this literally is the op's own top edge
+ * (`yPx`, or the smaller of a `line`'s two y endpoints). A `TextRun` doesn't
+ * carry its own top explicitly (only `baselinePx` + `sizePx`) — rather than
+ * approximate an ascent fraction, `baselinePx` itself is used directly:
+ * paginate.ts's own break-point rules guarantee a legal cut NEVER falls
+ * inside a text line's box, so ANY y strictly between that line's true top
+ * and bottom (which the baseline always is) lands in the same, correct band
+ * as the line's real top edge would — no font-metric ascent guess needed,
+ * and no misclassification risk near a page boundary.
+ */
+function opBandAnchorPx(op: DrawOp): number {
+  switch (op.kind) {
+    case 'line':
+      return Math.min(op.y1Px, op.y2Px)
+    case 'text':
+      return op.run.baselinePx
+    case 'rect':
+    case 'roundedBorder':
+    case 'image':
+    case 'svg':
+      return op.yPx
+  }
+}
+
+/** A shallow clone of `op` with its own y-coordinate(s) shifted by `dyPx`
+ *  (CSS px, document space) — moves a content op from its natural document-
+ *  wide position into a specific output page's LOCAL coordinate space.
+ *  Never mutates `op`. `dyPx === 0` (page 1, always) returns `op` itself
+ *  unchanged — no allocation at all on the common single-page path. */
+function translateOpY(op: DrawOp, dyPx: number): DrawOp {
+  if (dyPx === 0) return op
+  switch (op.kind) {
+    case 'line':
+      return { ...op, y1Px: op.y1Px + dyPx, y2Px: op.y2Px + dyPx }
+    case 'text':
+      return { ...op, run: { ...op.run, baselinePx: op.run.baselinePx + dyPx } }
+    case 'rect':
+    case 'roundedBorder':
+    case 'image':
+    case 'svg':
+      return { ...op, yPx: op.yPx + dyPx }
+  }
+}
+
+/** A page-chrome op (walk.ts's `pageChrome: true` — the root's own full-
+ *  height background, or a full-column band like a dark two-column sidebar)
+ *  repeats on EVERY output page, resized to THAT page's own full height
+ *  rather than assigned to a single band (spec section 2: "Page-chrome ops
+ *  repeat on every page, clamped to full page height"). Only `'rect'` ops
+ *  are ever tagged `pageChrome` today (see walk.ts's `tagPageChromeOps`) —
+ *  any other kind is returned unchanged as a safe no-op fallback rather than
+ *  a crash, since there is no "full page height" concept for a line/image/
+ *  svg/text op. */
+function clampChromeOpToPage(op: DrawOp, pageHeightPx: number): DrawOp {
+  if (op.kind !== 'rect') return op
+  return { ...op, yPx: 0, hPx: pageHeightPx }
+}
+
+/**
+ * Splits a single-document `DrawOp[]` (the whole, continuous print-mode
+ * layout) into one `DrawOp[]` PER OUTPUT PAGE, each already translated into
+ * that page's own LOCAL coordinate space (native-multipage-pdf plan, spec
+ * sections 2-3; the break-point SELECTION itself is paginate.ts's job — this
+ * only consumes its `cutsPx` result).
+ *
+ * `cutsPx` empty (single page — the overwhelming common case) is special-
+ * cased to return `[ops]`, literally the SAME array reference with zero
+ * per-op cloning — so painting it is byte-for-byte identical to calling
+ * `paintOps` directly the way render.tsx always did before this task (the
+ * plan's global constraint: single-page docs stay byte-identical).
+ *
+ * For N > 1 pages: every non-chrome op is assigned to the band containing
+ * its own `opBandAnchorPx`, then translated by that page's own offset —
+ * `bandTops[pageIndex] - pageTopPaddingPx` for every page after the first,
+ * always exactly 0 for page 1 (spec section 3: page 1 renders its band at
+ * its natural position; every later page's band is shifted up so its own
+ * content starts exactly `pageTopPaddingPx` below that page's top, the same
+ * visual margin page 1 already has built into its own natural layout).
+ * `pageChrome` ops skip band assignment entirely and instead repeat, via
+ * `clampChromeOpToPage`, on EVERY page.
+ *
+ * Op order within each page's own list is preserved from `ops`' original
+ * document order (a single left-to-right pass appends to whichever page
+ * bucket(s) each op belongs to), so later ops still paint on top of earlier
+ * ones on the SAME page, exactly like the single-page case already relies on.
+ */
+export function assignOpsToPages(
+  ops: DrawOp[],
+  cutsPx: number[],
+  pageTopPaddingPx: number,
+  pageHeightPx: number
+): DrawOp[][] {
+  if (cutsPx.length === 0) return [ops]
+
+  const pageCount = cutsPx.length + 1
+  const bandTops = [0, ...cutsPx]
+  const pages: DrawOp[][] = Array.from({ length: pageCount }, () => [])
+
+  for (const op of ops) {
+    if (op.pageChrome) {
+      for (const page of pages) page.push(clampChromeOpToPage(op, pageHeightPx))
+      continue
+    }
+    const anchorPx = opBandAnchorPx(op)
+    let pageIndex = 0
+    for (let i = 1; i < bandTops.length; i++) {
+      if (anchorPx >= bandTops[i]) pageIndex = i
+      else break
+    }
+    const offsetPx = pageIndex === 0 ? 0 : bandTops[pageIndex] - pageTopPaddingPx
+    pages[pageIndex].push(translateOpY(op, -offsetPx))
+  }
+
+  return pages
+}
+
+/**
+ * Multi-page-aware entry point layered directly on top of the unchanged
+ * `paintOps` (native-multipage-pdf plan, task 3): assigns `ops` to their
+ * output pages via `assignOpsToPages`, then paints each page's own op list
+ * with an ordinary `paintOps` call — one call per `PDFPage`, in order.
+ *
+ * This is also what resets the same-line snap chain at every page boundary,
+ * for free: `paintOps` already starts its own `prevRealEnd` fresh (`null`)
+ * on every invocation (see the comment above its own definition), so calling
+ * it once per page, each with that page's own already-offset op list, needs
+ * no separate reset logic here at all — a run at the top of page 2 can never
+ * snap against a run that happened to end near the bottom of page 1, because
+ * they are never passed to the same `paintOps` call.
+ *
+ * `pages.length` MUST equal `cutsPx.length + 1` (render.tsx creates exactly
+ * that many `PDFPage`s from `paginate()`'s own `pageCount`). For a single
+ * page (`cutsPx` empty) this reduces to exactly ONE `paintOps` call against
+ * the ORIGINAL `ops` array, unchanged — see `assignOpsToPages`'s own doc
+ * comment for why that's byte-identical to calling `paintOps` directly.
+ */
+export async function paintPages(
+  pages: PDFPage[],
+  ops: DrawOp[],
+  fonts: PdfFontCache,
+  pageHeightPt: number,
+  pageHeightPx: number,
+  cutsPx: number[],
+  pageTopPaddingPx: number,
+  captureDecoBoxes?: DecoBox[]
+): Promise<void> {
+  const perPageOps = assignOpsToPages(ops, cutsPx, pageTopPaddingPx, pageHeightPx)
+  for (let i = 0; i < pages.length; i++) {
+    await paintOps(pages[i], perPageOps[i] ?? [], fonts, pageHeightPt, captureDecoBoxes)
+  }
+}

@@ -15,9 +15,11 @@ import { ensureFontsReady } from '@/data/fonts'
 import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
-import { buildDrawList } from './walk'
+import { buildDrawList, extractPageBlocks } from './walk'
+import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
+import { parsePx } from './style'
 import { loadPdfFontIndex, PdfFontCache } from './fonts'
-import { paintOps } from './paint'
+import { paintPages } from './paint'
 import type { DecoBox } from './types'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
@@ -48,10 +50,72 @@ export function resolveDecoBoxesGlobal(capturing: boolean, decoBoxes: DecoBox[] 
   return capturing ? decoBoxes : undefined
 }
 
-/** Thrown when the mounted sheet is still taller than one page after auto-fit.
- * Multi-page pagination is a separate task — the caller should fall back to
- * the browser print export so the user always gets a correct PDF. */
+/** Thrown when the résumé genuinely cannot be exported natively: either
+ * auto-fit is ON and the sheet is still taller than one page after it ran
+ * (unchanged from before the native-multipage-pdf plan — auto-fit ON never
+ * paginates, spec section 3), or auto-fit is OFF and `paginate()` found no
+ * legal page-break candidate anywhere (`PaginationImpossibleError`, wrapped
+ * by `paginateOrThrow` below). Either way the caller falls back to the
+ * browser print export so the user always gets a correct PDF. */
 export class PdfMultiPageUnsupportedError extends Error {}
+
+/**
+ * Vertical padding (CSS px) read off a plain `{paddingTop, paddingBottom}`
+ * pair — a `Pick<CSSStyleDeclaration, ...>` shape (not a real
+ * `CSSStyleDeclaration`) purely so this is directly unit-testable without a
+ * DOM, same precedent as walk.ts's own `FlexHostStyle`. The real renderer
+ * passes `getComputedStyle(el)`, which structurally satisfies this shape.
+ */
+export function verticalPaddingPx(cs: Pick<CSSStyleDeclaration, 'paddingTop' | 'paddingBottom'>): {
+  topPx: number
+  bottomPx: number
+} {
+  return { topPx: parsePx(cs.paddingTop), bottomPx: parsePx(cs.paddingBottom) }
+}
+
+/**
+ * `paginate()`'s own `usablePageHeightPx` input (native-multipage-pdf plan,
+ * spec section 3): the full A4 page height minus the artboard's own top+
+ * bottom padding, applied UNIFORMLY to every output page — including page 1,
+ * even though page 1's own leading padding is already baked into its natural
+ * layout (see paint.ts's `assignOpsToPages` doc comment for the full
+ * page-geometry rationale: this is a deliberate, slightly conservative
+ * choice, not an oversight).
+ */
+export function computeUsablePageHeightPx(pageHeightPx: number, padding: { topPx: number; bottomPx: number }): number {
+  return pageHeightPx - padding.topPx - padding.bottomPx
+}
+
+/**
+ * Runs `paginate()`, translating its ONLY throw (`PaginationImpossibleError`
+ * — genuinely no legal break candidate exists anywhere) into the same
+ * `PdfMultiPageUnsupportedError` the caller already throws for a document
+ * that doesn't fit one page under auto-fit — keeping export.ts's print-
+ * dialog fallback the single safety net for BOTH cases. Pure aside from that
+ * translation (`paginate()` itself is DOM-free), so directly unit-testable
+ * without mounting anything.
+ */
+export function paginateOrThrow(input: PaginationInput): Pagination {
+  try {
+    return paginate(input)
+  } catch (e) {
+    if (e instanceof PaginationImpossibleError) {
+      throw new PdfMultiPageUnsupportedError('resume cannot be paginated: no legal page-break candidate exists')
+    }
+    throw e
+  }
+}
+
+/** `.rm-col-main` (always rendered — see Artboard.tsx) is where the
+ *  artboard's own page padding actually lives (`--rm-pad`, artboard.css) —
+ *  NOT on `.rm-root` itself, which carries no padding of its own (its
+ *  background spans its full box edge-to-edge, matching the page-chrome ops
+ *  paint.ts repeats full-bleed on every page). Falls back to `root` itself
+ *  if the column wrapper is ever missing, rather than throwing. */
+function findMainColumnPaddingPx(root: HTMLElement): { topPx: number; bottomPx: number } {
+  const mainCol = root.querySelector<HTMLElement>('.rm-col-main') ?? root
+  return verticalPaddingPx(getComputedStyle(mainCol))
+}
 
 // @pdf-lib/fontkit is CJS: under Vite the real module ends up on `.default`,
 // while under other bundlers/interop settings the namespace import IS the
@@ -116,15 +180,41 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // Same tolerance PrintPage uses: trailing whitespace/rounding within the
     // bottom margin doesn't count as a real overflow.
     const padPx = doc.metadata.page.margin * MM_TO_PX
-    if (container.scrollHeight > pageHpx + padPx) {
-      throw new PdfMultiPageUnsupportedError('resume does not fit on one page')
+    const overflow = container.scrollHeight > pageHpx + padPx
+
+    const sheet = container.firstElementChild as HTMLElement
+    // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only
+    // ever CONSUMED when pagination actually runs (assignOpsToPages' single-
+    // page shortcut ignores it entirely), so this has zero effect on the
+    // single-page byte-identical path below.
+    const padding = findMainColumnPaddingPx(sheet)
+
+    let cutsPx: number[] = []
+    let pageCount = 1
+
+    if (overflow) {
+      if (doc.metadata.page.autoFit) {
+        // Auto-fit already tried (fitOnePageScale, above) and still doesn't
+        // fit one page — unchanged from before this task: pagination only
+        // ever activates for auto-fit OFF (native-multipage-pdf plan, spec
+        // section 3).
+        throw new PdfMultiPageUnsupportedError('resume does not fit on one page')
+      }
+      const blocks = extractPageBlocks(sheet)
+      const contentHeightPx = sheet.getBoundingClientRect().height
+      const result = paginateOrThrow({
+        blocks,
+        contentHeightPx,
+        usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
+      })
+      cutsPx = result.cutsPx
+      pageCount = result.pageCount
     }
 
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
-    const page = pdfDoc.addPage([pxToPt(pageWpx), pxToPt(pageHpx)])
+    const pages = Array.from({ length: pageCount }, () => pdfDoc.addPage([pxToPt(pageWpx), pxToPt(pageHpx)]))
 
-    const sheet = container.firstElementChild as HTMLElement
     const ops = buildDrawList(sheet)
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
     // Dev-only gate-instrumentation hook (task 15) — see the `declare global`
@@ -132,7 +222,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // caller, which never sets the flag.
     const capturing = import.meta.env.DEV && window.__cvaCaptureRenderBoxes === true
     const decoBoxes: DecoBox[] | undefined = capturing ? [] : undefined
-    await paintOps(page, ops, fonts, pxToPt(pageHpx), decoBoxes)
+    await paintPages(pages, ops, fonts, pxToPt(pageHpx), pageHpx, cutsPx, padding.topPx, decoBoxes)
     // ALWAYS assign (never a conditional `if (capturing)`) so a non-capturing
     // render clears any boxes a PRIOR capturing render left behind — task-15
     // fix round: `if (capturing) window.__cvaLastDecoBoxes = decoBoxes` only

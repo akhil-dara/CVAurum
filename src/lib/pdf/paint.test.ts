@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
-import { paintOps, glyphPathToDrawPath, roundedRectPath, DRIFT_FRACTION } from './paint'
+import { paintOps, paintPages, assignOpsToPages, glyphPathToDrawPath, roundedRectPath, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt, ptToPx, flipY } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
@@ -1193,5 +1193,265 @@ describe('paintOps — decorative-box capture hook (task 15, gate instrumentatio
     const withoutCapture = await renderContentStream(ops)
     const { stream: withCapture } = await renderPage(ops, [])
     expect(withCapture).toBe(withoutCapture)
+  })
+})
+
+describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native multi-page pdf plan)', () => {
+  // Pure, DOM-free, pdf-lib-free — plain-object assertions against the
+  // returned per-page DrawOp[][] directly.
+  const rectOp = (yPx: number, hPx = 10, overrides: Partial<Extract<DrawOp, { kind: 'rect' }>> = {}): DrawOp => ({
+    kind: 'rect',
+    xPx: 0,
+    yPx,
+    wPx: 100,
+    hPx,
+    fill: { r: 0, g: 0, b: 0, a: 1 },
+    ...overrides,
+  })
+
+  it('single page (cutsPx empty): returns [ops] — the SAME array reference, no cloning at all', () => {
+    const ops: DrawOp[] = [rectOp(0), rectOp(50)]
+    const pages = assignOpsToPages(ops, [], 40, 1000)
+    expect(pages.length).toBe(1)
+    expect(pages[0]).toBe(ops) // reference equality, not just deep-equal
+  })
+
+  it('assigns each op to the band containing its own top edge (rect: yPx)', () => {
+    const opPage1 = rectOp(10)
+    const opPage2 = rectOp(150)
+    const opPage3 = rectOp(300)
+    const pages = assignOpsToPages([opPage1, opPage2, opPage3], [100, 250], 20, 1000)
+    expect(pages.length).toBe(3)
+    expect(pages[0]).toEqual([opPage1])
+    expect(pages[1]).toEqual([{ ...opPage2, yPx: 150 - (100 - 20) }])
+    expect(pages[2]).toEqual([{ ...opPage3, yPx: 300 - (250 - 20) }])
+  })
+
+  it('an op with topEdge exactly AT a cut belongs to the page AFTER the cut', () => {
+    const op = rectOp(100)
+    const pages = assignOpsToPages([op], [100], 0, 1000)
+    expect(pages[0]).toEqual([])
+    expect(pages[1]).toEqual([{ ...op, yPx: 0 }]) // offset = 100 - 0 = 100 -> 100 - 100 = 0
+  })
+
+  it('page 1 offset is always exactly 0 — an op at the very top of the document keeps its own yPx', () => {
+    const op = rectOp(0)
+    const pages = assignOpsToPages([op, rectOp(500)], [200], 30, 1000)
+    expect(pages[0][0]).toEqual(op) // untouched, not just numerically 0
+  })
+
+  it('line ops classify by the SMALLER of their two y endpoints, and both endpoints translate together', () => {
+    const line: DrawOp = {
+      kind: 'line',
+      x1Px: 0,
+      y1Px: 205,
+      x2Px: 100,
+      y2Px: 205,
+      widthPx: 1,
+      color: { r: 0, g: 0, b: 0, a: 1 },
+    }
+    const pages = assignOpsToPages([line], [200], 20, 1000)
+    const offsetPx = 200 - 20
+    expect(pages[1]).toEqual([{ ...line, y1Px: 205 - offsetPx, y2Px: 205 - offsetPx }])
+  })
+
+  it('text ops classify and translate by baselinePx (no ascent guess — see the function doc comment)', () => {
+    const run: TextRun = { ...baseRun({ baselinePx: 210 }) }
+    const op: DrawOp = { kind: 'text', run }
+    const pages = assignOpsToPages([op], [200], 20, 1000)
+    const offsetPx = 200 - 20
+    expect(pages[1]).toEqual([{ kind: 'text', run: { ...run, baselinePx: 210 - offsetPx } }])
+  })
+
+  it('image/svg/roundedBorder ops all classify and translate by their own yPx, same as rect', () => {
+    const image: DrawOp = { kind: 'image', xPx: 0, yPx: 210, wPx: 10, hPx: 10, src: 'x' }
+    const svg: DrawOp = {
+      kind: 'svg',
+      xPx: 0,
+      yPx: 220,
+      wPx: 10,
+      hPx: 10,
+      d: 'M0 0',
+      viewBox: [0, 0, 10, 10],
+      strokeWidthPx: 1,
+    }
+    const border: DrawOp = {
+      kind: 'roundedBorder',
+      xPx: 0,
+      yPx: 230,
+      wPx: 10,
+      hPx: 10,
+      radii: { tl: 1, tr: 1, br: 1, bl: 1 },
+      widthPx: 1,
+      color: { r: 0, g: 0, b: 0, a: 1 },
+    }
+    const pages = assignOpsToPages([image, svg, border], [200], 0, 1000)
+    expect(pages[1]).toEqual([
+      { ...image, yPx: 10 },
+      { ...svg, yPx: 20 },
+      { ...border, yPx: 30 },
+    ])
+  })
+
+  it('preserves each page’s own op order (document order subsequence, not reordered)', () => {
+    const a = rectOp(10, 5, { fill: { r: 1, g: 0, b: 0, a: 1 } })
+    const b = rectOp(20, 5, { fill: { r: 0, g: 1, b: 0, a: 1 } })
+    const c = rectOp(30, 5, { fill: { r: 0, g: 0, b: 1, a: 1 } })
+    const pages = assignOpsToPages([a, b, c], [1000], 0, 1000) // all on page 1
+    expect(pages[0]).toEqual([a, b, c])
+  })
+
+  it('page-chrome ops repeat on EVERY page, clamped to that page’s own full height, ignoring the original band entirely', () => {
+    const chrome: DrawOp = { ...rectOp(0, 900, { fill: { r: 0.1, g: 0.1, b: 0.1, a: 1 } }), pageChrome: true }
+    const content = rectOp(500)
+    const pages = assignOpsToPages([chrome, content], [400], 40, 1000)
+    expect(pages.length).toBe(2)
+    // Chrome appears on BOTH pages, reset to yPx 0 and hPx = the FULL page
+    // height (1000) — not clamped to its own original 900, not offset like
+    // ordinary content.
+    expect(pages[0][0]).toEqual({ ...chrome, yPx: 0, hPx: 1000 })
+    expect(pages[1][0]).toEqual({ ...chrome, yPx: 0, hPx: 1000 })
+    // Ordinary content op still gets normal band assignment alongside it.
+    expect(pages[1][1]).toEqual({ ...content, yPx: 500 - (400 - 40) })
+  })
+
+  it('three-page document: three bands, three distinct offsets', () => {
+    const ops = [rectOp(10), rectOp(150), rectOp(350)]
+    const pages = assignOpsToPages(ops, [100, 300], 25, 1000)
+    expect(pages.length).toBe(3)
+    expect(pages[0]).toEqual([ops[0]])
+    expect(pages[1]).toEqual([{ ...ops[1], yPx: 150 - (100 - 25) }])
+    expect(pages[2]).toEqual([{ ...ops[2], yPx: 350 - (300 - 25) }])
+  })
+})
+
+describe('paintPages — multi-page paint assembly (task 3, native multi-page pdf plan)', () => {
+  it('single page (cutsPx empty) paints byte-identical to calling paintOps directly', async () => {
+    const ops: DrawOp[] = [
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 50, hPx: 20, fill: { r: 0.2, g: 0.3, b: 0.4, a: 1 } },
+      { kind: 'text', run: baseRun({ text: 'Senior Software Engineer' }) },
+    ]
+
+    const docA = await PDFDocument.create()
+    docA.registerFontkit(fontkit)
+    const pageA = docA.addPage([300, 300])
+    const fontsA = new PdfFontCache(docA, FONT_INDEX)
+    await paintOps(pageA, ops, fontsA, 300)
+    const streamA = (pageA as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+
+    const docB = await PDFDocument.create()
+    docB.registerFontkit(fontkit)
+    const pageB = docB.addPage([300, 300])
+    const fontsB = new PdfFontCache(docB, FONT_INDEX)
+    await paintPages([pageB], ops, fontsB, 300, 300, [], 0)
+    const streamB = (pageB as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+
+    expect(streamB).toBe(streamA)
+  })
+
+  it('creates real pages at the given A4 dimensions, both pages the same size', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const wPt = pxToPt(794)
+    const hPt = pxToPt(1123)
+    const page1 = doc.addPage([wPt, hPt])
+    const page2 = doc.addPage([wPt, hPt])
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+    await paintPages([page1, page2], [], fonts, hPt, 1123, [500], 0)
+    expect(page1.getSize()).toEqual({ width: wPt, height: hPt })
+    expect(page2.getSize()).toEqual({ width: wPt, height: hPt })
+  })
+
+  it('a pageChrome background rect paints on every page, full page height, at PAGE-LOCAL yPx 0 in each stream', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const page1 = doc.addPage([300, 300])
+    const page2 = doc.addPage([300, 300])
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+    const chrome: DrawOp = {
+      kind: 'rect',
+      xPx: 0,
+      yPx: 0,
+      wPx: 300,
+      hPx: 900, // spans the whole 2-page document in document space
+      fill: { r: 0.05, g: 0.05, b: 0.05, a: 1 },
+      pageChrome: true,
+    }
+    await paintPages([page1, page2], [chrome], fonts, 300, 300, [400], 0)
+
+    const stream1 = (page1 as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+    const stream2 = (page2 as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+    // Both pages fill a rect (pdf-lib's own drawRectangle emits an m/l/l/l/h
+    // path, not a raw `re` primitive) at page-local y=0 with the page's own
+    // FULL height (300px -> 225pt) — not the original 900px height, not
+    // offset. `0 0 m` / `0 <h> l` is that path's first two points.
+    const pathMatch1 = stream1.match(/0 0 m\s*\n0 ([\d.]+) l/)
+    const pathMatch2 = stream2.match(/0 0 m\s*\n0 ([\d.]+) l/)
+    expect(pathMatch1).not.toBeNull()
+    expect(pathMatch2).not.toBeNull()
+    expect(Number(pathMatch1![1])).toBeCloseTo(pxToPt(300), 3)
+    expect(Number(pathMatch2![1])).toBeCloseTo(pxToPt(300), 3)
+  })
+
+  it('the same-line snap chain resets at each page boundary — a run on page 2 never snaps against page 1 ink', async () => {
+    // Mirrors paintOps' own "snaps metric-drift overlap" test shape (paint.ts
+    // — the negative-gap-within-drift-allowance snap): constructed so the
+    // SECOND run would snap against the FIRST run's true end if they were
+    // painted through the same paintOps call/prevRealEnd chain. Split across
+    // a page boundary here, they must NOT interact at all.
+    const sizePx = 12
+    const textA =
+      'Architected and deployed the comprehensive cloud infrastructure migration migration migration from 820ms to '
+    const trueEndA = await trueWidthPt(textA, sizePx)
+    const boldSpaceWidth = await trueWidthPt(' ', 12)
+    const gapPt = boldSpaceWidth * 1.2 // exceeds bold space width, but within chain-drift allowance
+    const driftedXPx = (trueEndA - gapPt) / (72 / 96)
+
+    const cutPx = 100
+    const pageTopPaddingPx = 0
+    const offsetPx = cutPx - pageTopPaddingPx
+
+    const ops: DrawOp[] = [
+      { kind: 'text', run: baseRun({ text: textA, xPx: 0, baselinePx: 20, sizePx }) }, // page 1: baselinePx 20 < cutPx
+      // Placed so its POST-TRANSLATION baseline lands at 20 too (same as A's)
+      // and its x is the SAME drift-triggering position used above — if this
+      // were wrongly processed through page 1's chain, it would snap to
+      // trueEndA exactly like paintOps' own same-page test proves it should.
+      {
+        kind: 'text',
+        run: baseRun({ text: '190ms', xPx: driftedXPx, baselinePx: 20 + offsetPx, sizePx, weight: 700 }),
+      },
+    ]
+
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const page1 = doc.addPage([600, 300])
+    const page2 = doc.addPage([600, 300])
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+    await paintPages([page1, page2], ops, fonts, 300, 300, [cutPx], pageTopPaddingPx)
+
+    const stream1 = (page1 as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+    const stream2 = (page2 as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+
+    expect(stream1.match(/\bTj\b/g)?.length).toBe(1) // only textA landed on page 1
+    expect(stream2.match(/\bTj\b/g)?.length).toBe(1) // only the second run landed on page 2
+
+    const secondX = [...stream2.matchAll(/1 0 0 1 (-?[\d.]+) -?[\d.]+ Tm/g)].map((m) => Number(m[1]))[0]
+    // Must render at its OWN given (translated) x — NOT snapped to trueEndA,
+    // proving page 2's paintOps call started with a fresh (null) prevRealEnd.
+    expect(secondX).toBeCloseTo(pxToPt(driftedXPx), 6)
+    expect(secondX).not.toBeCloseTo(trueEndA, 1)
   })
 })
