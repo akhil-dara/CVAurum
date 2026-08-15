@@ -1029,6 +1029,59 @@ function intersectingBandIndexes(topPx: number, bottomPx: number, bandTops: numb
   return indexes
 }
 
+/**
+ * True when a `rect` op carries any nonzero corner radius (either the newer
+ * per-corner `radii`, or the older uniform `radiusPx`). Task 6b fix-round-1,
+ * finding I2: radius-free geometry crops EXACTLY to a straight band boundary
+ * (a plain rectangle clamp — see `cropOpToBand`), but a rounded corner does
+ * not — cropping a rounded rect through the middle of its own curvature
+ * would need to re-derive new corner geometry at the cut, which this module
+ * has no machinery for. Ops that carry radii are excluded from the
+ * straddling-repeat path entirely and fall back to the ordinary single-band
+ * (top-edge) assignment every other kind already uses — the same rule
+ * `roundedBorder` (a stroked rounded border, never eligible for the repeat
+ * path at all) was already on, so a rounded card's FILL and BORDER once
+ * again travel together under the same single-band rule instead of the fill
+ * repeating while the border stays single-band (the fill/border asymmetry
+ * finding M5 flagged).
+ */
+function hasAnyRadiusOp(op: Extract<DrawOp, { kind: 'rect' }>): boolean {
+  if (op.radiusPx && op.radiusPx > 0) return true
+  const r = op.radii
+  return !!r && (r.tl > 0 || r.tr > 0 || r.br > 0 || r.bl > 0)
+}
+
+/**
+ * `op` (a radius-free `rect`/`line`) CROPPED to its own visible portion
+ * within `[bandTopPx, bandBottomPx)` — task 6b fix-round-1, finding I2: the
+ * straddling-repeat path used to push each band's copy with the op's FULL
+ * original (untranslated) geometry, so a copy could paint PAST its own
+ * band's boundary into territory the adjacent copy (or that page's own
+ * natural, non-duplicated content) already covers — the same document-space
+ * slice painted twice, both landing inside a real page's MediaBox (concrete
+ * symptom: a straddling 2px divider reappearing as a stray ~1px hairline
+ * just past the NEXT page's own top padding, because the untranslated
+ * remainder before the cut was never clipped off that page's copy). Cropping
+ * each copy to exactly the band it's actually painted on removes the
+ * overlap outright — radius-free geometry crops with a plain clamp, no
+ * corner surgery, which is exactly why a radiused rect never reaches this
+ * function (see `hasAnyRadiusOp`).
+ */
+function cropOpToBand(op: Extract<DrawOp, { kind: 'rect' | 'line' }>, bandTopPx: number, bandBottomPx: number): DrawOp {
+  if (op.kind === 'line') {
+    const spanTopPx = Math.max(Math.min(op.y1Px, op.y2Px), bandTopPx)
+    const spanBottomPx = Math.min(Math.max(op.y1Px, op.y2Px), bandBottomPx)
+    // Preserve which endpoint was y1 vs y2 (the line's own drawn direction)
+    // rather than assuming y1 <= y2.
+    return op.y1Px <= op.y2Px
+      ? { ...op, y1Px: spanTopPx, y2Px: spanBottomPx }
+      : { ...op, y1Px: spanBottomPx, y2Px: spanTopPx }
+  }
+  const topPx = Math.max(op.yPx, bandTopPx)
+  const bottomPx = Math.min(op.yPx + op.hPx, bandBottomPx)
+  return { ...op, yPx: topPx, hPx: Math.max(0, bottomPx - topPx) }
+}
+
 /** A page-chrome op (walk.ts's `pageChrome: true` — the root's own full-
  *  height background, or a full-column band like a dark two-column sidebar)
  *  repeats on EVERY output page, resized to THAT page's own full height
@@ -1077,17 +1130,19 @@ function clampChromeOpToPage(op: DrawOp, pageHeightPx: number): DrawOp {
  * `rect`/`line` op (e.g. timeline's vertical entry rail) can legitimately
  * straddle a cut, and assigning it to a single band the way ordinary content
  * is assigned clips the rest of it off the following page (sweep artifact:
- * 155px of missing rail at the top of page 2). For exactly these two kinds,
- * a NON-pageChrome op whose own `[top, bottom]` span intersects MORE THAN
- * ONE band is instead pushed into EVERY band it intersects, each copy
- * translated by that band's own offset like any other op — the untranslated
- * remainder of the box simply lands outside that page's own MediaBox, which
- * every PDF viewer already clips for free, so no geometry surgery (radius/
- * stroke-width/dash pattern) is ever needed here. An op that only intersects
- * ONE band (the overwhelming common case, including every rect/line on a
- * single-page document) falls through to the exact same anchor-point path
- * every other kind uses, so nothing here changes behavior for non-straddling
- * ops.
+ * 155px of missing rail at the top of page 2). For a NON-pageChrome, RADIUS-
+ * FREE `rect`/`line` op (see `hasAnyRadiusOp` — a radiused rect can't crop
+ * cleanly at a straight cut, so it's excluded and falls back to single-band
+ * below) whose own `[top, bottom]` span intersects MORE THAN ONE band, the
+ * op is pushed into EVERY band it intersects, each copy first CROPPED to
+ * that band's own `[bandTop, bandBottom)` range (`cropOpToBand` — fix-round-
+ * 1, finding I2: an uncropped copy could paint past its own band's boundary
+ * into territory the adjacent copy already covers, the same document-space
+ * slice painted twice) and then translated by that band's own offset like
+ * any other op. An op that only intersects ONE band (the overwhelming common
+ * case, including every rect/line on a single-page document) falls through
+ * to the exact same anchor-point path every other kind uses, so nothing here
+ * changes behavior for non-straddling ops.
  */
 export function assignOpsToPages(
   ops: DrawOp[],
@@ -1112,11 +1167,14 @@ export function assignOpsToPages(
       continue
     }
 
-    if (op.kind === 'rect' || op.kind === 'line') {
+    if (op.kind === 'line' || (op.kind === 'rect' && !hasAnyRadiusOp(op))) {
       const [topPx, bottomPx] = opSpanPx(op)
       const bandIdxs = intersectingBandIndexes(topPx, bottomPx, bandTops)
       if (bandIdxs.length > 1) {
-        for (const pageIndex of bandIdxs) pushToBand(op, pageIndex)
+        for (const pageIndex of bandIdxs) {
+          const bandBottomPx = pageIndex + 1 < bandTops.length ? bandTops[pageIndex + 1] : Infinity
+          pushToBand(cropOpToBand(op, bandTops[pageIndex], bandBottomPx), pageIndex)
+        }
         continue
       }
     }

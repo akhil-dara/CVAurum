@@ -1329,7 +1329,7 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
     // straddles the cut, so the top-edge-only rule used to paint it ONLY on
     // the band owning its top edge, losing the rest on the next page (sweep
     // artifact: 155px of missing rail at the top of page 2).
-    it('a tall thin rect spanning bands 1-2 is painted on BOTH pages, while text ops on each side appear exactly once', () => {
+    it('a tall thin rect spanning bands 1-2 is painted on BOTH pages, CROPPED to each band, while text ops appear exactly once', () => {
       const rail = rectOp(50, 300) // spans document [50, 350] -- straddles the cut at 200
       const textBefore: DrawOp = { kind: 'text', run: baseRun({ baselinePx: 100 }) }
       const textAfter: DrawOp = { kind: 'text', run: baseRun({ baselinePx: 250 }) }
@@ -1338,12 +1338,13 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
       const offsetPx = 200 - 20 // page-2 offset
 
       expect(pages.length).toBe(2)
-      // The rail appears in BOTH pages' op groups, each copy translated by
-      // that page's own offset (no geometry surgery -- the rest of the box
-      // simply falls outside that page's MediaBox).
-      expect(pages[0]).toEqual([textBefore, rail])
+      // The rail appears in BOTH pages' op groups, each copy CROPPED to that
+      // band's own [bandTop, bandBottom) range (fix-round-1, I2) before
+      // translation -- not the full original height duplicated whole, which
+      // would let each copy paint past its own band's boundary.
+      expect(pages[0]).toEqual([textBefore, { ...rail, yPx: 50, hPx: 150 }])
       expect(pages[1]).toEqual([
-        { ...rail, yPx: 50 - offsetPx },
+        { ...rail, yPx: 200 - offsetPx, hPx: 150 },
         { kind: 'text', run: { ...textAfter.run, baselinePx: 250 - offsetPx } },
       ])
 
@@ -1353,7 +1354,7 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
       expect(allTextRuns.length).toBe(2)
     })
 
-    it('a stroked line spanning bands 1-2 is likewise painted on both pages', () => {
+    it('a stroked line spanning bands 1-2 is likewise painted on both pages, each copy cropped to its own band', () => {
       const rail: DrawOp = {
         kind: 'line',
         x1Px: 5,
@@ -1364,24 +1365,24 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
         color: { r: 0, g: 0, b: 0, a: 1 },
       }
       const pages = assignOpsToPages([rail], [200], 0, 1000)
-      expect(pages[0]).toEqual([rail])
-      expect(pages[1]).toEqual([{ ...rail, y1Px: 180 - 200, y2Px: 260 - 200 }])
+      expect(pages[0]).toEqual([{ ...rail, y1Px: 180, y2Px: 200 }])
+      expect(pages[1]).toEqual([{ ...rail, y1Px: 0, y2Px: 60 }])
     })
 
-    it('a rect fully inside one band is NOT duplicated (unchanged single-band assignment)', () => {
+    it('a rect fully inside one band is NOT duplicated or cropped (unchanged single-band assignment)', () => {
       const rect = rectOp(50, 100) // spans [50, 150] -- entirely within band 1 ([0, 200))
       const pages = assignOpsToPages([rect], [200], 20, 1000)
       expect(pages[0]).toEqual([rect])
       expect(pages[1]).toEqual([])
     })
 
-    it('a rect spanning THREE bands is painted on all three', () => {
+    it('a rect spanning THREE bands is painted on all three, each copy cropped to its own band', () => {
       const rail = rectOp(50, 500) // spans [50, 550] -- crosses both cuts at 200 and 400
       const pages = assignOpsToPages([rail], [200, 400], 20, 1000)
       expect(pages.length).toBe(3)
-      expect(pages[0]).toEqual([rail])
-      expect(pages[1]).toEqual([{ ...rail, yPx: 50 - (200 - 20) }])
-      expect(pages[2]).toEqual([{ ...rail, yPx: 50 - (400 - 20) }])
+      expect(pages[0]).toEqual([{ ...rail, yPx: 50, hPx: 150 }])
+      expect(pages[1]).toEqual([{ ...rail, yPx: 200 - (200 - 20), hPx: 200 }])
+      expect(pages[2]).toEqual([{ ...rail, yPx: 400 - (400 - 20), hPx: 150 }])
     })
 
     it('a pageChrome rect keeps its own dedicated full-page-height repetition path, not this straddling logic', () => {
@@ -1389,6 +1390,35 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
       const pages = assignOpsToPages([chrome], [200], 20, 1000)
       expect(pages[0]).toEqual([{ ...chrome, yPx: 0, hPx: 1000 }])
       expect(pages[1]).toEqual([{ ...chrome, yPx: 0, hPx: 1000 }])
+    })
+
+    it('I2 (fix round 1): a straddling radius-free rect is CROPPED to each bands intersection, not duplicated whole', () => {
+      // The exact reviewer repro: rect [980, 1040], cut at 1000, pad 57 --
+      // pre-fix, page 2 showed the FULL uncropped rect translated (local
+      // [37, 97]), duplicating the [980, 1000) slice page 1 already painted
+      // (a straddling 2px divider reappeared as a stray ~1px hairline just
+      // above page 2's real content).
+      const rect = rectOp(980, 60) // spans document [980, 1040]
+      const pages = assignOpsToPages([rect], [1000], 57, 1123)
+      expect(pages.length).toBe(2)
+      expect(pages[0]).toEqual([{ ...rect, yPx: 980, hPx: 20 }]) // cropped to [980, 1000)
+      expect(pages[1]).toEqual([{ ...rect, yPx: 57, hPx: 40 }]) // cropped to [1000, 1040) then offset by (1000-57)
+    })
+
+    it('I2 (fix round 1): a straddling rect WITH nonzero radii returns to single-band (top-edge) assignment, uncropped', () => {
+      const rect = rectOp(980, 60, { radii: { tl: 8, tr: 8, br: 8, bl: 8 } })
+      const pages = assignOpsToPages([rect], [1000], 57, 1123)
+      // Anchor (top edge, yPx=980) falls in band 0 -- painted ONCE there,
+      // whole, exactly like every other radiused/non-rect/non-line kind.
+      expect(pages[0]).toEqual([rect])
+      expect(pages[1]).toEqual([])
+    })
+
+    it('I2 (fix round 1): a straddling rect with an all-zero radii object still crops normally (not treated as radiused)', () => {
+      const rect = rectOp(980, 60, { radii: { tl: 0, tr: 0, br: 0, bl: 0 } })
+      const pages = assignOpsToPages([rect], [1000], 57, 1123)
+      expect(pages[0]).toEqual([{ ...rect, yPx: 980, hPx: 20 }])
+      expect(pages[1]).toEqual([{ ...rect, yPx: 57, hPx: 40 }])
     })
   })
 })
