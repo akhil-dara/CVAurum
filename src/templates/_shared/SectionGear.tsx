@@ -270,6 +270,13 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   const opts = layout.sectionSettings?.[sectionKey] ?? {}
   const twoCol = layout.columns === 2
   const inAside = layout.aside.includes(sectionKey)
+  // The Skills meter only ever renders for a group with a rating and NO
+  // keyword chips (sections.tsx Skills()) — the far more common keyword-chip
+  // groups ignore Meter style entirely. Flag it here so the popover can say
+  // so instead of silently doing nothing when every group has keywords.
+  const skillsHaveMeterableGroup =
+    base !== 'skills' ||
+    doc.content.skills.some((s) => !(s.keywords && s.keywords.length > 0) && typeof s.rating === 'number')
 
   // Keep the panel usable if the window changes underneath it.
   useEffect(() => {
@@ -453,6 +460,11 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                         <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.meterStyle ?? '') === b.v} onClick={() => setStyle('meterStyle', b.v)} />
                       ))}
                     </div>
+                    {!skillsHaveMeterableGroup && (
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                        Applies to skills that have a level and no keyword list
+                      </p>
+                    )}
                   </Group>
                 )}
 
