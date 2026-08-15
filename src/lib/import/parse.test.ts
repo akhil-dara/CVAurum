@@ -95,6 +95,53 @@ describe('parseSimpleList certificates — name/issuer pairing (2026-08-16)', ()
     ) as { name: string }[]
     expect(out.map((c) => c.name)).toEqual(['Cert A', 'Cert B', 'Cert C'])
   })
+
+  // Narrow aside columns WRAP the cert name ("AWS Certified" / "Solutions
+  // Architect 2022" / "Amazon Web Services") — found by the import gate on
+  // double/portrait/deedy, which turned one cert into two or three. Lines
+  // inside one tight gap-cluster with the SAME prominence as the first are
+  // name continuations and join; flat lists cluster one line each and stay
+  // separate.
+  it('joins a wrapped name inside one tight cluster (narrow aside columns)', () => {
+    const out = parseSimpleList(
+      [
+        line('AWS Certified', false, 9.6, 0),
+        line('Solutions Architect 2022', false, 9.6, 12),
+        line('Amazon Web Services', false, 8.8, 24),
+      ],
+      'certificates',
+      12
+    ) as { name: string; issuer: string; date: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('AWS Certified Solutions Architect')
+    expect(out[0].issuer).toBe('Amazon Web Services')
+    expect(out[0].date).toBe('2022')
+  })
+
+  it('keeps gap-separated same-prominence certs separate (flat list with real gaps)', () => {
+    const out = parseSimpleList(
+      [line('CCNA', false, 9.6, 0), line('CompTIA Security+', false, 9.6, 30), line('CKA', false, 9.6, 60)],
+      'certificates',
+      12
+    ) as { name: string }[]
+    expect(out.map((c) => c.name)).toEqual(['CCNA', 'CompTIA Security+', 'CKA'])
+  })
+
+  it('pulls the year merged into the FIRST wrapped fragment (right-aligned date)', () => {
+    const out = parseSimpleList(
+      [
+        line('AWS Certified 2022', false, 9.6, 0),
+        line('Solutions Architect', false, 9.6, 12),
+        line('Amazon Web Services', false, 8.8, 24),
+      ],
+      'certificates',
+      12
+    ) as { name: string; issuer: string; date: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('AWS Certified Solutions Architect')
+    expect(out[0].date).toBe('2022')
+    expect(out[0].issuer).toBe('Amazon Web Services')
+  })
 })
 
 describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', () => {
@@ -182,6 +229,24 @@ describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', ()
     ) as { title: string; date: string }[]
     expect(out[0].title).toBe('Engineering Excellence Award')
     expect(out[0].date).toBe('2023')
+  })
+
+  it('joins a wrapped title across same-prominence lines (narrow columns)', () => {
+    const out = parseSimpleList(
+      [
+        line('Engineering Excellence', false, 9.6, 0),
+        line('Award 2023', false, 9.6, 12),
+        line('Vertex Labs', false, 8.83, 24),
+        line('Top 2% of engineering org for impact and leadership.', false, 9.6, 36),
+      ],
+      'awards',
+      12
+    ) as { title: string; awarder: string; date: string; summary: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].title).toBe('Engineering Excellence Award')
+    expect(out[0].date).toBe('2023')
+    expect(out[0].awarder).toBe('Vertex Labs')
+    expect(out[0].summary).toBe('Top 2% of engineering org for impact and leadership.')
   })
 })
 

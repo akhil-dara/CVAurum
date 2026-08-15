@@ -719,6 +719,29 @@ const pullTrailingYear = (t: string): { text: string; year: string } => {
   return m ? { text: m[1].trim(), year: m[2] } : { text: t, year: '' }
 }
 
+/** Groups section lines into per-entry clusters by vertical gap: the
+ *  itemGap between entries is far larger than the line spacing inside one
+ *  (same `lineGap * 1.8` rule the work parser's fallback trusts); a page or
+ *  column change starts a new cluster since the gap can't be measured
+ *  across. */
+function clusterByGap(src: Line[], lineGap: number): Line[][] {
+  const clusters: Line[][] = []
+  let cur: Line[] = []
+  for (let i = 0; i < src.length; i++) {
+    const l = src[i]
+    const prev = src[i - 1]
+    const sameStream = prev && l.page === prev.page && l.col === prev.col
+    const bigGap = sameStream && l.top - prev.top > lineGap * 1.8
+    if (cur.length && (bigGap || !sameStream)) {
+      clusters.push(cur)
+      cur = []
+    }
+    cur.push(l)
+  }
+  if (cur.length) clusters.push(cur)
+  return clusters
+}
+
 export function parseSimpleList(
   lines: Line[],
   key: 'languages' | 'certificates' | 'awards' | 'interests' | 'publications',
@@ -770,23 +793,52 @@ export function parseSimpleList(
     // 9.6 vs 8.8 on classic. A flat unstyled list (all same height, no
     // bold) stays one cert per line, jitter under 0.5px ignored.
     const src = lines.filter((l) => stripBullet(l.text))
-    // A line pairs as ISSUER when it is visibly less prominent (see
-    // lessProminentThan) than the line that STARTED the current cert.
-    // Comparing against the cert's own start line (not a section-wide max)
-    // keeps a bold name + same-height plain issuer pairing (print/real
-    // PDFs) without merging flat unstyled lists.
+    // Cluster by vertical gap first (2026-08-16, import gate): narrow aside
+    // columns WRAP a cert's name across lines, which used to import one
+    // cert as two or three on double/portrait/deedy. Within a structured
+    // cluster, leading same-prominence lines JOIN into the name, the first
+    // less prominent line (lessProminentThan vs the cluster's first line)
+    // becomes the issuer, and any further line starts a new cert. A cluster
+    // with no prominence structure (flat unstyled list) stays one cert per
+    // line, so gap-separated plain lists never merge.
     const out: { id: string; name: string; issuer: string; date: string; url: string }[] = []
-    let startLine: Line | null = null
-    for (const l of src) {
-      const t = stripBullet(l.text)
-      const prev = out[out.length - 1]
-      if (prev && !prev.issuer && startLine && lessProminentThan(l, startLine)) {
-        prev.issuer = t
-      } else {
-        const { text: name, year } = pullTrailingYear(t)
-        out.push({ id: uid(), name, issuer: '', date: year, url: '' })
-        startLine = l
+    // Year pull happens per FRAGMENT before joining: a right-aligned date
+    // merges into the END of whichever wrapped line it sits beside, so the
+    // joined name would otherwise carry the year mid-string.
+    const pushCert = (parts: string[]) => {
+      let date = ''
+      const nameParts = parts.map((p) => {
+        const { text, year } = pullTrailingYear(p)
+        if (year && !date) date = year
+        return text
+      })
+      out.push({ id: uid(), name: nameParts.join(' ').trim(), issuer: '', date, url: '' })
+    }
+    for (const cl of clusterByGap(src, lineGap)) {
+      const first = cl[0]
+      const structured = cl.some((l) => lessProminentThan(l, first))
+      if (!structured) {
+        for (const l of cl) pushCert([stripBullet(l.text)])
+        continue
       }
+      let nameParts: string[] = []
+      for (const l of cl) {
+        const t = stripBullet(l.text)
+        if (!lessProminentThan(l, first)) {
+          nameParts.push(t)
+        } else if (nameParts.length) {
+          pushCert(nameParts)
+          nameParts = []
+          out[out.length - 1].issuer = t
+        } else if (out.length && !out[out.length - 1].issuer) {
+          out[out.length - 1].issuer = t
+        } else {
+          // a second secondary line with the issuer already taken — keep
+          // the pre-cluster behavior: it becomes its own cert
+          pushCert([t])
+        }
+      }
+      if (nameParts.length) pushCert(nameParts)
     }
     return out
   }
@@ -804,20 +856,7 @@ export function parseSimpleList(
   // summary. A cluster with NO prominence structure (flat unstyled list)
   // stays one entry per line.
   const src = lines.filter((l) => stripBullet(l.text))
-  const clusters: Line[][] = []
-  let cur: Line[] = []
-  for (let i = 0; i < src.length; i++) {
-    const l = src[i]
-    const prev = src[i - 1]
-    const sameStream = prev && l.page === prev.page && l.col === prev.col
-    const bigGap = sameStream && l.top - prev.top > lineGap * 1.8
-    if (cur.length && (bigGap || !sameStream)) {
-      clusters.push(cur)
-      cur = []
-    }
-    cur.push(l)
-  }
-  if (cur.length) clusters.push(cur)
+  const clusters = clusterByGap(src, lineGap)
   const entries: { title: string; sub: string; date: string; summary: string }[] = []
   for (const cl of clusters) {
     const [first, ...rest] = cl
@@ -829,11 +868,21 @@ export function parseSimpleList(
       }
       continue
     }
-    const { text: title, year } = pullTrailingYear(stripBullet(first.text))
-    const entry = { title, sub: '', date: year, summary: '' }
-    for (const l of rest) {
-      const t = stripBullet(l.text)
-      if (!entry.sub && lessProminentThan(l, first) && t.length <= 60) entry.sub = t
+    // Title = the LEADING run of same-prominence lines (narrow columns wrap
+    // titles), year pulled per fragment (a right-aligned date merges into
+    // the end of whichever wrapped line it sits beside).
+    let date = ''
+    const titleParts: string[] = []
+    let i = 0
+    for (; i < cl.length && !lessProminentThan(cl[i], first); i++) {
+      const { text, year } = pullTrailingYear(stripBullet(cl[i].text))
+      titleParts.push(text)
+      if (year && !date) date = year
+    }
+    const entry = { title: titleParts.join(' ').trim(), sub: '', date, summary: '' }
+    for (; i < cl.length; i++) {
+      const t = stripBullet(cl[i].text)
+      if (!entry.sub && lessProminentThan(cl[i], first) && t.length <= 60) entry.sub = t
       else entry.summary = entry.summary ? `${entry.summary} ${t}` : t
     }
     entries.push(entry)
