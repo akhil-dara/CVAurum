@@ -33,7 +33,28 @@ export interface PageBlock {
 export interface PaginationInput {
   blocks: PageBlock[]
   contentHeightPx: number
+  /** Budget (CSS px) for every page AFTER the first — spec 3: the full A4
+   *  page height minus the artboard's own top+bottom padding, since pages
+   *  2+ spend that top padding as a real yOffset reservation (paint.ts's
+   *  `assignOpsToPages`). */
   usablePageHeightPx: number
+  /**
+   * Budget (CSS px) for PAGE 1 ONLY, when it differs from
+   * `usablePageHeightPx`. Page 1's own leading top padding is already baked
+   * into the DOM at its natural position (paint.ts's per-page offset is
+   * always exactly 0 for page 1 — see its own doc comment) and is never
+   * "spent" again the way pages 2+ spend theirs as a yOffset, so page 1 can
+   * legally hold `usablePageHeightPx` PLUS that top padding before needing a
+   * break: the caller's own budget is `pageHeightPx - bottomPaddingPx`, no
+   * top-padding subtraction. Defaults to `usablePageHeightPx` when omitted —
+   * every existing single-budget caller (and every pre-existing test) is
+   * unaffected. Fix round (native-multipage-pdf plan, task 3): omitting this
+   * previously under-budgeted page 1 by the full top padding on every
+   * multi-page export, picking a premature first cut and stranding legal,
+   * same-tier candidates the corrected (larger) page-1 window would have
+   * reached instead — proven live against a real two-column dark template.
+   */
+  firstPageUsablePageHeightPx?: number
   searchWindowRatio?: number // default 0.18
 }
 
@@ -129,21 +150,35 @@ function chooseCut(candidates: Candidate[], pageTop: number, idealY: number, win
 }
 
 export function paginate(input: PaginationInput): Pagination {
-  const { blocks, contentHeightPx, usablePageHeightPx, searchWindowRatio = DEFAULT_SEARCH_WINDOW_RATIO } = input
+  const {
+    blocks,
+    contentHeightPx,
+    usablePageHeightPx,
+    firstPageUsablePageHeightPx = usablePageHeightPx,
+    searchWindowRatio = DEFAULT_SEARCH_WINDOW_RATIO,
+  } = input
 
-  if (contentHeightPx <= usablePageHeightPx) return { cutsPx: [], pageCount: 1 }
+  if (contentHeightPx <= firstPageUsablePageHeightPx) return { cutsPx: [], pageCount: 1 }
 
   const sorted = [...blocks].sort((a, b) => a.topPx - b.topPx)
   const candidates = buildCandidates(sorted).filter((c) => !fallsInsideInk(c.y, sorted))
 
   const cutsPx: number[] = []
   let pageTop = 0
-  while (contentHeightPx - pageTop > usablePageHeightPx) {
-    const idealY = pageTop + usablePageHeightPx
-    const windowLow = idealY - searchWindowRatio * usablePageHeightPx
+  let pageIndex = 0
+  // Page 1 (pageIndex 0) uses its own (larger, when given) budget; every
+  // page after it uses the uniform `usablePageHeightPx` — see
+  // `firstPageUsablePageHeightPx`'s own doc comment for why these are
+  // legitimately different numbers, not the same value applied twice.
+  while (true) {
+    const budget = pageIndex === 0 ? firstPageUsablePageHeightPx : usablePageHeightPx
+    if (contentHeightPx - pageTop <= budget) break
+    const idealY = pageTop + budget
+    const windowLow = idealY - searchWindowRatio * budget
     const cutY = chooseCut(candidates, pageTop, idealY, windowLow)
     cutsPx.push(cutY)
     pageTop = cutY
+    pageIndex++
   }
 
   return { cutsPx, pageCount: cutsPx.length + 1 }

@@ -76,14 +76,38 @@ export function verticalPaddingPx(cs: Pick<CSSStyleDeclaration, 'paddingTop' | '
 /**
  * `paginate()`'s own `usablePageHeightPx` input (native-multipage-pdf plan,
  * spec section 3): the full A4 page height minus the artboard's own top+
- * bottom padding, applied UNIFORMLY to every output page — including page 1,
- * even though page 1's own leading padding is already baked into its natural
- * layout (see paint.ts's `assignOpsToPages` doc comment for the full
- * page-geometry rationale: this is a deliberate, slightly conservative
- * choice, not an oversight).
+ * bottom padding — the budget for every page AFTER the first. Pages 2+
+ * genuinely spend that top padding as a real yOffset reservation
+ * (paint.ts's `assignOpsToPages`), so it must come out of their budget.
+ * Page 1 does NOT spend it the same way — see `computeFirstPageUsablePageHeightPx`
+ * below, which is the correct budget for page 1 specifically (fix round: this
+ * function used to be applied uniformly to page 1 too, which under-budgeted
+ * it by the full top padding on every multi-page export — proven live).
  */
 export function computeUsablePageHeightPx(pageHeightPx: number, padding: { topPx: number; bottomPx: number }): number {
   return pageHeightPx - padding.topPx - padding.bottomPx
+}
+
+/**
+ * The budget (CSS px) for PAGE 1 specifically — `paginate()`'s
+ * `firstPageUsablePageHeightPx` input. Page 1's own leading top padding is
+ * already baked into the DOM at its natural (offset-0) position — it is
+ * blank space ABOVE the first line of content, not a reservation paint.ts's
+ * `assignOpsToPages` has to carve out of page 1's budget the way it does for
+ * every later page's yOffset — so page 1 can legally hold
+ * `computeUsablePageHeightPx`'s worth of content PLUS that top padding
+ * before it needs a break: only the bottom padding is subtracted here.
+ *
+ * Fix round (native-multipage-pdf plan, task 3): before this existed, page 1
+ * was budgeted identically to pages 2+ (`computeUsablePageHeightPx`, minus
+ * BOTH paddings) — under-budgeting it by the full top padding on every
+ * multi-page export and picking a premature first cut, proven live against a
+ * real two-column dark template (`portrait`): the true page-1 budget had
+ * room for one more complete work entry, with a same-tier entry-gap
+ * candidate the old, too-small window never even considered.
+ */
+export function computeFirstPageUsablePageHeightPx(pageHeightPx: number, padding: { bottomPx: number }): number {
+  return pageHeightPx - padding.bottomPx
 }
 
 /**
@@ -206,6 +230,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
         blocks,
         contentHeightPx,
         usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
+        firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
       })
       cutsPx = result.cutsPx
       pageCount = result.pageCount

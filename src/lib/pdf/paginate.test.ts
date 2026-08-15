@@ -156,6 +156,61 @@ describe('paginate — (i) search window ratio is respected: a candidate just ou
   })
 })
 
+describe('paginate — fix round: page 1 gets its OWN (larger) budget via firstPageUsablePageHeightPx', () => {
+  // Task 3 fix round: page 1's own leading top padding is already baked into
+  // the DOM at offset 0 (paint.ts's assignOpsToPages never spends it again
+  // for page 1 the way it does as a real yOffset on pages 2+), so page 1's
+  // true budget is bigger than the uniform per-page budget by that top
+  // padding. Proven live against a real two-column dark template
+  // (`portrait`): the old, uniform-budget code picked a premature first cut,
+  // stranding a same-tier entry-gap candidate the corrected (larger) page-1
+  // window reaches instead.
+  it('an entry that fits within the LARGER page-1 budget, but not the uniform per-page budget, stays on page 1 — the cut lands AFTER it', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 90 },
+      { kind: 'entry-gap', topPx: 90, bottomPx: 100 }, // candidate y = 95 — the OLD (uniform-budget) premature cut point
+      { kind: 'line', topPx: 100, bottomPx: 135 }, // the extra entry that must stay on page 1
+      { kind: 'entry-gap', topPx: 135, bottomPx: 145 }, // candidate y = 140 — only reachable under the LARGER page-1 budget
+      { kind: 'line', topPx: 145, bottomPx: 190 }, // sized so ONE cut is enough either way (95 or 140 both leave <=100 remaining)
+    ]
+    const result = paginate({
+      blocks,
+      contentHeightPx: 190,
+      usablePageHeightPx: 100, // pages 2+ budget
+      firstPageUsablePageHeightPx: 150, // page 1's own (larger) budget
+    })
+    // The cut must land AFTER the extra entry (at its trailing gap, y=140),
+    // not before it (the old uniform-budget cut at y=95).
+    expect(result.cutsPx).toEqual([140])
+    expect(result.pageCount).toBe(2)
+  })
+
+  it('omitting firstPageUsablePageHeightPx keeps the old uniform-budget behavior exactly (backward compatible)', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 90 },
+      { kind: 'entry-gap', topPx: 90, bottomPx: 100 },
+      { kind: 'line', topPx: 100, bottomPx: 135 },
+      { kind: 'entry-gap', topPx: 135, bottomPx: 145 },
+      { kind: 'line', topPx: 145, bottomPx: 190 },
+    ]
+    const result = paginate({ blocks, contentHeightPx: 190, usablePageHeightPx: 100 })
+    // No firstPageUsablePageHeightPx given -> page 1 uses the SAME uniform
+    // budget as every other page (100), landing on the earlier gap (y=95),
+    // exactly like every pre-existing (single-budget) test in this file.
+    expect(result.cutsPx).toEqual([95])
+    expect(result.pageCount).toBe(2)
+  })
+
+  it('a document that fits within the larger page-1 budget but NOT the uniform one stays single-page', () => {
+    const blocks: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 120 }]
+    // 120 > uniform budget (100) but <= the first-page budget (150) -> must
+    // NOT force a page break that the true page-1 budget doesn't need.
+    expect(
+      paginate({ blocks, contentHeightPx: 120, usablePageHeightPx: 100, firstPageUsablePageHeightPx: 150 })
+    ).toEqual({ cutsPx: [], pageCount: 1 })
+  })
+})
+
 describe('paginate — fix round: downward fallback is tier-first, not nearest-of-any-tier', () => {
   it('a farther section gap past the ideal beats a nearer line gap past the ideal', () => {
     // Nothing qualifies inside the window [82, 100] at any tier (the closest
