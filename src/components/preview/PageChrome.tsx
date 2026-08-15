@@ -18,15 +18,37 @@
  * `[data-tour=canvas] .rm-root` itself; ResumePreview only renders this
  * overlay when NOT in that exact-preview mode (see its own comment), so the
  * two never interact.
+ *
+ * FIX ROUND 2 (task 5): separators and badges are now two INDEPENDENT
+ * arrays, not one derived from the other. `pageChromeMap.ts`'s structural
+ * mapping can fail for an individual cut (most commonly a two-column doc
+ * where the true break was driven by the aside column) and, per that
+ * finding's ruling, a separator ResumePreview.tsx could not confidently
+ * place is SUPPRESSED entirely rather than drawn at a guessed position that
+ * risks landing inside text — but the "Page k / N" badges stay fully
+ * populated (one per page, always `pageCount` of them) since page count
+ * itself is computed independently and is never in question; a badge's own
+ * position is far more forgiving of an approximate y than a line drawn
+ * through the page.
  */
 
-/** One horizontal cut plus a running page counter, in continuous CSS px
- *  (document space, same coordinate system `.rm-root`'s own children lay out
- *  in) — everything needed to draw the separators and badges. */
-export function PageChromeOverlay({ cutsPx, pageCount }: { cutsPx: number[]; pageCount: number }) {
-  if (pageCount <= 1 || cutsPx.length === 0) return null
-
-  const pageTops = [0, ...cutsPx]
+export function PageChromeOverlay({
+  separatorYs,
+  badgeTops,
+  pageCount,
+}: {
+  /** Edit-space y for every separator ResumePreview.tsx could confidently
+   *  place — may have FEWER entries than `pageCount - 1` when some cuts
+   *  were suppressed (see this file's own top comment). */
+  separatorYs: number[]
+  /** Edit-space y for the top of every page region, length always
+   *  `pageCount` — index 0 is always `0`; later entries fall back to a
+   *  coarser (but always present) estimate when the precise mapping for
+   *  that boundary failed. */
+  badgeTops: number[]
+  pageCount: number
+}) {
+  if (pageCount <= 1) return null
 
   return (
     <>
@@ -35,7 +57,7 @@ export function PageChromeOverlay({ cutsPx, pageCount }: { cutsPx: number[]; pag
           down into the gap, and the gap itself shows the canvas's own
           background color (the same dotted gray the sheet floats on),
           reading as genuinely separate pages rather than a ruled line. */}
-      {cutsPx.map((cutY, i) => (
+      {separatorYs.map((cutY, i) => (
         <div
           key={`sep-${i}`}
           className="pointer-events-none absolute inset-x-0"
@@ -50,8 +72,9 @@ export function PageChromeOverlay({ cutsPx, pageCount }: { cutsPx: number[]; pag
         </div>
       ))}
 
-      {/* "Page k / N" chip, top-right of every page region (incl. page 1). */}
-      {pageTops.map((top, i) => (
+      {/* "Page k / N" chip, top-right of every page region (incl. page 1) --
+          always pageCount of these regardless of how many separators drew. */}
+      {badgeTops.map((top, i) => (
         <div
           key={`badge-${i}`}
           className="pointer-events-none absolute right-2.5 rounded-full border border-border bg-surface/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-soft backdrop-blur-sm"

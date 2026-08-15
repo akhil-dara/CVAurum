@@ -22,8 +22,21 @@
  * onto the editable canvas's own geometry by STRUCTURE (section key + entry
  * index — see pageChromeMap.ts), not by reusing the print-space y directly,
  * so the separators still land at the right visual spot in the canvas the
- * user is actually looking at. Auto-fit scales the page to the available
- * width.
+ * user is actually looking at.
+ *
+ * FIX ROUND 2 (task 5): a proportional-scale fallback for two-column docs
+ * (`editRootHeight / printRootHeight` applied to the raw print-space cut)
+ * turned out to compound error down the page badly enough that separators
+ * landed inside bullet text and, on one case, two full entries past the
+ * real page boundary — live-reproduced by review. Two-column docs now get
+ * the SAME structural mapping single-column docs do, just attributed
+ * against the MAIN column's own (pre-`combineColumns`) block list instead
+ * of the merged one (see pageChromeMap.ts's top comment). The proportional
+ * scale survives only as the BADGE-position fallback for a boundary whose
+ * separator had to be suppressed — a slightly-off label is a cosmetic
+ * nit; a line drawn through text is not, so separators are suppressed
+ * outright rather than estimated (see PageChrome.tsx's own comment).
+ * Auto-fit scales the page to the available width.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -37,7 +50,7 @@ import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
-import { extractPageBlocks } from '@/lib/pdf/walk'
+import { extractPageBlocks, extractMainColumnBlocks } from '@/lib/pdf/walk'
 import { paginate, PaginationImpossibleError } from '@/lib/pdf/paginate'
 import { computeUsablePageHeightPx, computeFirstPageUsablePageHeightPx, findMainColumnPaddingPx } from '@/lib/pdf/render'
 import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditSpace } from './pageChromeMap'
@@ -134,7 +147,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // Off-screen print-mode render (NO edit chrome, empty sections excluded) — its
   // height is the TRUE printable height the PDF paginates, so fit + page count
   // match the export instead of the chrome-inflated editable canvas.
-  const measureRef = useRef<HTMLDivElement>(null)
+  // `HTMLDivElement | null` (not just `HTMLDivElement`) so this stays a
+  // MutableRefObject -- the callback ref below (fix round 2) assigns
+  // `.current` itself on every attach, which a plain `RefObject`'s
+  // read-only `.current` would reject at the type level.
+  const measureRef = useRef<HTMLDivElement | null>(null)
   const [containerW, setContainerW] = useState(0)
   const [contentH, setContentH] = useState(0)
   const [printH, setPrintH] = useState(0)
@@ -191,19 +208,6 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
-
-  // Keep the hidden print-measure node fully non-interactive (never
-  // focusable, never in the accessibility tree) now that it is no longer
-  // `visibility: hidden` (fix round, task 5 — see the portal's own JSX
-  // comment for why that had to change). `inert` isn't yet in this
-  // project's React 18 / @types/react typings, hence setting it
-  // imperatively rather than as a JSX prop; the DOM property itself is
-  // real and widely supported. The node is a stable ref across re-renders
-  // (same portal position every render), so this only needs to run once.
-  useEffect(() => {
-    const el = measureRef.current as (HTMLDivElement & { inert?: boolean }) | null
-    if (el) el.inert = true
   }, [])
 
   // Re-measure once fonts for the chosen families have actually loaded.
@@ -271,22 +275,26 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => cancelAnimationFrame(raf)
   }, [fitScale])
 
-  // Paginated WYSIWYG preview (native-multipage-pdf plan, task 5; fix round:
-  // print-geometry pagination with block mapping). Pagination — cuts AND
-  // page count — always runs on the hidden print-mode `measureRef` portal
-  // below (the SAME DOM shape `renderResumePdf` paginates: `mode="print"`,
-  // no edit chrome, no empty-section placeholders), using the export's own
-  // budget functions, so `pagePageCount` here is provably the export's page
-  // count, not an estimate. The resulting print-space cuts are then mapped
-  // onto the EDITABLE canvas's own geometry by structure (pageChromeMap.ts:
-  // section `data-section` key + entry index, matched between the two
-  // trees) so the separators still land at the right visual spot in the
-  // canvas the user is actually editing — precise for single-column docs;
-  // two-column docs (`.rm-col-aside` present) fall back to a proportional
-  // scale (`editRootHeight / printRootHeight`) for the few cases structural
-  // mapping can't resolve, since `combineColumns`' merged gap sequence
-  // doesn't name a single section the simple way a single-column sequence
-  // does (see pageChromeMap.ts's own top comment).
+  // Paginated WYSIWYG preview (native-multipage-pdf plan, task 5; fix rounds
+  // 1-2). Pagination — cuts AND page count — always runs on the hidden
+  // print-mode `measureRef` portal below (the SAME DOM shape
+  // `renderResumePdf` paginates: `mode="print"`, no edit chrome, no
+  // empty-section placeholders), using the export's own budget functions,
+  // so `pagePageCount` here is provably the export's page count, not an
+  // estimate. The resulting print-space cuts are then mapped onto the
+  // EDITABLE canvas's own geometry by structure (pageChromeMap.ts: section
+  // `data-section` key + entry index, matched between the two trees) so
+  // the separators still land at the right visual spot in the canvas the
+  // user is actually editing — single-column docs map against the full
+  // (combined) block list; two-column docs map each cut against the MAIN
+  // column's own pre-merge block list instead (`extractMainColumnBlocks`,
+  // walk.ts) since a combined main+aside gap doesn't name one section the
+  // simple way a single column's gap does (see pageChromeMap.ts's top
+  // comment for why, and PageChrome.tsx's for why a cut that still can't
+  // be mapped gets its SEPARATOR suppressed rather than estimated — a
+  // missing line beats a wrong line — while its badge keeps a coarser
+  // proportional-scale fallback position, since page count itself is never
+  // in question).
   //
   // Only ever active when auto-fit is off (auto-fit always targets one
   // page, spec 3) and not in the "Exact PDF preview" toggle (that canvas IS
@@ -296,12 +304,17 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // measure portal already re-renders on every content edit (it serves
   // auto-fit's own measurement), so `printH`/`contentH` settling is the same
   // signal this effect waits on too.
-  const [pageCuts, setPageCuts] = useState<number[]>([])
+  const [pageSeparators, setPageSeparators] = useState<number[]>([])
+  const [pageBadgeTops, setPageBadgeTops] = useState<number[]>([])
   const [pagePageCount, setPagePageCount] = useState(1)
   useEffect(() => {
-    if (autoFit || previewExact) {
-      setPageCuts((prev) => (prev.length ? [] : prev))
+    const clearOverlay = () => {
+      setPageSeparators((prev) => (prev.length ? [] : prev))
+      setPageBadgeTops((prev) => (prev.length ? [] : prev))
       setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+    }
+    if (autoFit || previewExact) {
+      clearOverlay()
       return
     }
     let cancelled = false
@@ -315,49 +328,56 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       const firstPageUsablePageHeightPx = computeFirstPageUsablePageHeightPx(pageH, padding)
       const contentHeightPx = printRoot.getBoundingClientRect().height
       if (contentHeightPx <= firstPageUsablePageHeightPx) {
-        setPageCuts((prev) => (prev.length ? [] : prev))
-        setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+        clearOverlay()
         return
       }
       try {
-        const blocks = extractPageBlocks(printRoot)
-        const result = paginate({ blocks, contentHeightPx, usablePageHeightPx, firstPageUsablePageHeightPx })
+        const combinedBlocks = extractPageBlocks(printRoot)
+        const result = paginate({ blocks: combinedBlocks, contentHeightPx, usablePageHeightPx, firstPageUsablePageHeightPx })
         if (result.cutsPx.length === 0) {
-          setPageCuts([])
+          setPageSeparators([])
+          setPageBadgeTops([0])
           setPagePageCount(result.pageCount)
           return
         }
 
-        const twoColumn = !!printRoot.querySelector('.rm-col-aside')
+        // Two-column: attribute each cut against the MAIN column's own
+        // pre-merge block list (never the combined one — see this effect's
+        // own top comment). Single-column: the combined list IS the (only)
+        // column's list already.
+        const mainOnlyBlocks = extractMainColumnBlocks(printRoot)
+        const mappingBlocks = mainOnlyBlocks ?? combinedBlocks
+        const printAnchorRoot = mainOnlyBlocks ? (printRoot.querySelector<HTMLElement>('.rm-col-main') ?? printRoot) : printRoot
+        const editAnchorRoot = mainOnlyBlocks ? (editRoot.querySelector<HTMLElement>('.rm-col-main') ?? editRoot) : editRoot
+        const printAnchors = collectSectionAnchors(printAnchorRoot)
+        const editAnchorsByKey = collectSectionAnchorsByKey(editAnchorRoot)
+
         const editRootHeightPx = editRoot.getBoundingClientRect().height
-        const scale = contentHeightPx > 0 ? editRootHeightPx / contentHeightPx : 1
-        let mappedCuts: number[]
-        if (twoColumn) {
-          // See this effect's own top comment / pageChromeMap.ts: combined
-          // main+aside gaps don't name one section the simple way a single
-          // column's gaps do, so map by proportional scale instead.
-          mappedCuts = result.cutsPx.map((y) => y * scale)
-        } else {
-          const printAnchors = collectSectionAnchors(printRoot)
-          const editAnchorsByKey = collectSectionAnchorsByKey(editRoot)
-          mappedCuts = result.cutsPx.map((y) => {
-            const mapped = mapCutToEditSpace(blocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey)
-            // Structural mapping failed for this one cut (should not happen
-            // for a consistent same-render snapshot -- defensive only): the
-            // proportional scale is a reasonable single-cut fallback rather
-            // than dropping the whole overlay over one bad cut.
-            return mapped ?? y * scale
-          })
-        }
-        setPageCuts(mappedCuts)
+        const badgeScale = contentHeightPx > 0 ? editRootHeightPx / contentHeightPx : 1
+
+        const mapped = result.cutsPx.map((y) => mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey))
+        // SEPARATORS: only the cuts a structural mapping actually resolved —
+        // per the fix-round-2 ruling, a cut we can't confidently place is
+        // SUPPRESSED, never drawn at a guessed position (a missing line
+        // beats a wrong line; the earlier proportional-scale fallback here
+        // was proven to land separators inside text/entries away from the
+        // true boundary for two-column docs).
+        const separators = mapped.filter((y): y is number => y !== null)
+        // BADGES: always `pageCount` of them — page count is independent of
+        // per-cut mapping success, and a badge's own position is far more
+        // forgiving of an approximate y than a drawn line is, so a failed
+        // mapping falls back to the proportional scale here ONLY.
+        const badgeTops = [0, ...mapped.map((y, i) => y ?? result.cutsPx[i] * badgeScale)]
+
+        setPageSeparators(separators)
+        setPageBadgeTops(badgeTops)
         setPagePageCount(result.pageCount)
       } catch (e) {
         if (e instanceof PaginationImpossibleError) {
           // Same "can't legally paginate" signal export.ts falls back to
           // print for — the preview just shows no page chrome rather than
           // crashing the canvas.
-          setPageCuts((prev) => (prev.length ? [] : prev))
-          setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+          clearOverlay()
         } else {
           throw e
         }
@@ -414,15 +434,29 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         INHERITED `visibility: hidden` as "not real content", by design (the
         same guard that correctly excludes genuinely hidden/no-print
         elements) — so with it, this node always measured zero page-break
-        blocks. `inert` (set imperatively below — not yet in this project's
-        React 18 / @types/react typings) gives the same "never focusable,
-        never in the accessibility tree" guarantee `visibility: hidden` did,
-        without touching the `visibility` computed style the walker reads;
-        `aria-hidden` + `pointer-events: none` (both already here) are
+        blocks. `inert` (set via the CALLBACK ref below — not yet in this
+        project's React 18 / @types/react typings, hence imperative) gives
+        the same "never focusable, never in the accessibility tree"
+        guarantee `visibility: hidden` did, without touching the
+        `visibility` computed style the walker reads.
+        FIX ROUND 2 (task 5): a plain `ref={measureRef}` + a mount-once
+        `useEffect` only ever set `.inert` on the FIRST DOM node this portal
+        ever produced — toggling ATS view unmounts this whole subtree
+        (`if (atsView) return <AtsSheet .../>` above, short-circuiting
+        before this JSX), and remounting it afterward creates a BRAND NEW
+        div that the once-only effect never revisits, leaving it
+        interactive again (reproduced live: a contact `<a href>` inside
+        this aria-hidden subtree became tab-focusable after one ATS-view
+        round trip). A callback ref re-runs on every attach, including
+        remounts, so `inert` is reapplied every time.
+        `aria-hidden` + `pointer-events: none` (both already here) stay as
         defense-in-depth for browsers without `inert` support. */}
     {createPortal(
       <div
-        ref={measureRef}
+        ref={(el) => {
+          if (el) (el as HTMLDivElement & { inert?: boolean }).inert = true
+          measureRef.current = el
+        }}
         aria-hidden
         data-role="pdf-measure"
         style={{ position: 'fixed', top: 0, left: -100000, width: pageW, pointerEvents: 'none', zIndex: -1 }}
@@ -483,7 +517,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 badges, siblings of `.rm-root` (never inside it — see PageChrome.tsx's
                 own comment). Not rendered in "Exact PDF preview" mode (that canvas
                 IS the print DOM the gate screenshots for exact-preview parity). */}
-            {!previewExact && <PageChromeOverlay cutsPx={pageCuts} pageCount={pagePageCount} />}
+            {!previewExact && <PageChromeOverlay separatorYs={pageSeparators} badgeTops={pageBadgeTops} pageCount={pagePageCount} />}
           </div>
         </div>
       </div>

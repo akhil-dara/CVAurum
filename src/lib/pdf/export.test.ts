@@ -128,7 +128,7 @@ describe('exportResumePdf', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
   })
 
-  it('multi-page renderable doc resolves via the native path -> download with correct filename, no print fallback', async () => {
+  it('an overflowing auto-fit-off doc resolves via the native path (page count itself is mocked, not verified here) -> download with correct filename, no print fallback', async () => {
     // renderResumePdf itself does the pagination (walk.ts/paginate.ts/paint.ts,
     // native-multipage-pdf plan tasks 1-3) and resolves with the FULL
     // multi-page PDF's bytes exactly like a single-page doc would — from

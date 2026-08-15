@@ -1073,6 +1073,37 @@ export function extractPageBlocks(root: HTMLElement): PageBlock[] {
   return combined
 }
 
+/**
+ * The MAIN column's own block list, BEFORE `combineColumns` merges it with
+ * the aside — native-multipage-pdf plan, task 5 fix round 2: the editor
+ * preview's two-column separator mapping needs to attribute a print-space
+ * cut back to ONE real section/entry so it can find that element's edit-
+ * canvas counterpart (the same section-key + entry-index scheme
+ * `pageChromeMap.ts` uses for single-column docs), which the COMBINED list
+ * alone cannot support — a combined gap can straddle two DIFFERENT columns'
+ * content, so counting its section-gap/entry-gap blocks doesn't name a
+ * single section. The main column is the correct structural anchor: every
+ * cut is a full-width line, and the main column is the one column every
+ * template always renders (the aside is optional — see Artboard.tsx).
+ *
+ * Uses the SAME `rootTop` reference `extractPageBlocks` does (relative to
+ * `root`, not to the main column's own top), so its `topPx`/`bottomPx`
+ * values live in the SAME coordinate space `paginate()`'s cuts do —
+ * `cutY` from the combined result can be compared directly against this
+ * list's blocks with no translation.
+ *
+ * Returns `null` for single-column docs (no `.rm-col-aside`) — callers
+ * should use `extractPageBlocks` directly there, since its output already
+ * IS the (single) column's own list.
+ */
+export function extractMainColumnBlocks(root: HTMLElement): PageBlock[] | null {
+  const rootTop = root.getBoundingClientRect().top
+  const aside = findByClass(root, ['rm-col-aside'])[0]
+  if (!aside) return null
+  const main = findByClass(root, ['rm-col-main'])[0] ?? root
+  return extractBlocksFromScope(main, rootTop)
+}
+
 /** One column's own blocks: every `.rm-section` found within `scope`, each
  *  section's own blocks (`extractSectionBlocks`) joined by a `'section-gap'`
  *  block measuring the real empty span between consecutive sections — the

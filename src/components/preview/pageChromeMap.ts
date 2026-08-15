@@ -1,7 +1,7 @@
 /**
  * Structural (not pixel) mapping from print-mode paginate() cuts onto the
  * corresponding y in the editable canvas — native-multipage-pdf plan, task 5
- * fix round. See ResumePreview.tsx's own top comment for WHY this exists:
+ * fix round(s). See ResumePreview.tsx's own top comment for WHY this exists:
  * the editable canvas and the print-mode DOM are NOT the same height for
  * identical content (the editable canvas renders real, on-screen inline-
  * editing affordances — delete buttons, "+ Add" rows, per-chip edit controls
@@ -11,19 +11,33 @@
  *
  * The fix: identify WHICH element (by stable structural identity — section
  * `data-section` key + entry index within that section, never raw position
- * or pixel y) a cut falls between, using ONLY the print-mode blocks array
+ * or pixel y) a cut falls between, using ONLY a print-mode blocks array
  * (the SAME data that decided the cut), then look up the EDIT-mode DOM's
  * copy of those same two elements and take the midpoint of THEIR (edit-
  * space) gap.
  *
- * SCOPE: precise for single-column documents (no `.rm-col-aside`). Two-
- * column layouts fall back to a coarser proportional scale in
- * ResumePreview.tsx (see its own comment) — `extractPageBlocks` interleaves
- * main/aside columns via `combineColumns` (paginate.ts) into one merged gap
- * sequence, and a combined gap does not correspond to a single section's own
- * boundary the way a single-column gap always does, so counting section-gap/
- * entry-gap blocks the way `locateStructural` below does would not reliably
- * name one real section.
+ * SINGLE-COLUMN callers pass `extractPageBlocks(printRoot)`'s own output
+ * (the combined — and, for single-column docs, ONLY — list) with anchors
+ * collected from the whole root.
+ *
+ * TWO-COLUMN callers (fix round 2 — native-multipage-pdf plan, task 5):
+ * `extractPageBlocks`'s COMBINED list interleaves main/aside columns via
+ * `combineColumns` (paginate.ts) into one merged gap sequence, where a
+ * combined gap can straddle two DIFFERENT columns' content — counting its
+ * section-gap/entry-gap blocks the way `locateStructural` below does would
+ * not reliably name one real section. Pass `extractMainColumnBlocks
+ * (printRoot)` (walk.ts) instead — the MAIN column's own, pre-merge block
+ * list, in the SAME coordinate space the combined cuts are (both measured
+ * from `printRoot`'s own top) — with anchors collected from just the main
+ * column element on both sides. The aside is deliberately never consulted:
+ * separators are full-width lines, and main is the one column every
+ * template always renders. When the main column has already ended before a
+ * cut (the cut was really driven by a longer aside), or a cut otherwise
+ * can't be attributed to one main-column gap, `mapCutToEditSpace` returns
+ * `null` — callers suppress that ONE separator rather than draw an
+ * estimated line that risks landing inside text (a missing line beats a
+ * wrong line), while the page-count badges (computed independently, from
+ * the combined result) are unaffected.
  */
 import type { PageBlock } from '@/lib/pdf/paginate'
 
@@ -120,6 +134,23 @@ function rootRelativeRect(root: HTMLElement, el: Element): { topPx: number; bott
   return { topPx: r.top - rootTop, bottomPx: r.bottom - rootTop }
 }
 
+/** Guards the assumption `locateStructural` relies on — "there is always an
+ *  entry-gap between a section's title and its first entry" — which only
+ *  holds when the section's title block genuinely exists and renders at
+ *  real height (`extractSectionBlocks` in walk.ts only pushes that
+ *  leading entry-gap when its own title lookup found one). `Section()` in
+ *  Artboard.tsx always renders a `.rm-section-title`, so this should not
+ *  fire in practice, but this reads LIVE, user-typed-content DOM — never
+ *  assume. Fix round 2 (native-multipage-pdf plan, task 5, minor finding):
+ *  a missing/zero-height title means `locateStructural`'s entry-index count
+ *  for that section cannot be trusted, so callers treat it as a lookup
+ *  failure (suppress the separator) rather than trust a possibly off-by-one
+ *  position. */
+function hasHealthyTitle(section: Element): boolean {
+  const title = section.querySelector('.rm-section-title')
+  return !!title && (title as HTMLElement).getBoundingClientRect().height > 0
+}
+
 /** The DOM element representing `loc` within `anchors` (same tree the
  *  `blocks` array `loc` was computed from) — the section itself when
  *  `entryIndex < 0` (still within the title), else that entry. */
@@ -146,11 +177,17 @@ function locationElementAcross(
 }
 
 /**
- * Maps ONE print-space cut to an edit-space y. Returns `null` when the
- * structural correspondence can't be established confidently (should not
- * happen for a consistent single-render snapshot of the same doc, but this
- * is live, user-typed content — callers fall back to a coarser estimate
- * rather than trusting a wrong position).
+ * Maps ONE print-space cut to an edit-space y. `printBlocks`/`printAnchors`
+ * are whatever ONE column's own block list + anchors the caller is
+ * attributing this cut against (the combined list for single-column docs;
+ * `extractMainColumnBlocks`'s main-only list for two-column docs — see this
+ * module's own top comment). Returns `null` when the structural
+ * correspondence can't be established confidently — the cut doesn't fall
+ * within this block list's own span at all (e.g. a two-column cut driven
+ * entirely by a longer aside), or the healthy-title guard above trips.
+ * Per the fix-round-2 ruling, callers SUPPRESS the separator on `null`
+ * rather than draw an estimated line that risks landing inside text — a
+ * missing line beats a wrong line.
  */
 export function mapCutToEditSpace(
   printBlocks: PageBlock[],
@@ -164,6 +201,12 @@ export function mapCutToEditSpace(
   if (!straddle) return null
   const before = locateStructural(printBlocks, straddle.beforeIdx)
   const after = locateStructural(printBlocks, straddle.afterIdx)
+
+  const beforeSection = printAnchors[before.sectionIndex]?.section
+  const afterSection = printAnchors[after.sectionIndex]?.section
+  if (!beforeSection || !afterSection || !hasHealthyTitle(beforeSection) || !hasHealthyTitle(afterSection)) {
+    return null
+  }
 
   // Same entry on both sides: a rare line-gap cut mid-entry (the oversized-
   // entry / tight-window fallback, spec 1 rule 3). Interpolate
