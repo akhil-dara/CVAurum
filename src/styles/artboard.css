@@ -545,7 +545,10 @@
    PAINT over the track in this rendering path — position:absolute paints
    correctly, verified the same way.) */
 .rm-level { display: flex; align-items: center; gap: 8px; }
-.rm-level-track { flex: 1; height: 4px; border-radius: 9999px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; position: relative; }
+/* Capped, not flex:1 — a bar meter is a compact scale marker beside the label,
+   same footprint class as the dot/star meters below, not a divider that
+   stretches to fill whatever room the row has (was rendering full-row-wide). */
+.rm-level-track { flex: 0 1 9em; min-width: 4em; height: 4px; border-radius: 9999px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; position: relative; }
 .rm-level-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--rm-primary); border-radius: inherit; }
 .rm-dots { display: inline-flex; gap: 3px; }
 .rm-dot { width: 7px; height: 7px; border-radius: 9999px; background: color-mix(in srgb, currentColor 22%, transparent); }
