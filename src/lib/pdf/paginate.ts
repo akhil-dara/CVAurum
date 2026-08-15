@@ -213,12 +213,16 @@ const RANK_TIER: Tier[] = ['section-gap', 'entry-gap', 'line']
  * Conservative combine of the distinct gap tiers several columns each
  * independently report for the SAME y-range (task-2b brief, worked
  * example): columns that all AGREE use that tier outright. Columns that
- * DISAGREE are trusted only ONE tier below the strongest one present,
- * capped at (never worse than) the weakest tier actually present — "a
+ * DISAGREE are trusted only ONE tier below the strongest one present — "a
  * section gap in main that overlaps mere line-gap territory in the aside is
  * an entry-tier candidate at best": section(0) vs line(2) disagree, so the
  * result is one below section, i.e. entry(1), not the full downgrade to
- * line(2). An empty list (no in-range column has an opinion at this y — see
+ * line(2). (Fix round: this used to also cap the result at the weakest tier
+ * present via `Math.min(best + 1, worst)` — with exactly 3 integer ranks,
+ * `worst > best` in the disagreement branch by construction, so `worst >=
+ * best + 1` always holds and the cap could never actually fire; removed as
+ * dead code rather than left advertising a safeguard that cannot trigger.)
+ * An empty list (no in-range column has an opinion at this y — see
  * `combineColumns`'s "out of range" handling) means nothing constrains this
  * range at all: the freest tier, `'section-gap'`.
  */
@@ -227,7 +231,7 @@ function combineTiers(tiers: Tier[]): Tier {
   const ranks = tiers.map((t) => TIER_RANK[t])
   const best = Math.min(...ranks)
   const worst = Math.max(...ranks)
-  return best === worst ? RANK_TIER[best] : RANK_TIER[Math.min(best + 1, worst)]
+  return best === worst ? RANK_TIER[best] : RANK_TIER[best + 1]
 }
 
 /**
@@ -258,17 +262,46 @@ function combineTiers(tiers: Tier[]): Tier {
  *    outcome (both ink, or both gap at the identical tier) collapse into
  *    one output `PageBlock`, same as any other tiled `PageBlock[]`.
  *
- * `keepWithNext` propagates conservatively: a combined ink block carries
- * `keepWithNext: true` if ANY contributing column's source block, anywhere
- * within that merged ink run, was itself a heading requiring its next block
- * to stay with it. This is deliberately not narrowed to "only the
- * bottom-most contributor" — a heading from EITHER column is always
- * protected by rejecting the combined gap immediately after it, at the cost
- * of occasionally being more cautious than strictly necessary (same
- * conservative bias as the tier combine above).
+ * `keepWithNext` propagates using LAST-CONTRIBUTING-SPAN-PER-COLUMN
+ * semantics (fix round — matches `buildCandidates`'s own single-column
+ * rule exactly, generalized across columns): a combined ink run's
+ * `keepWithNext` is decided ONLY by whichever column-local span is
+ * immediately adjacent to the run's own trailing edge (the boundary
+ * touching the next gap) in EACH column still active there — never by
+ * ORing every block the run ever absorbed on its way there. A heading
+ * earlier in the SAME merged run, whose own column has since moved on to
+ * ordinary content before the run ends, no longer vetoes the gap that
+ * follows — exactly as a single-column heading's `keepWithNext` only ever
+ * governs the ONE gap immediately after it, never a later, unrelated one.
+ * Concretely: the elementary-interval scan below computes, at every
+ * micro-interval, the OR of `keepWithNext` across columns ink there; the
+ * merge step OVERWRITES (not ORs) a run's `keepWithNext` with each new
+ * micro-interval's value as the run extends, so only the FINAL
+ * (trailing-edge) micro-interval's answer survives.
+ *
+ * A combined GAP interval whose tier is `'line'` is never materialized as
+ * its own `PageBlock` (fix round — CRITICAL): `PageBlock.kind` has no
+ * distinct value for "explicit line-tier gap" — `'line'` as a `kind`
+ * ALWAYS means ink to `buildCandidates` above, so emitting `{kind:'line',
+ * ...}` for a gap would make `paginate` treat real, cuttable whitespace as
+ * solid ink a cut must never cross (the exact opposite of correct). Instead
+ * this mirrors the single-column convention exactly: the elementary
+ * interval is simply skipped, leaving the ink run before it and the ink run
+ * after it as two SEPARATE, directly-adjacent output blocks with a real
+ * numeric gap between them — precisely the shape `buildCandidates` already
+ * knows how to read as an implicit lowest-tier candidate. (The merge
+ * accumulator tracks `ink: boolean` explicitly rather than ever comparing
+ * `kind`/`tier` strings against each other — the previous version's `!e.ink
+ * && last.kind === e.tier` check collided exactly here, since an ink run's
+ * `kind` is the string `'line'` and a line-tier GAP's `tier` is also the
+ * string `'line'`, so a line-tier gap immediately after a `'line'` ink run
+ * satisfied that check and silently got absorbed into it — proven live by a
+ * mutual `[50,150]` line-tier clearing between two all-`'line'` columns
+ * collapsing to one `[0,200]` ink block and throwing
+ * `PaginationImpossibleError` where a legal cut existed.)
  *
  * The `'line'` vs `'atomic'` distinction is NOT preserved on the merged
- * output — `paginate`'s own candidate builder treats them identically
+ * INK output — `paginate`'s own candidate builder treats them identically
  * (both are just "ink" a cut may never pass through), so every merged ink
  * run is emitted as `'line'` regardless of which column(s) contributed
  * atomic ink. Single-column input round-trips losslessly EXCEPT for this
@@ -324,21 +357,47 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
     elementary.push({ topPx: a, bottomPx: b, ink, tier: ink ? undefined : combineTiers(gapTiers), keepWithNext })
   }
 
-  const blocks: PageBlock[] = []
+  // Runs track `ink` as an explicit boolean, never inferred from a `kind`/
+  // `tier` string comparison (fix round CRITICAL fix — see the doc comment
+  // above) — `PageBlock`s are only synthesized from a run at the very end,
+  // once each run's full extent and final (last-contributor) keepWithNext
+  // value are known.
+  interface Run {
+    topPx: number
+    bottomPx: number
+    ink: boolean
+    tier?: Tier
+    keepWithNext: boolean
+  }
+  const runs: Run[] = []
   for (const e of elementary) {
-    const last = blocks[blocks.length - 1]
-    const sameRun =
-      last && last.bottomPx === e.topPx && ((e.ink && last.kind === 'line') || (!e.ink && last.kind === e.tier))
+    const last = runs[runs.length - 1]
+    const sameRun = last && last.bottomPx === e.topPx && last.ink === e.ink && (e.ink || last.tier === e.tier)
     if (sameRun) {
       last!.bottomPx = e.bottomPx
-      if (e.ink && e.keepWithNext) last!.keepWithNext = true
+      // Last-contributing-span-per-column (fix round HIGH fix): OVERWRITE,
+      // never OR — only the micro-interval immediately touching the run's
+      // trailing edge decides the run's final keepWithNext.
+      if (e.ink) last!.keepWithNext = e.keepWithNext
       continue
     }
-    blocks.push(
-      e.ink
-        ? { kind: 'line', topPx: e.topPx, bottomPx: e.bottomPx, ...(e.keepWithNext ? { keepWithNext: true } : {}) }
-        : { kind: e.tier!, topPx: e.topPx, bottomPx: e.bottomPx }
-    )
+    runs.push({ ...e })
+  }
+
+  const blocks: PageBlock[] = []
+  for (const r of runs) {
+    if (r.ink) {
+      blocks.push({
+        kind: 'line',
+        topPx: r.topPx,
+        bottomPx: r.bottomPx,
+        ...(r.keepWithNext ? { keepWithNext: true } : {}),
+      })
+    } else if (r.tier !== 'line') {
+      blocks.push({ kind: r.tier!, topPx: r.topPx, bottomPx: r.bottomPx })
+    }
+    // r.tier === 'line' (implicit gap): intentionally emits nothing — see
+    // the doc comment's CRITICAL fix explanation.
   }
   return blocks
 }

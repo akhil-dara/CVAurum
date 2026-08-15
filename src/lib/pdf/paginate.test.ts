@@ -305,44 +305,102 @@ describe('combineColumns — tier conservatism when columns disagree (task-2b br
   })
 })
 
-describe('combineColumns — keepWithNext propagation', () => {
-  it('a heading in one column protects the combined gap right after the merged ink block it becomes part of', () => {
+describe('combineColumns — keepWithNext propagation is LAST-CONTRIBUTING-SPAN-PER-COLUMN (fix round, adjudication A)', () => {
+  it('propagates when the heading itself is still the trailing-edge contributor right before the gap', () => {
     // main: a title (keepWithNext) then its own entry-gap down to a body
-    // line. aside, over that same range, is plain (non-heading) ink that
-    // extends a little past where main's title itself ends — so the merged
-    // ink block [0,45] is sourced from BOTH main's title (has
-    // keepWithNext) and aside's plain content (doesn't), and the combined
-    // gap that follows must still be rejected as a widow candidate, exactly
-    // as if a single-column widow rule were protecting main's own title.
+    // line. aside is plain, non-heading ink, but ENDS before main's title
+    // does (at y=10, well short of the title's own y=20 end) — so at the
+    // micro-interval immediately before the gap ([10,20)), aside is already
+    // out of range and main's own title is the ONLY (and therefore also the
+    // LAST) active contributor. The combined gap right after must still be
+    // rejected as a widow candidate, exactly as a single-column widow rule
+    // would protect main's own title.
     const main: PageBlock[] = [
       { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
       { kind: 'entry-gap', topPx: 20, bottomPx: 50 },
       { kind: 'line', topPx: 50, bottomPx: 100 },
     ]
-    const aside: PageBlock[] = [{ kind: 'line', topPx: 10, bottomPx: 45 }]
+    const aside: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 10 }]
 
     const combined = combineColumns([main, aside])
     expect(combined).toEqual([
-      { kind: 'line', topPx: 0, bottomPx: 45, keepWithNext: true },
-      { kind: 'entry-gap', topPx: 45, bottomPx: 50 },
+      { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 20, bottomPx: 50 },
       { kind: 'line', topPx: 50, bottomPx: 100 },
     ])
 
-    // And feeding this straight into paginate proves the propagation is not
-    // just cosmetic: the entry-gap at [45,50] is the ONLY structural
-    // candidate anywhere in this document, and it gets thrown out entirely
-    // by the widow rule (its predecessor now correctly carries
-    // keepWithNext) — leaving paginate with no legal cut at all, exactly as
-    // it would for a genuine single-column "heading directly above the only
-    // gap" case.
+    // The entry-gap at [20,50] is the ONLY structural candidate in this
+    // document, and it is correctly rejected by the widow rule.
     expect(() => paginate({ blocks: combined, contentHeightPx: 100, usablePageHeightPx: 55 })).toThrow(
       PaginationImpossibleError
     )
-    // The negative control: without the propagated flag, the very same
-    // shape is perfectly paginatable at that gap.
-    const withoutPropagation = combined.map((b) => ({ ...b, keepWithNext: undefined }))
-    const result = paginate({ blocks: withoutPropagation, contentHeightPx: 100, usablePageHeightPx: 55 })
-    expect(result.cutsPx).toEqual([47.5])
+  })
+
+  it("reviewer's distinguishing fixture: a LATER, non-heading contributor at the trailing edge overrides an EARLIER heading in the same merged run", () => {
+    // main: a heading (keepWithNext) immediately followed by ordinary body
+    // content [20,100] BEFORE the entry-gap at [100,150] — so by the time
+    // the merged run reaches the gap, main's own trailing-edge block is
+    // plain content, not the heading. aside is plain ink [0,50], well short
+    // of the gap too. Neither column's block bordering the gap is a
+    // heading, so the OLD "OR across the whole run" behavior (which wrongly
+    // kept the flag true forever once set) is the ONLY thing that would
+    // reject this gap — the FIXED last-contributor rule must NOT.
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
+      { kind: 'line', topPx: 20, bottomPx: 100 },
+      { kind: 'entry-gap', topPx: 100, bottomPx: 150 },
+      { kind: 'line', topPx: 150, bottomPx: 200 },
+    ]
+    const aside: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 50 }]
+
+    const combined = combineColumns([main, aside])
+    const runBeforeGap = combined.find((b) => b.topPx === 0)
+    expect(runBeforeGap).toEqual({ kind: 'line', topPx: 0, bottomPx: 100 })
+    expect(runBeforeGap!.keepWithNext).toBeUndefined() // must NOT carry the earlier heading's flag
+
+    // usable=110: ideal=110, window=[90.2,110]. The entry-gap's candidate
+    // (125) sits past the window but is the only structural gap — the
+    // downward fallback must find and use it instead of throwing.
+    const result = paginate({ blocks: combined, contentHeightPx: 200, usablePageHeightPx: 110 })
+    expect(result.cutsPx).toEqual([125])
+    expect(result.pageCount).toBe(2)
+  })
+})
+
+describe('combineColumns — CRITICAL fix round: a mutual line-tier clearing is never swallowed into ink', () => {
+  it('two all-line columns sharing a [50,150] clearing stay TWO separate blocks, not one [0,200] ink block', () => {
+    // Both columns: a line block, a real 100px gap with NO marker between
+    // (implicit line-tier), then another line block — identical shape, so
+    // the [50,150] clearing is mutual. The pre-fix bug's `!e.ink &&
+    // last.kind === e.tier` check collided here: an ink run's own `kind` is
+    // the string 'line', and this gap's `tier` is ALSO the string 'line',
+    // so the gap satisfied that check and was silently merged straight into
+    // the preceding ink run, then the run after it merged in too —
+    // collapsing to one [0,200] ink block with zero candidates anywhere.
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'line', topPx: 150, bottomPx: 200 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'line', topPx: 150, bottomPx: 200 },
+    ]
+
+    const combined = combineColumns([main, aside])
+    // The [50,150] clearing is represented the SAME way a single column's
+    // own raw output represents an implicit line-tier gap: two directly-
+    // adjacent ink blocks with real (unmarked) space between them — never
+    // a materialized {kind:'line'} gap block, which would read as ink.
+    expect(combined).toEqual([
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'line', topPx: 150, bottomPx: 200 },
+    ])
+
+    // End-to-end: paginate must find and use the [50,150] clearing (implicit
+    // line-tier candidate at its midpoint, y=100), not throw.
+    const result = paginate({ blocks: combined, contentHeightPx: 200, usablePageHeightPx: 105 })
+    expect(result.cutsPx).toEqual([100])
+    expect(result.pageCount).toBe(2)
   })
 })
 

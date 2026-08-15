@@ -1778,11 +1778,17 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     // wiring lands on the SAME shape: both titles start together (kwn),
     // aside's own entry-gap[20,30] is bridged by main still being inked
     // there (no combined gap at [20,30]), and a genuine mutual entry-gap
-    // survives at [25,30] once aside is ALSO gapped there.
+    // survives at [25,30] once aside is ALSO gapped there. The trailing
+    // merged ink run [30,55] does NOT carry keepWithNext even though
+    // aside's own rm-level row (kwn=true) feeds into it — aside goes out of
+    // range at y=50, so main's own plain content [50,55] is the LAST
+    // contributor at the run's trailing edge, and last-contributing-span-
+    // per-column semantics (fix round, paginate.test.ts) means that plain
+    // content, not the earlier heading, decides the flag.
     expect(blocks).toEqual([
       { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
       { kind: 'entry-gap', topPx: 20, bottomPx: 30 },
-      { kind: 'line', topPx: 30, bottomPx: 55, keepWithNext: true },
+      { kind: 'line', topPx: 30, bottomPx: 55 },
     ])
   })
 })
