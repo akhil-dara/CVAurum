@@ -544,56 +544,81 @@
    correct CSSOM dimensions, but pixel-sampling showed it still fails to
    PAINT over the track in this rendering path — position:absolute paints
    correctly, verified the same way.) */
-/* flex-wrap:wrap is the overflow escape valve for the nowrap label below: a
-   genuinely long single-line label (e.g. "Front-of-front-end", a real sample
-   skill group) plus a meter that's already shrunk to its own floor can still
-   jointly exceed the row's width in a narrow sidebar. Without wrap, the excess
-   has nowhere to go but past the row's own box — .rm-col-aside sets no
-   overflow:hidden, so it visually bled into the main column next to it. With
-   wrap, the METER drops to its own line below the label instead — the label
-   stays intact and one line (nowrap, below), nothing escapes the column. */
-.rm-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Meter row layout (Languages, and Skills groups with a rating). Two earlier
+   approaches were tried and both rejected on real content:
+     1. flex-shrink:0 + white-space:nowrap on the label — never wraps, so a
+        long label (a real sample: "Front-of-front-end") or a typed sentence
+        just overflowed the row and bled into the next column.
+     2. keeping nowrap but letting the METER wrap below the label instead —
+        rejected as looking bad; a meter should read as part of its label's
+        line, not a separate row.
+   Final design: the LABEL wraps (whole words only), the METER never does.
+   align-items:flex-start (not center) because the label can now be several
+   lines tall — centering against the whole block would float the meter well
+   below where the eye expects it, beside the first line of text. */
+.rm-level { display: flex; align-items: flex-start; gap: 8px; }
 /* Meter-row labels (.rm-mini-title in Languages, .rm-skill-group-name in
-   Skills) carry an inline minWidth:40%/45% (sections.tsx) purely to align the
-   meter across rows of different label lengths — it is a FLOOR, not a target.
-   .rm-col-aside sets overflow-wrap:break-word for long content elsewhere
-   (job titles, links) and that inherits straight down into these labels; when
-   flex-shrink (default 1) squeezes a label below its own min-width floor for
-   a long single word ("Portuguese"), break-word lets the browser split the
-   WORD itself to fit the shrunk box — corrupting extracted text ("Portugue"
-   + "se" on two lines). flex-shrink:0 stops the shrink at the label's natural
-   content width instead (the alignment floor still applies when content is
-   shorter, e.g. "English"); the meter — already capped/shrinkable on its own
-   (.rm-level-track, .rm-dots, .rm-stars) — absorbs the row's slack instead.
-   overflow-wrap/word-break:normal is kept as a second, independent guard: any
-   future layout that still runs a label out of room wraps on a WORD boundary
-   (or overflows) rather than ever slicing a word in two.
-   That guard alone still let a HYPHENATED multi-word label ("Front-of-front-end",
-   a real sample skill group) wrap across its hyphens — a browser default line-break
-   opportunity flex-shrink:0 does not touch, since flex-basis:auto sizes text items
-   via shrink-to-fit BEFORE the shrink step runs. Two stacked lines, dots meter
-   vertically centered between them, read as garbled overlap in a narrow sidebar.
-   white-space:nowrap forces the label onto one line unconditionally — it can only
-   ever overflow now (rare: a genuinely long category name), never wrap-and-crowd
-   the meter beside it. */
+   Skills). flex-grow stays 0 — NOT flex:1 1 auto (tried first; flex-grow:1
+   stretches the label across the ENTIRE row in a wide main-column context
+   with room to spare, e.g. "Frontend"/"Backend" on the obsidian sample,
+   flinging the meter off to the far right, disconnected from its label).
+   flex-basis:auto (the initial value, left unset) already gives a text item
+   shrink-to-fit sizing: at full width in a roomy row it's simply the label's
+   own natural width (meter sits right beside it, gap:8px, as intended); in a
+   narrow sidebar the SAME shrink-to-fit computation picks a narrower width
+   and the text wraps onto more lines — no flex-grow needed for that part.
+   min-width:0 (the inline minWidth:40%/45% alignment floor sections.tsx used
+   to set is removed — it fought min-width:0, which needs to win for this to
+   work) removes the floor that used to force a squeeze-to-corruption; the
+   label can now shrink/wrap all the way down instead. overflow-wrap/word-
+   break:normal keep mid-word breaks banned — that is what corrupted
+   "Portuguese" into "Portugue"/"se" for PDF text extraction when
+   .rm-col-aside's overflow-wrap:break-word (set for other long content — job
+   titles, links) inherited down into a label squeezed narrower than one
+   unbreakable word. Whole-word wraps stay extraction-safe: a line break in
+   the walked DOM just folds to a space in the extracted text. The one case
+   that still overflows is a SINGLE word wider than the whole sidebar (no
+   valid break point to wrap at) — accepted, not fixed with an ellipsis, since
+   an ellipsis would show different text than what the PDF extracts. */
 .rm-level .rm-mini-title,
 .rm-level .rm-skill-group-name {
-  flex-shrink: 0;
+  min-width: 0;
   overflow-wrap: normal;
   word-break: normal;
-  white-space: nowrap;
 }
-/* Capped, not flex:1 — a bar meter is a compact scale marker beside the label,
-   same footprint class as the dot/star meters below, not a divider that
-   stretches to fill whatever room the row has (was rendering full-row-wide). */
-.rm-level-track { flex: 0 1 9em; min-width: 4em; height: 4px; border-radius: 9999px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; position: relative; }
-.rm-level-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--rm-primary); border-radius: inherit; }
-.rm-dots { display: inline-flex; gap: 3px; }
+/* The meter (dots/stars/bar) never wraps or shrinks — it already has its own
+   cap/floor — and sits flush against the label's FIRST line only, via a
+   margin-top nudge from the row's flex-start baseline (tuned by eye per
+   meter: each renders at a different natural height against the same
+   1.4-line-height text row). */
+.rm-dots { display: inline-flex; gap: 3px; flex-shrink: 0; margin-top: calc((1em * var(--rm-lh, 1.4) - 7px) / 2); }
 .rm-dot { width: 7px; height: 7px; border-radius: 9999px; background: color-mix(in srgb, currentColor 22%, transparent); }
 .rm-dot.on { background: var(--rm-primary); }
-.rm-stars { display: inline-flex; gap: 1px; line-height: 1; font-size: 1.05em; }
+.rm-stars {
+  display: inline-flex;
+  gap: 1px;
+  line-height: 1;
+  font-size: 1.05em;
+  flex-shrink: 0;
+  margin-top: calc((1em * var(--rm-lh, 1.4) / 1.05 - 1em) / 2);
+}
 .rm-star { color: color-mix(in srgb, currentColor 24%, transparent); }
 .rm-star.on { color: var(--rm-primary); }
+/* Capped, not flex:1 — a bar meter is a compact scale marker beside the label,
+   same footprint class as the dot/star meters above, not a divider that
+   stretches to fill whatever room the row has (was rendering full-row-wide).
+   flex:0 0 9em (no shrink) — the label absorbs the row's slack now, so the
+   bar just holds its capped width. */
+.rm-level-track {
+  flex: 0 0 9em;
+  height: 4px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  overflow: hidden;
+  position: relative;
+  margin-top: calc((1em * var(--rm-lh, 1.4) - 4px) / 2);
+}
+.rm-level-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--rm-primary); border-radius: inherit; }
 /* keep meters legible on dark sidebars */
 .rm-col-aside .rm-dot.on,
 .rm-col-aside .rm-level-fill { background: currentColor; }

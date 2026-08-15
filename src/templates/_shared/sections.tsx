@@ -583,7 +583,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
           return (
             <div className="rm-skill-group" key={s.id}>
               <div className="rm-level">
-                <span className="rm-skill-group-name" style={{ minWidth: '40%' }}>{s.name}</span>
+                <span className="rm-skill-group-name">{s.name}</span>
                 <Proficiency rating={s.rating} style={prof} />
               </div>
               <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
@@ -652,7 +652,7 @@ function Languages({ doc, edit, opts }: { doc: ResumeDocument; config: TemplateC
               {edit ? (
                 <Ed edit={edit} value={l.language} apply={(c, v) => { c.languages[i].language = v }} className="rm-mini-title" placeholder="Language" />
               ) : (
-                <span className="rm-mini-title" style={{ minWidth: '45%' }}>{l.language}</span>
+                <span className="rm-mini-title">{l.language}</span>
               )}
               <Proficiency rating={l.rating} style={prof} />
             </div>
