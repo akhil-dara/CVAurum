@@ -642,7 +642,7 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
   }).filter((p) => p.name)
 }
 
-function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awards' | 'interests') {
+export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awards' | 'interests') {
   const text = lines.map((l) => stripBullet(l.text)).filter(Boolean)
   if (key === 'languages') {
     return text.flatMap((t) => t.split(/[,;|]/)).map((s) => s.trim()).filter(Boolean).map((language) => ({ id: uid(), language: language.replace(/\s*\(.*\)$/, '').trim(), fluency: (language.match(/\(([^)]+)\)/)?.[1] || '').trim() }))
@@ -651,7 +651,39 @@ function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awa
     const kws = text.flatMap((t) => t.split(/[,;|•·]/)).map((s) => s.trim()).filter(Boolean)
     return kws.length ? [{ id: uid(), name: 'Interests', keywords: kws }] : []
   }
-  if (key === 'certificates') return text.map((name) => ({ id: uid(), name, issuer: '', date: '', url: '' }))
+  if (key === 'certificates') {
+    // Name/issuer pairing (2026-08-16, found by the multi-page round-trip
+    // probe): designed resumes — ours included — render a cert as a
+    // prominent name line followed by a muted issuer line, which used to
+    // import as TWO certificates. A line is PRIMARY (starts a cert) when
+    // it is bold or within half a px of the section's tallest line; a
+    // secondary line attaches as issuer to a cert that has none yet. Two
+    // signals on purpose: print/real PDFs bake weight into font names
+    // (bold flag works), while native exports normalize font names (bold
+    // flag is blind) but render the issuer visibly smaller — measured
+    // 9.6 vs 8.8 on classic. A flat unstyled list (all same height, no
+    // bold) stays one cert per line, jitter under 0.5px ignored.
+    const src = lines.filter((l) => stripBullet(l.text))
+    // A line reads as an ISSUER when it is visibly less prominent than the
+    // line that STARTED the current cert: it lost the bold, or it lost
+    // >0.5px of height. Comparing against the cert's own start line (not a
+    // section-wide max) keeps a bold name + same-height plain issuer
+    // pairing (print/real PDFs) without merging flat unstyled lists.
+    const lessProminent = (l: Line, start: Line) => !l.bold && (start.bold || l.height < start.height - 0.5)
+    const out: { id: string; name: string; issuer: string; date: string; url: string }[] = []
+    let startLine: Line | null = null
+    for (const l of src) {
+      const t = stripBullet(l.text)
+      const prev = out[out.length - 1]
+      if (prev && !prev.issuer && startLine && lessProminent(l, startLine)) {
+        prev.issuer = t
+      } else {
+        out.push({ id: uid(), name: t, issuer: '', date: '', url: '' })
+        startLine = l
+      }
+    }
+    return out
+  }
   return text.map((title) => ({ id: uid(), title, awarder: '', date: '', summary: '' })) // awards
 }
 
