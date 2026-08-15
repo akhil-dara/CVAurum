@@ -1273,6 +1273,37 @@ function collectChildInk(el: Element, rootTop: number, out: PageBlock[]): void {
   }
 }
 
+/** Tallest `getBoundingClientRect()` height among `el`'s atomic descendants
+ *  (image/svg/chip row — see `isAtomicElement`), or 0 when there are none.
+ *  Task 6b fix-round-1, finding M4: `pushRowBlock`'s decomposition assumes a
+ *  stretched row's real content is explained by its TEXT alone; a row that
+ *  also holds an atomic child taller than that text (e.g. an icon beside a
+ *  short label) decomposes into an atomic ink block sitting at roughly the
+ *  same y as a much-shorter text-line block — the exact overlapping-ink
+ *  shape the row-collapse exists to prevent in the first place (confirmed
+ *  live: `atomic 100..160` then `line 100..120` tripped the blocks-overlap
+ *  dev-warn). Does not descend PAST an atomic element — same one-indivisible-
+ *  unit treatment `collectInk` itself gives it. */
+function maxAtomicHeightPx(el: Element): number {
+  let max = 0
+  const visit = (node: Element) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType !== Node.ELEMENT_NODE) continue
+      const c = child as Element
+      if (isSkippedElement(c)) continue
+      if (isAtomicElement(c)) {
+        const r = c.getBoundingClientRect()
+        const h = r.bottom - r.top
+        if (h > max) max = h
+        continue
+      }
+      visit(c)
+    }
+  }
+  visit(el)
+  return max
+}
+
 /**
  * ROW collapse (TITLE_ROW_CLASSES / PLAIN_ROW_CLASSES) for the COMMON case:
  * one block from the row's own bounding box, exactly as before task 6b. But
@@ -1291,12 +1322,30 @@ function collectChildInk(el: Element, rootTop: number, out: PageBlock[]): void {
  * benefit automatically. Thresholds (brief's own recommendation): box height
  * must exceed 1.6x the text span AND the absolute slack must exceed 24px —
  * either bound alone is cheap to clear from ordinary padding/line-height;
- * both together are not, so normal rows never churn.
+ * both together are not, so normal rows never churn. M4 adds one more guard
+ * (`maxAtomicHeightPx`, see its own doc comment): a child atomic TALLER than
+ * the text union skips decomposition entirely, falling back to the box.
  *
- * `keepWithNext` (title rows only — PLAIN_ROW_CLASSES always pass `false`)
- * moves to the LAST block emitted in the decomposed case, the same semantic
- * role it always had on the single collapsed box: the widow rule must never
- * let a cut fall between the row's true end and its first real content line.
+ * `keepWithNext` (title rows only — PLAIN_ROW_CLASSES always pass `false`):
+ * fix-round-1 finding I1 — a decomposed row emits it on EVERY line, not just
+ * the last, so a cut can never land BETWEEN a wrapped title's own lines (a
+ * grid-stretched heading that ALSO wraps to two real lines by design, e.g.
+ * a narrow "side" gutter label, used to protect only its last line, leaving
+ * the gap between its own two lines as a legal — and disastrous — cut
+ * candidate). The trailing line still carries the exact same semantic role
+ * it always had: for a SECTION title (this function is never told
+ * otherwise) that is unconditional; for an ENTRY title,
+ * `dropTrailingTitleKeepWithNext` (fix 3) strips it back off downstream,
+ * once the full entry's own trailing edge is known.
+ *
+ * M3 adds a safety net: if decomposition resolves to ZERO blocks (e.g. the
+ * row's only ink is a zero-height atomic — real text existed for
+ * `textLineUnion` to find and trigger the stretch check, but
+ * `collectChildInk`'s own atomic-collapse then drops it via
+ * `pushOwnBoxBlock`'s zero-height guard), this falls back to the box rather
+ * than let the row vanish from the block list entirely — `pageChromeMap.
+ * locateStructural` relies on every section/entry contributing at least one
+ * block.
  */
 function pushRowBlock(el: Element, rootTop: number, out: PageBlock[], keepWithNext: boolean): void {
   const textSpan = textLineUnion(el, rootTop)
@@ -1304,15 +1353,17 @@ function pushRowBlock(el: Element, rootTop: number, out: PageBlock[], keepWithNe
     const r = el.getBoundingClientRect()
     const boxHeight = r.bottom - r.top
     const textHeight = textSpan.bottomPx - textSpan.topPx
-    if (boxHeight > 1.6 * textHeight && boxHeight - textHeight > 24) {
+    const stretched = boxHeight > 1.6 * textHeight && boxHeight - textHeight > 24
+    if (stretched && maxAtomicHeightPx(el) <= textHeight) {
       const raw: PageBlock[] = []
       collectChildInk(el, rootTop, raw)
       const coalesced = coalesceSameLineBlocks(raw)
-      if (coalesced.length && keepWithNext) {
-        coalesced[coalesced.length - 1] = { ...coalesced[coalesced.length - 1], keepWithNext: true }
+      if (coalesced.length) {
+        out.push(...(keepWithNext ? coalesced.map((b) => ({ ...b, keepWithNext: true as const })) : coalesced))
+        return
       }
-      out.push(...coalesced)
-      return
+      // M3: decomposition produced nothing at all -- fall through to the
+      // plain box below instead of emitting zero blocks for this row.
     }
   }
   pushOwnBoxBlock(el, rootTop, out, 'line', keepWithNext)

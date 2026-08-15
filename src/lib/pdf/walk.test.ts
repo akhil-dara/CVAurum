@@ -1745,12 +1745,20 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     const titleText = txt('SECTION TITLE', { top: 100, bottom: 120, left: 0, right: 90 })
     const title = elm(['rm-section-title'], { top: 100, bottom: 900, left: 0, right: 100 }, [titleText])
 
-    const entry1Text = txt('Entry one', { top: 130, bottom: 150, left: 110, right: 300 })
-    const entry1 = elm(['rm-item'], { top: 130, bottom: 150, left: 110, right: 300 }, [entry1Text])
-    const entry2Text = txt('Entry two', { top: 160, bottom: 180, left: 110, right: 300 })
-    const entry2 = elm(['rm-item'], { top: 160, bottom: 180, left: 110, right: 300 }, [entry2Text])
+    // Fix-round-1 (M8): real atelier "side" geometry -- the body CELL is
+    // SIDE BY SIDE with the label cell, sharing the grid row's own top edge
+    // (topPx: 100), not stacked sequentially below it. The first entry's
+    // own content still starts a few px after the label's real text ends
+    // (ordinary body-internal spacing), so this remains a genuinely legal,
+    // non-overlapping tiling -- the earlier fixture's "label sits above the
+    // body" shape (body box starting only after the label's box) understated
+    // how tightly the label and body actually share vertical space.
+    const entry1Text = txt('Entry one', { top: 125, bottom: 145, left: 110, right: 300 })
+    const entry1 = elm(['rm-item'], { top: 125, bottom: 145, left: 110, right: 300 }, [entry1Text])
+    const entry2Text = txt('Entry two', { top: 155, bottom: 175, left: 110, right: 300 })
+    const entry2 = elm(['rm-item'], { top: 155, bottom: 175, left: 110, right: 300 }, [entry2Text])
 
-    const body = elm(['rm-section-body'], { top: 130, bottom: 180, left: 110, right: 300 }, [entry1, entry2])
+    const body = elm(['rm-section-body'], { top: 100, bottom: 900, left: 110, right: 300 }, [entry1, entry2])
     const section = elm(['rm-section'], { top: 100, bottom: 900, left: 0, right: 300 }, [title, body])
     const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
 
@@ -1763,14 +1771,105 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
 
     expect(blocks).toEqual([
       { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true }, // only the real text line, not the 800px box
-      { kind: 'entry-gap', topPx: 120, bottomPx: 130 },
-      { kind: 'line', topPx: 130, bottomPx: 150 },
-      { kind: 'entry-gap', topPx: 150, bottomPx: 160 }, // survives -- not swallowed by the stretched box
-      { kind: 'line', topPx: 160, bottomPx: 180 },
+      { kind: 'entry-gap', topPx: 120, bottomPx: 125 },
+      { kind: 'line', topPx: 125, bottomPx: 145 },
+      { kind: 'entry-gap', topPx: 145, bottomPx: 155 }, // survives -- not swallowed by the stretched box
+      { kind: 'line', topPx: 155, bottomPx: 175 },
     ])
-    // The fix's whole point: no spurious overlap warning between the
-    // (now-correctly-sized) title block and the entries below it.
+    // The fix's whole point: no spurious overlap/negative-gap warning
+    // between the (now-correctly-sized) title block and the entries below
+    // it, even with the label and body genuinely sharing the row's top edge.
     expect(warnings.length).toBe(0)
+  })
+
+  it('I1 (fix round 1): a decomposed SECTION title keeps keepWithNext on EVERY emitted line, not just the last', () => {
+    install()
+
+    // Grid-stretched AND naturally wraps to two real lines (sec-side CSS
+    // wraps narrow gutter labels by design) -- box height 800 vs a 40px
+    // two-line text union still triggers decomposition (Fix 1). Before I1,
+    // only the LAST wrapped line kept keepWithNext, leaving the gap between
+    // the heading's own two lines as a legal (and disastrous) cut candidate.
+    const line1 = txt('First line of a wrapped', { top: 100, bottom: 118, left: 0, right: 90 })
+    const line2 = txt('gutter label heading', { top: 122, bottom: 140, left: 0, right: 90 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 900, left: 0, right: 100 }, [line1, line2])
+    const section = elm(['rm-section'], { top: 100, bottom: 900, left: 0, right: 300 }, [title])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 100, bottomPx: 118, keepWithNext: true }, // first wrapped line -- was previously unprotected
+      { kind: 'line', topPx: 122, bottomPx: 140, keepWithNext: true }, // last wrapped line -- section titles always keep it
+    ])
+  })
+
+  it('I1 (fix round 1): a decomposed ENTRY title with no body content strips keepWithNext only from its LAST line', () => {
+    install()
+
+    const line1 = txt('Wrapped entry', { top: 130, bottom: 148, left: 0, right: 90 })
+    const line2 = txt('title text', { top: 152, bottom: 170, left: 0, right: 90 })
+    const itemHead = elm(['rm-item-head'], { top: 130, bottom: 900, left: 0, right: 100 }, [line1, line2])
+    const entry = elm(['rm-item'], { top: 130, bottom: 900, left: 0, right: 100 }, [itemHead])
+    const title = elm(['rm-section-title'], { top: 100, bottom: 120, left: 0, right: 150 })
+    const body = elm(['rm-section-body'], { top: 130, bottom: 900, left: 0, right: 300 }, [entry])
+    const section = elm(['rm-section'], { top: 100, bottom: 900, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true }, // section title
+      { kind: 'entry-gap', topPx: 120, bottomPx: 130 },
+      { kind: 'line', topPx: 130, bottomPx: 148, keepWithNext: true }, // entry title's FIRST wrapped line -- glued to its own second line
+      { kind: 'line', topPx: 152, bottomPx: 170 }, // entry title's LAST wrapped line -- no body follows, fix-3 strips it
+    ])
+  })
+
+  it('M3 (fix round 1): a decomposed row whose only ink resolves to a zero-height atomic falls back to the box, never vanishing', () => {
+    install()
+
+    // A zero-height atomic child (its own getBoundingClientRect collapses to
+    // top===bottom) whose subtree still contains real text -- textLineUnion
+    // finds that text (triggering the decompose check), but
+    // collectChildInk's own atomic-collapse (pushOwnBoxBlock's zero-height
+    // guard) drops it entirely, so naively pushing whatever coalesced
+    // produced left the section title with ZERO blocks: it vanished from
+    // the page-block list, dropping the leading entry-gap along with it.
+    const hiddenText = txt('x', { top: 100, bottom: 115, left: 0, right: 10 })
+    const atomicChild = elm([], { top: 100, bottom: 100, left: 0, right: 10 }, [hiddenText], { tagName: 'IMG' })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 900, left: 0, right: 100 }, [atomicChild])
+    const section = elm(['rm-section'], { top: 100, bottom: 900, left: 0, right: 300 }, [title])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    // Falls back to the plain (undecomposed) box block instead of vanishing.
+    expect(blocks).toEqual([{ kind: 'line', topPx: 100, bottomPx: 900, keepWithNext: true }])
+  })
+
+  it('M4 (fix round 1): a row whose atomic child is TALLER than its text union falls back to the box, no overlap warn', () => {
+    install()
+
+    const warnings: unknown[][] = []
+    console.warn = ((...args: unknown[]) => {
+      warnings.push(args)
+    }) as typeof console.warn
+
+    // atomic 100..160 (h:60) alongside a much shorter text line 100..120
+    // (h:20) -- decomposing anyway (pre-M4) produced an atomic block and a
+    // line block at ~the same y, tripping the very blocks-overlap dev-warn
+    // the row-collapse exists to prevent.
+    const icon = elm([], { top: 100, bottom: 160, left: 0, right: 20 }, [], { tagName: 'svg' })
+    const labelText = txt('Label', { top: 100, bottom: 120, left: 25, right: 90 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 900, left: 0, right: 100 }, [icon, labelText])
+    const section = elm(['rm-section'], { top: 100, bottom: 900, left: 0, right: 300 }, [title])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([{ kind: 'line', topPx: 100, bottomPx: 900, keepWithNext: true }])
+    expect(warnings.some((args) => String(args[0]).includes('overlap'))).toBe(false)
   })
 
   it('task 6b: a title box only slightly taller than its own text (ordinary padding) stays a single box block, no churn', () => {
