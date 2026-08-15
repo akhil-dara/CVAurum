@@ -4,26 +4,26 @@
  * (see the pagination effect below and PageChrome.tsx) computed with the
  * SAME algorithm and budget functions the native PDF export uses
  * (paginate.ts + extractPageBlocks, computeUsablePageHeightPx /
- * computeFirstPageUsablePageHeightPx from render.tsx) — run against THIS
- * canvas's own live DOM, so every separator/badge lines up exactly with the
- * content the user is looking at (never a cross-DOM pixel estimate). Auto-
- * fit scales the page to the available width.
+ * computeFirstPageUsablePageHeightPx from render.tsx), run against the SAME
+ * print-mode DOM the export actually paginates (the hidden `measureRef`
+ * portal below) — so the page COUNT and the choice of WHICH gap becomes a
+ * cut are provably identical to the exported PDF's, not an estimate.
  *
- * KNOWN LIMITATION: this editable canvas (`mode="preview"`) renders inline
- * editing affordances (delete buttons, "+ Add" rows, per-chip edit
- * controls) that are all `no-print` -- excluded from the walker's block
- * list, so they never influence WHERE a cut lands -- but they still occupy
- * real on-screen height, which can make the editable canvas noticeably
- * taller than the print-mode DOM the export actually paginates (see the
- * hidden `measureRef` render below, and its own `printH`, which is what
- * drives the existing plain page-COUNT estimate). The overlay's page count
- * can therefore run slightly ahead of the true exported PDF for content-
- * heavy sections (chip lists, add-affordance-heavy entries) -- it is a
- * same-DOM-consistent, never-under-counting estimate of the live canvas,
- * not a byte-exact mirror of the export. `previewExact` mode (no edit
- * chrome at all -- literally the print DOM) is the one place the two
- * genuinely coincide, which is also why the overlay is deliberately NOT
- * shown there (see the pagination effect's own comment).
+ * FIX ROUND (native-multipage-pdf plan, task 5): the first version of this
+ * overlay computed cuts directly on the EDITABLE canvas DOM instead, reading
+ * self-consistently off `innerRef`. That was wrong: the editable canvas
+ * (`mode="preview"`) renders real, on-screen inline-editing affordances
+ * (delete buttons, "+ Add" rows, per-chip edit controls) that the print-mode
+ * DOM never has — confirmed empirically to run 1.5-1.7x taller for ordinary
+ * content, and to even change how many lines a bullet wraps to in some
+ * sections — so a page count computed there could genuinely disagree with
+ * the exported PDF's, undercutting the entire "WYSIWYG" premise. Pagination
+ * now always runs on the print-mode DOM; the resulting cuts are then mapped
+ * onto the editable canvas's own geometry by STRUCTURE (section key + entry
+ * index — see pageChromeMap.ts), not by reusing the print-space y directly,
+ * so the separators still land at the right visual spot in the canvas the
+ * user is actually looking at. Auto-fit scales the page to the available
+ * width.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -40,6 +40,7 @@ import { SectionGallery } from '@/components/editor/SectionGallery'
 import { extractPageBlocks } from '@/lib/pdf/walk'
 import { paginate, PaginationImpossibleError } from '@/lib/pdf/paginate'
 import { computeUsablePageHeightPx, computeFirstPageUsablePageHeightPx, findMainColumnPaddingPx } from '@/lib/pdf/render'
+import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditSpace } from './pageChromeMap'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { PageChromeOverlay } from './PageChrome'
@@ -192,6 +193,19 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => ro.disconnect()
   }, [])
 
+  // Keep the hidden print-measure node fully non-interactive (never
+  // focusable, never in the accessibility tree) now that it is no longer
+  // `visibility: hidden` (fix round, task 5 — see the portal's own JSX
+  // comment for why that had to change). `inert` isn't yet in this
+  // project's React 18 / @types/react typings, hence setting it
+  // imperatively rather than as a JSX prop; the DOM property itself is
+  // real and widely supported. The node is a stable ref across re-renders
+  // (same portal position every render), so this only needs to run once.
+  useEffect(() => {
+    const el = measureRef.current as (HTMLDivElement & { inert?: boolean }) | null
+    if (el) el.inert = true
+  }, [])
+
   // Re-measure once fonts for the chosen families have actually loaded.
   useEffect(() => {
     ensureFontsReady([
@@ -257,19 +271,31 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => cancelAnimationFrame(raf)
   }, [fitScale])
 
-  // Paginated WYSIWYG preview (native-multipage-pdf plan, task 5): runs the
-  // SAME break-point algorithm and budget functions the native PDF export
-  // uses (paginate.ts + extractPageBlocks, computeUsablePageHeightPx /
-  // computeFirstPageUsablePageHeightPx from render.tsx) against the LIVE
-  // editable canvas DOM, so every separator/badge lines up exactly with the
-  // content the user is looking at right now (see this file's own top
-  // comment for the one known divergence from the true export page count).
+  // Paginated WYSIWYG preview (native-multipage-pdf plan, task 5; fix round:
+  // print-geometry pagination with block mapping). Pagination — cuts AND
+  // page count — always runs on the hidden print-mode `measureRef` portal
+  // below (the SAME DOM shape `renderResumePdf` paginates: `mode="print"`,
+  // no edit chrome, no empty-section placeholders), using the export's own
+  // budget functions, so `pagePageCount` here is provably the export's page
+  // count, not an estimate. The resulting print-space cuts are then mapped
+  // onto the EDITABLE canvas's own geometry by structure (pageChromeMap.ts:
+  // section `data-section` key + entry index, matched between the two
+  // trees) so the separators still land at the right visual spot in the
+  // canvas the user is actually editing — precise for single-column docs;
+  // two-column docs (`.rm-col-aside` present) fall back to a proportional
+  // scale (`editRootHeight / printRootHeight`) for the few cases structural
+  // mapping can't resolve, since `combineColumns`' merged gap sequence
+  // doesn't name a single section the simple way a single-column sequence
+  // does (see pageChromeMap.ts's own top comment).
+  //
   // Only ever active when auto-fit is off (auto-fit always targets one
   // page, spec 3) and not in the "Exact PDF preview" toggle (that canvas IS
   // the print DOM the gate screenshots — see PageChrome.tsx's own comment on
   // why the overlay must never coexist with it). Debounced with the SAME
-  // cancellation-token + 200ms pattern the auto-fit effect above uses, so
-  // mid-keystroke DOM reflows never get walked half-settled.
+  // cancellation-token + 200ms pattern the auto-fit effect above uses — the
+  // measure portal already re-renders on every content edit (it serves
+  // auto-fit's own measurement), so `printH`/`contentH` settling is the same
+  // signal this effect waits on too.
   const [pageCuts, setPageCuts] = useState<number[]>([])
   const [pagePageCount, setPagePageCount] = useState(1)
   useEffect(() => {
@@ -281,21 +307,49 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     let cancelled = false
     const id = setTimeout(() => {
       if (cancelled) return
-      const rmRoot = innerRef.current?.querySelector<HTMLElement>('.rm-root')
-      if (!rmRoot) return
-      const padding = findMainColumnPaddingPx(rmRoot)
+      const printRoot = measureRef.current?.querySelector<HTMLElement>('.rm-root')
+      const editRoot = innerRef.current?.querySelector<HTMLElement>('.rm-root')
+      if (!printRoot || !editRoot) return
+      const padding = findMainColumnPaddingPx(printRoot)
       const usablePageHeightPx = computeUsablePageHeightPx(pageH, padding)
       const firstPageUsablePageHeightPx = computeFirstPageUsablePageHeightPx(pageH, padding)
-      const contentHeightPx = rmRoot.getBoundingClientRect().height
+      const contentHeightPx = printRoot.getBoundingClientRect().height
       if (contentHeightPx <= firstPageUsablePageHeightPx) {
         setPageCuts((prev) => (prev.length ? [] : prev))
         setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
         return
       }
       try {
-        const blocks = extractPageBlocks(rmRoot)
+        const blocks = extractPageBlocks(printRoot)
         const result = paginate({ blocks, contentHeightPx, usablePageHeightPx, firstPageUsablePageHeightPx })
-        setPageCuts(result.cutsPx)
+        if (result.cutsPx.length === 0) {
+          setPageCuts([])
+          setPagePageCount(result.pageCount)
+          return
+        }
+
+        const twoColumn = !!printRoot.querySelector('.rm-col-aside')
+        const editRootHeightPx = editRoot.getBoundingClientRect().height
+        const scale = contentHeightPx > 0 ? editRootHeightPx / contentHeightPx : 1
+        let mappedCuts: number[]
+        if (twoColumn) {
+          // See this effect's own top comment / pageChromeMap.ts: combined
+          // main+aside gaps don't name one section the simple way a single
+          // column's gaps do, so map by proportional scale instead.
+          mappedCuts = result.cutsPx.map((y) => y * scale)
+        } else {
+          const printAnchors = collectSectionAnchors(printRoot)
+          const editAnchorsByKey = collectSectionAnchorsByKey(editRoot)
+          mappedCuts = result.cutsPx.map((y) => {
+            const mapped = mapCutToEditSpace(blocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey)
+            // Structural mapping failed for this one cut (should not happen
+            // for a consistent same-render snapshot -- defensive only): the
+            // proportional scale is a reasonable single-cut fallback rather
+            // than dropping the whole overlay over one bad cut.
+            return mapped ?? y * scale
+          })
+        }
+        setPageCuts(mappedCuts)
         setPagePageCount(result.pageCount)
       } catch (e) {
         if (e instanceof PaginationImpossibleError) {
@@ -314,10 +368,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       clearTimeout(id)
     }
     // `doc` re-runs this on every edit (same trigger the auto-fit effect
-    // above uses); `contentH` additionally covers reflows the auto-fit effect
-    // above causes without a `doc` change (fit-scale settling, async font/
-    // photo loads) so a stale layout is never walked.
-  }, [doc, autoFit, previewExact, pageH, contentH])
+    // above uses); `contentH`/`printH` additionally cover reflows caused
+    // without a `doc` change (fit-scale settling, async font/photo loads)
+    // on either tree, so a stale layout is never walked on either side of
+    // the mapping.
+  }, [doc, autoFit, previewExact, pageH, contentH, printH])
 
   const effectiveZoom = useMemo(() => {
     if (fitToWidth && containerW > 0) return clamp((containerW - 56) / pageW, 0.4, 1.5)
@@ -343,19 +398,34 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   return (
     <>
     {/* Hidden, off-screen print-mode render — measured to drive fit + page count
-        so they match the exported PDF exactly. No edit chrome, empty sections
+        so they match the exported PDF exactly, and (fix round, task 5) is
+        ALSO the pagination effect's own source DOM for cuts/page count, for
+        the same reason: it is the one live DOM that genuinely mirrors what
+        `renderResumePdf` paginates. No edit chrome, empty sections
         excluded (resolveOrder), same fitScale as the visible canvas.
         Portaled to <body> so it's NEVER inside a display:none ancestor — on
         mobile the canvas is hidden while the edit panel is open, and a hidden
         node measures height 0, which made the fit wrongly conclude "fits at
         full size" (→ phantom 2nd page + an unshrunk Word export). In <body> it
-        always lays out, so the fit is correct regardless of panel state. */}
+        always lays out, so the fit is correct regardless of panel state.
+        Off-screen via position only (`left: -100000px`, matching render.tsx's
+        own real export container) — deliberately NOT `visibility: hidden`
+        (fix round: walk.ts's `extractPageBlocks`/`isSkippedElement` treats an
+        INHERITED `visibility: hidden` as "not real content", by design (the
+        same guard that correctly excludes genuinely hidden/no-print
+        elements) — so with it, this node always measured zero page-break
+        blocks. `inert` (set imperatively below — not yet in this project's
+        React 18 / @types/react typings) gives the same "never focusable,
+        never in the accessibility tree" guarantee `visibility: hidden` did,
+        without touching the `visibility` computed style the walker reads;
+        `aria-hidden` + `pointer-events: none` (both already here) are
+        defense-in-depth for browsers without `inert` support. */}
     {createPortal(
       <div
         ref={measureRef}
         aria-hidden
         data-role="pdf-measure"
-        style={{ position: 'fixed', top: 0, left: -99999, width: pageW, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}
+        style={{ position: 'fixed', top: 0, left: -100000, width: pageW, pointerEvents: 'none', zIndex: -1 }}
       >
         <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
       </div>,
