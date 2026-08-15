@@ -110,17 +110,21 @@ function chooseCut(candidates: Candidate[], pageTop: number, idealY: number, win
     }
     if (best !== undefined) return best
   }
-  // Nothing legal in the window at any tier: scan DOWNWARD for the nearest
-  // legal candidate past the ideal boundary, tier-agnostic (past aesthetic
-  // preference — any legal no-ink gap will do; see spec 1's rule 3, which
-  // defines a "line boundary" as any full-width no-ink gap, a definition
-  // section/entry gaps also satisfy).
-  let fallback: number | undefined
-  for (const c of candidates) {
-    if (c.y <= idealY) continue
-    if (fallback === undefined || c.y < fallback) fallback = c.y
+  // Nothing legal in the window at any tier: scan DOWNWARD, but keep the
+  // SAME tier preference the primary scan uses — a farther section gap must
+  // still beat a nearer entry/line gap once past the ideal boundary. Tier
+  // preference is the feature, not just a within-window heuristic, so within
+  // each tier take the NEAREST (smallest y) candidate past the ideal, and
+  // only move to the next tier if this one has nothing past the ideal at
+  // all.
+  for (const tier of TIER_PREFERENCE) {
+    let nearest: number | undefined
+    for (const c of candidates) {
+      if (c.tier !== tier || c.y <= idealY) continue
+      if (nearest === undefined || c.y < nearest) nearest = c.y
+    }
+    if (nearest !== undefined) return nearest
   }
-  if (fallback !== undefined) return fallback
   throw new PaginationImpossibleError('No legal page-break candidate exists for this document')
 }
 

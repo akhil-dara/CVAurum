@@ -155,3 +155,67 @@ describe('paginate — (i) search window ratio is respected: a candidate just ou
     expect(result.pageCount).toBe(2)
   })
 })
+
+describe('paginate — fix round: downward fallback is tier-first, not nearest-of-any-tier', () => {
+  it('a farther section gap past the ideal beats a nearer line gap past the ideal', () => {
+    // Nothing qualifies inside the window [82, 100] at any tier (the closest
+    // upstream line gap, mid 72.5, sits below the window's low edge; nothing
+    // else is <= the ideal 100), so this falls all the way through to the
+    // downward fallback. Past the ideal (100) there are two candidates: a
+    // NEARBY line gap at 105 and a FARTHER section gap at 140. Tier
+    // preference must still win in the fallback the same way it wins in the
+    // primary window scan — the fallback is not a plain "nearest wins" scan.
+    // Content is sized so BOTH the correct cut (140) and the wrong
+    // nearest-wins cut (105) leave <= 100px remaining afterward — a single
+    // cut either way — so a tier-first vs. nearest-wins implementation
+    // disagrees on the cut value itself, not on how many cuts follow.
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 70 },
+      { kind: 'line', topPx: 75, bottomPx: 105 }, // gap vs previous: mid 72.5 — below the window
+      { kind: 'line', topPx: 105, bottomPx: 115 }, // gap vs previous: mid 105 — nearby, past the ideal
+      { kind: 'section-gap', topPx: 115, bottomPx: 165 }, // candidate y = 140 — farther, past the ideal
+      { kind: 'line', topPx: 165, bottomPx: 200 },
+    ]
+    const result = paginate({ blocks, contentHeightPx: 200, usablePageHeightPx: 100 })
+    expect(result.cutsPx).toEqual([140])
+    expect(result.pageCount).toBe(2)
+  })
+})
+
+describe('paginate — fallsInsideInk guard: a candidate overlapping malformed/overlapping ink is rejected', () => {
+  it('skips a section-gap candidate whose midpoint lands inside an overlapping line block, choosing the next legal candidate instead', () => {
+    // Malformed/overlapping input: the first line block (70-120) overlaps
+    // the section-gap that follows it (80-100, candidate midpoint 90) — 90
+    // falls strictly inside the line block's own ink (70 < 90 < 120). The
+    // guard must drop that candidate entirely rather than ever returning a
+    // cut through it, leaving only the later (legal) entry-gap candidate.
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 70, bottomPx: 120 }, // overlaps the section-gap below — malformed on purpose
+      { kind: 'section-gap', topPx: 80, bottomPx: 100 }, // candidate y = 90, but 90 is inside the line block above
+      { kind: 'line', topPx: 120, bottomPx: 130 },
+      { kind: 'entry-gap', topPx: 130, bottomPx: 140 }, // candidate y = 135 — legal, not inside any ink
+      { kind: 'line', topPx: 140, bottomPx: 160 },
+    ]
+    const result = paginate({ blocks, contentHeightPx: 160, usablePageHeightPx: 100 })
+    // If the guard failed to reject y=90, that section-gap candidate would
+    // win the primary scan outright (tier 1) — the fact that the result is
+    // 135 (a tier-2 candidate reached only via fallback) proves 90 was
+    // dropped before tier preference was even applied.
+    expect(result.cutsPx).toEqual([135])
+    expect(result.pageCount).toBe(2)
+  })
+})
+
+describe('paginate — keepWithNext good case: a legal cut directly BEFORE a keepWithNext heading is accepted', () => {
+  it('accepts the gap immediately preceding a keepWithNext heading — the rule only blocks the gap AFTER it', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 80 },
+      { kind: 'section-gap', topPx: 80, bottomPx: 100 }, // candidate y = 90 — legal: its successor has keepWithNext, but that doesn't matter
+      { kind: 'line', topPx: 100, bottomPx: 110, keepWithNext: true }, // heading
+      { kind: 'line', topPx: 110, bottomPx: 190 }, // gap right after the heading (mid 110) stays illegal, per the (e) case above
+    ]
+    const result = paginate({ blocks, contentHeightPx: 190, usablePageHeightPx: 105 })
+    expect(result.cutsPx).toEqual([90])
+    expect(result.pageCount).toBe(2)
+  })
+})
