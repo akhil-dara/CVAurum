@@ -1413,7 +1413,7 @@ function extractSectionBlocks(section: Element, rootTop: number): PageBlock[] {
   for (const entry of entries) {
     const rawEntryBlocks: PageBlock[] = []
     collectInk(entry, rootTop, rawEntryBlocks)
-    const entryBlocks = coalesceSameLineBlocks(rawEntryBlocks)
+    const entryBlocks = dropTrailingTitleKeepWithNext(coalesceSameLineBlocks(rawEntryBlocks))
     if (!entryBlocks.length) continue
     if (prevEnd) {
       blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: entryBlocks[0].topPx })
@@ -1423,6 +1423,39 @@ function extractSectionBlocks(section: Element, rootTop: number): PageBlock[] {
   }
 
   return blocks
+}
+
+/**
+ * Fix round (task 6b, fix 3): an ENTRY title row (rm-item-head/rm-level/
+ * rm-skill-group-name/rm-mini-title, collapsed by `pushRowBlock`) always
+ * pushed its own block with `keepWithNext: true`, on the theory that a cut
+ * must never separate a title from the entry's first body line. That theory
+ * only holds when the entry actually HAS a body line below its title — a
+ * single-line entry (a bare certification/award/language/interest row,
+ * which IS its own title row and nothing else) has no such line to protect,
+ * so the flag instead banned the ENTRY-GAP that follows it, chaining every
+ * consecutive single-line entry into one unbreakable `keepWithNext` run
+ * (live repro, task-6b fix-3 brief: verdant -> sienna template-switch merge,
+ * a rich long doc, autoFit off — the languages/certifications/awards/
+ * interests tail, ~2840-3089px, became one solid chain with zero legal cut
+ * candidates near the ideal third-page boundary, and `renderResumePdf`
+ * threw `PdfMultiPageUnsupportedError` for a document that paginates fine
+ * once the flag is scoped correctly).
+ *
+ * An entry has exactly one title row (the four TITLE_ROW_CLASSES entry
+ * variants are mutually exclusive within one entry), always first in
+ * document order, so `keepWithNext: true` can only ever land on the LAST
+ * block of `entryBlocks` when nothing else in the entry follows it — that is
+ * precisely the "single-line entry" case. SECTION title rows never pass
+ * through this function (handled separately above, left untouched): the ban
+ * between a section heading and its first entry is genuine widow protection
+ * no matter how long that first entry turns out to be.
+ */
+function dropTrailingTitleKeepWithNext(entryBlocks: PageBlock[]): PageBlock[] {
+  if (!entryBlocks.length) return entryBlocks
+  const last = entryBlocks[entryBlocks.length - 1]
+  if (!last.keepWithNext) return entryBlocks
+  return [...entryBlocks.slice(0, -1), { kind: last.kind, topPx: last.topPx, bottomPx: last.bottomPx }]
 }
 
 /**

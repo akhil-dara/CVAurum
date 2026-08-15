@@ -1604,7 +1604,11 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
       { kind: 'section-gap', topPx: 195, bottomPx: 250 }, // between section 1 and section 2
       { kind: 'line', topPx: 250, bottomPx: 270, keepWithNext: true }, // section 2 title
       { kind: 'entry-gap', topPx: 270, bottomPx: 280 }, // between the title and its one entry
-      { kind: 'line', topPx: 280, bottomPx: 300, keepWithNext: true }, // the rm-level row
+      // The rm-level row is this entry's ONLY content (a single-line entry,
+      // e.g. a skills/languages row) -- no keepWithNext (task 6b fix 3: that
+      // flag is now scoped to "a body line follows within the same entry",
+      // which isn't the case here).
+      { kind: 'line', topPx: 280, bottomPx: 300 },
     ])
   })
 
@@ -1785,6 +1789,57 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
 
     // The whole 44px box, unchanged -- not decomposed to the 20px text line.
     expect(blocks).toEqual([{ kind: 'line', topPx: 100, bottomPx: 144, keepWithNext: true }])
+  })
+
+  it('task 6b fix 3: entry title rows keep keepWithNext ONLY when body content follows within the same entry', () => {
+    install()
+
+    // Section title -- always keepWithNext, unchanged (genuine widow
+    // protection between a heading and its first entry).
+    const title = elm(['rm-section-title'], { top: 100, bottom: 120, left: 0, right: 200 })
+
+    // Three single-line entries in a row (certifications/awards/languages/
+    // interests shape: a bare title span, no body line at all -- see the
+    // module doc comment on TITLE_ROW_CLASSES). Live repro (task-6b fix-3
+    // brief): a run of these used to chain into one unbreakable
+    // keepWithNext run because each one's ONLY block kept keepWithNext,
+    // banning the entry-gap that should separate it from the next entry.
+    const mini1Title = elm(['rm-mini-title'], { top: 130, bottom: 145, left: 0, right: 200 })
+    const entry1 = elm(['rm-mini'], { top: 130, bottom: 145, left: 0, right: 200 }, [mini1Title])
+    const mini2Title = elm(['rm-mini-title'], { top: 155, bottom: 170, left: 0, right: 200 })
+    const entry2 = elm(['rm-mini'], { top: 155, bottom: 170, left: 0, right: 200 }, [mini2Title])
+    const mini3Title = elm(['rm-mini-title'], { top: 180, bottom: 195, left: 0, right: 200 })
+    const entry3 = elm(['rm-mini'], { top: 180, bottom: 195, left: 0, right: 200 }, [mini3Title])
+
+    // A fourth entry that DOES have body content below its title row -- its
+    // title must still keep keepWithNext.
+    const itemHead = elm(['rm-item-head'], { top: 210, bottom: 225, left: 0, right: 200 })
+    const bodyText = txt('Body line', { top: 230, bottom: 245, left: 0, right: 200 })
+    const entry4 = elm(['rm-item'], { top: 210, bottom: 245, left: 0, right: 200 }, [itemHead, bodyText])
+
+    const body = elm(['rm-section-body'], { top: 130, bottom: 245, left: 0, right: 200 }, [
+      entry1,
+      entry2,
+      entry3,
+      entry4,
+    ])
+    const section = elm(['rm-section'], { top: 100, bottom: 245, left: 0, right: 200 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true }, // section title -- unchanged
+      { kind: 'entry-gap', topPx: 120, bottomPx: 130 },
+      { kind: 'line', topPx: 130, bottomPx: 145 }, // entry1: single-line, NO keepWithNext
+      { kind: 'entry-gap', topPx: 145, bottomPx: 155 },
+      { kind: 'line', topPx: 155, bottomPx: 170 }, // entry2: single-line, NO keepWithNext
+      { kind: 'entry-gap', topPx: 170, bottomPx: 180 },
+      { kind: 'line', topPx: 180, bottomPx: 195 }, // entry3: single-line, NO keepWithNext
+      { kind: 'entry-gap', topPx: 195, bottomPx: 210 },
+      { kind: 'line', topPx: 210, bottomPx: 225, keepWithNext: true }, // entry4 title: body follows, KEEPS it
+      { kind: 'line', topPx: 230, bottomPx: 245 }, // entry4 body line
+    ])
   })
 
   it('task 2b: two-column layout combines .rm-col-main and .rm-col-aside via combineColumns, and the task-2 dev-warn no longer fires', () => {
