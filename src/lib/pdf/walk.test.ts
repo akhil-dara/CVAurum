@@ -1728,6 +1728,65 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     expect(warnings.some((args) => String(args[0]).includes('overlap'))).toBe(true)
   })
 
+  it('task 6b: a grid-stretched title cell emits blocks from its real text line, not its ballooned box, so entry gaps survive', () => {
+    install()
+
+    // The gutter label cell (atelier's `section: 'side'` layout) is CSS
+    // grid-stretched to the row's full height -- its OWN bounding box is
+    // 800px tall even though its only content is one 20px text line at the
+    // very top (probe, task-6b brief: `{kind:'line', top:243, h:1627,
+    // keepWithNext:true}` for the real template). Before the fix this
+    // collapsed to one giant 'line' block spanning the whole section, so
+    // paginate.ts found no legal gap inside it at all.
+    const titleText = txt('SECTION TITLE', { top: 100, bottom: 120, left: 0, right: 90 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 900, left: 0, right: 100 }, [titleText])
+
+    const entry1Text = txt('Entry one', { top: 130, bottom: 150, left: 110, right: 300 })
+    const entry1 = elm(['rm-item'], { top: 130, bottom: 150, left: 110, right: 300 }, [entry1Text])
+    const entry2Text = txt('Entry two', { top: 160, bottom: 180, left: 110, right: 300 })
+    const entry2 = elm(['rm-item'], { top: 160, bottom: 180, left: 110, right: 300 }, [entry2Text])
+
+    const body = elm(['rm-section-body'], { top: 130, bottom: 180, left: 110, right: 300 }, [entry1, entry2])
+    const section = elm(['rm-section'], { top: 100, bottom: 900, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const warnings: unknown[][] = []
+    console.warn = ((...args: unknown[]) => {
+      warnings.push(args)
+    }) as typeof console.warn
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true }, // only the real text line, not the 800px box
+      { kind: 'entry-gap', topPx: 120, bottomPx: 130 },
+      { kind: 'line', topPx: 130, bottomPx: 150 },
+      { kind: 'entry-gap', topPx: 150, bottomPx: 160 }, // survives -- not swallowed by the stretched box
+      { kind: 'line', topPx: 160, bottomPx: 180 },
+    ])
+    // The fix's whole point: no spurious overlap warning between the
+    // (now-correctly-sized) title block and the entries below it.
+    expect(warnings.length).toBe(0)
+  })
+
+  it('task 6b: a title box only slightly taller than its own text (ordinary padding) stays a single box block, no churn', () => {
+    install()
+
+    // box height 44 vs text height 20: ratio 2.2 clears 1.6x, but the
+    // absolute slack (24) does NOT clear the brief's `> 24px` bound (it's
+    // exactly 24) -- ordinary padding must not trigger decomposition.
+    const titleText = txt('SECTION TITLE', { top: 100, bottom: 120, left: 0, right: 90 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 144, left: 0, right: 100 }, [titleText])
+    const body = elm(['rm-section-body'], { top: 144, bottom: 160, left: 0, right: 300 })
+    const section = elm(['rm-section'], { top: 100, bottom: 160, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    // The whole 44px box, unchanged -- not decomposed to the 20px text line.
+    expect(blocks).toEqual([{ kind: 'line', topPx: 100, bottomPx: 144, keepWithNext: true }])
+  })
+
   it('task 2b: two-column layout combines .rm-col-main and .rm-col-aside via combineColumns, and the task-2 dev-warn no longer fires', () => {
     install()
     const warnings: unknown[][] = []

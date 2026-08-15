@@ -1219,24 +1219,49 @@ function pushTextLineBlocks(node: Text, rootTop: number, out: PageBlock[]): void
   }
 }
 
-/** Recursively collects every ink block ('line'/'atomic') within `el`'s own
- *  subtree, in document order — the entry-level (and title-row-level) walk
- *  `extractSectionBlocks` drives. Atomic elements and title/plain ROWS
- *  collapse to one block each and are never descended into further; anything
- *  else recurses through its child text/element nodes. */
-function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
-  if (isAtomicElement(el)) {
-    pushOwnBoxBlock(el, rootTop, out, 'atomic', false)
-    return
+/** Union `[topPx, bottomPx]` of every real text-line rect within `el`'s own
+ *  subtree (task 6b's geometric stretch test — see `pushRowBlock`), or
+ *  `null` when the element has no text ink at all (an image/icon-only row,
+ *  or an empty placeholder) — callers keep today's box-collapse behavior in
+ *  that case, per the brief ("elements with no text at all keep today's
+ *  behavior"). Reuses `textNodeLineSegments` (text.ts) — the exact
+ *  Range-based line geometry `pushTextLineBlocks`/`extractRuns` already
+ *  measure from, so this is the SAME notion of "a text line" pagination
+ *  already relies on elsewhere, not a new approximation. Recurses through
+ *  every descendant (skipped/no-print subtrees pruned) regardless of
+ *  atomic/title-row nesting — this only ever needs a height comparison, not
+ *  a real block list. */
+function textLineUnion(el: Element, rootTop: number): { topPx: number; bottomPx: number } | null {
+  let topPx = Infinity
+  let bottomPx = -Infinity
+  const visit = (node: Element) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child as Text
+        if (!text.data || text.data.trim() === '') continue
+        for (const seg of textNodeLineSegments(text)) {
+          const t = seg.rect.top - rootTop
+          const b = seg.rect.bottom - rootTop
+          if (b <= t) continue
+          if (t < topPx) topPx = t
+          if (b > bottomPx) bottomPx = b
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const c = child as Element
+        if (isSkippedElement(c)) continue
+        visit(c)
+      }
+    }
   }
-  if (hasAnyClass(el, TITLE_ROW_CLASSES)) {
-    pushOwnBoxBlock(el, rootTop, out, 'line', true)
-    return
-  }
-  if (hasAnyClass(el, PLAIN_ROW_CLASSES)) {
-    pushOwnBoxBlock(el, rootTop, out, 'line', false)
-    return
-  }
+  visit(el)
+  return topPx <= bottomPx ? { topPx, bottomPx } : null
+}
+
+/** Recurses through `el`'s own child text/element nodes, collecting ink into
+ *  `out` — the ordinary (non-collapsed) half of `collectInk`, factored out so
+ *  `pushRowBlock`'s stretched-box fallback can drive the exact same walk a
+ *  plain (non-row) element already gets. */
+function collectChildInk(el: Element, rootTop: number, out: PageBlock[]): void {
   for (const child of Array.from(el.childNodes)) {
     if (child.nodeType === Node.TEXT_NODE) {
       pushTextLineBlocks(child as Text, rootTop, out)
@@ -1246,6 +1271,73 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
       collectInk(c, rootTop, out)
     }
   }
+}
+
+/**
+ * ROW collapse (TITLE_ROW_CLASSES / PLAIN_ROW_CLASSES) for the COMMON case:
+ * one block from the row's own bounding box, exactly as before task 6b. But
+ * when the box height balloons far past the row's own real text-line extent
+ * — a CSS-grid-stretched gutter label cell (atelier's `section: 'side'`
+ * layout: probe `{kind:'line', top:243, h:1627, keepWithNext:true}`, a
+ * 1627px-tall "line" holding one real text line at its top) — the ballooned
+ * box is a lie about where the row's real ink is: paginate.ts reading it as
+ * one giant `line` block finds no legal gap inside it at all, producing an
+ * absurd cut or `PaginationImpossibleError` (task-6b brief, defect 1).
+ *
+ * Purely geometric (box height vs the union of the row's OWN text-line
+ * rects, `textLineUnion` — the same Range-based line segmentation this
+ * module already uses everywhere else): no template id or class name is
+ * ever consulted, so every current and future template's stretched cells
+ * benefit automatically. Thresholds (brief's own recommendation): box height
+ * must exceed 1.6x the text span AND the absolute slack must exceed 24px —
+ * either bound alone is cheap to clear from ordinary padding/line-height;
+ * both together are not, so normal rows never churn.
+ *
+ * `keepWithNext` (title rows only — PLAIN_ROW_CLASSES always pass `false`)
+ * moves to the LAST block emitted in the decomposed case, the same semantic
+ * role it always had on the single collapsed box: the widow rule must never
+ * let a cut fall between the row's true end and its first real content line.
+ */
+function pushRowBlock(el: Element, rootTop: number, out: PageBlock[], keepWithNext: boolean): void {
+  const textSpan = textLineUnion(el, rootTop)
+  if (textSpan) {
+    const r = el.getBoundingClientRect()
+    const boxHeight = r.bottom - r.top
+    const textHeight = textSpan.bottomPx - textSpan.topPx
+    if (boxHeight > 1.6 * textHeight && boxHeight - textHeight > 24) {
+      const raw: PageBlock[] = []
+      collectChildInk(el, rootTop, raw)
+      const coalesced = coalesceSameLineBlocks(raw)
+      if (coalesced.length && keepWithNext) {
+        coalesced[coalesced.length - 1] = { ...coalesced[coalesced.length - 1], keepWithNext: true }
+      }
+      out.push(...coalesced)
+      return
+    }
+  }
+  pushOwnBoxBlock(el, rootTop, out, 'line', keepWithNext)
+}
+
+/** Recursively collects every ink block ('line'/'atomic') within `el`'s own
+ *  subtree, in document order — the entry-level (and title-row-level) walk
+ *  `extractSectionBlocks` drives. Atomic elements and title/plain ROWS
+ *  collapse to one block each (see `pushRowBlock` for the ROW case's
+ *  geometric stretch exception) and are never descended into further here;
+ *  anything else recurses through its child text/element nodes. */
+function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
+  if (isAtomicElement(el)) {
+    pushOwnBoxBlock(el, rootTop, out, 'atomic', false)
+    return
+  }
+  if (hasAnyClass(el, TITLE_ROW_CLASSES)) {
+    pushRowBlock(el, rootTop, out, true)
+    return
+  }
+  if (hasAnyClass(el, PLAIN_ROW_CLASSES)) {
+    pushRowBlock(el, rootTop, out, false)
+    return
+  }
+  collectChildInk(el, rootTop, out)
 }
 
 /**
