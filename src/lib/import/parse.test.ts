@@ -470,7 +470,17 @@ describe('splitSections — plain group labels vs Tier-0 headings (2026-08-16)',
       upper: false,
       items: [
         { str: 'EXPERIENCE', x: 40, top: 0, width: 60, height: 9.8, bold: false, page: 1, col: 0, aside: false },
-        { str: 'Senior Software Engineer Mar 2021', x: 150, top: 0, width: 200, height: 9.8, bold: false, page: 1, col: 0, aside: false },
+        {
+          str: 'Senior Software Engineer Mar 2021',
+          x: 150,
+          top: 0,
+          width: 200,
+          height: 9.8,
+          bold: false,
+          page: 1,
+          col: 0,
+          aside: false,
+        },
       ],
     }
     const secs = splitSections(graph([merged, proseLine('Vertex Labs San Francisco, CA', 9.8, 12)]))
