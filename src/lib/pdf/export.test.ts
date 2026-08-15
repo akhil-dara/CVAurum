@@ -128,8 +128,41 @@ describe('exportResumePdf', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
   })
 
-  it('PdfMultiPageUnsupportedError falls back to print silently (expected, not a bug) — no console.error', async () => {
-    renderResumePdfMock.mockRejectedValue(new PdfMultiPageUnsupportedError('resume does not fit on one page'))
+  it('multi-page renderable doc resolves via the native path -> download with correct filename, no print fallback', async () => {
+    // renderResumePdf itself does the pagination (walk.ts/paginate.ts/paint.ts,
+    // native-multipage-pdf plan tasks 1-3) and resolves with the FULL
+    // multi-page PDF's bytes exactly like a single-page doc would — from
+    // exportResumePdf's perspective a 2-page and 200-page resume are
+    // identical: both are just "renderResumePdf resolved", so this mock
+    // doesn't (and can't, being a mock) encode page count. What it DOES
+    // capture is the task-4 semantics change: a multi-page doc with auto-fit
+    // off no longer throws PdfMultiPageUnsupportedError at all (that's the
+    // obsolete pre-native-pagination behaviour the old version of this test
+    // covered) — it now resolves like any other doc. The real end-to-end
+    // claim (actual multi-page bytes, correct page count, pdf-lib producer)
+    // is not reproducible here since this suite runs under vitest's plain
+    // node environment with no DOM (see the file-header comment) — verified
+    // live instead (task-4 report: Playwright download + pdf.js page count).
+    renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3, 4, 5]))
+
+    const outcome = await exportResumePdf(doc)
+
+    expect(outcome).toBe('native')
+    expect(openPrintWindowMock).not.toHaveBeenCalled()
+    expect(lastAnchor?.download).toBe('Jane_Doe_Resume_2026-08-14.pdf')
+    expect(lastAnchor?.click).toHaveBeenCalledTimes(1)
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('impossible pagination (PdfMultiPageUnsupportedError) falls back to print silently (expected, not a bug) — no console.error', async () => {
+    // The ONLY two triggers left for this error post-task-4 (see export.ts's
+    // catch-block comment): auto-fit ON still overflowing, or paginate()
+    // finding no legal break candidate anywhere (PaginationImpossibleError,
+    // wrapped by render.tsx's paginateOrThrow). Ordinary multi-page docs no
+    // longer reach this branch at all — covered by the test above.
+    renderResumePdfMock.mockRejectedValue(
+      new PdfMultiPageUnsupportedError('resume cannot be paginated: no legal page-break candidate exists')
+    )
 
     const outcome = await exportResumePdf(doc)
 

@@ -2,9 +2,13 @@
  * The single entry point every "Download PDF" affordance (top bar menu,
  * command palette) should call. Native, in-app rendering (render.tsx) is the
  * default engine now that both verification gates are green across all
- * templates x personas — the browser's print dialog is kept as the automatic
- * fallback for the one case native can't yet handle (multi-page resumes) and
- * as a support/debug escape hatch.
+ * templates x personas AND multi-page resumes render natively via smart
+ * band-slicing (native-multipage-pdf plan) — the browser's print dialog is
+ * kept as the automatic fallback for the two cases native genuinely can't
+ * handle (auto-fit ON still doesn't paginate, by design — spec section 3 —
+ * so an over-length doc with auto-fit on still overflows; and a doc with no
+ * legal page-break candidate anywhere, `PaginationImpossibleError`) and as a
+ * support/debug escape hatch.
  */
 import { saveDoc } from '@/lib/storage'
 import { openPrintWindow, pdfBaseName } from '@/lib/pdf'
@@ -47,10 +51,15 @@ export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportOut
     downloadBlob(new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' }), `${pdfBaseName(doc)}.pdf`)
     return 'native'
   } catch (e) {
-    // A multi-page overflow is an EXPECTED outcome (pagination is a separate,
-    // not-yet-shipped feature) — not a bug, so stay quiet. Anything else is a
-    // real renderer failure and must be logged unconditionally (not just in
-    // dev) so a user's bug report carries the signal.
+    // PdfMultiPageUnsupportedError now only fires for the two cases native
+    // genuinely can't handle (native-multipage-pdf plan, task 4): auto-fit ON
+    // still doesn't paginate (by design), or paginate() found no legal
+    // break candidate anywhere. An ordinary multi-page doc with auto-fit OFF
+    // no longer throws here at all — it renders natively above. Both
+    // remaining cases are EXPECTED outcomes, not bugs, so stay quiet.
+    // Anything else is a real renderer failure and must be logged
+    // unconditionally (not just in dev) so a user's bug report carries the
+    // signal.
     if (!(e instanceof PdfMultiPageUnsupportedError)) {
       console.error('Native PDF export failed, falling back to print', e)
     }

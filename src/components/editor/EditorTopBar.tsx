@@ -61,9 +61,12 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     setExportFmt(fmt)
   }
   // PDF is generated in-app by the native renderer (crisp, selectable, exact —
-  // same DOM/CSS as the preview). No in-app filename popup needed — the
-  // download is named for you. Browser print is an automatic fallback for
-  // resumes that don't fit one page, so the user always gets an export.
+  // same DOM/CSS as the preview), and multi-page resumes export natively too
+  // (native-multipage-pdf plan — clean page breaks, no external tooling). No
+  // in-app filename popup needed — the download is named for you. Browser
+  // print is an automatic fallback for the rare doc native genuinely can't
+  // handle (auto-fit on and still overflowing, or no legal page-break
+  // candidate anywhere), so the user always gets an export.
   //
   // In-flight guard: the store's `pdfExporting` flag (checked/set
   // synchronously via getState()/setPdfExporting, not React state) blocks a
