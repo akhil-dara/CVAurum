@@ -28,6 +28,9 @@ export interface Item {
   bold: boolean
   page: number
   col: 0 | 1 | 2 // 0 = full-width/single, 1 = left column, 2 = right column
+  /** true when this item sits in the NARROW column (the sidebar/aside),
+   *  whichever side it is on — the wide column is the main flow. */
+  aside: boolean
 }
 
 export interface Line {
@@ -41,6 +44,8 @@ export interface Line {
   upper: boolean
   page: number
   col: 0 | 1 | 2
+  /** see Item.aside */
+  aside: boolean
 }
 
 export interface LayoutGraph {
@@ -121,6 +126,7 @@ async function readTextLayer(
         bold: BOLD_RE.test(fam) || BOLD_RE.test(String(raw.fontName)),
         page: p,
         col: 0,
+        aside: false,
       })
     }
     pages.push({ num: p, items, usable, total })
@@ -180,8 +186,17 @@ function detectGutter(items: Item[], width: number): number | null {
   if (items.length < 20 || width <= 0) return null
   let best: number | null = null
   let bestStraddle = Infinity
-  for (let frac = 0.3; frac <= 0.62; frac += 0.02) {
-    const c = width * frac
+  // Integer stepping (2026-08-16): the old `frac += 0.02` float loop
+  // accumulated to 0.6200000000000002 and SKIPPED its own 0.62 endpoint —
+  // which was the only clean gutter on clarity's right-side aside (straddle
+  // 0 at exactly 0.62, every earlier candidate rejected at 13-28
+  // straddles), so the page fell back to single-column and the interleaved
+  // sections shattered on import. Range extended to 0.68: a right-side
+  // aside a third of the page wide puts its gutter near 0.64-0.67; the
+  // straddle cap still rejects fake gutters (full-width prose crosses
+  // them).
+  for (let k = 0; k <= 19; k++) {
+    const c = width * (0.3 + k * 0.02)
     let straddle = 0,
       left = 0,
       right = 0
@@ -190,7 +205,15 @@ function detectGutter(items: Item[], width: number): number | null {
       else if (it.x + it.width <= c) left++
       else right++
     }
-    if (left < items.length * 0.2 || right < items.length * 0.2) continue // both sides must be populated
+    // Both sides must be populated. An ABSOLUTE floor with a soft
+    // proportional component (2026-08-16): the old flat 20% rejected real
+    // sidebars on dense multi-page docs — clarity's aside fell under 20%
+    // of page-1 items once the main column held seven work entries, the
+    // gutter went undetected, and the interleaved columns shattered every
+    // section on import. The straddle cap below remains the guard against
+    // fake gutters (prose and full-width lines cross them).
+    const floor = Math.max(10, items.length * 0.08)
+    if (left < floor || right < floor) continue
     if (straddle <= items.length * 0.03 && straddle < bestStraddle) {
       bestStraddle = straddle
       best = c
@@ -210,19 +233,36 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
     // A full-width band sits above the columns (header) — keep it col 0 so it
     // isn't split. Everything below the first two-column row is columnar.
     any = true
+    // The NARROW side is the sidebar/aside whichever side it is on; the
+    // wide side is the main flow (2026-08-16 — grouping by column INDEX
+    // broke one family or the other: clarity's aside is col 2 but double's
+    // MAIN is col 2).
+    const w = pageWidth.get(page) ?? 0
+    const asideCol = gutter < w / 2 ? 1 : 2
     for (const it of pageItems) {
       const center = it.x + it.width / 2
       const straddles = it.x < gutter - 2 && it.x + it.width > gutter + 2
       it.col = straddles ? 0 : center < gutter ? 1 : 2
+      it.aside = it.col === asideCol
     }
   }
   return any
 }
 
 function buildLines(items: Item[]): Line[] {
-  // Reading order: page, then column (full-width header first, then L, then R),
-  // then top, then x.
-  items.sort((a, b) => a.page - b.page || a.col - b.col || a.top - b.top || a.x - b.x)
+  // Reading order for RECOVERY (2026-08-16): main flow first (col 0/1 in
+  // page order), every col-2 column LAST (in page order). The old strictly
+  // per-page order (p1 main, p1 aside, p2 ...) let a short aside's own
+  // section headings CUT a main-column section that resumes on the next
+  // page — clarity's work entries 4-7 continued on page 2 but the page-1
+  // aside's SKILLS/LANGUAGES headings had already closed the work section,
+  // so they imported into a bogus section. Grouping each column class
+  // contiguously keeps cross-page sections whole in BOTH designs (right
+  // aside: main c1 + next page's c0 join; left sidebar: sidebar c1 pages
+  // join, main c2 pages join). Import cares about section grouping, not
+  // narrative page order.
+  const grp = (it: Item) => (it.aside ? 1 : 0)
+  items.sort((a, b) => grp(a) - grp(b) || a.page - b.page || a.col - b.col || a.top - b.top || a.x - b.x)
 
   const lines: Line[] = []
   let cur: Item[] = []
@@ -264,6 +304,7 @@ function buildLines(items: Item[]): Line[] {
         upper: isUpper(text),
         page: ordered[0].page,
         col: ordered[0].col,
+        aside: ordered[0].aside,
       })
     }
     cur = []
@@ -284,7 +325,12 @@ function buildLines(items: Item[]): Line[] {
     }
   }
   flush()
-  lines.sort((a, b) => a.page - b.page || a.col - b.col || a.top - b.top || a.x - b.x)
+  // Same recovery order as the item sort above: main flow (col 0/1) across
+  // ALL pages first, col-2 columns last — this final sort is what actually
+  // determines g.lines order, so it must group identically or the item-level
+  // sort is silently overridden (which is exactly what happened first).
+  const lgrp = (l: Line) => (l.aside ? 1 : 0)
+  lines.sort((a, b) => lgrp(a) - lgrp(b) || a.page - b.page || a.col - b.col || a.top - b.top || a.x - b.x)
   return lines
 }
 

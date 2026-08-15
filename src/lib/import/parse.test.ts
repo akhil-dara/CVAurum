@@ -15,6 +15,7 @@ const line = (text: string, bold: boolean, height = 12, top = 0, page = 1): Line
   upper: false,
   page,
   col: 0,
+  aside: false,
 })
 
 describe('parseSimpleList certificates — name/issuer pairing (2026-08-16)', () => {
@@ -281,8 +282,8 @@ describe('parseSimpleList languages — right-aligned fluency runs (2026-08-16)'
   const twoRun = (a: string, b: string): Line => ({
     ...line(`${a} ${b}`, false, 9.8),
     items: [
-      { str: a, x: 36.8, top: 0, width: 30, height: 9.8, bold: false, page: 1, col: 0 },
-      { str: b, x: 534.2, top: 0, width: 24, height: 9, bold: false, page: 1, col: 0 },
+      { str: a, x: 36.8, top: 0, width: 30, height: 9.8, bold: false, page: 1, col: 0, aside: false },
+      { str: b, x: 534.2, top: 0, width: 24, height: 9, bold: false, page: 1, col: 0, aside: false },
     ],
   })
   it('splits a far-gap two-run line into language and fluency', () => {
@@ -307,7 +308,7 @@ const chipItems = (tokens: string[], gap = 13): Item[] => {
   let x = 40
   return tokens.map((str) => {
     const width = str.length * 4
-    const it: Item = { str, x, top: 0, width, height: 8.8, bold: false, page: 1, col: 0 }
+    const it: Item = { str, x, top: 0, width, height: 8.8, bold: false, page: 1, col: 0, aside: false }
     x += width + gap
     return it
   })
@@ -319,7 +320,7 @@ const chipLine = (tokens: string[], height = 8.8, top = 0): Line => ({
 const proseLine = (text: string, height = 9.8, top = 0): Line => {
   // one continuous run — the common extraction shape for prose
   const l = line(text, false, height, top)
-  l.items = [{ str: text, x: 40, top, width: text.length * 4, height, bold: false, page: 1, col: 0 }]
+  l.items = [{ str: text, x: 40, top, width: text.length * 4, height, bold: false, page: 1, col: 0, aside: false }]
   return l
 }
 

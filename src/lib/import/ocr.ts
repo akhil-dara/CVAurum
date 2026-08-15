@@ -183,6 +183,7 @@ export async function ocrPage(
       bold: false, // OCR can't reliably tell weight; heading tiers don't rely on it
       page: pageNumber,
       col: 0,
+      aside: false,
     })
   }
   return items
