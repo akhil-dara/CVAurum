@@ -22,6 +22,41 @@ function ymValue(v: string): number | null {
   return parseInt(y, 10) * 12 + (m ? parseInt(m, 10) - 1 : 0)
 }
 
+/**
+ * A fresh, distinct END value to land in when leaving Present mode (the user
+ * unticks "Present"). Must never equal `start` — end === start is the
+ * definition of single-date mode (isSingleDate, in lib/utils), and reusing
+ * `start` as-is would silently re-collapse the range and hide the END fields
+ * the user just asked to edit, trapping them right back where they started.
+ *
+ * Granularity follows `start`: a "YYYY-MM" start produces a "YYYY-MM" end
+ * (start advanced by one month, or the current year-month, whichever is
+ * later); a year-only "YYYY" start produces a year-only end (start + 1 year,
+ * or the current year, whichever is later — start + 1 year is always > start,
+ * so that half of the comparison only matters for picking a "nicer" number
+ * when start is far in the past). An empty start has no granularity to
+ * match, so it falls back to the current year-month.
+ */
+export function nextRangeEnd(start: string, now: Date = new Date()): string {
+  const nowY = now.getFullYear()
+  const nowM = now.getMonth() + 1
+  const nowYM = `${nowY}-${String(nowM).padStart(2, '0')}`
+
+  const { y, m } = parseYM(start)
+  if (!y) return nowYM
+
+  if (m) {
+    const startVal = parseInt(y, 10) * 12 + (parseInt(m, 10) - 1)
+    const nowVal = nowY * 12 + (nowM - 1)
+    const chosen = Math.max(startVal + 1, nowVal)
+    const cy = Math.floor(chosen / 12)
+    const cm = (chosen % 12) + 1
+    return `${cy}-${String(cm).padStart(2, '0')}`
+  }
+
+  return String(Math.max(parseInt(y, 10) + 1, nowY))
+}
+
 /** Two dropdowns (month + year) that read/write a "YYYY-MM" / "YYYY" string. */
 function MonthYear({ value, onChange, present }: { value: string; onChange: (v: string) => void; present?: boolean }) {
   const { y, m } = parseYM(value)
@@ -136,7 +171,7 @@ export function CanvasDate({
                       <div className="mb-1 mt-3 flex items-center justify-between">
                         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">End</span>
                         <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
-                          <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={present} onChange={(e) => edit((c) => applyEnd(c, e.target.checked ? '' : start || `${NOW_YEAR}`))} />
+                          <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={present} onChange={(e) => edit((c) => applyEnd(c, e.target.checked ? '' : nextRangeEnd(start)))} />
                           Present
                         </label>
                       </div>
