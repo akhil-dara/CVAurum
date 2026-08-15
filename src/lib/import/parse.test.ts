@@ -206,7 +206,10 @@ describe('parseSkills — chip rows and group-name pairing (2026-08-16)', () => 
   // every inter-run gap >= 3pt) and keywords recovered per RUN — multi-word
   // chips survive intact.
   it('recovers a group name + chip row as one named group with per-chip keywords', () => {
-    const out = parseSkills([proseLine('Languages', 9.8, 0), chipLine(['TypeScript', 'Go', 'Python', 'SQL', 'Rust'], 8.8, 12)])
+    const out = parseSkills([
+      proseLine('Languages', 9.8, 0),
+      chipLine(['TypeScript', 'Go', 'Python', 'SQL', 'Rust'], 8.8, 12),
+    ])
     expect(out).toHaveLength(1)
     expect(out[0].name).toBe('Languages')
     expect(out[0].keywords).toEqual(['TypeScript', 'Go', 'Python', 'SQL', 'Rust'])
