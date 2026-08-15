@@ -95,7 +95,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 ### 📄 Import & Export
 - **Import an existing PDF résumé** — drop in a PDF and CVAurum reconstructs it into editable, structured sections (contact, experience, education, skills…) **entirely in your browser — nothing is uploaded.** Text-based PDFs work best; scanned / image-only PDFs are read with **on-device OCR** (self-hosted [Tesseract](https://github.com/naptha/tesseract.js), no cloud). Always give the result a quick review.
-- **One-click PDF export** via the browser's native "Save as PDF" of a dedicated print route — **selectable, ATS-parseable text** (not a rasterized image), pixel-identical to the preview.
+- **One-click PDF export** from CVAurum's own in-browser vector engine — **selectable, ATS-exact text** (not a rasterized image), verified pixel-faithful to the preview on every template, ~50 KB files, automatic print fallback.
 - **Word (.docx) export** — a clean, single-column, **ATS-friendly** Word document with real bullet lists, preserved bold, and your template's accent color and fonts. Generated entirely in your browser; nothing is uploaded.
 - **Import & export JSON Resume files** — built on the [JSON Resume schema](https://jsonresume.org/schema) so your data round-trips with the wider ecosystem.
 
@@ -184,9 +184,11 @@ CVAurum also speaks the **[JSON Resume schema](https://jsonresume.org/schema)**,
 Imports are validated with **Zod**, so bringing in a file is safe and predictable.
 
 ### PDF Export
-CVAurum exports via your browser's **native "Save as PDF"** on a dedicated print route, producing **real selectable text** that ATS systems can parse — not a flattened image. The output is pixel-identical to your live preview.
+CVAurum generates your PDF **directly in the browser with its own vector rendering engine** — one click, no print dialog, nothing uploaded. The export is true vector output: **real selectable text that round-trips exactly** through ATS parsers (verified across every template against the on-screen preview and against parser-view extraction), icons and accents as sharp vectors at any zoom, photos at original quality, and compact file sizes (~50 KB typical).
 
-> **💡 PDF export tip:** In the browser's print dialog, set **Margins** to **None** (or **Default**) and enable **Background graphics**. This ensures your template's colors, accents, and spacing render exactly as they appear in the preview.
+Every export is validated by an automated gate before a template ships: the text layer must match the preview **exactly**, the reading order must be what a recruiter's parser expects, and the pixels must match the screen at least as faithfully as the browser's own print output.
+
+> **💡 Note:** if PDF generation ever fails in your browser, CVAurum automatically falls back to the classic print dialog so you can always export. In that dialog, set **Margins** to **None** and enable **Background graphics**.
 
 ---
 
