@@ -545,6 +545,27 @@
    PAINT over the track in this rendering path — position:absolute paints
    correctly, verified the same way.) */
 .rm-level { display: flex; align-items: center; gap: 8px; }
+/* Meter-row labels (.rm-mini-title in Languages, .rm-skill-group-name in
+   Skills) carry an inline minWidth:40%/45% (sections.tsx) purely to align the
+   meter across rows of different label lengths — it is a FLOOR, not a target.
+   .rm-col-aside sets overflow-wrap:break-word for long content elsewhere
+   (job titles, links) and that inherits straight down into these labels; when
+   flex-shrink (default 1) squeezes a label below its own min-width floor for
+   a long single word ("Portuguese"), break-word lets the browser split the
+   WORD itself to fit the shrunk box — corrupting extracted text ("Portugue"
+   + "se" on two lines). flex-shrink:0 stops the shrink at the label's natural
+   content width instead (the alignment floor still applies when content is
+   shorter, e.g. "English"); the meter — already capped/shrinkable on its own
+   (.rm-level-track, .rm-dots, .rm-stars) — absorbs the row's slack instead.
+   overflow-wrap/word-break:normal is kept as a second, independent guard: any
+   future layout that still runs a label out of room wraps on a WORD boundary
+   (or overflows) rather than ever slicing a word in two. */
+.rm-level .rm-mini-title,
+.rm-level .rm-skill-group-name {
+  flex-shrink: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
 /* Capped, not flex:1 — a bar meter is a compact scale marker beside the label,
    same footprint class as the dot/star meters below, not a divider that
    stretches to fill whatever room the row has (was rendering full-row-wide). */
