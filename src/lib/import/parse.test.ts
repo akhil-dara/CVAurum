@@ -4,16 +4,16 @@ import type { Line } from './layoutGraph'
 
 // Minimal Line factory — only the fields parseSimpleList reads (text, bold)
 // carry meaning here; the geometry fields are inert placeholders.
-const line = (text: string, bold: boolean, height = 12): Line => ({
+const line = (text: string, bold: boolean, height = 12, top = 0, page = 1): Line => ({
   text,
   items: [],
   x: 0,
   right: 100,
-  top: 0,
+  top,
   height,
   bold,
   upper: false,
-  page: 1,
+  page,
   col: 0,
 })
 
@@ -94,5 +94,82 @@ describe('parseSimpleList certificates — name/issuer pairing (2026-08-16)', ()
       'certificates'
     ) as { name: string }[]
     expect(out.map((c) => c.name)).toEqual(['Cert A', 'Cert B', 'Cert C'])
+  })
+})
+
+describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', () => {
+  // One award used to import as THREE (title, awarder, summary each their
+  // own award — live-measured on classic: title h9.6, awarder h8.83,
+  // summary h9.6, so prominence ALONE cannot classify the summary line).
+  // Awards therefore cluster by vertical gap first (itemGap between awards
+  // is far larger than line spacing within one), then assign roles inside
+  // each cluster: first line = title; a visibly less prominent short line
+  // = awarder; everything else joins the summary.
+  it('imports title + awarder + summary as ONE award (native heights, gap-clustered)', () => {
+    const out = parseSimpleList(
+      [
+        line('Engineering Excellence Award 2023', false, 9.6, 0),
+        line('Vertex Labs', false, 8.83, 12),
+        line('Top 2% of engineering org for impact and leadership.', false, 9.6, 24),
+      ],
+      'awards',
+      12
+    ) as { title: string; awarder: string; summary: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].title).toBe('Engineering Excellence Award 2023')
+    expect(out[0].awarder).toBe('Vertex Labs')
+    expect(out[0].summary).toBe('Top 2% of engineering org for impact and leadership.')
+  })
+
+  it('splits two awards at the itemGap boundary', () => {
+    const out = parseSimpleList(
+      [
+        line('Award A', false, 9.6, 0),
+        line('Issuer A', false, 8.83, 12),
+        line('Award B', false, 9.6, 42),
+        line('Issuer B', false, 8.83, 54),
+      ],
+      'awards',
+      12
+    ) as { title: string; awarder: string }[]
+    expect(out.map((a) => a.title)).toEqual(['Award A', 'Award B'])
+    expect(out.map((a) => a.awarder)).toEqual(['Issuer A', 'Issuer B'])
+  })
+
+  it('keeps a flat unstyled tight list one award per line', () => {
+    const out = parseSimpleList(
+      [
+        line("Dean's List", false, 9.6, 0),
+        line('Hackathon Winner 2021', false, 9.6, 12),
+        line('Best Paper Award', false, 9.6, 24),
+      ],
+      'awards',
+      12
+    ) as { title: string }[]
+    expect(out.map((a) => a.title)).toEqual(["Dean's List", 'Hackathon Winner 2021', 'Best Paper Award'])
+  })
+
+  it('bold title with same-height plain awarder and summary still groups (print-style)', () => {
+    const out = parseSimpleList(
+      [
+        line('Award A', true, 9.6, 0),
+        line('Vertex Labs', false, 9.6, 12),
+        line('Recognized for sustained excellence across releases.', false, 9.6, 24),
+      ],
+      'awards',
+      12
+    ) as { title: string; awarder: string; summary: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].awarder).toBe('Vertex Labs')
+    expect(out[0].summary).toBe('Recognized for sustained excellence across releases.')
+  })
+
+  it('a page break between clusters starts a new award (multi-page sections)', () => {
+    const out = parseSimpleList(
+      [line('Award A', false, 9.6, 900, 1), line('Award B', false, 9.6, 40, 2)],
+      'awards',
+      12
+    ) as { title: string }[]
+    expect(out.map((a) => a.title)).toEqual(['Award A', 'Award B'])
   })
 })

@@ -642,7 +642,14 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
   }).filter((p) => p.name)
 }
 
-export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awards' | 'interests') {
+/** A line reads as visibly LESS prominent than the line that started its
+ *  entry when it lost the bold or lost >0.5px of height — dual signal
+ *  because print/real PDFs bake weight into embedded font names (bold flag
+ *  works) while native exports normalize names (bold flag is blind) but
+ *  render secondary lines smaller. */
+const lessProminentThan = (l: Line, start: Line) => !l.bold && (start.bold || l.height < start.height - 0.5)
+
+export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awards' | 'interests', lineGap = 12) {
   const text = lines.map((l) => stripBullet(l.text)).filter(Boolean)
   if (key === 'languages') {
     return text.flatMap((t) => t.split(/[,;|]/)).map((s) => s.trim()).filter(Boolean).map((language) => ({ id: uid(), language: language.replace(/\s*\(.*\)$/, '').trim(), fluency: (language.match(/\(([^)]+)\)/)?.[1] || '').trim() }))
@@ -664,18 +671,17 @@ export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates'
     // 9.6 vs 8.8 on classic. A flat unstyled list (all same height, no
     // bold) stays one cert per line, jitter under 0.5px ignored.
     const src = lines.filter((l) => stripBullet(l.text))
-    // A line reads as an ISSUER when it is visibly less prominent than the
-    // line that STARTED the current cert: it lost the bold, or it lost
-    // >0.5px of height. Comparing against the cert's own start line (not a
-    // section-wide max) keeps a bold name + same-height plain issuer
-    // pairing (print/real PDFs) without merging flat unstyled lists.
-    const lessProminent = (l: Line, start: Line) => !l.bold && (start.bold || l.height < start.height - 0.5)
+    // A line pairs as ISSUER when it is visibly less prominent (see
+    // lessProminentThan) than the line that STARTED the current cert.
+    // Comparing against the cert's own start line (not a section-wide max)
+    // keeps a bold name + same-height plain issuer pairing (print/real
+    // PDFs) without merging flat unstyled lists.
     const out: { id: string; name: string; issuer: string; date: string; url: string }[] = []
     let startLine: Line | null = null
     for (const l of src) {
       const t = stripBullet(l.text)
       const prev = out[out.length - 1]
-      if (prev && !prev.issuer && startLine && lessProminent(l, startLine)) {
+      if (prev && !prev.issuer && startLine && lessProminentThan(l, startLine)) {
         prev.issuer = t
       } else {
         out.push({ id: uid(), name: t, issuer: '', date: '', url: '' })
@@ -684,7 +690,49 @@ export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates'
     }
     return out
   }
-  return text.map((title) => ({ id: uid(), title, awarder: '', date: '', summary: '' })) // awards
+  // awards (2026-08-16): one award used to import as THREE — its title,
+  // awarder, and summary lines each became an award. Prominence alone
+  // cannot fix it (live-measured on classic: title h9.6, awarder h8.83,
+  // summary h9.6 — summary matches the title), so awards group by
+  // VERTICAL GAP first (the itemGap between awards is far larger than the
+  // line spacing inside one; same `lineGap * 1.8` rule the work parser's
+  // fallback uses, new cluster on page/column change since gap can't be
+  // measured across), then assign roles inside each cluster: first line =
+  // title, a less prominent line of issuer-ish length = awarder,
+  // everything else joins the summary. A cluster with NO prominence
+  // structure (flat unstyled list) stays one award per line.
+  const src = lines.filter((l) => stripBullet(l.text))
+  const clusters: Line[][] = []
+  let cur: Line[] = []
+  for (let i = 0; i < src.length; i++) {
+    const l = src[i]
+    const prev = src[i - 1]
+    const sameStream = prev && l.page === prev.page && l.col === prev.col
+    const bigGap = sameStream && l.top - prev.top > lineGap * 1.8
+    if (cur.length && (bigGap || !sameStream)) {
+      clusters.push(cur)
+      cur = []
+    }
+    cur.push(l)
+  }
+  if (cur.length) clusters.push(cur)
+  const awards: { id: string; title: string; awarder: string; date: string; summary: string }[] = []
+  for (const cl of clusters) {
+    const [first, ...rest] = cl
+    const structured = rest.some((l) => lessProminentThan(l, first))
+    if (!structured && rest.length) {
+      for (const l of cl) awards.push({ id: uid(), title: stripBullet(l.text), awarder: '', date: '', summary: '' })
+      continue
+    }
+    const award = { id: uid(), title: stripBullet(first.text), awarder: '', date: '', summary: '' }
+    for (const l of rest) {
+      const t = stripBullet(l.text)
+      if (!award.awarder && lessProminentThan(l, first) && t.length <= 60) award.awarder = t
+      else award.summary = award.summary ? `${award.summary} ${t}` : t
+    }
+    awards.push(award)
+  }
+  return awards
 }
 
 /* ------------------------------------------------------------------ assemble */
@@ -733,7 +781,7 @@ export function parseLayout(g: LayoutGraph): ImportResult {
         content.certificates.push(...(parseSimpleList(lines, 'certificates') as ResumeContent['certificates']))
         break
       case 'awards':
-        content.awards.push(...(parseSimpleList(lines, 'awards') as ResumeContent['awards']))
+        content.awards.push(...(parseSimpleList(lines, 'awards', g.lineGap) as ResumeContent['awards']))
         break
       case 'interests':
         content.interests.push(...(parseSimpleList(lines, 'interests') as ResumeContent['interests']))
