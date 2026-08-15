@@ -64,13 +64,19 @@ const startsAllCaps = (t: string): boolean => /^[A-Z][A-Z][A-Z &/,'’-]+/.test(
  * trailing text and headings on PDFs where pdf.js loses the bold flag).
  * Names, job titles and company names (no leading keyword) stay as content.
  */
-function headingKey(line: Line, g: LayoutGraph): string | null {
+function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false): string | null {
   const t = line.text.replace(/[:•·]\s*$/, '').trim()
   if (/@|https?:|\.com\b/.test(t)) return null // contact lines aren't headings
   const words = t.split(/\s+/)
+  const styled = line.upper || line.bold || line.height >= g.bodySize * 1.14
   // Tier 0 — the line is essentially JUST a section name (a plain heading), so
-  // accept it even when pdf.js gives no bold flag and it isn't all-caps.
-  if (words.length <= 3 && !/\d/.test(t)) {
+  // accept it even when pdf.js gives no bold flag and it isn't all-caps —
+  // UNLESS this document has already shown styled headings (2026-08-16):
+  // then a plain-case line matching a section phrase is body content, not a
+  // heading. aurum's plain "Languages" skill-GROUP label used to match here
+  // and split the skills section, importing every chip row as a bogus
+  // language ("TypeScript Go Python SQL Rust") and skills as [].
+  if (words.length <= 3 && !/\d/.test(t) && (styled || !styledHeadingSeen)) {
     for (const { key, re } of HEAD_PHRASES) {
       if (re.test(t) && t.replace(re, '').replace(/[^a-z]/gi, '').length <= 6) return key
     }
@@ -87,12 +93,17 @@ function headingKey(line: Line, g: LayoutGraph): string | null {
   return null
 }
 
-function splitSections(g: LayoutGraph): Section[] {
+export function splitSections(g: LayoutGraph): Section[] {
   const sections: Section[] = [{ key: 'header', title: '', lines: [] }]
+  let styledHeadingSeen = false
   for (const line of g.lines) {
-    const key = headingKey(line, g)
-    if (key) sections.push({ key, title: line.text.replace(/[:\s]+$/, ''), lines: [] })
-    else sections[sections.length - 1].lines.push(line)
+    const key = headingKey(line, g, styledHeadingSeen)
+    if (key) {
+      sections.push({ key, title: line.text.replace(/[:\s]+$/, ''), lines: [] })
+      if (line.upper || line.bold || line.height >= g.bodySize * 1.14) styledHeadingSeen = true
+    } else {
+      sections[sections.length - 1].lines.push(line)
+    }
   }
   return sections
 }
@@ -573,7 +584,7 @@ function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education
   }).filter((e) => e.institution || e.area)
 }
 
-function parseSkills(lines: Line[]): ResumeContent['skills'] {
+export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   // Dedupe (case-insensitive), drop junk/sentence-length entries, and cap per
   // group — some ATS-stuffed résumés list hundreds of comma-separated keywords.
   const clean = (arr: string[]): string[] => {
@@ -603,18 +614,51 @@ function parseSkills(lines: Line[]): ResumeContent['skills'] {
     if (/[,;|•·]/.test(s)) return true // a delimited keyword list (incl. stuffed)
     return words.length <= 4 // a lone short term is plausibly one skill
   }
+  // Chip rows (2026-08-16 — aurum/obsidian imported skills: [] while every
+  // chip sat intact in the layout graph): designed templates render a group
+  // name over a row of chips, which extracts as ONE space-separated line
+  // the keyword-list test above rightly rejects (no delimiters, >4 words).
+  // The chips are still recoverable EXACTLY, because each chip is its own
+  // text RUN: >=2 items with every inter-run gap >= 3pt (chip padding,
+  // measured ~13pt; style-split prose runs abut at ~0). Keywords come from
+  // the runs — multi-word chips survive whole. A 1-3-word plain line
+  // directly above a chip row is that group's NAME (held one line; if no
+  // chip row follows it falls through to the loose pile as before).
+  const isChipRow = (l: Line): boolean => {
+    if (!l.items || l.items.length < 2) return false
+    for (let i = 1; i < l.items.length; i++) {
+      const gapPt = l.items[i].x - (l.items[i - 1].x + l.items[i - 1].width)
+      if (gapPt < 3) return false
+    }
+    return true
+  }
+  const groupNameish = (t: string): boolean =>
+    !!t && t.length <= 30 && !/[,;|•·:]/.test(t) && !/[.!?]$/.test(t) && t.split(/\s+/).length <= 3
   const groups: ResumeContent['skills'] = []
   const loose: string[] = []
+  let pendingName: string | null = null
   for (const line of lines) {
     const t = stripBullet(line.text)
     const m = t.match(/^([A-Za-z][A-Za-z /&+#.-]{1,28}):\s*(.+)$/)
     if (m) {
+      if (pendingName) loose.push(pendingName)
+      pendingName = null
       const keywords = clean(m[2].split(/[,;|•·]/))
       if (keywords.length) groups.push({ id: uid(), name: m[1].trim(), level: '', keywords })
-    } else if (looksLikeSkillList(t)) {
-      loose.push(...t.split(/[,;|•·]/))
+    } else if (isChipRow(line)) {
+      const keywords = clean(line.items.map((it) => it.str))
+      if (keywords.length) groups.push({ id: uid(), name: pendingName ?? '', level: '', keywords })
+      pendingName = null
+    } else if (groupNameish(t)) {
+      if (pendingName) loose.push(pendingName)
+      pendingName = t
+    } else {
+      if (pendingName) loose.push(pendingName)
+      pendingName = null
+      if (looksLikeSkillList(t)) loose.push(...t.split(/[,;|•·]/))
     }
   }
+  if (pendingName) loose.push(pendingName)
   const looseClean = clean(loose)
   if (looseClean.length) groups.push({ id: uid(), name: groups.length ? 'Additional' : 'Skills', level: '', keywords: looseClean })
   return groups.slice(0, 12)

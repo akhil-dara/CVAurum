@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { parseSimpleList } from './parse'
-import type { Line } from './layoutGraph'
+import { parseSimpleList, parseSkills, splitSections } from './parse'
+import type { Item, LayoutGraph, Line } from './layoutGraph'
 
 // Minimal Line factory — only the fields parseSimpleList reads (text, bold)
 // carry meaning here; the geometry fields are inert placeholders.
@@ -171,5 +171,115 @@ describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', ()
       12
     ) as { title: string }[]
     expect(out.map((a) => a.title)).toEqual(['Award A', 'Award B'])
+  })
+})
+
+// Items positioned with CHIP-row spacing: each token its own text run with
+// a large inter-run gap (chip padding, measured ~13pt on aurum vs ~0 for
+// style-split prose runs).
+const chipItems = (tokens: string[], gap = 13): Item[] => {
+  let x = 40
+  return tokens.map((str) => {
+    const width = str.length * 4
+    const it: Item = { str, x, top: 0, width, height: 8.8, bold: false, page: 1, col: 0 }
+    x += width + gap
+    return it
+  })
+}
+const chipLine = (tokens: string[], height = 8.8, top = 0): Line => ({
+  ...line(tokens.join(' '), false, height, top),
+  items: chipItems(tokens),
+})
+const proseLine = (text: string, height = 9.8, top = 0): Line => {
+  // one continuous run — the common extraction shape for prose
+  const l = line(text, false, height, top)
+  l.items = [{ str: text, x: 40, top, width: text.length * 4, height, bold: false, page: 1, col: 0 }]
+  return l
+}
+
+describe('parseSkills — chip rows and group-name pairing (2026-08-16)', () => {
+  // Designed templates render skills as a group-name line over a row of
+  // chips; the chips extract as ONE space-separated line that the old
+  // keyword-list test rejected (no commas, >4 words), so aurum/obsidian
+  // imported skills: [] while the layout graph held every chip as its own
+  // text run. Chip rows are recognized by their item geometry (>=2 runs,
+  // every inter-run gap >= 3pt) and keywords recovered per RUN — multi-word
+  // chips survive intact.
+  it('recovers a group name + chip row as one named group with per-chip keywords', () => {
+    const out = parseSkills([proseLine('Languages', 9.8, 0), chipLine(['TypeScript', 'Go', 'Python', 'SQL', 'Rust'], 8.8, 12)])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('Languages')
+    expect(out[0].keywords).toEqual(['TypeScript', 'Go', 'Python', 'SQL', 'Rust'])
+  })
+
+  it('keeps multi-word chips whole (per-run, not per-space)', () => {
+    const out = parseSkills([proseLine('Cloud', 9.8, 0), chipLine(['Google Cloud', 'CI/CD', 'AWS'], 8.8, 12)])
+    expect(out[0].keywords).toEqual(['Google Cloud', 'CI/CD', 'AWS'])
+  })
+
+  it('a chip row with no preceding group name becomes an unnamed group', () => {
+    const out = parseSkills([chipLine(['React', 'Vue', 'Svelte'], 8.8, 0)])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('')
+    expect(out[0].keywords).toEqual(['React', 'Vue', 'Svelte'])
+  })
+
+  it('still parses colon-style lines (harvard) exactly as before', () => {
+    const out = parseSkills([proseLine('Languages: TypeScript, Go, Python', 9.8, 0)])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('Languages')
+    expect(out[0].keywords).toEqual(['TypeScript', 'Go', 'Python'])
+  })
+
+  it('does not treat a prose sentence as chips', () => {
+    const out = parseSkills([proseLine('Built reliable systems for high scale platforms over eight years.', 9.8, 0)])
+    expect(out).toHaveLength(0)
+  })
+})
+
+const graph = (lines: Line[]): LayoutGraph => ({
+  lines,
+  bodySize: 9.8,
+  lineGap: 12,
+  pageCount: 1,
+  charCount: lines.reduce((n, l) => n + l.text.length, 0),
+  twoColumn: false,
+  ocrPages: [],
+  ocrEngineFailed: false,
+})
+const upperLine = (text: string, height = 9): Line => ({ ...line(text, false, height), upper: true })
+
+describe('splitSections — plain group labels vs Tier-0 headings (2026-08-16)', () => {
+  // aurum imported skills as [] and languages TWICE: the plain-case group
+  // label "Languages" inside the skills section matched Tier 0 (phrase-only,
+  // zero style requirement) and split the section, swallowing every chip
+  // row into a bogus languages section. Once a document has shown STYLED
+  // headings (caps/bold/oversize), a plain line no longer qualifies for
+  // Tier 0; documents whose headings are all plain (real-world PDFs with no
+  // surviving style) keep the lenient behavior.
+  it('does not split a styled-heading document at a plain group label', () => {
+    const secs = splitSections(
+      graph([
+        upperLine('SKILLS'),
+        proseLine('Languages', 9.8),
+        chipLine(['TypeScript', 'Go', 'Python'], 8.8),
+        upperLine('LANGUAGES'),
+        proseLine('English Native', 9.8),
+      ])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'skills', 'languages'])
+    expect(secs[1].lines.map((l) => l.text)).toEqual(['Languages', 'TypeScript Go Python'])
+  })
+
+  it('still accepts plain headings when the document has no styled ones', () => {
+    const secs = splitSections(
+      graph([
+        proseLine('Experience', 9.8),
+        proseLine('Engineer at Vertex Labs doing platform work', 9.8),
+        proseLine('Languages', 9.8),
+        proseLine('English, Spanish', 9.8),
+      ])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'work', 'languages'])
   })
 })
