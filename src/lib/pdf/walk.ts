@@ -756,11 +756,132 @@ export function svgShapeToPathD(tag: string, attr: (name: string) => string | nu
         w = num('width'),
         h = num('height')
       if (w <= 0 || h <= 0) return null
-      return `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`
+      // rx/ry per SVG: either sets both, clamped to half the box (lucide's
+      // Briefcase body is rx=2 — flattening it to sharp corners visibly
+      // diverged from the browser at icon scale, user-reported 2026-08-16)
+      const rxAttr = attr('rx'),
+        ryAttr = attr('ry')
+      let rx = rxAttr !== null ? Number(rxAttr) : ryAttr !== null ? Number(ryAttr) : 0
+      let ry = ryAttr !== null ? Number(ryAttr) : rx
+      if (!Number.isFinite(rx) || rx < 0) rx = 0
+      if (!Number.isFinite(ry) || ry < 0) ry = 0
+      rx = Math.min(rx, w / 2)
+      ry = Math.min(ry, h / 2)
+      if (rx <= 0 || ry <= 0) return `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`
+      return (
+        `M ${x + rx} ${y} L ${x + w - rx} ${y} A ${rx} ${ry} 0 0 1 ${x + w} ${y + ry} ` +
+        `L ${x + w} ${y + h - ry} A ${rx} ${ry} 0 0 1 ${x + w - rx} ${y + h} ` +
+        `L ${x + rx} ${y + h} A ${rx} ${ry} 0 0 1 ${x} ${y + h - ry} ` +
+        `L ${x} ${y + ry} A ${rx} ${ry} 0 0 1 ${x + rx} ${y} Z`
+      )
     }
     default:
       return null
   }
+}
+
+/**
+ * Makes one shape child's `d` safe for concatenation into a combined path
+ * (user-reported icon corruption, 2026-08-16). Per the SVG spec, a path
+ * whose `d` STARTS with a lowercase `m x y` is an ABSOLUTE moveto (there is
+ * no previous point to be relative to) — but `svgIconOps` below joins every
+ * child's `d` into one string, and in that combined path the same `m`
+ * becomes RELATIVE to the previous child's endpoint, displacing the whole
+ * shape (the languages icon scrambled; badge-check's check stroke drifted
+ * off its seal). The rewrite: leading `m x y` -> `M x y`, and — the trap a
+ * naive case-flip falls into — any bare coordinate pairs that FOLLOW the
+ * leading pair (implicit linetos, which stay RELATIVE after a moveto of
+ * either case) become an explicit `l` run so their meaning survives the `M`.
+ * Uppercase-M paths and every other command are returned verbatim; a
+ * malformed leading run (fewer than 2 numbers) is returned verbatim rather
+ * than guessed at. Exported for direct unit testing.
+ */
+export function absolutizeLeadingMoveto(d: string): string {
+  const lead = /^\s*m[\s,]*/.exec(d)
+  if (!lead) return d
+  let i = lead[0].length
+  const numRe = /[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/y
+  const nums: string[] = []
+  for (;;) {
+    while (i < d.length && /[\s,]/.test(d[i])) i++
+    numRe.lastIndex = i
+    const t = numRe.exec(d)
+    if (!t) break
+    nums.push(t[0])
+    i = numRe.lastIndex
+  }
+  if (nums.length < 2) return d
+  const rest = d.slice(i).trim()
+  const tailPairs = nums.slice(2)
+  const tail = tailPairs.length ? ` l ${tailPairs.map((n) => String(Number(n))).join(' ')}` : ''
+  const head = `M ${Number(nums[0])} ${Number(nums[1])}`
+  return rest ? `${head}${tail} ${rest}` : `${head}${tail}`
+}
+
+/**
+ * Re-emits every arc (a/A) argument group in `d` with explicit separators
+ * (user-reported icon corruption, 2026-08-16). SVG's grammar allows the two
+ * single-digit arc FLAGS to pack against the next number with no separator
+ * (`a18.15 18.15 0 0 1-20 0` = large-arc 0, sweep 1, x -20) — briefcase-
+ * business's lid swoop ships exactly that form, and pdf-lib's drawSvgPath
+ * lexer mis-reads it (generic number parsing consumes `1-20`-adjacent
+ * digits wrong) and drops the arc. Flag positions are lexed as what they
+ * ARE — one mandatory 0/1 digit each — and each 7-value group re-emitted
+ * space-separated; everything outside a/A argument runs is copied verbatim.
+ * Exported for direct unit testing.
+ */
+export function expandArcFlags(d: string): string {
+  const numRe = /[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/y
+  let out = ''
+  let i = 0
+  const skipSep = () => {
+    while (i < d.length && /[\s,]/.test(d[i])) i++
+  }
+  const readNum = (): string | null => {
+    skipSep()
+    numRe.lastIndex = i
+    const t = numRe.exec(d)
+    if (!t) return null
+    i = numRe.lastIndex
+    return t[0]
+  }
+  const readFlag = (): string | null => {
+    skipSep()
+    if (d[i] === '0' || d[i] === '1') {
+      const f = d[i]
+      i++
+      return f
+    }
+    return null
+  }
+  while (i < d.length) {
+    const c = d[i]
+    if (c === 'a' || c === 'A') {
+      out += c
+      i++
+      for (;;) {
+        const save = i
+        const rx = readNum()
+        if (rx === null) break
+        const ry = readNum()
+        const rot = readNum()
+        const f1 = readFlag()
+        const f2 = readFlag()
+        const x = readNum()
+        const y = readNum()
+        if (ry === null || rot === null || f1 === null || f2 === null || x === null || y === null) {
+          // malformed group: emit the rest verbatim rather than guessing
+          i = save
+          break
+        }
+        out += ` ${rx} ${ry} ${rot} ${f1} ${f2} ${Number(x)} ${Number(y)}`
+      }
+    } else {
+      out += c
+      i++
+    }
+  }
+  return out
 }
 
 const SVG_SHAPE_TAGS = new Set(['path', 'line', 'polyline', 'polygon', 'circle', 'rect'])
@@ -806,7 +927,7 @@ function svgIconOps(svg: Element, root: HTMLElement, ops: DrawOp[]): void {
     const tag = child.tagName.toLowerCase()
     if (SVG_SHAPE_TAGS.has(tag)) {
       const d = svgShapeToPathD(tag, (name) => child.getAttribute(name))
-      if (d) dParts.push(d)
+      if (d) dParts.push(absolutizeLeadingMoveto(expandArcFlags(d)))
       else if (import.meta.env.DEV)
         console.warn(`[pdf] inline <svg> <${tag}> has no usable geometry, skipping shape`, child)
     } else if (!SVG_STRUCTURAL_TAGS.has(tag)) {

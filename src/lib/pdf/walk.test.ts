@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import {
+  absolutizeLeadingMoveto,
+  expandArcFlags,
   parseLinearGradient,
   pseudoContentText,
   svgShapeToPathD,
@@ -70,6 +72,61 @@ describe('parseLinearGradient', () => {
   })
 })
 
+describe('absolutizeLeadingMoveto (user-reported icon corruption, 2026-08-16)', () => {
+  // svgIconOps joins every child shape's `d` into ONE path string. A lucide
+  // child <path> whose `d` STARTS with a lowercase `m` is absolute at the
+  // start of its own path (SVG spec) but RELATIVE when concatenated after
+  // another subpath's endpoint — the languages icon scrambled and the
+  // badge-check lost its check exactly this way. The helper rewrites the
+  // leading `m x y` to `M x y` and — the trap — any following bare pairs
+  // (implicit RELATIVE linetos after a moveto) to an explicit `l` run, so
+  // the child means the same thing standalone or concatenated.
+  it('rewrites a leading lowercase moveto with implicit linetos (languages icon stroke)', () => {
+    expect(absolutizeLeadingMoveto('m4 14 6-6 2-3')).toBe('M 4 14 l 6 -6 2 -3')
+  })
+  it("rewrites badge-check's check stroke", () => {
+    expect(absolutizeLeadingMoveto('m9 12 2 2 4-4')).toBe('M 9 12 l 2 2 4 -4')
+  })
+  it('rewrites a bare relative moveto with no implicit linetos', () => {
+    expect(absolutizeLeadingMoveto('m5 8 6 6')).toBe('M 5 8 l 6 6')
+  })
+  it('keeps following explicit commands untouched', () => {
+    expect(absolutizeLeadingMoveto('m22 22-5-10-5 10h10z')).toBe('M 22 22 l -5 -10 -5 10 h10z')
+  })
+  it('returns an uppercase-M path verbatim', () => {
+    const d = 'M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16'
+    expect(absolutizeLeadingMoveto(d)).toBe(d)
+  })
+  it('returns a malformed path (single coordinate) verbatim rather than guessing', () => {
+    expect(absolutizeLeadingMoveto('m5')).toBe('m5')
+  })
+})
+
+describe('expandArcFlags (user-reported icon corruption, 2026-08-16)', () => {
+  // SVG's path grammar lets arc commands pack their two single-digit flags
+  // against the following number with NO separator (briefcase-business's lid
+  // swoop: `a18.15 18.15 0 0 1-20 0` — large-arc 0, sweep 1, then x=-20).
+  // pdf-lib's drawSvgPath lexer mis-reads that packed form and drops the
+  // arc. The helper re-emits every a/A argument group with explicit spaces,
+  // flag-aware (flags are ALWAYS one 0/1 digit, never a longer number).
+  it("expands briefcase-business's packed lid swoop", () => {
+    expect(expandArcFlags('M22 13a18.15 18.15 0 0 1-20 0')).toBe('M22 13a 18.15 18.15 0 0 1 -20 0')
+  })
+  it('expands fully-glued flags (both flags and x packed together)', () => {
+    expect(expandArcFlags('a1.5 1.5 0 011.5-1.5')).toBe('a 1.5 1.5 0 0 1 1.5 -1.5')
+  })
+  it('handles repeated arc groups after one command letter', () => {
+    expect(expandArcFlags('a2 2 0 01 2 2 2 2 0 10-2 2')).toBe('a 2 2 0 0 1 2 2 2 2 0 1 0 -2 2')
+  })
+  it('leaves non-arc commands untouched, including numbers containing 0/1', () => {
+    const d = 'M 6 8 L 21 6 h.01 v10 Z'
+    expect(expandArcFlags(d)).toBe(d)
+  })
+  it('leaves an already-separated arc semantically identical', () => {
+    expect(expandArcFlags('a 6 6 0 1 0 12 0')).toBe('a 6 6 0 1 0 12 0')
+  })
+})
+
 describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
   // attr() closures below mirror reading Element.getAttribute(name): missing
   // attributes return null, exactly like the DOM does — svgIconOps passes
@@ -113,8 +170,13 @@ describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
     expect(svgShapeToPathD('circle', attrs({ cx: '12', cy: '8', r: '0' }))).toBeNull()
   })
 
-  it("converts a rect to a plain M/L/Z rectangle, ignoring rx (Briefcase's body)", () => {
+  it("converts a rounded rect to arc corners (Briefcase's rx=2 body — sharp corners visibly diverged)", () => {
     expect(svgShapeToPathD('rect', attrs({ x: '2', y: '6', width: '20', height: '14', rx: '2' }))).toBe(
+      'M 4 6 L 20 6 A 2 2 0 0 1 22 8 L 22 18 A 2 2 0 0 1 20 20 L 4 20 A 2 2 0 0 1 2 18 L 2 8 A 2 2 0 0 1 4 6 Z'
+    )
+  })
+  it('converts a plain rect (no rx) to a sharp M/L/Z rectangle', () => {
+    expect(svgShapeToPathD('rect', attrs({ x: '2', y: '6', width: '20', height: '14' }))).toBe(
       'M 2 6 L 22 6 L 22 20 L 2 20 Z'
     )
   })
