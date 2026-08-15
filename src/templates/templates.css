@@ -1249,10 +1249,13 @@
 .rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-add-entry-row {
   padding-left: 1.25em;
 }
-/* entries with a logo/badge: shift the mark gutter past the rail + dot */
+/* entries with a logo/badge: shift the mark gutter past the rail + dot.
+   --rm-mark-width (not --rm-badge-size directly) so a 2-3 mark facepile's
+   extra width is still absorbed here too — see artboard.css's .rm-has-mark
+   rule, which sets --rm-mark-width on this same element. */
 .rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item.rm-has-mark {
   --rm-mark-left: 1.25em;
-  padding-left: calc(1.25em + var(--rm-badge-size, 1.65em) + 0.5em);
+  padding-left: calc(1.25em + var(--rm-mark-width, var(--rm-badge-size, 1.65em)) + 0.5em);
 }
 /* cards: each entry on its own soft card (adapts to light & dark pages) */
 .rm-root .rm-section.lay-ov-cards .rm-section-body > .rm-item {
@@ -1261,10 +1264,11 @@
   border-radius: 10px;
   padding: 0.65em 0.85em;
 }
-/* …and with a mark, the gutter starts inside the card's own padding */
+/* …and with a mark, the gutter starts inside the card's own padding
+   (--rm-mark-width, not --rm-badge-size — see the timeline rule above). */
 .rm-root .rm-section.lay-ov-cards .rm-section-body > .rm-item.rm-has-mark {
   --rm-mark-left: 0.85em;
-  padding-left: calc(0.85em + var(--rm-badge-size, 1.65em) + 0.5em);
+  padding-left: calc(0.85em + var(--rm-mark-width, var(--rm-badge-size, 1.65em)) + 0.5em);
 }
 /* grid: entries in two columns (great for certifications / awards / education) */
 .rm-root .rm-section.lay-ov-grid .rm-section-body {
