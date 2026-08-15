@@ -118,6 +118,35 @@ export function computeFirstPageUsablePageHeightPx(pageHeightPx: number, padding
 }
 
 /**
+ * True when `contentHeightPx` genuinely overflows a single page — the SAME
+ * gate `renderResumePdf` uses below to decide whether to paginate AT ALL,
+ * before ever calling `paginateOrThrow`. Trailing whitespace/rounding within
+ * one full margin's worth of vertical space does not count as real overflow
+ * (same tolerance PrintPage's print-CSS route relies on for a `@page`
+ * break), so a document landing exactly at, or a hair under, one page tall
+ * never spuriously triggers a second page. `marginMm` is `doc.metadata.page.
+ * margin` verbatim; this is the only place that converts it to px and adds
+ * it as tolerance ON TOP OF `pageHeightPx` — never subtracted the way a
+ * BUDGET (see `computeFirstPageUsablePageHeightPx` above) is.
+ *
+ * Task-6b final-fix (finding F1): ResumePreview.tsx's pagination-overlay
+ * effect used to gate on `contentHeightPx <= firstPageUsablePageHeightPx`
+ * (a BUDGET, `pageHeightPx - bottomPad`) instead of this — independently
+ * re-deriving a "does this need a second page" check that came out
+ * ~2 full margins STRICTER than this function (a budget subtracts the
+ * margin; this tolerance adds it), so a document landing in the ~2-margin
+ * gap between the two thresholds drew page-break chrome in the editor
+ * while the export correctly produced a single page. Exporting this ONE
+ * function (rather than leaving both call sites to re-derive `pageHeightPx
+ * +/- marginMm * MM_TO_PX` independently) is what keeps that divergence
+ * from silently reopening — both call sites below and in
+ * ResumePreview.tsx now call this, not their own copy of the arithmetic.
+ */
+export function exceedsOnePage(contentHeightPx: number, pageHeightPx: number, marginMm: number): boolean {
+  return contentHeightPx > pageHeightPx + marginMm * MM_TO_PX
+}
+
+/**
  * Runs `paginate()`, translating its ONLY throw (`PaginationImpossibleError`
  * — genuinely no legal break candidate exists anywhere) into the same
  * `PdfMultiPageUnsupportedError` the caller already throws for a document
@@ -213,9 +242,10 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     }
 
     // Same tolerance PrintPage uses: trailing whitespace/rounding within the
-    // bottom margin doesn't count as a real overflow.
-    const padPx = doc.metadata.page.margin * MM_TO_PX
-    const overflow = container.scrollHeight > pageHpx + padPx
+    // bottom margin doesn't count as a real overflow. Shared with
+    // ResumePreview.tsx's own pagination-overlay gate via `exceedsOnePage`
+    // (task-6b final-fix, finding F1) so the two can never silently diverge.
+    const overflow = exceedsOnePage(container.scrollHeight, pageHpx, doc.metadata.page.margin)
 
     const sheet = container.firstElementChild as HTMLElement
     // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only

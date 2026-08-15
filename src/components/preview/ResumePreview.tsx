@@ -52,7 +52,12 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
 import { extractPageBlocks, extractMainColumnBlocks } from '@/lib/pdf/walk'
 import { paginate, PaginationImpossibleError } from '@/lib/pdf/paginate'
-import { computeUsablePageHeightPx, computeFirstPageUsablePageHeightPx, findMainColumnPaddingPx } from '@/lib/pdf/render'
+import {
+  computeUsablePageHeightPx,
+  computeFirstPageUsablePageHeightPx,
+  findMainColumnPaddingPx,
+  exceedsOnePage,
+} from '@/lib/pdf/render'
 import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditSpace } from './pageChromeMap'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
@@ -327,7 +332,15 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       const usablePageHeightPx = computeUsablePageHeightPx(pageH, padding)
       const firstPageUsablePageHeightPx = computeFirstPageUsablePageHeightPx(pageH, padding)
       const contentHeightPx = printRoot.getBoundingClientRect().height
-      if (contentHeightPx <= firstPageUsablePageHeightPx) {
+      // Task-6b final-fix (finding F1): this used to gate on `contentHeightPx
+      // <= firstPageUsablePageHeightPx` -- a BUDGET (pageH - bottomPad), not
+      // the export's own OVERFLOW tolerance (pageH + marginPx) -- so a
+      // document landing in the ~2-margin gap between those two thresholds
+      // drew page-break chrome here while the export produced a single page.
+      // `exceedsOnePage` is the export's own gate (render.tsx), shared here
+      // so the two can never independently re-derive (and diverge on) this
+      // arithmetic again.
+      if (!exceedsOnePage(contentHeightPx, pageH, doc.metadata.page.margin)) {
         clearOverlay()
         return
       }

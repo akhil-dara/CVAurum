@@ -3,12 +3,14 @@ import {
   resolveDecoBoxesGlobal,
   verticalPaddingPx,
   computeUsablePageHeightPx,
+  exceedsOnePage,
   paginateOrThrow,
   PdfMultiPageUnsupportedError,
 } from './render'
 import { PaginationImpossibleError } from './paginate'
 import type { PageBlock } from './paginate'
 import type { DecoBox } from './types'
+import { MM_TO_PX } from '@/types/metadata'
 
 describe('resolveDecoBoxesGlobal (task 15 fix round — no stale capture data across renders)', () => {
   it('capturing true: resolves to exactly the boxes collected for this render', () => {
@@ -75,6 +77,54 @@ describe('computeUsablePageHeightPx', () => {
 
   it('returns the full page height unchanged when padding is zero', () => {
     expect(computeUsablePageHeightPx(1123, { topPx: 0, bottomPx: 0 })).toBe(1123)
+  })
+})
+
+describe('exceedsOnePage (task-6b final-fix, finding F1 — the ONE shared preview/export overflow gate)', () => {
+  // Pins the exact boundary render.tsx's own overflow check (renderResumePdf)
+  // and ResumePreview.tsx's pagination-overlay effect BOTH now call, so the
+  // two consumers can never silently re-derive (and diverge on) this
+  // arithmetic again. Before this fix, ResumePreview.tsx gated on a BUDGET
+  // (pageHeightPx - bottomPad) instead of this tolerance (pageHeightPx +
+  // marginPx) -- a ~2-margin gap in which the editor drew page-break chrome
+  // for a document the export correctly kept on one page.
+  const pageHeightPx = 1123
+  const marginMm = 12.7 // a real doc.metadata.page.margin value (0.5in)
+  const tolerancePx = marginMm * MM_TO_PX
+
+  it('content exactly at pageHeight + tolerance does NOT overflow (boundary is exclusive)', () => {
+    expect(exceedsOnePage(pageHeightPx + tolerancePx, pageHeightPx, marginMm)).toBe(false)
+  })
+
+  it('content one px UNDER pageHeight + tolerance does not overflow', () => {
+    expect(exceedsOnePage(pageHeightPx + tolerancePx - 1, pageHeightPx, marginMm)).toBe(false)
+  })
+
+  it('content one px OVER pageHeight + tolerance overflows', () => {
+    expect(exceedsOnePage(pageHeightPx + tolerancePx + 1, pageHeightPx, marginMm)).toBe(true)
+  })
+
+  it('content well under the page height never overflows', () => {
+    expect(exceedsOnePage(400, pageHeightPx, marginMm)).toBe(false)
+  })
+
+  it('content well past the tolerance always overflows', () => {
+    expect(exceedsOnePage(pageHeightPx * 2, pageHeightPx, marginMm)).toBe(true)
+  })
+
+  it('zero margin reduces the tolerance to plain pageHeight -- no free slack', () => {
+    expect(exceedsOnePage(pageHeightPx + 1, pageHeightPx, 0)).toBe(true)
+    expect(exceedsOnePage(pageHeightPx, pageHeightPx, 0)).toBe(false)
+  })
+
+  it('the ~96px divergence window from the live finding: content there used to paginate in the preview but not the export', () => {
+    // finding F1's own repro shape: a document landing between the OLD
+    // preview gate (pageHeightPx - bottomPad, roughly pageHeightPx -
+    // tolerancePx for a symmetric-padding doc) and the correct export gate
+    // (pageHeightPx + tolerancePx) -- exceedsOnePage must say "no overflow"
+    // for the whole window, since the export never paginates there.
+    const midOfOldDivergenceWindow = pageHeightPx - tolerancePx / 2
+    expect(exceedsOnePage(midOfOldDivergenceWindow, pageHeightPx, marginMm)).toBe(false)
   })
 })
 
