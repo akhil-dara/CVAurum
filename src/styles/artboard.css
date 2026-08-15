@@ -544,7 +544,15 @@
    correct CSSOM dimensions, but pixel-sampling showed it still fails to
    PAINT over the track in this rendering path — position:absolute paints
    correctly, verified the same way.) */
-.rm-level { display: flex; align-items: center; gap: 8px; }
+/* flex-wrap:wrap is the overflow escape valve for the nowrap label below: a
+   genuinely long single-line label (e.g. "Front-of-front-end", a real sample
+   skill group) plus a meter that's already shrunk to its own floor can still
+   jointly exceed the row's width in a narrow sidebar. Without wrap, the excess
+   has nowhere to go but past the row's own box — .rm-col-aside sets no
+   overflow:hidden, so it visually bled into the main column next to it. With
+   wrap, the METER drops to its own line below the label instead — the label
+   stays intact and one line (nowrap, below), nothing escapes the column. */
+.rm-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 /* Meter-row labels (.rm-mini-title in Languages, .rm-skill-group-name in
    Skills) carry an inline minWidth:40%/45% (sections.tsx) purely to align the
    meter across rows of different label lengths — it is a FLOOR, not a target.
@@ -559,12 +567,21 @@
    (.rm-level-track, .rm-dots, .rm-stars) — absorbs the row's slack instead.
    overflow-wrap/word-break:normal is kept as a second, independent guard: any
    future layout that still runs a label out of room wraps on a WORD boundary
-   (or overflows) rather than ever slicing a word in two. */
+   (or overflows) rather than ever slicing a word in two.
+   That guard alone still let a HYPHENATED multi-word label ("Front-of-front-end",
+   a real sample skill group) wrap across its hyphens — a browser default line-break
+   opportunity flex-shrink:0 does not touch, since flex-basis:auto sizes text items
+   via shrink-to-fit BEFORE the shrink step runs. Two stacked lines, dots meter
+   vertically centered between them, read as garbled overlap in a narrow sidebar.
+   white-space:nowrap forces the label onto one line unconditionally — it can only
+   ever overflow now (rare: a genuinely long category name), never wrap-and-crowd
+   the meter beside it. */
 .rm-level .rm-mini-title,
 .rm-level .rm-skill-group-name {
   flex-shrink: 0;
   overflow-wrap: normal;
   word-break: normal;
+  white-space: nowrap;
 }
 /* Capped, not flex:1 — a bar meter is a compact scale marker beside the label,
    same footprint class as the dot/star meters below, not a divider that

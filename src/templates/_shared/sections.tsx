@@ -591,9 +591,29 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
           )
         }
         const chipStyle = style === 'chips' || style === 'grouped-chips' || style === 'bars' || style === 'dots'
+        // A group can carry BOTH a rating and keywords (the common case: user
+        // sets a level in the side panel on a chip group). Meter still applies —
+        // it just gets the keywords rendered below it instead of standing alone.
+        const showMeter = meter && typeof s.rating === 'number'
+        const nameEl = s.name || edit ? (
+          <Ed
+            edit={edit}
+            value={s.name}
+            apply={(c, v) => { c.skills[i].name = v }}
+            className="rm-skill-group-name"
+            placeholder="Category"
+          />
+        ) : null
         return (
           <div className="rm-skill-group" key={s.id}>
-            {s.name || edit ? <Ed edit={edit} value={s.name} apply={(c, v) => { c.skills[i].name = v }} className="rm-skill-group-name" placeholder="Category" /> : null}
+            {showMeter ? (
+              <div className="rm-level">
+                {nameEl}
+                <Proficiency rating={s.rating} style={prof} />
+              </div>
+            ) : (
+              nameEl
+            )}
             {edit ? (
               // Always editable on the canvas — add/edit/remove skills inline,
               // regardless of the template's display style.
