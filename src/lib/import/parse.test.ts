@@ -114,9 +114,10 @@ describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', ()
       ],
       'awards',
       12
-    ) as { title: string; awarder: string; summary: string }[]
+    ) as { title: string; awarder: string; summary: string; date: string }[]
     expect(out).toHaveLength(1)
-    expect(out[0].title).toBe('Engineering Excellence Award 2023')
+    expect(out[0].title).toBe('Engineering Excellence Award')
+    expect(out[0].date).toBe('2023')
     expect(out[0].awarder).toBe('Vertex Labs')
     expect(out[0].summary).toBe('Top 2% of engineering org for impact and leadership.')
   })
@@ -146,7 +147,7 @@ describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', ()
       'awards',
       12
     ) as { title: string }[]
-    expect(out.map((a) => a.title)).toEqual(["Dean's List", 'Hackathon Winner 2021', 'Best Paper Award'])
+    expect(out.map((a) => a.title)).toEqual(["Dean's List", 'Hackathon Winner', 'Best Paper Award'])
   })
 
   it('bold title with same-height plain awarder and summary still groups (print-style)', () => {
@@ -171,6 +172,66 @@ describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', ()
       12
     ) as { title: string }[]
     expect(out.map((a) => a.title)).toEqual(['Award A', 'Award B'])
+  })
+
+  it('pulls a trailing year off the title into the date field', () => {
+    const out = parseSimpleList(
+      [line('Engineering Excellence Award 2023', false, 9.6, 0), line('Vertex Labs', false, 8.83, 12)],
+      'awards',
+      12
+    ) as { title: string; date: string }[]
+    expect(out[0].title).toBe('Engineering Excellence Award')
+    expect(out[0].date).toBe('2023')
+  })
+})
+
+describe('parseSimpleList publications — cluster + role assignment (2026-08-16)', () => {
+  // Publications were DETECTED as a section but had no parser case at all —
+  // the whole section silently vanished on import. They share the awards
+  // shape (prominent name line, muted publisher line, summary), so they
+  // share the cluster machinery.
+  it('imports name + publisher + summary as ONE publication', () => {
+    const out = parseSimpleList(
+      [
+        line('A Study of Long Resumes 2024', false, 9.6, 0),
+        line('CV Journal', false, 8.83, 12),
+        line('Findings on pagination quality.', false, 9.6, 24),
+      ],
+      'publications',
+      12
+    ) as { name: string; publisher: string; releaseDate: string; summary: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('A Study of Long Resumes')
+    expect(out[0].publisher).toBe('CV Journal')
+    expect(out[0].releaseDate).toBe('2024')
+    expect(out[0].summary).toBe('Findings on pagination quality.')
+  })
+})
+
+describe('parseSimpleList languages — right-aligned fluency runs (2026-08-16)', () => {
+  // Our templates render the language left and its fluency right-aligned:
+  // one extracted line, TWO text runs separated by a huge gap (measured
+  // x36.8..x534.2 on aurum). "English Native" used to import as the
+  // language name with empty fluency.
+  const twoRun = (a: string, b: string): Line => ({
+    ...line(`${a} ${b}`, false, 9.8),
+    items: [
+      { str: a, x: 36.8, top: 0, width: 30, height: 9.8, bold: false, page: 1, col: 0 },
+      { str: b, x: 534.2, top: 0, width: 24, height: 9, bold: false, page: 1, col: 0 },
+    ],
+  })
+  it('splits a far-gap two-run line into language and fluency', () => {
+    const out = parseSimpleList([twoRun('English', 'Native')], 'languages') as { language: string; fluency: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].language).toBe('English')
+    expect(out[0].fluency).toBe('Native')
+  })
+  it('keeps comma-list and parenthesis behavior for single-run lines', () => {
+    const out = parseSimpleList([proseLine('English (Native), Spanish (Professional)', 9.8)], 'languages') as {
+      language: string
+      fluency: string
+    }[]
+    expect(out.map((l) => `${l.language}|${l.fluency}`)).toEqual(['English|Native', 'Spanish|Professional'])
   })
 })
 

@@ -556,6 +556,24 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
   }).filter((w) => w.position || w.name || w.highlights.length)
 }
 
+/** Volunteer entries share the work shape (org, role, dates, bullets) —
+ *  parse with the work machinery and remap fields (2026-08-16: the
+ *  volunteer section was detected by the splitter but had no parser case,
+ *  so the whole section silently vanished on import). */
+function parseVolunteer(lines: Line[], g: LayoutGraph): ResumeContent['volunteer'] {
+  return parseWork(lines, g).map((w) => ({
+    id: uid(),
+    organization: w.name,
+    position: w.position,
+    location: w.location,
+    url: '',
+    startDate: w.startDate,
+    endDate: w.endDate,
+    summary: w.summary,
+    highlights: w.highlights,
+  }))
+}
+
 function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education'] {
   return toEntries(lines, g).map((entry) => {
     const text = entry.map((l) => l.text).join(' · ')
@@ -693,10 +711,47 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
  *  render secondary lines smaller. */
 const lessProminentThan = (l: Line, start: Line) => !l.bold && (start.bold || l.height < start.height - 0.5)
 
-export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates' | 'awards' | 'interests', lineGap = 12) {
+/** Pulls a trailing bare year ("Engineering Excellence Award 2023") off an
+ *  entry title — designed layouts right-align the date, which extraction
+ *  merges into the title line's text. */
+const pullTrailingYear = (t: string): { text: string; year: string } => {
+  const m = t.match(/^(.*?)\s+((?:19|20)\d{2})$/)
+  return m ? { text: m[1].trim(), year: m[2] } : { text: t, year: '' }
+}
+
+export function parseSimpleList(
+  lines: Line[],
+  key: 'languages' | 'certificates' | 'awards' | 'interests' | 'publications',
+  lineGap = 12
+) {
   const text = lines.map((l) => stripBullet(l.text)).filter(Boolean)
   if (key === 'languages') {
-    return text.flatMap((t) => t.split(/[,;|]/)).map((s) => s.trim()).filter(Boolean).map((language) => ({ id: uid(), language: language.replace(/\s*\(.*\)$/, '').trim(), fluency: (language.match(/\(([^)]+)\)/)?.[1] || '').trim() }))
+    // Right-aligned fluency (2026-08-16): our templates render the language
+    // left and fluency right — ONE extracted line, TWO text runs with a
+    // huge gap. "English Native" used to import with empty fluency.
+    const out: { id: string; language: string; fluency: string }[] = []
+    const rest: string[] = []
+    for (const l of lines) {
+      const t = stripBullet(l.text)
+      if (!t) continue
+      if (l.items && l.items.length === 2 && l.items[1].x - (l.items[0].x + l.items[0].width) >= 24) {
+        out.push({ id: uid(), language: l.items[0].str.trim(), fluency: l.items[1].str.trim() })
+      } else {
+        rest.push(t)
+      }
+    }
+    out.push(
+      ...rest
+        .flatMap((t) => t.split(/[,;|]/))
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((language) => ({
+          id: uid(),
+          language: language.replace(/\s*\(.*\)$/, '').trim(),
+          fluency: (language.match(/\(([^)]+)\)/)?.[1] || '').trim(),
+        }))
+    )
+    return out
   }
   if (key === 'interests') {
     const kws = text.flatMap((t) => t.split(/[,;|•·]/)).map((s) => s.trim()).filter(Boolean)
@@ -728,23 +783,26 @@ export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates'
       if (prev && !prev.issuer && startLine && lessProminentThan(l, startLine)) {
         prev.issuer = t
       } else {
-        out.push({ id: uid(), name: t, issuer: '', date: '', url: '' })
+        const { text: name, year } = pullTrailingYear(t)
+        out.push({ id: uid(), name, issuer: '', date: year, url: '' })
         startLine = l
       }
     }
     return out
   }
-  // awards (2026-08-16): one award used to import as THREE — its title,
-  // awarder, and summary lines each became an award. Prominence alone
-  // cannot fix it (live-measured on classic: title h9.6, awarder h8.83,
-  // summary h9.6 — summary matches the title), so awards group by
-  // VERTICAL GAP first (the itemGap between awards is far larger than the
-  // line spacing inside one; same `lineGap * 1.8` rule the work parser's
-  // fallback uses, new cluster on page/column change since gap can't be
-  // measured across), then assign roles inside each cluster: first line =
-  // title, a less prominent line of issuer-ish length = awarder,
-  // everything else joins the summary. A cluster with NO prominence
-  // structure (flat unstyled list) stays one award per line.
+  // awards + publications (2026-08-16): one award used to import as THREE —
+  // its title, awarder, and summary lines each became an award (and
+  // publications had NO parser case at all — the detected section silently
+  // vanished). Prominence alone cannot fix it (live-measured on classic:
+  // title h9.6, awarder h8.83, summary h9.6 — summary matches the title),
+  // so both group by VERTICAL GAP first (the itemGap between entries is far
+  // larger than the line spacing inside one; same `lineGap * 1.8` rule the
+  // work parser's fallback uses, new cluster on page/column change since
+  // gap can't be measured across), then assign roles inside each cluster:
+  // first line = title (trailing year -> date), a less prominent line of
+  // issuer-ish length = awarder/publisher, everything else joins the
+  // summary. A cluster with NO prominence structure (flat unstyled list)
+  // stays one entry per line.
   const src = lines.filter((l) => stripBullet(l.text))
   const clusters: Line[][] = []
   let cur: Line[] = []
@@ -760,23 +818,30 @@ export function parseSimpleList(lines: Line[], key: 'languages' | 'certificates'
     cur.push(l)
   }
   if (cur.length) clusters.push(cur)
-  const awards: { id: string; title: string; awarder: string; date: string; summary: string }[] = []
+  const entries: { title: string; sub: string; date: string; summary: string }[] = []
   for (const cl of clusters) {
     const [first, ...rest] = cl
     const structured = rest.some((l) => lessProminentThan(l, first))
     if (!structured && rest.length) {
-      for (const l of cl) awards.push({ id: uid(), title: stripBullet(l.text), awarder: '', date: '', summary: '' })
+      for (const l of cl) {
+        const { text: title, year } = pullTrailingYear(stripBullet(l.text))
+        entries.push({ title, sub: '', date: year, summary: '' })
+      }
       continue
     }
-    const award = { id: uid(), title: stripBullet(first.text), awarder: '', date: '', summary: '' }
+    const { text: title, year } = pullTrailingYear(stripBullet(first.text))
+    const entry = { title, sub: '', date: year, summary: '' }
     for (const l of rest) {
       const t = stripBullet(l.text)
-      if (!award.awarder && lessProminentThan(l, first) && t.length <= 60) award.awarder = t
-      else award.summary = award.summary ? `${award.summary} ${t}` : t
+      if (!entry.sub && lessProminentThan(l, first) && t.length <= 60) entry.sub = t
+      else entry.summary = entry.summary ? `${entry.summary} ${t}` : t
     }
-    awards.push(award)
+    entries.push(entry)
   }
-  return awards
+  if (key === 'publications') {
+    return entries.map((e) => ({ id: uid(), name: e.title, publisher: e.sub, releaseDate: e.date, url: '', summary: e.summary }))
+  }
+  return entries.map((e) => ({ id: uid(), title: e.title, awarder: e.sub, date: e.date, summary: e.summary }))
 }
 
 /* ------------------------------------------------------------------ assemble */
@@ -826,6 +891,12 @@ export function parseLayout(g: LayoutGraph): ImportResult {
         break
       case 'awards':
         content.awards.push(...(parseSimpleList(lines, 'awards', g.lineGap) as ResumeContent['awards']))
+        break
+      case 'publications':
+        content.publications.push(...(parseSimpleList(lines, 'publications', g.lineGap) as ResumeContent['publications']))
+        break
+      case 'volunteer':
+        content.volunteer.push(...parseVolunteer(lines, g))
         break
       case 'interests':
         content.interests.push(...(parseSimpleList(lines, 'interests') as ResumeContent['interests']))
