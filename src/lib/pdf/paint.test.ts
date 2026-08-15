@@ -1323,6 +1323,74 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
     expect(pages[1]).toEqual([{ ...ops[1], yPx: 150 - (100 - 25) }])
     expect(pages[2]).toEqual([{ ...ops[2], yPx: 350 - (300 - 25) }])
   })
+
+  describe('task 6b — straddling decoration ops repeat on every band they intersect', () => {
+    // Mirrors timeline's real defect: a tall thin decorative rail rect
+    // straddles the cut, so the top-edge-only rule used to paint it ONLY on
+    // the band owning its top edge, losing the rest on the next page (sweep
+    // artifact: 155px of missing rail at the top of page 2).
+    it('a tall thin rect spanning bands 1-2 is painted on BOTH pages, while text ops on each side appear exactly once', () => {
+      const rail = rectOp(50, 300) // spans document [50, 350] -- straddles the cut at 200
+      const textBefore: DrawOp = { kind: 'text', run: baseRun({ baselinePx: 100 }) }
+      const textAfter: DrawOp = { kind: 'text', run: baseRun({ baselinePx: 250 }) }
+
+      const pages = assignOpsToPages([textBefore, rail, textAfter], [200], 20, 1000)
+      const offsetPx = 200 - 20 // page-2 offset
+
+      expect(pages.length).toBe(2)
+      // The rail appears in BOTH pages' op groups, each copy translated by
+      // that page's own offset (no geometry surgery -- the rest of the box
+      // simply falls outside that page's MediaBox).
+      expect(pages[0]).toEqual([textBefore, rail])
+      expect(pages[1]).toEqual([
+        { ...rail, yPx: 50 - offsetPx },
+        { kind: 'text', run: { ...textAfter.run, baselinePx: 250 - offsetPx } },
+      ])
+
+      // Each text op still appears EXACTLY ONCE across the whole document --
+      // the top-edge rule for text/image ops is unchanged.
+      const allTextRuns = [...pages[0], ...pages[1]].filter((o) => o.kind === 'text')
+      expect(allTextRuns.length).toBe(2)
+    })
+
+    it('a stroked line spanning bands 1-2 is likewise painted on both pages', () => {
+      const rail: DrawOp = {
+        kind: 'line',
+        x1Px: 5,
+        y1Px: 180,
+        x2Px: 5,
+        y2Px: 260,
+        widthPx: 2,
+        color: { r: 0, g: 0, b: 0, a: 1 },
+      }
+      const pages = assignOpsToPages([rail], [200], 0, 1000)
+      expect(pages[0]).toEqual([rail])
+      expect(pages[1]).toEqual([{ ...rail, y1Px: 180 - 200, y2Px: 260 - 200 }])
+    })
+
+    it('a rect fully inside one band is NOT duplicated (unchanged single-band assignment)', () => {
+      const rect = rectOp(50, 100) // spans [50, 150] -- entirely within band 1 ([0, 200))
+      const pages = assignOpsToPages([rect], [200], 20, 1000)
+      expect(pages[0]).toEqual([rect])
+      expect(pages[1]).toEqual([])
+    })
+
+    it('a rect spanning THREE bands is painted on all three', () => {
+      const rail = rectOp(50, 500) // spans [50, 550] -- crosses both cuts at 200 and 400
+      const pages = assignOpsToPages([rail], [200, 400], 20, 1000)
+      expect(pages.length).toBe(3)
+      expect(pages[0]).toEqual([rail])
+      expect(pages[1]).toEqual([{ ...rail, yPx: 50 - (200 - 20) }])
+      expect(pages[2]).toEqual([{ ...rail, yPx: 50 - (400 - 20) }])
+    })
+
+    it('a pageChrome rect keeps its own dedicated full-page-height repetition path, not this straddling logic', () => {
+      const chrome: DrawOp = { ...rectOp(0, 900, { fill: { r: 0.1, g: 0.1, b: 0.1, a: 1 } }), pageChrome: true }
+      const pages = assignOpsToPages([chrome], [200], 20, 1000)
+      expect(pages[0]).toEqual([{ ...chrome, yPx: 0, hPx: 1000 }])
+      expect(pages[1]).toEqual([{ ...chrome, yPx: 0, hPx: 1000 }])
+    })
+  })
 })
 
 describe('paintPages — multi-page paint assembly (task 3, native multi-page pdf plan)', () => {

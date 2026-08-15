@@ -1001,6 +1001,34 @@ function translateOpY(op: DrawOp, dyPx: number): DrawOp {
   }
 }
 
+/**
+ * [topPx, bottomPx] span (document space) for a rect/line op — used ONLY by
+ * the straddling-decoration duplication path below (task 6b); every other
+ * kind still classifies by the single anchor point `opBandAnchorPx` returns.
+ */
+function opSpanPx(op: Extract<DrawOp, { kind: 'rect' | 'line' }>): [number, number] {
+  if (op.kind === 'line') return [Math.min(op.y1Px, op.y2Px), Math.max(op.y1Px, op.y2Px)]
+  return [op.yPx, op.yPx + op.hPx]
+}
+
+/**
+ * Every band index (0-based, into `bandTops`) whose half-open range
+ * `[bandTops[i], bandTops[i+1))` the `[topPx, bottomPx)` span intersects —
+ * the last band is unbounded above. A span that only touches a band
+ * boundary exactly (e.g. `bottomPx === bandTops[i]`) does NOT count as
+ * intersecting that band, matching the half-open convention the ordinary
+ * anchor-point scan below already uses for a cut landing exactly on an op's
+ * top edge.
+ */
+function intersectingBandIndexes(topPx: number, bottomPx: number, bandTops: number[]): number[] {
+  const indexes: number[] = []
+  for (let i = 0; i < bandTops.length; i++) {
+    const bandBottomPx = i + 1 < bandTops.length ? bandTops[i + 1] : Infinity
+    if (bottomPx > bandTops[i] && topPx < bandBottomPx) indexes.push(i)
+  }
+  return indexes
+}
+
 /** A page-chrome op (walk.ts's `pageChrome: true` — the root's own full-
  *  height background, or a full-column band like a dark two-column sidebar)
  *  repeats on EVERY output page, resized to THAT page's own full height
@@ -1042,6 +1070,24 @@ function clampChromeOpToPage(op: DrawOp, pageHeightPx: number): DrawOp {
  * document order (a single left-to-right pass appends to whichever page
  * bucket(s) each op belongs to), so later ops still paint on top of earlier
  * ones on the SAME page, exactly like the single-page case already relies on.
+ *
+ * Task 6b (straddling decoration ops): the top-edge-only rule above is right
+ * for text and images — paginate.ts's own break-point rules guarantee a
+ * legal cut never falls inside either — but a tall, thin, purely decorative
+ * `rect`/`line` op (e.g. timeline's vertical entry rail) can legitimately
+ * straddle a cut, and assigning it to a single band the way ordinary content
+ * is assigned clips the rest of it off the following page (sweep artifact:
+ * 155px of missing rail at the top of page 2). For exactly these two kinds,
+ * a NON-pageChrome op whose own `[top, bottom]` span intersects MORE THAN
+ * ONE band is instead pushed into EVERY band it intersects, each copy
+ * translated by that band's own offset like any other op — the untranslated
+ * remainder of the box simply lands outside that page's own MediaBox, which
+ * every PDF viewer already clips for free, so no geometry surgery (radius/
+ * stroke-width/dash pattern) is ever needed here. An op that only intersects
+ * ONE band (the overwhelming common case, including every rect/line on a
+ * single-page document) falls through to the exact same anchor-point path
+ * every other kind uses, so nothing here changes behavior for non-straddling
+ * ops.
  */
 export function assignOpsToPages(
   ops: DrawOp[],
@@ -1055,19 +1101,33 @@ export function assignOpsToPages(
   const bandTops = [0, ...cutsPx]
   const pages: DrawOp[][] = Array.from({ length: pageCount }, () => [])
 
+  const pushToBand = (op: DrawOp, pageIndex: number) => {
+    const offsetPx = pageIndex === 0 ? 0 : bandTops[pageIndex] - pageTopPaddingPx
+    pages[pageIndex].push(translateOpY(op, -offsetPx))
+  }
+
   for (const op of ops) {
     if (op.pageChrome) {
       for (const page of pages) page.push(clampChromeOpToPage(op, pageHeightPx))
       continue
     }
+
+    if (op.kind === 'rect' || op.kind === 'line') {
+      const [topPx, bottomPx] = opSpanPx(op)
+      const bandIdxs = intersectingBandIndexes(topPx, bottomPx, bandTops)
+      if (bandIdxs.length > 1) {
+        for (const pageIndex of bandIdxs) pushToBand(op, pageIndex)
+        continue
+      }
+    }
+
     const anchorPx = opBandAnchorPx(op)
     let pageIndex = 0
     for (let i = 1; i < bandTops.length; i++) {
       if (anchorPx >= bandTops[i]) pageIndex = i
       else break
     }
-    const offsetPx = pageIndex === 0 ? 0 : bandTops[pageIndex] - pageTopPaddingPx
-    pages[pageIndex].push(translateOpY(op, -offsetPx))
+    pushToBand(op, pageIndex)
   }
 
   return pages
