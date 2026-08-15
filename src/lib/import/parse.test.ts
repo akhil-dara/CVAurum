@@ -128,6 +128,32 @@ describe('parseSimpleList certificates — name/issuer pairing (2026-08-16)', ()
     expect(out.map((c) => c.name)).toEqual(['CCNA', 'CompTIA Security+', 'CKA'])
   })
 
+  // Atelier renders cert name and issuer at IDENTICAL prominence (8.83px
+  // both, no bold), so the prominence rule cannot pair them. In an
+  // UNSTRUCTURED tight cluster the YEAR anchors the entry: a year-carrying
+  // line starts a cert, yearless followers attach as its issuer. Undated
+  // flat lists (CCNA-style) keep one-per-line.
+  it('pairs equal-prominence name+issuer when the name carries the year (atelier)', () => {
+    const out = parseSimpleList(
+      [line('AWS Certified Solutions Architect 2022', false, 8.83, 0), line('Amazon Web Services', false, 8.83, 16)],
+      'certificates',
+      15.4
+    ) as { name: string; issuer: string; date: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('AWS Certified Solutions Architect')
+    expect(out[0].issuer).toBe('Amazon Web Services')
+    expect(out[0].date).toBe('2022')
+  })
+
+  it('keeps a tight all-dated list one cert per line (each line anchors an entry)', () => {
+    const out = parseSimpleList(
+      [line('CCNA 2020', false, 9.6, 0), line('CKA 2021', false, 9.6, 12)],
+      'certificates',
+      12
+    ) as { name: string; date: string }[]
+    expect(out.map((c) => `${c.name}|${c.date}`)).toEqual(['CCNA|2020', 'CKA|2021'])
+  })
+
   it('pulls the year merged into the FIRST wrapped fragment (right-aligned date)', () => {
     const out = parseSimpleList(
       [
@@ -230,6 +256,23 @@ describe('parseSimpleList awards — cluster + role assignment (2026-08-16)', ()
     ) as { title: string; date: string }[]
     expect(out[0].title).toBe('Engineering Excellence Award')
     expect(out[0].date).toBe('2023')
+  })
+
+  it('groups an equal-prominence award by its year anchor (atelier: summary is even LARGER than the title)', () => {
+    const out = parseSimpleList(
+      [
+        line('Engineering Excellence Award 2023', false, 8.83, 0),
+        line('Vertex Labs', false, 8.83, 16),
+        line('Top 2% of engineering org for impact and leadership.', false, 9.6, 30),
+      ],
+      'awards',
+      15.4
+    ) as { title: string; awarder: string; date: string; summary: string }[]
+    expect(out).toHaveLength(1)
+    expect(out[0].title).toBe('Engineering Excellence Award')
+    expect(out[0].date).toBe('2023')
+    expect(out[0].awarder).toBe('Vertex Labs')
+    expect(out[0].summary).toBe('Top 2% of engineering org for impact and leadership.')
   })
 
   it('joins a wrapped title across same-prominence lines (narrow columns)', () => {
@@ -411,5 +454,37 @@ describe('splitSections — plain group labels vs Tier-0 headings (2026-08-16)',
       ])
     )
     expect(secs.map((s) => s.key)).toEqual(['header', 'work', 'languages'])
+  })
+
+  // Side-label templates (atelier) put the section label LEFT of the body
+  // on the SAME baseline, so extraction merges them into one line:
+  // "EXPERIENCE Senior Software Engineer Mar 2021" swallowed each
+  // section's first content line (work lost entry 1, languages lost
+  // English, the cert name vanished leaving the issuer as the name). A
+  // heading matched as a PREFIX of a longer line now splits: the phrase
+  // starts the section, the remainder re-enters as its first content line
+  // (items split at the phrase boundary so chip rows survive).
+  it('splits a merged side-label heading from its first content line', () => {
+    const merged: Line = {
+      ...proseLine('EXPERIENCE Senior Software Engineer Mar 2021', 9.8),
+      upper: false,
+      items: [
+        { str: 'EXPERIENCE', x: 40, top: 0, width: 60, height: 9.8, bold: false, page: 1, col: 0, aside: false },
+        { str: 'Senior Software Engineer Mar 2021', x: 150, top: 0, width: 200, height: 9.8, bold: false, page: 1, col: 0, aside: false },
+      ],
+    }
+    const secs = splitSections(graph([merged, proseLine('Vertex Labs San Francisco, CA', 9.8, 12)]))
+    expect(secs.map((s) => s.key)).toEqual(['header', 'work'])
+    expect(secs[1].lines.map((l) => l.text)).toEqual([
+      'Senior Software Engineer Mar 2021',
+      'Vertex Labs San Francisco, CA',
+    ])
+    expect(secs[1].lines[0].items.map((i) => i.str)).toEqual(['Senior Software Engineer Mar 2021'])
+  })
+
+  it('does NOT split all-caps heading residue into fake content', () => {
+    const secs = splitSections(graph([{ ...proseLine('EXPERIENCE & EMPLOYMENT HISTORY', 9.8), upper: true }]))
+    expect(secs.map((s) => s.key)).toEqual(['header', 'work'])
+    expect(secs[1].lines).toHaveLength(0)
   })
 })

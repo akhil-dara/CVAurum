@@ -99,7 +99,35 @@ export function splitSections(g: LayoutGraph): Section[] {
   for (const line of g.lines) {
     const key = headingKey(line, g, styledHeadingSeen)
     if (key) {
-      sections.push({ key, title: line.text.replace(/[:\s]+$/, ''), lines: [] })
+      // Side-label layouts (atelier) render the section label LEFT of the
+      // body on the SAME baseline, so extraction merges them into one line
+      // and the heading used to swallow the section's first content line
+      // (2026-08-16: work lost its first entry, the cert name vanished).
+      // When the heading phrase is a PREFIX of a longer line whose
+      // remainder reads as content (has lowercase/digits — all-caps
+      // residue like "& EMPLOYMENT HISTORY" is part of the heading), the
+      // remainder re-enters the new section as its first line, items split
+      // at the phrase boundary so run-geometry consumers (chip rows) keep
+      // working.
+      let contentRest: Line | null = null
+      const t = line.text.trim()
+      const phrase = HEAD_PHRASES.find((p) => p.key === key)
+      const m = phrase ? phrase.re.exec(t) : null
+      if (m && m.index === 0 && m[0].length < t.length) {
+        const rest = t.slice(m[0].length).replace(/^[\s:•·—–-]+/, '')
+        if (rest.length > 3 && /[a-z0-9]/.test(rest)) {
+          let cum = 0
+          let idx = 0
+          for (; idx < line.items.length && cum < m[0].length; idx++) cum += line.items[idx].str.length + 1
+          const items = line.items.slice(idx)
+          contentRest = { ...line, text: rest, items, x: items[0]?.x ?? line.x }
+        }
+      }
+      sections.push({
+        key,
+        title: (contentRest && m ? m[0] : t).replace(/[:\s]+$/, ''),
+        lines: contentRest ? [contentRest] : [],
+      })
       if (line.upper || line.bold || line.height >= g.bodySize * 1.14) styledHeadingSeen = true
     } else {
       sections[sections.length - 1].lines.push(line)
@@ -818,6 +846,21 @@ export function parseSimpleList(
       const first = cl[0]
       const structured = cl.some((l) => lessProminentThan(l, first))
       if (!structured) {
+        // Equal-prominence cluster (atelier styles name and issuer
+        // identically): the YEAR anchors the entry — but only in the
+        // unambiguous shape where the FIRST line is dated and every
+        // follower is yearless. Any other mix (all dated, middle dated,
+        // none dated) is read as a flat list, one cert per line.
+        const dated = cl.map((l) => pullTrailingYear(stripBullet(l.text)))
+        if (cl.length > 1 && dated[0].year && dated.slice(1).every((d) => !d.year)) {
+          pushCert([stripBullet(first.text)])
+          for (let i = 1; i < cl.length; i++) {
+            const cur = out[out.length - 1]
+            if (cur && !cur.issuer) cur.issuer = dated[i].text
+            else pushCert([dated[i].text])
+          }
+          continue
+        }
         for (const l of cl) pushCert([stripBullet(l.text)])
         continue
       }
@@ -862,6 +905,22 @@ export function parseSimpleList(
     const [first, ...rest] = cl
     const structured = rest.some((l) => lessProminentThan(l, first))
     if (!structured && rest.length) {
+      // Same year-anchor rule as certificates (atelier's award summary is
+      // even LARGER than its title, so prominence is useless there): first
+      // line dated + all followers yearless = ONE entry; short plain
+      // follower = awarder/publisher, sentence-like followers join the
+      // summary. Any other dating mix stays one entry per line.
+      const dated = cl.map((l) => pullTrailingYear(stripBullet(l.text)))
+      if (dated[0].year && dated.slice(1).every((d) => !d.year)) {
+        const entry = { title: dated[0].text, sub: '', date: dated[0].year, summary: '' }
+        for (let i = 1; i < cl.length; i++) {
+          const t = dated[i].text
+          if (!entry.sub && t.length <= 60 && !/[.!?]$/.test(t)) entry.sub = t
+          else entry.summary = entry.summary ? `${entry.summary} ${t}` : t
+        }
+        entries.push(entry)
+        continue
+      }
       for (const l of cl) {
         const { text: title, year } = pullTrailingYear(stripBullet(l.text))
         entries.push({ title, sub: '', date: year, summary: '' })
