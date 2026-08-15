@@ -188,6 +188,8 @@ CVAurum generates your PDF **directly in the browser with its own vector renderi
 
 Every export is validated by an automated gate before a template ships: the text layer must match the preview **exactly**, the reading order must be what a recruiter's parser expects, and the pixels must match the screen at least as faithfully as the browser's own print output.
 
+**Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have.
+
 > **💡 Note:** if PDF generation ever fails in your browser, CVAurum automatically falls back to the classic print dialog so you can always export. In that dialog, set **Margins** to **None** and enable **Background graphics**.
 
 ---
