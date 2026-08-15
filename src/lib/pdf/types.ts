@@ -85,96 +85,120 @@ export interface CornerRadii {
   bl: number
 }
 
-export type DrawOp =
-  | {
-      kind: 'rect'
-      xPx: number
-      yPx: number
-      wPx: number
-      hPx: number
-      fill?: Rgba
-      radiusPx?: number
-      radii?: CornerRadii
-      fillGradient?: LinearGradient
-    }
-  | {
-      kind: 'line'
-      x1Px: number
-      y1Px: number
-      x2Px: number
-      y2Px: number
-      widthPx: number
-      color: Rgba
-      dashed?: boolean
-    }
+/**
+ * Common to every DrawOp variant (intersected below rather than repeated on
+ * each union member) — TS distributes an intersection with a union member-by-
+ * member, so `op.kind === 'rect'` still narrows to `DrawOpChrome & { kind:
+ * 'rect'; ... }`, exposing both `pageChrome` and the rect-specific fields.
+ */
+interface DrawOpChrome {
   /**
-   * A STROKED rounded-rect border (task 22) — replaces the four straight
-   * `line` ops a UNIFORM border (same width/style/color on all four edges)
-   * would otherwise produce when the box also has a nonzero corner radius: a
-   * straight line's flat ends overshoot the curve, visible as a straight
-   * sliver poking past a rounded corner (.tpl-obsidian's entry cards,
-   * `border: 1px solid` + `border-radius: 12px`). Paint.ts strokes this via
-   * the same `roundedRectPath` machinery the radiused `rect` fill case uses,
-   * with `color`/`widthPx` as the stroke instead of a fill.
-   *
-   * `xPx/yPx/wPx/hPx` and `radii` are the box ALREADY INSET by `widthPx / 2`
-   * — same CSS-edge convention `BORDER_EDGES` uses for the straight-line case
-   * (task 14: CSS paints a border INSIDE the box, but a centered stroke needs
-   * its centerline pulled in by half the stroke width to land on the same
-   * pixels) — walk.ts computes this inset once, so paint.ts only has to
-   * convert units and stroke, not re-derive it.
-   *
-   * Only ever emitted for the UNIFORM case (see walk.ts's `borderOps`): a
-   * rounded box with MIXED per-edge borders (different width/style/color)
-   * falls back to plain `line` ops instead, since there is no single
-   * centerline that correctly represents edges of different widths.
+   * True for a DrawOp that is PAGE CHROME rather than page-specific content —
+   * the root's own full-height background, or any other background `rect`
+   * spanning >= 96% of the document's total content height (the heuristic
+   * for "this is a full-column band", e.g. a two-column template's dark
+   * sidebar fill — see the native-multipage-pdf plan spec section 2).
+   * walk.ts's `buildDrawList` tags these in a post-pass over the finished op
+   * list; paint.ts (task 3) repeats a page-chrome op on EVERY output page,
+   * clamped to that page's own height, instead of assigning it to a single
+   * page's band the way ordinary content ops are assigned. Absent (not
+   * `false`) on every op for a single-page document's ordinary content.
    */
-  | {
-      kind: 'roundedBorder'
-      xPx: number
-      yPx: number
-      wPx: number
-      hPx: number
-      radii: CornerRadii
-      widthPx: number
-      color: Rgba
-      dashed?: boolean
-    }
-  | {
-      kind: 'image'
-      xPx: number
-      yPx: number
-      wPx: number
-      hPx: number
-      src: string
-      radiusPx?: number
-      radii?: CornerRadii
-    }
-  /**
-   * An inline `<svg>` icon (section-heading chips, contact-row marks — task
-   * 13), e.g. lucide's `viewBox="0 0 24 24"` set. `xPx/yPx/wPx/hPx` are the
-   * svg's own on-page box, same root-relative CSS-px convention as every
-   * other op — but `d` and `strokeWidthPx` are DELIBERATELY left in the
-   * svg's OWN viewBox/user-unit space (min-x/min-y always 0 — walk.ts skips
-   * anything else), NOT pre-scaled to that box: paint.ts's drawSvgPath
-   * `scale` option maps viewBox units to the page at paint time, and PDF
-   * line width is interpreted in the user space active when the path is
-   * STROKED (i.e. after that scale's `cm`), so a raw, unscaled
-   * `strokeWidthPx` comes out the correct final thickness for free —
-   * verified empirically against a rasterized probe, see the task-13
-   * report. Combines every shape child of one `<svg>` into a single `d`
-   * (lucide icons share one stroke/fill across all their children).
-   */
-  | {
-      kind: 'svg'
-      xPx: number
-      yPx: number
-      wPx: number
-      hPx: number
-      d: string
-      stroke?: Rgba
-      fill?: Rgba
-      strokeWidthPx: number
-      viewBox: [number, number, number, number]
-    }
-  | { kind: 'text'; run: TextRun }
+  pageChrome?: true
+}
+
+export type DrawOp = DrawOpChrome &
+  (
+    | {
+        kind: 'rect'
+        xPx: number
+        yPx: number
+        wPx: number
+        hPx: number
+        fill?: Rgba
+        radiusPx?: number
+        radii?: CornerRadii
+        fillGradient?: LinearGradient
+      }
+    | {
+        kind: 'line'
+        x1Px: number
+        y1Px: number
+        x2Px: number
+        y2Px: number
+        widthPx: number
+        color: Rgba
+        dashed?: boolean
+      }
+    /**
+     * A STROKED rounded-rect border (task 22) — replaces the four straight
+     * `line` ops a UNIFORM border (same width/style/color on all four edges)
+     * would otherwise produce when the box also has a nonzero corner radius: a
+     * straight line's flat ends overshoot the curve, visible as a straight
+     * sliver poking past a rounded corner (.tpl-obsidian's entry cards,
+     * `border: 1px solid` + `border-radius: 12px`). Paint.ts strokes this via
+     * the same `roundedRectPath` machinery the radiused `rect` fill case uses,
+     * with `color`/`widthPx` as the stroke instead of a fill.
+     *
+     * `xPx/yPx/wPx/hPx` and `radii` are the box ALREADY INSET by `widthPx / 2`
+     * — same CSS-edge convention `BORDER_EDGES` uses for the straight-line case
+     * (task 14: CSS paints a border INSIDE the box, but a centered stroke needs
+     * its centerline pulled in by half the stroke width to land on the same
+     * pixels) — walk.ts computes this inset once, so paint.ts only has to
+     * convert units and stroke, not re-derive it.
+     *
+     * Only ever emitted for the UNIFORM case (see walk.ts's `borderOps`): a
+     * rounded box with MIXED per-edge borders (different width/style/color)
+     * falls back to plain `line` ops instead, since there is no single
+     * centerline that correctly represents edges of different widths.
+     */
+    | {
+        kind: 'roundedBorder'
+        xPx: number
+        yPx: number
+        wPx: number
+        hPx: number
+        radii: CornerRadii
+        widthPx: number
+        color: Rgba
+        dashed?: boolean
+      }
+    | {
+        kind: 'image'
+        xPx: number
+        yPx: number
+        wPx: number
+        hPx: number
+        src: string
+        radiusPx?: number
+        radii?: CornerRadii
+      }
+    /**
+     * An inline `<svg>` icon (section-heading chips, contact-row marks — task
+     * 13), e.g. lucide's `viewBox="0 0 24 24"` set. `xPx/yPx/wPx/hPx` are the
+     * svg's own on-page box, same root-relative CSS-px convention as every
+     * other op — but `d` and `strokeWidthPx` are DELIBERATELY left in the
+     * svg's OWN viewBox/user-unit space (min-x/min-y always 0 — walk.ts skips
+     * anything else), NOT pre-scaled to that box: paint.ts's drawSvgPath
+     * `scale` option maps viewBox units to the page at paint time, and PDF
+     * line width is interpreted in the user space active when the path is
+     * STROKED (i.e. after that scale's `cm`), so a raw, unscaled
+     * `strokeWidthPx` comes out the correct final thickness for free —
+     * verified empirically against a rasterized probe, see the task-13
+     * report. Combines every shape child of one `<svg>` into a single `d`
+     * (lucide icons share one stroke/fill across all their children).
+     */
+    | {
+        kind: 'svg'
+        xPx: number
+        yPx: number
+        wPx: number
+        hPx: number
+        d: string
+        stroke?: Rgba
+        fill?: Rgba
+        strokeWidthPx: number
+        viewBox: [number, number, number, number]
+      }
+    | { kind: 'text'; run: TextRun }
+  )

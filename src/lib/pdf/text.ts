@@ -194,6 +194,75 @@ export function measureTextWidthPx(text: string, cssFont: string): number {
   return measureCtx!.measureText(text).width
 }
 
+/** A plain (non-DOMRect) rect for one visually-wrapped line segment of a text
+ *  node — deliberately NOT a real DOMRect so callers (and their tests) can
+ *  work with it without a real DOM. */
+export interface LineRect {
+  top: number
+  bottom: number
+  left: number
+  right: number
+}
+
+/** One visually-wrapped LINE of a single text node: its character-offset
+ *  span within `node.data`, plus that span's own bounding rect. */
+export interface TextLineSegment {
+  start: number
+  end: number
+  rect: LineRect
+}
+
+/**
+ * Split ONE text node into its visually-wrapped lines, by comparing each
+ * character's own bounding-rect top to the previous character's — a jump of
+ * more than 1px marks a line-wrap boundary. This is the per-line
+ * segmentation `extractRuns` always needed for its own TextRun output;
+ * factored out here (native-multipage-pdf plan, task 2) so walk.ts's
+ * `extractPageBlocks` can reuse the exact same geometry for its 'line'
+ * PageBlocks instead of re-deriving line boxes a second way. Operates on
+ * ONE node at a time — sibling text nodes on the same visual line (e.g. a
+ * bold `<strong>` run in the middle of a sentence) are NOT merged into one
+ * segment here; each node's own segments are measured independently. That
+ * matches what extractRuns already did before this refactor (no behavior
+ * change for the painter), and extractPageBlocks documents the pagination-
+ * side consequence (adjacent same-line text nodes can produce overlapping
+ * 'line' blocks) in its own module doc comment.
+ */
+export function textNodeLineSegments(node: Text): TextLineSegment[] {
+  const len = node.data.length
+  if (len === 0) return []
+
+  const range = document.createRange()
+
+  // Walk character offsets, splitting into per-line segments by comparing each
+  // character's top to the previous one.
+  const offsets: Array<{ start: number; end: number }> = []
+  let segStart = 0
+  let prevTop: number | null = null
+
+  for (let i = 0; i < len; i++) {
+    range.setStart(node, i)
+    range.setEnd(node, i + 1)
+    const top = range.getBoundingClientRect().top
+    if (prevTop != null && Math.abs(top - prevTop) > 1) {
+      offsets.push({ start: segStart, end: i })
+      segStart = i
+    }
+    prevTop = top
+  }
+  offsets.push({ start: segStart, end: len })
+
+  const segments: TextLineSegment[] = []
+  for (const { start, end } of offsets) {
+    if (end <= start) continue
+    range.setStart(node, start)
+    range.setEnd(node, end)
+    const rect = range.getBoundingClientRect()
+    segments.push({ start, end, rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right } })
+  }
+  return segments
+}
+
 /**
  * Turn a DOM Text node into per-LINE runs carrying exactly what the painter
  * needs: the rendered string, its x, its baseline y, and its style. Coordinates
@@ -212,46 +281,21 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
 
   const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
   const rootRect = root.getBoundingClientRect()
-  const len = data.length
-  if (len === 0) return []
 
-  const range = document.createRange()
-
-  // Walk character offsets, splitting into per-line segments by comparing each
-  // character's top to the previous one.
-  const segments: Array<{ start: number; end: number }> = []
-  let segStart = 0
-  let prevTop: number | null = null
-
-  for (let i = 0; i < len; i++) {
-    range.setStart(node, i)
-    range.setEnd(node, i + 1)
-    const rect = range.getBoundingClientRect()
-    const top = rect.top
-    if (prevTop != null && Math.abs(top - prevTop) > 1) {
-      segments.push({ start: segStart, end: i })
-      segStart = i
-    }
-    prevTop = top
-  }
-  segments.push({ start: segStart, end: len })
+  const segments = textNodeLineSegments(node)
+  if (!segments.length) return []
 
   const metrics = layoutMetricsFor(font)
   const runs: TextRun[] = []
   for (const seg of segments) {
-    if (seg.end <= seg.start) continue
-    range.setStart(node, seg.start)
-    range.setEnd(node, seg.end)
-    const rect = range.getBoundingClientRect()
-
     const text = applyTextTransform(collapseWhitespace(data.slice(seg.start, seg.end), cs.whiteSpace), cs.textTransform)
     if (text.trim() === '') continue
 
     runs.push({
       text,
-      xPx: rect.left - rootRect.left,
-      widthPx: rect.right - rect.left,
-      baselinePx: halfLeadingBaselinePx(rect.top, rootRect.top, rect.bottom - rect.top, metrics),
+      xPx: seg.rect.left - rootRect.left,
+      widthPx: seg.rect.right - seg.rect.left,
+      baselinePx: halfLeadingBaselinePx(seg.rect.top, rootRect.top, seg.rect.bottom - seg.rect.top, metrics),
       sizePx: parsePx(cs.fontSize),
       family: cs.fontFamily,
       weight: parseFontWeight(cs.fontWeight),

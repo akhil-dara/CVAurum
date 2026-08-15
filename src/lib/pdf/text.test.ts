@@ -1,5 +1,11 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { applyTextTransform, collapseWhitespace, extractRuns, halfLeadingBaselinePx } from './text'
+import {
+  applyTextTransform,
+  collapseWhitespace,
+  extractRuns,
+  halfLeadingBaselinePx,
+  textNodeLineSegments,
+} from './text'
 
 describe('applyTextTransform', () => {
   it('uppercases (our section titles are tracked uppercase)', () => {
@@ -100,6 +106,82 @@ describe('extractRuns — widthPx (task 12)', () => {
     // rect.right - rect.left off that identical rect, per the task-12 brief.
     expect(runs[0].widthPx).toBe(RECT.right - RECT.left)
     expect(runs[0].xPx).toBe(RECT.left - 0)
+  })
+})
+
+describe('textNodeLineSegments (task 2, native-multipage-pdf plan — shared line-rect helper factored out of extractRuns)', () => {
+  const originalDocument = globalThis.document
+  afterEach(() => {
+    globalThis.document = originalDocument
+  })
+
+  it('returns a single segment spanning the whole node for a one-line run', () => {
+    const rect = { top: 100, bottom: 116, left: 0, right: 40 }
+    globalThis.document = {
+      createRange: () => ({ setStart: () => {}, setEnd: () => {}, getBoundingClientRect: () => rect }),
+    } as unknown as Document
+
+    const node = { data: 'Hi' } as unknown as Text
+    expect(textNodeLineSegments(node)).toEqual([{ start: 0, end: 2, rect }])
+  })
+
+  it('splits into per-visual-line segments where a character top jumps by more than 1px (soft wrap) — extractPageBlocks (walk.ts) reuses this exact geometry for its "line" PageBlocks', () => {
+    // "ABCD": chars 0-1 sit on one visual line (top 100), chars 2-3 on the
+    // next (top 120) — models a two-line wrap the same way extractRuns'
+    // pre-factor inline loop did (compare each character's own top to the
+    // previous one).
+    const charRect = (i: number) =>
+      i < 2
+        ? { top: 100, bottom: 116, left: i * 10, right: i * 10 + 10 }
+        : { top: 120, bottom: 136, left: i * 10, right: i * 10 + 10 }
+    globalThis.document = {
+      createRange: () => {
+        let start = 0
+        let end = 0
+        return {
+          setStart: (_n: unknown, o: number) => {
+            start = o
+          },
+          setEnd: (_n: unknown, o: number) => {
+            end = o
+          },
+          // Single-character query (the segmentation loop): that char's own
+          // rect. Multi-character query (the per-segment measurement loop):
+          // the union bounding box of its first and last character — a
+          // reasonable stand-in for what a real multi-char Range reports.
+          getBoundingClientRect: () => {
+            if (end - start <= 1) return charRect(start)
+            const first = charRect(start)
+            const last = charRect(end - 1)
+            return {
+              top: Math.min(first.top, last.top),
+              bottom: Math.max(first.bottom, last.bottom),
+              left: first.left,
+              right: last.right,
+            }
+          },
+        }
+      },
+    } as unknown as Document
+
+    const node = { data: 'ABCD' } as unknown as Text
+    const segments = textNodeLineSegments(node)
+
+    expect(segments).toEqual([
+      { start: 0, end: 2, rect: { top: 100, bottom: 116, left: 0, right: 20 } },
+      { start: 2, end: 4, rect: { top: 120, bottom: 136, left: 20, right: 40 } },
+    ])
+  })
+
+  it('returns an empty array for an empty text node, without touching the DOM at all', () => {
+    globalThis.document = {
+      createRange: () => {
+        throw new Error('should not be called for an empty node')
+      },
+    } as unknown as Document
+
+    const node = { data: '' } as unknown as Text
+    expect(textNodeLineSegments(node)).toEqual([])
   })
 })
 

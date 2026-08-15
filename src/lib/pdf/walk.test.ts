@@ -8,6 +8,7 @@ import {
   cornerRadii,
   BORDER_EDGES,
   buildDrawList,
+  extractPageBlocks,
 } from './walk'
 import type { DrawOp } from './types'
 
@@ -690,10 +691,54 @@ describe('buildDrawList — root paints its own box first (task 15, defect 1)', 
     expect(ops[0]).toMatchObject({ kind: 'rect', xPx: 0, yPx: 0, wPx: 800, hPx: 1000 })
     const rootOp = ops[0] as Extract<DrawOp, { kind: 'rect' }>
     expect(rootOp.fill).toEqual({ r: 13 / 255, g: 14 / 255, b: 18 / 255, a: 1 })
+    // Task 2 (native multi-page pdf): root's own background is always
+    // exactly full-height by construction (boxOf(root, root)), so it always
+    // qualifies as page chrome.
+    expect(rootOp.pageChrome).toBe(true)
 
     // The child's own rect op exists and comes strictly AFTER root's.
     const childOpIndex = ops.findIndex((o) => o.kind === 'rect' && o.xPx === 5)
     expect(childOpIndex).toBeGreaterThan(0)
+    // The child is a small 50x20 box, nowhere near 96% of root's 1000px
+    // height — it must NOT be tagged as page chrome.
+    expect((ops[childOpIndex] as Extract<DrawOp, { kind: 'rect' }>).pageChrome).toBeUndefined()
+  })
+
+  it('task 2 (native multi-page pdf) — single-page ops stay byte-stable aside from the new pageChrome tag', () => {
+    install()
+    const child = makeEl({ left: 5, top: 5, width: 50, height: 20 }, { backgroundColor: 'rgb(255, 0, 0)' })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, { backgroundColor: 'rgb(13, 14, 18)' }, [child])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+
+    // Exact deep equality (not toMatchObject) over the WHOLE op list: every
+    // geometry/color/radii field this walk has always produced is unchanged
+    // by task 2 — the only new thing anywhere in this array is `pageChrome:
+    // true` on the one op that legitimately qualifies (root's own full-height
+    // background). paint.ts (pre-task-3) never reads `pageChrome` at all, so
+    // this also demonstrates the actual exported PDF bytes for a single-page
+    // doc are untouched by this task.
+    expect(ops).toEqual([
+      {
+        kind: 'rect',
+        xPx: 0,
+        yPx: 0,
+        wPx: 800,
+        hPx: 1000,
+        fill: { r: 13 / 255, g: 14 / 255, b: 18 / 255, a: 1 },
+        radii: { tl: 0, tr: 0, br: 0, bl: 0 },
+        pageChrome: true,
+      },
+      {
+        kind: 'rect',
+        xPx: 5,
+        yPx: 5,
+        wPx: 50,
+        hPx: 20,
+        fill: { r: 1, g: 0, b: 0, a: 1 },
+        radii: { tl: 0, tr: 0, br: 0, bl: 0 },
+      },
+    ])
   })
 
   it('root with no background paints no rect for itself, but still walks its children', () => {
@@ -1247,5 +1292,400 @@ describe('boxOps/pseudoOps — radius-aware borders and pseudo borders (task 22)
 
     const ops = buildDrawList(root as unknown as HTMLElement)
     expect(ops.filter((o) => o.kind === 'roundedBorder' || o.kind === 'line').length).toBe(0)
+  })
+})
+
+describe('buildDrawList — page-chrome tagging (task 2, native multi-page pdf plan)', () => {
+  // Same stub-just-the-DOM-entry-points harness the earlier buildDrawList
+  // suites use — see their own comments for why (this suite runs under
+  // vitest's plain 'node' environment, no jsdom/happy-dom).
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const g = globalThis as unknown as { Node?: unknown; NodeFilter?: unknown; HTMLImageElement?: unknown }
+  const originalNode = g.Node
+  const originalNodeFilter = g.NodeFilter
+  const originalHTMLImageElement = g.HTMLImageElement
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    g.Node = originalNode
+    g.NodeFilter = originalNodeFilter
+    g.HTMLImageElement = originalHTMLImageElement
+  })
+
+  interface FakeRect {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: FakeEl[]
+    getBoundingClientRect: () => FakeRect
+    contains: (n: FakeEl) => boolean
+    cs: Record<string, string>
+  }
+
+  const BASE_CS: Record<string, string> = {
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    borderTopLeftRadius: '0px',
+    borderTopRightRadius: '0px',
+    borderBottomRightRadius: '0px',
+    borderBottomLeftRadius: '0px',
+    borderTopWidth: '0px',
+    borderTopStyle: 'none',
+    borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px',
+    borderRightStyle: 'none',
+    borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px',
+    borderBottomStyle: 'none',
+    borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px',
+    borderLeftStyle: 'none',
+    borderLeftColor: 'rgba(0,0,0,0)',
+    opacity: '1',
+    display: 'block',
+    visibility: 'visible',
+    content: 'none',
+  }
+
+  function makeCs(overrides: Record<string, string>): CSSStyleDeclaration {
+    const merged: Record<string, string> = { ...BASE_CS, ...overrides }
+    return {
+      ...merged,
+      getPropertyValue: (name: string) => merged[name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] ?? '',
+    } as unknown as CSSStyleDeclaration
+  }
+
+  function makeEl(rect: FakeRect, cs: Record<string, string>, children: FakeEl[] = []): FakeEl {
+    const el: FakeEl = {
+      nodeType: 1,
+      tagName: 'DIV',
+      classList: { contains: () => false },
+      childNodes: children,
+      getBoundingClientRect: () => rect,
+      contains: (n) => n === el || children.some((c) => c === n || c.contains(n)),
+      cs: { ...BASE_CS, ...cs },
+    }
+    return el
+  }
+
+  function fakeCreateTreeWalker(root: FakeEl, acceptNode: (n: FakeEl) => number) {
+    const ACCEPT = 1
+    const seq: FakeEl[] = []
+    const visit = (node: FakeEl) => {
+      for (const child of node.childNodes) {
+        if (acceptNode(child) === ACCEPT) {
+          seq.push(child)
+          visit(child)
+        }
+      }
+    }
+    visit(root)
+    let idx = -1
+    const walker = {
+      currentNode: root as unknown as Node,
+      nextNode: () => {
+        idx++
+        if (idx >= seq.length) return null
+        walker.currentNode = seq[idx] as unknown as Node
+        return walker.currentNode
+      },
+    }
+    return walker
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
+    g.HTMLImageElement = class {} // no fake element in this suite is ever one
+    globalThis.document = {
+      createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
+        fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl) => number),
+    } as unknown as Document
+    globalThis.getComputedStyle = ((el: unknown, pseudo?: string) =>
+      pseudo ? makeCs({ content: 'none' }) : makeCs((el as FakeEl).cs)) as unknown as typeof getComputedStyle
+  }
+
+  it('tags a synthetic full-height sidebar rect (>= 96% of content height) as pageChrome', () => {
+    install()
+    // 970 / 1000 = 97% — above the 96% threshold (a two-column template's
+    // dark sidebar band, per the plan spec section 2's worked example).
+    const sidebar = makeEl({ left: 0, top: 0, width: 220, height: 970 }, { backgroundColor: 'rgb(15, 23, 42)' })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [sidebar])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const sidebarOp = ops.find((o) => o.kind === 'rect' && o.wPx === 220) as Extract<DrawOp, { kind: 'rect' }>
+    expect(sidebarOp).toBeDefined()
+    expect(sidebarOp.pageChrome).toBe(true)
+  })
+
+  it('does NOT tag a background rect below the 96% threshold (an ordinary entry card)', () => {
+    install()
+    // 500 / 1000 = 50% — well under threshold.
+    const card = makeEl({ left: 40, top: 60, width: 300, height: 500 }, { backgroundColor: 'rgb(21, 23, 29)' })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [card])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const cardOp = ops.find((o) => o.kind === 'rect' && o.wPx === 300) as Extract<DrawOp, { kind: 'rect' }>
+    expect(cardOp).toBeDefined()
+    expect(cardOp.pageChrome).toBeUndefined()
+  })
+
+  it('honors the 96% boundary exactly: >= tags, < does not', () => {
+    install()
+    const atThreshold = makeEl({ left: 0, top: 0, width: 100, height: 960 }, { backgroundColor: 'rgb(1, 2, 3)' }) // exactly 96%
+    const belowThreshold = makeEl({ left: 100, top: 0, width: 100, height: 959.9 }, { backgroundColor: 'rgb(4, 5, 6)' }) // just under
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [atThreshold, belowThreshold])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const atOp = ops.find((o) => o.kind === 'rect' && o.hPx === 960) as Extract<DrawOp, { kind: 'rect' }>
+    const belowOp = ops.find((o) => o.kind === 'rect' && o.hPx === 959.9) as Extract<DrawOp, { kind: 'rect' }>
+    expect(atOp.pageChrome).toBe(true)
+    expect(belowOp.pageChrome).toBeUndefined()
+  })
+
+  it('tags a gradient-filled full-height rect too (gradients repeat with the chrome rect they paint on, per spec section 2)', () => {
+    install()
+    const gradientCs = {
+      backgroundColor: 'rgba(0, 0, 0, 0)',
+      backgroundImage: 'linear-gradient(120deg, rgb(79, 70, 229), color(srgb 0.85098 0.27451 0.545098))',
+    }
+    const banner = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, gradientCs)
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [banner])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const gradientOp = ops.find((o) => o.kind === 'rect' && !!o.fillGradient) as Extract<DrawOp, { kind: 'rect' }>
+    expect(gradientOp).toBeDefined()
+    expect(gradientOp.pageChrome).toBe(true)
+  })
+
+  it('never tags a rect with neither fill nor gradient (nothing is even emitted for a bare/transparent box)', () => {
+    install()
+    // A borderless, backgroundless full-height spacer div — boxOps only ever
+    // pushes a rect op when there's a fill or gradient, so there is nothing
+    // for the tagging pass to find here either.
+    const spacer = makeEl({ left: 0, top: 0, width: 10, height: 1000 }, {})
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [spacer])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    expect(ops.some((o) => o.kind === 'rect' && o.wPx === 10)).toBe(false)
+  })
+})
+
+describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
+  // A dedicated fake-DOM harness (distinct from buildDrawList's own): this
+  // function never touches getComputedStyle for pseudo-elements, borders, or
+  // treewalker filtering the way buildDrawList does — it needs real Text
+  // child nodes (nodeType 3) interleaved with Element child nodes, plus a
+  // `document.createRange` stub whose rect comes straight off the fake text
+  // node itself (single-line per node — matches every fixture below; a
+  // dedicated multi-line-wrap test lives in text.test.ts against
+  // `textNodeLineSegments` directly, the shared helper this module reuses).
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const originalConsoleWarn = console.warn
+  const g = globalThis as unknown as { Node?: unknown }
+  const originalNode = g.Node
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    console.warn = originalConsoleWarn
+    g.Node = originalNode
+  })
+
+  interface FakeRect {
+    top: number
+    bottom: number
+    left: number
+    right: number
+  }
+  interface FakeText {
+    nodeType: number
+    data: string
+    rect: FakeRect
+  }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: Array<FakeEl | FakeText>
+    getBoundingClientRect: () => FakeRect
+    cs: { display: string; visibility: string }
+  }
+
+  function elm(
+    classes: string[],
+    rect: FakeRect,
+    children: Array<FakeEl | FakeText> = [],
+    opts: { tagName?: string; hidden?: boolean } = {}
+  ): FakeEl {
+    const classSet = new Set(classes)
+    return {
+      nodeType: 1,
+      tagName: opts.tagName ?? 'DIV',
+      classList: { contains: (c: string) => classSet.has(c) },
+      childNodes: children,
+      getBoundingClientRect: () => rect,
+      cs: { display: opts.hidden ? 'none' : 'block', visibility: 'visible' },
+    }
+  }
+  function txt(data: string, rect: FakeRect): FakeText {
+    return { nodeType: 3, data, rect }
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    globalThis.document = {
+      // Single-line-per-node stub: every offset query for a given text node
+      // returns that SAME node's own rect, so the internal wrap-detection
+      // loop never sees a top jump — exactly one segment per node, spanning
+      // its whole (already-known) rect. Multi-line wrapping itself is
+      // covered directly against textNodeLineSegments in text.test.ts.
+      createRange: () => {
+        let node: FakeText | null = null
+        return {
+          setStart: (n: unknown) => {
+            node = n as FakeText
+          },
+          setEnd: () => {},
+          getBoundingClientRect: () => node!.rect,
+        }
+      },
+    } as unknown as Document
+    globalThis.getComputedStyle = ((node: unknown) => (node as FakeEl).cs) as unknown as typeof getComputedStyle
+  }
+
+  it('builds section-title / entry-title-row / line / entry-gap / section-gap blocks with the right tiers and keepWithNext', () => {
+    install()
+
+    // Section 1: title, entry 1 (a title ROW collapsed to one block + a
+    // bullet line inside a <ul><li>), entry 2 (a bare text line).
+    const bulletText = txt('Did a thing', { top: 155, bottom: 170, left: 20, right: 150 })
+    const bulletLi = elm([], { top: 155, bottom: 170, left: 20, right: 150 }, [bulletText])
+    const bulletsUl = elm(['rm-bullets'], { top: 150, bottom: 175, left: 0, right: 300 }, [bulletLi])
+    const itemHead1 = elm(['rm-item-head'], { top: 130, bottom: 150, left: 0, right: 300 })
+    const entry1 = elm(['rm-item'], { top: 130, bottom: 175, left: 0, right: 300 }, [itemHead1, bulletsUl])
+
+    const entry2Text = txt('Second entry text', { top: 180, bottom: 195, left: 0, right: 250 })
+    const entry2 = elm(['rm-item'], { top: 180, bottom: 195, left: 0, right: 250 }, [entry2Text])
+
+    const title1 = elm(['rm-section-title'], { top: 100, bottom: 120, left: 0, right: 200 })
+    const body1 = elm(['rm-section-body'], { top: 130, bottom: 195, left: 0, right: 300 }, [entry1, entry2])
+    const section1 = elm(['rm-section'], { top: 100, bottom: 195, left: 0, right: 300 }, [title1, body1])
+
+    // Section 2: title, one skill-group entry whose ONLY content is an
+    // `.rm-level` (name + rating meter) title row.
+    const levelRow = elm(['rm-level'], { top: 280, bottom: 300, left: 0, right: 300 })
+    const skillGroup = elm(['rm-skill-group'], { top: 280, bottom: 300, left: 0, right: 300 }, [levelRow])
+    const title2 = elm(['rm-section-title'], { top: 250, bottom: 270, left: 0, right: 150 })
+    const body2 = elm(['rm-section-body'], { top: 280, bottom: 300, left: 0, right: 300 }, [skillGroup])
+    const section2 = elm(['rm-section'], { top: 250, bottom: 300, left: 0, right: 300 }, [title2, body2])
+
+    const main = elm(['rm-col-main'], { top: 0, bottom: 300, left: 0, right: 800 }, [section1, section2])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [main])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true }, // section 1 title
+      { kind: 'entry-gap', topPx: 120, bottomPx: 130 }, // between the title and entry 1
+      { kind: 'line', topPx: 130, bottomPx: 150, keepWithNext: true }, // entry 1's item-head row
+      { kind: 'line', topPx: 155, bottomPx: 170 }, // entry 1's bullet line
+      { kind: 'entry-gap', topPx: 170, bottomPx: 180 }, // between entry 1 and entry 2
+      { kind: 'line', topPx: 180, bottomPx: 195 }, // entry 2's own text line
+      { kind: 'section-gap', topPx: 195, bottomPx: 250 }, // between section 1 and section 2
+      { kind: 'line', topPx: 250, bottomPx: 270, keepWithNext: true }, // section 2 title
+      { kind: 'entry-gap', topPx: 270, bottomPx: 280 }, // between the title and its one entry
+      { kind: 'line', topPx: 280, bottomPx: 300, keepWithNext: true }, // the rm-level row
+    ])
+  })
+
+  it('emits an atomic block for an image and for a chip row, without decomposing either into lines', () => {
+    install()
+
+    const img = elm([], { top: 400, bottom: 440, left: 0, right: 40 }, [], { tagName: 'IMG' })
+    // The chip's own text must NOT surface as its own 'line' block — the
+    // whole .rm-chips row is one indivisible atomic unit.
+    const chipText = txt('React', { top: 450, bottom: 465, left: 0, right: 50 })
+    const chips = elm(['rm-chips'], { top: 450, bottom: 470, left: 0, right: 300 }, [chipText])
+    const entry = elm(['rm-item'], { top: 400, bottom: 470, left: 0, right: 300 }, [img, chips])
+    const title = elm(['rm-section-title'], { top: 370, bottom: 390, left: 0, right: 150 })
+    const body = elm(['rm-section-body'], { top: 400, bottom: 470, left: 0, right: 300 }, [entry])
+    const section = elm(['rm-section'], { top: 370, bottom: 470, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 370, bottomPx: 390, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 390, bottomPx: 400 },
+      { kind: 'atomic', topPx: 400, bottomPx: 440 },
+      { kind: 'atomic', topPx: 450, bottomPx: 470 },
+    ])
+  })
+
+  it('skips no-print and display:none elements entirely — canvas-only edit chrome never contributes a block', () => {
+    install()
+
+    // A no-print delete button with a big rect that would dominate the
+    // entry's own extent if it leaked through, plus a hidden note — neither
+    // should contribute anything, whether this ran against the print DOM
+    // (where neither exists) or the live editable canvas (where both do).
+    const deleteBtn = elm(['rm-item-del', 'no-print'], { top: 100, bottom: 900, left: 0, right: 20 })
+    const hiddenNote = elm([], { top: 100, bottom: 900, left: 0, right: 900 }, [], { hidden: true })
+    const realText = txt('Only this counts', { top: 130, bottom: 145, left: 0, right: 150 })
+    const entry = elm(['rm-item'], { top: 100, bottom: 145, left: 0, right: 300 }, [deleteBtn, hiddenNote, realText])
+    const title = elm(['rm-section-title'], { top: 70, bottom: 90, left: 0, right: 150 })
+    const body = elm(['rm-section-body'], { top: 100, bottom: 145, left: 0, right: 300 }, [entry])
+    const section = elm(['rm-section'], { top: 70, bottom: 145, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 70, bottomPx: 90, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 90, bottomPx: 130 },
+      { kind: 'line', topPx: 130, bottomPx: 145 },
+    ])
+  })
+
+  it('returns an empty array for a root with no .rm-section at all', () => {
+    install()
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 })
+    expect(extractPageBlocks(root as unknown as HTMLElement)).toEqual([])
+  })
+
+  it('dev-warns (does not throw) when extracted ink blocks overlap in y — e.g. a same-row icon beside its title text', () => {
+    install()
+    const warnings: unknown[][] = []
+    console.warn = ((...args: unknown[]) => {
+      warnings.push(args)
+    }) as typeof console.warn
+
+    // A decorative icon (atomic) sitting BESIDE a text run on the same
+    // visual row rather than stacked above/below it — both measure as ink at
+    // roughly the same y. The known title/meta-row cases (item-head,
+    // item-sub, level, section-title) are collapsed to one block precisely
+    // to avoid this (see extractPageBlocks's own doc comment), but an ad hoc
+    // layout can still produce it — the sanity check exists to catch that
+    // without taking the whole export down.
+    const icon = elm([], { top: 100, bottom: 140, left: 0, right: 20 }, [], { tagName: 'svg' })
+    const sideText = txt('beside the icon', { top: 110, bottom: 125, left: 25, right: 150 })
+    const entry = elm(['rm-item'], { top: 100, bottom: 140, left: 0, right: 300 }, [icon, sideText])
+    const title = elm(['rm-section-title'], { top: 60, bottom: 80, left: 0, right: 150 })
+    const body = elm(['rm-section-body'], { top: 100, bottom: 140, left: 0, right: 300 }, [entry])
+    const section = elm(['rm-section'], { top: 60, bottom: 140, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    expect(() => extractPageBlocks(root as unknown as HTMLElement)).not.toThrow()
+    expect(warnings.some((args) => String(args[0]).includes('overlap'))).toBe(true)
   })
 })

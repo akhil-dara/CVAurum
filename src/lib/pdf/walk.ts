@@ -1,6 +1,7 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
-import { ascentPx, extractRuns, measureTextWidthPx } from './text'
+import { ascentPx, extractRuns, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
+import type { PageBlock } from './paginate'
 
 /**
  * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
@@ -951,5 +952,284 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
     }
   }
   closeUpTo(null)
+  tagPageChromeOps(ops, boxOf(root, root).hPx)
   return ops
+}
+
+/**
+ * Post-pass (native-multipage-pdf plan, task 2): marks every background
+ * `rect` op that spans >= 96% of the document's own total content height as
+ * `pageChrome` — the root's own full-height background (always exactly
+ * 100%, so it always qualifies) plus any other background rect that reads as
+ * a full-column band rather than page-specific content (e.g. a two-column
+ * template's dark sidebar fill). See types.ts's `DrawOpChrome.pageChrome`
+ * doc comment for what task 3's paint.ts does with the tag.
+ *
+ * Runs as a pass over the FINISHED op list rather than tagging inline at
+ * boxOps-time: boxOps only ever sees one element's own box, not the whole
+ * document's total height, and threading that through every caller (boxOps,
+ * pseudoOps, svgLogoOps) would be far more invasive than one pass at the
+ * end. A rect with no fill (a pure `fillGradient`) still counts as
+ * "background" for this heuristic — gradients repeat as chrome too (spec
+ * section 2: "gradients/borders on chrome rects repeat with the rect").
+ */
+function tagPageChromeOps(ops: DrawOp[], contentHeightPx: number): void {
+  if (!(contentHeightPx > 0)) return // guards NaN/0/negative — never tag against a degenerate height
+  const threshold = contentHeightPx * 0.96
+  for (const op of ops) {
+    if (op.kind === 'rect' && (op.fill || op.fillGradient) && op.hPx >= threshold) {
+      op.pageChrome = true
+    }
+  }
+}
+
+/* ------------------------------------------------------- extractPageBlocks */
+
+/**
+ * DOM-derived `PageBlock[]` for the native-multipage-pdf plan's pagination
+ * engine (paginate.ts — READ ITS JSDoc first, its shape is the binding
+ * contract this function fills in). Walks the SAME rendered résumé DOM
+ * `buildDrawList` walks (print-mode for export, the live editable canvas for
+ * the WYSIWYG preview — both share the exact `.rm-section`/`.rm-item`/
+ * `.rm-skill-group`/`.rm-mini`/`.rm-chips` class vocabulary sections.tsx and
+ * Artboard.tsx render), producing ONE FLAT, top-to-bottom-ordered sequence of
+ * blocks: `'section-gap'`/`'entry-gap'` blocks are the ACTUAL empty region
+ * between two sections/entries (their own span IS the gap); `'line'` blocks
+ * are real text-line ink (reusing text.ts's `textNodeLineSegments` — the
+ * same per-line geometry `extractRuns` paints from); `'atomic'` blocks are
+ * indivisible non-text ink (an image, an inline `<svg>` icon, a chip row).
+ * Section titles (`.rm-section-title`) and entry title ROWS carry
+ * `keepWithNext: true` so paginate.ts's widow rule can never strand a
+ * heading alone at the bottom of a page.
+ *
+ * "Title ROW", not just "title text": `.rm-item-head` (badge/logo + title +
+ * date), `.rm-level` (a skill/language name + its rating meter), and the
+ * bare `.rm-skill-group-name`/`.rm-mini-title` spans (Interests/References,
+ * which have no wrapping row) are each collapsed to ONE block from their OWN
+ * `getBoundingClientRect()` rather than decomposed into their child text
+ * nodes. Two reasons: (1) these are `display:flex` ROWS laying out sibling
+ * elements SIDE BY SIDE on one visual line (badge, title, date) — decomposing
+ * per child would put those siblings at roughly the same y (not stacked),
+ * producing overlapping blocks, which is exactly what this module's own
+ * sanity check below flags; (2) it's also the semantically right answer for
+ * keepWithNext — the WHOLE title+date row (or name+meter row) is what must
+ * stay with the entry's first content line, not just the title text alone.
+ * `.rm-item-sub` (org + location + GPA — also a wrapping flex row, see
+ * artboard.css) gets the same single-block collapse for the SAME
+ * same-line-siblings reason, but is NOT a title (no keepWithNext).
+ *
+ * KNOWN IMPRECISION (documented, not fixed here — see the task-2 report):
+ * sibling TEXT NODES sharing one visual line via inline rich-text formatting
+ * (e.g. a bold `<strong>` run mid-sentence in a bullet) are measured
+ * independently per text node (same as extractRuns always did) and are NOT
+ * merged into one shared-line block, so they can produce partially
+ * overlapping 'line' blocks. paginate.ts tolerates this (candidates are only
+ * ever built at gap midpoints; `fallsInsideInk` defensively drops any that
+ * still land inside a block) and this module's sanity check dev-warns rather
+ * than throws, so the worst case is a slightly worse (not wrong) page break.
+ *
+ * The header (`.rm-header`) is deliberately NOT walked — paginate.ts never
+ * needs a candidate break inside it (nothing here proposes a cut in a region
+ * with no blocks at all), and section/entry gap semantics don't apply to it.
+ */
+export function extractPageBlocks(root: HTMLElement): PageBlock[] {
+  const rootTop = root.getBoundingClientRect().top
+  const sections = findByClass(root, ['rm-section'])
+
+  const blocks: PageBlock[] = []
+  let prevEnd: PageBlock | null = null
+  for (const section of sections) {
+    const sectionBlocks = extractSectionBlocks(section, rootTop)
+    if (!sectionBlocks.length) continue
+    if (prevEnd) {
+      blocks.push({ kind: 'section-gap', topPx: prevEnd.bottomPx, bottomPx: sectionBlocks[0].topPx })
+    }
+    blocks.push(...sectionBlocks)
+    prevEnd = sectionBlocks[sectionBlocks.length - 1]
+  }
+
+  if (import.meta.env.DEV) sanityCheckPageBlocks(blocks)
+  return blocks
+}
+
+/** `.rm-section-title`, and every entry's "title ROW" wrapper (or, absent a
+ *  wrapper, the bare title span itself — Interests/References) — collapsed
+ *  to ONE block from their own box and flagged `keepWithNext`. See
+ *  `extractPageBlocks`'s doc comment for why a whole ROW, not just the title
+ *  text run. */
+const TITLE_ROW_CLASSES = ['rm-section-title', 'rm-item-head', 'rm-level', 'rm-skill-group-name', 'rm-mini-title']
+/** Other flex ROWS with same-line siblings that need the same single-block
+ *  collapse but are NOT a title (no keepWithNext) — see the doc comment. */
+const PLAIN_ROW_CLASSES = ['rm-item-sub']
+/** One entry wrapper per section-body child (sections.tsx's real classes —
+ *  Summary/Work/Education/Projects/Volunteer/Custom use `rm-item`, Skills
+ *  uses `rm-skill-group`, Languages/Certificates/Awards/Publications/
+ *  Interests/References use `rm-mini`). Entries never nest. */
+const ENTRY_CLASSES = ['rm-item', 'rm-skill-group', 'rm-mini']
+
+function hasAnyClass(el: Element, classes: string[]): boolean {
+  const cl = (el as HTMLElement).classList
+  return classes.some((c) => cl.contains(c))
+}
+
+/** Same print-DOM filtering `buildDrawList`'s own TreeWalker applies —
+ *  edit-canvas-only chrome (delete buttons, gears, add-entry rows — all
+ *  `no-print`) and anything laid out with zero footprint must never
+ *  contribute a block, in EITHER the offscreen print-mode DOM (export) or
+ *  the live editable canvas (preview) this function also runs against, or
+ *  the two would disagree on cut positions. */
+function isSkippedElement(el: Element): boolean {
+  if ((el as HTMLElement).classList.contains('no-print')) return true
+  const cs = getComputedStyle(el as HTMLElement)
+  return cs.display === 'none' || cs.visibility === 'hidden'
+}
+
+/** Images, inline `<svg>` icons, and chip rows are indivisible ink — never
+ *  decomposed into lines (brief: "images/svg/chips emit atomic"). */
+function isAtomicElement(el: Element): boolean {
+  if (el.tagName === 'IMG' || el.tagName === 'svg') return true
+  return (el as HTMLElement).classList.contains('rm-chips')
+}
+
+/** Depth-first search for every descendant matching one of `classes`,
+ *  document order, skipped/no-print subtrees pruned — does NOT descend past
+ *  a match (sections don't nest inside sections; entries don't nest inside
+ *  entries). Shared by section-finding and entry-finding — the two calls
+ *  just differ in which class list they pass. */
+function findByClass(root: Element, classes: string[]): Element[] {
+  const out: Element[] = []
+  const visit = (el: Element) => {
+    for (const child of Array.from(el.childNodes)) {
+      if (child.nodeType !== Node.ELEMENT_NODE) continue
+      const c = child as Element
+      if (isSkippedElement(c)) continue
+      if (hasAnyClass(c, classes)) {
+        out.push(c)
+        continue
+      }
+      visit(c)
+    }
+  }
+  visit(root)
+  return out
+}
+
+/** Pushes ONE block from `el`'s own `getBoundingClientRect()` — used for
+ *  atomic elements and for the title/plain ROW collapse (see the module doc
+ *  comment) — never for plain per-text-node line blocks, which come from
+ *  `pushTextLineBlocks` below instead. */
+function pushOwnBoxBlock(
+  el: Element,
+  rootTop: number,
+  out: PageBlock[],
+  kind: 'line' | 'atomic',
+  keepWithNext: boolean
+): void {
+  const r = el.getBoundingClientRect()
+  const topPx = r.top - rootTop
+  const bottomPx = r.bottom - rootTop
+  if (bottomPx <= topPx) return // zero/negative-height box — nothing to record
+  out.push(keepWithNext ? { kind, topPx, bottomPx, keepWithNext: true } : { kind, topPx, bottomPx })
+}
+
+/** Pushes one 'line' block per visually-wrapped line of a text node, via
+ *  text.ts's shared `textNodeLineSegments` — the exact geometry
+ *  `extractRuns` paints from. */
+function pushTextLineBlocks(node: Text, rootTop: number, out: PageBlock[]): void {
+  if (!node.data || node.data.trim() === '') return
+  for (const seg of textNodeLineSegments(node)) {
+    const topPx = seg.rect.top - rootTop
+    const bottomPx = seg.rect.bottom - rootTop
+    if (bottomPx <= topPx) continue
+    out.push({ kind: 'line', topPx, bottomPx })
+  }
+}
+
+/** Recursively collects every ink block ('line'/'atomic') within `el`'s own
+ *  subtree, in document order — the entry-level (and title-row-level) walk
+ *  `extractSectionBlocks` drives. Atomic elements and title/plain ROWS
+ *  collapse to one block each and are never descended into further; anything
+ *  else recurses through its child text/element nodes. */
+function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
+  if (isAtomicElement(el)) {
+    pushOwnBoxBlock(el, rootTop, out, 'atomic', false)
+    return
+  }
+  if (hasAnyClass(el, TITLE_ROW_CLASSES)) {
+    pushOwnBoxBlock(el, rootTop, out, 'line', true)
+    return
+  }
+  if (hasAnyClass(el, PLAIN_ROW_CLASSES)) {
+    pushOwnBoxBlock(el, rootTop, out, 'line', false)
+    return
+  }
+  for (const child of Array.from(el.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      pushTextLineBlocks(child as Text, rootTop, out)
+    } else if (child.nodeType === Node.ELEMENT_NODE) {
+      const c = child as Element
+      if (isSkippedElement(c)) continue
+      collectInk(c, rootTop, out)
+    }
+  }
+}
+
+/** One section's own blocks: its title row, then each entry with an
+ *  `'entry-gap'` block (the measured empty span) between consecutive ones —
+ *  including between the title row and the first entry, so paginate.ts's
+ *  widow rule (which only inspects `keepWithNext` on the block immediately
+ *  BEFORE a gap) has a gap candidate to reject there too. */
+function extractSectionBlocks(section: Element, rootTop: number): PageBlock[] {
+  const blocks: PageBlock[] = []
+  let prevEnd: PageBlock | null = null
+
+  const titles = findByClass(section, ['rm-section-title'])
+  if (titles.length) {
+    const titleBlocks: PageBlock[] = []
+    collectInk(titles[0], rootTop, titleBlocks)
+    blocks.push(...titleBlocks)
+    prevEnd = titleBlocks[titleBlocks.length - 1] ?? prevEnd
+  }
+
+  const entries = findByClass(section, ENTRY_CLASSES)
+  for (const entry of entries) {
+    const entryBlocks: PageBlock[] = []
+    collectInk(entry, rootTop, entryBlocks)
+    if (!entryBlocks.length) continue
+    if (prevEnd) {
+      blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: entryBlocks[0].topPx })
+    }
+    blocks.push(...entryBlocks)
+    prevEnd = entryBlocks[entryBlocks.length - 1]
+  }
+
+  return blocks
+}
+
+/**
+ * Cheap dev-only guard (native-multipage-pdf plan, task 2 brief): paginate.ts
+ * does NO runtime validation of the block list it's given — malformed
+ * geometry (overlaps, negative heights, out-of-order blocks) degrades
+ * silently rather than throwing — so this extractor is on the hook for
+ * emitting a clean, sorted, non-overlapping tiling itself. Dev-warns rather
+ * than throws: a violation here means a WORSE page break somewhere (see this
+ * module's own "KNOWN IMPRECISION" doc comment above for the two documented
+ * sources — same-line title/plain ROWS are already handled, inline rich-text
+ * runs are not), not a broken export — a hard failure would take down the
+ * whole multi-page path over what's usually a fidelity nit.
+ */
+function sanityCheckPageBlocks(blocks: PageBlock[]): void {
+  const EPS = 0.5 // sub-pixel float noise tolerance
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]
+    if (b.bottomPx < b.topPx) {
+      console.warn('[pdf] extractPageBlocks: block has a negative height', b)
+    }
+    if (i > 0 && blocks[i - 1].topPx > b.topPx + EPS) {
+      console.warn('[pdf] extractPageBlocks: blocks are not sorted by topPx', blocks[i - 1], b)
+    }
+    if (i > 0 && blocks[i - 1].bottomPx > b.topPx + EPS) {
+      console.warn('[pdf] extractPageBlocks: blocks overlap', blocks[i - 1], b)
+    }
+  }
 }
