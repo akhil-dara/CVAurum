@@ -135,8 +135,12 @@ export function paginateOrThrow(input: PaginationInput): Pagination {
  *  NOT on `.rm-root` itself, which carries no padding of its own (its
  *  background spans its full box edge-to-edge, matching the page-chrome ops
  *  paint.ts repeats full-bleed on every page). Falls back to `root` itself
- *  if the column wrapper is ever missing, rather than throwing. */
-function findMainColumnPaddingPx(root: HTMLElement): { topPx: number; bottomPx: number } {
+ *  if the column wrapper is ever missing, rather than throwing. Exported
+ *  (native-multipage-pdf plan, task 5) so the editor preview's paginated
+ *  overlay reads the SAME padding this module does when it budgets pages for
+ *  export — no second implementation of "how do I find the padding" to drift
+ *  out of sync. */
+export function findMainColumnPaddingPx(root: HTMLElement): { topPx: number; bottomPx: number } {
   const mainCol = root.querySelector<HTMLElement>('.rm-col-main') ?? root
   return verticalPaddingPx(getComputedStyle(mainCol))
 }

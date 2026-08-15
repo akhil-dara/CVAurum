@@ -1,8 +1,29 @@
 /**
- * Live preview. Renders the template on a page-width "sheet" and overlays
- * page-break guides computed from the measured content height (after fonts are
- * ready). The same DOM is what the print route paginates, so the exported PDF
- * matches exactly. Auto-fit scales the page to the available width.
+ * Live preview. Renders the template on a page-width "sheet" and, once
+ * content overflows one page with auto-fit off, overlays page-break chrome
+ * (see the pagination effect below and PageChrome.tsx) computed with the
+ * SAME algorithm and budget functions the native PDF export uses
+ * (paginate.ts + extractPageBlocks, computeUsablePageHeightPx /
+ * computeFirstPageUsablePageHeightPx from render.tsx) — run against THIS
+ * canvas's own live DOM, so every separator/badge lines up exactly with the
+ * content the user is looking at (never a cross-DOM pixel estimate). Auto-
+ * fit scales the page to the available width.
+ *
+ * KNOWN LIMITATION: this editable canvas (`mode="preview"`) renders inline
+ * editing affordances (delete buttons, "+ Add" rows, per-chip edit
+ * controls) that are all `no-print` -- excluded from the walker's block
+ * list, so they never influence WHERE a cut lands -- but they still occupy
+ * real on-screen height, which can make the editable canvas noticeably
+ * taller than the print-mode DOM the export actually paginates (see the
+ * hidden `measureRef` render below, and its own `printH`, which is what
+ * drives the existing plain page-COUNT estimate). The overlay's page count
+ * can therefore run slightly ahead of the true exported PDF for content-
+ * heavy sections (chip lists, add-affordance-heavy entries) -- it is a
+ * same-DOM-consistent, never-under-counting estimate of the live canvas,
+ * not a byte-exact mirror of the export. `previewExact` mode (no edit
+ * chrome at all -- literally the print DOM) is the one place the two
+ * genuinely coincide, which is also why the overlay is deliberately NOT
+ * shown there (see the pagination effect's own comment).
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -16,8 +37,12 @@ import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
+import { extractPageBlocks } from '@/lib/pdf/walk'
+import { paginate, PaginationImpossibleError } from '@/lib/pdf/paginate'
+import { computeUsablePageHeightPx, computeFirstPageUsablePageHeightPx, findMainColumnPaddingPx } from '@/lib/pdf/render'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
+import { PageChromeOverlay } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
 // is throttled to ~never, which would stall the fit loop and leave a stale page
@@ -232,6 +257,68 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => cancelAnimationFrame(raf)
   }, [fitScale])
 
+  // Paginated WYSIWYG preview (native-multipage-pdf plan, task 5): runs the
+  // SAME break-point algorithm and budget functions the native PDF export
+  // uses (paginate.ts + extractPageBlocks, computeUsablePageHeightPx /
+  // computeFirstPageUsablePageHeightPx from render.tsx) against the LIVE
+  // editable canvas DOM, so every separator/badge lines up exactly with the
+  // content the user is looking at right now (see this file's own top
+  // comment for the one known divergence from the true export page count).
+  // Only ever active when auto-fit is off (auto-fit always targets one
+  // page, spec 3) and not in the "Exact PDF preview" toggle (that canvas IS
+  // the print DOM the gate screenshots — see PageChrome.tsx's own comment on
+  // why the overlay must never coexist with it). Debounced with the SAME
+  // cancellation-token + 200ms pattern the auto-fit effect above uses, so
+  // mid-keystroke DOM reflows never get walked half-settled.
+  const [pageCuts, setPageCuts] = useState<number[]>([])
+  const [pagePageCount, setPagePageCount] = useState(1)
+  useEffect(() => {
+    if (autoFit || previewExact) {
+      setPageCuts((prev) => (prev.length ? [] : prev))
+      setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+      return
+    }
+    let cancelled = false
+    const id = setTimeout(() => {
+      if (cancelled) return
+      const rmRoot = innerRef.current?.querySelector<HTMLElement>('.rm-root')
+      if (!rmRoot) return
+      const padding = findMainColumnPaddingPx(rmRoot)
+      const usablePageHeightPx = computeUsablePageHeightPx(pageH, padding)
+      const firstPageUsablePageHeightPx = computeFirstPageUsablePageHeightPx(pageH, padding)
+      const contentHeightPx = rmRoot.getBoundingClientRect().height
+      if (contentHeightPx <= firstPageUsablePageHeightPx) {
+        setPageCuts((prev) => (prev.length ? [] : prev))
+        setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+        return
+      }
+      try {
+        const blocks = extractPageBlocks(rmRoot)
+        const result = paginate({ blocks, contentHeightPx, usablePageHeightPx, firstPageUsablePageHeightPx })
+        setPageCuts(result.cutsPx)
+        setPagePageCount(result.pageCount)
+      } catch (e) {
+        if (e instanceof PaginationImpossibleError) {
+          // Same "can't legally paginate" signal export.ts falls back to
+          // print for — the preview just shows no page chrome rather than
+          // crashing the canvas.
+          setPageCuts((prev) => (prev.length ? [] : prev))
+          setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+        } else {
+          throw e
+        }
+      }
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
+    // `doc` re-runs this on every edit (same trigger the auto-fit effect
+    // above uses); `contentH` additionally covers reflows the auto-fit effect
+    // above causes without a `doc` change (fit-scale settling, async font/
+    // photo loads) so a stale layout is never walked.
+  }, [doc, autoFit, previewExact, pageH, contentH])
+
   const effectiveZoom = useMemo(() => {
     if (fitToWidth && containerW > 0) return clamp((containerW - 56) / pageW, 0.4, 1.5)
     return zoom
@@ -264,7 +351,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         full size" (→ phantom 2nd page + an unshrunk Word export). In <body> it
         always lays out, so the fit is correct regardless of panel state. */}
     {createPortal(
-      <div ref={measureRef} aria-hidden style={{ position: 'fixed', top: 0, left: -99999, width: pageW, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+      <div
+        ref={measureRef}
+        aria-hidden
+        data-role="pdf-measure"
+        style={{ position: 'fixed', top: 0, left: -99999, width: pageW, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}
+      >
         <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
       </div>,
       document.body,
@@ -317,18 +409,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             {/* recruiter skim heat — measured off the live canvas, updates as you type */}
             {skimView && <SkimHeatmap rootRef={innerRef} zoom={effectiveZoom} pageH={pageH} docKey={doc} />}
 
-            {/* page-break guides */}
-            {Array.from({ length: pages - 1 }).map((_, i) => {
-              const top = (i + 1) * pageH
-              return (
-                <div key={i} className="pointer-events-none absolute left-0 right-0" style={{ top }}>
-                  <div className="border-t border-dashed border-rose-400/60" />
-                  <div className="absolute right-1 -top-5 rounded bg-rose-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                    Page {i + 2}
-                  </div>
-                </div>
-              )
-            })}
+            {/* Paginated WYSIWYG preview chrome: page-gap separators + "Page k / N"
+                badges, siblings of `.rm-root` (never inside it — see PageChrome.tsx's
+                own comment). Not rendered in "Exact PDF preview" mode (that canvas
+                IS the print DOM the gate screenshots for exact-preview parity). */}
+            {!previewExact && <PageChromeOverlay cutsPx={pageCuts} pageCount={pagePageCount} />}
           </div>
         </div>
       </div>
