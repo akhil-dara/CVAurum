@@ -1174,27 +1174,80 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
   }
 }
 
+/**
+ * Fix round (native-multipage-pdf plan, task 2 — same-line sibling
+ * coalescing): sibling TEXT NODES sharing one visual line (a bold
+ * `<strong>`/`<em>` run mid-sentence, e.g. "with 8+ years building" inside a
+ * bullet) each get their own `'line'` block from `pushTextLineBlocks` — one
+ * per text node, per this module's existing per-node granularity (see
+ * text.ts's `textNodeLineSegments`). A `Range`'s bounding rect for a same-
+ * line run correctly reports that shared line box's real vertical extent, so
+ * two (or three) side-by-side runs come out with (near-)identical y-spans —
+ * correct geometry, but PageBlock is y-ONLY, so the Y-only pagination model
+ * reads that as overlapping ink. Confirmed live against the running app's
+ * canvas (task-2 review): the unmodified dev sanity-warn fired ~11 times on
+ * one ordinary long-form résumé, once per bolded line — this is not a rare
+ * edge case, it fires on every inline-formatted line.
+ *
+ * Merges ADJACENT `'line'` blocks whose vertical spans overlap or coincide
+ * (within the same 0.5px epsilon `sanityCheckPageBlocks` uses) into ONE block
+ * spanning their union. Blocks are emitted in document order by a depth-first
+ * walk, so same-line siblings are always adjacent in the array; genuinely
+ * different (stacked) lines always have real vertical separation from
+ * line-height leading, well past the epsilon, so they're never merged.
+ * `'atomic'` blocks (images/svg/chips) never participate — they're already
+ * whole units and must never absorb or be absorbed by adjacent text.
+ *
+ * Callers apply this to ONE `collectInk` call's own local output (one entry,
+ * or one title row) — never to the section's combined `blocks` array — so
+ * this can only ever merge siblings within a single flowing text block,
+ * never across entries or sections (those are joined by explicit
+ * `'entry-gap'`/`'section-gap'` blocks afterward, which this never touches).
+ */
+function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
+  const EPS = 0.5
+  const out: PageBlock[] = []
+  for (const b of blocks) {
+    const prev = out[out.length - 1]
+    if (prev && prev.kind === 'line' && b.kind === 'line' && b.topPx <= prev.bottomPx + EPS) {
+      out[out.length - 1] = {
+        kind: 'line',
+        topPx: Math.min(prev.topPx, b.topPx),
+        bottomPx: Math.max(prev.bottomPx, b.bottomPx),
+        ...(prev.keepWithNext || b.keepWithNext ? { keepWithNext: true as const } : {}),
+      }
+      continue
+    }
+    out.push(b)
+  }
+  return out
+}
+
 /** One section's own blocks: its title row, then each entry with an
  *  `'entry-gap'` block (the measured empty span) between consecutive ones —
  *  including between the title row and the first entry, so paginate.ts's
  *  widow rule (which only inspects `keepWithNext` on the block immediately
- *  BEFORE a gap) has a gap candidate to reject there too. */
+ *  BEFORE a gap) has a gap candidate to reject there too. Each `collectInk`
+ *  call's own output is coalesced (see `coalesceSameLineBlocks`) before it's
+ *  ever appended to the section-wide `blocks` list. */
 function extractSectionBlocks(section: Element, rootTop: number): PageBlock[] {
   const blocks: PageBlock[] = []
   let prevEnd: PageBlock | null = null
 
   const titles = findByClass(section, ['rm-section-title'])
   if (titles.length) {
-    const titleBlocks: PageBlock[] = []
-    collectInk(titles[0], rootTop, titleBlocks)
+    const rawTitleBlocks: PageBlock[] = []
+    collectInk(titles[0], rootTop, rawTitleBlocks)
+    const titleBlocks = coalesceSameLineBlocks(rawTitleBlocks)
     blocks.push(...titleBlocks)
     prevEnd = titleBlocks[titleBlocks.length - 1] ?? prevEnd
   }
 
   const entries = findByClass(section, ENTRY_CLASSES)
   for (const entry of entries) {
-    const entryBlocks: PageBlock[] = []
-    collectInk(entry, rootTop, entryBlocks)
+    const rawEntryBlocks: PageBlock[] = []
+    collectInk(entry, rootTop, rawEntryBlocks)
+    const entryBlocks = coalesceSameLineBlocks(rawEntryBlocks)
     if (!entryBlocks.length) continue
     if (prevEnd) {
       blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: entryBlocks[0].topPx })

@@ -1632,6 +1632,45 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     ])
   })
 
+  it('fix round: coalesces three same-line sibling text-node blocks (plain + bold + plain, e.g. "with 8+ years building") into ONE line block', () => {
+    install()
+
+    // A bullet whose rendered HTML is plain text, then a <strong> run, then
+    // more plain text — three SIBLING text nodes on the same visual line.
+    // Range.getBoundingClientRect() correctly reports the shared line box's
+    // real vertical extent for each of them, so all three come out with
+    // (near-)identical y-spans (a 0.3px float-noise wobble on the middle
+    // one, well within the 0.5px coalescing epsilon) — before the fix this
+    // produced THREE overlapping 'line' blocks; after it, exactly one.
+    const before = txt('Engineer with ', { top: 200, bottom: 216, left: 0, right: 90 })
+    const bold = txt('8+ years', { top: 200.3, bottom: 216, left: 90, right: 140 })
+    const after = txt(' building things.', { top: 200, bottom: 216, left: 140, right: 250 })
+    const strong = elm([], { top: 200.3, bottom: 216, left: 90, right: 140 }, [bold])
+    const li = elm([], { top: 200, bottom: 216, left: 0, right: 250 }, [before, strong, after])
+    const bulletsUl = elm(['rm-bullets'], { top: 200, bottom: 220, left: 0, right: 300 }, [li])
+    const entry = elm(['rm-item'], { top: 200, bottom: 220, left: 0, right: 300 }, [bulletsUl])
+    const title = elm(['rm-section-title'], { top: 170, bottom: 190, left: 0, right: 150 })
+    const body = elm(['rm-section-body'], { top: 200, bottom: 220, left: 0, right: 300 }, [entry])
+    const section = elm(['rm-section'], { top: 170, bottom: 220, left: 0, right: 300 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const warnings: unknown[][] = []
+    console.warn = ((...args: unknown[]) => {
+      warnings.push(args)
+    }) as typeof console.warn
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 170, bottomPx: 190, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 190, bottomPx: 200 },
+      { kind: 'line', topPx: 200, bottomPx: 216 }, // the three same-line siblings coalesced into ONE block
+    ])
+    // The fix's whole point: no spurious overlap warning for ordinary
+    // inline-formatted text.
+    expect(warnings.length).toBe(0)
+  })
+
   it('skips no-print and display:none elements entirely — canvas-only edit chrome never contributes a block', () => {
     install()
 
