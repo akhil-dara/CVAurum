@@ -26,3 +26,7 @@ pnpm-debug.log*
 
 # SDD scratch (subagent-driven development workspace)
 .superpowers/
+
+# internal process docs - kept locally, never published
+docs/superpowers/
+docs/PDF-RENDERER.md
