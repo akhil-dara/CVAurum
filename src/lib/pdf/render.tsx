@@ -32,6 +32,13 @@ declare global {
   interface Window {
     __cvaCaptureRenderBoxes?: boolean
     __cvaLastDecoBoxes?: DecoBox[]
+    /** Cut positions (continuous CSS px) the LAST `renderResumePdf` call
+     *  paginated at — `[]` for a single-page render. DEV-only, always
+     *  assigned (same no-stale-data rule as `__cvaLastDecoBoxes`): the
+     *  multi-page gate compares these op-side cuts against DOM-side cuts it
+     *  computes itself via `extractPageBlocks` + `paginate` on the preview's
+     *  measure portal — the WYSIWYG parity guarantee (spec section 7). */
+    __cvaLastPaginationCuts?: number[]
   }
 }
 
@@ -260,6 +267,11 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // entirely inside the DEV guard, so the production path never touches
     // `window` here at all.
     if (import.meta.env.DEV) window.__cvaLastDecoBoxes = resolveDecoBoxesGlobal(capturing, decoBoxes)
+    // Unconditional in DEV (no capture flag): the cuts are already computed
+    // either way, and always-assigning keeps the same staleness guarantee as
+    // the deco boxes above — a single-page render publishes [] over whatever
+    // a prior multi-page render left behind.
+    if (import.meta.env.DEV) window.__cvaLastPaginationCuts = cutsPx.slice()
 
     return await pdfDoc.save()
   } finally {
