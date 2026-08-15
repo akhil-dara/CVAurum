@@ -54,19 +54,14 @@ export function stripImages(doc: ResumeDocument): ResumeDocument {
   const d: ResumeDocument = JSON.parse(JSON.stringify(doc))
   if (d.content?.basics) d.content.basics.image = ''
   for (const list of [d.content?.work, d.content?.education, d.content?.volunteer]) {
-    for (const it of (list ?? []) as { logo?: string; logos?: string[] }[]) {
-      if (it.logo) it.logo = ''
-      if (it.logos?.length) it.logos = []
-    }
+    for (const it of (list ?? []) as { logo?: string }[]) if (it.logo) it.logo = ''
   }
   return d
 }
 export function hasImages(doc: ResumeDocument): boolean {
   if (doc.content?.basics?.image) return true
   for (const list of [doc.content?.work, doc.content?.education, doc.content?.volunteer]) {
-    for (const it of (list ?? []) as { logo?: string; logos?: string[] }[]) {
-      if (it.logo || it.logos?.length) return true
-    }
+    for (const it of (list ?? []) as { logo?: string }[]) if (it.logo) return true
   }
   return false
 }

@@ -95,9 +95,8 @@ export async function importFullBackup(file: File, mode: 'merge' | 'replace' = '
     // external image requests on render — this path never re-encodes images.
     if (d.content.basics.image && RETIRED_AVATARS.includes(d.content.basics.image)) d.content.basics.image = ''
     for (const list of [d.content.work, d.content.education, d.content.volunteer]) {
-      for (const it of list as { logo?: string; logos?: string[] }[]) {
+      for (const it of list as { logo?: string }[]) {
         if (it.logo && !/^data:image\//i.test(it.logo)) it.logo = ''
-        if (it.logos?.length) it.logos = it.logos.filter((l) => /^data:image\//i.test(l))
       }
     }
     if (d.content.basics.image && !/^data:image\//i.test(d.content.basics.image)) {

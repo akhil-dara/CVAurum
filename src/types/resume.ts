@@ -48,11 +48,6 @@ export const WorkSchema = z.object({
   name: z.string().optional().default(''), // company
   /** small company logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
-  /** multiple entry marks — e.g. a role spanning a merged/acquiring company
-   *  (CVAurum extension). When non-empty this WINS over `logo` for display;
-   *  see lib/sections.ts's `effectiveMarks`. `logo` is never migrated away —
-   *  a document that never used this stays on `logo` forever. */
-  logos: z.array(z.string()).optional().default([]),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   location: z.string().optional().default(''),
@@ -69,9 +64,6 @@ export const EducationSchema = z.object({
   institution: z.string().optional().default(''),
   /** small institution logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
-  /** multiple entry marks — e.g. a joint degree across two institutions
-   *  (CVAurum extension). See WorkSchema's `logos` doc comment. */
-  logos: z.array(z.string()).optional().default([]),
   url: z.string().optional().default(''),
   area: z.string().optional().default(''),
   studyType: z.string().optional().default(''),
@@ -153,8 +145,6 @@ export const VolunteerSchema = z.object({
   organization: z.string().optional().default(''),
   /** small organization logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
-  /** multiple entry marks (CVAurum extension). See WorkSchema's `logos` doc comment. */
-  logos: z.array(z.string()).optional().default([]),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   startDate: z.string().optional().default(''),

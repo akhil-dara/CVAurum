@@ -33,7 +33,6 @@ export const SAMPLE_CONTENT: ResumeContent = {
       startDate: '2021-03',
       endDate: '',
       summary: '',
-      logos: [],
       highlights: [
         'Led the rebuild of the billing platform serving <strong>2.4M</strong> customers, cutting payment failures by <strong>38%</strong> and reclaiming $4.1M in annual revenue.',
         'Architected an event-driven services layer (Kafka + TypeScript) that reduced p95 checkout latency from 820ms to <strong>190ms</strong>.',
@@ -49,7 +48,6 @@ export const SAMPLE_CONTENT: ResumeContent = {
       startDate: '2018-06',
       endDate: '2021-02',
       summary: '',
-      logos: [],
       highlights: [
         'Built the company’s first design-system component library (React + Storybook), adopted by 9 product teams.',
         'Shipped a real-time analytics dashboard handling <strong>40k events/sec</strong> with sub-second refresh.',
@@ -70,7 +68,6 @@ export const SAMPLE_CONTENT: ResumeContent = {
       score: '3.8 GPA',
       url: '',
       summary: '',
-      logos: [],
       courses: ['Distributed Systems', 'Machine Learning', 'Databases', 'Algorithms'],
     },
   ],

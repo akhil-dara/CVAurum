@@ -3,7 +3,7 @@ import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { cn } from '@/lib/utils'
-import { newItem, removeItem, ADD_LABEL, effectiveMarks, applyMarks } from '@/lib/sections'
+import { newItem, removeItem, ADD_LABEL } from '@/lib/sections'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
 import { LogoPicker } from './fields/LogoPicker'
@@ -212,7 +212,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             onChange={set('summary')}
             placeholder="One or two lines on the scope of the role (optional) — also editable right on the resume"
           />
-          <LogoPicker label="Company logo" marks={effectiveMarks(item)} onChange={(next) => patch((it) => applyMarks(it, next))} />
+          <LogoPicker label="Company logo" value={item.logo} onChange={set('logo')} />
           <BulletsEditor label="Achievements" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
       )
@@ -233,7 +233,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             <TextField label="Grade / GPA" value={item.score} onChange={set('score')} placeholder="3.8 GPA" />
           </Row>
           <TagInput label="Relevant courses" value={item.courses ?? []} onChange={set('courses')} />
-          <LogoPicker label="Institution logo" marks={effectiveMarks(item)} onChange={(next) => patch((it) => applyMarks(it, next))} />
+          <LogoPicker label="Institution logo" value={item.logo} onChange={set('logo')} />
         </>
       )
     case 'projects':
@@ -328,7 +328,7 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
           <Labeled label="Summary">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />
           </Labeled>
-          <LogoPicker label="Organization logo" marks={effectiveMarks(item)} onChange={(next) => patch((it) => applyMarks(it, next))} />
+          <LogoPicker label="Organization logo" value={item.logo} onChange={set('logo')} />
           <BulletsEditor label="Highlights" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
       )

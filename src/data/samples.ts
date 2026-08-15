@@ -86,7 +86,7 @@ const MARKETING: ResumeContent = persona({
   work: [
     {
       id: 'w1', name: 'Brightwave', position: 'Senior Marketing Manager', location: 'New York, NY', url: '',
-      startDate: '2021-04', endDate: '', logo: mark('B', '#b45309'), logos: [],
+      startDate: '2021-04', endDate: '', logo: mark('B', '#b45309'),
       summary: 'Own the full marketing engine for a $30M-ARR B2B SaaS — team of 5.',
       highlights: [
         'Grew marketing-sourced pipeline <strong>3.1×</strong> in 18 months to $22M ARR influence.',
@@ -96,7 +96,7 @@ const MARKETING: ResumeContent = persona({
     },
     {
       id: 'w2', name: 'Loop Analytics', position: 'Growth Marketing Lead', location: 'Remote', url: '',
-      startDate: '2018-07', endDate: '2021-03', summary: '', logo: mark('L', '#7c3aed'), logos: [],
+      startDate: '2018-07', endDate: '2021-03', summary: '', logo: mark('L', '#7c3aed'),
       highlights: [
         'Scaled paid acquisition from $0 to <strong>$1.2M/yr</strong> at a blended 4.2× ROAS.',
         'Ran 200+ A/B tests on lifecycle email, raising activation <strong>19%</strong>.',
@@ -104,12 +104,12 @@ const MARKETING: ResumeContent = persona({
     },
     {
       id: 'w3', name: 'Copperline Agency', position: 'Marketing Associate', location: 'New York, NY', url: '',
-      startDate: '2016-06', endDate: '2018-06', summary: '', logo: mark('C', '#be123c'), logos: [],
+      startDate: '2016-06', endDate: '2018-06', summary: '', logo: mark('C', '#be123c'),
       highlights: ['Managed social and email calendars for 8 retained clients; grew combined audience 65%.'],
     },
   ],
   education: [
-    { id: 'e1', institution: 'New York University', area: 'Marketing & Communications', studyType: 'B.B.A.', location: 'New York, NY', startDate: '2011-09', endDate: '2015-05', score: '', url: '', summary: '', courses: [], logo: mark('NYU', '#581c87'), logos: [] },
+    { id: 'e1', institution: 'New York University', area: 'Marketing & Communications', studyType: 'B.B.A.', location: 'New York, NY', startDate: '2011-09', endDate: '2015-05', score: '', url: '', summary: '', courses: [], logo: mark('NYU', '#581c87') },
   ],
   skills: [
     { id: 's1', name: 'Growth', level: '', keywords: ['Demand Gen', 'SEO', 'Paid Social', 'Lifecycle', 'CRO'] },
@@ -148,14 +148,14 @@ const GRADUATE: ResumeContent = persona({
   education: [
     {
       id: 'e1', institution: 'University of Washington', area: 'Computer Science', studyType: 'B.S.', location: 'Seattle, WA',
-      startDate: '2021-09', endDate: '2025-06', score: '3.9 GPA', url: '', summary: '', logos: [],
+      startDate: '2021-09', endDate: '2025-06', score: '3.9 GPA', url: '', summary: '',
       courses: ['Data Structures', 'Operating Systems', 'Databases', 'Machine Learning', 'Web Development'],
     },
   ],
   work: [
     {
       id: 'w1', name: 'Cloudbase', position: 'Software Engineering Intern', location: 'Seattle, WA', url: '',
-      startDate: '2024-06', endDate: '2024-09', summary: '', logos: [],
+      startDate: '2024-06', endDate: '2024-09', summary: '',
       highlights: [
         'Built a React dashboard widget used by <strong>12k</strong> daily users; shipped to production in 8 weeks.',
         'Cut an internal report query from 9s to <strong>1.2s</strong> by adding indexes and pagination.',
@@ -163,7 +163,7 @@ const GRADUATE: ResumeContent = persona({
     },
     {
       id: 'w2', name: 'UW Research Lab', position: 'Undergraduate Research Assistant', location: 'Seattle, WA', url: '',
-      startDate: '2023-09', endDate: '2024-05', summary: '', logos: [],
+      startDate: '2023-09', endDate: '2024-05', summary: '',
       highlights: ['Implemented data-pipeline tooling in Python for a 2M-row NLP dataset.'],
     },
   ],
@@ -191,7 +191,7 @@ const GRADUATE: ResumeContent = persona({
   volunteer: [
     {
       id: 'v1', organization: 'Code for Community', position: 'Volunteer Web Developer', url: '',
-      startDate: '2023-01', endDate: '', summary: '', logos: [],
+      startDate: '2023-01', endDate: '', summary: '',
       highlights: ['Rebuilt a nonprofit food-bank site, doubling online volunteer signups.'],
     },
   ],
@@ -221,7 +221,7 @@ const DESIGNER: ResumeContent = persona({
   work: [
     {
       id: 'w1', name: 'Nimbus Health', position: 'Senior Product Designer', location: 'Austin, TX', url: '',
-      startDate: '2022-02', endDate: '', logo: mark('N', '#0e7490'), logos: [],
+      startDate: '2022-02', endDate: '', logo: mark('N', '#0e7490'),
       summary: 'Design lead for the patient-scheduling suite (3 squads).',
       highlights: [
         'Redesigned intake flows, lifting appointment completion <strong>+24%</strong> across 400 clinics.',
@@ -231,7 +231,7 @@ const DESIGNER: ResumeContent = persona({
     },
     {
       id: 'w2', name: 'Fernwood Studio', position: 'Product Designer', location: 'Remote', url: '',
-      startDate: '2019-05', endDate: '2022-01', summary: '', logo: mark('F', '#365314'), logos: [],
+      startDate: '2019-05', endDate: '2022-01', summary: '', logo: mark('F', '#365314'),
       highlights: [
         'Shipped 14 client products end-to-end — fintech dashboards to consumer mobile.',
         'Introduced usability benchmarking that became the studio-wide QA gate.',
@@ -239,7 +239,7 @@ const DESIGNER: ResumeContent = persona({
     },
   ],
   education: [
-    { id: 'e1', institution: 'University of Texas at Austin', area: 'Design', studyType: 'B.F.A.', location: 'Austin, TX', startDate: '2013-09', endDate: '2017-05', score: '', url: '', summary: '', courses: [], logo: mark('UT', '#9a3412'), logos: [] },
+    { id: 'e1', institution: 'University of Texas at Austin', area: 'Design', studyType: 'B.F.A.', location: 'Austin, TX', startDate: '2013-09', endDate: '2017-05', score: '', url: '', summary: '', courses: [], logo: mark('UT', '#9a3412') },
   ],
   skills: [
     { id: 's1', name: 'Product Design', level: '', rating: 5, keywords: ['Discovery', 'Wireframing', 'Prototyping', 'Design Systems'] },

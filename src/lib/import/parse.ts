@@ -540,7 +540,6 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
       startDate: start,
       endDate: end,
       summary: summary ? esc(summary) : '',
-      logos: [],
       highlights,
     }
   }).filter((w) => w.position || w.name || w.highlights.length)
@@ -570,7 +569,6 @@ function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education
       url: '',
       summary: '',
       courses: [],
-      logos: [],
     }
   }).filter((e) => e.institution || e.area)
 }

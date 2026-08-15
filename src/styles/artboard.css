@@ -1140,117 +1140,24 @@
    left gutter and the WHOLE entry — title, org, meta, bullets — shares one
    aligned left edge. Without this, only the title was pushed right, which
    read as a big ragged gap. --rm-mark-left lets padded layouts (timeline,
-   cards) shift the gutter inward instead of fighting over padding.
-
-   --rm-mark-width (multi-entry-icons, issue #8) is the gutter's actual
-   content width: a single mark is just --rm-badge-size, same as always: it
-   only grows for a 2-3 mark FACEPILE, by the width each extra overlapping
-   mark visibly ADDS beyond the one before it (its own width minus the
-   0.55em the next mark slides left to overlap it — see .rm-facepile-mark
-   below, which uses the exact same 0.55em). --rm-mark-count is set inline
-   ONLY on entries with 2+ effective marks (sections.tsx's markCountStyle) —
-   an ordinary single-mark (or no-mark) entry never gets that inline style at
-   all, so var(--rm-mark-count, 1) resolves to the fallback and this whole
-   formula collapses back to EXACTLY the pre-facepile single-badge width,
-   byte-for-byte (see lib/sections.ts's applyMarks doc comment for why that
-   parity matters for the PDF export). */
+   cards) shift the gutter inward instead of fighting over padding. */
 .rm-item.rm-has-mark {
-  --rm-mark-width: calc(
-    var(--rm-badge-size, 1.65em) + (var(--rm-mark-count, 1) - 1) * (var(--rm-badge-size, 1.65em) - 0.55em)
-  );
-  padding-left: calc(var(--rm-mark-left, 0em) + var(--rm-mark-width) + 0.5em);
+  padding-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
 }
 /* The mark anchors to the HEAD (its positioned ancestor) and hangs one full
    gutter-width to its left — which is exactly the gutter start no matter how
    much extra padding the layout (timeline, cards) added before it. */
 .rm-item.rm-has-mark > .rm-item-head .rm-item-logo,
 .rm-item.rm-has-mark > .rm-item-head .rm-item-badge,
-.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn,
-.rm-item.rm-has-mark > .rm-item-head .rm-facepile {
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn {
   position: absolute;
-  left: calc(-1 * (var(--rm-mark-width, var(--rm-badge-size, 1.65em)) + 0.5em));
+  left: calc(-1 * (var(--rm-badge-size, 1.65em) + 0.5em));
   top: 0.05em;
 }
-/* inside the edit-mode logo button (or the facepile), the mark itself stays
-   in normal flow. The facepile's OWN marks (.rm-facepile-mark — either a
-   plain print-mode <img> or an edit-mode <button class="rm-logo-btn"> — see
-   sections.tsx's CanvasFacepile) ALSO match the broader ".rm-logo-btn"/
-   ".rm-item-logo" selector above (it's a descendant match, not scoped to
-   direct children), so without this override every mark past the first
-   would independently absolute-position itself back to the SAME spot
-   instead of taking its place in the facepile's flex row — this selector's
-   extra ".rm-facepile" class gives it the higher specificity needed to win. */
+/* inside the edit-mode logo button, the mark itself stays in normal flow */
 .rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-logo,
-.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-badge,
-.rm-item.rm-has-mark > .rm-item-head .rm-facepile .rm-item-logo,
-.rm-item.rm-has-mark > .rm-item-head .rm-facepile .rm-facepile-mark {
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-badge {
   position: static;
-}
-
-/* Facepile (2-3 marks, multi-entry-icons issue #8): a tight overlapping
-   stack — each mark after the first slides 0.55em (~35% of the default
-   1.65em badge) left onto the one before it, with the FIRST mark pinned on
-   top (descending z-index) since it's the entry's "primary" mark — matching
-   --rm-mark-width's own 0.55em overlap term above so the gutter's reserved
-   width lines up exactly with what the flex row actually renders. z-index
-   applies to flex items even at `position: static` per the flexbox spec, so
-   the static reset just above doesn't fight the stacking order below. */
-.rm-facepile {
-  display: inline-flex;
-  align-items: center;
-}
-.rm-facepile-mark:nth-child(n + 2) {
-  margin-left: -0.55em;
-}
-.rm-facepile-mark:nth-child(1) {
-  z-index: 3;
-}
-.rm-facepile-mark:nth-child(2) {
-  z-index: 2;
-}
-.rm-facepile-mark:nth-child(3) {
-  z-index: 1;
-}
-/* A page-colored halo (same trick as the timeline rail's dot marker) around
-   every mark BEHIND the first — its own white background alone reads
-   ambiguous exactly where two crops touch, the ring makes the stack read as
-   separate marks rather than one smudged image. */
-.rm-facepile-mark:nth-child(n + 2) .rm-item-logo,
-.rm-facepile-mark:nth-child(n + 2).rm-item-logo {
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 0 0 2px var(--rm-bg);
-}
-
-/* Edit-only "add another mark" chip (multi-entry-icons issue #8): hangs
-   below the mark/facepile in the SAME left gutter, out of normal flow (like
-   .rm-logo-btn-empty), so it never affects layout — print/thumbnail never
-   renders it (no-print) and it costs nothing even on the canvas until
-   hovered. Shown only while an entry has 1-2 marks; a 0-mark entry's own
-   CanvasLogo "+ Logo" state is already that entry's add affordance. */
-.rm-mark-add-btn {
-  position: absolute;
-  left: calc(-1 * (var(--rm-mark-width, var(--rm-badge-size, 1.65em)) + 0.5em));
-  top: calc(var(--rm-badge-size, 1.65em) + 0.3em);
-  width: 1.1em;
-  height: 1.1em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  border: 1px dashed color-mix(in srgb, var(--rm-primary) 60%, transparent);
-  background: var(--rm-bg);
-  color: var(--rm-primary);
-  font-size: max(9px, 0.72em);
-  font-weight: 700;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 5;
-}
-.rm-item:hover .rm-mark-add-btn,
-.rm-mark-add-btn:focus-visible {
-  opacity: 1;
 }
 
 /* Focus (zen) mode — dim everything except the section under the cursor.

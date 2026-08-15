@@ -135,19 +135,10 @@ export async function importDocumentFromFile(file: File): Promise<ResumeDocument
   }
   const doc = fromJsonResume(json)
   doc.content.basics.image = await sanitizeImportedImage(doc.content.basics.image)
-  // Entry logos are attacker-controllable on import too — same funnel. `logos`
-  // (multi-entry-icons, issue #8) carries the same class of data as `logo`
-  // and goes through the identical per-item sanitizer; entries that fail
-  // sanitization (remote URL, retired avatar, unreadable) are dropped rather
-  // than kept as empty strings, so a bad import can't leave holes in the
-  // facepile.
+  // Entry logos are attacker-controllable on import too — same funnel.
   for (const list of [doc.content.work, doc.content.education, doc.content.volunteer]) {
-    for (const it of list as { logo?: string; logos?: string[] }[]) {
+    for (const it of list as { logo?: string }[]) {
       if (it.logo) it.logo = await sanitizeImportedImage(it.logo)
-      if (it.logos?.length) {
-        const sanitized = await Promise.all(it.logos.map((l) => sanitizeImportedImage(l)))
-        it.logos = sanitized.filter(Boolean)
-      }
     }
   }
   return doc

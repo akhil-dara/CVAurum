@@ -5,13 +5,13 @@
  * (<Ed>) and write straight back to the store; otherwise they render plain so
  * print/thumbnail stay clean.
  */
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
-import { pushNewItem, removeItem, sectionHasContent, ADD_LABEL, effectiveMarks, applyMarks } from '@/lib/sections'
+import { pushNewItem, removeItem, sectionHasContent, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
@@ -173,21 +173,9 @@ const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
 
 /** Locally-encoded image only — remote URLs would break zero-external-requests. */
 const isLocalImg = (s?: string) => !!s && /^(data:image\/|blob:)/i.test(s)
-/** Entries showing a mark (logo/facepile) or badge get a left "mark gutter"
- *  so the whole entry (title, org, meta, bullets) keeps ONE aligned left edge. */
-const markClass = (marks: string[], badge?: string) => (marks.length || badge ? ' rm-has-mark' : '')
-/** Up to 3 marks shown in the UI (multi-entry-icons, issue #8): only real
- *  uploaded images, never remote/foreign values a malformed import slipped
- *  into `logos` — same trust boundary the single-`logo` path always applied.
- *  Schema itself stays uncapped so an import with more never loses data. */
-const shownMarks = (item: { logo?: string; logos?: string[] }) => effectiveMarks(item).filter(isLocalImg).slice(0, 3)
-/** Inline style carrying the facepile's mark count to the CSS gutter-width
- *  calc (artboard.css's `--rm-mark-count`) — omitted entirely for 0-1 marks,
- *  so an ordinary single-mark (or no-mark) entry gets no `style` attribute at
- *  all, same as before this feature existed (see applyMarks's doc comment for
- *  why that byte-for-byte parity matters for the PDF export). */
-const markCountStyle = (marks: string[]): CSSProperties | undefined =>
-  marks.length > 1 ? ({ '--rm-mark-count': marks.length } as CSSProperties) : undefined
+/** Entries showing a logo/badge get a left "mark gutter" so the whole entry
+ *  (title, org, meta, bullets) keeps ONE aligned left edge. */
+const markClass = (logo?: string, badge?: string) => (isLocalImg(logo) || badge ? ' rm-has-mark' : '')
 
 /* Cropper is editor-only chrome — lazy so print/thumbnail renders never load it. */
 const LazyCropper = lazy(() => import('@/components/editor/ImageCropper').then((m) => ({ default: m.ImageCropper })))
@@ -279,199 +267,14 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
   )
 }
 
-/**
- * The 2-3 mark facepile, editable on the canvas: click any mark to replace
- * or remove IT specifically (same crop -> downscale flow as the single-mark
- * CanvasLogo). Mirrors CanvasLogo's own menu/cropper plumbing rather than
- * sharing state with it — the two are mutually exclusive (ItemHead renders
- * one or the other depending on mark count), and keeping them separate means
- * a bug here can't touch the single-mark path CanvasLogo already covers.
- */
-function CanvasFacepile({ marks, onChange }: { marks: string[]; onChange: (next: string[]) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [menu, setMenu] = useState<{ top: number; left: number; index: number } | null>(null)
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const pendingIndex = useRef(0)
-  const menuRef = useRef<HTMLDivElement>(null)
-  usePopoverA11y(menu != null, () => setMenu(null), menuRef)
-
-  const pick = (file?: File) => {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = () => setCropSrc(String(reader.result))
-    reader.readAsDataURL(file)
-  }
-  const onCropSave = async (dataUrl: string) => {
-    setCropSrc(null)
-    try {
-      const { downscaleDataUrl } = await import('@/lib/image')
-      const small = await downscaleDataUrl(dataUrl, 128)
-      const next = marks.slice()
-      next[pendingIndex.current] = small
-      onChange(next)
-    } catch {
-      /* unreadable image — keep whatever was there */
-    }
-  }
-
-  const onMarkClick = (e: React.MouseEvent, index: number) => {
-    e.stopPropagation()
-    pendingIndex.current = index
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setMenu({ top: Math.min(r.bottom + 6, window.innerHeight - 96), left: Math.max(8, Math.min(r.left, window.innerWidth - 176)), index })
-  }
-
-  return (
-    <>
-      <span className="rm-facepile" contentEditable={false}>
-        {marks.map((m, i) => (
-          <button
-            key={i}
-            type="button"
-            className="rm-logo-btn rm-facepile-mark"
-            contentEditable={false}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => onMarkClick(e, i)}
-            title="Change or remove this logo"
-            aria-label={`Change or remove logo ${i + 1}`}
-          >
-            <img className="rm-item-logo" src={m} alt="" aria-hidden />
-          </button>
-        ))}
-      </span>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" aria-label="Logo image" onChange={(e) => { pick(e.target.files?.[0] ?? undefined); e.target.value = '' }} />
-      {menu &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-[60]" onClick={() => setMenu(null)} />
-            <div ref={menuRef} role="menu" aria-label="Logo options" tabIndex={-1} className="fixed z-[61] w-40 rounded-lg border border-border bg-surface p-1 text-foreground shadow-float" style={{ top: menu.top, left: menu.left }}>
-              <button type="button" role="menuitem" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted" onClick={() => { setMenu(null); inputRef.current?.click() }}>
-                Replace logo
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10"
-                onClick={() => { const next = marks.filter((_, idx) => idx !== menu.index); setMenu(null); onChange(next) }}
-              >
-                Remove logo
-              </button>
-            </div>
-          </>,
-          document.body,
-        )}
-      {cropSrc &&
-        createPortal(
-          <Suspense fallback={null}>
-            <LazyCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
-          </Suspense>,
-          document.body,
-        )}
-    </>
-  )
-}
-
-/** The small edit-only "+" chip (no-print) that lets the user grow a 1- or
- *  2-mark entry toward the 3-mark cap — the ONLY way to add a second mark,
- *  since a single existing mark's own click opens the replace/remove menu,
- *  not a picker. Never rendered at 0 marks: CanvasLogo's own "+ Logo" state
- *  already IS that entry point there. */
-function AddMarkChip({ onAdd }: { onAdd: (dataUrl: string) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const pick = (file?: File) => {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = () => setCropSrc(String(reader.result))
-    reader.readAsDataURL(file)
-  }
-  const onCropSave = async (dataUrl: string) => {
-    setCropSrc(null)
-    try {
-      const { downscaleDataUrl } = await import('@/lib/image')
-      onAdd(await downscaleDataUrl(dataUrl, 128))
-    } catch {
-      /* unreadable image — no-op */
-    }
-  }
-  return (
-    <>
-      <button
-        type="button"
-        className="rm-mark-add-btn no-print"
-        contentEditable={false}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => inputRef.current?.click()}
-        title="Add another logo"
-        aria-label="Add another logo"
-      >
-        <span aria-hidden>+</span>
-      </button>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden no-print" aria-label="Additional logo image" onChange={(e) => { pick(e.target.files?.[0] ?? undefined); e.target.value = '' }} />
-      {cropSrc &&
-        createPortal(
-          <Suspense fallback={null}>
-            <LazyCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
-          </Suspense>,
-          document.body,
-        )}
-    </>
-  )
-}
-
-function ItemHead({
-  title,
-  date,
-  badge,
-  marks = [],
-  edit,
-  setMarks,
-}: {
-  title: ReactNode
-  date?: ReactNode
-  badge?: string
-  /** Effective marks to show, already capped to the UI's 3-mark limit (see
-   *  sections.tsx's `shownMarks`) — Work/Education/Volunteer pass this;
-   *  Projects/Custom (no logo support) simply omit it. */
-  marks?: string[]
-  edit?: EditFn
-  setMarks?: (c: ResumeDocument['content'], next: string[]) => void
-}) {
-  if (marks.length > 1) {
-    // Facepile path (2-3 marks) — a NEW branch entirely, never reached for a
-    // document that has 0-1 effective marks, so it can't regress those.
-    return (
-      <div className="rm-item-head">
-        {edit && setMarks ? (
-          <>
-            <CanvasFacepile marks={marks} onChange={(next) => edit((c) => setMarks(c, next))} />
-            {marks.length < 3 ? <AddMarkChip onAdd={(v) => edit((c) => setMarks(c, [...marks, v]))} /> : null}
-          </>
-        ) : (
-          <span className="rm-facepile" aria-hidden>
-            {marks.map((m, i) => (
-              <img key={i} className="rm-item-logo rm-facepile-mark" src={m} alt="" />
-            ))}
-          </span>
-        )}
-        <div className="rm-item-title">{title}</div>
-        {date ? <div className="rm-item-date">{date}</div> : null}
-      </div>
-    )
-  }
-  // 0-1 marks: the ORIGINAL single-mark rendering, unchanged — see
-  // applyMarks's doc comment for why this byte-for-byte parity matters.
-  const logo = marks[0]
+function ItemHead({ title, date, badge, logo, edit, setLogo }: { title: ReactNode; date?: ReactNode; badge?: string; logo?: string; edit?: EditFn; setLogo?: Apply }) {
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
   const logoOk = logo && /^(data:image\/|blob:)/i.test(logo) ? logo : undefined
   return (
     <div className="rm-item-head">
-      {edit && setMarks ? (
-        <>
-          <CanvasLogo logo={logoOk} badge={badge} onChange={(v) => edit((c) => setMarks(c, v ? [v] : []))} />
-          {logoOk ? <AddMarkChip onAdd={(v) => edit((c) => setMarks(c, [logoOk, v]))} /> : null}
-        </>
+      {edit && setLogo ? (
+        <CanvasLogo logo={logoOk} badge={badge} onChange={(v) => edit((c) => setLogo(c, v))} />
       ) : logoOk ? (
         <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
       ) : badge ? (
@@ -626,14 +429,13 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
     <>
       {doc.content.work.map((w, i) => {
         if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
-        const marks = shownMarks(w)
         return (
-        <article className={`rm-item rm-keep${markClass(marks, opts?.showBadges ? badgeLetter(w.name || w.position) : undefined)}`} style={markCountStyle(marks)} key={w.id}>
+        <article className={`rm-item rm-keep${markClass(w.logo, opts?.showBadges ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
-            marks={marks}
+            logo={w.logo}
             edit={edit}
-            setMarks={(c, next) => applyMarks(c.work[i], next)}
+            setLogo={(c, v) => { c.work[i].logo = v }}
             title={<Ed edit={edit} value={w.position} apply={(c, v) => { c.work[i].position = v }} placeholder="Job title — e.g. Product Manager" />}
             date={rangeDate(edit, show(opts?.showDates), w.startDate, w.endDate, (c, v) => { c.work[i].startDate = v }, (c, v) => { c.work[i].endDate = v })}
           />
@@ -671,14 +473,13 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
       {doc.content.education.map((e, i) => {
         if (!edit && !anyText(e.institution, e.area, e.studyType)) return null
         const title = [e.studyType, e.area].filter(Boolean).join(', ') || e.institution
-        const marks = shownMarks(e)
         return (
-          <article className={`rm-item rm-keep${markClass(marks, opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined)}`} style={markCountStyle(marks)} key={e.id}>
+          <article className={`rm-item rm-keep${markClass(e.logo, opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id}>
             <ItemHead
             badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
-            marks={marks}
+            logo={e.logo}
             edit={edit}
-            setMarks={(c, next) => applyMarks(c.education[i], next)}
+            setLogo={(c, v) => { c.education[i].logo = v }}
               title={
                 edit ? (
                   // Degree + field are BOTH on the canvas (they both print) —
@@ -716,7 +517,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
       {doc.content.projects.map((p, i) => {
         if (!edit && !anyText(p.name, p.description, p.highlights)) return null
         return (
-        <article className={`rm-item rm-keep${markClass([], opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id}>
+        <article className={`rm-item rm-keep${markClass(undefined, opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
@@ -936,14 +737,13 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
     <>
       {doc.content.volunteer.map((v, i) => {
         if (!edit && !anyText(v.position, v.organization, v.summary, v.highlights)) return null
-        const marks = shownMarks(v)
         return (
-        <article className={`rm-item rm-keep${markClass(marks, opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined)}`} style={markCountStyle(marks)} key={v.id}>
+        <article className={`rm-item rm-keep${markClass(v.logo, opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
-            marks={marks}
+            logo={v.logo}
             edit={edit}
-            setMarks={(c, next) => applyMarks(c.volunteer[i], next)}
+            setLogo={(c, val) => { c.volunteer[i].logo = val }}
             title={<Ed edit={edit} value={v.position} apply={(c, val) => { c.volunteer[i].position = val }} placeholder="Role" />}
             date={rangeDate(edit, show(opts?.showDates), v.startDate, v.endDate, (c, val) => { c.volunteer[i].startDate = val }, (c, val) => { c.volunteer[i].endDate = val })}
           />

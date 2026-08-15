@@ -56,47 +56,6 @@ export function newItem(sectionKey: string): AnyItem {
   }
 }
 
-/** An item that carries the multi-entry-icons fields (work/education/volunteer). */
-type MarkedItem = { logo?: string; logos?: string[] }
-
-/**
- * The marks (logos) an entry actually shows, newest schema first: `logos`
- * wins whenever it's non-empty, otherwise the legacy single `logo` supplies
- * the one mark it always has. An import/old document that only ever set
- * `logo` parses and renders through the SAME path it always has — nothing
- * about `logo` changes just because `logos` now exists on the schema.
- */
-export function effectiveMarks(item: MarkedItem): string[] {
-  return item.logos && item.logos.length ? item.logos : item.logo ? [item.logo] : []
-}
-
-/**
- * Writes back a full next set of marks, routing to whichever field is
- * authoritative for THIS entry. An entry that has never used the multi-mark
- * facepile (`logos` empty/absent) keeps writing its one mark through the
- * legacy `logo` field — exactly like the single-logo editor always did — so
- * a plain replace/remove on an ordinary single-logo entry is the same
- * mutation, and therefore the same rendered/exported bytes, as before this
- * feature existed. The moment a SECOND mark is added the entry is
- * "promoted": `logos` becomes the source of truth for every future edit on
- * it (including shrinking back down to 1 or 0 marks) and `logo` is left
- * alone — per the design spec, legacy `logo` is never migrated/cleared just
- * because `logos` is now in play — EXCEPT when the next array is emptied
- * out entirely, where `logo` is cleared too so a stale pre-promotion value
- * can't silently resurrect a mark the user just deleted (`effectiveMarks`
- * falls back to `logo` whenever `logos` is empty, by design, for documents
- * that never touched this feature at all).
- */
-export function applyMarks(item: MarkedItem, next: string[]): void {
-  const promoted = !!(item.logos && item.logos.length)
-  if (!promoted && next.length <= 1) {
-    item.logo = next[0] ?? ''
-    return
-  }
-  item.logos = next
-  if (next.length === 0) item.logo = ''
-}
-
 /** Append a blank item to the right content array for a section key (standard or custom). */
 export function pushNewItem(content: ResumeContent, sectionKey: string): void {
   if (sectionKey === 'summary') return

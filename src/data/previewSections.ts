@@ -17,7 +17,6 @@ export const PREVIEW_CONTENT: ResumeContent = {
       startDate: '2021',
       endDate: '',
       summary: '',
-      logos: [],
       highlights: ['Mentored 12 students building their first full-stack apps.'],
     },
   ],
