@@ -1727,4 +1727,62 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     expect(() => extractPageBlocks(root as unknown as HTMLElement)).not.toThrow()
     expect(warnings.some((args) => String(args[0]).includes('overlap'))).toBe(true)
   })
+
+  it('task 2b: two-column layout combines .rm-col-main and .rm-col-aside via combineColumns, and the task-2 dev-warn no longer fires', () => {
+    install()
+    const warnings: unknown[][] = []
+    console.warn = ((...args: unknown[]) => {
+      warnings.push(args)
+    }) as typeof console.warn
+
+    // Aside (sidebar): title + one entry, y range [0,50] — SHORTER than
+    // main, and laid out SIDE BY SIDE with it (same y range, different x —
+    // x doesn't matter to this module, only that the two subtrees are
+    // SIBLINGS in the DOM rather than one nested inside the other).
+    const asideLevel = elm(['rm-level'], { top: 30, bottom: 50, left: 0, right: 200 })
+    const asideEntry = elm(['rm-skill-group'], { top: 30, bottom: 50, left: 0, right: 200 }, [asideLevel])
+    const asideTitle = elm(['rm-section-title'], { top: 0, bottom: 20, left: 0, right: 200 })
+    const asideBody = elm(['rm-section-body'], { top: 30, bottom: 50, left: 0, right: 200 }, [asideEntry])
+    const asideSection = elm(['rm-section'], { top: 0, bottom: 50, left: 0, right: 200 }, [asideTitle, asideBody])
+    const aside = elm(['rm-col-aside'], { top: 0, bottom: 400, left: 0, right: 200 }, [asideSection])
+
+    // Main: title + entry, restarting at y=0 (same as aside) then running
+    // on to y=55 — the exact shape that used to defeat the old flat
+    // root-wide walk: main's blocks restart at y=0 right after aside's own
+    // had already reached y=50 in document order, producing a negative-
+    // height "section-gap" (50 -> 0) and tripping the sorted/overlap warns.
+    const mainText = txt('Body text', { top: 40, bottom: 55, left: 210, right: 400 })
+    const mainEntry = elm(['rm-item'], { top: 40, bottom: 55, left: 210, right: 400 }, [mainText])
+    const mainTitle = elm(['rm-section-title'], { top: 0, bottom: 20, left: 210, right: 400 })
+    const mainBody = elm(['rm-section-body'], { top: 40, bottom: 55, left: 210, right: 400 }, [mainEntry])
+    const mainSection = elm(['rm-section'], { top: 0, bottom: 55, left: 210, right: 400 }, [mainTitle, mainBody])
+    const main = elm(['rm-col-main'], { top: 0, bottom: 400, left: 210, right: 400 }, [mainSection])
+
+    const root = elm(['rm-root'], { top: 0, bottom: 400, left: 0, right: 400 }, [aside, main])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    expect(warnings.length).toBe(0) // the fix's whole point: no false "unsorted/overlap" warnings
+
+    // Sorted and non-overlapping — the same invariant sanityCheckPageBlocks
+    // polices, now genuinely satisfied instead of accidentally dodged.
+    for (let i = 1; i < blocks.length; i++) {
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].topPx)
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].bottomPx)
+    }
+    expect(blocks[0].topPx).toBe(0)
+    expect(blocks[blocks.length - 1].bottomPx).toBe(55) // the combined extent, not either column's alone
+
+    // combineColumns's own unit tests (paginate.test.ts) pin the exact
+    // interval arithmetic; this integration test only needs to prove the
+    // wiring lands on the SAME shape: both titles start together (kwn),
+    // aside's own entry-gap[20,30] is bridged by main still being inked
+    // there (no combined gap at [20,30]), and a genuine mutual entry-gap
+    // survives at [25,30] once aside is ALSO gapped there.
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 20, bottomPx: 30 },
+      { kind: 'line', topPx: 30, bottomPx: 55, keepWithNext: true },
+    ])
+  })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { paginate, PaginationImpossibleError } from './paginate'
+import { paginate, combineColumns, PaginationImpossibleError } from './paginate'
 import type { PageBlock } from './paginate'
 
 // Case letters below match task-1-brief.md's Step 1 list (a)-(i) so the
@@ -217,5 +217,149 @@ describe('paginate — keepWithNext good case: a legal cut directly BEFORE a kee
     const result = paginate({ blocks, contentHeightPx: 190, usablePageHeightPx: 105 })
     expect(result.cutsPx).toEqual([90])
     expect(result.pageCount).toBe(2)
+  })
+})
+
+// Task 2b — combineColumns. Case labels below match the task-2b-brief.md
+// step list so the report can point back at the exact scenario each proves.
+
+describe('combineColumns — offset ink: a combined gap exists only where EVERY column is clear', () => {
+  it("narrows each column's own gap down to the mutual clearing, not wherever either column happens to have one", () => {
+    // main's own gap is [60,140] (candidate 100); aside's own gap is
+    // [100,180] (candidate 140). Neither column's gap alone is legal for a
+    // shared cut — main still has aside's ink under it for [60,100), and
+    // aside still has main's ink under it for [140,180) — only the
+    // intersection [100,140] is clear in BOTH columns at once.
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 60 },
+      { kind: 'entry-gap', topPx: 60, bottomPx: 140 },
+      { kind: 'line', topPx: 140, bottomPx: 300 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 100 },
+      { kind: 'entry-gap', topPx: 100, bottomPx: 180 },
+      { kind: 'line', topPx: 180, bottomPx: 300 },
+    ]
+    expect(combineColumns([main, aside])).toEqual([
+      { kind: 'line', topPx: 0, bottomPx: 100 }, // union of main[0,60] and aside[0,100]
+      { kind: 'entry-gap', topPx: 100, bottomPx: 140 }, // the mutual clearing only
+      { kind: 'line', topPx: 140, bottomPx: 300 }, // union of main[140,300] and aside[180,300]
+    ])
+  })
+
+  it('a short aside next to a tall main contributes no opinion past its own end — main alone governs there', () => {
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'section-gap', topPx: 50, bottomPx: 70 },
+      { kind: 'line', topPx: 70, bottomPx: 300 },
+    ]
+    const aside: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 40 }] // ends well before main's gap
+    expect(combineColumns([main, aside])).toEqual([
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'section-gap', topPx: 50, bottomPx: 70 }, // aside is out of range here: main's own tier stands unweakened
+      { kind: 'line', topPx: 70, bottomPx: 300 },
+    ])
+  })
+})
+
+describe('combineColumns — tier conservatism when columns disagree (task-2b brief worked example)', () => {
+  it('a section-gap in main overlapping mere line-gap territory in aside downgrades to entry-gap, not the full downgrade to line', () => {
+    // main is gapped (section-gap) across the whole [100,300] span. aside is
+    // inked everywhere in that span EXCEPT a tiny unmarked line-tier gap at
+    // [150,155] between two directly-adjacent blocks — so the only y-range
+    // where BOTH columns are clear at once is [150,155], and there the
+    // tiers disagree (section vs line): conservatively downgraded ONE tier
+    // below the strongest (section -> entry), not collapsed all the way to
+    // aside's own weaker line tier.
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 100 },
+      { kind: 'section-gap', topPx: 100, bottomPx: 300 },
+      { kind: 'line', topPx: 300, bottomPx: 350 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 90, bottomPx: 150 },
+      { kind: 'line', topPx: 155, bottomPx: 320 },
+    ]
+    const result = combineColumns([main, aside])
+    const gap = result.find((b) => b.topPx === 150 && b.bottomPx === 155)
+    expect(gap?.kind).toBe('entry-gap')
+    // Nowhere in the result is the disagreement resolved as the naive
+    // "strongest tier wins" (section-gap) OR the full "weakest wins" (line) —
+    // only the one-notch-conservative middle ground.
+    expect(result.some((b) => b.kind === 'section-gap')).toBe(false)
+    expect(result.some((b) => b.kind === 'line' && b.topPx >= 100 && b.bottomPx <= 300)).toBe(false)
+  })
+
+  it('columns that agree on a tier keep it exactly, with no downgrade at all', () => {
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'section-gap', topPx: 50, bottomPx: 80 },
+      { kind: 'line', topPx: 80, bottomPx: 150 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 50 },
+      { kind: 'section-gap', topPx: 50, bottomPx: 80 },
+      { kind: 'line', topPx: 80, bottomPx: 150 },
+    ]
+    expect(combineColumns([main, aside])).toEqual(main)
+  })
+})
+
+describe('combineColumns — keepWithNext propagation', () => {
+  it('a heading in one column protects the combined gap right after the merged ink block it becomes part of', () => {
+    // main: a title (keepWithNext) then its own entry-gap down to a body
+    // line. aside, over that same range, is plain (non-heading) ink that
+    // extends a little past where main's title itself ends — so the merged
+    // ink block [0,45] is sourced from BOTH main's title (has
+    // keepWithNext) and aside's plain content (doesn't), and the combined
+    // gap that follows must still be rejected as a widow candidate, exactly
+    // as if a single-column widow rule were protecting main's own title.
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 20, bottomPx: 50 },
+      { kind: 'line', topPx: 50, bottomPx: 100 },
+    ]
+    const aside: PageBlock[] = [{ kind: 'line', topPx: 10, bottomPx: 45 }]
+
+    const combined = combineColumns([main, aside])
+    expect(combined).toEqual([
+      { kind: 'line', topPx: 0, bottomPx: 45, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 45, bottomPx: 50 },
+      { kind: 'line', topPx: 50, bottomPx: 100 },
+    ])
+
+    // And feeding this straight into paginate proves the propagation is not
+    // just cosmetic: the entry-gap at [45,50] is the ONLY structural
+    // candidate anywhere in this document, and it gets thrown out entirely
+    // by the widow rule (its predecessor now correctly carries
+    // keepWithNext) — leaving paginate with no legal cut at all, exactly as
+    // it would for a genuine single-column "heading directly above the only
+    // gap" case.
+    expect(() => paginate({ blocks: combined, contentHeightPx: 100, usablePageHeightPx: 55 })).toThrow(
+      PaginationImpossibleError
+    )
+    // The negative control: without the propagated flag, the very same
+    // shape is perfectly paginatable at that gap.
+    const withoutPropagation = combined.map((b) => ({ ...b, keepWithNext: undefined }))
+    const result = paginate({ blocks: withoutPropagation, contentHeightPx: 100, usablePageHeightPx: 55 })
+    expect(result.cutsPx).toEqual([47.5])
+  })
+})
+
+describe('combineColumns — single-column passthrough is byte-stable (aside from atomic/line unification)', () => {
+  it('round-trips a single column of plain line/gap blocks unchanged', () => {
+    const only: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 20, bottomPx: 30 },
+      { kind: 'line', topPx: 30, bottomPx: 80 },
+      { kind: 'section-gap', topPx: 80, bottomPx: 100 },
+      { kind: 'line', topPx: 100, bottomPx: 150 },
+    ]
+    expect(combineColumns([only])).toEqual(only)
+  })
+
+  it('returns [] for an all-empty column list', () => {
+    expect(combineColumns([])).toEqual([])
+    expect(combineColumns([[], []])).toEqual([])
   })
 })

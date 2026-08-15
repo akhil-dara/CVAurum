@@ -148,3 +148,197 @@ export function paginate(input: PaginationInput): Pagination {
 
   return { cutsPx, pageCount: cutsPx.length + 1 }
 }
+
+/* --------------------------------------------------------- combineColumns */
+
+/**
+ * One column's `PageBlock[]` normalized into a fully-tiled span list
+ * covering `[first block's topPx, last block's bottomPx]` with NO
+ * unaccounted holes: explicit `'section-gap'`/`'entry-gap'` blocks keep
+ * their own tier as a real span, and the natural (unmarked) space between
+ * two directly-adjacent `'line'`/`'atomic'` blocks — the same implicit gap
+ * `buildCandidates` above already treats as a legal lowest-tier candidate
+ * within a single column — is materialized as its own `tier: 'line'` span.
+ * `combineColumns` needs this dense form (rather than the sparse
+ * `PageBlock[]`, whose implicit gaps have no block of their own) because
+ * cross-column intersection has to test EVERY y, not just the y-ranges some
+ * column happened to mark with an explicit gap block.
+ */
+interface ColumnSpan {
+  topPx: number
+  bottomPx: number
+  ink: boolean
+  /** set when `!ink` */
+  tier?: Tier
+  /** set when `ink` — mirrors the source block's own `keepWithNext` */
+  keepWithNext?: boolean
+}
+
+function columnSpans(blocks: PageBlock[]): ColumnSpan[] {
+  const sorted = [...blocks].sort((a, b) => a.topPx - b.topPx)
+  const spans: ColumnSpan[] = []
+  for (const b of sorted) {
+    if (b.kind === 'section-gap' || b.kind === 'entry-gap') {
+      spans.push({ topPx: b.topPx, bottomPx: b.bottomPx, ink: false, tier: b.kind })
+      continue
+    }
+    const prev = spans[spans.length - 1]
+    if (prev?.ink && b.topPx > prev.bottomPx) {
+      // No gap-marker block between two adjacent ink blocks — the same
+      // "line" tier buildCandidates derives implicitly for a single column.
+      spans.push({ topPx: prev.bottomPx, bottomPx: b.topPx, ink: false, tier: 'line' })
+    }
+    spans.push({ topPx: b.topPx, bottomPx: b.bottomPx, ink: true, keepWithNext: b.keepWithNext === true })
+  }
+  return spans
+}
+
+/** The span covering `y` (half-open `[topPx, bottomPx)`), or the column's
+ *  very last span when `y` lands exactly on its final `bottomPx` (closed at
+ *  the end so the column's own last boundary point resolves to something).
+ *  Plain linear scan — one résumé's worth of blocks per column, no need for
+ *  anything cleverer. */
+function spanAt(spans: ColumnSpan[], y: number): ColumnSpan | null {
+  for (const s of spans) {
+    if (y >= s.topPx && y < s.bottomPx) return s
+  }
+  const last = spans[spans.length - 1]
+  return last && y === last.bottomPx ? last : null
+}
+
+const TIER_RANK: Record<Tier, number> = { 'section-gap': 0, 'entry-gap': 1, line: 2 }
+const RANK_TIER: Tier[] = ['section-gap', 'entry-gap', 'line']
+
+/**
+ * Conservative combine of the distinct gap tiers several columns each
+ * independently report for the SAME y-range (task-2b brief, worked
+ * example): columns that all AGREE use that tier outright. Columns that
+ * DISAGREE are trusted only ONE tier below the strongest one present,
+ * capped at (never worse than) the weakest tier actually present — "a
+ * section gap in main that overlaps mere line-gap territory in the aside is
+ * an entry-tier candidate at best": section(0) vs line(2) disagree, so the
+ * result is one below section, i.e. entry(1), not the full downgrade to
+ * line(2). An empty list (no in-range column has an opinion at this y — see
+ * `combineColumns`'s "out of range" handling) means nothing constrains this
+ * range at all: the freest tier, `'section-gap'`.
+ */
+function combineTiers(tiers: Tier[]): Tier {
+  if (tiers.length === 0) return 'section-gap'
+  const ranks = tiers.map((t) => TIER_RANK[t])
+  const best = Math.min(...ranks)
+  const worst = Math.max(...ranks)
+  return best === worst ? RANK_TIER[best] : RANK_TIER[Math.min(best + 1, worst)]
+}
+
+/**
+ * Merges per-column tiled `PageBlock[]` sequences (main + aside, for a
+ * two-column template) into ONE legal tiled sequence for `paginate` — task
+ * 2b of the native-multipage-pdf plan: "both columns cut at the same y"
+ * (spec section 1) only holds where EVERY column is clear of ink at that y.
+ * A cut through main's whitespace that lands mid-sentence in the aside
+ * sidebar (or vice versa) is not a legal break, no matter how good main's
+ * own gap looks in isolation — this is the algorithm that constraint was
+ * missing (see the plan task's own heading).
+ *
+ * Pure interval arithmetic in three passes:
+ * 1. `columnSpans` normalizes each column's sparse `PageBlock[]` into a
+ *    fully-tiled span list (see its own doc comment).
+ * 2. Every span boundary from every column becomes a breakpoint; walking
+ *    consecutive breakpoints gives elementary intervals over which EVERY
+ *    column's own state (ink, or gapped at some tier) is constant. A column
+ *    whose own content doesn't reach this y at all (before its first block,
+ *    or after its last — e.g. a short aside sidebar next to a tall main
+ *    column) has NO opinion here: it never contributes ink, and never
+ *    constrains the tier (`combineTiers`'s empty-list case).
+ * 3. An elementary interval is combined-INK if ANY column is ink there
+ *    (real content sits there on the page somewhere — no shared cut is ever
+ *    legal through it, regardless of what the other column is doing).
+ *    Otherwise every in-range column is gapped, and `combineTiers` picks the
+ *    combined tier. Adjacent elementary intervals with the identical
+ *    outcome (both ink, or both gap at the identical tier) collapse into
+ *    one output `PageBlock`, same as any other tiled `PageBlock[]`.
+ *
+ * `keepWithNext` propagates conservatively: a combined ink block carries
+ * `keepWithNext: true` if ANY contributing column's source block, anywhere
+ * within that merged ink run, was itself a heading requiring its next block
+ * to stay with it. This is deliberately not narrowed to "only the
+ * bottom-most contributor" — a heading from EITHER column is always
+ * protected by rejecting the combined gap immediately after it, at the cost
+ * of occasionally being more cautious than strictly necessary (same
+ * conservative bias as the tier combine above).
+ *
+ * The `'line'` vs `'atomic'` distinction is NOT preserved on the merged
+ * output — `paginate`'s own candidate builder treats them identically
+ * (both are just "ink" a cut may never pass through), so every merged ink
+ * run is emitted as `'line'` regardless of which column(s) contributed
+ * atomic ink. Single-column input round-trips losslessly EXCEPT for this
+ * one relabeling; callers that need true byte-stability for a single column
+ * (the plan's `extractPageBlocks`) skip calling this function entirely
+ * rather than relying on it being a no-op transform.
+ */
+export function combineColumns(columns: PageBlock[][]): PageBlock[] {
+  const spansByColumn = columns.map(columnSpans).filter((spans) => spans.length > 0)
+  if (spansByColumn.length === 0) return []
+
+  const colRanges = spansByColumn.map((spans) => ({ top: spans[0].topPx, bottom: spans[spans.length - 1].bottomPx }))
+  const globalTop = Math.min(...colRanges.map((r) => r.top))
+  const globalBottom = Math.max(...colRanges.map((r) => r.bottom))
+
+  const breakpointSet = new Set<number>([globalTop, globalBottom])
+  for (const spans of spansByColumn) {
+    for (const s of spans) {
+      if (s.topPx >= globalTop && s.topPx <= globalBottom) breakpointSet.add(s.topPx)
+      if (s.bottomPx >= globalTop && s.bottomPx <= globalBottom) breakpointSet.add(s.bottomPx)
+    }
+  }
+  const breakpoints = [...breakpointSet].sort((a, b) => a - b)
+
+  interface Elementary {
+    topPx: number
+    bottomPx: number
+    ink: boolean
+    tier?: Tier
+    keepWithNext: boolean
+  }
+  const elementary: Elementary[] = []
+  for (let i = 0; i < breakpoints.length - 1; i++) {
+    const a = breakpoints[i]
+    const b = breakpoints[i + 1]
+    if (b <= a) continue
+    const mid = (a + b) / 2 // strictly interior — never ambiguous against any span's own boundary
+    let ink = false
+    let keepWithNext = false
+    const gapTiers: Tier[] = []
+    for (let ci = 0; ci < spansByColumn.length; ci++) {
+      const range = colRanges[ci]
+      if (mid < range.top || mid > range.bottom) continue // out of this column's own range: no opinion
+      const span = spanAt(spansByColumn[ci], mid)
+      if (!span) continue
+      if (span.ink) {
+        ink = true
+        if (span.keepWithNext) keepWithNext = true
+      } else if (span.tier) {
+        gapTiers.push(span.tier)
+      }
+    }
+    elementary.push({ topPx: a, bottomPx: b, ink, tier: ink ? undefined : combineTiers(gapTiers), keepWithNext })
+  }
+
+  const blocks: PageBlock[] = []
+  for (const e of elementary) {
+    const last = blocks[blocks.length - 1]
+    const sameRun =
+      last && last.bottomPx === e.topPx && ((e.ink && last.kind === 'line') || (!e.ink && last.kind === e.tier))
+    if (sameRun) {
+      last!.bottomPx = e.bottomPx
+      if (e.ink && e.keepWithNext) last!.keepWithNext = true
+      continue
+    }
+    blocks.push(
+      e.ink
+        ? { kind: 'line', topPx: e.topPx, bottomPx: e.bottomPx, ...(e.keepWithNext ? { keepWithNext: true } : {}) }
+        : { kind: e.tier!, topPx: e.topPx, bottomPx: e.bottomPx }
+    )
+  }
+  return blocks
+}

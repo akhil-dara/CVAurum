@@ -1,7 +1,7 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { ascentPx, extractRuns, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
-import type { PageBlock } from './paginate'
+import { combineColumns, type PageBlock } from './paginate'
 
 /**
  * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
@@ -1031,10 +1031,55 @@ function tagPageChromeOps(ops: DrawOp[], contentHeightPx: number): void {
  * The header (`.rm-header`) is deliberately NOT walked — paginate.ts never
  * needs a candidate break inside it (nothing here proposes a cut in a region
  * with no blocks at all), and section/entry gap semantics don't apply to it.
+ *
+ * TWO-COLUMN layouts (task 2b, native-multipage-pdf plan): Artboard.tsx
+ * always wraps the main column's sections in a `<main class="rm-col-main">`
+ * (single-column docs too — `.rm-col-main` alone carries no column meaning
+ * by itself), and additionally renders a sidebar `<aside class="rm-col-
+ * aside">` next to it whenever the template is configured for 2 columns AND
+ * has any aside sections at all. Its presence is exactly the two-column
+ * signal: when it exists, main's and aside's sections sit SIDE BY SIDE at
+ * overlapping y-ranges (task 2's own flat root-wide walk used to concatenate
+ * aside's blocks then main's — or vice versa — as if they were sequential,
+ * which produced a nonsensical, non-monotonic combined list the moment the
+ * second column's y-range restarted near the top; this module's own dev-only
+ * sanity check used to fire on every real two-column template as a result).
+ * Each column is walked independently, in its own local top-to-bottom order,
+ * and `combineColumns` (paginate.ts) merges them into one legal sequence
+ * where a cut candidate exists only where EVERY column is clear at that y
+ * (spec 1: "both columns cut at the same y").
+ *
+ * Single-column docs (no `.rm-col-aside` present) skip `combineColumns`
+ * entirely rather than routing a single column through it — same walk,
+ * same result, byte-identical to task 2's own output (see the task-2b
+ * brief's explicit byte-stability requirement; `combineColumns` itself
+ * relabels 'atomic' ink as 'line' when reconstructing merged blocks, which
+ * would NOT be byte-identical for a column containing any image/svg/chip
+ * block even though it's semantically equivalent to paginate.ts).
  */
 export function extractPageBlocks(root: HTMLElement): PageBlock[] {
   const rootTop = root.getBoundingClientRect().top
-  const sections = findByClass(root, ['rm-section'])
+  const aside = findByClass(root, ['rm-col-aside'])[0]
+
+  if (!aside) {
+    const blocks = extractBlocksFromScope(root, rootTop)
+    if (import.meta.env.DEV) sanityCheckPageBlocks(blocks)
+    return blocks
+  }
+
+  const main = findByClass(root, ['rm-col-main'])[0] ?? root
+  const combined = combineColumns([extractBlocksFromScope(main, rootTop), extractBlocksFromScope(aside, rootTop)])
+  if (import.meta.env.DEV) sanityCheckPageBlocks(combined)
+  return combined
+}
+
+/** One column's own blocks: every `.rm-section` found within `scope`, each
+ *  section's own blocks (`extractSectionBlocks`) joined by a `'section-gap'`
+ *  block measuring the real empty span between consecutive sections — the
+ *  body `extractPageBlocks` used to run directly against `root` before task
+ *  2b, unchanged for the single-column (no-aside) case. */
+function extractBlocksFromScope(scope: Element, rootTop: number): PageBlock[] {
+  const sections = findByClass(scope, ['rm-section'])
 
   const blocks: PageBlock[] = []
   let prevEnd: PageBlock | null = null
@@ -1047,8 +1092,6 @@ export function extractPageBlocks(root: HTMLElement): PageBlock[] {
     blocks.push(...sectionBlocks)
     prevEnd = sectionBlocks[sectionBlocks.length - 1]
   }
-
-  if (import.meta.env.DEV) sanityCheckPageBlocks(blocks)
   return blocks
 }
 
