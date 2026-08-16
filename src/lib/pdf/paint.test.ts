@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
-import { paintOps, paintPages, assignOpsToPages, glyphPathToDrawPath, roundedRectPath, DRIFT_FRACTION } from './paint'
+import { paintOps, paintPages, assignOpsToPages, glyphPathToDrawPath, roundedRectPath, dataUriToBytes, DRIFT_FRACTION } from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt, ptToPx, flipY } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
@@ -1136,6 +1136,33 @@ describe('glyphPathToDrawPath', () => {
     const font = fontkit.create(bytes)
     const glyph = font.layout(' ').glyphs[0]
     expect(glyphPathToDrawPath(glyph.path, 0.01)).toBe('')
+  })
+})
+
+describe('dataUriToBytes (hosted-site CSP, user report 2026-08-16)', () => {
+  // Production ships connect-src 'self', which BLOCKS fetch() on data:
+  // URIs — every logo/photo embed silently failed on the hosted site while
+  // dev (no CSP) passed. Data URIs must decode without touching the
+  // network layer.
+  const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+  it('decodes a base64 data URI to the exact bytes', () => {
+    const bytes = dataUriToBytes(`data:image/png;base64,${PNG_B64}`)
+    expect(bytes).not.toBeNull()
+    expect(Buffer.from(bytes!).toString('base64')).toBe(PNG_B64)
+  })
+  it('decodes a percent-encoded (non-base64) data URI', () => {
+    const bytes = dataUriToBytes('data:text/plain,hello%20world')
+    expect(new TextDecoder().decode(bytes!)).toBe('hello world')
+  })
+  it('tolerates extra media-type parameters before base64', () => {
+    const bytes = dataUriToBytes(`data:image/png;charset=binary;base64,${PNG_B64}`)
+    expect(bytes).not.toBeNull()
+    expect(bytes!.length).toBeGreaterThan(20)
+  })
+  it('returns null for non-data URLs and malformed input', () => {
+    expect(dataUriToBytes('https://example.test/a.png')).toBeNull()
+    expect(dataUriToBytes('data:image/png;base64')).toBeNull()
+    expect(dataUriToBytes('data:image/png;base64,%%%invalid%%%')).toBeNull()
   })
 })
 

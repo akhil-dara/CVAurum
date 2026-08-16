@@ -259,6 +259,29 @@ function fillGradientRect(
   )
 }
 
+/** Decodes a `data:` URI's payload to raw bytes WITHOUT the network layer
+ *  (hosted-site CSP, user report 2026-08-16: production ships
+ *  `connect-src 'self'`, which blocks `fetch()` on data: URIs — every
+ *  logo/photo embed silently failed on the live site while dev, with no
+ *  CSP, passed every gate). Returns null for non-data URLs or malformed
+ *  payloads so callers can fall back to fetch for real URLs. Exported for
+ *  direct unit testing. */
+export function dataUriToBytes(src: string): Uint8Array | null {
+  const m = /^data:([^,]*),(.*)$/s.exec(src)
+  if (!m) return null
+  try {
+    if (/;base64$/i.test(m[1])) {
+      const bin = atob(m[2])
+      const out = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+      return out
+    }
+    return new TextEncoder().encode(decodeURIComponent(m[2]))
+  } catch {
+    return null
+  }
+}
+
 /** Decodes `src` with the browser's own image pipeline and re-encodes it as
  *  PNG bytes at natural size (transparency preserved). Used for formats
  *  pdf-lib cannot embed directly — WEBP/GIF/AVIF logos render fine in the
@@ -284,8 +307,7 @@ async function transcodeToPngBytes(src: string): Promise<Uint8Array | null> {
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
     ctx.drawImage(img, 0, 0)
-    const res = await fetch(canvas.toDataURL('image/png'))
-    return new Uint8Array(await res.arrayBuffer())
+    return dataUriToBytes(canvas.toDataURL('image/png'))
   } catch {
     return null
   }
@@ -303,9 +325,15 @@ async function embedImage(
   if (!pending) {
     pending = (async () => {
       try {
-        const res = await fetch(src)
-        if (!res.ok) return null
-        const bytes = new Uint8Array(await res.arrayBuffer())
+        // data: URIs decode locally — fetch() on them is BLOCKED by the
+        // hosted site's connect-src 'self' CSP (the network layer is only
+        // for real URLs, which same-origin CSP allows).
+        let bytes = dataUriToBytes(src)
+        if (!bytes) {
+          const res = await fetch(src)
+          if (!res.ok) return null
+          bytes = new Uint8Array(await res.arrayBuffer())
+        }
         if (hasMagic(bytes, PNG_MAGIC)) return await page.doc.embedPng(bytes)
         if (hasMagic(bytes, JPEG_MAGIC)) return await page.doc.embedJpg(bytes)
         const transcoded = await transcodeToPngBytes(src)
