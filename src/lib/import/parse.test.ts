@@ -444,6 +444,26 @@ describe('splitSections — plain group labels vs Tier-0 headings (2026-08-16)',
     expect(secs[1].lines.map((l) => l.text)).toEqual(['Languages', 'TypeScript Go Python'])
   })
 
+  it('rejects a group label smaller than the established PLAIN heading height (technical)', () => {
+    // technical's real headings are lowercase and unbolded, just 0.6px
+    // taller than body (9.9 vs 9.3) — under the styled bar. The height of
+    // accepted plain headings is the reference: the 9.3px group label
+    // "Languages" no longer splits the skills section.
+    const secs = splitSections(
+      graph([
+        proseLine('experience', 9.9),
+        proseLine('Engineer at Vertex Labs doing platform work', 9.3),
+        proseLine('skills', 9.9),
+        proseLine('Languages', 9.3),
+        chipLine(['TypeScript', 'Go', 'Python'], 9.3, 12),
+        proseLine('languages', 9.9, 30),
+        proseLine('English, Spanish', 9.3, 42),
+      ])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'work', 'skills', 'languages'])
+    expect(secs[2].lines.map((l) => l.text)).toEqual(['Languages', 'TypeScript Go Python'])
+  })
+
   it('still accepts plain headings when the document has no styled ones', () => {
     const secs = splitSections(
       graph([
@@ -496,5 +516,26 @@ describe('splitSections — plain group labels vs Tier-0 headings (2026-08-16)',
     const secs = splitSections(graph([{ ...proseLine('EXPERIENCE & EMPLOYMENT HISTORY', 9.8), upper: true }]))
     expect(secs.map((s) => s.key)).toEqual(['header', 'work'])
     expect(secs[1].lines).toHaveLength(0)
+  })
+})
+
+describe('parseLayout — monogram furniture (2026-08-16)', () => {
+  it("drops a standalone line matching the person's initials (continuation-page monogram)", async () => {
+    const { parseLayout } = await import('./parse')
+    const g = graph([
+      { ...proseLine('Alex Morgan', 24), x: 232 },
+      { ...upperLine('VOLUNTEERING', 11) },
+      { ...proseLine('AM', 9.8, 40, ), upper: true, page: 2 },
+      proseLine('Mentor Jan 2022 — Jan 2023', 9.8, 52),
+      proseLine('Open Source Aid', 9.2, 64),
+    ])
+    g.lines[2].page = 2
+    const r = parseLayout(g)
+    expect(r.content.basics.name).toBe('Alex Morgan')
+    expect(r.content.volunteer).toHaveLength(1)
+    expect(r.content.volunteer[0].organization).toBe('Open Source Aid')
+    expect(r.content.volunteer[0].position).toBe('Mentor')
+    const all = JSON.stringify(r.content.volunteer)
+    expect(all).not.toContain('"AM"')
   })
 })

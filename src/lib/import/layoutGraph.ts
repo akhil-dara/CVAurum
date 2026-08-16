@@ -227,9 +227,30 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
   let any = false
   const byPage = new Map<number, Item[]>()
   for (const it of items) (byPage.get(it.page) ?? byPage.set(it.page, []).get(it.page)!).push(it)
-  for (const [page, pageItems] of byPage) {
-    const gutter = detectGutter(pageItems, pageWidth.get(page) ?? 0)
+  let prevGutter: number | null = null
+  for (const [page, pageItems] of [...byPage.entries()].sort((a, b) => a[0] - b[0])) {
+    let gutter = detectGutter(pageItems, pageWidth.get(page) ?? 0)
+    // Continuation pages inherit the previous page's gutter when their own
+    // detection fails only for lack of volume (2026-08-16: sapphire's aside
+    // overflows to page 2 as a small remnant — under the population floor,
+    // the page fell back to single-column and the remnant's INTERESTS
+    // heading cut the work section mid-stream). The inherited gutter must
+    // still divide the page CLEANLY: near-zero straddle and ink on both
+    // sides. Genuinely full-width continuation pages (clarity page 2)
+    // reject it because their prose crosses the old gutter line.
+    if (gutter == null && prevGutter != null) {
+      let straddle = 0
+      let left = 0
+      let right = 0
+      for (const it of pageItems) {
+        if (it.x < prevGutter - 2 && it.x + it.width > prevGutter + 2) straddle++
+        else if (it.x + it.width <= prevGutter) left++
+        else right++
+      }
+      if (left > 0 && right > 0 && straddle <= pageItems.length * 0.03) gutter = prevGutter
+    }
     if (gutter == null) continue
+    prevGutter = gutter
     // A full-width band sits above the columns (header) — keep it col 0 so it
     // isn't split. Everything below the first two-column row is columnar.
     any = true

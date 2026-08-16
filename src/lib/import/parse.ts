@@ -64,19 +64,22 @@ const startsAllCaps = (t: string): boolean => /^[A-Z][A-Z][A-Z &/,'’-]+/.test(
  * trailing text and headings on PDFs where pdf.js loses the bold flag).
  * Names, job titles and company names (no leading keyword) stay as content.
  */
-function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false): string | null {
+function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false, plainHeadingHeight = 0): string | null {
   const t = line.text.replace(/[:•·]\s*$/, '').trim()
   if (/@|https?:|\.com\b/.test(t)) return null // contact lines aren't headings
   const words = t.split(/\s+/)
   const styled = line.upper || line.bold || line.height >= g.bodySize * 1.14
   // Tier 0 — the line is essentially JUST a section name (a plain heading), so
   // accept it even when pdf.js gives no bold flag and it isn't all-caps —
-  // UNLESS this document has already shown styled headings (2026-08-16):
-  // then a plain-case line matching a section phrase is body content, not a
-  // heading. aurum's plain "Languages" skill-GROUP label used to match here
-  // and split the skills section, importing every chip row as a bogus
-  // language ("TypeScript Go Python SQL Rust") and skills as [].
-  if (words.length <= 3 && !/\d/.test(t) && (styled || !styledHeadingSeen)) {
+  // UNLESS this document has already established its heading style
+  // (2026-08-16): with STYLED headings seen, a plain-case phrase line is
+  // body content (aurum's plain "Languages" skill-GROUP label split the
+  // skills section); with only PLAIN headings seen, the candidate must at
+  // least match their height (technical's headings are lowercase and just
+  // 0.6px taller than body — its 9.3px group label must not outrank its
+  // 9.9px headings).
+  const tier0Allowed = styled || (!styledHeadingSeen && (plainHeadingHeight === 0 || line.height >= plainHeadingHeight - 0.35))
+  if (words.length <= 3 && !/\d/.test(t) && tier0Allowed) {
     for (const { key, re } of HEAD_PHRASES) {
       if (re.test(t) && t.replace(re, '').replace(/[^a-z]/gi, '').length <= 6) return key
     }
@@ -96,8 +99,9 @@ function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false): stri
 export function splitSections(g: LayoutGraph): Section[] {
   const sections: Section[] = [{ key: 'header', title: '', lines: [] }]
   let styledHeadingSeen = false
+  let plainHeadingHeight = 0
   for (const line of g.lines) {
-    const key = headingKey(line, g, styledHeadingSeen)
+    const key = headingKey(line, g, styledHeadingSeen, plainHeadingHeight)
     if (key) {
       // Side-label layouts (atelier) render the section label LEFT of the
       // body on the SAME baseline, so extraction merges them into one line
@@ -129,6 +133,7 @@ export function splitSections(g: LayoutGraph): Section[] {
         lines: contentRest ? [contentRest] : [],
       })
       if (line.upper || line.bold || line.height >= g.bodySize * 1.14) styledHeadingSeen = true
+      else plainHeadingHeight = Math.max(plainHeadingHeight, line.height)
     } else {
       sections[sections.length - 1].lines.push(line)
     }
@@ -972,8 +977,18 @@ export function parseLayout(g: LayoutGraph): ImportResult {
   if (header) parseHeader(header.lines, content)
   recoverMissingBasics(content, g.lines, g)
 
+  // Monogram furniture (2026-08-16): initials/pinnacle-class templates
+  // repeat the person's INITIALS as real text at the top of continuation
+  // pages ("AM"), which landed inside whatever section straddled the page
+  // and imported as junk (volunteer position "AM"). A standalone line
+  // exactly equal to the detected name's initials is page furniture.
+  const initials = (content.basics.name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase())
+    .join('')
   for (const sec of sections) {
-    const lines = sec.lines.filter((l) => l.text.trim())
+    const lines = sec.lines.filter((l) => l.text.trim() && !(initials.length >= 2 && l.text.trim() === initials))
     if (!lines.length) continue
     switch (sec.key) {
       case 'summary':
