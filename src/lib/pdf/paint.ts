@@ -259,7 +259,41 @@ function fillGradientRect(
   )
 }
 
-/** Fetches `src`, embeds its ORIGINAL bytes (no re-encode/resize), once per src. */
+/** Decodes `src` with the browser's own image pipeline and re-encodes it as
+ *  PNG bytes at natural size (transparency preserved). Used for formats
+ *  pdf-lib cannot embed directly — WEBP/GIF/AVIF logos render fine in the
+ *  preview but used to export as an EMPTY gap (user report 2026-08-16:
+ *  `downscaleImage` keeps the ORIGINAL data URL whenever its JPEG re-encode
+ *  is not smaller, so small webp logos reach the walker in webp). Returns
+ *  null when decoding fails or outside a DOM (unit tests keep today's
+ *  skip-on-unsupported behavior). */
+async function transcodeToPngBytes(src: string): Promise<Uint8Array | null> {
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('image decode failed'))
+      i.src = src
+    })
+    const w = img.naturalWidth
+    const h = img.naturalHeight
+    if (!w || !h) return null
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(img, 0, 0)
+    const res = await fetch(canvas.toDataURL('image/png'))
+    return new Uint8Array(await res.arrayBuffer())
+  } catch {
+    return null
+  }
+}
+
+/** Fetches `src`, embeds its ORIGINAL bytes (no re-encode/resize), once per
+ *  src; non-PNG/JPEG formats the browser can decode are transcoded to PNG
+ *  (see transcodeToPngBytes) instead of silently skipped. */
 async function embedImage(
   page: PDFPage,
   src: string,
@@ -274,7 +308,9 @@ async function embedImage(
         const bytes = new Uint8Array(await res.arrayBuffer())
         if (hasMagic(bytes, PNG_MAGIC)) return await page.doc.embedPng(bytes)
         if (hasMagic(bytes, JPEG_MAGIC)) return await page.doc.embedJpg(bytes)
-        return null // neither PNG nor JPEG — skip
+        const transcoded = await transcodeToPngBytes(src)
+        if (transcoded) return await page.doc.embedPng(transcoded)
+        return null // undecodable — skip
       } catch {
         return null // failed to load — skip
       }
