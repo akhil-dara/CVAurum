@@ -525,7 +525,7 @@ describe('parseLayout — monogram furniture (2026-08-16)', () => {
     const g = graph([
       { ...proseLine('Alex Morgan', 24), x: 232 },
       { ...upperLine('VOLUNTEERING', 11) },
-      { ...proseLine('AM', 9.8, 40, ), upper: true, page: 2 },
+      { ...proseLine('AM', 9.8, 40), upper: true, page: 2 },
       proseLine('Mentor Jan 2022 — Jan 2023', 9.8, 52),
       proseLine('Open Source Aid', 9.2, 64),
     ])
