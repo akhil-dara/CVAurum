@@ -5,7 +5,15 @@ import { fileURLToPath } from 'node:url'
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
-import { paintOps, paintPages, assignOpsToPages, glyphPathToDrawPath, roundedRectPath, dataUriToBytes, DRIFT_FRACTION } from './paint'
+import {
+  paintOps,
+  paintPages,
+  assignOpsToPages,
+  glyphPathToDrawPath,
+  roundedRectPath,
+  dataUriToBytes,
+  DRIFT_FRACTION,
+} from './paint'
 import { PdfFontCache } from './fonts'
 import { pxToPt, ptToPx, flipY } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
