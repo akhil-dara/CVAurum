@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, EyeOff, ArrowLeftRight, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
+import { Settings2, EyeOff, ArrowLeftRight, ArrowDownToLine, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
 import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
@@ -308,6 +308,20 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
       if (!m.layout.hidden.includes(sectionKey)) m.layout.hidden.push(sectionKey)
     })
 
+  // "Start on new page" pin (2026-08-17 spec section 1): a section-level
+  // forced page break, resolved identically by the export and the preview
+  // (metadata.page.breaks). Auto-fit ON means "one page, let the engine
+  // decide", so pinning is only offered with it off.
+  const autoFitOn = doc.metadata.page.autoFit
+  const pinned = doc.metadata.page.breaks.some((b) => b.section === sectionKey && !b.itemId)
+  const togglePin = () =>
+    editMeta((m) => {
+      const cur = m.page.breaks
+      const idx = cur.findIndex((b) => b.section === sectionKey && !b.itemId)
+      if (idx >= 0) cur.splice(idx, 1)
+      else cur.push({ section: sectionKey })
+    })
+
   const move = () =>
     editMeta((m) => {
       const from: 'main' | 'aside' = m.layout.main.includes(sectionKey) ? 'main' : 'aside'
@@ -395,6 +409,19 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
         >
           <EyeOff />
         </button>
+        {pinned && !autoFitOn && (
+          <button
+            type="button"
+            className="rm-section-gear"
+            contentEditable={false}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={togglePin}
+            title="Starts on a new page — click to unpin"
+            aria-label="Unpin page break"
+          >
+            <ArrowDownToLine /> New page
+          </button>
+        )}
       </div>
       {open &&
         createPortal(
@@ -438,6 +465,19 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                     ))}
                   </Group>
                 )}
+
+                {/* Page pin — force this section to start a new page (spec 1).
+                    With auto-fit on, pagination isn't user-controlled, so the
+                    row explains instead of offering a dead toggle. */}
+                <Group label="Page">
+                  {autoFitOn ? (
+                    <p className="px-2 py-1 text-[11px] leading-snug text-muted-foreground">
+                      Turn off “Fit to one page” (Design panel) to pin page breaks.
+                    </p>
+                  ) : (
+                    <ToggleRow label="Start on new page" on={pinned} onClick={togglePin} />
+                  )}
+                </Group>
 
                 {/* Bullet marker — per-section override of the global bullet style */}
                 {HAS_BULLETS.has(base) && opts.showBullets !== false && (
