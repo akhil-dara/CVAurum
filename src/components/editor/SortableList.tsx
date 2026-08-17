@@ -3,6 +3,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
@@ -39,6 +40,12 @@ export function SortableList({
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Phones (2026-08-17 user report: mobile reordering dead): PointerSensor
+    // alone loses every touch gesture to native scrolling. Press-and-hold
+    // activates the drag; a plain swipe still scrolls the panel. Pairs with
+    // the touch-action: none the drag HANDLE carries (SortableRow below) —
+    // without it the browser converts the hold into a scroll mid-drag.
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
   const onDragEnd = (e: DragEndEvent) => {
@@ -77,7 +84,13 @@ export function SortableRow({ id, renderItem }: { id: string; renderItem: (id: s
   }
   return (
     <div ref={setNodeRef} style={style}>
-      {renderItem(id, { attributes: attributes as unknown as Record<string, unknown>, listeners: listeners as Record<string, unknown> | undefined, isDragging })}
+      {renderItem(id, {
+        // touch-action: none rides in on the handle's own spread props so
+        // every consumer's grip is touch-drag-safe without per-site edits.
+        attributes: { ...(attributes as unknown as Record<string, unknown>), style: { touchAction: 'none' } },
+        listeners: listeners as Record<string, unknown> | undefined,
+        isDragging,
+      })}
     </div>
   )
 }
