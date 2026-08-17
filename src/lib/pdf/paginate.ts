@@ -56,6 +56,18 @@ export interface PaginationInput {
    */
   firstPageUsablePageHeightPx?: number
   searchWindowRatio?: number // default 0.18
+  /**
+   * User-pinned page breaks ("Start on new page", 2026-08-17 plan task 1),
+   * ascending y in the same continuous content space as `blocks`. Every
+   * LEGAL forced cut becomes a mandatory page boundary — even when the
+   * content would otherwise fit one page (pinning something to page 2 of a
+   * one-page doc is the feature's core use). A forced cut that falls inside
+   * ink, immediately after a keepWithNext block, or outside `(0,
+   * contentHeightPx)` is DROPPED with a dev-warn — a stale or impossible
+   * pin degrades to normal pagination, never a throw. Spans still taller
+   * than a page after forcing are auto-paginated normally.
+   */
+  forcedCutsPx?: number[]
 }
 
 export interface Pagination {
@@ -149,6 +161,21 @@ function chooseCut(candidates: Candidate[], pageTop: number, idealY: number, win
   throw new PaginationImpossibleError('No legal page-break candidate exists for this document')
 }
 
+/** A forced cut is legal exactly where a natural candidate could live: not
+ *  through ink, and not in the gap a keepWithNext block guards. */
+function isLegalForcedCut(y: number, sorted: PageBlock[], contentHeightPx: number): boolean {
+  if (y <= 0 || y >= contentHeightPx) return false
+  if (fallsInsideInk(y, sorted)) return false
+  // the nearest block wholly above y guards the gap y sits in
+  let preceding: PageBlock | undefined
+  for (const b of sorted) {
+    if (b.bottomPx <= y) preceding = b
+    else break
+  }
+  if (preceding?.keepWithNext) return false
+  return true
+}
+
 export function paginate(input: PaginationInput): Pagination {
   const {
     blocks,
@@ -156,11 +183,21 @@ export function paginate(input: PaginationInput): Pagination {
     usablePageHeightPx,
     firstPageUsablePageHeightPx = usablePageHeightPx,
     searchWindowRatio = DEFAULT_SEARCH_WINDOW_RATIO,
+    forcedCutsPx = [],
   } = input
 
-  if (contentHeightPx <= firstPageUsablePageHeightPx) return { cutsPx: [], pageCount: 1 }
-
   const sorted = [...blocks].sort((a, b) => a.topPx - b.topPx)
+
+  const forced = [...new Set(forcedCutsPx)]
+    .sort((a, b) => a - b)
+    .filter((y) => {
+      const ok = isLegalForcedCut(y, sorted, contentHeightPx)
+      if (!ok && import.meta.env.DEV) console.warn(`[pdf] dropping illegal forced page break at y=${y}`)
+      return ok
+    })
+
+  if (forced.length === 0 && contentHeightPx <= firstPageUsablePageHeightPx) return { cutsPx: [], pageCount: 1 }
+
   const candidates = buildCandidates(sorted).filter((c) => !fallsInsideInk(c.y, sorted))
 
   const cutsPx: number[] = []
@@ -170,12 +207,30 @@ export function paginate(input: PaginationInput): Pagination {
   // page after it uses the uniform `usablePageHeightPx` — see
   // `firstPageUsablePageHeightPx`'s own doc comment for why these are
   // legitimately different numbers, not the same value applied twice.
+  // Forced cuts cap each fill region: content up to the next pin must fit
+  // in whole pages; the pin itself is always a boundary.
   while (true) {
     const budget = pageIndex === 0 ? firstPageUsablePageHeightPx : usablePageHeightPx
-    if (contentHeightPx - pageTop <= budget) break
+    const nextForced = forced.find((f) => f > pageTop)
+    const regionEnd = nextForced ?? contentHeightPx
+    if (regionEnd - pageTop <= budget) {
+      if (nextForced === undefined) break // tail fits — done
+      cutsPx.push(nextForced)
+      pageTop = nextForced
+      pageIndex++
+      continue
+    }
     const idealY = pageTop + budget
     const windowLow = idealY - searchWindowRatio * budget
     const cutY = chooseCut(candidates, pageTop, idealY, windowLow)
+    // The downward fallback may land at or past the pin — the pin wins
+    // (it is a mandatory boundary; the auto cut would duplicate or cross it).
+    if (nextForced !== undefined && cutY >= nextForced) {
+      cutsPx.push(nextForced)
+      pageTop = nextForced
+      pageIndex++
+      continue
+    }
     cutsPx.push(cutY)
     pageTop = cutY
     pageIndex++

@@ -476,3 +476,83 @@ describe('combineColumns — single-column passthrough is byte-stable (aside fro
     expect(combineColumns([[], []])).toEqual([])
   })
 })
+
+describe('paginate - forced cuts (page pins, 2026-08-17 plan task 1)', () => {
+  const pinBlocks: PageBlock[] = [
+    { kind: 'line', topPx: 0, bottomPx: 80 },
+    { kind: 'entry-gap', topPx: 80, bottomPx: 90 }, // candidate y = 85
+    { kind: 'line', topPx: 90, bottomPx: 170 },
+    { kind: 'section-gap', topPx: 170, bottomPx: 190 }, // candidate y = 180
+    { kind: 'line', topPx: 190, bottomPx: 260 },
+  ]
+
+  it('(a) honors a forced cut at a legal gap exactly', () => {
+    const r = paginate({ blocks: pinBlocks, contentHeightPx: 260, usablePageHeightPx: 300, forcedCutsPx: [85] })
+    expect(r.cutsPx).toEqual([85])
+    expect(r.pageCount).toBe(2)
+  })
+
+  it('(a2) forces a second page even when the content fits one page', () => {
+    const r = paginate({ blocks: pinBlocks, contentHeightPx: 260, usablePageHeightPx: 1000, forcedCutsPx: [180] })
+    expect(r.cutsPx).toEqual([180])
+    expect(r.pageCount).toBe(2)
+  })
+
+  it('(b) drops a forced cut that falls inside ink and paginates normally', () => {
+    const r = paginate({ blocks: pinBlocks, contentHeightPx: 260, usablePageHeightPx: 1000, forcedCutsPx: [120] })
+    expect(r.cutsPx).toEqual([])
+    expect(r.pageCount).toBe(1)
+  })
+
+  it('(b2) drops a forced cut immediately after a keepWithNext block', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 40, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 40, bottomPx: 50 },
+      { kind: 'line', topPx: 50, bottomPx: 120 },
+    ]
+    const r = paginate({ blocks, contentHeightPx: 120, usablePageHeightPx: 500, forcedCutsPx: [45] })
+    expect(r.cutsPx).toEqual([])
+    expect(r.pageCount).toBe(1)
+  })
+
+  it('(c) auto-paginates a span that is still taller than a page after a forced cut', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 40 },
+      { kind: 'section-gap', topPx: 40, bottomPx: 60 }, // forced here (y=50)
+      { kind: 'line', topPx: 60, bottomPx: 140 },
+      { kind: 'entry-gap', topPx: 140, bottomPx: 150 }, // auto candidate y = 145
+      { kind: 'line', topPx: 150, bottomPx: 230 },
+    ]
+    const r = paginate({ blocks, contentHeightPx: 230, usablePageHeightPx: 100, forcedCutsPx: [50] })
+    expect(r.cutsPx).toEqual([50, 145])
+    expect(r.pageCount).toBe(3)
+  })
+
+  it('(d) honors two forced cuts', () => {
+    const r = paginate({ blocks: pinBlocks, contentHeightPx: 260, usablePageHeightPx: 1000, forcedCutsPx: [85, 180] })
+    expect(r.cutsPx).toEqual([85, 180])
+    expect(r.pageCount).toBe(3)
+  })
+
+  it('(e) a forced cut equal to the natural choice produces no duplicate', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 80 },
+      { kind: 'section-gap', topPx: 80, bottomPx: 100 }, // natural + forced both y = 90
+      { kind: 'line', topPx: 100, bottomPx: 190 },
+    ]
+    const r = paginate({ blocks, contentHeightPx: 190, usablePageHeightPx: 105, forcedCutsPx: [90] })
+    expect(r.cutsPx).toEqual([90])
+    expect(r.pageCount).toBe(2)
+  })
+
+  it('(f) ignores forced cuts at or beyond the content bounds', () => {
+    const r = paginate({
+      blocks: pinBlocks,
+      contentHeightPx: 260,
+      usablePageHeightPx: 1000,
+      forcedCutsPx: [0, 260, 999],
+    })
+    expect(r.cutsPx).toEqual([])
+    expect(r.pageCount).toBe(1)
+  })
+})
