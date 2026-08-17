@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, EyeOff, ArrowLeftRight, ArrowDownToLine, ArrowUp, ArrowDown, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
+import { Settings2, EyeOff, ArrowLeftRight, ArrowDownToLine, ArrowUp, ArrowDown, GripVertical, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
 import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
@@ -396,6 +396,19 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   return (
     <>
       <div className="rm-section-controls no-print">
+        {/* Canvas drag grip — the session logic lives in CanvasReorder.tsx
+            (document-level listeners find it via data-canvas-drag). */}
+        <button
+          type="button"
+          className="rm-section-hide rm-section-move rm-section-grip"
+          contentEditable={false}
+          data-canvas-drag="section"
+          style={{ touchAction: 'none' }}
+          title="Drag to reorder section (or use the arrows)"
+          aria-label="Drag to reorder section"
+        >
+          <GripVertical />
+        </button>
         <button
           type="button"
           className="rm-section-gear"

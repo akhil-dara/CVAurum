@@ -63,6 +63,7 @@ import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditAnchor, 
 import { PAGE_GAP_PX } from './PageChrome'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
+import { CanvasReorder } from './CanvasReorder'
 import { PageChromeOverlay } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
@@ -599,6 +600,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
             {/* recruiter skim heat — measured off the live canvas, updates as you type */}
             {skimView && <SkimHeatmap rootRef={innerRef} zoom={effectiveZoom} pageH={pageH} docKey={doc} />}
+
+            {/* canvas inline reordering — entry hover cluster + drag sessions
+                for the section/entry grips (edit chrome, portals to body). */}
+            {!previewExact && <CanvasReorder rootRef={innerRef} />}
 
             {/* Paginated WYSIWYG preview chrome: page-gap separators + "Page k / N"
                 badges, siblings of `.rm-root` (never inside it — see PageChrome.tsx's

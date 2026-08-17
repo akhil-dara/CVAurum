@@ -292,6 +292,12 @@
   color: var(--rm-primary);
   border-color: var(--rm-primary);
 }
+.rm-section-grip {
+  cursor: grab;
+}
+.rm-section-grip:active {
+  cursor: grabbing;
+}
 .rm-section-hide:disabled {
   pointer-events: none;
 }
