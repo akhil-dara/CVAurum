@@ -3,7 +3,7 @@ import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { cn } from '@/lib/utils'
-import { newItem, removeItem, ADD_LABEL } from '@/lib/sections'
+import { newItem, removeItem, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
 import { LogoPicker } from './fields/LogoPicker'
@@ -142,11 +142,18 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
                       })
                     }
                   >
-                    <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                        open && 'rotate-180'
+                      )}
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{itemTitle(sectionKey, it)}</span>
                       {itemSubtitle(sectionKey, it) && (
-                        <span className="block truncate text-xs text-muted-foreground">{itemSubtitle(sectionKey, it)}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {itemSubtitle(sectionKey, it)}
+                        </span>
                       )}
                     </span>
                   </button>
@@ -181,29 +188,160 @@ function SummaryEditor({ doc }: { doc: ResumeDocument }) {
   return (
     <RichTextEditor
       value={doc.content.basics.summary ?? ''}
-      onChange={(v) => update((c) => { c.basics.summary = v })}
+      onChange={(v) =>
+        update((c) => {
+          c.basics.summary = v
+        })
+      }
       placeholder="2–3 punchy lines: who you are, your strongest skills, and the impact you bring…"
       minHeight={110}
     />
   )
 }
 
-function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: AnyItem; patch: (fn: (it: AnyItem) => void) => void }) {
-  const set = (key: string) => (v: any) => patch((it) => { it[key] = v })
+/**
+ * Per-entry badge control (inline-reorder spec, Task C): live preview of what
+ * renders beside the entry (uploaded logo, else the monogram initial) plus a
+ * tri-state override — Auto follows the section's "Entry badges" toggle,
+ * Show/Hide force it for this entry only (`item.badge`, resolved by
+ * `entryBadgeOn` in the renderer).
+ */
+function BadgeRow({
+  sectionKey,
+  item,
+  patch,
+}: {
+  sectionKey: string
+  item: AnyItem
+  patch: (fn: (it: AnyItem) => void) => void
+}) {
+  const doc = useResumeStore((s) => s.doc)
+  const updateMetadata = useResumeStore((s) => s.updateMetadata)
+  if (!doc) return null
+  const sectionOn = doc.metadata.layout.sectionSettings?.[sectionKey]?.showBadges === true
+  const src =
+    sectionKey === 'education'
+      ? item.institution || item.area
+      : sectionKey === 'volunteer'
+        ? item.organization || item.position
+        : item.name || item.position
+  const letter = String(src || '')
+    .trim()
+    .charAt(0)
+    .toUpperCase()
+  const hasLogo = !!item.logo && /^(data:image\/|blob:)/i.test(item.logo)
+  const monogramOn = entryBadgeOn(item, { showBadges: sectionOn })
+  const mode: 'auto' | 'show' | 'hide' = item.badge === true ? 'show' : item.badge === false ? 'hide' : 'auto'
+  const setMode = (m: 'auto' | 'show' | 'hide') =>
+    patch((it) => {
+      it.badge = m === 'auto' ? undefined : m === 'show'
+    })
+  const seg = (m: 'auto' | 'show' | 'hide', label: string) => (
+    <button
+      type="button"
+      className={cn(
+        'rounded px-2 py-0.5 text-[11px] font-medium transition',
+        mode === m ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/60'
+      )}
+      aria-pressed={mode === m}
+      onClick={() => setMode(m)}
+    >
+      {label}
+    </button>
+  )
+  return (
+    <Labeled label="Entry badge">
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white text-sm font-semibold',
+            !hasLogo && !monogramOn && 'opacity-35'
+          )}
+          aria-hidden
+        >
+          {hasLogo ? <img src={item.logo} alt="" className="h-full w-full object-contain p-0.5" /> : letter || '·'}
+        </span>
+        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+          {seg('auto', 'Auto')}
+          {seg('show', 'Show')}
+          {seg('hide', 'Hide')}
+        </div>
+        <span className="min-w-0 text-[11px] leading-tight text-muted-foreground">
+          {hasLogo ? (
+            'Logo shows; the initial appears only without one.'
+          ) : mode === 'auto' && !sectionOn ? (
+            <>
+              Section badges are off.{' '}
+              <button
+                type="button"
+                className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                onClick={() =>
+                  updateMetadata((m) => {
+                    if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
+                    m.layout.sectionSettings[sectionKey] = {
+                      ...(m.layout.sectionSettings[sectionKey] ?? {}),
+                      showBadges: true,
+                    }
+                  })
+                }
+              >
+                Turn on for this section
+              </button>
+            </>
+          ) : monogramOn ? (
+            'Shows the initial beside this entry.'
+          ) : (
+            'Hidden for this entry.'
+          )}
+        </span>
+      </div>
+    </Labeled>
+  )
+}
+
+function ItemFields({
+  sectionKey,
+  item,
+  patch,
+}: {
+  sectionKey: string
+  item: AnyItem
+  patch: (fn: (it: AnyItem) => void) => void
+}) {
+  const set = (key: string) => (v: any) =>
+    patch((it) => {
+      it[key] = v
+    })
 
   switch (sectionKey) {
     case 'work':
       return (
         <>
           <Row>
-            <TextField label="Job title" value={item.position} onChange={set('position')} placeholder="Senior Engineer" />
+            <TextField
+              label="Job title"
+              value={item.position}
+              onChange={set('position')}
+              placeholder="Senior Engineer"
+            />
             <TextField label="Company" value={item.name} onChange={set('name')} placeholder="Vertex Labs" />
           </Row>
           <Row>
-            <TextField label="Location" value={item.location} onChange={set('location')} placeholder="San Francisco, CA" />
+            <TextField
+              label="Location"
+              value={item.location}
+              onChange={set('location')}
+              placeholder="San Francisco, CA"
+            />
             <div className="grid grid-cols-2 gap-2">
               <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-              <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
+              <DateField
+                label="End"
+                value={item.endDate}
+                onChange={set('endDate')}
+                allowPresent
+                singleWith={item.startDate}
+              />
             </div>
           </Row>
           <TextAreaField
@@ -213,20 +351,32 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
             placeholder="One or two lines on the scope of the role (optional) — also editable right on the resume"
           />
           <LogoPicker label="Company logo" value={item.logo} onChange={set('logo')} />
+          <BadgeRow sectionKey={sectionKey} item={item} patch={patch} />
           <BulletsEditor label="Achievements" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
       )
     case 'education':
       return (
         <>
-          <TextField label="Institution" value={item.institution} onChange={set('institution')} placeholder="UC Berkeley" />
+          <TextField
+            label="Institution"
+            value={item.institution}
+            onChange={set('institution')}
+            placeholder="UC Berkeley"
+          />
           <Row>
             <TextField label="Degree" value={item.studyType} onChange={set('studyType')} placeholder="B.S." />
             <TextField label="Field of study" value={item.area} onChange={set('area')} placeholder="Computer Science" />
           </Row>
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
+            <DateField
+              label="End"
+              value={item.endDate}
+              onChange={set('endDate')}
+              allowPresent
+              singleWith={item.startDate}
+            />
           </Row>
           <Row>
             <TextField label="Location" value={item.location} onChange={set('location')} placeholder="Berkeley, CA" />
@@ -234,18 +384,35 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
           </Row>
           <TagInput label="Relevant courses" value={item.courses ?? []} onChange={set('courses')} />
           <LogoPicker label="Institution logo" value={item.logo} onChange={set('logo')} />
+          <BadgeRow sectionKey={sectionKey} item={item} patch={patch} />
         </>
       )
     case 'projects':
       return (
         <>
-          <TextField label="Project name" value={item.name} onChange={set('name')} placeholder="Pulse — Observability" />
+          <TextField
+            label="Project name"
+            value={item.name}
+            onChange={set('name')}
+            placeholder="Pulse — Observability"
+          />
           <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://github.com/…" />
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
+            <DateField
+              label="End"
+              value={item.endDate}
+              onChange={set('endDate')}
+              allowPresent
+              singleWith={item.startDate}
+            />
           </Row>
-          <TextField label="One-line description" value={item.description} onChange={set('description')} placeholder="What is it?" />
+          <TextField
+            label="One-line description"
+            value={item.description}
+            onChange={set('description')}
+            placeholder="What is it?"
+          />
           <BulletsEditor label="Highlights" items={item.highlights ?? []} onChange={set('highlights')} />
           <TagInput label="Tech / keywords" value={item.keywords ?? []} onChange={set('keywords')} />
         </>
@@ -253,9 +420,27 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
     case 'skills':
       return (
         <>
-          <TextField label="Category" value={item.name} onChange={set('name')} placeholder="Languages, Frontend, Cloud…" />
-          <TagInput label="Skills" value={item.keywords ?? []} onChange={set('keywords')} placeholder="Add a skill and press Enter" />
-          <RatingField label="Proficiency (optional, shows a meter)" value={item.rating} onChange={(v) => patch((it) => { it.rating = v || undefined })} />
+          <TextField
+            label="Category"
+            value={item.name}
+            onChange={set('name')}
+            placeholder="Languages, Frontend, Cloud…"
+          />
+          <TagInput
+            label="Skills"
+            value={item.keywords ?? []}
+            onChange={set('keywords')}
+            placeholder="Add a skill and press Enter"
+          />
+          <RatingField
+            label="Proficiency (optional, shows a meter)"
+            value={item.rating}
+            onChange={(v) =>
+              patch((it) => {
+                it.rating = v || undefined
+              })
+            }
+          />
         </>
       )
     case 'languages':
@@ -267,19 +452,36 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
               <select className="input" value={item.fluency || ''} onChange={(e) => set('fluency')(e.target.value)}>
                 <option value="">Select level…</option>
                 {FLUENCY_LEVELS.map((l) => (
-                  <option key={l} value={l}>{l}</option>
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
                 ))}
-                {item.fluency && !FLUENCY_LEVELS.includes(item.fluency) && <option value={item.fluency}>{item.fluency}</option>}
+                {item.fluency && !FLUENCY_LEVELS.includes(item.fluency) && (
+                  <option value={item.fluency}>{item.fluency}</option>
+                )}
               </select>
             </Labeled>
           </Row>
-          <RatingField label="Level (optional)" value={item.rating} onChange={(v) => patch((it) => { it.rating = v || undefined })} />
+          <RatingField
+            label="Level (optional)"
+            value={item.rating}
+            onChange={(v) =>
+              patch((it) => {
+                it.rating = v || undefined
+              })
+            }
+          />
         </>
       )
     case 'certificates':
       return (
         <>
-          <TextField label="Certificate" value={item.name} onChange={set('name')} placeholder="AWS Solutions Architect" />
+          <TextField
+            label="Certificate"
+            value={item.name}
+            onChange={set('name')}
+            placeholder="AWS Solutions Architect"
+          />
           <Row>
             <TextField label="Issuer" value={item.issuer} onChange={set('issuer')} placeholder="Amazon Web Services" />
             <DateField label="Date" value={item.date} onChange={set('date')} />
@@ -290,13 +492,23 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
     case 'awards':
       return (
         <>
-          <TextField label="Award" value={item.title} onChange={set('title')} placeholder="Engineering Excellence Award" />
+          <TextField
+            label="Award"
+            value={item.title}
+            onChange={set('title')}
+            placeholder="Engineering Excellence Award"
+          />
           <Row>
             <TextField label="Awarder" value={item.awarder} onChange={set('awarder')} placeholder="Vertex Labs" />
             <DateField label="Date" value={item.date} onChange={set('date')} />
           </Row>
           <Labeled label="Summary">
-            <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} placeholder="Why you earned it…" />
+            <RichTextEditor
+              value={item.summary ?? ''}
+              onChange={set('summary')}
+              minHeight={48}
+              placeholder="Why you earned it…"
+            />
           </Labeled>
         </>
       )
@@ -323,12 +535,19 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
           </Row>
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-            <DateField label="End" value={item.endDate} onChange={set('endDate')} allowPresent singleWith={item.startDate} />
+            <DateField
+              label="End"
+              value={item.endDate}
+              onChange={set('endDate')}
+              allowPresent
+              singleWith={item.startDate}
+            />
           </Row>
           <Labeled label="Summary">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />
           </Labeled>
           <LogoPicker label="Organization logo" value={item.logo} onChange={set('logo')} />
+          <BadgeRow sectionKey={sectionKey} item={item} patch={patch} />
           <BulletsEditor label="Highlights" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
       )
@@ -343,7 +562,12 @@ function ItemFields({ sectionKey, item, patch }: { sectionKey: string; item: Any
       return (
         <>
           <TextField label="Name" value={item.name} onChange={set('name')} placeholder="Jane Doe — Manager at …" />
-          <TextAreaField label="Reference" value={item.reference} onChange={set('reference')} placeholder="“Alex is…”  or  Available on request" />
+          <TextAreaField
+            label="Reference"
+            value={item.reference}
+            onChange={set('reference')}
+            placeholder="“Alex is…”  or  Available on request"
+          />
         </>
       )
     default:
