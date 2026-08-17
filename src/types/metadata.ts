@@ -26,12 +26,24 @@ export type SectionKey = (typeof STANDARD_SECTIONS)[number] | string // custom-*
 export const PageFormatSchema = z.enum(['A4', 'Letter'])
 export type PageFormat = z.infer<typeof PageFormatSchema>
 
+/** One user-pinned page break ("Start on new page", 2026-08-17 spec): the
+ *  break lands immediately BEFORE the named section, or before one entry of
+ *  it when `itemId` (the content item's own stable `id`) is present. Pins
+ *  whose target no longer exists resolve to nothing and are ignored. */
+export const PageBreakPinSchema = z.object({
+  section: z.string(),
+  itemId: z.string().optional(),
+})
+export type PageBreakPin = z.infer<typeof PageBreakPinSchema>
+
 export const PageSchema = z.object({
   format: PageFormatSchema.default('A4'),
   /** millimetres */
   margin: z.number().min(0).max(40).default(13),
   /** auto-shrink type/spacing to fit a single page when it's close */
   autoFit: z.boolean().default(true),
+  /** user-pinned page breaks — only meaningful with autoFit off */
+  breaks: z.array(PageBreakPinSchema).default([]),
 })
 
 export const ThemeSchema = z.object({

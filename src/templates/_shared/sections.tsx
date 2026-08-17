@@ -430,7 +430,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
       {doc.content.work.map((w, i) => {
         if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
         return (
-        <article className={`rm-item rm-keep${markClass(w.logo, opts?.showBadges ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id}>
+        <article className={`rm-item rm-keep${markClass(w.logo, opts?.showBadges ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id} data-item-id={w.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
             logo={w.logo}
@@ -474,7 +474,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         if (!edit && !anyText(e.institution, e.area, e.studyType)) return null
         const title = [e.studyType, e.area].filter(Boolean).join(', ') || e.institution
         return (
-          <article className={`rm-item rm-keep${markClass(e.logo, opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id}>
+          <article className={`rm-item rm-keep${markClass(e.logo, opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id} data-item-id={e.id}>
             <ItemHead
             badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
             logo={e.logo}
@@ -517,7 +517,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
       {doc.content.projects.map((p, i) => {
         if (!edit && !anyText(p.name, p.description, p.highlights)) return null
         return (
-        <article className={`rm-item rm-keep${markClass(undefined, opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id}>
+        <article className={`rm-item rm-keep${markClass(undefined, opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id} data-item-id={p.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
@@ -581,7 +581,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
         const hasKeywords = s.keywords && s.keywords.length > 0
         if (!hasKeywords && typeof s.rating === 'number' && meter) {
           return (
-            <div className="rm-skill-group" key={s.id}>
+            <div className="rm-skill-group" key={s.id} data-item-id={s.id}>
               <div className="rm-level">
                 <span className="rm-skill-group-name">{s.name}</span>
                 <Proficiency rating={s.rating} style={prof} />
@@ -605,7 +605,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
           />
         ) : null
         return (
-          <div className="rm-skill-group" key={s.id}>
+          <div className="rm-skill-group" key={s.id} data-item-id={s.id}>
             {showMeter ? (
               <div className="rm-level">
                 {nameEl}
@@ -646,7 +646,7 @@ function Languages({ doc, edit, opts }: { doc: ResumeDocument; config: TemplateC
       {doc.content.languages.map((l, i) => {
         if (!edit && !anyText(l.language)) return null
         return (
-        <div className="rm-mini" key={l.id}>
+        <div className="rm-mini" key={l.id} data-item-id={l.id}>
           {meter && typeof l.rating === 'number' ? (
             <div className="rm-level">
               {edit ? (
@@ -676,7 +676,7 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       {doc.content.certificates.map((cert, i) => {
         if (!edit && !anyText(cert.name, cert.issuer)) return null
         return (
-        <div className="rm-mini" key={cert.id}>
+        <div className="rm-mini" key={cert.id} data-item-id={cert.id}>
           <div className="rm-item-head">
             <span className="rm-mini-title">{edit ? <Ed edit={edit} value={cert.name} apply={(c, v) => { c.certificates[i].name = v }} placeholder="Certificate" /> : safeHref(cert.url) ? <a href={safeHref(cert.url)}>{cert.name}</a> : cert.name}</span>
             {edit || cert.date ? <span className="rm-item-date">{singleDate(edit, true, cert.date, (c, v) => { c.certificates[i].date = v })}</span> : null}
@@ -696,7 +696,7 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       {doc.content.awards.map((a, i) => {
         if (!edit && !anyText(a.title, a.awarder, a.summary)) return null
         return (
-        <div className="rm-mini" key={a.id}>
+        <div className="rm-mini" key={a.id} data-item-id={a.id}>
           <div className="rm-item-head">
             <Ed edit={edit} value={a.title} apply={(c, v) => { c.awards[i].title = v }} className="rm-mini-title" placeholder="Award" />
             {edit || a.date ? <span className="rm-item-date">{singleDate(edit, true, a.date, (c, v) => { c.awards[i].date = v })}</span> : null}
@@ -717,7 +717,7 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       {doc.content.publications.map((p, i) => {
         if (!edit && !anyText(p.name, p.publisher, p.summary)) return null
         return (
-        <div className="rm-mini" key={p.id}>
+        <div className="rm-mini" key={p.id} data-item-id={p.id}>
           <div className="rm-item-head">
             <span className="rm-mini-title">{edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.publications[i].name = v }} placeholder="Title" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}</span>
             {edit || p.releaseDate ? <span className="rm-item-date">{singleDate(edit, true, p.releaseDate, (c, v) => { c.publications[i].releaseDate = v })}</span> : null}
@@ -738,7 +738,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
       {doc.content.volunteer.map((v, i) => {
         if (!edit && !anyText(v.position, v.organization, v.summary, v.highlights)) return null
         return (
-        <article className={`rm-item rm-keep${markClass(v.logo, opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id}>
+        <article className={`rm-item rm-keep${markClass(v.logo, opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id} data-item-id={v.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
             logo={v.logo}
@@ -778,7 +778,7 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       {doc.content.interests.map((it, i) => {
         if (!edit && !anyText(it.name, it.keywords)) return null
         return (
-        <div className="rm-mini" key={it.id}>
+        <div className="rm-mini" key={it.id} data-item-id={it.id}>
           <Ed edit={edit} value={it.name} apply={(c, v) => { c.interests[i].name = v }} className="rm-mini-title" placeholder="Interest" />
           {edit ? (
             <EditableChips
@@ -806,7 +806,7 @@ function References({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
       {doc.content.references.map((r, i) => {
         if (!edit && !anyText(r.name, r.reference)) return null // blank rows never print
         return (
-          <div className="rm-mini" key={r.id}>
+          <div className="rm-mini" key={r.id} data-item-id={r.id}>
             <Ed edit={edit} as="div" value={r.name} apply={(c, v) => { c.references[i].name = v }} className="rm-mini-title" placeholder="Name" />
             {edit || r.reference ? <Ed edit={edit} as="div" value={r.reference} apply={(c, v) => { c.references[i].reference = v }} className="rm-mini-sub" placeholder="“Available on request”" /> : null}
             <ItemDelete edit={edit} sectionKey="references" id={r.id} label={ADD_LABEL.references} />
@@ -827,7 +827,7 @@ function Custom({ doc, sectionKey, edit, opts }: { doc: ResumeDocument; sectionK
       {sec.items.map((it, i) => {
         if (!edit && !anyText(it.name, it.subtitle, it.summary, it.highlights)) return null
         return (
-        <article className="rm-item rm-keep" key={it.id}>
+        <article className="rm-item rm-keep" key={it.id} data-item-id={it.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(it.name || it.subtitle) : undefined}
             title={<Ed edit={edit} value={it.name} apply={(c, v) => { c.custom[secIndex].items[i].name = v }} placeholder="Title" />}

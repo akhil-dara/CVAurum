@@ -17,6 +17,7 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
+import { resolveForcedCutsPx } from './pageBreaks'
 import { parsePx } from './style'
 import { loadPdfFontIndex, PdfFontCache } from './fonts'
 import { paintPages } from './paint'
@@ -272,9 +273,27 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
         contentHeightPx,
         usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
         firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
+        forcedCutsPx: resolveForcedCutsPx(sheet, doc.metadata.page.breaks),
       })
       cutsPx = result.cutsPx
       pageCount = result.pageCount
+    } else if (!doc.metadata.page.autoFit && doc.metadata.page.breaks.length) {
+      // Pins can force pagination even when the content fits one page
+      // ("move this to page 2" on a one-page doc — the feature's core use).
+      const blocks = extractPageBlocks(sheet)
+      const contentHeightPx = sheet.getBoundingClientRect().height
+      const forcedCutsPx = resolveForcedCutsPx(sheet, doc.metadata.page.breaks)
+      if (forcedCutsPx.length) {
+        const result = paginateOrThrow({
+          blocks,
+          contentHeightPx,
+          usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
+          firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
+          forcedCutsPx,
+        })
+        cutsPx = result.cutsPx
+        pageCount = result.pageCount
+      }
     }
 
     const pdfDoc = await PDFDocument.create()
