@@ -59,7 +59,12 @@ import {
   exceedsOnePage,
 } from '@/lib/pdf/render'
 import { resolveForcedCutsPx } from '@/lib/pdf/pageBreaks'
-import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditAnchor, mapCutToEditSpace } from './pageChromeMap'
+import {
+  collectSectionAnchors,
+  collectSectionAnchorsByKey,
+  mapCutToEditAnchor,
+  mapCutToEditSpace,
+} from './pageChromeMap'
 import { PAGE_GAP_PX } from './PageChrome'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
@@ -72,7 +77,12 @@ import { PageChromeOverlay } from './PageChrome'
 const raf2 = () =>
   new Promise<void>((r) => {
     let done = false
-    const finish = () => { if (!done) { done = true; r() } }
+    const finish = () => {
+      if (!done) {
+        done = true
+        r()
+      }
+    }
     requestAnimationFrame(() => requestAnimationFrame(finish))
     setTimeout(finish, 400)
   })
@@ -91,7 +101,11 @@ function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
     }
   })
   const c = doc.content
-  const blank = !c.basics.name && !c.basics.summary && !c.work.some((w) => w.position || w.name) && !c.education.some((e) => e.institution || e.area)
+  const blank =
+    !c.basics.name &&
+    !c.basics.summary &&
+    !c.work.some((w) => w.position || w.name) &&
+    !c.education.some((e) => e.institution || e.area)
   if (dismissed || !blank) return null
   const close = () => {
     setDismissed(true)
@@ -106,7 +120,9 @@ function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
       <div className="flex w-full max-w-[210mm] items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
         <span aria-hidden>✍️</span>
         <span className="min-w-0">
-          Click any <strong>gray hint</strong> on the page to type there — only what you fill in prints. Type <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">/</kbd> inside a bullet for quick inserts, and hover a section for its <strong>Style</strong> button.
+          Click any <strong>gray hint</strong> on the page to type there — only what you fill in prints. Type{' '}
+          <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">/</kbd> inside a bullet for
+          quick inserts, and hover a section for its <strong>Style</strong> button.
         </span>
         <button className="btn-icon h-6 w-6 shrink-0" onClick={close} aria-label="Dismiss tip" title="Got it">
           ✕
@@ -131,8 +147,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // canvas. Reuses the exact same flow as the left-panel section organizer.
   const [addOpen, setAddOpen] = useState(false)
   const available = useMemo(
-    () => BODY_SECTION_KEYS.filter((k) => !doc.metadata.layout.main.includes(k) && !(doc.metadata.layout.aside ?? []).includes(k)),
-    [doc.metadata.layout.main, doc.metadata.layout.aside],
+    () =>
+      BODY_SECTION_KEYS.filter(
+        (k) => !doc.metadata.layout.main.includes(k) && !(doc.metadata.layout.aside ?? []).includes(k)
+      ),
+    [doc.metadata.layout.main, doc.metadata.layout.aside]
   )
   const addStandard = (key: string) => {
     updateMetadata((m) => {
@@ -258,7 +277,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     let cancelled = false
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
-      await ensureFontsReady([doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
+      await ensureFontsReady([
+        doc.metadata.typography.fontFamily,
+        doc.metadata.typography.headingFamily,
+        doc.metadata.typography.nameFamily,
+      ])
       // Wait for the photo in the measure render to load too — an unsized image
       // makes the header (and thus the fit) measure short, diverging from the PDF.
       const img = measureRef.current?.querySelector('img.rm-photo') as HTMLImageElement | null
@@ -401,8 +424,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         // column's list already.
         const mainOnlyBlocks = extractMainColumnBlocks(printRoot)
         const mappingBlocks = mainOnlyBlocks ?? combinedBlocks
-        const printAnchorRoot = mainOnlyBlocks ? (printRoot.querySelector<HTMLElement>('.rm-col-main') ?? printRoot) : printRoot
-        const editAnchorRoot = mainOnlyBlocks ? (editRoot.querySelector<HTMLElement>('.rm-col-main') ?? editRoot) : editRoot
+        const printAnchorRoot = mainOnlyBlocks
+          ? (printRoot.querySelector<HTMLElement>('.rm-col-main') ?? printRoot)
+          : printRoot
+        const editAnchorRoot = mainOnlyBlocks
+          ? (editRoot.querySelector<HTMLElement>('.rm-col-main') ?? editRoot)
+          : editRoot
         const printAnchors = collectSectionAnchors(printAnchorRoot)
         const editAnchorsByKey = collectSectionAnchorsByKey(editAnchorRoot)
 
@@ -420,7 +447,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         // the proportional fallback since page count is never in question.
         const anchors = result.cutsPx.map((y) => mapCutToEditAnchor(mappingBlocks, y, printAnchors, editAnchorsByKey))
         const fallbackYs = result.cutsPx.map((y, i) =>
-          anchors[i] ? null : mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey),
+          anchors[i] ? null : mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey)
         )
         for (const el of editRoot.querySelectorAll('[data-page-start]')) el.removeAttribute('data-page-start')
         for (const el of anchors) el?.setAttribute('data-page-start', '')
@@ -453,7 +480,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             setPagePageCount(result.pageCount)
             // The margin gaps grew the canvas — keep the white sheet sized.
             if (innerRef.current) setContentH(innerRef.current.scrollHeight)
-          }),
+          })
         )
       } catch (e) {
         if (e instanceof PaginationImpossibleError) {
@@ -505,7 +532,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
   return (
     <>
-    {/* Hidden, off-screen print-mode render — measured to drive fit + page count
+      {/* Hidden, off-screen print-mode render — measured to drive fit + page count
         so they match the exported PDF exactly, and (fix round, task 5) is
         ALSO the pagination effect's own source DOM for cuts/page count, for
         the same reason: it is the one live DOM that genuinely mirrors what
@@ -539,97 +566,107 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         remounts, so `inert` is reapplied every time.
         `aria-hidden` + `pointer-events: none` (both already here) stay as
         defense-in-depth for browsers without `inert` support. */}
-    {createPortal(
-      <div
-        ref={(el) => {
-          if (el) (el as HTMLDivElement & { inert?: boolean }).inert = true
-          measureRef.current = el
-        }}
-        aria-hidden
-        data-role="pdf-measure"
-        style={{ position: 'fixed', top: 0, left: -100000, width: pageW, pointerEvents: 'none', zIndex: -1 }}
-      >
-        <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
-      </div>,
-      document.body,
-    )}
-    <div ref={scrollRef} className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !previewExact ? ' focus-mode' : ''}`}>
-      {/* skim-heat status pill — floats over the canvas while the heat is on */}
-      {skimView && <SkimPill />}
-      {/* first-time hint on a blank resume — the canvas interactions aren't
-          guessable ("what do I click? what do I type where?") */}
-      {!previewExact && <BlankCanvasTip doc={doc} />}
-      {/* unmistakable mode flag — floating over the canvas while previewing */}
-      {previewExact && (
-        <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
-          <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-            <span className="whitespace-nowrap">
-              Exact PDF preview<span className="hidden sm:inline"> — this is precisely what exports</span>
-            </span>
-            <button
-              className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"
-              onClick={() => useEditorStore.getState().setPreviewExact(false)}
-            >
-              Back to editing
-            </button>
-          </div>
-        </div>
+      {createPortal(
+        <div
+          ref={(el) => {
+            if (el) (el as HTMLDivElement & { inert?: boolean }).inert = true
+            measureRef.current = el
+          }}
+          aria-hidden
+          data-role="pdf-measure"
+          style={{ position: 'fixed', top: 0, left: -100000, width: pageW, pointerEvents: 'none', zIndex: -1 }}
+        >
+          <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
+        </div>,
+        document.body
       )}
-      <div className="flex min-h-full w-full justify-center px-6 py-8">
-        {/* reserves scaled space */}
-        <div style={{ width: pageW * effectiveZoom, height: sheetH * effectiveZoom }}>
-          <div
-            className="relative rounded-[2px] bg-white shadow-page"
-            style={{
-              width: pageW,
-              height: sheetH,
-              transform: `scale(${effectiveZoom})`,
-              transformOrigin: 'top left',
-            }}
-          >
-            <div ref={innerRef} style={{ width: pageW }}>
-              {previewExact ? (
-                // Exact-PDF mode: the print render — no edit chrome, placeholders,
-                // hover rings, or empty sections. What you see here is the export.
-                <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
-              ) : (
-                <TemplateRenderer doc={doc} mode="preview" edit={updateContent} editMeta={updateMetadata} fitScale={fitScale} onAddSection={() => setAddOpen(true)} />
-              )}
+      <div
+        ref={scrollRef}
+        className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !previewExact ? ' focus-mode' : ''}`}
+      >
+        {/* skim-heat status pill — floats over the canvas while the heat is on */}
+        {skimView && <SkimPill />}
+        {/* first-time hint on a blank resume — the canvas interactions aren't
+          guessable ("what do I click? what do I type where?") */}
+        {!previewExact && <BlankCanvasTip doc={doc} />}
+        {/* unmistakable mode flag — floating over the canvas while previewing */}
+        {previewExact && (
+          <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+              <span className="whitespace-nowrap">
+                Exact PDF preview<span className="hidden sm:inline"> — this is precisely what exports</span>
+              </span>
+              <button
+                className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"
+                onClick={() => useEditorStore.getState().setPreviewExact(false)}
+              >
+                Back to editing
+              </button>
             </div>
+          </div>
+        )}
+        <div className="flex min-h-full w-full justify-center px-6 py-8">
+          {/* reserves scaled space */}
+          <div style={{ width: pageW * effectiveZoom, height: sheetH * effectiveZoom }}>
+            <div
+              className="relative rounded-[2px] bg-white shadow-page"
+              style={{
+                width: pageW,
+                height: sheetH,
+                transform: `scale(${effectiveZoom})`,
+                transformOrigin: 'top left',
+              }}
+            >
+              <div ref={innerRef} style={{ width: pageW }}>
+                {previewExact ? (
+                  // Exact-PDF mode: the print render — no edit chrome, placeholders,
+                  // hover rings, or empty sections. What you see here is the export.
+                  <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
+                ) : (
+                  <TemplateRenderer
+                    doc={doc}
+                    mode="preview"
+                    edit={updateContent}
+                    editMeta={updateMetadata}
+                    fitScale={fitScale}
+                    onAddSection={() => setAddOpen(true)}
+                  />
+                )}
+              </div>
 
-            {/* recruiter skim heat — measured off the live canvas, updates as you type */}
-            {skimView && <SkimHeatmap rootRef={innerRef} zoom={effectiveZoom} pageH={pageH} docKey={doc} />}
+              {/* recruiter skim heat — measured off the live canvas, updates as you type */}
+              {skimView && <SkimHeatmap rootRef={innerRef} zoom={effectiveZoom} pageH={pageH} docKey={doc} />}
 
-            {/* canvas inline reordering — entry hover cluster + drag sessions
+              {/* canvas inline reordering — entry hover cluster + drag sessions
                 for the section/entry grips (edit chrome, portals to body). */}
-            {!previewExact && <CanvasReorder rootRef={innerRef} />}
+              {!previewExact && <CanvasReorder rootRef={innerRef} />}
 
-            {/* Paginated WYSIWYG preview chrome: page-gap separators + "Page k / N"
+              {/* Paginated WYSIWYG preview chrome: page-gap separators + "Page k / N"
                 badges, siblings of `.rm-root` (never inside it — see PageChrome.tsx's
                 own comment; the gate screenshots `.rm-root` itself, so siblings are
                 invisible to it in every mode). Exact mode uses the hairline variant:
                 its canvas is CONTINUOUS print geometry, so the editor's tall paper
                 band would cover content near tight cuts (2026-08-17 spec 2). */}
-            <PageChromeOverlay
-              separatorYs={pageSeparators}
-              badgeTops={pageBadgeTops}
-              pageCount={pagePageCount}
-              variant={previewExact ? 'hairline' : 'band'}
-            />
+              <PageChromeOverlay
+                separatorYs={pageSeparators}
+                badgeTops={pageBadgeTops}
+                pageCount={pagePageCount}
+                variant={previewExact ? 'hairline' : 'band'}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    {addOpen && (
-      <SectionGallery
-        doc={doc}
-        available={available}
-        onAdd={addStandard}
-        onAddCustom={addCustom}
-        onClose={() => setAddOpen(false)}
-      />
-    )}
+      {addOpen && (
+        <SectionGallery
+          doc={doc}
+          available={available}
+          onAdd={addStandard}
+          onAddCustom={addCustom}
+          onClose={() => setAddOpen(false)}
+        />
+      )}
     </>
   )
 }

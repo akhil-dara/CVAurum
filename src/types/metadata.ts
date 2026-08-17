@@ -130,7 +130,7 @@ export const LayoutSchema = z.object({
         badgeSize: z.enum(['s', 'm', 'l']).optional(),
         /** entry logo / letter-badge shape */
         badgeShape: z.enum(['rounded', 'circle', 'square']).optional(),
-      }),
+      })
     )
     .default({}),
   /** vertical rhythm between sections in pt */

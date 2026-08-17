@@ -18,9 +18,15 @@ import type { Line, LayoutGraph } from './layoutGraph'
 // words on extraction ("WORK EXPERIENCE" → "WORKEXPERIENCE", "TECHNICAL SKILLS"
 // → "TECHNICALSKILLS"); headings must still be recognised.
 const HEAD_PHRASES: { key: string; re: RegExp }[] = [
-  { key: 'work', re: /^(work\s*experience|professional\s*experience|employment(\s*history)?|work\s*history|experience|career(\s*history)?)\b/i },
+  {
+    key: 'work',
+    re: /^(work\s*experience|professional\s*experience|employment(\s*history)?|work\s*history|experience|career(\s*history)?)\b/i,
+  },
   { key: 'education', re: /^(education|academic\b.*|qualifications?)\b/i },
-  { key: 'skills', re: /^(technical\s*skills|core\s*(skills|competenc\w*)|key\s*skills|skills(\s*[,&].*)?|technolog\w*|tech(nical)?\s*stack|expertise|areas\s*of\s*expertise|competenc\w*|proficienc\w*)\b/i },
+  {
+    key: 'skills',
+    re: /^(technical\s*skills|core\s*(skills|competenc\w*)|key\s*skills|skills(\s*[,&].*)?|technolog\w*|tech(nical)?\s*stack|expertise|areas\s*of\s*expertise|competenc\w*|proficienc\w*)\b/i,
+  },
   { key: 'projects', re: /^(projects?|personal\s*projects|key\s*projects|selected\s*projects)\b/i },
   { key: 'certificates', re: /^(certifications?(\s*[,&].*)?|licen[sc]es?|certificates?)\b/i },
   { key: 'awards', re: /^(awards?(\s*[,&].*)?|honou?rs|achievements|accomplishments)\b/i },
@@ -78,13 +84,15 @@ function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false, plain
   // least match their height (technical's headings are lowercase and just
   // 0.6px taller than body — its 9.3px group label must not outrank its
   // 9.9px headings).
-  const tier0Allowed = styled || (!styledHeadingSeen && (plainHeadingHeight === 0 || line.height >= plainHeadingHeight - 0.35))
+  const tier0Allowed =
+    styled || (!styledHeadingSeen && (plainHeadingHeight === 0 || line.height >= plainHeadingHeight - 0.35))
   if (words.length <= 3 && !/\d/.test(t) && tier0Allowed) {
     for (const { key, re } of HEAD_PHRASES) {
       if (re.test(t) && t.replace(re, '').replace(/[^a-z]/gi, '').length <= 6) return key
     }
   }
-  const shortStyled = words.length <= 5 && t.length <= 46 && (line.upper || line.bold || line.height >= g.bodySize * 1.14)
+  const shortStyled =
+    words.length <= 5 && t.length <= 46 && (line.upper || line.bold || line.height >= g.bodySize * 1.14)
   const caps = startsAllCaps(t)
   if (!shortStyled && !caps) return null
   // 1) keyword at the start (handles trailing text + all-caps headings)
@@ -146,7 +154,8 @@ export function splitSections(g: LayoutGraph): Section[] {
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/
 const LINKEDIN_RE = /(?:https?:\/\/)?(?:[a-z]{2,3}\.)?linkedin\.com\/(?:in|pub)\/[A-Za-z0-9_-]+\/?/i
 const GITHUB_RE = /(?:https?:\/\/)?(?:www\.)?github\.com\/[A-Za-z0-9_-]+\/?/i
-const URL_RE = /(?:https?:\/\/)?(?:www\.)?[A-Za-z0-9-]+\.(?:dev|io|com|net|org|me|co|ai|app|tech|in|uk|page|site|xyz)(?:\/[^\s|,]*)?/i
+const URL_RE =
+  /(?:https?:\/\/)?(?:www\.)?[A-Za-z0-9-]+\.(?:dev|io|com|net|org|me|co|ai|app|tech|in|uk|page|site|xyz)(?:\/[^\s|,]*)?/i
 const LOCATION_RE = /([A-Z][A-Za-z.'-]+(?:[ ][A-Z][A-Za-z.'-]+)*,\s*(?:[A-Z]{2}\b|[A-Z][A-Za-z]+))/
 const GPA_RE = /\b([0-4]\.\d{1,2})\s*(?:\/\s*(?:4|5|10)(?:\.0+)?)?\s*(?:GPA|CGPA)?\b/i
 
@@ -219,7 +228,8 @@ function pullLocation(text: string): { location: string; rest: string } {
 /* -------------------------------------------------------------- header fields */
 
 // Section labels and monograms masquerade as names in some templates' headers.
-const NOT_A_NAME = /^(contact(\s*(info|information|details))?|profile|summary|objective|about(\s*me)?|skills?|experience|education|resume|cv|curriculum\s*vitae|projects?|certifications?|references?)\.?$/i
+const NOT_A_NAME =
+  /^(contact(\s*(info|information|details))?|profile|summary|objective|about(\s*me)?|skills?|experience|education|resume|cv|curriculum\s*vitae|projects?|certifications?|references?)\.?$/i
 
 /**
  * Trim a name line that over-captured trailing non-name tokens (a website,
@@ -282,7 +292,11 @@ function parseHeader(header: Line[], content: ResumeContent) {
   const b = content.basics
   const blob = header.map((l) => l.text).join('  ·  ')
 
-  b.email = header.map((l) => l.text).join(' ').match(EMAIL_RE)?.[0] ?? ''
+  b.email =
+    header
+      .map((l) => l.text)
+      .join(' ')
+      .match(EMAIL_RE)?.[0] ?? ''
   // phone: international — longest digit-run (9–15 digits) that isn't a year/ZIP
   const phoneCands = (blob.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [])
     .map((p) => p.trim())
@@ -301,7 +315,7 @@ function parseHeader(header: Line[], content: ResumeContent) {
   if (profiles.length) b.profiles = profiles
   // personal site = a URL that isn't an email/linkedin/github
   const urls = (blob.match(new RegExp(URL_RE, 'gi')) || []).filter(
-    (u) => !/linkedin|github/i.test(u) && !blob.includes('@' + u.replace(/^https?:\/\//, '')),
+    (u) => !/linkedin|github/i.test(u) && !blob.includes('@' + u.replace(/^https?:\/\//, ''))
   )
   if (urls[0]) b.url = httpify(urls[0])
 
@@ -321,7 +335,13 @@ function parseHeader(header: Line[], content: ResumeContent) {
     // headline = the nearest following non-contact, letter-ish header line
     const after = header.slice(named.i + 1).find((l) => {
       const t = l.text
-      return /[A-Za-z]/.test(t) && !EMAIL_RE.test(t) && !/\d{3}/.test(t) && !/https?:|\.com|,\s*[A-Z]{2}\b/.test(t) && t.length <= 60
+      return (
+        /[A-Za-z]/.test(t) &&
+        !EMAIL_RE.test(t) &&
+        !/\d{3}/.test(t) &&
+        !/https?:|\.com|,\s*[A-Z]{2}\b/.test(t) &&
+        t.length <= 60
+      )
     })
     if (after) b.label = cleanEdge(after.text)
   }
@@ -338,7 +358,13 @@ function parseHeader(header: Line[], content: ResumeContent) {
         const rest = cleanEdge(header[i].text.slice(ln.length))
         const next = header[i + 1]
         if (rest && rest.length <= 50) b.label = rest
-        else if (next && /[A-Za-z]/.test(next.text) && !EMAIL_RE.test(next.text) && !/\d{3}/.test(next.text) && next.text.length <= 80)
+        else if (
+          next &&
+          /[A-Za-z]/.test(next.text) &&
+          !EMAIL_RE.test(next.text) &&
+          !/\d{3}/.test(next.text) &&
+          next.text.length <= 80
+        )
           b.label = cleanEdge(next.text)
       }
       break
@@ -359,7 +385,10 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
   if (!b.phone) {
     const cands = (blob.match(/\+?\(?\d[\d().\-\s]{7,}\d/g) || [])
       .map((x) => x.trim())
-      .filter((x) => { const d = x.replace(/\D/g, ''); return d.length >= 9 && d.length <= 15 })
+      .filter((x) => {
+        const d = x.replace(/\D/g, '')
+        return d.length >= 9 && d.length <= 15
+      })
     b.phone = cands.sort((a, c) => c.replace(/\D/g, '').length - a.replace(/\D/g, '').length)[0] ?? ''
   }
   const httpify = (u: string) => (/^https?:\/\//.test(u) ? u : 'https://' + u.replace(/^\/+/, ''))
@@ -373,7 +402,10 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
   }
   if (!b.location || (!b.location.city && !b.location.region)) {
     const locM = blob.match(LOCATION_RE)
-    if (locM) { const [city, region] = locM[1].split(',').map((x) => x.trim()); b.location = { city, region } }
+    if (locM) {
+      const [city, region] = locM[1].split(',').map((x) => x.trim())
+      b.location = { city, region }
+    }
   }
   if (!b.name) {
     // The name is almost always the LARGEST text near the top. Require a clean
@@ -384,7 +416,7 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
     // two-column résumé the name sits in the main column, after the sidebar in
     // reading order, but it is the LARGEST text on the page. Pick biggest font,
     // tie-break topmost.
-    const firstPage = (allLines[0]?.page ?? 0)
+    const firstPage = allLines[0]?.page ?? 0
     const cands = allLines
       .filter((l) => (l.page ?? 0) === firstPage)
       .map((l) => ({ l, clean: cleanName(l.text) }))
@@ -459,7 +491,12 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
         // Carry up to 2 trailing plain header lines (company/title above the date)
         // into the new entry instead of leaving them on the previous one.
         const carry: Line[] = []
-        while (cur.length && carry.length < 2 && !isHL(cur[cur.length - 1]) && !RANGE_RE.test(cur[cur.length - 1].text)) {
+        while (
+          cur.length &&
+          carry.length < 2 &&
+          !isHL(cur[cur.length - 1]) &&
+          !RANGE_RE.test(cur[cur.length - 1].text)
+        ) {
           carry.unshift(cur.pop()!)
         }
         entries.push(cur)
@@ -495,7 +532,8 @@ function toEntries(lines: Line[], g: LayoutGraph): Line[][] {
 const ROLE_LABEL = /^(role|title|designation|position|job\s*title)$/i
 const COMPANY_LABEL = /^(client|clients|company|employer|organi[sz]ation|firm|account)$/i
 // Strong signals that an unlabelled header line is the employer, not the job title.
-const COMPANY_HINT = /\b(inc|ltd|llc|llp|pvt|corp|gmbh|consultanc\w*|services|technolog\w*|solutions|systems|enterprises|university|college|institute|infotech)\b/i
+const COMPANY_HINT =
+  /\b(inc|ltd|llc|llp|pvt|corp|gmbh|consultanc\w*|services|technolog\w*|solutions|systems|enterprises|university|college|institute|infotech)\b/i
 const DATE_FRAGMENT = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*\d{0,4}$/i
 
 /**
@@ -548,45 +586,47 @@ function assignRoleCompany(headerLines: string[]): { position: string; name: str
 
 function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
   const isHL = makeIsHighlight(lines, g)
-  return toEntries(lines, g).map((entry) => {
-    const hlLines: Line[] = []
-    const headerLines: string[] = []
-    let start = '',
-      end = '',
-      location = ''
-    for (const line of entry) {
-      if (isHL(line)) {
-        hlLines.push(line)
-        continue
+  return toEntries(lines, g)
+    .map((entry) => {
+      const hlLines: Line[] = []
+      const headerLines: string[] = []
+      let start = '',
+        end = '',
+        location = ''
+      for (const line of entry) {
+        if (isHL(line)) {
+          hlLines.push(line)
+          continue
+        }
+        const d = pullDates(line.text)
+        if (d.start && !start) {
+          start = d.start
+          end = d.end
+        }
+        let rest = d.rest
+        const pl = pullLocation(rest)
+        if (pl.location && !location) {
+          location = pl.location
+          rest = pl.rest
+        }
+        rest = cleanEdge(rest)
+        if (rest) headerLines.push(rest)
       }
-      const d = pullDates(line.text)
-      if (d.start && !start) {
-        start = d.start
-        end = d.end
+      const highlights = mergeHighlights(hlLines)
+      const { position, name, summary } = assignRoleCompany(headerLines)
+      return {
+        id: uid(),
+        name,
+        position,
+        location,
+        url: '',
+        startDate: start,
+        endDate: end,
+        summary: summary ? esc(summary) : '',
+        highlights,
       }
-      let rest = d.rest
-      const pl = pullLocation(rest)
-      if (pl.location && !location) {
-        location = pl.location
-        rest = pl.rest
-      }
-      rest = cleanEdge(rest)
-      if (rest) headerLines.push(rest)
-    }
-    const highlights = mergeHighlights(hlLines)
-    const { position, name, summary } = assignRoleCompany(headerLines)
-    return {
-      id: uid(),
-      name,
-      position,
-      location,
-      url: '',
-      startDate: start,
-      endDate: end,
-      summary: summary ? esc(summary) : '',
-      highlights,
-    }
-  }).filter((w) => w.position || w.name || w.highlights.length)
+    })
+    .filter((w) => w.position || w.name || w.highlights.length)
 }
 
 /** Volunteer entries share the work shape (org, role, dates, bullets) —
@@ -608,31 +648,40 @@ function parseVolunteer(lines: Line[], g: LayoutGraph): ResumeContent['volunteer
 }
 
 function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education'] {
-  return toEntries(lines, g).map((entry) => {
-    const text = entry.map((l) => l.text).join(' · ')
-    const d = pullDates(text)
-    const gpa = text.match(GPA_RE)?.[1] ?? ''
-    const headerLines = entry.filter((l) => !isBullet(l.text)).map((l) => cleanEdge(pullDates(l.text).rest)).filter(Boolean)
-    const degreeLine = headerLines.find((l) => /\b(b\.?s\.?|b\.?a\.?|m\.?s\.?|m\.?a\.?|ph\.?d|bachelor|master|associate|diploma|mba|b\.?tech|m\.?tech|b\.?e\.?\b)/i.test(l))
-    const instLine = headerLines.find((l) => l !== degreeLine) || headerLines[0] || ''
-    // Strip GPA, then peel the trailing "City, ST" so it doesn't pollute the name.
-    const instNoGpa = instLine.replace(GPA_RE, '').trim()
-    const plInst = pullLocation(instNoGpa)
-    const loc = plInst.location || text.match(LOCATION_RE)?.[1] || ''
-    return {
-      id: uid(),
-      institution: (plInst.location ? plInst.rest : instNoGpa).trim() || '',
-      area: degreeLine ? degreeLine.replace(GPA_RE, '').trim() : '',
-      studyType: '',
-      location: loc,
-      startDate: d.start,
-      endDate: d.end,
-      score: gpa ? `${gpa} GPA` : '',
-      url: '',
-      summary: '',
-      courses: [],
-    }
-  }).filter((e) => e.institution || e.area)
+  return toEntries(lines, g)
+    .map((entry) => {
+      const text = entry.map((l) => l.text).join(' · ')
+      const d = pullDates(text)
+      const gpa = text.match(GPA_RE)?.[1] ?? ''
+      const headerLines = entry
+        .filter((l) => !isBullet(l.text))
+        .map((l) => cleanEdge(pullDates(l.text).rest))
+        .filter(Boolean)
+      const degreeLine = headerLines.find((l) =>
+        /\b(b\.?s\.?|b\.?a\.?|m\.?s\.?|m\.?a\.?|ph\.?d|bachelor|master|associate|diploma|mba|b\.?tech|m\.?tech|b\.?e\.?\b)/i.test(
+          l
+        )
+      )
+      const instLine = headerLines.find((l) => l !== degreeLine) || headerLines[0] || ''
+      // Strip GPA, then peel the trailing "City, ST" so it doesn't pollute the name.
+      const instNoGpa = instLine.replace(GPA_RE, '').trim()
+      const plInst = pullLocation(instNoGpa)
+      const loc = plInst.location || text.match(LOCATION_RE)?.[1] || ''
+      return {
+        id: uid(),
+        institution: (plInst.location ? plInst.rest : instNoGpa).trim() || '',
+        area: degreeLine ? degreeLine.replace(GPA_RE, '').trim() : '',
+        studyType: '',
+        location: loc,
+        startDate: d.start,
+        endDate: d.end,
+        score: gpa ? `${gpa} GPA` : '',
+        url: '',
+        summary: '',
+        courses: [],
+      }
+    })
+    .filter((e) => e.institution || e.area)
 }
 
 export function parseSkills(lines: Line[]): ResumeContent['skills'] {
@@ -656,7 +705,8 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   // prose. Trailing content that merged in from an unrecognised heading
   // (a declaration, "references available on request", personal details) must
   // NOT be shredded into random "skills".
-  const NONSKILL = /\b(available\s+(up)?on\s+request|references?|declaration|hereby|i\s+declare|date\s+of\s+birth|d\.?o\.?b\.?|marital|nationality|passport|gender|father'?s?\s+name|mother'?s?\s+name|permanent\s+address|current\s+address|languages?\s+known)\b/i
+  const NONSKILL =
+    /\b(available\s+(up)?on\s+request|references?|declaration|hereby|i\s+declare|date\s+of\s+birth|d\.?o\.?b\.?|marital|nationality|passport|gender|father'?s?\s+name|mother'?s?\s+name|permanent\s+address|current\s+address|languages?\s+known)\b/i
   const looksLikeSkillList = (t: string): boolean => {
     const s = t.trim()
     if (!s || NONSKILL.test(s)) return false
@@ -711,30 +761,53 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   }
   if (pendingName) loose.push(pendingName)
   const looseClean = clean(loose)
-  if (looseClean.length) groups.push({ id: uid(), name: groups.length ? 'Additional' : 'Skills', level: '', keywords: looseClean })
+  if (looseClean.length)
+    groups.push({ id: uid(), name: groups.length ? 'Additional' : 'Skills', level: '', keywords: looseClean })
   return groups.slice(0, 12)
 }
 
 function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects'] {
   const isHL = makeIsHighlight(lines, g)
-  return toEntries(lines, g).map((entry) => {
-    const hlLines: Line[] = []
-    const headerLines: string[] = []
-    let start = '', end = '', url = ''
-    for (const line of entry) {
-      if (isHL(line)) { hlLines.push(line); continue }
-      const d = pullDates(line.text)
-      if (d.start && !start) { start = d.start; end = d.end }
-      let rest = d.rest
-      const u = rest.match(URL_RE)
-      if (u && !url) { url = u[0]; rest = rest.replace(u[0], '') }
-      rest = cleanEdge(rest)
-      if (rest) headerLines.push(rest)
-    }
-    const highlights = mergeHighlights(hlLines)
-    const [name = '', description = ''] = headerLines
-    return { id: uid(), name, description: description ? esc(description) : '', url: url ? (/^https?:/.test(url) ? url : 'https://' + url) : '', startDate: start, endDate: end, highlights, keywords: [] }
-  }).filter((p) => p.name)
+  return toEntries(lines, g)
+    .map((entry) => {
+      const hlLines: Line[] = []
+      const headerLines: string[] = []
+      let start = '',
+        end = '',
+        url = ''
+      for (const line of entry) {
+        if (isHL(line)) {
+          hlLines.push(line)
+          continue
+        }
+        const d = pullDates(line.text)
+        if (d.start && !start) {
+          start = d.start
+          end = d.end
+        }
+        let rest = d.rest
+        const u = rest.match(URL_RE)
+        if (u && !url) {
+          url = u[0]
+          rest = rest.replace(u[0], '')
+        }
+        rest = cleanEdge(rest)
+        if (rest) headerLines.push(rest)
+      }
+      const highlights = mergeHighlights(hlLines)
+      const [name = '', description = ''] = headerLines
+      return {
+        id: uid(),
+        name,
+        description: description ? esc(description) : '',
+        url: url ? (/^https?:/.test(url) ? url : 'https://' + url) : '',
+        startDate: start,
+        endDate: end,
+        highlights,
+        keywords: [],
+      }
+    })
+    .filter((p) => p.name)
 }
 
 /** A line reads as visibly LESS prominent than the line that started its
@@ -810,7 +883,10 @@ export function parseSimpleList(
     return out
   }
   if (key === 'interests') {
-    const kws = text.flatMap((t) => t.split(/[,;|•·]/)).map((s) => s.trim()).filter(Boolean)
+    const kws = text
+      .flatMap((t) => t.split(/[,;|•·]/))
+      .map((s) => s.trim())
+      .filter(Boolean)
     return kws.length ? [{ id: uid(), name: 'Interests', keywords: kws }] : []
   }
   if (key === 'certificates') {
@@ -952,7 +1028,14 @@ export function parseSimpleList(
     entries.push(entry)
   }
   if (key === 'publications') {
-    return entries.map((e) => ({ id: uid(), name: e.title, publisher: e.sub, releaseDate: e.date, url: '', summary: e.summary }))
+    return entries.map((e) => ({
+      id: uid(),
+      name: e.title,
+      publisher: e.sub,
+      releaseDate: e.date,
+      url: '',
+      summary: e.summary,
+    }))
   }
   return entries.map((e) => ({ id: uid(), title: e.title, awarder: e.sub, date: e.date, summary: e.summary }))
 }
@@ -961,13 +1044,30 @@ export function parseSimpleList(
 
 export interface ImportResult {
   content: ResumeContent
-  meta: { pages: number; chars: number; sections: string[]; lowText: boolean; ocrPages: number[]; ocrEngineFailed: boolean }
+  meta: {
+    pages: number
+    chars: number
+    sections: string[]
+    lowText: boolean
+    ocrPages: number[]
+    ocrEngineFailed: boolean
+  }
 }
 
 const BLANK = (): ResumeContent => ({
   basics: { name: '', label: '', image: '', email: '', phone: '', url: '', summary: '', location: {}, profiles: [] },
-  work: [], volunteer: [], education: [], awards: [], certificates: [], publications: [],
-  skills: [], languages: [], interests: [], references: [], projects: [], custom: [],
+  work: [],
+  volunteer: [],
+  education: [],
+  awards: [],
+  certificates: [],
+  publications: [],
+  skills: [],
+  languages: [],
+  interests: [],
+  references: [],
+  projects: [],
+  custom: [],
 })
 
 export function parseLayout(g: LayoutGraph): ImportResult {
@@ -1016,7 +1116,9 @@ export function parseLayout(g: LayoutGraph): ImportResult {
         content.awards.push(...(parseSimpleList(lines, 'awards', g.lineGap) as ResumeContent['awards']))
         break
       case 'publications':
-        content.publications.push(...(parseSimpleList(lines, 'publications', g.lineGap) as ResumeContent['publications']))
+        content.publications.push(
+          ...(parseSimpleList(lines, 'publications', g.lineGap) as ResumeContent['publications'])
+        )
         break
       case 'volunteer':
         content.volunteer.push(...parseVolunteer(lines, g))
@@ -1038,7 +1140,18 @@ export function parseLayout(g: LayoutGraph): ImportResult {
           content.custom.push({
             id: uid(),
             name: sec.title || 'Section',
-            items: [{ id: uid(), name: '', subtitle: '', date: '', location: '', url: '', summary: bullets.length ? '' : esc(lines.map((l) => l.text).join(' ')), highlights: bullets }],
+            items: [
+              {
+                id: uid(),
+                name: '',
+                subtitle: '',
+                date: '',
+                location: '',
+                url: '',
+                summary: bullets.length ? '' : esc(lines.map((l) => l.text).join(' ')),
+                highlights: bullets,
+              },
+            ],
           })
         }
     }

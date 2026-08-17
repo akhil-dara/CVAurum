@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, EyeOff, ArrowLeftRight, ArrowDownToLine, ArrowUp, ArrowDown, GripVertical, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
+import {
+  Settings2,
+  EyeOff,
+  ArrowLeftRight,
+  ArrowDownToLine,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
+  Copy,
+  ClipboardPaste,
+  Paintbrush,
+  X,
+} from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
 import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
@@ -11,7 +23,16 @@ import type { MetaEditFn } from './Editable'
 type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords' | 'showBadges'
 
 /** The visual-style fields the painter copies (NOT the show* content toggles). */
-const STYLE_FIELDS = ['headingStyle', 'skillsStyle', 'entryLayout', 'scoreStyle', 'bulletStyle', 'meterStyle', 'badgeSize', 'badgeShape'] as const
+const STYLE_FIELDS = [
+  'headingStyle',
+  'skillsStyle',
+  'entryLayout',
+  'scoreStyle',
+  'bulletStyle',
+  'meterStyle',
+  'badgeSize',
+  'badgeShape',
+] as const
 
 /** Per-section heading treatments ('' = the template's own default). */
 const HEADING_STYLES: { label: string; value: string }[] = [
@@ -122,8 +143,14 @@ function Mini({ kind }: { kind: string }) {
     case 's:tags':
       return (
         <span className="flex w-8 gap-[4px]">
-          <span className="flex flex-col gap-[2px]"><span className={`h-[3px] w-3 ${t}`} /><span className="h-px w-full bg-foreground/50" /></span>
-          <span className="flex flex-col gap-[2px]"><span className={`h-[3px] w-2.5 ${t}`} /><span className="h-px w-full bg-foreground/50" /></span>
+          <span className="flex flex-col gap-[2px]">
+            <span className={`h-[3px] w-3 ${t}`} />
+            <span className="h-px w-full bg-foreground/50" />
+          </span>
+          <span className="flex flex-col gap-[2px]">
+            <span className={`h-[3px] w-2.5 ${t}`} />
+            <span className="h-px w-full bg-foreground/50" />
+          </span>
         </span>
       )
     case 's:inline':
@@ -188,8 +215,12 @@ function Mini({ kind }: { kind: string }) {
     case 'e:cards':
       return (
         <span className="flex w-8 flex-col gap-[3px]">
-          <span className="flex h-[8px] items-center rounded-[2px] border border-foreground/30 px-[3px]"><span className={`h-[2.5px] w-3 ${t}`} /></span>
-          <span className="flex h-[8px] items-center rounded-[2px] border border-foreground/30 px-[3px]"><span className={`h-[2.5px] w-2.5 ${t}`} /></span>
+          <span className="flex h-[8px] items-center rounded-[2px] border border-foreground/30 px-[3px]">
+            <span className={`h-[2.5px] w-3 ${t}`} />
+          </span>
+          <span className="flex h-[8px] items-center rounded-[2px] border border-foreground/30 px-[3px]">
+            <span className={`h-[2.5px] w-2.5 ${t}`} />
+          </span>
         </span>
       )
     case 'e:grid':
@@ -219,7 +250,16 @@ const NO_ENTRY_LAYOUT = new Set(['summary', 'skills', 'languages'])
 const NO_BADGES = new Set(['certificates', 'awards', 'publications', 'interests', 'references'])
 
 const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
-const HAS_DATES = new Set(['work', 'education', 'projects', 'volunteer', 'certificates', 'awards', 'publications', 'custom'])
+const HAS_DATES = new Set([
+  'work',
+  'education',
+  'projects',
+  'volunteer',
+  'certificates',
+  'awards',
+  'publications',
+  'custom',
+])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 const HAS_SUMMARY = new Set(['work'])
 
@@ -257,7 +297,15 @@ const POP_W = 308 // popover width (px) — must match w-[308px] below
  * Desktop: a floating panel clamped fully on-screen with its own scroll area.
  * Phones: a bottom sheet (floating panels are unusable at that size).
  */
-export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string; doc: ResumeDocument; editMeta: MetaEditFn }) {
+export function SectionGear({
+  sectionKey,
+  doc,
+  editMeta,
+}: {
+  sectionKey: string
+  doc: ResumeDocument
+  editMeta: MetaEditFn
+}) {
   const [open, setOpen] = useState(false)
   // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
   const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false })
@@ -294,7 +342,18 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
     })
 
   // Per-section style overrides — applied live on the canvas as you click.
-  const setStyle = (field: 'headingStyle' | 'skillsStyle' | 'entryLayout' | 'scoreStyle' | 'bulletStyle' | 'meterStyle' | 'badgeSize' | 'badgeShape', value?: string) =>
+  const setStyle = (
+    field:
+      | 'headingStyle'
+      | 'skillsStyle'
+      | 'entryLayout'
+      | 'scoreStyle'
+      | 'bulletStyle'
+      | 'meterStyle'
+      | 'badgeSize'
+      | 'badgeShape',
+    value?: string
+  ) =>
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
@@ -333,7 +392,11 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   // surface uses. Position for the disabled state comes straight from the
   // layout arrays; a content-appended key missing from both sits at the
   // visual end of main, so only its up-arrow is live.
-  const colArr = layout.main.includes(sectionKey) ? layout.main : layout.aside.includes(sectionKey) ? layout.aside : null
+  const colArr = layout.main.includes(sectionKey)
+    ? layout.main
+    : layout.aside.includes(sectionKey)
+      ? layout.aside
+      : null
   const colIdx = colArr ? colArr.indexOf(sectionKey) : -1
   const atTop = colArr ? colIdx === 0 : false
   const atBottom = colArr ? colIdx === colArr.length - 1 : true
@@ -391,7 +454,8 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
   if (HAS_LOCATION.has(base)) rows.push({ label: 'Location', field: 'showLocation' })
   if (HAS_SUMMARY.has(base)) rows.push({ label: 'Role summary', field: 'showSummary' })
   if (HAS_KEYWORDS.has(base)) rows.push({ label: 'Tech tags', field: 'showKeywords' })
-  if (!NO_ENTRY_LAYOUT.has(base) && !NO_BADGES.has(base)) rows.push({ label: 'Entry badges (initial)', field: 'showBadges' })
+  if (!NO_ENTRY_LAYOUT.has(base) && !NO_BADGES.has(base))
+    rows.push({ label: 'Entry badges (initial)', field: 'showBadges' })
 
   return (
     <>
@@ -503,7 +567,9 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold leading-tight">{sectionLabel(sectionKey, doc)}</div>
-                  <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Style &amp; settings</div>
+                  <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
+                    Style &amp; settings
+                  </div>
                 </div>
                 <button className="btn-icon h-7 w-7 shrink-0" onClick={() => setOpen(false)} aria-label="Close">
                   <X className="h-4 w-4" />
@@ -543,7 +609,13 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                   <Group label="Bullet style">
                     <div className="grid grid-cols-5 gap-1">
                       {BULLET_CHOICES.map((b) => (
-                        <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.bulletStyle ?? '') === b.v} onClick={() => setStyle('bulletStyle', b.v)} />
+                        <ChipBtn
+                          key={b.v || 'auto'}
+                          label={b.label}
+                          title={b.title}
+                          on={(opts.bulletStyle ?? '') === b.v}
+                          onClick={() => setStyle('bulletStyle', b.v)}
+                        />
                       ))}
                     </div>
                   </Group>
@@ -554,7 +626,13 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                   <Group label="Meter style">
                     <div className="grid grid-cols-3 gap-1">
                       {METER_CHOICES.map((b) => (
-                        <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.meterStyle ?? '') === b.v} onClick={() => setStyle('meterStyle', b.v)} />
+                        <ChipBtn
+                          key={b.v || 'auto'}
+                          label={b.label}
+                          title={b.title}
+                          on={(opts.meterStyle ?? '') === b.v}
+                          onClick={() => setStyle('meterStyle', b.v)}
+                        />
                       ))}
                     </div>
                     {!skillsHaveRatedGroup && (
@@ -578,11 +656,18 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                           { v: 'm', label: 'M' },
                           { v: 'l', label: 'L' },
                         ].map((b) => (
-                          <ChipBtn key={b.v || 'auto'} label={b.label} on={(opts.badgeSize ?? '') === b.v} onClick={() => setStyle('badgeSize', b.v)} />
+                          <ChipBtn
+                            key={b.v || 'auto'}
+                            label={b.label}
+                            on={(opts.badgeSize ?? '') === b.v}
+                            onClick={() => setStyle('badgeSize', b.v)}
+                          />
                         ))}
                       </div>
                       <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                        To add a company / school mark: hover an entry on the page and click the <span className="font-medium text-primary">+ Logo</span> chip beside its title (or use the entry&apos;s form in the Content panel).
+                        To add a company / school mark: hover an entry on the page and click the{' '}
+                        <span className="font-medium text-primary">+ Logo</span> chip beside its title (or use the
+                        entry&apos;s form in the Content panel).
                       </p>
                     </Group>
                     <Group label="Logo & badge shape">
@@ -593,7 +678,13 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                           { v: 'circle', label: '◯', title: 'Circle' },
                           { v: 'square', label: '□', title: 'Square' },
                         ].map((b) => (
-                          <ChipBtn key={b.v || 'auto'} label={b.label} title={b.title} on={(opts.badgeShape ?? '') === b.v} onClick={() => setStyle('badgeShape', b.v)} />
+                          <ChipBtn
+                            key={b.v || 'auto'}
+                            label={b.label}
+                            title={b.title}
+                            on={(opts.badgeShape ?? '') === b.v}
+                            onClick={() => setStyle('badgeShape', b.v)}
+                          />
                         ))}
                       </div>
                     </Group>
@@ -668,7 +759,9 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
 
                 <div className="my-1.5 h-px bg-border" />
                 <div className="px-2 pb-1 pt-0.5">
-                  <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">Style painter</div>
+                  <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Style painter
+                  </div>
                   <p className="text-[11px] leading-snug text-muted-foreground">
                     {copiedStyle
                       ? 'Style copied — Paste it here, or paint it onto All sections at once.'
@@ -694,7 +787,10 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                       </button>
                       <button
                         className="flex items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
-                        onClick={() => { paintAll(); setOpen(false) }}
+                        onClick={() => {
+                          paintAll()
+                          setOpen(false)
+                        }}
                         title="Paint the copied style onto every section"
                       >
                         <Paintbrush className="h-3.5 w-3.5" /> All
@@ -706,21 +802,27 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
                 {twoCol && (
                   <button
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                    onClick={() => { move(); setOpen(false) }}
+                    onClick={() => {
+                      move()
+                      setOpen(false)
+                    }}
                   >
                     <ArrowLeftRight className="h-4 w-4" /> Move to {inAside ? 'main column' : 'sidebar'}
                   </button>
                 )}
                 <button
                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10"
-                  onClick={() => { hide(); setOpen(false) }}
+                  onClick={() => {
+                    hide()
+                    setOpen(false)
+                  }}
                 >
                   <EyeOff className="h-4 w-4" /> Hide section
                 </button>
               </div>
             </div>
           </>,
-          document.body,
+          document.body
         )}
     </>
   )
@@ -745,7 +847,9 @@ function ChipBtn({ label, title, on, onClick }: { label: string; title?: string;
       aria-pressed={on}
       onClick={onClick}
       className={`min-w-0 truncate rounded-md border px-1 py-1.5 text-xs font-medium transition ${
-        on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+        on
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
       }`}
     >
       {label}
@@ -768,17 +872,31 @@ function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; 
       <span className="flex h-5 w-full items-center justify-center">
         <Mini kind={kind} />
       </span>
-      <span className={`w-full truncate text-center text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{label}</span>
+      <span
+        className={`w-full truncate text-center text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
+      >
+        {label}
+      </span>
     </button>
   )
 }
 
 function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
-    <button type="button" role="switch" aria-checked={on} onClick={onClick} className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onClick}
+      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+    >
       <span className="truncate">{label}</span>
-      <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-        <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${on ? 'left-[14px]' : 'left-0.5'}`} />
+      <span
+        className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+      >
+        <span
+          className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${on ? 'left-[14px]' : 'left-0.5'}`}
+        />
       </span>
     </button>
   )
