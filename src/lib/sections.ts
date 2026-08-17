@@ -151,6 +151,12 @@ export function moveEntry(content: ResumeContent, sectionKey: string, id: string
   list.splice(Math.max(0, Math.min(toIndex, list.length)), 0, item)
 }
 
+/** Per-entry badge tri-state (inline-reorder spec): the item's own `badge`
+ *  override wins; otherwise the section's opt-in showBadges setting rules. */
+export function entryBadgeOn(item: { badge?: boolean }, opts?: { showBadges?: boolean }): boolean {
+  return item.badge ?? opts?.showBadges === true
+}
+
 /** Header-rendered, not reorderable. */
 export const HEADER_KEYS = ['profiles'] as const
 

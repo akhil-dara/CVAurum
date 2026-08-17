@@ -11,7 +11,7 @@ import { Trash2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
-import { pushNewItem, removeItem, sectionHasContent, ADD_LABEL } from '@/lib/sections'
+import { pushNewItem, removeItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
@@ -430,9 +430,9 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
       {doc.content.work.map((w, i) => {
         if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
         return (
-        <article className={`rm-item rm-keep${markClass(w.logo, opts?.showBadges ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id} data-item-id={w.id}>
+        <article className={`rm-item rm-keep${markClass(w.logo, entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id} data-item-id={w.id}>
           <ItemHead
-            badge={opts?.showBadges ? badgeLetter(w.name || w.position) : undefined}
+            badge={entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined}
             logo={w.logo}
             edit={edit}
             setLogo={(c, v) => { c.work[i].logo = v }}
@@ -474,9 +474,9 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         if (!edit && !anyText(e.institution, e.area, e.studyType)) return null
         const title = [e.studyType, e.area].filter(Boolean).join(', ') || e.institution
         return (
-          <article className={`rm-item rm-keep${markClass(e.logo, opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id} data-item-id={e.id}>
+          <article className={`rm-item rm-keep${markClass(e.logo, entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id} data-item-id={e.id}>
             <ItemHead
-            badge={opts?.showBadges ? badgeLetter(e.institution || e.area) : undefined}
+            badge={entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined}
             logo={e.logo}
             edit={edit}
             setLogo={(c, v) => { c.education[i].logo = v }}
@@ -738,9 +738,9 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
       {doc.content.volunteer.map((v, i) => {
         if (!edit && !anyText(v.position, v.organization, v.summary, v.highlights)) return null
         return (
-        <article className={`rm-item rm-keep${markClass(v.logo, opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id} data-item-id={v.id}>
+        <article className={`rm-item rm-keep${markClass(v.logo, entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id} data-item-id={v.id}>
           <ItemHead
-            badge={opts?.showBadges ? badgeLetter(v.organization || v.position) : undefined}
+            badge={entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined}
             logo={v.logo}
             edit={edit}
             setLogo={(c, val) => { c.volunteer[i].logo = val }}

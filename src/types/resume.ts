@@ -48,6 +48,9 @@ export const WorkSchema = z.object({
   name: z.string().optional().default(''), // company
   /** small company logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
+  /** per-entry badge override: absent follows the section's showBadges
+   *  setting; true/false forces it for this entry (CVAurum extension) */
+  badge: z.boolean().optional(),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   location: z.string().optional().default(''),
@@ -64,6 +67,8 @@ export const EducationSchema = z.object({
   institution: z.string().optional().default(''),
   /** small institution logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
+  /** per-entry badge override (see WorkSchema.badge) */
+  badge: z.boolean().optional(),
   url: z.string().optional().default(''),
   area: z.string().optional().default(''),
   studyType: z.string().optional().default(''),
@@ -145,6 +150,8 @@ export const VolunteerSchema = z.object({
   organization: z.string().optional().default(''),
   /** small organization logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
+  /** per-entry badge override (see WorkSchema.badge) */
+  badge: z.boolean().optional(),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   startDate: z.string().optional().default(''),
