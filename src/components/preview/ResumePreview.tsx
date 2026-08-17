@@ -58,6 +58,7 @@ import {
   findMainColumnPaddingPx,
   exceedsOnePage,
 } from '@/lib/pdf/render'
+import { resolveForcedCutsPx } from '@/lib/pdf/pageBreaks'
 import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditSpace } from './pageChromeMap'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
@@ -179,16 +180,29 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // the same page count the preview/PDF lands on.
   const setOnePageScale = useEditorStore((s) => s.setOnePageScale)
 
-  // Track available width for fit-to-width zoom.
+  // Track available width for fit-to-width zoom. THREE signals, not one
+  // (2026-08-17, mobile fix): on phones the canvas mounts inside a
+  // display:none tab panel — measured live, ResizeObserver alone left
+  // `containerW` stuck at 0 after the panel became visible (fiber-verified),
+  // so the sheet rendered 794px wide in a 375px viewport with no scaling.
+  // IntersectionObserver fires exactly on the hidden->rendered transition,
+  // and window resize covers orientation changes; all three funnel into one
+  // idempotent measure.
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    setContainerW(el.clientWidth)
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) setContainerW(e.contentRect.width)
-    })
+    const measure = () => setContainerW(el.clientWidth)
+    measure()
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
-    return () => ro.disconnect()
+    const io = new IntersectionObserver(measure)
+    io.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      io.disconnect()
+      window.removeEventListener('resize', measure)
+    }
   }, [])
 
   // Measure the EDITABLE canvas height (incl. edit-only chrome) — used only to
@@ -318,10 +332,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       setPageBadgeTops((prev) => (prev.length ? [] : prev))
       setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
     }
-    if (autoFit || previewExact) {
-      clearOverlay()
-      return
-    }
+    // 2026-08-17 spec 1b/2: the overlay now renders in EVERY canvas state
+    // that genuinely paginates — auto-fit docs whose fit FAILED (fitScale
+    // restored to 1, content still over a page: the export paginates them
+    // natively now, so the preview must show it), and the Exact PDF preview
+    // (hairline variant — its geometry IS print geometry, cuts apply with
+    // no mapping). Auto-fit docs that DID fit clear below via the shared
+    // exceedsOnePage check (their portal renders fitted and fits).
     let cancelled = false
     const id = setTimeout(() => {
       if (cancelled) return
@@ -346,10 +363,30 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       }
       try {
         const combinedBlocks = extractPageBlocks(printRoot)
-        const result = paginate({ blocks: combinedBlocks, contentHeightPx, usablePageHeightPx, firstPageUsablePageHeightPx })
+        const result = paginate({
+          blocks: combinedBlocks,
+          contentHeightPx,
+          usablePageHeightPx,
+          firstPageUsablePageHeightPx,
+          // Pins resolve on the SAME portal geometry the export resolves its
+          // sheet with — parity by construction. Auto-fit ON ignores pins
+          // (spec 1b), matching render.tsx exactly.
+          forcedCutsPx: autoFit ? [] : resolveForcedCutsPx(printRoot, doc.metadata.page.breaks),
+        })
         if (result.cutsPx.length === 0) {
           setPageSeparators([])
           setPageBadgeTops([0])
+          setPagePageCount(result.pageCount)
+          return
+        }
+
+        // Exact PDF preview: its canvas renders the SAME print DOM at the
+        // SAME scale the portal measures (fitScale === measureScale in every
+        // settled state), so portal-space cuts ARE canvas-space ys — no
+        // structural mapping, no suppression, every boundary drawn.
+        if (previewExact) {
+          setPageSeparators(result.cutsPx)
+          setPageBadgeTops([0, ...result.cutsPx])
           setPagePageCount(result.pageCount)
           return
         }
@@ -408,7 +445,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   }, [doc, autoFit, previewExact, pageH, contentH, printH])
 
   const effectiveZoom = useMemo(() => {
-    if (fitToWidth && containerW > 0) return clamp((containerW - 56) / pageW, 0.4, 1.5)
+    // Auto fit-to-width whenever the container is NARROWER than the sheet
+    // (2026-08-17 spec 2, mobile): the phone Preview used to render the
+    // 794px sheet unscaled in a 375px viewport, forcing sideways panning.
+    // Wide containers keep honoring the user's explicit Fit toggle/zoom.
+    const mustFit = containerW > 0 && containerW < pageW + 56
+    if ((fitToWidth || mustFit) && containerW > 0) return clamp((containerW - 56) / pageW, 0.35, 1.5)
     return zoom
   }, [fitToWidth, containerW, pageW, zoom])
 
@@ -528,9 +570,16 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
             {/* Paginated WYSIWYG preview chrome: page-gap separators + "Page k / N"
                 badges, siblings of `.rm-root` (never inside it — see PageChrome.tsx's
-                own comment). Not rendered in "Exact PDF preview" mode (that canvas
-                IS the print DOM the gate screenshots for exact-preview parity). */}
-            {!previewExact && <PageChromeOverlay separatorYs={pageSeparators} badgeTops={pageBadgeTops} pageCount={pagePageCount} />}
+                own comment; the gate screenshots `.rm-root` itself, so siblings are
+                invisible to it in every mode). Exact mode uses the hairline variant:
+                its canvas is CONTINUOUS print geometry, so the editor's tall paper
+                band would cover content near tight cuts (2026-08-17 spec 2). */}
+            <PageChromeOverlay
+              separatorYs={pageSeparators}
+              badgeTops={pageBadgeTops}
+              pageCount={pagePageCount}
+              variant={previewExact ? 'hairline' : 'band'}
+            />
           </div>
         </div>
       </div>

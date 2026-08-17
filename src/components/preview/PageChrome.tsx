@@ -36,6 +36,7 @@ export function PageChromeOverlay({
   separatorYs,
   badgeTops,
   pageCount,
+  variant = 'band',
 }: {
   /** Edit-space y for every separator ResumePreview.tsx could confidently
    *  place — may have FEWER entries than `pageCount - 1` when some cuts
@@ -47,6 +48,12 @@ export function PageChromeOverlay({
    *  that boundary failed. */
   badgeTops: number[]
   pageCount: number
+  /** 'band' = the editor's paper-gap look. 'hairline' = a ~3px line for the
+   *  EXACT preview (2026-08-17 spec section 2): that canvas is continuous
+   *  print geometry, so a tall band would COVER real content near tight
+   *  cuts (user report — chips/bullets hidden behind the 18px band); the
+   *  hairline marks the boundary without hiding anything. */
+  variant?: 'band' | 'hairline'
 }) {
   if (pageCount <= 1) return null
 
@@ -57,20 +64,38 @@ export function PageChromeOverlay({
           down into the gap, and the gap itself shows the canvas's own
           background color (the same dotted gray the sheet floats on),
           reading as genuinely separate pages rather than a ruled line. */}
-      {separatorYs.map((cutY, i) => (
-        <div
-          key={`sep-${i}`}
-          className="pointer-events-none absolute inset-x-0"
-          style={{ top: cutY - 9, height: 18 }}
-          data-page-chrome="separator"
-          data-cut-y={cutY}
-          aria-hidden
-        >
-          <div className="absolute inset-0" style={{ backgroundColor: 'hsl(var(--canvas))' }} />
-          <div className="absolute inset-x-0 top-0 h-2" style={{ boxShadow: 'inset 0 5px 5px -4px rgb(0 0 0 / 0.32)' }} />
-          <div className="absolute inset-x-0 bottom-0 border-t border-border" />
-        </div>
-      ))}
+      {variant === 'band' &&
+        separatorYs.map((cutY, i) => (
+          <div
+            key={`sep-${i}`}
+            className="pointer-events-none absolute inset-x-0"
+            style={{ top: cutY - 9, height: 18 }}
+            data-page-chrome="separator"
+            data-cut-y={cutY}
+            aria-hidden
+          >
+            <div className="absolute inset-0" style={{ backgroundColor: 'hsl(var(--canvas))' }} />
+            <div
+              className="absolute inset-x-0 top-0 h-2"
+              style={{ boxShadow: 'inset 0 5px 5px -4px rgb(0 0 0 / 0.32)' }}
+            />
+            <div className="absolute inset-x-0 bottom-0 border-t border-border" />
+          </div>
+        ))}
+      {variant === 'hairline' &&
+        separatorYs.map((cutY, i) => (
+          <div
+            key={`sep-${i}`}
+            className="pointer-events-none absolute inset-x-0"
+            style={{ top: cutY - 1.5, height: 3 }}
+            data-page-chrome="separator"
+            data-cut-y={cutY}
+            aria-hidden
+          >
+            <div className="absolute inset-x-0 top-0 h-px" style={{ boxShadow: '0 1px 3px rgb(0 0 0 / 0.35)' }} />
+            <div className="absolute inset-x-0 top-[1px] border-t border-dashed border-border" />
+          </div>
+        ))}
 
       {/* "Page k / N" chip, top-right of every page region (incl. page 1) --
           always pageCount of these regardless of how many separators drew. */}
