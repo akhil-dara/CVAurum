@@ -15,9 +15,11 @@
  * cut positions (continuous CSS px measured from `.rm-root`'s own top, see
  * `PageBlock.topPx` in paginate.ts) line up as absolute `top` offsets with
  * zero extra transform math. The gate's exact-preview screenshot captures
- * `[data-tour=canvas] .rm-root` itself; ResumePreview only renders this
- * overlay when NOT in that exact-preview mode (see its own comment), so the
- * two never interact.
+ * `[data-tour=canvas] .rm-root` itself. Both modes use this overlay now
+ * (2026-08-17 spec 2): exact preview draws hairline separators straight at
+ * the portal's own cut positions, while edit mode opens REAL page gaps
+ * (`data-page-start` + `--rm-page-gap`) and fills them with the band
+ * variant -- see the `thin` flag on `separatorYs` entries.
  *
  * FIX ROUND 2 (task 5): separators and badges are now two INDEPENDENT
  * arrays, not one derived from the other. `pageChromeMap.ts`'s structural
