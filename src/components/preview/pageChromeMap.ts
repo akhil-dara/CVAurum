@@ -128,10 +128,23 @@ function straddlingContentIndices(blocks: PageBlock[], cutY: number): { beforeId
   return { beforeIdx, afterIdx }
 }
 
+/** Visual→layout scale of `root` (the edit canvas sits inside a zoom
+ *  `transform: scale(...)` wrapper, so getBoundingClientRect returns VISUAL
+ *  px). Every y this module returns is consumed as a CSS offset INSIDE that
+ *  scaled sheet, so measurements must be normalized back to layout px —
+ *  found 2026-08-17: at fit-to-width zoom ≠ 1 the separators double-scaled
+ *  and landed inside content (exactly the "viewport dependency" the user
+ *  suspected). offsetWidth is layout px, immune to transforms. */
+function rootScale(root: HTMLElement): number {
+  const w = root.offsetWidth
+  return w > 0 ? root.getBoundingClientRect().width / w : 1
+}
+
 function rootRelativeRect(root: HTMLElement, el: Element): { topPx: number; bottomPx: number } {
+  const scale = rootScale(root)
   const rootTop = root.getBoundingClientRect().top
   const r = el.getBoundingClientRect()
-  return { topPx: r.top - rootTop, bottomPx: r.bottom - rootTop }
+  return { topPx: (r.top - rootTop) / scale, bottomPx: (r.bottom - rootTop) / scale }
 }
 
 /** Guards the assumption `locateStructural` relies on — "there is always an
@@ -166,7 +179,7 @@ function locationElement(anchors: SectionAnchors[], loc: StructuralLocation): El
 function locationElementAcross(
   printAnchors: SectionAnchors[],
   editAnchorsByKey: Map<string, SectionAnchors>,
-  loc: StructuralLocation,
+  loc: StructuralLocation
 ): Element | null {
   const printSection = printAnchors[loc.sectionIndex]
   if (!printSection) return null
@@ -174,6 +187,32 @@ function locationElementAcross(
   if (!editSection) return null
   if (loc.entryIndex < 0) return editSection.section
   return editSection.entries[loc.entryIndex] ?? null
+}
+
+/**
+ * The EDIT-space element that STARTS the page after `cutY` — the anchor the
+ * real-gap treatment (2026-08-17 spec 2) shifts down via `data-page-start`.
+ * Same structural machinery and same confidence rules as
+ * `mapCutToEditSpace` below; returns null for a mid-entry cut (there is no
+ * shiftable element boundary inside one entry — callers fall back to the
+ * interpolated thin-line treatment for that one cut) or any low-confidence
+ * lookup.
+ */
+export function mapCutToEditAnchor(
+  printBlocks: PageBlock[],
+  cutY: number,
+  printAnchors: SectionAnchors[],
+  editAnchorsByKey: Map<string, SectionAnchors>
+): Element | null {
+  const straddle = straddlingContentIndices(printBlocks, cutY)
+  if (!straddle) return null
+  const before = locateStructural(printBlocks, straddle.beforeIdx)
+  const after = locateStructural(printBlocks, straddle.afterIdx)
+  const beforeSection = printAnchors[before.sectionIndex]?.section
+  const afterSection = printAnchors[after.sectionIndex]?.section
+  if (!beforeSection || !afterSection || !hasHealthyTitle(beforeSection) || !hasHealthyTitle(afterSection)) return null
+  if (before.sectionIndex === after.sectionIndex && before.entryIndex === after.entryIndex) return null
+  return locationElementAcross(printAnchors, editAnchorsByKey, after)
 }
 
 /**
@@ -195,7 +234,7 @@ export function mapCutToEditSpace(
   printRoot: HTMLElement,
   printAnchors: SectionAnchors[],
   editRoot: HTMLElement,
-  editAnchorsByKey: Map<string, SectionAnchors>,
+  editAnchorsByKey: Map<string, SectionAnchors>
 ): number | null {
   const straddle = straddlingContentIndices(printBlocks, cutY)
   if (!straddle) return null

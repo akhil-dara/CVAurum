@@ -32,16 +32,24 @@
  * through the page.
  */
 
+/** Height (CSS px) of the REAL gap the editor opens above each
+ *  `data-page-start` element (artboard.css `--rm-page-gap` must match) —
+ *  the 'band' separator fills exactly this created empty space, so it can
+ *  never cover content (2026-08-17 spec 2). */
+export const PAGE_GAP_PX = 28
+
 export function PageChromeOverlay({
   separatorYs,
   badgeTops,
   pageCount,
   variant = 'band',
 }: {
-  /** Edit-space y for every separator ResumePreview.tsx could confidently
+  /** Edit-space separator positions ResumePreview.tsx could confidently
    *  place — may have FEWER entries than `pageCount - 1` when some cuts
-   *  were suppressed (see this file's own top comment). */
-  separatorYs: number[]
+   *  were suppressed (see this file's own top comment). `y` is the CENTER
+   *  of the created page gap; `thin` marks a mid-entry/low-confidence cut
+   *  drawn as a hairline (no real gap exists to fill there). */
+  separatorYs: { y: number; thin?: boolean }[]
   /** Edit-space y for the top of every page region, length always
    *  `pageCount` — index 0 is always `0`; later entries fall back to a
    *  coarser (but always present) estimate when the precise mapping for
@@ -64,14 +72,19 @@ export function PageChromeOverlay({
           down into the gap, and the gap itself shows the canvas's own
           background color (the same dotted gray the sheet floats on),
           reading as genuinely separate pages rather than a ruled line. */}
-      {variant === 'band' &&
-        separatorYs.map((cutY, i) => (
+      {separatorYs.map((sep, i) =>
+        variant === 'band' && !sep.thin ? (
+          // Fills the REAL page gap the editor opened (PAGE_GAP_PX margin on
+          // the data-page-start element) — pure empty space, nothing to cover.
           <div
             key={`sep-${i}`}
             className="pointer-events-none absolute inset-x-0"
-            style={{ top: cutY - 9, height: 18 }}
+            // Inset 1px top / 2px bottom inside the created gap: fractional
+            // zoom scaling rounds rects by up to ~1px, and the band must
+            // NEVER touch real content even after rounding.
+            style={{ top: sep.y - PAGE_GAP_PX / 2 + 1, height: PAGE_GAP_PX - 3 }}
             data-page-chrome="separator"
-            data-cut-y={cutY}
+            data-cut-y={sep.y}
             aria-hidden
           >
             <div className="absolute inset-0" style={{ backgroundColor: 'hsl(var(--canvas))' }} />
@@ -81,21 +94,20 @@ export function PageChromeOverlay({
             />
             <div className="absolute inset-x-0 bottom-0 border-t border-border" />
           </div>
-        ))}
-      {variant === 'hairline' &&
-        separatorYs.map((cutY, i) => (
+        ) : (
           <div
             key={`sep-${i}`}
             className="pointer-events-none absolute inset-x-0"
-            style={{ top: cutY - 1.5, height: 3 }}
+            style={{ top: sep.y - 1.5, height: 3 }}
             data-page-chrome="separator"
-            data-cut-y={cutY}
+            data-cut-y={sep.y}
             aria-hidden
           >
             <div className="absolute inset-x-0 top-0 h-px" style={{ boxShadow: '0 1px 3px rgb(0 0 0 / 0.35)' }} />
             <div className="absolute inset-x-0 top-[1px] border-t border-dashed border-border" />
           </div>
-        ))}
+        )
+      )}
 
       {/* "Page k / N" chip, top-right of every page region (incl. page 1) --
           always pageCount of these regardless of how many separators drew. */}

@@ -178,6 +178,16 @@
   margin-bottom: var(--rm-section-gap);
   position: relative;
 }
+/* Paginated editor (2026-08-17 spec 2): a REAL page gap opens above each
+   page-starting element (data-page-start, set imperatively by
+   ResumePreview's pagination effect) so the page band renders inside
+   created empty space and can never cover content. Additive with the
+   margin-bottom gap scheme above (these elements carry no margin-top of
+   their own). Edit canvas only — print never carries .mode-preview, so
+   export geometry is untouched. */
+.mode-preview [data-page-start] {
+  margin-top: var(--rm-page-gap, 28px);
+}
 .rm-section:last-child {
   margin-bottom: 0;
 }

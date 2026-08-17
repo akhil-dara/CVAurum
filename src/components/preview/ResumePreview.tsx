@@ -59,7 +59,8 @@ import {
   exceedsOnePage,
 } from '@/lib/pdf/render'
 import { resolveForcedCutsPx } from '@/lib/pdf/pageBreaks'
-import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditSpace } from './pageChromeMap'
+import { collectSectionAnchors, collectSectionAnchorsByKey, mapCutToEditAnchor, mapCutToEditSpace } from './pageChromeMap'
+import { PAGE_GAP_PX } from './PageChrome'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { PageChromeOverlay } from './PageChrome'
@@ -323,7 +324,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // measure portal already re-renders on every content edit (it serves
   // auto-fit's own measurement), so `printH`/`contentH` settling is the same
   // signal this effect waits on too.
-  const [pageSeparators, setPageSeparators] = useState<number[]>([])
+  const [pageSeparators, setPageSeparators] = useState<{ y: number; thin?: boolean }[]>([])
   const [pageBadgeTops, setPageBadgeTops] = useState<number[]>([])
   const [pagePageCount, setPagePageCount] = useState(1)
   useEffect(() => {
@@ -331,6 +332,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       setPageSeparators((prev) => (prev.length ? [] : prev))
       setPageBadgeTops((prev) => (prev.length ? [] : prev))
       setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
+      // close any real page gaps the last run opened
+      innerRef.current?.querySelectorAll('[data-page-start]').forEach((el) => el.removeAttribute('data-page-start'))
     }
     // 2026-08-17 spec 1b/2: the overlay now renders in EVERY canvas state
     // that genuinely paginates — auto-fit docs whose fit FAILED (fitScale
@@ -385,7 +388,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         // settled state), so portal-space cuts ARE canvas-space ys — no
         // structural mapping, no suppression, every boundary drawn.
         if (previewExact) {
-          setPageSeparators(result.cutsPx)
+          setPageSeparators(result.cutsPx.map((y) => ({ y })))
           setPageBadgeTops([0, ...result.cutsPx])
           setPagePageCount(result.pageCount)
           return
@@ -405,23 +408,52 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         const editRootHeightPx = editRoot.getBoundingClientRect().height
         const badgeScale = contentHeightPx > 0 ? editRootHeightPx / contentHeightPx : 1
 
-        const mapped = result.cutsPx.map((y) => mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey))
-        // SEPARATORS: only the cuts a structural mapping actually resolved —
-        // per the fix-round-2 ruling, a cut we can't confidently place is
-        // SUPPRESSED, never drawn at a guessed position (a missing line
-        // beats a wrong line; the earlier proportional-scale fallback here
-        // was proven to land separators inside text/entries away from the
-        // true boundary for two-column docs).
-        const separators = mapped.filter((y): y is number => y !== null)
-        // BADGES: always `pageCount` of them — page count is independent of
-        // per-cut mapping success, and a badge's own position is far more
-        // forgiving of an approximate y than a drawn line is, so a failed
-        // mapping falls back to the proportional scale here ONLY.
-        const badgeTops = [0, ...mapped.map((y, i) => y ?? result.cutsPx[i] * badgeScale)]
-
-        setPageSeparators(separators)
-        setPageBadgeTops(badgeTops)
-        setPagePageCount(result.pageCount)
+        // REAL PAGE GAPS (2026-08-17 spec 2): each cut maps to the EDIT
+        // element that STARTS the next page; tagging it `data-page-start`
+        // opens a real margin gap (artboard.css, edit canvas only) so the
+        // page band renders inside CREATED empty space and can never cover
+        // content — the old cover-band hid up to ~15px of real content near
+        // tight cuts (user report). Mid-entry / low-confidence cuts keep
+        // the midpoint treatment as a THIN line (suppression rules
+        // unchanged: a missing line still beats a wrong one); badges keep
+        // the proportional fallback since page count is never in question.
+        const anchors = result.cutsPx.map((y) => mapCutToEditAnchor(mappingBlocks, y, printAnchors, editAnchorsByKey))
+        const fallbackYs = result.cutsPx.map((y, i) =>
+          anchors[i] ? null : mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey),
+        )
+        for (const el of editRoot.querySelectorAll('[data-page-start]')) el.removeAttribute('data-page-start')
+        for (const el of anchors) el?.setAttribute('data-page-start', '')
+        // Two frames so the margin gaps are laid out before measuring.
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            if (cancelled) return
+            const rootRect = editRoot.getBoundingClientRect()
+            // Normalize visual px back to layout px — the canvas renders
+            // inside the zoom scale() wrapper (same double-scale trap
+            // pageChromeMap's rootRelativeRect documents).
+            const scaleNow = editRoot.offsetWidth > 0 ? rootRect.width / editRoot.offsetWidth : 1
+            const separators: { y: number; thin?: boolean }[] = []
+            const badgeTops: number[] = [0]
+            for (let i = 0; i < result.cutsPx.length; i++) {
+              const el = anchors[i]
+              if (el) {
+                const top = (el.getBoundingClientRect().top - rootRect.top) / scaleNow
+                separators.push({ y: top - PAGE_GAP_PX / 2 })
+                badgeTops.push(top)
+              } else if (fallbackYs[i] != null) {
+                separators.push({ y: fallbackYs[i]!, thin: true })
+                badgeTops.push(fallbackYs[i]!)
+              } else {
+                badgeTops.push(result.cutsPx[i] * badgeScale)
+              }
+            }
+            setPageSeparators(separators)
+            setPageBadgeTops(badgeTops)
+            setPagePageCount(result.pageCount)
+            // The margin gaps grew the canvas — keep the white sheet sized.
+            if (innerRef.current) setContentH(innerRef.current.scrollHeight)
+          }),
+        )
       } catch (e) {
         if (e instanceof PaginationImpossibleError) {
           // Same "can't legally paginate" signal export.ts falls back to
