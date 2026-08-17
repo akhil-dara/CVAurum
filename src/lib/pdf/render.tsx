@@ -58,13 +58,13 @@ export function resolveDecoBoxesGlobal(capturing: boolean, decoBoxes: DecoBox[] 
   return capturing ? decoBoxes : undefined
 }
 
-/** Thrown when the résumé genuinely cannot be exported natively: either
- * auto-fit is ON and the sheet is still taller than one page after it ran
- * (unchanged from before the native-multipage-pdf plan — auto-fit ON never
- * paginates, spec section 3), or auto-fit is OFF and `paginate()` found no
- * legal page-break candidate anywhere (`PaginationImpossibleError`, wrapped
- * by `paginateOrThrow` below). Either way the caller falls back to the
- * browser print export so the user always gets a correct PDF. */
+/** Thrown when the résumé genuinely cannot be exported natively: paginate()
+ * found no legal page-break candidate anywhere (`PaginationImpossibleError`,
+ * wrapped by `paginateOrThrow` below). Auto-fit overflow no longer throws
+ * (spec 1b, 2026-08-17): a doc auto-fit cannot shrink onto one page
+ * re-renders at natural scale and paginates natively instead. The caller
+ * still falls back to the browser print export on this error so the user
+ * always gets a correct PDF. */
 export class PdfMultiPageUnsupportedError extends Error {}
 
 /**
@@ -240,6 +240,16 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
         return container.scrollHeight
       })
       await raf2()
+      // Auto-fit is a ONE-PAGE promise. When even the smallest fit scale
+      // cannot keep that promise, unshrunken multi-page output is strictly
+      // better than shrunken print-dialog output (user request 2026-08-17 —
+      // this used to throw PdfMultiPageUnsupportedError here and silently
+      // fall back to print): re-render at natural scale and paginate
+      // natively, identical to auto-fit OFF.
+      if (exceedsOnePage(container.scrollHeight, pageHpx, doc.metadata.page.margin)) {
+        root.render(<TemplateRenderer doc={doc} mode="print" />)
+        await raf2()
+      }
     }
 
     // Same tolerance PrintPage uses: trailing whitespace/rounding within the
@@ -259,13 +269,11 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     let pageCount = 1
 
     if (overflow) {
-      if (doc.metadata.page.autoFit) {
-        // Auto-fit already tried (fitOnePageScale, above) and still doesn't
-        // fit one page — unchanged from before this task: pagination only
-        // ever activates for auto-fit OFF (native-multipage-pdf plan, spec
-        // section 3).
-        throw new PdfMultiPageUnsupportedError('resume does not fit on one page')
-      }
+      // Auto-fit-ON docs reach here only when fitOnePageScale could not keep
+      // the one-page promise (the block above already re-rendered them at
+      // natural scale) — they paginate natively exactly like auto-fit OFF
+      // (spec 1b, user request 2026-08-17: no more silent print fallback for
+      // ordinary overflow). Pins stay auto-fit-OFF-only.
       const blocks = extractPageBlocks(sheet)
       const contentHeightPx = sheet.getBoundingClientRect().height
       const result = paginateOrThrow({
@@ -273,7 +281,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
         contentHeightPx,
         usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
         firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
-        forcedCutsPx: resolveForcedCutsPx(sheet, doc.metadata.page.breaks),
+        forcedCutsPx: doc.metadata.page.autoFit ? [] : resolveForcedCutsPx(sheet, doc.metadata.page.breaks),
       })
       cutsPx = result.cutsPx
       pageCount = result.pageCount
