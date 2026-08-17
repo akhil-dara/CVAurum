@@ -31,7 +31,18 @@ export function newItem(sectionKey: string): AnyItem {
     case 'work':
       return { id, name: '', position: '', location: '', startDate: '', endDate: '', summary: '', highlights: [] }
     case 'education':
-      return { id, institution: '', area: '', studyType: '', location: '', startDate: '', endDate: '', score: '', courses: [], summary: '' }
+      return {
+        id,
+        institution: '',
+        area: '',
+        studyType: '',
+        location: '',
+        startDate: '',
+        endDate: '',
+        score: '',
+        courses: [],
+        summary: '',
+      }
     case 'projects':
       return { id, name: '', description: '', url: '', startDate: '', endDate: '', highlights: [], keywords: [] }
     case 'skills':
@@ -85,6 +96,59 @@ export function removeItem(content: ResumeContent, sectionKey: string, id: strin
   if (!Array.isArray(list)) return
   const idx = list.findIndex((x: AnyItem) => x.id === id)
   if (idx >= 0) list.splice(idx, 1)
+}
+
+/* --------------------------------------------------------- reorder helpers
+ * One implementation for every control surface (side panel, canvas arrows,
+ * canvas drag), so an order mutation can never behave differently depending
+ * on where the user triggered it. All three mutate in place — call them
+ * inside a store recipe. */
+
+type LayoutCols = { main: string[]; aside: string[] }
+
+/** Move a section one step within its own column. Clamped no-op at the
+ *  edges. A key in neither array (a content-bearing section resolveOrder
+ *  appends implicitly) is adopted into `main` first, then moved. */
+export function moveSection(layout: LayoutCols, key: string, dir: -1 | 1): void {
+  let col: string[] | undefined
+  if (layout.main.includes(key)) col = layout.main
+  else if (layout.aside.includes(key)) col = layout.aside
+  else {
+    layout.main.push(key)
+    col = layout.main
+  }
+  const from = col.indexOf(key)
+  const to = from + dir
+  if (to < 0 || to >= col.length) return
+  col.splice(from, 1)
+  col.splice(to, 0, key)
+}
+
+/** Place a section at an exact index in a column (same column = reorder,
+ *  other column = membership change + insert). Index is clamped. */
+export function moveSectionTo(layout: LayoutCols, key: string, col: 'main' | 'aside', index: number): void {
+  layout.main = layout.main.filter((k) => k !== key)
+  layout.aside = layout.aside.filter((k) => k !== key)
+  const target = layout[col]
+  target.splice(Math.max(0, Math.min(index, target.length)), 0, key)
+}
+
+/** Move an entry (by id) to an exact index within its section's items array
+ *  (standard or `custom-<id>` sections). Clamped; unknown id/section no-op. */
+export function moveEntry(content: ResumeContent, sectionKey: string, id: string, toIndex: number): void {
+  let list: AnyItem[] | undefined
+  if (sectionKey.startsWith('custom-')) {
+    const scId = sectionKey.slice('custom-'.length)
+    list = content.custom.find((c) => c.id === scId)?.items
+  } else {
+    const l = (content as any)[sectionKey]
+    if (Array.isArray(l)) list = l
+  }
+  if (!list) return
+  const from = list.findIndex((x) => x.id === id)
+  if (from < 0) return
+  const [item] = list.splice(from, 1)
+  list.splice(Math.max(0, Math.min(toIndex, list.length)), 0, item)
 }
 
 /** Header-rendered, not reorderable. */
@@ -195,7 +259,9 @@ export function sectionHasContent(key: string, content: ResumeContent): boolean 
       if (key.startsWith('custom-')) {
         const id = key.slice('custom-'.length)
         const sec = content.custom.find((c) => c.id === id)
-        return !!sec && sec.items.some((it) => txt(it.name) || txt(it.subtitle) || has(it.summary) || anyTxt(it.highlights))
+        return (
+          !!sec && sec.items.some((it) => txt(it.name) || txt(it.subtitle) || has(it.summary) || anyTxt(it.highlights))
+        )
       }
       return false
   }
@@ -207,7 +273,10 @@ export function sectionHasContent(key: string, content: ResumeContent): boolean 
  * Any content-bearing section missing from the configured order is appended so
  * data is never silently dropped.
  */
-export function resolveOrder(doc: ResumeDocument, opts?: { includeEmpty?: boolean }): { main: string[]; aside: string[] } {
+export function resolveOrder(
+  doc: ResumeDocument,
+  opts?: { includeEmpty?: boolean }
+): { main: string[]; aside: string[] } {
   const { layout } = doc.metadata
   const { content } = doc
   const hidden = new Set(layout.hidden)
