@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, EyeOff, ArrowLeftRight, ArrowDownToLine, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
+import { Settings2, EyeOff, ArrowLeftRight, ArrowDownToLine, ArrowUp, ArrowDown, Copy, ClipboardPaste, Paintbrush, X } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
 import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
-import { sectionLabel } from '@/lib/sections'
+import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords' | 'showBadges'
@@ -324,11 +324,20 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
 
   const move = () =>
     editMeta((m) => {
-      const from: 'main' | 'aside' = m.layout.main.includes(sectionKey) ? 'main' : 'aside'
-      const to: 'main' | 'aside' = from === 'main' ? 'aside' : 'main'
-      m.layout[from] = m.layout[from].filter((k) => k !== sectionKey)
-      m.layout[to] = [...m.layout[to], sectionKey]
+      const to: 'main' | 'aside' = m.layout.main.includes(sectionKey) ? 'aside' : 'main'
+      moveSectionTo(m.layout, sectionKey, to, m.layout[to].length)
     })
+
+  // Inline reordering (2026-08-17 inline-reorder spec): arrows move one step
+  // within this section's column via the same shared helper every control
+  // surface uses. Position for the disabled state comes straight from the
+  // layout arrays; a content-appended key missing from both sits at the
+  // visual end of main, so only its up-arrow is live.
+  const colArr = layout.main.includes(sectionKey) ? layout.main : layout.aside.includes(sectionKey) ? layout.aside : null
+  const colIdx = colArr ? colArr.indexOf(sectionKey) : -1
+  const atTop = colArr ? colIdx === 0 : false
+  const atBottom = colArr ? colIdx === colArr.length - 1 : true
+  const moveStep = (dir: -1 | 1) => editMeta((m) => moveSection(m.layout, sectionKey, dir))
 
   // Style painter: copy this section's visual style, then paint it onto another
   // section (or all of them) — like Figma's paint-format. Only the visual-style
@@ -398,6 +407,43 @@ export function SectionGear({ sectionKey, doc, editMeta }: { sectionKey: string;
         >
           <Settings2 /> Style
         </button>
+        <button
+          type="button"
+          className="rm-section-hide rm-section-move"
+          contentEditable={false}
+          disabled={atTop}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => moveStep(-1)}
+          title="Move section up"
+          aria-label="Move section up"
+        >
+          <ArrowUp />
+        </button>
+        <button
+          type="button"
+          className="rm-section-hide rm-section-move"
+          contentEditable={false}
+          disabled={atBottom}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => moveStep(1)}
+          title="Move section down"
+          aria-label="Move section down"
+        >
+          <ArrowDown />
+        </button>
+        {twoCol && (
+          <button
+            type="button"
+            className="rm-section-hide rm-section-move"
+            contentEditable={false}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={move}
+            title={inAside ? 'Move to the main column' : 'Move to the side column'}
+            aria-label={inAside ? 'Move section to the main column' : 'Move section to the side column'}
+          >
+            <ArrowLeftRight />
+          </button>
+        )}
         <button
           type="button"
           className="rm-section-hide"

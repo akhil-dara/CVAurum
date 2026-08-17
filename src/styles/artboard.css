@@ -286,6 +286,19 @@
   color: #b91c1c;
   border-color: #b91c1c;
 }
+/* Reorder arrows / column swap share the hide button's chrome but must not
+   inherit its danger-red hover — they move, they don't destroy. */
+.rm-section-move:hover {
+  color: var(--rm-primary);
+  border-color: var(--rm-primary);
+}
+.rm-section-hide:disabled {
+  pointer-events: none;
+}
+.mode-preview .rm-section-hide:disabled,
+.mode-preview .rm-section:hover .rm-section-hide:disabled {
+  opacity: 0.3;
+}
 
 /* on-canvas photo/monogram hide control (edit mode only) */
 .rm-visual-wrap {
