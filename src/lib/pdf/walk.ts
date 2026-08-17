@@ -1,5 +1,5 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
-import { ascentPx, extractRuns, measureTextWidthPx, textNodeLineSegments } from './text'
+import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
 
@@ -590,6 +590,16 @@ export function pseudoBox(
  *  host box, which is where the content is inserted in normal flow. Native
  *  `<li>` bullets are a completely different mechanism (see markerOps) —
  *  browsers never surface those through ::before. */
+/** Rotation (deg) and the translation the computed `transform` matrix applies
+ *  to the BOX CENTER (transform-origin defaults to the center, so rotation
+ *  never moves it and the matrix translation column IS the center shift). */
+export function parseTransform(transform: string): { rotationDeg: number; dxPx: number; dyPx: number } {
+  const m = /^matrix\(([^)]+)\)$/.exec(transform || '')
+  if (!m) return { rotationDeg: 0, dxPx: 0, dyPx: 0 }
+  const [a, b, , , e, f] = m[1].split(',').map((v) => parseFloat(v.trim()))
+  return { rotationDeg: (Math.atan2(b, a) * 180) / Math.PI, dxPx: e || 0, dyPx: f || 0 }
+}
+
 function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::before' | '::after'): void {
   const cs = getComputedStyle(el, which)
   if (cs.content === 'none' || cs.display === 'none') return
@@ -603,18 +613,61 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
   const lastChildBox = isFlex && which === '::after' && el.lastElementChild ? boxOf(el.lastElementChild, root) : null
   const box = pseudoBox(cs, boxOf(el, root), which, hostCs, lastChildBox)
 
+  // Row-flex `align-items: baseline` with a TEXTLESS pseudo (2026-08-17
+  // user report — the Grid skills diamond rendered at the chip's TOP in
+  // the PDF while the canvas centers it): a no-text flex item aligns its
+  // BOTTOM edge to the host's text baseline. Approximate the baseline as
+  // line-height − 0.435em of the HOST font — calibrated by pixel
+  // measurement against the live canvas (probe-diamond: DOM marker center
+  // 7.64px, this model 7.6px; the first guess of 0.32em sat 1.4px low).
+  const isRowFlex = isFlex && (!hostCs.flexDirection || hostCs.flexDirection === 'row')
+  if (isRowFlex && hostCs.alignItems === 'baseline' && !pseudoContentText(cs.content) && box.hPx > 0) {
+    const hostFontPx = parsePx(hostCs.fontSize)
+    const hostLineH = parsePx(hostCs.lineHeight) || hostFontPx * 1.2
+    const baselineY = boxOf(el, root).yPx + hostLineH - hostFontPx * 0.435
+    box.yPx = baselineY - box.hPx
+  }
+  // The computed transform's center shift always applies (translateY(-1px)
+  // on the grid diamond); rotation is consumed below for the diamond shape.
+  const tf = parseTransform(cs.transform)
+  box.xPx += tf.dxPx
+  box.yPx += tf.dyPx
+
   const radii = cornerRadii(cs)
   const bg = parseColor(cs.backgroundColor)
   if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {
-    ops.push({
-      kind: 'rect',
-      xPx: box.xPx,
-      yPx: box.yPx,
-      wPx: box.wPx,
-      hPx: box.hPx,
-      fill: { ...bg, a: bg.a * opacityMul },
-      radii,
-    })
+    // A square pseudo rotated ~45° is a DIAMOND (Grid skills marker) — the
+    // export used to drop the rotation and print an axis-aligned square.
+    // Emitted as an svg path so no rect-op rotation plumbing is needed;
+    // the path's bounding box is the rotated square's (diagonal-sized),
+    // centered where the unrotated box was.
+    if (Math.abs(Math.abs(tf.rotationDeg) - 45) < 8 && Math.abs(box.wPx - box.hPx) < 1) {
+      const cx = box.xPx + box.wPx / 2
+      const cy = box.yPx + box.hPx / 2
+      const r = (box.wPx * Math.SQRT2) / 2
+      ops.push({
+        kind: 'svg',
+        xPx: cx - r,
+        yPx: cy - r,
+        wPx: r * 2,
+        hPx: r * 2,
+        viewBox: [0, 0, 2, 2],
+        d: 'M 1 0 L 2 1 L 1 2 L 0 1 Z',
+        fill: { ...bg, a: bg.a * opacityMul },
+        stroke: undefined,
+        strokeWidthPx: 0,
+      })
+    } else {
+      ops.push({
+        kind: 'rect',
+        xPx: box.xPx,
+        yPx: box.yPx,
+        wPx: box.wPx,
+        hPx: box.hPx,
+        fill: { ...bg, a: bg.a * opacityMul },
+        radii,
+      })
+    }
   }
   // Pseudo-elements previously got NO border handling at all (task 22) — a
   // `::before`/`::after` with a `border` (e.g. .tpl-timeline's circular
@@ -679,10 +732,21 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   // hugging mark instead of a round dot centred on the line). Reuse the
   // rounded-rect vector primitive defect 1 added to paint.ts: a square rect
   // with radiusPx = its own size collapses to a perfect circle.
+  //
+  // GEOMETRY (2026-08-17 user report "points not aligned", calibrated
+  // against pixel measurement of Chromium's own rendering): the dot centers
+  // on the FIRST LINE BOX (computed line-height / 2 below the li top —
+  // measured 8.80px vs Chromium's true 8.51px on the harvard/Source Serif 4
+  // case, sub-half-pixel), and its diameter is ceil(fontSize / 3) (5px,
+  // exact match). The previous font-bounding-box arithmetic placed the dot
+  // 2px low and 0.5px small (measured 10.52px/4.5px) — and canvas font
+  // metrics additionally RACE font loading (first measurement caches
+  // fallback-font numbers), which line-height arithmetic is immune to.
   if (!explicitText && (kind === 'disc' || kind === 'circle' || kind === 'square')) {
-    const d = sizePx * 0.34
+    const d = Math.ceil(sizePx / 3)
     const gapPx = sizePx * 0.4
-    const centerYPx = box.yPx + ascentPx(font) - sizePx * 0.24
+    const lineHeightPx = parsePx(cs.lineHeight) || layoutMetricsFor(font).heightPx || sizePx * 1.2
+    const centerYPx = box.yPx + lineHeightPx / 2
     ops.push({
       kind: 'rect',
       xPx: box.xPx - gapPx - d,
