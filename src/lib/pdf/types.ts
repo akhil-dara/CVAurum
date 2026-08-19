@@ -1,3 +1,11 @@
+/**
+ * Structure types the tagger emits (PDF standard structure namespace).
+ * `Artifact` is not a structure type — it marks content a reader must SKIP
+ * (rules, backgrounds, decorative glyphs), which is just as important for
+ * accessibility as tagging the real content.
+ */
+export type TagRole = 'H1' | 'H2' | 'H3' | 'P' | 'L' | 'LI' | 'Figure' | 'Artifact'
+
 import type { Rgba } from './style'
 
 export interface TextRun {
@@ -209,5 +217,14 @@ export type DrawOp = DrawOpChrome &
         strokeWidthPx: number
         viewBox: [number, number, number, number]
       }
-    | { kind: 'text'; run: TextRun }
+    | {
+        kind: 'text'
+        run: TextRun
+        /**
+         * Structure type for the tagged-PDF tree (tagging.ts). Absent means
+         * "not tagged yet" and is treated as a paragraph; decorative runs
+         * carry 'Artifact' so a screen reader skips them.
+         */
+        role?: TagRole
+      }
   )

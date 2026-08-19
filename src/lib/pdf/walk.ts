@@ -1,4 +1,5 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
+import { roleForElement } from './tagging'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
@@ -1131,8 +1132,12 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
       // ACTUAL embedded pdf-lib font's widthOfTextAtSize — the very metric
       // pdf.js itself measures against — which needs the font object this
       // module doesn't have. See paint.ts's paintOps.
+      // Structure role for the tagged-PDF tree: derived from the DOM the
+      // run came from, so a heading is whatever the template renders as one
+      // (tagging.ts). Decorative runs are artifacts a reader skips.
+      const role = roleForElement((n as Text).parentElement, root)
       for (const run of extractRuns(n as Text, root)) {
-        ops.push({ kind: 'text', run })
+        ops.push({ kind: 'text', run, role: run.isDecorative ? 'Artifact' : role })
       }
     }
   }

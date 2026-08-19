@@ -21,8 +21,18 @@ import { resolveForcedCutsPx } from './pageBreaks'
 import { parsePx } from './style'
 import { loadPdfFontIndex, PdfFontCache } from './fonts'
 import { paintPages } from './paint'
+import { createTagSink, writeStructTree } from './structure'
 import { applyPdfMetadata, buildDocInfo } from './metadata'
-import { applyPdfAConformance, loadSrgbProfile, PDFA_CONFORMANCE, PDFA_PART } from './pdfa'
+import {
+  applyPdfAConformance,
+  loadSrgbProfile,
+  setPdfVersion,
+  stampPdfVersion,
+  PDFA_PART,
+  PDFA_REV,
+  PDFUA_PART,
+  PDFUA_REV,
+} from './pdfa'
 import type { DecoBox } from './types'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
@@ -313,12 +323,12 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // and may legitimately be unavailable (offline first paint, asset not
     // deployed): the export then simply is not PDF/A, which the XMP must not
     // claim either — hence one `pdfaConforming` flag driving both.
+    setPdfVersion(pdfDoc)
     const docInfo = buildDocInfo(doc)
     const icc = await loadSrgbProfile()
     const pages = Array.from({ length: pageCount }, () => pdfDoc.addPage([pxToPt(pageWpx), pxToPt(pageHpx)]))
 
     const pdfaConforming = applyPdfAConformance(pdfDoc, icc, `${docInfo.title}|${docInfo.created.toISOString()}`)
-    applyPdfMetadata(pdfDoc, docInfo, pdfaConforming ? { part: PDFA_PART, conformance: PDFA_CONFORMANCE } : undefined)
 
     const ops = buildDrawList(sheet)
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
@@ -327,7 +337,23 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // caller, which never sets the flag.
     const capturing = import.meta.env.DEV && window.__cvaCaptureRenderBoxes === true
     const decoBoxes: DecoBox[] | undefined = capturing ? [] : undefined
-    await paintPages(pages, ops, fonts, pxToPt(pageHpx), pageHpx, cutsPx, padding.topPx, decoBoxes)
+    // Tagged PDF: the sink marks every op as it is painted and records the
+    // structure; the tree is written afterwards, once the marks (and their
+    // pages) are known.
+    const tagSink = createTagSink()
+    await paintPages(pages, ops, fonts, pxToPt(pageHpx), pageHpx, cutsPx, padding.topPx, decoBoxes, tagSink)
+    // The accessibility claim is made ONLY if the tree was actually written,
+    // never on an empty or missing structure (see writeStructTree).
+    const tagged = writeStructTree(pdfDoc, tagSink.marks)
+    // Metadata last: its conformance claims describe what the file ended up
+    // being, not what we hoped it would be.
+    applyPdfMetadata(
+      pdfDoc,
+      docInfo,
+      pdfaConforming
+        ? { part: PDFA_PART, rev: PDFA_REV, ua: tagged ? { part: PDFUA_PART, rev: PDFUA_REV } : undefined }
+        : undefined
+    )
     // ALWAYS assign (never a conditional `if (capturing)`) so a non-capturing
     // render clears any boxes a PRIOR capturing render left behind — task-15
     // fix round: `if (capturing) window.__cvaLastDecoBoxes = decoBoxes` only
@@ -342,7 +368,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // a prior multi-page render left behind.
     if (import.meta.env.DEV) window.__cvaLastPaginationCuts = cutsPx.slice()
 
-    return await pdfDoc.save()
+    return stampPdfVersion(await pdfDoc.save())
   } finally {
     root.unmount()
     container.remove()

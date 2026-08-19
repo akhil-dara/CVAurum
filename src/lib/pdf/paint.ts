@@ -28,6 +28,7 @@ import {
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, ptToPx, flipY } from './units'
 import { smallCapsSegments } from './smallcaps'
+import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
@@ -650,7 +651,8 @@ export async function paintOps(
   ops: DrawOp[],
   fonts: PdfFontCache,
   pageHeightPt: number,
-  captureDecoBoxes?: DecoBox[]
+  captureDecoBoxes?: DecoBox[],
+  tagSink?: TagSink
 ): Promise<void> {
   const images = new Map<string, Promise<PDFImage | null>>()
   // Same-line adjacency for REAL (non-decorative) text runs: when one DOM
@@ -702,6 +704,12 @@ export async function paintOps(
   let prevRealEnd: { baselinePx: number; endXPt: number; chainStartXPt: number } | null = null
 
   for (const op of ops) {
+    // Tagged PDF: every operator this loop emits belongs either to a
+    // structure element (real content, gets an MCID a reader can resolve) or
+    // to an artifact (decoration a reader must skip). Opened here and closed
+    // in the matching `endMark` at the bottom of the loop, so the sequence
+    // can never straddle two ops.
+    const mark = tagSink?.begin(page, op)
     if (op.kind === 'text' && !op.run.isDecorative) {
       const { run } = op
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
@@ -806,6 +814,7 @@ export async function paintOps(
         endXPt: xPt + embeddedWidthPt * (tzPct / 100),
         chainStartXPt: nextChainStartXPt,
       }
+      if (mark) tagSink?.end(page, mark)
       continue
     }
 
@@ -1021,6 +1030,7 @@ export async function paintOps(
       // Single bad rect/line/image op is swallowed: it must not sink the
       // whole export the way a lost font would.
     }
+    if (mark) tagSink?.end(page, mark)
   }
 }
 
@@ -1300,10 +1310,12 @@ export async function paintPages(
   pageHeightPx: number,
   cutsPx: number[],
   pageTopPaddingPx: number,
-  captureDecoBoxes?: DecoBox[]
+  captureDecoBoxes?: DecoBox[],
+  tagSink?: TagSink
 ): Promise<void> {
   const perPageOps = assignOpsToPages(ops, cutsPx, pageTopPaddingPx, pageHeightPx)
   for (let i = 0; i < pages.length; i++) {
-    await paintOps(pages[i], perPageOps[i] ?? [], fonts, pageHeightPt, captureDecoBoxes)
+    tagSink?.startPage(i)
+    await paintOps(pages[i], perPageOps[i] ?? [], fonts, pageHeightPt, captureDecoBoxes, tagSink)
   }
 }

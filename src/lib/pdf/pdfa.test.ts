@@ -7,7 +7,16 @@
  */
 import { describe, it, expect } from 'vitest'
 import { PDFDocument, PDFName } from 'pdf-lib'
-import { applyPdfAConformance, fileIdHex, isIccProfile, OUTPUT_CONDITION, PDFA_PART, PDFA_CONFORMANCE } from './pdfa'
+import {
+  applyPdfAConformance,
+  fileIdHex,
+  isIccProfile,
+  setPdfVersion,
+  stampPdfVersion,
+  OUTPUT_CONDITION,
+  PDFA_PART,
+  PDFA_REV,
+} from './pdfa'
 import { applyPdfMetadata, buildDocInfo, buildXmpPacket } from './metadata'
 import type { ResumeDocument } from '@/types/document'
 
@@ -114,10 +123,12 @@ describe('XMP pdfaid declaration', () => {
     const plain = buildXmpPacket(info)
     expect(plain).not.toContain('pdfaid')
 
-    const conforming = buildXmpPacket(info, { part: PDFA_PART, conformance: PDFA_CONFORMANCE })
+    const conforming = buildXmpPacket(info, { part: PDFA_PART, rev: PDFA_REV })
     expect(conforming).toContain('xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"')
-    expect(conforming).toContain('<pdfaid:part>2</pdfaid:part>')
-    expect(conforming).toContain('<pdfaid:conformance>B</pdfaid:conformance>')
+    expect(conforming).toContain('<pdfaid:part>4</pdfaid:part>')
+    expect(conforming).toContain('<pdfaid:rev>2020</pdfaid:rev>')
+    // Part 4 dropped the conformance LEVELS: claiming one would be invalid.
+    expect(conforming).not.toContain('pdfaid:conformance')
   })
 
   it('keeps the packet well-formed with the declaration present', async () => {
@@ -125,13 +136,48 @@ describe('XMP pdfaid declaration', () => {
     pdf.addPage()
     applyPdfMetadata(pdf, buildDocInfo(doc(), new Date('2026-08-19T00:00:00Z')), {
       part: PDFA_PART,
-      conformance: PDFA_CONFORMANCE,
+      rev: PDFA_REV,
     })
     const buf = Buffer.from(await pdf.save())
     const start = buf.indexOf('<x:xmpmeta')
     const end = buf.indexOf('</x:xmpmeta>')
     const packet = buf.subarray(start, end).toString('utf8')
     expect((packet.match(/<rdf:Description/g) ?? []).length).toBe(1)
-    expect(packet).toContain('<pdfaid:part>2</pdfaid:part>')
+    expect(packet).toContain('<pdfaid:part>4</pdfaid:part>')
+  })
+})
+
+describe('PDF version declaration', () => {
+  const build = async () => {
+    const pdf = await PDFDocument.create()
+    setPdfVersion(pdf)
+    pdf.addPage()
+    return stampPdfVersion(await pdf.save())
+  }
+
+  it('declares PDF 2.0 in both the header and the catalog', async () => {
+    const bytes = await build()
+    expect(Buffer.from(bytes).toString('latin1').startsWith('%PDF-2.0')).toBe(true)
+    const reloaded = await PDFDocument.load(bytes, { updateMetadata: false })
+    expect(String(reloaded.catalog.get(PDFName.of('Version')))).toBe('/2.0')
+  })
+
+  it('keeps the file byte-length identical, so every xref offset still resolves', async () => {
+    const pdf = await PDFDocument.create()
+    setPdfVersion(pdf)
+    pdf.addPage()
+    const original = await pdf.save()
+    const before = original.length
+    const stamped = stampPdfVersion(original.slice())
+    expect(stamped.length).toBe(before)
+    // The real proof: it still parses, and the page survives.
+    const reloaded = await PDFDocument.load(stamped, { updateMetadata: false })
+    expect(reloaded.getPageCount()).toBe(1)
+  })
+
+  it('refuses to touch bytes that are not the header pdf-lib writes', () => {
+    const alien = new TextEncoder().encode('%PDF-1.4 something else entirely')
+    const copy = alien.slice()
+    expect(Buffer.from(stampPdfVersion(copy)).toString('latin1')).toBe('%PDF-1.4 something else entirely')
   })
 })

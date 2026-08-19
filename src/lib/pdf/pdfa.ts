@@ -29,9 +29,22 @@
  */
 import { PDFDocument, PDFName, PDFNumber, PDFString, PDFArray, PDFHexString } from 'pdf-lib'
 
-/** PDF/A part and level this build targets. Mirrored into the XMP packet. */
-export const PDFA_PART = '2'
-export const PDFA_CONFORMANCE = 'B'
+/** PDF/A part this build targets, mirrored into the XMP packet.
+ *
+ *  Part 4 (ISO 19005-4:2020) is the PDF 2.0 generation of PDF/A and is what
+ *  "latest" means here: parts 1-3 are defined against PDF 1.7 and cannot be
+ *  claimed by a PDF 2.0 file at all. Part 4 also drops the a/b/u conformance
+ *  LEVELS — it requires Unicode-mappable text outright, and accessibility
+ *  moved to its own standard (PDF/UA-2), so a part-4 claim carries a
+ *  revision year instead of a level letter. */
+export const PDFA_PART = '4'
+export const PDFA_REV = '2020'
+/** PDF/UA (accessibility) part and revision the tagged output claims —
+ *  PDF/UA-2 is ISO 14289-2:2024, the accessibility standard for PDF 2.0. */
+export const PDFUA_PART = '2'
+export const PDFUA_REV = '2024'
+/** The PDF version the file declares, in the header and the catalog. */
+export const PDF_VERSION: [number, number] = [2, 0]
 /** Same-origin path — served by us, exactly like `/fonts-pdf/*`. */
 export const SRGB_PROFILE_URL = '/color/sRGB2014.icc'
 /** What the OutputIntent advertises as its destination condition. */
@@ -56,6 +69,38 @@ export function loadSrgbProfile(): Promise<Uint8Array | null> {
       })
   }
   return profilePromise
+}
+
+/**
+ * Declares the document as PDF 2.0 — in the file header (what a parser reads
+ * first) and in the catalog's /Version (which overrides the header for
+ * incrementally-updated files). Both, because readers disagree about which
+ * one wins.
+ */
+export function setPdfVersion(pdfDoc: PDFDocument, [major, minor]: [number, number] = PDF_VERSION): void {
+  pdfDoc.catalog.set(PDFName.of('Version'), PDFName.of(`${major}.${minor}`))
+}
+
+/**
+ * Rewrites the file header to the target version.
+ *
+ * pdf-lib's writer HARDCODES `PDFHeader.forVersion(1, 7)` and ignores
+ * `context.header`, so the version cannot be set through the document API —
+ * it has to be stamped on the saved bytes. That is safe here and only here
+ * because `%PDF-1.7` and `%PDF-2.0` are the same LENGTH: every byte offset in
+ * the file, including the xref table's, is untouched. The guard below refuses
+ * to patch anything that is not the exact header pdf-lib writes, so a future
+ * pdf-lib change can never turn this into a silent corruption.
+ */
+export function stampPdfVersion(bytes: Uint8Array, [major, minor]: [number, number] = PDF_VERSION): Uint8Array {
+  const target = `%PDF-${major}.${minor}`
+  const expected = '%PDF-1.7'
+  if (target.length !== expected.length) return bytes
+  for (let i = 0; i < expected.length; i++) {
+    if (bytes[i] !== expected.charCodeAt(i)) return bytes // not the header we know: leave it alone
+  }
+  for (let i = 0; i < target.length; i++) bytes[i] = target.charCodeAt(i)
+  return bytes
 }
 
 /** True when the bytes are a structurally plausible ICC profile: the header

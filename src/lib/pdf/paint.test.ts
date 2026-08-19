@@ -15,6 +15,7 @@ import {
   DRIFT_FRACTION,
 } from './paint'
 import { PdfFontCache } from './fonts'
+import { createTagSink } from './structure'
 import { pxToPt, ptToPx, flipY } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 
@@ -1654,5 +1655,65 @@ describe('paintPages — multi-page paint assembly (task 3, native multi-page pd
     // proving page 2's paintOps call started with a fresh (null) prevRealEnd.
     expect(secondX).toBeCloseTo(pxToPt(driftedXPx), 6)
     expect(secondX).not.toBeCloseTo(trueEndA, 1)
+  })
+})
+
+describe('paintOps — tagged PDF marked content', () => {
+  /** Renders with a real tag sink and returns the page's content stream. */
+  const renderTagged = async (ops: DrawOp[]) => {
+    const pdfDoc = await PDFDocument.create()
+    pdfDoc.registerFontkit(fontkit)
+    const page = pdfDoc.addPage([300, 400])
+    const fonts = new PdfFontCache(pdfDoc, FONT_INDEX)
+    const sink = createTagSink()
+    sink.startPage(0)
+    await paintOps(page, ops, fonts, 400, undefined, sink)
+    const stream = (page as unknown as { getContentStream: () => { getContentsString(): string } })
+      .getContentStream()
+      .getContentsString()
+    return { stream, marks: sink.marks }
+  }
+
+  it('opens and closes exactly one sequence per op — never leaves one dangling', async () => {
+    // Includes a TRACKED run, which takes an early `continue` out of the
+    // paint loop: that path once skipped its EMC and left 137 begins against
+    // 55 ends in a real export.
+    const { stream } = await renderTagged([
+      { kind: 'text', run: baseRun({ text: 'Summary' }), role: 'P' },
+      { kind: 'text', run: baseRun({ text: 'Tracked', letterSpacingPx: 1.5 }), role: 'H2' },
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 10, hPx: 10, fill: { r: 0, g: 0, b: 0, a: 1 } },
+    ])
+    const begins = (stream.match(/\bBDC\b/g) ?? []).length + (stream.match(/\bBMC\b/g) ?? []).length
+    const ends = (stream.match(/\bEMC\b/g) ?? []).length
+    expect(begins).toBe(3)
+    expect(ends).toBe(3)
+  })
+
+  it('gives real content an MCID and decoration a bare Artifact', async () => {
+    const { stream, marks } = await renderTagged([
+      { kind: 'text', run: baseRun({ text: 'Experience' }), role: 'H2' },
+      { kind: 'rect', xPx: 0, yPx: 0, wPx: 10, hPx: 10, fill: { r: 0, g: 0, b: 0, a: 1 } },
+    ])
+    expect(stream).toContain('/H2 <</MCID 0>> BDC')
+    expect(stream).toContain('/Artifact BMC')
+    // Only the tagged content is recorded for the structure tree.
+    expect(marks).toEqual([{ pageIndex: 0, mcid: 0, role: 'H2' }])
+  })
+
+  it('numbers MCIDs from zero on every page', async () => {
+    const pdfDoc = await PDFDocument.create()
+    pdfDoc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(pdfDoc, FONT_INDEX)
+    const sink = createTagSink()
+    sink.startPage(0)
+    const first = pdfDoc.addPage([300, 400])
+    await paintOps(first, [{ kind: 'text', run: baseRun({ text: 'One' }), role: 'P' }], fonts, 400, undefined, sink)
+    sink.startPage(1)
+    const second = pdfDoc.addPage([300, 400])
+    await paintOps(second, [{ kind: 'text', run: baseRun({ text: 'Two' }), role: 'P' }], fonts, 400, undefined, sink)
+    expect(sink.marks).toEqual([
+      { pageIndex: 0, mcid: 0, role: 'P' },
+      { pageIndex: 1, mcid: 0, role: 'P' },
+    ])
   })
 })

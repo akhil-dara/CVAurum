@@ -26,6 +26,17 @@ const MAX_KEYWORDS = 32
 /** Résumés we render are English-language documents unless one says otherwise. */
 const DEFAULT_LANGUAGE = 'en-US'
 
+/** A PDF/A identification claim: a part, plus EITHER a revision year
+ *  (part 4) or a conformance level letter (parts 1-3). */
+export interface PdfAClaim {
+  part: string
+  rev?: string
+  conformance?: string
+  /** PDF/UA identification, when the file is also tagged for accessibility.
+   *  Declared in its own schema alongside pdfaid. */
+  ua?: { part: string; rev?: string }
+}
+
 export interface DocInfo {
   title: string
   author: string
@@ -84,6 +95,10 @@ export function buildDocInfo(doc: ResumeDocument, now: Date = new Date()): DocIn
 const PDFAID_NS = `
         xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"`
 
+/** XMP namespace for the PDF/UA identification schema. */
+const PDFUAID_NS = `
+        xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"`
+
 export function xmlEscape(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -102,7 +117,7 @@ const xmpDate = (d: Date): string => d.toISOString().replace(/\.\d{3}Z$/, 'Z')
  * any reader (and any future PDF/A conformance pass, which REQUIRES an
  * uncompressed XMP stream) can consume it as-is.
  */
-export function buildXmpPacket(info: DocInfo, pdfa?: { part: string; conformance: string }): string {
+export function buildXmpPacket(info: DocInfo, pdfa?: PdfAClaim): string {
   const subjects = info.keywords.map((k) => `          <rdf:li>${xmlEscape(k)}</rdf:li>`).join('\n')
   const creator = info.author
     ? `      <dc:creator>
@@ -117,7 +132,7 @@ export function buildXmpPacket(info: DocInfo, pdfa?: { part: string; conformance
     <rdf:Description rdf:about=""
         xmlns:dc="http://purl.org/dc/elements/1.1/"
         xmlns:xmp="http://ns.adobe.com/xap/1.0/"
-        xmlns:pdf="http://ns.adobe.com/pdf/1.3/"${pdfa ? PDFAID_NS : ''}>
+        xmlns:pdf="http://ns.adobe.com/pdf/1.3/"${pdfa ? PDFAID_NS : ''}${pdfa?.ua ? PDFUAID_NS : ''}>
       <dc:format>application/pdf</dc:format>
       <dc:title>
         <rdf:Alt>
@@ -147,8 +162,27 @@ ${subjects}
       <pdf:Keywords>${xmlEscape(info.keywords.join(', '))}</pdf:Keywords>${
         pdfa
           ? `
-      <pdfaid:part>${xmlEscape(pdfa.part)}</pdfaid:part>
+      <pdfaid:part>${xmlEscape(pdfa.part)}</pdfaid:part>${
+        pdfa.rev
+          ? `
+      <pdfaid:rev>${xmlEscape(pdfa.rev)}</pdfaid:rev>`
+          : ''
+      }${
+        pdfa.conformance
+          ? `
       <pdfaid:conformance>${xmlEscape(pdfa.conformance)}</pdfaid:conformance>`
+          : ''
+      }${
+        pdfa.ua
+          ? `
+      <pdfuaid:part>${xmlEscape(pdfa.ua.part)}</pdfuaid:part>${
+        pdfa.ua.rev
+          ? `
+      <pdfuaid:rev>${xmlEscape(pdfa.ua.rev)}</pdfuaid:rev>`
+          : ''
+      }`
+          : ''
+      }`
           : ''
       }
     </rdf:Description>
@@ -164,19 +198,30 @@ ${subjects}
  * makes readers show the TITLE rather than the filename (a real
  * accessibility requirement — PDF/UA 7.1, WCAG 2.4.2 "Page Titled").
  */
-export function applyPdfMetadata(
-  pdfDoc: PDFDocument,
-  info: DocInfo,
-  pdfa?: { part: string; conformance: string }
-): void {
-  pdfDoc.setTitle(info.title, { showInWindowTitleBar: true })
-  if (info.author) pdfDoc.setAuthor(info.author)
-  pdfDoc.setSubject(info.subject)
-  pdfDoc.setKeywords(info.keywords)
-  pdfDoc.setCreator(info.creator)
-  pdfDoc.setProducer(info.producer)
-  pdfDoc.setCreationDate(info.created)
-  pdfDoc.setModificationDate(info.modified)
+export function applyPdfMetadata(pdfDoc: PDFDocument, info: DocInfo, pdfa?: PdfAClaim): void {
+  // PDF 2.0 / PDF/A-4 RETIRED the legacy document information dictionary:
+  // ISO 19005-4 clause 6.1.3 forbids /Info in the trailer outright (unless a
+  // /PieceInfo exists, and even then it may carry nothing but ModDate),
+  // because XMP is now the single source of document metadata. So the Info
+  // dict is written only for the legacy (PDF 1.7 / PDF/A-2) claim; under a
+  // part-4 claim the same values ship in the XMP packet alone, which every
+  // modern reader reads.
+  const legacyInfo = pdfa?.part !== '4'
+  if (legacyInfo) {
+    pdfDoc.setTitle(info.title, { showInWindowTitleBar: true })
+    if (info.author) pdfDoc.setAuthor(info.author)
+    pdfDoc.setSubject(info.subject)
+    pdfDoc.setKeywords(info.keywords)
+    pdfDoc.setCreator(info.creator)
+    pdfDoc.setProducer(info.producer)
+    pdfDoc.setCreationDate(info.created)
+    pdfDoc.setModificationDate(info.modified)
+  } else {
+    // Drop the dictionary pdf-lib creates by default, and set the viewer
+    // preference directly (setTitle would recreate Info as a side effect).
+    delete pdfDoc.context.trailerInfo.Info
+    pdfDoc.catalog.set(PDFName.of('ViewerPreferences'), pdfDoc.context.obj({ DisplayDocTitle: true }))
+  }
   pdfDoc.setLanguage(info.language)
 
   // The catalog /Metadata stream. Uncompressed on purpose (see

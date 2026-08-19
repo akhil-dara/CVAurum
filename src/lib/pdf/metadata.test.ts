@@ -172,3 +172,41 @@ describe('applyPdfMetadata (real pdf-lib document)', () => {
     expect(String(meta)).not.toContain('/Filter')
   })
 })
+
+describe('applyPdfMetadata under a PDF/A-4 claim', () => {
+  const build = async () => {
+    const pdf = await PDFDocument.create()
+    applyPdfMetadata(pdf, buildDocInfo(doc(), NOW), { part: '4', rev: '2020' })
+    pdf.addPage()
+    const bytes = await pdf.save()
+    return { bytes, reloaded: await PDFDocument.load(bytes, { updateMetadata: false }) }
+  }
+
+  it('omits the legacy Info dictionary entirely (ISO 19005-4 clause 6.1.3)', async () => {
+    const { reloaded } = await build()
+    expect(reloaded.context.trailerInfo.Info).toBeUndefined()
+    expect(reloaded.getTitle()).toBeUndefined()
+    expect(reloaded.getProducer()).toBeUndefined()
+  })
+
+  it('still carries every value in the XMP packet, which replaces Info in PDF 2.0', async () => {
+    const { bytes } = await build()
+    const buf = Buffer.from(bytes)
+    const packet = buf.subarray(buf.indexOf('<x:xmpmeta'), buf.indexOf('</x:xmpmeta>')).toString('utf8')
+    expect(packet).toContain('Jordan Rivera — Senior Marketing Manager')
+    expect(packet).toContain('<rdf:li>Jordan Rivera</rdf:li>')
+    expect(packet).toContain(`<pdf:Producer>${PDF_PRODUCER}</pdf:Producer>`)
+    expect(packet).toContain('<pdfaid:part>4</pdfaid:part>')
+  })
+
+  it('keeps the language and the title-in-window-bar preference', async () => {
+    const { reloaded } = await build()
+    expect(String(reloaded.catalog.get(PDFName.of('Lang')))).toBe('(en-US)')
+    expect(String(reloaded.catalog.lookup(PDFName.of('ViewerPreferences')))).toContain('/DisplayDocTitle true')
+  })
+
+  it('never names the PDF library, with or without the Info dictionary', async () => {
+    const { bytes } = await build()
+    expect(Buffer.from(bytes).toString('latin1')).not.toMatch(/pdf-lib|Hopding/i)
+  })
+})
