@@ -32,6 +32,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **🎨 Design-first.** 52 hand-crafted templates with real typographic hierarchy, icon-chip section headings, per-section style switching, and an auto-fit engine that keeps your resume looking sharp on a single page.
 - **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked — and even sharing is an **AES-256 encrypted link** that never touches a server.
 - **⚡ Instant, keyboard-first.** One command to start. Edit directly on the resume, drive everything from a **⌘K command palette**, type `/` for quick inserts, and watch a live ATS score update as you type.
+- **📄 Archival-grade PDFs.** Every export is **PDF/A-2B conformant** (validated with the veraPDF reference validator) with real selectable text and your own document properties — a file that reproduces identically years from now.
 - **📊 ATS you can trust.** A deterministic score plus a **per-ATS parse simulation** (Workday · Greenhouse · Lever · Taleo · iCIMS) and an on-device writing coach — no LLM, no network, same input always the same advice.
 
 ---
@@ -187,6 +188,10 @@ Imports are validated with **Zod**, so bringing in a file is safe and predictabl
 CVAurum generates your PDF **directly in the browser with its own vector rendering engine** — one click, no print dialog, nothing uploaded. The export is true vector output: **real selectable text that round-trips exactly** through ATS parsers (verified across every template against the on-screen preview and against parser-view extraction), icons and accents as sharp vectors at any zoom, photos at original quality, and compact file sizes (~50 KB typical).
 
 Every export is validated by an automated gate before a template ships: the text layer must match the preview **exactly**, the reading order must be what a recruiter's parser expects, and the pixels must match the screen at least as faithfully as the browser's own print output.
+
+**Every export is PDF/A-2B conformant** — the ISO archival standard — with the sRGB colour profile embedded so the file reproduces identically years from now. Conformance is verified against [veraPDF](https://verapdf.org/), the industry reference validator, as part of the release gates (144/144 rules, 0 failures), including offline exports.
+
+**Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date, and a declared document language, in both the classic Info dictionary and a modern XMP packet. Readers show *your name* in the title bar instead of the filename — and no library name appears anywhere in the file.
 
 **Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have.
 

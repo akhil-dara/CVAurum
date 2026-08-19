@@ -33,7 +33,12 @@ import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
 const GOLD = 'linear-gradient(135deg,#8a5a12,#d4982f,#f7d774)'
-const goldText = { backgroundImage: GOLD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' } as const
+const goldText = {
+  backgroundImage: GOLD,
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  color: 'transparent',
+} as const
 const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** Templates shown live (with sample content) in the showcase strip. */
@@ -41,13 +46,41 @@ const SHOWCASE = ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnac
 
 /** Honest head-to-head: what CVAurum does vs. what most resume builders do. */
 const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
-  { capability: 'Where your data lives', cvaurum: 'Only in your browser — no server, no account, no tracking', others: 'Uploaded to a server behind a login' },
-  { capability: 'Source code', cvaurum: 'Fully open source (MIT) — read it, fork it, self-host it', others: 'Closed — you take the privacy claims on faith' },
-  { capability: 'Templates', cvaurum: '52 designer templates, restylable section by section', others: 'A few basic layouts, polish behind a paywall' },
-  { capability: 'ATS check', cvaurum: 'Built-in deterministic score + job-description keyword match', others: 'None, or an opaque AI score you can’t reproduce' },
-  { capability: 'Offline', cvaurum: 'All fonts self-hosted — zero external requests, truly offline', others: 'Pulls fonts/assets from CDNs — still phones home' },
-  { capability: 'Export formats', cvaurum: 'Vector PDF (selectable text), Word .docx, and JSON Resume', others: 'PDF only, often a flattened image' },
-  { capability: 'Price', cvaurum: 'Free, forever — no tiers, no upsell', others: 'Free to start, then paywalled to export' },
+  {
+    capability: 'Where your data lives',
+    cvaurum: 'Only in your browser — no server, no account, no tracking',
+    others: 'Uploaded to a server behind a login',
+  },
+  {
+    capability: 'Source code',
+    cvaurum: 'Fully open source (MIT) — read it, fork it, self-host it',
+    others: 'Closed — you take the privacy claims on faith',
+  },
+  {
+    capability: 'Templates',
+    cvaurum: '52 designer templates, restylable section by section',
+    others: 'A few basic layouts, polish behind a paywall',
+  },
+  {
+    capability: 'ATS check',
+    cvaurum: 'Built-in deterministic score + job-description keyword match',
+    others: 'None, or an opaque AI score you can’t reproduce',
+  },
+  {
+    capability: 'Offline',
+    cvaurum: 'All fonts self-hosted — zero external requests, truly offline',
+    others: 'Pulls fonts/assets from CDNs — still phones home',
+  },
+  {
+    capability: 'Export formats',
+    cvaurum: 'PDF/A-2B vector PDF (selectable text, archival-grade), Word .docx, and JSON Resume',
+    others: 'PDF only, often a flattened image',
+  },
+  {
+    capability: 'Price',
+    cvaurum: 'Free, forever — no tiers, no upsell',
+    others: 'Free to start, then paywalled to export',
+  },
 ]
 
 export function Landing() {
@@ -84,15 +117,27 @@ export function Landing() {
         d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
         return { id, doc: d }
       }),
-    [],
+    []
   )
 
   const hasResumes = library.length > 0
 
   return (
     <div className="min-h-full bg-background">
-      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => importFile(e.target.files?.[0])} />
-      <input ref={pdfRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => importFile(e.target.files?.[0])}
+      />
+      <input
+        ref={pdfRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        onChange={(e) => importPdf(e.target.files?.[0])}
+      />
 
       {/* nav — ink glass over the hero, theme glass past it */}
       <header
@@ -104,14 +149,30 @@ export function Landing() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
-          <nav className={`hidden items-center gap-6 text-sm md:flex ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}>
-            <a href="#how" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>How it works</a>
-            <a href="#templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>Templates</a>
-            <a href="#compare" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>Compare</a>
-            <a href="#privacy" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>Privacy</a>
+          <nav
+            className={`hidden items-center gap-6 text-sm md:flex ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}
+          >
+            <a href="#how" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+              How it works
+            </a>
+            <a href="#templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+              Templates
+            </a>
+            <a href="#compare" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+              Compare
+            </a>
+            <a href="#privacy" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+              Privacy
+            </a>
           </nav>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <a className="btn-ghost btn-sm hidden sm:inline-flex" href={REPO_URL} target="_blank" rel="noreferrer" title="View source on GitHub">
+            <a
+              className="btn-ghost btn-sm hidden sm:inline-flex"
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              title="View source on GitHub"
+            >
               <Github className="h-4 w-4" /> GitHub
             </a>
             <InstallButton />
@@ -122,7 +183,9 @@ export function Landing() {
             </Link>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
               <Plus className="h-4 w-4" />
-              <span>Create<span className="hidden sm:inline"> resume</span></span>
+              <span>
+                Create<span className="hidden sm:inline"> resume</span>
+              </span>
             </button>
           </div>
         </div>
@@ -130,7 +193,11 @@ export function Landing() {
 
       <main>
         {/* hero — the cinematic stage */}
-        <HeroCinema onCreate={() => setChooser(true)} onSample={() => setSampleOpen(true)} onImportPdf={() => pdfRef.current?.click()} />
+        <HeroCinema
+          onCreate={() => setChooser(true)}
+          onSample={() => setSampleOpen(true)}
+          onImportPdf={() => pdfRef.current?.click()}
+        />
 
         {/* how it works */}
         <section id="how" className="border-y border-border bg-surface-muted/40">
@@ -142,9 +209,24 @@ export function Landing() {
               </p>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
-              <Step n={1} icon={<LayoutGrid className="h-5 w-5" />} title="Pick a template" body="Choose from 52 recruiter-ready designs. Switch anytime — your content carries over." />
-              <Step n={2} icon={<PencilLine className="h-5 w-5" />} title="Fill it in" body="Edit right on the page. A live ATS score and keyword match keep you on track." />
-              <Step n={3} icon={<Download className="h-5 w-5" />} title="Export & apply" body="Download a crisp, selectable PDF or an ATS-friendly Word file in one click." />
+              <Step
+                n={1}
+                icon={<LayoutGrid className="h-5 w-5" />}
+                title="Pick a template"
+                body="Choose from 52 recruiter-ready designs. Switch anytime — your content carries over."
+              />
+              <Step
+                n={2}
+                icon={<PencilLine className="h-5 w-5" />}
+                title="Fill it in"
+                body="Edit right on the page. A live ATS score and keyword match keep you on track."
+              />
+              <Step
+                n={3}
+                icon={<Download className="h-5 w-5" />}
+                title="Export & apply"
+                body="Download a crisp, selectable PDF or an ATS-friendly Word file in one click."
+              />
             </div>
           </div>
         </section>
@@ -154,7 +236,9 @@ export function Landing() {
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Start from a recruiter-ready template</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Click any design to start editing — switch anytime, your content stays.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Click any design to start editing — switch anytime, your content stays.
+              </p>
             </div>
             <Link className="btn-ghost btn-sm hidden sm:inline-flex" to="/app">
               See all <ArrowRight className="h-4 w-4" />
@@ -183,19 +267,38 @@ export function Landing() {
         {/* feature band */}
         <section className="border-y border-border bg-surface-muted/40">
           <div className="mx-auto grid max-w-6xl gap-6 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4 land-reveal">
-            <Feature icon={<ShieldCheck className="h-5 w-5" />} title="Private by architecture" body="No server, no account, no tracking. Your data lives only in this browser." />
-            <Feature icon={<Target className="h-5 w-5" />} title="ATS built in" body="A live, deterministic ATS score and job-description keyword matching." />
-            <Feature icon={<FileDown className="h-5 w-5" />} title="PDF & Word export" body="Pixel-perfect PDF plus a clean, ATS-friendly .docx — generated in-browser." />
-            <Feature icon={<WifiOff className="h-5 w-5" />} title="Works offline" body="Installable, with all fonts bundled. Zero external requests, ever." />
+            <Feature
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title="Private by architecture"
+              body="No server, no account, no tracking. Your data lives only in this browser."
+            />
+            <Feature
+              icon={<Target className="h-5 w-5" />}
+              title="ATS built in"
+              body="A live, deterministic ATS score and job-description keyword matching."
+            />
+            <Feature
+              icon={<FileDown className="h-5 w-5" />}
+              title="PDF & Word export"
+              body="Pixel-perfect PDF plus a clean, ATS-friendly .docx — generated in-browser."
+            />
+            <Feature
+              icon={<WifiOff className="h-5 w-5" />}
+              title="Works offline"
+              body="Installable, with all fonts bundled. Zero external requests, ever."
+            />
           </div>
         </section>
 
         {/* comparison */}
         <section id="compare" className="mx-auto max-w-5xl px-6 py-14 land-reveal">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold tracking-tight">Most builders win one thing. CVAurum wins them all.</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Most builders win one thing. CVAurum wins them all.
+            </h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
-              Privacy, or open source, or design, or ATS, or offline — most tools pick one. Here's the honest head-to-head.
+              Privacy, or open source, or design, or ATS, or offline — most tools pick one. Here's the honest
+              head-to-head.
             </p>
           </div>
           <div className="mt-8 overflow-x-auto rounded-2xl border border-border">
@@ -203,7 +306,9 @@ export function Landing() {
               <thead>
                 <tr className="bg-surface-muted/50 text-left">
                   <th className="px-4 py-3 font-medium text-muted-foreground"> </th>
-                  <th className="px-4 py-3 font-bold" style={goldText}>CVAurum</th>
+                  <th className="px-4 py-3 font-bold" style={goldText}>
+                    CVAurum
+                  </th>
                   <th className="px-4 py-3 font-medium text-muted-foreground">Most builders</th>
                 </tr>
               </thead>
@@ -229,15 +334,19 @@ export function Landing() {
         <section id="privacy" className="mx-auto max-w-6xl px-6 py-16 land-reveal">
           <div className="overflow-hidden rounded-2xl border border-border bg-surface p-8 shadow-[0_0_90px_-30px_rgba(212,152,47,0.4)] sm:p-12">
             <div className="grid items-center gap-8 md:grid-cols-[auto,1fr]">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-white" style={{ background: GOLD }}>
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-2xl text-white"
+                style={{ background: GOLD }}
+              >
                 <ShieldCheck className="h-8 w-8" />
               </div>
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight">Your résumé never leaves your device</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Most online builders upload your career history to their servers. CVAurum doesn't have a server. Everything —
-                  your content, your photo, your exports — is created and stored locally in your browser. You can back it all up
-                  to a single file and restore it anywhere. It's open source, so you can verify exactly that.
+                  Most online builders upload your career history to their servers. CVAurum doesn't have a server.
+                  Everything — your content, your photo, your exports — is created and stored locally in your browser.
+                  You can back it all up to a single file and restore it anywhere. It's open source, so you can verify
+                  exactly that.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
@@ -256,16 +365,50 @@ export function Landing() {
         <section className="mx-auto max-w-3xl px-6 pb-16 land-reveal">
           <h2 className="text-center text-xl font-semibold tracking-tight">Questions</h2>
           <div className="mt-6 space-y-3">
-            <Faq q="How do I know my data is really private?" a="Because you can check. CVAurum runs entirely in your browser — your resume is stored locally and never sent anywhere. There's no account, no server, and no analytics. Open your browser's network tab and you'll see zero outbound requests, even for fonts, which we self-host." />
-            <Faq q="If it's free and open source, what's the catch?" a="There isn't one. CVAurum is MIT-licensed and the full source is on GitHub. There's no paid tier, no export paywall, and no data to monetize because we never collect any. Fork it, self-host it, or run it offline forever." />
-            <Faq q="Is the ATS score real, or AI guesswork?" a="It's deterministic, not a guess. The same resume and job description always produce the same score, and it shows exactly which keywords matched and which are missing — so you can fix your resume with confidence." />
-            <Faq q="Where is my data stored?" a="Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy." />
-            <Faq q="Will my résumé pass ATS scans?" a="The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description." />
-            <Faq q="Can I move my résumé to another computer?" a="Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser." />
-            <Faq q="Do I need to create an account?" a="No. There's no sign-up, no email, and no login — open CVAurum and start editing immediately. Most builders make you register before you can even see the editor; CVAurum never does." />
-            <Faq q="What's the difference between a CV and a resume?" a="A resume is a concise, one-to-two page summary tailored to a specific job (common in the US). A CV is a longer, comprehensive record of your academic and professional history (standard in academia and much of Europe). CVAurum builds both — pick a compact template for a resume, or add sections for a full CV." />
-            <Faq q="What file formats can I download?" a="A crisp vector PDF with real, selectable text; an editable Word (.docx) that mirrors your template; and the open JSON Resume format. Every export is free and unlimited — no paywall, no watermark." />
-            <Faq q="How long should my resume be?" a="For most roles, one page — two if you have 10+ years of experience. CVAurum auto-fits your content to a single page when it's close, and shows live page-break guides so you always know where you stand." />
+            <Faq
+              q="How do I know my data is really private?"
+              a="Because you can check. CVAurum runs entirely in your browser — your resume is stored locally and never sent anywhere. There's no account, no server, and no analytics. Open your browser's network tab and you'll see zero outbound requests, even for fonts, which we self-host."
+            />
+            <Faq
+              q="If it's free and open source, what's the catch?"
+              a="There isn't one. CVAurum is MIT-licensed and the full source is on GitHub. There's no paid tier, no export paywall, and no data to monetize because we never collect any. Fork it, self-host it, or run it offline forever."
+            />
+            <Faq
+              q="Is the ATS score real, or AI guesswork?"
+              a="It's deterministic, not a guess. The same resume and job description always produce the same score, and it shows exactly which keywords matched and which are missing — so you can fix your resume with confidence."
+            />
+            <Faq
+              q="Where is my data stored?"
+              a="Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy."
+            />
+            <Faq
+              q="Will my résumé pass ATS scans?"
+              a="The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description."
+            />
+            <Faq
+              q="Can I move my résumé to another computer?"
+              a="Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser."
+            />
+            <Faq
+              q="Do I need to create an account?"
+              a="No. There's no sign-up, no email, and no login — open CVAurum and start editing immediately. Most builders make you register before you can even see the editor; CVAurum never does."
+            />
+            <Faq
+              q="What's the difference between a CV and a resume?"
+              a="A resume is a concise, one-to-two page summary tailored to a specific job (common in the US). A CV is a longer, comprehensive record of your academic and professional history (standard in academia and much of Europe). CVAurum builds both — pick a compact template for a resume, or add sections for a full CV."
+            />
+            <Faq
+              q="What file formats can I download?"
+              a="A crisp vector PDF with real, selectable text; an editable Word (.docx) that mirrors your template; and the open JSON Resume format. Every export is free and unlimited — no paywall, no watermark."
+            />
+            <Faq
+              q="Is the PDF archival quality?"
+              a="Yes. Every PDF is PDF/A-2B conformant — the ISO standard for long-term archiving — with all fonts and an sRGB colour profile embedded, checked against the veraPDF reference validator. It also carries proper document properties (your name as author, a real title, and a declared language) rather than a toolchain fingerprint."
+            />
+            <Faq
+              q="How long should my resume be?"
+              a="For most roles, one page — two if you have 10+ years of experience. CVAurum auto-fits your content to a single page when it's close, and shows live page-break guides so you always know where you stand."
+            />
           </div>
         </section>
       </main>
@@ -276,7 +419,9 @@ export function Landing() {
             <Logo compact to="/" /> · Built for everyone job hunting.
           </span>
           <span className="inline-flex items-center gap-3">
-            <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a>
+            <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
+              GitHub
+            </a>
             <span>100% local · MIT licensed</span>
           </span>
         </div>
@@ -284,15 +429,33 @@ export function Landing() {
 
       {chooser && (
         <NewResumeModal
-          onBlank={() => { setChooser(false); create(false) }}
-          onExample={() => { setChooser(false); setSampleOpen(true) }}
-          onImport={() => { setChooser(false); fileRef.current?.click() }}
-          onImportPdf={() => { setChooser(false); pdfRef.current?.click() }}
+          onBlank={() => {
+            setChooser(false)
+            create(false)
+          }}
+          onExample={() => {
+            setChooser(false)
+            setSampleOpen(true)
+          }}
+          onImport={() => {
+            setChooser(false)
+            fileRef.current?.click()
+          }}
+          onImportPdf={() => {
+            setChooser(false)
+            pdfRef.current?.click()
+          }}
           onClose={() => setChooser(false)}
         />
       )}
       {sampleOpen && (
-        <SamplePicker onClose={() => setSampleOpen(false)} onPick={(p) => { setSampleOpen(false); create(true, p.template, p.content, p.tweaks) }} />
+        <SamplePicker
+          onClose={() => setSampleOpen(false)}
+          onPick={(p) => {
+            setSampleOpen(false)
+            create(true, p.template, p.content, p.tweaks)
+          }}
+        />
       )}
     </div>
   )
@@ -355,7 +518,7 @@ function HeroCinema({
         d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
         return { id, name: getTemplate(id).name, doc: d }
       }),
-    [],
+    []
   )
   const [ti, setTi] = useState(0)
   useEffect(() => {
@@ -402,7 +565,10 @@ function HeroCinema({
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.13]"
-        style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.4px)', backgroundSize: '26px 26px' }}
+        style={{
+          backgroundImage: 'radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.4px)',
+          backgroundSize: '26px 26px',
+        }}
       />
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 md:grid-cols-[1.05fr_1fr] md:py-28">
@@ -416,15 +582,18 @@ function HeroCinema({
             never leaves your{' '}
             <span
               className="hero-shimmer bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(110deg,#8a5a12 0%,#d4982f 25%,#f7d774 50%,#d4982f 75%,#8a5a12 100%)' }}
+              style={{
+                backgroundImage: 'linear-gradient(110deg,#8a5a12 0%,#d4982f 25%,#f7d774 50%,#d4982f 75%,#8a5a12 100%)',
+              }}
             >
               browser
             </span>
             .
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/65">
-            52 designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a built-in ATS check with a
-            parser&apos;s-eye view, PDF import with on-device OCR — and not a single byte of your career story sent to any server.
+            52 designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a
+            built-in ATS check with a parser&apos;s-eye view, PDF import with on-device OCR — and not a single byte of
+            your career story sent to any server.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
@@ -443,7 +612,10 @@ function HeroCinema({
           </div>
           <p className="mt-5 text-xs text-white/50">
             Already have one?{' '}
-            <button onClick={onImportPdf} className="inline-flex items-center gap-1 font-medium text-amber-300/90 underline-offset-2 hover:underline">
+            <button
+              onClick={onImportPdf}
+              className="inline-flex items-center gap-1 font-medium text-amber-300/90 underline-offset-2 hover:underline"
+            >
               <FileUp className="h-3.5 w-3.5" /> Import your PDF
             </button>{' '}
             — parsed entirely on your device.
@@ -479,7 +651,10 @@ function HeroCinema({
 
         {/* the product, demonstrated: ONE resume re-skinning itself live */}
         <div className="hidden [perspective:1400px] md:block" aria-hidden>
-          <motion.div style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }} className="relative mx-auto h-[34rem] w-[30rem]">
+          <motion.div
+            style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }}
+            className="relative mx-auto h-[34rem] w-[30rem]"
+          >
             {/* depth: the NEXT design waits behind */}
             <div
               className="absolute left-20 top-8 w-[24rem] overflow-hidden rounded-xl border border-white/10 opacity-35 shadow-2xl"
@@ -544,7 +719,9 @@ function HeroCinema({
               animate={reduce ? undefined : { y: [0, -9, 0] }}
               transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
             >
-              <div className="font-semibold" style={{ color: '#f7d774' }}>52 designs, one resume</div>
+              <div className="font-semibold" style={{ color: '#f7d774' }}>
+                52 designs, one resume
+              </div>
               <div className="mt-0.5 text-white/60">restyle section by section</div>
             </motion.div>
             <motion.div
