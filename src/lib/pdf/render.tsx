@@ -21,6 +21,7 @@ import { resolveForcedCutsPx } from './pageBreaks'
 import { parsePx } from './style'
 import { loadPdfFontIndex, PdfFontCache } from './fonts'
 import { paintPages } from './paint'
+import { applyPdfMetadata, buildDocInfo } from './metadata'
 import type { DecoBox } from './types'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
@@ -306,6 +307,10 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
 
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
+    // Document properties (Info dict + XMP + /Lang + DisplayDocTitle). Written
+    // before any page exists so a reader that streams the catalog sees them
+    // first, and so no export can ever ship pdf-lib's default Producer.
+    applyPdfMetadata(pdfDoc, buildDocInfo(doc))
     const pages = Array.from({ length: pageCount }, () => pdfDoc.addPage([pxToPt(pageWpx), pxToPt(pageHpx)]))
 
     const ops = buildDrawList(sheet)
