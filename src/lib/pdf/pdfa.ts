@@ -29,26 +29,59 @@
  */
 import { PDFDocument, PDFName, PDFNumber, PDFString, PDFArray, PDFHexString } from 'pdf-lib'
 
-/** PDF/A part this build targets, mirrored into the XMP packet.
- *
- *  Part 4 (ISO 19005-4:2020) is the PDF 2.0 generation of PDF/A and is what
- *  "latest" means here: parts 1-3 are defined against PDF 1.7 and cannot be
- *  claimed by a PDF 2.0 file at all. Part 4 also drops the a/b/u conformance
- *  LEVELS — it requires Unicode-mappable text outright, and accessibility
- *  moved to its own standard (PDF/UA-2), so a part-4 claim carries a
- *  revision year instead of a level letter. */
-export const PDFA_PART = '4'
-export const PDFA_REV = '2020'
-/** PDF/UA (accessibility) part and revision the tagged output claims —
- *  PDF/UA-2 is ISO 14289-2:2024, the accessibility standard for PDF 2.0. */
-export const PDFUA_PART = '2'
-export const PDFUA_REV = '2024'
-/** The PDF version the file declares, in the header and the catalog. */
-export const PDF_VERSION: [number, number] = [2, 0]
 /** Same-origin path — served by us, exactly like `/fonts-pdf/*`. */
 export const SRGB_PROFILE_URL = '/color/sRGB2014.icc'
 /** What the OutputIntent advertises as its destination condition. */
 export const OUTPUT_CONDITION = 'sRGB IEC61966-2.1'
+
+/**
+ * WHICH standards the export claims — the single switch for the whole
+ * conformance story.
+ *
+ * `a2b-ua1` (current) targets PDF 1.7: PDF/A-2B for archiving and PDF/UA-1
+ * for accessibility. Chosen 2026-08-19 after the user saw Acrobat report
+ * "does not identify itself as compliant with any standard" on a PDF/A-4
+ * file: Acrobat's Standards panel only understands the PDF 1.7-era parts
+ * (1/2/3), because part 4 identifies itself with a revision year and no
+ * conformance letter. The file was genuinely conformant — veraPDF
+ * auto-detected and certified it — but a claim no mainstream reader can read
+ * is not worth much on a résumé, and PDF 1.7 additionally keeps the legacy
+ * Info dictionary that PDF/A-4 forbids.
+ *
+ * `a4-ua2` targets PDF 2.0 (PDF/A-4 + PDF/UA-2) — the newest ISO parts, for
+ * when Adobe catches up. Nothing else in the renderer needs changing: flip
+ * this one constant.
+ */
+export const CONFORMANCE_TARGET: 'a2b-ua1' | 'a4-ua2' = 'a2b-ua1'
+
+const TARGETS = {
+  'a2b-ua1': {
+    version: [1, 7] as [number, number],
+    pdfa: { part: '2', conformance: 'B' },
+    ua: { part: '1' },
+    /** PDF 1.7 has no structure namespaces; that concept arrived with 2.0. */
+    structNamespace: null as string | null,
+  },
+  'a4-ua2': {
+    version: [2, 0] as [number, number],
+    pdfa: { part: '4', rev: '2020' },
+    ua: { part: '2', rev: '2024' },
+    // Note `pdf2`, not `pdf`: http://iso.org/pdf/ssn is the 1.7 namespace,
+    // and declaring it in a 2.0 file silently makes the tree legacy-tagged.
+    structNamespace: 'http://iso.org/pdf2/ssn' as string | null,
+  },
+} as const
+
+const TARGET = TARGETS[CONFORMANCE_TARGET]
+
+/** The PDF version the file declares, in the header and the catalog. */
+export const PDF_VERSION: [number, number] = TARGET.version
+/** PDF/A identification for the active target. */
+export const PDFA_CLAIM: { part: string; rev?: string; conformance?: string } = TARGET.pdfa
+/** PDF/UA identification for the active target. */
+export const PDFUA_CLAIM: { part: string; rev?: string } = TARGET.ua
+/** Structure namespace URI, or null when the target predates namespaces. */
+export const STRUCT_NAMESPACE: string | null = TARGET.structNamespace
 
 let profilePromise: Promise<Uint8Array | null> | null = null
 

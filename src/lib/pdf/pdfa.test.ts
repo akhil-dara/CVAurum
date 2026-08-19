@@ -13,9 +13,11 @@ import {
   isIccProfile,
   setPdfVersion,
   stampPdfVersion,
+  CONFORMANCE_TARGET,
   OUTPUT_CONDITION,
-  PDFA_PART,
-  PDFA_REV,
+  PDFA_CLAIM,
+  PDF_VERSION,
+  PDFUA_CLAIM,
 } from './pdfa'
 import { applyPdfMetadata, buildDocInfo, buildXmpPacket } from './metadata'
 import type { ResumeDocument } from '@/types/document'
@@ -123,27 +125,31 @@ describe('XMP pdfaid declaration', () => {
     const plain = buildXmpPacket(info)
     expect(plain).not.toContain('pdfaid')
 
-    const conforming = buildXmpPacket(info, { part: PDFA_PART, rev: PDFA_REV })
+    const conforming = buildXmpPacket(info, PDFA_CLAIM)
     expect(conforming).toContain('xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"')
-    expect(conforming).toContain('<pdfaid:part>4</pdfaid:part>')
-    expect(conforming).toContain('<pdfaid:rev>2020</pdfaid:rev>')
-    // Part 4 dropped the conformance LEVELS: claiming one would be invalid.
-    expect(conforming).not.toContain('pdfaid:conformance')
+    expect(conforming).toContain(`<pdfaid:part>${PDFA_CLAIM.part}</pdfaid:part>`)
+    // Parts 1-3 identify with a conformance LETTER; part 4 with a revision
+    // YEAR and no letter at all. Claiming the wrong shape is what makes a
+    // reader report "no standard", so assert the active target's shape.
+    if (PDFA_CLAIM.conformance) {
+      expect(conforming).toContain(`<pdfaid:conformance>${PDFA_CLAIM.conformance}</pdfaid:conformance>`)
+      expect(conforming).not.toContain('pdfaid:rev')
+    } else {
+      expect(conforming).toContain(`<pdfaid:rev>${PDFA_CLAIM.rev}</pdfaid:rev>`)
+      expect(conforming).not.toContain('pdfaid:conformance')
+    }
   })
 
   it('keeps the packet well-formed with the declaration present', async () => {
     const pdf = await PDFDocument.create()
     pdf.addPage()
-    applyPdfMetadata(pdf, buildDocInfo(doc(), new Date('2026-08-19T00:00:00Z')), {
-      part: PDFA_PART,
-      rev: PDFA_REV,
-    })
+    applyPdfMetadata(pdf, buildDocInfo(doc(), new Date('2026-08-19T00:00:00Z')), PDFA_CLAIM)
     const buf = Buffer.from(await pdf.save())
     const start = buf.indexOf('<x:xmpmeta')
     const end = buf.indexOf('</x:xmpmeta>')
     const packet = buf.subarray(start, end).toString('utf8')
     expect((packet.match(/<rdf:Description/g) ?? []).length).toBe(1)
-    expect(packet).toContain('<pdfaid:part>4</pdfaid:part>')
+    expect(packet).toContain(`<pdfaid:part>${PDFA_CLAIM.part}</pdfaid:part>`)
   })
 })
 
@@ -155,11 +161,22 @@ describe('PDF version declaration', () => {
     return stampPdfVersion(await pdf.save())
   }
 
-  it('declares PDF 2.0 in both the header and the catalog', async () => {
+  it('declares the target version in both the header and the catalog', async () => {
+    const expected = `${PDF_VERSION[0]}.${PDF_VERSION[1]}`
     const bytes = await build()
-    expect(Buffer.from(bytes).toString('latin1').startsWith('%PDF-2.0')).toBe(true)
+    expect(Buffer.from(bytes).toString('latin1').startsWith(`%PDF-${expected}`)).toBe(true)
     const reloaded = await PDFDocument.load(bytes, { updateMetadata: false })
-    expect(String(reloaded.catalog.get(PDFName.of('Version')))).toBe('/2.0')
+    expect(String(reloaded.catalog.get(PDFName.of('Version')))).toBe(`/${expected}`)
+  })
+
+  it('pairs the version with the PDF/A part that is defined against it', () => {
+    // Parts 1-3 are PDF 1.7 standards; part 4 is the PDF 2.0 one. A file that
+    // mixes them is rejected by every validator, so the target table must
+    // never drift apart.
+    if (PDFA_CLAIM.part === '4') expect(PDF_VERSION).toEqual([2, 0])
+    else expect(PDF_VERSION).toEqual([1, 7])
+    expect(PDFUA_CLAIM.part).toBe(PDFA_CLAIM.part === '4' ? '2' : '1')
+    expect(['a2b-ua1', 'a4-ua2']).toContain(CONFORMANCE_TARGET)
   })
 
   it('keeps the file byte-length identical, so every xref offset still resolves', async () => {

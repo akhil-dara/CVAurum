@@ -1136,8 +1136,9 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
       // run came from, so a heading is whatever the template renders as one
       // (tagging.ts). Decorative runs are artifacts a reader skips.
       const role = roleForElement((n as Text).parentElement, root)
+      const column: 'main' | 'aside' = (n as Text).parentElement?.closest('.rm-col-aside') ? 'aside' : 'main'
       for (const run of extractRuns(n as Text, root)) {
-        ops.push({ kind: 'text', run, role: run.isDecorative ? 'Artifact' : role })
+        ops.push({ kind: 'text', run, role: run.isDecorative ? 'Artifact' : role, column })
       }
     }
   }

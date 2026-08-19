@@ -23,16 +23,7 @@ import { loadPdfFontIndex, PdfFontCache } from './fonts'
 import { paintPages } from './paint'
 import { createTagSink, writeStructTree } from './structure'
 import { applyPdfMetadata, buildDocInfo } from './metadata'
-import {
-  applyPdfAConformance,
-  loadSrgbProfile,
-  setPdfVersion,
-  stampPdfVersion,
-  PDFA_PART,
-  PDFA_REV,
-  PDFUA_PART,
-  PDFUA_REV,
-} from './pdfa'
+import { applyPdfAConformance, loadSrgbProfile, setPdfVersion, stampPdfVersion, PDFA_CLAIM, PDFUA_CLAIM } from './pdfa'
 import type { DecoBox } from './types'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
@@ -350,9 +341,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     applyPdfMetadata(
       pdfDoc,
       docInfo,
-      pdfaConforming
-        ? { part: PDFA_PART, rev: PDFA_REV, ua: tagged ? { part: PDFUA_PART, rev: PDFUA_REV } : undefined }
-        : undefined
+      pdfaConforming ? { ...PDFA_CLAIM, ua: tagged ? PDFUA_CLAIM : undefined } : undefined
     )
     // ALWAYS assign (never a conditional `if (capturing)`) so a non-capturing
     // render clears any boxes a PRIOR capturing render left behind — task-15

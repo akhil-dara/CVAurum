@@ -92,3 +92,36 @@ describe('buildStructure', () => {
     expect(tree[0].alt).toBe('Company logo')
   })
 })
+
+describe('buildStructure — logical reading order', () => {
+  const m = (role: TaggedMark['role'], mcid: number, column?: 'main' | 'aside', pageIndex = 0): TaggedMark => ({
+    role,
+    mcid,
+    pageIndex,
+    column,
+  })
+
+  it('puts main-column content before the sidebar, whatever the paint order', () => {
+    // A left-sidebar template paints the aside first, so the name (H1) would
+    // otherwise follow a sidebar H2 — which PDF/UA-1 7.4.2 rejects and a
+    // screen reader would read as "Skills" before the candidate's name.
+    const tree = buildStructure([m('H2', 0, 'aside'), m('P', 1, 'aside'), m('H1', 2, 'main'), m('H2', 3, 'main')])
+    expect(tree.map((n) => n.role)).toEqual(['H1', 'H2', 'H2', 'P'])
+    expect(tree[0].mcids).toEqual([2])
+  })
+
+  it('keeps each column in its own paint order', () => {
+    const tree = buildStructure([m('P', 0, 'aside'), m('P', 1, 'main'), m('P', 2, 'aside'), m('P', 3, 'main')])
+    expect(tree.map((n) => n.mcids[0])).toEqual([1, 3, 0, 2])
+  })
+
+  it('never reorders across pages, so every element keeps its own page', () => {
+    const tree = buildStructure([m('P', 0, 'aside', 0), m('P', 0, 'main', 1), m('P', 1, 'main', 0)])
+    expect(tree.map((n) => n.pageIndex)).toEqual([0, 0, 1])
+  })
+
+  it('leaves single-column documents exactly as painted', () => {
+    const tree = buildStructure([m('H1', 0), m('H2', 1), m('P', 2)])
+    expect(tree.map((n) => n.mcids[0])).toEqual([0, 1, 2])
+  })
+})

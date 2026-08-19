@@ -32,11 +32,7 @@ import {
 } from 'pdf-lib'
 import type { DrawOp } from './types'
 import { buildStructure, type TagSink, type TaggedMark } from './tagging'
-
-/** The PDF 2.0 structure namespace URI (ISO 32000-2 / PDF/UA-2).
- *  Note `pdf2`, not `pdf`: `http://iso.org/pdf/ssn` is the PDF 1.7 namespace,
- *  and declaring it in a PDF 2.0 file silently makes the tree legacy-tagged. */
-export const PDF20_NAMESPACE = 'http://iso.org/pdf2/ssn'
+import { STRUCT_NAMESPACE } from './pdfa'
 
 interface MarkToken {
   marked: boolean
@@ -78,7 +74,7 @@ export function createTagSink(): TagCollector {
       // verbatim.
       const mcid = nextMcid++
       push(page, [PDFOperator.of(PDFOperatorNames.BeginMarkedContentSequence, [PDFName.of(role), `<</MCID ${mcid}>>`])])
-      marks.push({ pageIndex, mcid, role })
+      marks.push({ pageIndex, mcid, role, column: op.kind === 'text' ? op.column : undefined })
       return { marked: true } satisfies MarkToken
     },
     end(page: unknown) {
@@ -102,15 +98,20 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
   const structTreeRef = context.nextRef()
   const documentRef = context.nextRef()
 
-  // PDF 2.0 structure namespace. PDF/UA-2 requires the Document element (and,
-  // for consistency, everything under it) to declare it explicitly — an
-  // untagged namespace means "the legacy 1.7 namespace", which a UA-2 reader
-  // rejects.
-  const namespaceRef = context.nextRef()
-  context.assign(
-    namespaceRef,
-    context.obj({ Type: PDFName.of('Namespace'), NS: PDFString.of(PDF20_NAMESPACE) } as never)
-  )
+  // Structure namespace — a PDF 2.0 concept. PDF/UA-2 requires every element
+  // to declare it explicitly (an absent one means "the legacy 1.7
+  // namespace"); PDF 1.7 targets have no such key at all, so this is null
+  // there and every `NS` entry below is simply omitted.
+  let namespaceRef: PDFRef | null = null
+  if (STRUCT_NAMESPACE) {
+    namespaceRef = context.nextRef()
+    context.assign(
+      namespaceRef,
+      context.obj({ Type: PDFName.of('Namespace'), NS: PDFString.of(STRUCT_NAMESPACE) } as never)
+    )
+  }
+  const ns = (dict: Record<string, unknown>): Record<string, unknown> =>
+    namespaceRef ? { ...dict, NS: namespaceRef } : dict
 
   // Per page: the element that owns each MCID, indexed BY MCID.
   const parentsByPage: PDFRef[][] = pages.map(() => [])
@@ -126,12 +127,11 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
   ): PDFRef => {
     const ref = context.nextRef()
     const page = pages[pageIndex]
-    const dict: Record<string, unknown> = {
+    const dict: Record<string, unknown> = ns({
       Type: PDFName.of('StructElem'),
       S: PDFName.of(role),
       P: parent,
-      NS: namespaceRef,
-    }
+    })
     if (page) dict.Pg = page.ref
     const k: unknown[] = [...mcids.map((m) => PDFNumber.of(m)), ...childRefs]
     dict.K = k.length === 1 ? k[0] : context.obj(k as never)
@@ -152,25 +152,27 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
         const bodyRef = addElement('LBody', child.pageIndex, child.mcids, liRef)
         context.assign(
           liRef,
-          context.obj({
-            Type: PDFName.of('StructElem'),
-            S: PDFName.of('LI'),
-            P: listRef,
-            NS: namespaceRef,
-            K: bodyRef,
-          } as never)
+          context.obj(
+            ns({
+              Type: PDFName.of('StructElem'),
+              S: PDFName.of('LI'),
+              P: listRef,
+              K: bodyRef,
+            }) as never
+          )
         )
         return liRef
       })
       context.assign(
         listRef,
-        context.obj({
-          Type: PDFName.of('StructElem'),
-          S: PDFName.of('L'),
-          P: documentRef,
-          NS: namespaceRef,
-          K: context.obj(itemRefs as never),
-        } as never)
+        context.obj(
+          ns({
+            Type: PDFName.of('StructElem'),
+            S: PDFName.of('L'),
+            P: documentRef,
+            K: context.obj(itemRefs as never),
+          }) as never
+        )
       )
       kids.push(listRef)
       continue
@@ -180,13 +182,14 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
 
   context.assign(
     documentRef,
-    context.obj({
-      Type: PDFName.of('StructElem'),
-      S: PDFName.of('Document'),
-      P: structTreeRef,
-      NS: namespaceRef,
-      K: context.obj(kids as never),
-    } as never)
+    context.obj(
+      ns({
+        Type: PDFName.of('StructElem'),
+        S: PDFName.of('Document'),
+        P: structTreeRef,
+        K: context.obj(kids as never),
+      }) as never
+    )
   )
 
   // ParentTree: a number tree whose keys are each page's /StructParents.
@@ -205,7 +208,7 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
     structTreeRef,
     context.obj({
       Type: PDFName.of('StructTreeRoot'),
-      Namespaces: context.obj([namespaceRef] as never),
+      ...(namespaceRef ? { Namespaces: context.obj([namespaceRef] as never) } : {}),
       K: context.obj([documentRef] as never),
       ParentTree: parentTreeRef,
       ParentTreeNextKey: PDFNumber.of(pages.length),

@@ -56,6 +56,8 @@ export interface TaggedMark {
   role: TagRole
   /** Alternate text — required on Figure, ignored elsewhere. */
   alt?: string
+  /** Column of origin; drives logical ordering (see `buildStructure`). */
+  column?: 'main' | 'aside'
 }
 
 /** A structure element ready to be written: its type, page, and the marks it
@@ -70,6 +72,26 @@ export interface StructNode {
 }
 
 /**
+ * Logical reading order, which is NOT always paint order.
+ *
+ * On a left-sidebar template the aside column is painted first, so the
+ * document's first heading would be a sidebar H2 and the person's name (H1)
+ * would come after it — a screen reader would read "Skills" before the
+ * candidate's name, and PDF/UA-1 7.4.2 rejects it outright ("heading level 1
+ * is skipped"). The structure tree exists precisely to state the logical
+ * order independently of the visual one, so main-column content leads on
+ * every page. Stable within each group and never across pages, so /Pg stays
+ * correct.
+ */
+function readingOrder(marks: TaggedMark[]): TaggedMark[] {
+  const pages = [...new Set(marks.map((m) => m.pageIndex))].sort((a, b) => a - b)
+  return pages.flatMap((page) => {
+    const onPage = marks.filter((m) => m.pageIndex === page)
+    return [...onPage.filter((m) => m.column !== 'aside'), ...onPage.filter((m) => m.column === 'aside')]
+  })
+}
+
+/**
  * Groups marks into the tree a reader walks: consecutive LI marks on a page
  * collapse into one L (list) with an LI per mark, and everything else becomes
  * one element per mark. Order is paint order, which is DOM order, which is
@@ -78,7 +100,7 @@ export interface StructNode {
 export function buildStructure(marks: TaggedMark[]): StructNode[] {
   const out: StructNode[] = []
   let list: StructNode | null = null
-  for (const m of marks) {
+  for (const m of readingOrder(marks)) {
     if (m.role === 'Artifact') continue // never in the tree
     if (m.role === 'LI') {
       const li: StructNode = { role: 'LI', pageIndex: m.pageIndex, mcids: [m.mcid] }

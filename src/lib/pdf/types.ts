@@ -226,5 +226,11 @@ export type DrawOp = DrawOpChrome &
          * carry 'Artifact' so a screen reader skips them.
          */
         role?: TagRole
+        /**
+         * Which column the run came from. The structure tree orders the main
+         * column before the aside so a screen reader hears the person's name
+         * first, even on templates that paint the sidebar first.
+         */
+        column?: 'main' | 'aside'
       }
   )

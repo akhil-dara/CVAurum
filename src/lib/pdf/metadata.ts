@@ -99,6 +99,55 @@ const PDFAID_NS = `
 const PDFUAID_NS = `
         xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"`
 
+/** Namespaces used by the PDF/A extension-schema description below. */
+const PDFA_EXTENSION_NS = `
+        xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/"
+        xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#"
+        xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#"`
+
+/**
+ * PDF/A parts 1-3 require EVERY XMP property to belong to a predefined
+ * schema or to be described by an extension schema in the packet itself.
+ * PDF/UA identification is not one of the predefined schemas, so a file that
+ * claims both standards must carry this description — without it veraPDF
+ * reports "XMP property is either not predefined, or is not defined in any
+ * XMP extension schema" and the PDF/A claim fails, even though the UA claim
+ * is perfectly valid. (Part 4 dropped the requirement; emitting it there is
+ * harmless but pointless, so it is tied to the conformance-letter parts.)
+ */
+const PDFUA_EXTENSION_SCHEMA = `
+      <pdfaExtension:schemas>
+        <rdf:Bag>
+          <rdf:li rdf:parseType="Resource">
+            <pdfaSchema:schema>PDF/UA identification schema</pdfaSchema:schema>
+            <pdfaSchema:namespaceURI>http://www.aiim.org/pdfua/ns/id/</pdfaSchema:namespaceURI>
+            <pdfaSchema:prefix>pdfuaid</pdfaSchema:prefix>
+            <pdfaSchema:property>
+              <rdf:Seq>
+                <rdf:li rdf:parseType="Resource">
+                  <pdfaProperty:name>part</pdfaProperty:name>
+                  <pdfaProperty:valueType>Integer</pdfaProperty:valueType>
+                  <pdfaProperty:category>internal</pdfaProperty:category>
+                  <pdfaProperty:description>Part of ISO 14289 standard</pdfaProperty:description>
+                </rdf:li>
+                <rdf:li rdf:parseType="Resource">
+                  <pdfaProperty:name>rev</pdfaProperty:name>
+                  <pdfaProperty:valueType>Text</pdfaProperty:valueType>
+                  <pdfaProperty:category>internal</pdfaProperty:category>
+                  <pdfaProperty:description>Revision of ISO 14289 standard</pdfaProperty:description>
+                </rdf:li>
+              </rdf:Seq>
+            </pdfaSchema:property>
+          </rdf:li>
+        </rdf:Bag>
+      </pdfaExtension:schemas>`
+
+/** True when the packet must describe the PDF/UA schema for PDF/A's sake:
+ *  a UA claim alongside a conformance-letter PDF/A part (1, 2 or 3). */
+function needsExtensionSchema(pdfa?: PdfAClaim): boolean {
+  return !!pdfa?.ua && !!pdfa.conformance
+}
+
 export function xmlEscape(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -132,7 +181,9 @@ export function buildXmpPacket(info: DocInfo, pdfa?: PdfAClaim): string {
     <rdf:Description rdf:about=""
         xmlns:dc="http://purl.org/dc/elements/1.1/"
         xmlns:xmp="http://ns.adobe.com/xap/1.0/"
-        xmlns:pdf="http://ns.adobe.com/pdf/1.3/"${pdfa ? PDFAID_NS : ''}${pdfa?.ua ? PDFUAID_NS : ''}>
+        xmlns:pdf="http://ns.adobe.com/pdf/1.3/"${pdfa ? PDFAID_NS : ''}${pdfa?.ua ? PDFUAID_NS : ''}${
+          needsExtensionSchema(pdfa) ? PDFA_EXTENSION_NS : ''
+        }>
       <dc:format>application/pdf</dc:format>
       <dc:title>
         <rdf:Alt>
@@ -182,7 +233,7 @@ ${subjects}
           : ''
       }`
           : ''
-      }`
+      }${needsExtensionSchema(pdfa) ? PDFUA_EXTENSION_SCHEMA : ''}`
           : ''
       }
     </rdf:Description>
