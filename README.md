@@ -32,7 +32,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **🎨 Design-first.** 52 hand-crafted templates with real typographic hierarchy, icon-chip section headings, per-section style switching, and an auto-fit engine that keeps your resume looking sharp on a single page.
 - **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked — and even sharing is an **AES-256 encrypted link** that never touches a server.
 - **⚡ Instant, keyboard-first.** One command to start. Edit directly on the resume, drive everything from a **⌘K command palette**, type `/` for quick inserts, and watch a live ATS score update as you type.
-- **📄 Archival-grade PDFs.** Every export is **PDF/A-2B conformant** (validated with the veraPDF reference validator) with real selectable text and your own document properties — a file that reproduces identically years from now.
+- **📄 Archival-grade, accessible PDFs.** Every export is **PDF 2.0**, **PDF/A-4** (archival) and **PDF/UA-2** (accessibility) conformant — tagged for screen readers and validated with the veraPDF reference validator on every release.
 - **📊 ATS you can trust.** A deterministic score plus a **per-ATS parse simulation** (Workday · Greenhouse · Lever · Taleo · iCIMS) and an on-device writing coach — no LLM, no network, same input always the same advice.
 
 ---
@@ -189,9 +189,14 @@ CVAurum generates your PDF **directly in the browser with its own vector renderi
 
 Every export is validated by an automated gate before a template ships: the text layer must match the preview **exactly**, the reading order must be what a recruiter's parser expects, and the pixels must match the screen at least as faithfully as the browser's own print output.
 
-**Every export is PDF/A-2B conformant** — the ISO archival standard — with the sRGB colour profile embedded so the file reproduces identically years from now. Conformance is verified against [veraPDF](https://verapdf.org/), the industry reference validator, as part of the release gates (144/144 rules, 0 failures), including offline exports.
+**Every export is a PDF 2.0 file that conforms to two ISO standards at once**, verified on every release against [veraPDF](https://verapdf.org/), the industry reference validator:
 
-**Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date, and a declared document language, in both the classic Info dictionary and a modern XMP packet. Readers show *your name* in the title bar instead of the filename — and no library name appears anywhere in the file.
+- **PDF/A-4** (ISO 19005-4) — the archival profile for PDF 2.0, with all fonts and an sRGB colour profile embedded so the file reproduces identically years from now. *109/109 rules, 0 failures.*
+- **PDF/UA-2** (ISO 14289-2) — the accessibility standard. The export is **fully tagged**: headings, paragraphs and bullet lists are real structure elements, and decoration is marked as an artifact, so a screen reader announces *"heading level 2, Experience"* instead of guessing from font sizes. *1727/1727 rules, 0 failures.*
+
+Conformance is enforced across single-page, two-column, image-heavy and multi-page documents, and re-checked on the production build under its real Content-Security-Policy. Offline exports are conformant too — the colour profile is precached.
+
+**Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date and a declared document language, in an XMP metadata packet (PDF 2.0 retires the legacy info dictionary, so XMP is the single source of truth). Readers show *your name* in the title bar instead of the filename — and no library name appears anywhere in the file.
 
 **Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have.
 

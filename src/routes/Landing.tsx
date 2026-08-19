@@ -73,7 +73,7 @@ const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
   },
   {
     capability: 'Export formats',
-    cvaurum: 'PDF/A-2B vector PDF (selectable text, archival-grade), Word .docx, and JSON Resume',
+    cvaurum: 'PDF 2.0 vector PDF (PDF/A-4 archival + PDF/UA-2 accessible), Word .docx, and JSON Resume',
     others: 'PDF only, often a flattened image',
   },
   {
@@ -403,7 +403,7 @@ export function Landing() {
             />
             <Faq
               q="Is the PDF archival quality?"
-              a="Yes. Every PDF is PDF/A-2B conformant — the ISO standard for long-term archiving — with all fonts and an sRGB colour profile embedded, checked against the veraPDF reference validator. It also carries proper document properties (your name as author, a real title, and a declared language) rather than a toolchain fingerprint."
+              a="Yes — and accessible. Every export is a PDF 2.0 file that conforms to both PDF/A-4 (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-2 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure, and it carries proper document properties rather than a toolchain fingerprint."
             />
             <Faq
               q="How long should my resume be?"
