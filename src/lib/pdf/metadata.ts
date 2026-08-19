@@ -79,6 +79,11 @@ export function buildDocInfo(doc: ResumeDocument, now: Date = new Date()): DocIn
   return finish()
 }
 
+/** XMP namespace for the PDF/A identification schema, added only when the
+ *  export actually declares conformance. */
+const PDFAID_NS = `
+        xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"`
+
 export function xmlEscape(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -97,7 +102,7 @@ const xmpDate = (d: Date): string => d.toISOString().replace(/\.\d{3}Z$/, 'Z')
  * any reader (and any future PDF/A conformance pass, which REQUIRES an
  * uncompressed XMP stream) can consume it as-is.
  */
-export function buildXmpPacket(info: DocInfo): string {
+export function buildXmpPacket(info: DocInfo, pdfa?: { part: string; conformance: string }): string {
   const subjects = info.keywords.map((k) => `          <rdf:li>${xmlEscape(k)}</rdf:li>`).join('\n')
   const creator = info.author
     ? `      <dc:creator>
@@ -112,7 +117,7 @@ export function buildXmpPacket(info: DocInfo): string {
     <rdf:Description rdf:about=""
         xmlns:dc="http://purl.org/dc/elements/1.1/"
         xmlns:xmp="http://ns.adobe.com/xap/1.0/"
-        xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+        xmlns:pdf="http://ns.adobe.com/pdf/1.3/"${pdfa ? PDFAID_NS : ''}>
       <dc:format>application/pdf</dc:format>
       <dc:title>
         <rdf:Alt>
@@ -139,7 +144,13 @@ ${subjects}
       <xmp:ModifyDate>${xmpDate(info.modified)}</xmp:ModifyDate>
       <xmp:MetadataDate>${xmpDate(info.modified)}</xmp:MetadataDate>
       <pdf:Producer>${xmlEscape(info.producer)}</pdf:Producer>
-      <pdf:Keywords>${xmlEscape(info.keywords.join(', '))}</pdf:Keywords>
+      <pdf:Keywords>${xmlEscape(info.keywords.join(', '))}</pdf:Keywords>${
+        pdfa
+          ? `
+      <pdfaid:part>${xmlEscape(pdfa.part)}</pdfaid:part>
+      <pdfaid:conformance>${xmlEscape(pdfa.conformance)}</pdfaid:conformance>`
+          : ''
+      }
     </rdf:Description>
   </rdf:RDF>
 </x:xmpmeta>
@@ -153,7 +164,11 @@ ${subjects}
  * makes readers show the TITLE rather than the filename (a real
  * accessibility requirement — PDF/UA 7.1, WCAG 2.4.2 "Page Titled").
  */
-export function applyPdfMetadata(pdfDoc: PDFDocument, info: DocInfo): void {
+export function applyPdfMetadata(
+  pdfDoc: PDFDocument,
+  info: DocInfo,
+  pdfa?: { part: string; conformance: string }
+): void {
   pdfDoc.setTitle(info.title, { showInWindowTitleBar: true })
   if (info.author) pdfDoc.setAuthor(info.author)
   pdfDoc.setSubject(info.subject)
@@ -170,7 +185,7 @@ export function applyPdfMetadata(pdfDoc: PDFDocument, info: DocInfo): void {
   // truncates every non-Latin-1 character — an em-dash (U+2014) in a title
   // landed in the packet as 0x14, and any accented name would corrupt the
   // same way. XMP is defined as UTF-8, so encode it as UTF-8.
-  const packet = buildXmpPacket(info)
+  const packet = buildXmpPacket(info, pdfa)
   const stream = pdfDoc.context.stream(new TextEncoder().encode(packet), {
     Type: PDFName.of('Metadata'),
     Subtype: PDFName.of('XML'),

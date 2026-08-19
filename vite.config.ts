@@ -33,7 +33,10 @@ export default defineConfig({
       workbox: {
         // Fonts are self-hosted, so they precache via the woff2 glob below — no
         // third-party runtime caching is needed. The app contacts no external host.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        // .icc: the 3KB sRGB profile embedded as every export's PDF/A
+        // OutputIntent — precached so an OFFLINE export is still PDF/A
+        // (without it the fetch fails and conformance silently drops).
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,icc}'],
         // OCR engine assets (tesseract worker/core/traineddata, ~10MB) are only
         // needed when a user imports a scanned PDF — keep them OUT of the precache
         // so first load stays lean; they fetch on demand, same-origin, from /ocr/.
