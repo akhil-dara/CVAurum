@@ -371,6 +371,74 @@ describe('paintOps — decorative runs draw vector glyph outlines, never real te
     expect(streamV.length).toBeGreaterThan(20)
   })
 
+  // --- synthetic small caps (2026-08-19 user report: editor showed small-caps
+  // headings, the PDF exported plain "Summary") ---
+
+  /** The x of each painted glyph: drawSvgPath writes a positioning `cm` per
+   *  glyph followed by an identity `1 0 0 1 0 0 cm`, which is dropped here. */
+  function glyphXPositions(stream: string): number[] {
+    return [...stream.matchAll(/1 0 0 1 (-?[\d.]+) (-?[\d.]+) cm/g)]
+      .filter((m) => !(Number(m[1]) === 0 && Number(m[2]) === 0))
+      .map((m) => Number(m[1]))
+  }
+
+  it('draws a small-caps run as glyph outlines with ONE invisible text layer', async () => {
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Summary', smallCapsScale: 0.73, letterSpacingPx: 0 }) },
+    ])
+    // Visible layer: vector outlines (one fill per glyph), NOT a visible Tj.
+    expect(stream.match(/\bf\b/g)?.length).toBe(7)
+    // Extractable layer: exactly one invisible (Tr 3) text-showing operator.
+    expect(stream).toMatch(/\b3 Tr\b/)
+    expect(stream.match(/\bTj\b/g)?.length).toBe(1)
+  })
+
+  it('keeps the extractable text in its SOURCE case, so an ATS reads "Summary"', async () => {
+    // Tj payloads are subset glyph ids, which are assigned per DOCUMENT — so
+    // all three runs are drawn into ONE page and their payloads compared
+    // there: small-caps "Summary" must carry the same glyphs as plain
+    // "Summary", and different ones from "SUMMARY".
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Summary', smallCapsScale: 0.73, letterSpacingPx: 0, baselinePx: 20 }) },
+      { kind: 'text', run: baseRun({ text: 'Summary', letterSpacingPx: 0.5, baselinePx: 60 }) },
+      { kind: 'text', run: baseRun({ text: 'SUMMARY', letterSpacingPx: 0.5, baselinePx: 100 }) },
+    ])
+    const payloads = [...stream.matchAll(/<([0-9A-Fa-f]+)> Tj/g)].map((m) => m[1])
+    expect(payloads.length).toBe(3)
+    expect(payloads[0]).toBe(payloads[1])
+    expect(payloads[0]).not.toBe(payloads[2])
+  })
+
+  it('advances narrower for the reduced letters than for full-size capitals', async () => {
+    // Same seven glyphs either way; only the six trailing ones shrink.
+    const reduced = glyphXPositions(
+      await renderContentStream([
+        { kind: 'text', run: baseRun({ text: 'Summary', smallCapsScale: 0.5, letterSpacingPx: 0 }) },
+      ])
+    )
+    const fullSize = glyphXPositions(
+      await renderContentStream([
+        { kind: 'text', run: baseRun({ text: 'SUMMARY', isDecorative: true, letterSpacingPx: 0 }) },
+      ])
+    )
+    expect(reduced.length).toBe(7)
+    expect(fullSize.length).toBe(7)
+    // The leading capital is drawn at FULL size in both: same second x.
+    expect(reduced[1]).toBeCloseTo(fullSize[1], 3)
+    // Every later glyph is pulled left by the reduced advances, so the run
+    // ends up about half as wide past that first capital.
+    expect(reduced[6]).toBeLessThan(fullSize[6])
+    expect((reduced[6] - reduced[1]) / (fullSize[6] - fullSize[1])).toBeCloseTo(0.5, 1)
+  })
+
+  it('leaves a run without small caps byte-identical to before', async () => {
+    const withField = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'Summary', smallCapsScale: 0 }) },
+    ])
+    const withoutField = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'Summary' }) }])
+    expect(withField).toBe(withoutField)
+  })
+
   it('draws a multi-glyph decorative run (e.g. a 2-3 letter monogram like "UC" or "NYU")', async () => {
     const stream = await renderContentStream([{ kind: 'text', run: baseRun({ text: 'UC', isDecorative: true }) }])
     // Two glyphs drawn means two separate fill operations in the stream.

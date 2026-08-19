@@ -27,6 +27,7 @@ import {
 } from 'pdf-lib'
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, ptToPx, flipY } from './units'
+import { smallCapsSegments } from './smallcaps'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
@@ -393,27 +394,39 @@ async function paintGlyphOutlines(
   xPt: number = pxToPt(run.xPx)
 ): Promise<number> {
   const font = await fonts.embedGlyphOutlines(run.family, run.weight)
-  const glyphRun = font.layout(run.text)
-  const scale = pxToPt(run.sizePx) / font.unitsPerEm
   const color = rgb(run.color.r, run.color.g, run.color.b)
   const baseX = xPt
   const baseY = flipY(pxToPt(run.baselinePx), pageHeightPt)
   const letterSpacingPt = pxToPt(run.letterSpacingPx)
+  const sizePt = pxToPt(run.sizePx)
+
+  // `font-variant: small-caps` splits the run into full-size and reduced-size
+  // pieces (see smallcaps.ts); everything else is one piece at the run's own
+  // size, which is the identical code path with a single segment.
+  const scScale = run.smallCapsScale ?? 0
+  const pieces =
+    scScale > 0
+      ? smallCapsSegments(run.text).map((seg) => ({ text: seg.text, sizePt: seg.reduced ? sizePt * scScale : sizePt }))
+      : [{ text: run.text, sizePt }]
 
   let cursor = 0
-  for (let i = 0; i < glyphRun.glyphs.length; i++) {
-    const glyph = glyphRun.glyphs[i]
-    const pos = glyphRun.positions[i]
-    const d = glyphPathToDrawPath(glyph.path, scale)
-    if (d) {
-      page.drawSvgPath(d, {
-        x: baseX + cursor + pos.xOffset * scale,
-        y: baseY + pos.yOffset * scale,
-        color,
-        opacity: run.color.a,
-      })
+  for (const piece of pieces) {
+    const glyphRun = font.layout(piece.text)
+    const scale = piece.sizePt / font.unitsPerEm
+    for (let i = 0; i < glyphRun.glyphs.length; i++) {
+      const glyph = glyphRun.glyphs[i]
+      const pos = glyphRun.positions[i]
+      const d = glyphPathToDrawPath(glyph.path, scale)
+      if (d) {
+        page.drawSvgPath(d, {
+          x: baseX + cursor + pos.xOffset * scale,
+          y: baseY + pos.yOffset * scale,
+          color,
+          opacity: run.color.a,
+        })
+      }
+      cursor += pos.xAdvance * scale + letterSpacingPt
     }
-    cursor += pos.xAdvance * scale + letterSpacingPt
   }
   return ptToPx(cursor)
 }
@@ -727,7 +740,11 @@ export async function paintOps(
       const embeddedWidthPt = font.widthOfTextAtSize(run.text, sizePt)
       let tzPct = 100
 
-      if (run.letterSpacingPx !== 0) {
+      // Small-caps runs take the tracked (two-layer) path even at zero
+      // letter-spacing: their VISIBLE glyphs are uppercase at two different
+      // sizes, which no single text-showing operator can express, while the
+      // invisible layer keeps the natural-case string an ATS reads.
+      if (run.letterSpacingPx !== 0 || (run.smallCapsScale ?? 0) > 0) {
         // Tracked headings (task 16): paintTrackedHeading stretches its OWN
         // invisible extractable layer via Tz so its selection geometry
         // matches the visible tracked width, and returns the ratio it used

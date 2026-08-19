@@ -91,6 +91,64 @@ function getMeasureElements(): { div: HTMLDivElement; probe: HTMLSpanElement } |
   return { div, probe }
 }
 
+const smallCapsScaleCache = new Map<string, number>()
+let smallCapsProbe: HTMLSpanElement | null = null
+
+/** Chromium's SYNTHETIC small-caps size ratio for one font shorthand, measured
+ *  off the real engine and memoized per (family|weight|style|sizePx).
+ *
+ *  None of our self-hosted fonts ships a real `smcp` feature (see
+ *  smallcaps.ts), so Chromium draws each lowercase letter as its uppercase
+ *  glyph at a reduced size. The ratio is NOT the textbook 0.7: measured
+ *  against real faces it lands anywhere from ~0.667 to ~0.73 and, for some
+ *  fonts, VARIES WITH SIZE (glyph advances quantize at small sizes) — and a
+ *  canvas `fontVariantCaps` measurement does not predict DOM layout at all
+ *  (0.85 vs 0.67 for the same face). So this asks the layout engine the only
+ *  question that has a reliable answer: how wide is this alphabet in
+ *  small-caps versus the same alphabet already uppercased?
+ *
+ *  Returns 0 when the DOM is unusable or the measurement is implausible, which
+ *  callers read as "don't attempt small caps" (the run then paints in its
+ *  natural case, i.e. exactly the pre-2026-08-19 behavior). */
+export function smallCapsScaleFor(cssFont: string): number {
+  const cached = smallCapsScaleCache.get(cssFont)
+  if (cached != null) return cached
+  let scale = 0
+  try {
+    if (typeof document !== 'undefined' && document.body) {
+      if (!smallCapsProbe) {
+        const span = document.createElement('span')
+        span.style.position = 'fixed'
+        span.style.left = '-100000px'
+        span.style.top = '0'
+        span.style.whiteSpace = 'pre'
+        document.body.appendChild(span)
+        smallCapsProbe = span
+      }
+      const probe = smallCapsProbe
+      const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
+      probe.style.font = cssFont
+      probe.style.fontVariantCaps = 'small-caps'
+      probe.textContent = ALPHABET
+      const small = probe.getBoundingClientRect().width
+      probe.style.fontVariantCaps = 'normal'
+      probe.textContent = ALPHABET.toUpperCase()
+      const full = probe.getBoundingClientRect().width
+      probe.textContent = ''
+      const ratio = full > 0 ? small / full : 0
+      // Sanity band: a real small-caps ratio is well inside (0.5, 1). Anything
+      // outside means the probe measured something else (font still loading,
+      // zero-width fallback) — treat as "no small caps" rather than paint a
+      // wrong size.
+      if (ratio > 0.5 && ratio < 0.99) scale = ratio
+    }
+  } catch {
+    scale = 0
+  }
+  smallCapsScaleCache.set(cssFont, scale)
+  return scale
+}
+
 function layoutMetricsFallback(cssFont: string, reason: string): LayoutMetrics {
   if (import.meta.env.DEV) {
     console.warn(
@@ -281,6 +339,9 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
 
   const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
   const rootRect = root.getBoundingClientRect()
+  // `font-variant: small-caps` (six templates' section titles + one name).
+  // Measured, not modelled — see smallCapsScaleFor.
+  const smallCapsScale = cs.fontVariantCaps === 'small-caps' ? smallCapsScaleFor(font) : 0
 
   const segments = textNodeLineSegments(node)
   if (!segments.length) return []
@@ -302,6 +363,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       italic: cs.fontStyle === 'italic',
       color,
       letterSpacingPx: cs.letterSpacing === 'normal' ? 0 : parsePx(cs.letterSpacing),
+      smallCapsScale,
       isDecorative: false,
     })
   }

@@ -11,6 +11,15 @@ export interface TextRun {
   color: Rgba
   letterSpacingPx: number
   /**
+   * Synthetic small-caps size ratio for this run (`font-variant: small-caps`),
+   * measured off Chromium by `smallCapsScaleFor` — 0 (or absent) means the run
+   * has no small-caps treatment, which is every synthesized run and every
+   * normally-cased piece of DOM text. Only the VISIBLE glyph layer honours it;
+   * the extractable text layer always keeps the source's natural case, so an
+   * ATS still reads "Summary", never "SUMMARY" (see smallcaps.ts).
+   */
+  smallCapsScale?: number
+  /**
    * The run's laid-out width in CSS px, straight off the same client rect(s)
    * `xPx` came from — 0 when unknown/unmeasured (paint.ts's Tz horizontal-
    * scaling never applies at 0; see task-12 brief). Only extractRuns (real
