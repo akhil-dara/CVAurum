@@ -58,6 +58,9 @@ export interface TaggedMark {
   alt?: string
   /** Column of origin; drives logical ordering (see `buildStructure`). */
   column?: 'main' | 'aside'
+  /** The logical block (paragraph, bullet, heading) this mark belongs to.
+   *  Shared by every visual line of that block - see `buildStructure`. */
+  blockId?: number
 }
 
 /** A structure element ready to be written: its type, page, and the marks it
@@ -115,9 +118,21 @@ function readingOrder(marks: TaggedMark[]): TaggedMark[] {
 export function buildStructure(marks: TaggedMark[]): StructNode[] {
   const out: StructNode[] = []
   let list: StructNode | null = null
+  let lastBlockId: number | undefined
   for (const m of readingOrder(marks)) {
     if (m.role === 'Artifact') continue // never in the tree
     if (m.role === 'LI') {
+      // One list item per BULLET, not per visual line. A bullet wraps, and
+      // carries bold runs inside it, so it arrives as several marks; giving
+      // each its own LI turned one bullet into three ("Designed and own the"
+      // / "Operational View" / "dashboards in Spotfire"). Bullets are most of
+      // a resume, so this is where per-line tagging hurts most.
+      const open = list && list.pageIndex === m.pageIndex ? list.children![list.children!.length - 1] : undefined
+      if (open && m.blockId !== undefined && lastBlockId === m.blockId) {
+        open.mcids.push(m.mcid)
+        continue
+      }
+      lastBlockId = m.blockId
       const li: StructNode = { role: 'LI', pageIndex: m.pageIndex, mcids: [m.mcid] }
       if (list && list.pageIndex === m.pageIndex) {
         list.children!.push(li)
@@ -128,6 +143,28 @@ export function buildStructure(marks: TaggedMark[]): StructNode[] {
       continue
     }
     list = null
+    // One element per PARAGRAPH, not per visual line. A wrapped paragraph
+    // reaches here as one mark per line; emitting an element for each told
+    // readers that every line was its own paragraph, so Acrobat's copy and
+    // reflow - and any structure-aware parser - broke the sentence at each
+    // wrap. Measured on a real export: 128 `/P` for ~25 paragraphs.
+    //
+    // Merging stops at a page boundary because a structure element names ONE
+    // page (/Pg) and MCIDs are numbered per page, and at a role change so a
+    // heading never absorbs the text beneath it.
+    const prev = out[out.length - 1]
+    if (
+      prev &&
+      m.blockId !== undefined &&
+      lastBlockId === m.blockId &&
+      prev.role === m.role &&
+      prev.pageIndex === m.pageIndex &&
+      !prev.children
+    ) {
+      prev.mcids.push(m.mcid)
+      continue
+    }
+    lastBlockId = m.blockId
     out.push({ role: m.role, pageIndex: m.pageIndex, mcids: [m.mcid], alt: m.alt })
   }
   return out

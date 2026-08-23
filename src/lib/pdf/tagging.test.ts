@@ -167,3 +167,71 @@ describe('buildStructure — reading order spans pages (2026-08-23)', () => {
     expect(nodes.map((n) => n.mcids[0])).toEqual([0, 1, 4, 5])
   })
 })
+
+describe('buildStructure — one element per PARAGRAPH, not per line (2026-08-23)', () => {
+  const mk = (
+    role: TaggedMark['role'],
+    mcid: number,
+    blockId?: number,
+    pageIndex = 0,
+    column: 'main' | 'aside' = 'main'
+  ): TaggedMark => ({ pageIndex, mcid, role, column, blockId })
+
+  // Measured on a real export: 128 `/P` elements for a resume with about 25
+  // paragraphs - one per visual LINE. Anything that reads the tree (Acrobat's
+  // copy and reflow, screen readers, structure-aware parsers) then breaks the
+  // line mid-sentence at every wrap, which is exactly what the author's
+  // copied text showed: "SQL - T-SQL - Stored / Procedures - Query /
+  // Optimisation - Python -".
+  it('merges the visual lines of one block into a single element', () => {
+    const nodes = buildStructure([mk('P', 0, 7), mk('P', 1, 7), mk('P', 2, 7)])
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0].mcids).toEqual([0, 1, 2])
+  })
+
+  it('keeps separate blocks separate', () => {
+    const nodes = buildStructure([mk('P', 0, 7), mk('P', 1, 7), mk('P', 2, 8)])
+    expect(nodes.map((n) => n.mcids)).toEqual([[0, 1], [2]])
+  })
+
+  it('never merges across a page — an element names ONE page', () => {
+    const nodes = buildStructure([mk('P', 0, 7, 0), mk('P', 1, 7, 1)])
+    expect(nodes.map((n) => `${n.pageIndex}:${n.mcids.join(',')}`)).toEqual(['0:0', '1:1'])
+  })
+
+  it('never merges different roles', () => {
+    const nodes = buildStructure([mk('H2', 0, 7), mk('P', 1, 7)])
+    expect(nodes.map((n) => n.role)).toEqual(['H2', 'P'])
+  })
+
+  it('leaves marks without a block id one element each', () => {
+    const nodes = buildStructure([mk('P', 0), mk('P', 1)])
+    expect(nodes).toHaveLength(2)
+  })
+})
+
+describe('buildStructure — one LI per BULLET, not per line (2026-08-23)', () => {
+  const li = (mcid: number, blockId?: number, pageIndex = 0): TaggedMark => ({
+    pageIndex,
+    mcid,
+    role: 'LI',
+    column: 'main',
+    blockId,
+  })
+
+  // A bullet carrying a bold run arrives as several marks; each one started a
+  // new list item, so one bullet became three: "Designed and own the" /
+  // "Operational View" / "dashboards in Spotfire". Bullets are the bulk of a
+  // resume, so this is where per-line tagging hurts most.
+  it('merges a bullet\u2019s lines and bold runs into one list item', () => {
+    const nodes = buildStructure([li(0, 9), li(1, 9), li(2, 9), li(3, 10)])
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0].role).toBe('L')
+    expect(nodes[0].children!.map((c) => c.mcids)).toEqual([[0, 1, 2], [3]])
+  })
+
+  it('starts a new list item on a new page, since an element names one page', () => {
+    const nodes = buildStructure([li(0, 9, 0), li(1, 9, 1)])
+    expect(nodes.flatMap((n) => n.children!.map((c) => `${c.pageIndex}:${c.mcids.join(',')}`))).toEqual(['0:0', '1:1'])
+  })
+})

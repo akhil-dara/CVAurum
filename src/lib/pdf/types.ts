@@ -263,5 +263,16 @@ export type DrawOp = DrawOpChrome &
          * first, even on templates that paint the sidebar first.
          */
         column?: 'main' | 'aside'
+        /**
+         * Identifies the LOGICAL block (paragraph, bullet, heading) this run
+         * belongs to, shared by every visual line of that block.
+         *
+         * Without it the structure tree gets one element per visual LINE -
+         * measured on a real export, 128 `/P` elements for a resume with
+         * about 25 paragraphs - so anything that reads the tree (Acrobat's
+         * copy and reflow, screen readers, structure-aware parsers) emits a
+         * line break mid-sentence at every wrap.
+         */
+        blockId?: number
       }
   )

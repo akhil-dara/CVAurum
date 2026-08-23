@@ -1139,8 +1139,9 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
       // (tagging.ts). Decorative runs are artifacts a reader skips.
       const role = roleForElement((n as Text).parentElement, root)
       const column: 'main' | 'aside' = (n as Text).parentElement?.closest('.rm-col-aside') ? 'aside' : 'main'
+      const blockId = logicalBlockId((n as Text).parentElement, root)
       for (const run of extractRuns(n as Text, root)) {
-        ops.push({ kind: 'text', run, role: run.isDecorative ? 'Artifact' : role, column })
+        ops.push({ kind: 'text', run, role: run.isDecorative ? 'Artifact' : role, column, blockId })
       }
     }
   }
@@ -1339,6 +1340,31 @@ function extractBlocksFromScope(scope: Element, rootTop: number): PageBlock[] {
  *  to ONE block from their own box and flagged `keepWithNext`. See
  *  `extractPageBlocks`'s doc comment for why a whole ROW, not just the title
  *  text run. */
+/** A stable id for the nearest BLOCK-level ancestor of a text node - the
+ *  paragraph, bullet or heading a reader thinks of as one unit. Every visual
+ *  line of that block shares the id, which is what lets the structure tree
+ *  group them into ONE element instead of one per line. Inline ancestors
+ *  (<strong>, <em>, a chip's span) are transparent, so a bolded run mid
+ *  sentence stays part of its paragraph. */
+const blockIds = new WeakMap<Element, number>()
+let nextBlockId = 1
+function logicalBlockId(from: Element | null, root: Element): number | undefined {
+  let el: Element | null = from
+  while (el && el !== root.parentElement) {
+    const display = getComputedStyle(el).display
+    if (display !== 'inline' && display !== 'contents') {
+      let id = blockIds.get(el)
+      if (id === undefined) {
+        id = nextBlockId++
+        blockIds.set(el, id)
+      }
+      return id
+    }
+    el = el.parentElement
+  }
+  return undefined
+}
+
 const TITLE_ROW_CLASSES = ['rm-section-title', 'rm-item-head', 'rm-level', 'rm-skill-group-name', 'rm-mini-title']
 /** Other flex ROWS with same-line siblings that need the same single-block
  *  collapse but are NOT a title (no keepWithNext) — see the doc comment. */

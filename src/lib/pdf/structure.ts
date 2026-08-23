@@ -74,7 +74,13 @@ export function createTagSink(): TagCollector {
       // verbatim.
       const mcid = nextMcid++
       push(page, [PDFOperator.of(PDFOperatorNames.BeginMarkedContentSequence, [PDFName.of(role), `<</MCID ${mcid}>>`])])
-      marks.push({ pageIndex, mcid, role, column: op.kind === 'text' ? op.column : undefined })
+      marks.push({
+        pageIndex,
+        mcid,
+        role,
+        column: op.kind === 'text' ? op.column : undefined,
+        blockId: op.kind === 'text' ? op.blockId : undefined,
+      })
       return { marked: true } satisfies MarkToken
     },
     end(page: unknown) {
