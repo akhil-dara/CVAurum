@@ -33,6 +33,13 @@ export interface PageBlock {
 export interface PaginationInput {
   blocks: PageBlock[]
   contentHeightPx: number
+  /**
+   * The PHYSICAL page height (CSS px). A page break is never placed further
+   * than this past a page's top, because content beyond the paper's edge is
+   * painted off the sheet and lost. Defaults to Infinity, which preserves the
+   * pre-2026-08-23 behaviour for callers that do not supply it.
+   */
+  maxPageHeightPx?: number
   /** Budget (CSS px) for every page AFTER the first — spec 3: the full A4
    *  page height minus the artboard's own top+bottom padding, since pages
    *  2+ spend that top padding as a real yOffset reservation (paint.ts's
@@ -133,7 +140,13 @@ function fallsInsideInk(y: number, sorted: PageBlock[]): boolean {
 
 /** Picks the single cut for one page, given everything already consumed
  *  (`pageTop`) and the ideal boundary for this page. */
-function chooseCut(candidates: Candidate[], pageTop: number, idealY: number, windowLow: number): number {
+function chooseCut(
+  candidates: Candidate[],
+  pageTop: number,
+  idealY: number,
+  windowLow: number,
+  maxPageHeightPx: number
+): number {
   for (const tier of TIER_PREFERENCE) {
     let best: number | undefined
     for (const c of candidates) {
@@ -143,13 +156,51 @@ function chooseCut(candidates: Candidate[], pageTop: number, idealY: number, win
     }
     if (best !== undefined) return best
   }
-  // Nothing legal in the window at any tier: scan DOWNWARD, but keep the
-  // SAME tier preference the primary scan uses — a farther section gap must
-  // still beat a nearer entry/line gap once past the ideal boundary. Tier
-  // preference is the feature, not just a within-window heuristic, so within
-  // each tier take the NEAREST (smallest y) candidate past the ideal, and
-  // only move to the next tier if this one has nothing past the ideal at
-  // all.
+  // Nothing legal inside the window: scan DOWNWARD, but never past the
+  // PHYSICAL page. A cut beyond the paper does not merely look wrong —
+  // everything between the page's bottom edge and that cut is painted off
+  // the sheet and is GONE from the exported document. Measured on a real
+  // two-column resume (where a cut needs both columns clear at the same y,
+  // so legal positions are scarce) the nearest candidate below the boundary
+  // sat at 2242px on a 1122px page, and 27 of the candidate's 70 skills
+  // silently vanished from the PDF.
+  //
+  // `usablePageHeightPx` deliberately excludes the artboard's padding, so a
+  // modest overshoot past the ideal is still on the paper — that slack is
+  // what the existing downward fallback relies on, and it is preserved.
+  // `maxPageHeightPx` is where the paper actually ends.
+  const maxY = pageTop + maxPageHeightPx
+  for (const tier of TIER_PREFERENCE) {
+    let nearest: number | undefined
+    for (const c of candidates) {
+      if (c.tier !== tier || c.y <= idealY || c.y > maxY) continue
+      if (nearest === undefined || c.y < nearest) nearest = c.y
+    }
+    if (nearest !== undefined) return nearest
+  }
+
+  // Still nothing that fits on the paper: take the latest legal cut EARLIER
+  // on this page. Ending a page early costs whitespace; ending it late costs
+  // content.
+  {
+    let best: number | undefined
+    let bestTier: Tier | undefined
+    for (const c of candidates) {
+      if (c.y <= pageTop || c.y >= windowLow) continue // the window above is already covered
+      const better =
+        best === undefined ||
+        c.y > best ||
+        (c.y === best && TIER_PREFERENCE.indexOf(c.tier) < TIER_PREFERENCE.indexOf(bestTier as Tier))
+      if (better) {
+        best = c.y
+        bestTier = c.tier
+      }
+    }
+    if (best !== undefined) return best
+  }
+
+  // Nothing anywhere on this page — a single unbreakable block taller than
+  // the paper. Overflow is unavoidable; cutting after it beats failing.
   for (const tier of TIER_PREFERENCE) {
     let nearest: number | undefined
     for (const c of candidates) {
@@ -184,6 +235,7 @@ export function paginate(input: PaginationInput): Pagination {
     firstPageUsablePageHeightPx = usablePageHeightPx,
     searchWindowRatio = DEFAULT_SEARCH_WINDOW_RATIO,
     forcedCutsPx = [],
+    maxPageHeightPx = Number.POSITIVE_INFINITY,
   } = input
 
   const sorted = [...blocks].sort((a, b) => a.topPx - b.topPx)
@@ -222,7 +274,7 @@ export function paginate(input: PaginationInput): Pagination {
     }
     const idealY = pageTop + budget
     const windowLow = idealY - searchWindowRatio * budget
-    const cutY = chooseCut(candidates, pageTop, idealY, windowLow)
+    const cutY = chooseCut(candidates, pageTop, idealY, windowLow, maxPageHeightPx)
     // The downward fallback may land at or past the pin — the pin wins
     // (it is a mandatory boundary; the auto cut would duplicate or cross it).
     if (nextForced !== undefined && cutY >= nextForced) {

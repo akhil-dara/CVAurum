@@ -318,6 +318,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
               contentHeightPx: printRoot.getBoundingClientRect().height,
               usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
               firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
+              maxPageHeightPx: pageH,
             }).pageCount
           } catch {
             return Number.POSITIVE_INFINITY
@@ -420,6 +421,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           contentHeightPx,
           usablePageHeightPx,
           firstPageUsablePageHeightPx,
+          // The paper's real height: a cut is never placed past it, because
+          // the export would paint that overflow off the sheet (paginate.ts).
+          maxPageHeightPx: pageH,
           // Pins resolve on the SAME portal geometry the export resolves its
           // sheet with — parity by construction. Auto-fit ON ignores pins
           // (spec 1b), matching render.tsx exactly.

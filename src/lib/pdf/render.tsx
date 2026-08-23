@@ -261,6 +261,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
               contentHeightPx: el.getBoundingClientRect().height,
               usablePageHeightPx: computeUsablePageHeightPx(pageHpx, pad),
               firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, pad),
+              maxPageHeightPx: pageHpx,
             }).pageCount
           } catch {
             return Number.POSITIVE_INFINITY // no legal break here — never prefer this scale
@@ -317,6 +318,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
         contentHeightPx,
         usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
         firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
+        maxPageHeightPx: pageHpx,
         forcedCutsPx: doc.metadata.page.autoFit ? [] : resolveForcedCutsPx(sheet, doc.metadata.page.breaks),
       })
       cutsPx = result.cutsPx
@@ -333,6 +335,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
           contentHeightPx,
           usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
           firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
+          maxPageHeightPx: pageHpx,
           forcedCutsPx,
         })
         cutsPx = result.cutsPx

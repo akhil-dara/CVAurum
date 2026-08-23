@@ -556,3 +556,72 @@ describe('paginate - forced cuts (page pins, 2026-08-17 plan task 1)', () => {
     expect(r.pageCount).toBe(1)
   })
 })
+
+describe('chooseCut never overflows a page when an earlier cut exists', () => {
+  // Budget 1000 => ideal 1000, window [820, 1000]. A dense two-column resume
+  // can have NO legal cut in that window, because a cut needs both columns
+  // clear at the same y. Measured on a real resume: the nearest candidate
+  // below was 2242px, so page one was asked to hold 2242px of a 1073px page
+  // and 27 skills were painted off the sheet and lost.
+  const budget = 1000
+  // The paper is taller than the usable budget by the artboard's padding —
+  // exactly the slack the downward fallback is allowed to use.
+  const paper = 1100
+
+  it('cuts EARLIER rather than past the page budget', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 400 },
+      { kind: 'section-gap', topPx: 400, bottomPx: 420 }, // the only cut before the ideal
+      { kind: 'line', topPx: 420, bottomPx: 1400 }, // unbreakable run across the boundary
+      { kind: 'entry-gap', topPx: 1400, bottomPx: 1420 },
+      { kind: 'line', topPx: 1420, bottomPx: 2000 },
+      { kind: 'entry-gap', topPx: 2000, bottomPx: 2020 },
+      { kind: 'line', topPx: 2020, bottomPx: 2600 },
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 2600, usablePageHeightPx: budget, maxPageHeightPx: paper })
+    expect(cutsPx[0]).toBeLessThanOrEqual(budget)
+    expect(cutsPx[0]).toBeCloseTo(410, 0)
+  })
+
+  it('still prefers a candidate inside the ideal window when one exists', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 300 },
+      { kind: 'section-gap', topPx: 300, bottomPx: 320 },
+      { kind: 'line', topPx: 320, bottomPx: 900 },
+      { kind: 'section-gap', topPx: 900, bottomPx: 940 }, // inside [820, 1000]
+      { kind: 'line', topPx: 940, bottomPx: 1400 },
+      { kind: 'entry-gap', topPx: 1400, bottomPx: 1420 },
+      { kind: 'line', topPx: 1420, bottomPx: 1900 },
+      { kind: 'entry-gap', topPx: 1900, bottomPx: 1920 },
+      { kind: 'line', topPx: 1920, bottomPx: 2400 },
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 2400, usablePageHeightPx: budget, maxPageHeightPx: paper })
+    expect(cutsPx[0]).toBeCloseTo(920, 0)
+  })
+
+  it('falls back downward only when the page has no legal cut at all', () => {
+    // One unbreakable block taller than the page: overflow is unavoidable,
+    // and cutting after it beats failing outright.
+    const blocks: PageBlock[] = [
+      { kind: 'atomic', topPx: 0, bottomPx: 1800 },
+      { kind: 'section-gap', topPx: 1800, bottomPx: 1820 },
+      { kind: 'line', topPx: 1820, bottomPx: 2600 },
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 2600, usablePageHeightPx: budget, maxPageHeightPx: paper })
+    expect(cutsPx[0]).toBeGreaterThan(budget)
+  })
+
+  it('keeps every page within budget for a long gap-poor document', () => {
+    const blocks: PageBlock[] = []
+    for (let i = 0; i < 26; i++) {
+      blocks.push({ kind: 'line', topPx: i * 100, bottomPx: i * 100 + 80 })
+      blocks.push({ kind: 'entry-gap', topPx: i * 100 + 80, bottomPx: (i + 1) * 100 })
+    }
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 2600, usablePageHeightPx: budget, maxPageHeightPx: paper })
+    let top = 0
+    for (const cut of cutsPx) {
+      expect(cut - top).toBeLessThanOrEqual(budget + 1)
+      top = cut
+    }
+  })
+})
