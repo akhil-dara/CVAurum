@@ -692,12 +692,15 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
     const out: string[] = []
     for (const raw of arr) {
       const s = raw.trim()
-      if (!s || s.length > 40 || !/[A-Za-z0-9]/.test(s)) continue
+      // 64, not 40: real keywords run long ("System Integration (ServiceNow
+      // to SQL Server)" is 45), and a chip rejoined from two wrapped lines
+      // longer still. Prose is excluded by the callers' own tests, not here.
+      if (!s || s.length > 64 || !/[A-Za-z0-9]/.test(s)) continue
       const k = s.toLowerCase()
       if (seen.has(k)) continue
       seen.add(k)
       out.push(s)
-      if (out.length >= 40) break
+      if (out.length >= 80) break
     }
     return out
   }
@@ -735,10 +738,67 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   }
   const groupNameish = (t: string): boolean =>
     !!t && t.length <= 30 && !/[,;|•·:]/.test(t) && !/[.!?]$/.test(t) && t.split(/\s+/).length <= 3
+  // A NARROW column (sidebar) wraps one logical chip row over several
+  // physical lines, and the old one-group-per-row rule turned the author's
+  // 7 groups into 12 stubs of ~2 keywords, after which the 12-group cap
+  // silently dropped 45 of 70 keywords. Measured on a sapphire export (pt):
+  // group names sit at x=54 h=8.2, chips at x=58.8 h=7.3 (chip padding
+  // indents them and they render smaller), a following chip ROW is 16.9
+  // below, and a chip whose own text WRAPPED is only 10.2 below. So the left
+  // edge and height say "still chips", and the vertical pitch says "next
+  // chip" vs "rest of the previous chip".
+  const sameChipLine = (l: Line, sig: { x: number; h: number; page: number }): boolean =>
+    l.page === sig.page && Math.abs(l.x - sig.x) <= 1 && Math.abs(l.height - sig.h) <= 0.6
+  // Structural naming: whatever sits directly above a chip run IS its name,
+  // so real names the lexical test rejected survive ("Databases & Data
+  // Management" is 4 words; "BI, Reporting & Visualisation" has a comma).
+  const chipGroupName = (t: string): boolean =>
+    !!t && t.length <= 40 && !/[.!?]$/.test(t) && t.split(/\s+/).length <= 6
+  const chipBlocks = new Map<number, { name: string; keywords: string[] }>()
+  const consumed = new Set<number>()
+  for (let i = 0; i < lines.length; i++) {
+    if (consumed.has(i) || !isChipRow(lines[i])) continue
+    const sig = { x: lines[i].x, h: lines[i].height, page: lines[i].page }
+    const keywords = lines[i].items.map((it) => it.str)
+    consumed.add(i)
+    let prev = lines[i]
+    for (let j = i + 1; j < lines.length && sameChipLine(lines[j], sig); j++) {
+      const l = lines[j]
+      // Font metrics, not a learned pitch: a wrapped line sits ~1.4x its own
+      // height below its first line, while a new chip row adds the chip's
+      // vertical padding on top of that (~2.3x measured). Learning the pitch
+      // from the first row-to-row gap looked tempting but misreads the whole
+      // block whenever that first gap is atypical.
+      if (keywords.length && l.top - prev.top < l.height * 1.8) {
+        keywords[keywords.length - 1] += ' ' + stripBullet(l.text).trim()
+      } else {
+        keywords.push(...l.items.map((it) => it.str))
+      }
+      consumed.add(j)
+      prev = l
+    }
+    const above = i > 0 ? lines[i - 1] : null
+    let name = ''
+    if (above && !consumed.has(i - 1) && !sameChipLine(above, sig) && chipGroupName(stripBullet(above.text).trim())) {
+      name = stripBullet(above.text).trim()
+      consumed.add(i - 1)
+    }
+    chipBlocks.set(i, { name, keywords: clean(keywords) })
+  }
   const groups: ResumeContent['skills'] = []
   const loose: string[] = []
   let pendingName: string | null = null
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const block = chipBlocks.get(i)
+    if (block) {
+      if (block.keywords.length) {
+        groups.push({ id: uid(), name: block.name || pendingName || '', level: '', keywords: block.keywords })
+        pendingName = null
+      }
+      continue
+    }
+    if (consumed.has(i)) continue
     const t = stripBullet(line.text)
     const m = t.match(/^([A-Za-z][A-Za-z /&+#.-]{1,28}):\s*(.+)$/)
     if (m) {
@@ -746,10 +806,6 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
       pendingName = null
       const keywords = clean(m[2].split(/[,;|•·]/))
       if (keywords.length) groups.push({ id: uid(), name: m[1].trim(), level: '', keywords })
-    } else if (isChipRow(line)) {
-      const keywords = clean(line.items.map((it) => it.str))
-      if (keywords.length) groups.push({ id: uid(), name: pendingName ?? '', level: '', keywords })
-      pendingName = null
     } else if (groupNameish(t)) {
       if (pendingName) loose.push(pendingName)
       pendingName = t
@@ -763,7 +819,13 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   const looseClean = clean(loose)
   if (looseClean.length)
     groups.push({ id: uid(), name: groups.length ? 'Additional' : 'Skills', level: '', keywords: looseClean })
-  return groups.slice(0, 12)
+  // The cap keeps the editor sane on a garbage parse, but dropping the tail
+  // outright loses real keywords; fold the overflow into the last group.
+  if (groups.length > 12) {
+    const overflow = groups.splice(12)
+    groups[11].keywords = clean([...groups[11].keywords, ...overflow.flatMap((g) => g.keywords)])
+  }
+  return groups
 }
 
 function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects'] {

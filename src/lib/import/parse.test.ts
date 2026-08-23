@@ -539,3 +539,100 @@ describe('parseLayout — monogram furniture (2026-08-16)', () => {
     expect(all).not.toContain('"AM"')
   })
 })
+
+// A NARROW sidebar wraps one logical chip row across many physical lines.
+// Round-tripping the author's own resume through sapphire showed the cost:
+// 12 groups of ~2 keywords each ("Programming & Querying:2", "?:2", "?:2",
+// ...) and only 25 of 70 keywords surviving, because every physical row
+// started a NEW group and the 12-group cap then dropped the rest.
+// Measured on a sapphire export (pt): group names sit at x=54 h=8.2, chips
+// at x=58.8 h=7.3; a new chip row is 16.9 below the last, while a chip whose
+// own text WRAPPED sits only 10.2 below. Left edge + height identify a chip
+// line; the vertical pitch separates "next row" from "continuation".
+const sidebarName = (text: string, top: number): Line => {
+  const l = line(text, false, 8.2, top)
+  l.x = 54
+  l.items = [{ str: text, x: 54, top, width: text.length * 4, height: 8.2, bold: false, page: 1, col: 0, aside: true }]
+  return l
+}
+const sidebarChips = (tokens: string[], top: number): Line => {
+  let x = 58.8
+  const items: Item[] = tokens.map((str) => {
+    const width = str.length * 4
+    const it: Item = { str, x, top, width, height: 7.3, bold: false, page: 1, col: 0, aside: true }
+    x += width + 12.7
+    return it
+  })
+  return { ...line(tokens.join(' '), false, 7.3, top), x: 58.8, items, aside: true }
+}
+
+describe('parseSkills — wrapped chip rows in a narrow sidebar (2026-08-23)', () => {
+  it('merges every physical chip row under one group name', () => {
+    const out = parseSkills([
+      sidebarName('Programming & Querying', 78.9),
+      sidebarChips(['SQL', 'T-SQL'], 93.2),
+      sidebarChips(['Query Optimisation', 'Python'], 110.1),
+      sidebarChips(['Pandas', 'NumPy'], 127),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('Programming & Querying')
+    expect(out[0].keywords).toEqual(['SQL', 'T-SQL', 'Query Optimisation', 'Python', 'Pandas', 'NumPy'])
+  })
+
+  it('does not mistake a lone wrapped chip for the next group name', () => {
+    // "Stored Procedures" is a single chip on its own physical row; the old
+    // rule read it as a group NAME and hung the following row under it.
+    const out = parseSkills([
+      sidebarName('Programming & Querying', 78.9),
+      sidebarChips(['SQL', 'T-SQL'], 93.2),
+      sidebarChips(['Stored Procedures'], 110.1),
+      sidebarChips(['Query Optimisation', 'Python'], 127),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].keywords).toEqual(['SQL', 'T-SQL', 'Stored Procedures', 'Query Optimisation', 'Python'])
+  })
+
+  it('rejoins a chip whose own text wrapped onto a second line', () => {
+    // pitch 10.2 (< one row) means continuation of the chip above, not a new
+    // chip: "Salesforce CRM Analytics" + "(Einstein / TCRM)".
+    const out = parseSkills([
+      sidebarName('BI, Reporting & Visualisation', 284),
+      sidebarChips(['Power BI', 'DAX'], 298.2),
+      sidebarChips(['TIBCO Spotfire'], 315.1),
+      sidebarChips(['Salesforce CRM Analytics'], 332.1),
+      sidebarChips(['(Einstein / TCRM)'], 342.3),
+      sidebarChips(['KPI Scorecards'], 359.2),
+    ])
+    expect(out[0].name).toBe('BI, Reporting & Visualisation')
+    expect(out[0].keywords).toEqual([
+      'Power BI',
+      'DAX',
+      'TIBCO Spotfire',
+      'Salesforce CRM Analytics (Einstein / TCRM)',
+      'KPI Scorecards',
+    ])
+  })
+
+  it('keeps a multi-word group name that the lexical test rejected', () => {
+    // "Databases & Data Management" is 4 words, so groupNameish (<=3) failed
+    // it and the name leaked into the loose pile as keywords.
+    const out = parseSkills([
+      sidebarName('Databases & Data Management', 181.5),
+      sidebarChips(['Microsoft SQL Server', 'MySQL'], 195.7),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('Databases & Data Management')
+    expect(out[0].keywords).toEqual(['Microsoft SQL Server', 'MySQL'])
+  })
+
+  it('never drops keywords when a document has more groups than the cap', () => {
+    const lines: Line[] = []
+    for (let i = 0; i < 15; i++) {
+      lines.push(sidebarName(`Group ${i}`, i * 40))
+      lines.push(sidebarChips([`kw${i}a`, `kw${i}b`], i * 40 + 14))
+    }
+    const out = parseSkills(lines)
+    const all = out.flatMap((s) => s.keywords)
+    for (let i = 0; i < 15; i++) expect(all).toContain(`kw${i}b`)
+  })
+})
