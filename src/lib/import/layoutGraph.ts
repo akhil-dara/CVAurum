@@ -219,6 +219,25 @@ function detectGutter(items: Item[], width: number): number | null {
       best = c
     }
   }
+  // Centre the gutter in the empty band. The scan returns whichever
+  // candidate first achieved the lowest straddle, which sits hard against
+  // the sidebar's text — and then the ONE widest sidebar line straddles it,
+  // is tagged full-width, and lands in the middle of the main column's
+  // reading order. Measured on pinnacle: page 2 inherited a gutter at ~175pt
+  // and "AWS Certified Cloud Practitioner" (right edge 180.8, its
+  // neighbours 175.7) was interleaved between the two education entries,
+  // breaking the entry cluster so only one degree imported. Midway between
+  // the columns, every line clears it by the same margin.
+  if (best != null) {
+    let leftMax = -Infinity
+    let rightMin = Infinity
+    for (const it of items) {
+      const r = it.x + it.width
+      if (r <= best) leftMax = Math.max(leftMax, r)
+      else if (it.x >= best) rightMin = Math.min(rightMin, it.x)
+    }
+    if (leftMax > -Infinity && rightMin < Infinity && rightMin > leftMax) best = (leftMax + rightMin) / 2
+  }
   return best
 }
 
