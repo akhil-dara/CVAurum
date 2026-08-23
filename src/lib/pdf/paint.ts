@@ -718,10 +718,52 @@ export async function paintOps(
     const mark = tagSink?.begin(page, op)
     if (op.kind === 'text' && !op.run.isDecorative) {
       const { run } = op
+      // A wrapped keyword chip is split into VISIBLE outline pieces plus one
+      // INVISIBLE run carrying the whole phrase (see TextRun.outlineOnly).
+      // Both leave the shared same-line snap chain alone: the outlines are
+      // not text-showing operators at all, and the invisible run deliberately
+      // sits on top of the first piece rather than after it.
+      if (run.outlineOnly) {
+        await paintGlyphOutlines(page, run, fonts, pageHeightPt)
+        if (mark) tagSink?.end(page, mark)
+        continue
+      }
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
       // font (real content, tracked or not) must propagate, not be
       // swallowed as a cosmetic per-op issue.
       const font = await fonts.embed(run.family, run.weight)
+      if (run.extractOnly) {
+        const naturalPt = font.widthOfTextAtSize(run.text, pxToPt(run.sizePx))
+        // Squeeze the whole phrase into the width of the chip's FIRST line,
+        // so the advance it advertises stays inside the column. The floor is
+        // well below the 90-110% band real runs use: the worst measured chip
+        // needs 1.48x its column, and a three-line chip would need more.
+        const fitPct =
+          run.widthPx > 0 && naturalPt > 0
+            ? Math.min(110, Math.max(20, (100 * pxToPt(run.widthPx)) / naturalPt))
+            : 100
+        if (fitPct !== 100) {
+          page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(fitPct)]))
+        }
+        page.pushOperators(setTextRenderingMode(TextRenderingMode.Invisible))
+        try {
+          page.drawText(run.text, {
+            x: pxToPt(run.xPx),
+            y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+            size: pxToPt(run.sizePx),
+            font,
+            color: rgb(run.color.r, run.color.g, run.color.b),
+            opacity: run.color.a,
+          })
+        } finally {
+          page.pushOperators(setTextRenderingMode(TextRenderingMode.Fill))
+          if (fitPct !== 100) {
+            page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(100)]))
+          }
+        }
+        if (mark) tagSink?.end(page, mark)
+        continue
+      }
       const sizePt = pxToPt(run.sizePx)
       let xPt = pxToPt(run.xPx)
 

@@ -346,6 +346,12 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   const segments = textNodeLineSegments(node)
   if (!segments.length) return []
 
+  // A keyword chip is ONE keyword however many lines it takes. Where its text
+  // wraps, the visible pieces become vector outlines and a single invisible
+  // run carries the whole phrase, so selecting or parsing the PDF yields
+  // "User Provisioning & Deprovisioning" rather than two fragments.
+  const wrappedChip = segments.length > 1 && !!parent.closest('.rm-chip')
+
   const metrics = layoutMetricsFor(font)
   const runs: TextRun[] = []
   for (const seg of segments) {
@@ -365,7 +371,12 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       letterSpacingPx: cs.letterSpacing === 'normal' ? 0 : parsePx(cs.letterSpacing),
       smallCapsScale,
       isDecorative: false,
+      outlineOnly: wrappedChip,
     })
+  }
+  if (wrappedChip && runs.length) {
+    const whole = applyTextTransform(collapseWhitespace(data, cs.whiteSpace), cs.textTransform).trim()
+    if (whole) runs.push({ ...runs[0], text: whole, outlineOnly: false, extractOnly: true })
   }
 
   return runs

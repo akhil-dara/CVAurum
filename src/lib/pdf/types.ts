@@ -45,6 +45,28 @@ export interface TextRun {
    * is always `false` — never touch this rule for actual résumé content.
    */
   isDecorative: boolean
+  /**
+   * Paint this run as vector outlines (exactly like `isDecorative`) even
+   * though it IS resume content, because its text reaches the layer through
+   * a sibling `extractOnly` run instead.
+   *
+   * Set only for a KEYWORD CHIP whose text wraps. A chip is one keyword; when
+   * the text layer inherits the visual wrap, "User Provisioning &
+   * Deprovisioning" extracts as two lines and an ATS searching that phrase
+   * cannot match it. Measured across eight templates, 17 of 560 chips split
+   * this way, and the worst need 1.48x their column, so no amount of padding
+   * or font tuning fits them on one line — the wrap is real and only the
+   * text layer can be made whole.
+   */
+  outlineOnly?: boolean
+  /**
+   * Invisible (`Tr 3`) and extractable-only: never painted, contributing
+   * nothing but its text. Squeezed via `Tz` to `widthPx` so its advertised
+   * geometry stays inside the box it belongs to rather than running past the
+   * column — our own column detection, and any ATS doing the same, reads
+   * those advances.
+   */
+  extractOnly?: boolean
 }
 
 /**
