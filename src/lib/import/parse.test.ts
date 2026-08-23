@@ -876,3 +876,75 @@ describe('parseSkills — a group whose first chip stands alone (2026-08-23)', (
     expect(out[1].keywords).toEqual(['Microsoft SQL Server', 'MySQL', 'SSMS'])
   })
 })
+
+describe('work entries — a date line indented past the bullets (2026-08-23)', () => {
+  // Found by importing 43 REAL third-party resumes rather than our own
+  // exports: 12 of them lost EVERY date. Designed resumes often put the date
+  // range on its own line under the title and indent it FURTHER than the
+  // bullets, and indent is the only signal the highlight test has - so the
+  // date line became bullet #0 of the entry. The dates were lost and a junk
+  // bullet gained: "07/2024 - Present Hyderabad,India".
+  const at = (text: string, x: number, top: number, h = 8.2): Line => {
+    const l = line(text, false, h, top)
+    l.x = x
+    l.items = [{ str: text, x, top, width: text.length * 4, height: h, bold: false, page: 1, col: 0, aside: false }]
+    return l
+  }
+  const g = (lines: Line[]): LayoutGraph => ({
+    lines,
+    bodySize: 8.2,
+    lineGap: 11,
+    pageCount: 1,
+    charCount: lines.reduce((n, l) => n + l.text.length, 0),
+    twoColumn: false,
+    ocrPages: [],
+    ocrEngineFailed: false,
+  })
+
+  it('reads the range instead of turning it into a bullet', () => {
+    const r = parseLayout(
+      g([
+        at('Sujay Adkesar', 40, 40, 14),
+        at('sujay@example.com', 40, 56),
+        { ...at('EXPERIENCE', 40, 90, 12.7), upper: true },
+        at('Digital Forensic Analyst', 65, 110, 10.8),
+        at('Tata Consultancy Services', 65, 124),
+        at('07/2024 - Present Hyderabad,India', 77, 138, 7.6),
+        at('• Led end-to-end digital forensics investigations across Windows and Linux.', 68, 158),
+        at('Jr Security Analyst', 65, 190, 10.8),
+        at('Agamya Cyber Tech', 65, 204),
+        at('2023 - 2024 Bengaluru,India', 77, 218, 7.6),
+        at('• Tuned SIEM rules and improved alert relevance for the SOC.', 68, 238),
+      ])
+    )
+    expect(r.content.work).toHaveLength(2)
+    expect(r.content.work[0].startDate).toBe('2024-07')
+    expect(r.content.work[0].endDate).toBe('')
+    expect(r.content.work[1].startDate).toBe('2023')
+    expect(r.content.work[0].highlights.join(' ')).not.toContain('07/2024')
+  })
+
+  it('still treats a bullet that merely mentions a year range as a bullet', () => {
+    // Two dated entries, so this takes the same segmentation path the real
+    // document does rather than the single-entry gap-clustering fallback.
+    const r = parseLayout(
+      g([
+        at('Alex Morgan', 40, 40, 14),
+        at('alex@example.com', 40, 56),
+        { ...at('EXPERIENCE', 40, 90, 12.7), upper: true },
+        at('Platform Engineer', 65, 110, 10.8),
+        at('Vertex Labs', 65, 124),
+        at('Mar 2021 - Present San Francisco, CA', 77, 138, 7.6),
+        at('• Led the 2019 - 2020 migration of the billing platform to a new provider.', 68, 158),
+        at('Software Engineer', 65, 190, 10.8),
+        at('Northwind Software', 65, 204),
+        at('Jun 2018 - Feb 2021 Austin, TX', 77, 218, 7.6),
+        at('• Built the design-system component library adopted by nine teams.', 68, 238),
+      ])
+    )
+    expect(r.content.work).toHaveLength(2)
+    expect(r.content.work[0].highlights.join(' ')).toContain('migration of the billing platform')
+    expect(r.content.work[0].startDate).toBe('2021-03')
+    expect(r.content.work[1].startDate).toBe('2018-06')
+  })
+})

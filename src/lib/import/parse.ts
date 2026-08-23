@@ -565,10 +565,35 @@ const sectionLeftX = (lines: Line[]): number => (lines.length ? Math.min(...line
  * render bullets via a hanging indent with no glyph in the text layer, so
  * indentation is the only reliable signal.
  */
+/** Is this line essentially just an entry's DATE RANGE (with, at most, the
+ *  location that sits beside it)? Designed resumes put the range on its own
+ *  line under the title and often indent it FURTHER than the bullets, and
+ *  indent is the only signal the highlight test has - so the date line became
+ *  bullet #0, the entry lost its dates, and the bullet list gained junk like
+ *  "07/2024 - Present Hyderabad,India". Found by importing 43 real
+ *  third-party resumes: 12 of them lost EVERY date this way.
+ *
+ *  A bullet that merely MENTIONS a range ("Led the 2019 - 2020 migration...")
+ *  keeps real words once the range and location are removed, so it stays a
+ *  bullet. */
+function isDateLine(text: string): boolean {
+  if (isBullet(text)) return false
+  const s = stripBullet(text).trim()
+  if (!s) return false
+  const m = RANGE_RE.exec(s)
+  if (!m) return false
+  const rest = s
+    .replace(m[0], ' ')
+    .replace(LOCATION_RE, ' ')
+    .replace(/[|,·•–—()-]/g, ' ')
+    .trim()
+  return rest.split(/\s+/).filter(Boolean).length <= 1
+}
+
 function makeIsHighlight(lines: Line[], g: LayoutGraph): (l: Line) => boolean {
   const leftX = sectionLeftX(lines)
   const indent = Math.max(4, g.bodySize * 0.5)
-  return (l: Line) => isBullet(l.text) || l.x > leftX + indent
+  return (l: Line) => !isDateLine(l.text) && (isBullet(l.text) || l.x > leftX + indent)
 }
 
 /**
