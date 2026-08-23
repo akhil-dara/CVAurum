@@ -1,6 +1,7 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { roleForElement } from './tagging'
 import { mainColumnTextFirst } from './readingOrder'
+import { keepFlagsForParagraph } from './widows'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
@@ -1407,12 +1408,21 @@ function pushOwnBoxBlock(
  *  `extractRuns` paints from. */
 function pushTextLineBlocks(node: Text, rootTop: number, out: PageBlock[]): void {
   if (!node.data || node.data.trim() === '') return
+  const lines: PageBlock[] = []
   for (const seg of textNodeLineSegments(node)) {
     const topPx = seg.rect.top - rootTop
     const bottomPx = seg.rect.bottom - rootTop
     if (bottomPx <= topPx) continue
-    out.push({ kind: 'line', topPx, bottomPx })
+    lines.push({ kind: 'line', topPx, bottomPx })
   }
+  // Widow/orphan control: a page break may not strand one line of a wrapped
+  // paragraph on its own (widows.ts). Expressed as keepWithNext so the rule
+  // survives combineColumns and applies to two-column resumes too.
+  const keep = keepFlagsForParagraph(lines.length)
+  lines.forEach((line, i) => {
+    if (keep[i]) line.keepWithNext = true
+    out.push(line)
+  })
 }
 
 /** Union `[topPx, bottomPx]` of every real text-line rect within `el`'s own
