@@ -69,6 +69,7 @@ import { PAGE_GAP_PX } from './PageChrome'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
+import { ColumnBalanceHint } from './ColumnBalanceHint'
 import { PageChromeOverlay } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
@@ -648,6 +649,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 invisible to it in every mode). Exact mode uses the hairline variant:
                 its canvas is CONTINUOUS print geometry, so the editor's tall paper
                 band would cover content near tight cuts (2026-08-17 spec 2). */}
+              {/* Two-column waste: the sidebar often runs out of content well
+                  before the main column, leaving an empty stripe (a whole
+                  column per page once the resume paginates). Edit chrome
+                  that points at it and moves a section across on click. */}
+              {!previewExact && <ColumnBalanceHint rootRef={innerRef} doc={doc} />}
+
               <PageChromeOverlay
                 separatorYs={pageSeparators}
                 badgeTops={pageBadgeTops}
