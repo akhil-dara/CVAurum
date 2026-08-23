@@ -219,6 +219,47 @@ function detectGutter(items: Item[], width: number): number | null {
       best = c
     }
   }
+  // FALLBACK - a full-width BAND above the columns. Many real resumes run a
+  // header, and often a summary, across the whole page before the two
+  // columns start. Every one of those lines crosses any candidate gutter, so
+  // the straddle cap above rejects the page outright: measured on a real
+  // two-column resume whose header and five-line summary spanned the width,
+  // 13% straddle against a 3% cap. The columns went undetected and every row
+  // merged left into right - its two section headings extracted as the
+  // single line "EDUCATION PROFESSIONAL EXPERIENCE", so the work section
+  // never opened and the whole job history was lost.
+  //
+  // Runs only when the strict scan found nothing, so documents that already
+  // detect cleanly are untouched. assignColumns already keeps a straddling
+  // line as col 0, so the band stays full-width once the gutter is accepted.
+  if (best == null) {
+    const floor = Math.max(10, items.length * 0.08)
+    let bestBelow = 0
+    for (let k = 0; k <= 19; k++) {
+      const c = width * (0.3 + k * 0.02)
+      // The band is everything above the DEEPEST item crossing this
+      // candidate; below it the page has to be cleanly two-column.
+      let bandBottom = 0
+      for (const it of items) {
+        if (it.x < c - 2 && it.x + it.width > c + 2) bandBottom = Math.max(bandBottom, it.top + it.height)
+      }
+      let left = 0
+      let right = 0
+      for (const it of items) {
+        if (it.top < bandBottom - 0.5) continue
+        if (it.x + it.width <= c) left++
+        else right++
+      }
+      if (left < floor || right < floor) continue
+      // Prefer the candidate leaving the LARGEST columnar region: a bogus
+      // gutter has to push the band further down to clear itself.
+      if (left + right > bestBelow) {
+        bestBelow = left + right
+        best = c
+      }
+    }
+  }
+
   // Centre the gutter in the empty band. The scan returns whichever
   // candidate first achieved the lowest straddle, which sits hard against
   // the sidebar's text — and then the ONE widest sidebar line straddles it,
