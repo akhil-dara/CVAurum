@@ -19,6 +19,22 @@
 export const MIN_PARAGRAPH_LINES = 2
 
 /**
+ * A paragraph of at most this many lines is never split at all.
+ *
+ * Two lines either side satisfies the typographic minimum, but on a
+ * two-column page it still allows a bullet to be torn in half at a page
+ * boundary - and because each page's text layer emits its main column then
+ * its sidebar, the ENTIRE sidebar then sits between the two halves when the
+ * PDF is copied or parsed: "...cutting manual" [30 lines of skills]
+ * "reporting effort by ~40%...". The column order is correct and has nowhere
+ * else to put the sidebar, so the fix is not to break the bullet.
+ *
+ * Bounded deliberately: refusing to split a LONG paragraph would strand whole
+ * pages, so anything above this keeps the two-lines-either-side rule.
+ */
+export const KEEP_WHOLE_MAX_LINES = 4
+
+/**
  * For a paragraph of `lineCount` visual lines, returns a flag per line:
  * `true` means a page break must NOT fall immediately after that line.
  *
@@ -27,11 +43,16 @@ export const MIN_PARAGRAPH_LINES = 2
  */
 export function keepFlagsForParagraph(lineCount: number, minLines = MIN_PARAGRAPH_LINES): boolean[] {
   const flags: boolean[] = []
+  const keepWhole = lineCount <= KEEP_WHOLE_MAX_LINES
   for (let i = 0; i < lineCount; i++) {
     const isLast = i === lineCount - 1
     const linesBefore = i + 1
     const linesAfter = lineCount - linesBefore
-    flags.push(isLast ? false : linesBefore < minLines || linesAfter < minLines)
+    if (isLast) {
+      flags.push(false)
+      continue
+    }
+    flags.push(keepWhole || linesBefore < minLines || linesAfter < minLines)
   }
   return flags
 }

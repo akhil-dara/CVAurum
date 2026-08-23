@@ -21,8 +21,19 @@ describe('keepFlagsForParagraph', () => {
     expect(legalCuts(keepFlagsForParagraph(3))).toEqual([])
   })
 
-  it('allows the middle cut of a four-line paragraph, leaving two lines each side', () => {
-    expect(legalCuts(keepFlagsForParagraph(4))).toEqual([1])
+  // Changed 2026-08-23. Two lines either side meets the typographic minimum,
+  // but this is precisely the split that was reported: a four-line bullet cut
+  // 2/2 at a page boundary, which on a two-column page put the ENTIRE sidebar
+  // between the halves in the copied text, because each page emits its main
+  // column then its sidebar. A bullet this short should move whole instead.
+  it('does NOT split a four-line paragraph — it fits a page on its own', () => {
+    expect(legalCuts(keepFlagsForParagraph(4))).toEqual([])
+  })
+
+  it('allows a FIVE-line paragraph to split, two lines either side', () => {
+    // Past the keep-whole bound the original rule takes over; refusing to
+    // split long paragraphs would strand whole pages.
+    expect(legalCuts(keepFlagsForParagraph(5))).toEqual([1, 2])
   })
 
   it('keeps at least two lines on both sides of any cut', () => {
@@ -104,5 +115,31 @@ describe('paginate honours the widow rule', () => {
       return above > 0 && below > 0 && (above < 2 || below < 2)
     })
     expect(stranded).toBe(true)
+  })
+})
+
+describe('keepFlagsForParagraph — a short paragraph is not split at all (2026-08-23)', () => {
+  // Reported against a real two-column export: a bullet was torn in half at a
+  // page boundary, so the ENTIRE sidebar sat between its two halves in the
+  // copied text - "...cutting manual" [30 lines of skills] "reporting effort
+  // by ~40%...". Per-page column order is right and cannot put the sidebar
+  // anywhere else, so the fix is not to break the bullet.
+  //
+  // Two lines either side satisfies the typographic minimum but still allows
+  // exactly that split. A paragraph short enough to fit a page on its own
+  // should move whole instead.
+  it('flags every line but the last, so a short paragraph can only break after it', () => {
+    expect(keepFlagsForParagraph(3)).toEqual([true, true, false])
+    expect(keepFlagsForParagraph(4)).toEqual([true, true, true, false])
+  })
+
+  it('still allows a LONG paragraph to split, with two lines either side', () => {
+    // Refusing to split a long paragraph would strand whole pages.
+    const flags = keepFlagsForParagraph(9)
+    expect(flags[0]).toBe(true)
+    expect(flags[1]).toBe(false)
+    expect(flags[6]).toBe(false)
+    expect(flags[7]).toBe(true)
+    expect(flags[8]).toBe(false)
   })
 })

@@ -79,16 +79,31 @@ export interface StructNode {
  * would come after it — a screen reader would read "Skills" before the
  * candidate's name, and PDF/UA-1 7.4.2 rejects it outright ("heading level 1
  * is skipped"). The structure tree exists precisely to state the logical
- * order independently of the visual one, so main-column content leads on
- * every page. Stable within each group and never across pages, so /Pg stays
- * correct.
+ * order independently of the visual one, so main-column content leads.
+ *
+ * That ordering spans the WHOLE DOCUMENT, not each page (2026-08-23). A
+ * page's content stream can only hold that page's own text, so a copied
+ * two-column PDF necessarily reads main-then-sidebar page by page - which
+ * drops the entire sidebar into the middle of a job's bullets, and reads as
+ * the experience section being interrupted. The structure tree has no such
+ * limit, and ordering it across pages does NOT disturb /Pg: every element
+ * names its own page individually. A structure-aware reader therefore gets
+ * the whole main column, then the whole sidebar.
+ *
+ * Naive extractors - most ATS, `pdftotext`, pdf.js's getTextContent - read
+ * the content stream and are unaffected; this is for readers that honour the
+ * tree, which is what the tagging exists for.
+ *
+ * Stable within each column, so each keeps its own page-then-paint order.
  */
 function readingOrder(marks: TaggedMark[]): TaggedMark[] {
-  const pages = [...new Set(marks.map((m) => m.pageIndex))].sort((a, b) => a - b)
-  return pages.flatMap((page) => {
-    const onPage = marks.filter((m) => m.pageIndex === page)
-    return [...onPage.filter((m) => m.column !== 'aside'), ...onPage.filter((m) => m.column === 'aside')]
-  })
+  const byPage = (a: TaggedMark, b: TaggedMark) => a.pageIndex - b.pageIndex
+  const stable = (list: TaggedMark[]) =>
+    list
+      .map((m, i) => ({ m, i }))
+      .sort((x, y) => byPage(x.m, y.m) || x.i - y.i)
+      .map((x) => x.m)
+  return [...stable(marks.filter((m) => m.column !== 'aside')), ...stable(marks.filter((m) => m.column === 'aside'))]
 }
 
 /**

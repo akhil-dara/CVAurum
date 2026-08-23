@@ -1605,6 +1605,29 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
     pushRowBlock(el, rootTop, out, false)
     return
   }
+  // Widow control has to see a PARAGRAPH, not the text nodes it is made of.
+  // A bullet carrying bold runs ("...cutting manual reporting effort by
+  // <b>~40%</b>...") arrives as several text nodes, each flagged on its own
+  // line count, so a four-line bullet could still be cut 2/2 - which on a
+  // two-column page put the ENTIRE sidebar between the halves in the copied
+  // text, since each page emits its main column and then its sidebar.
+  // Coalescing the paragraph's own lines first, then flagging across all of
+  // them, applies the rule to what the reader actually sees as one bullet.
+  if (el.tagName === 'P' || el.tagName === 'LI') {
+    const own: PageBlock[] = []
+    collectChildInk(el, rootTop, own)
+    const merged = coalesceSameLineBlocks(own)
+    const lineIdx: number[] = []
+    merged.forEach((b, i) => {
+      if (b.kind === 'line') lineIdx.push(i)
+    })
+    const keep = keepFlagsForParagraph(lineIdx.length)
+    lineIdx.forEach((bi, k) => {
+      if (keep[k]) merged[bi].keepWithNext = true
+    })
+    out.push(...merged)
+    return
+  }
   collectChildInk(el, rootTop, out)
 }
 

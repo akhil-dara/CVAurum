@@ -115,13 +115,55 @@ describe('buildStructure — logical reading order', () => {
     expect(tree.map((n) => n.mcids[0])).toEqual([1, 3, 0, 2])
   })
 
-  it('never reorders across pages, so every element keeps its own page', () => {
-    const tree = buildStructure([m('P', 0, 'aside', 0), m('P', 0, 'main', 1), m('P', 1, 'main', 0)])
-    expect(tree.map((n) => n.pageIndex)).toEqual([0, 0, 1])
+  // Changed 2026-08-23: the tree now orders by COLUMN across the whole
+  // document, not within each page. The invariant this test was guarding -
+  // that an element keeps its own page - never depended on tree order:
+  // every element names its own /Pg individually. Ordering across pages is
+  // what lets a structure-aware reader take the entire main column before
+  // the entire sidebar, instead of having the sidebar interrupt a job's
+  // bullets at every page boundary.
+  it('carries each element’s own page, whatever the tree order', () => {
+    const marks = [m('P', 0, 'aside', 0), m('P', 0, 'main', 1), m('P', 1, 'main', 0)]
+    const tree = buildStructure(marks)
+    // main column first, each column in page order; pages travel with them.
+    expect(tree.map((n) => `${n.pageIndex}:${n.mcids[0]}`)).toEqual(['0:1', '1:0', '0:0'])
   })
 
   it('leaves single-column documents exactly as painted', () => {
     const tree = buildStructure([m('H1', 0), m('H2', 1), m('P', 2)])
     expect(tree.map((n) => n.mcids[0])).toEqual([0, 1, 2])
+  })
+})
+
+describe('buildStructure — reading order spans pages (2026-08-23)', () => {
+  const mk = (role: TaggedMark['role'], mcid: number, column: 'main' | 'aside', pageIndex: number): TaggedMark => ({
+    pageIndex,
+    mcid,
+    role,
+    column,
+  })
+
+  // A page's CONTENT STREAM can only hold that page's own text, so a copied
+  // two-column PDF necessarily reads main-then-sidebar, page by page - which
+  // puts the whole sidebar in the middle of a job's bullets. The structure
+  // tree has no such limit: it states the logical order independently, and
+  // every element names its own page, so ordering it across pages keeps /Pg
+  // correct. A structure-aware reader then gets the entire main column, then
+  // the entire sidebar.
+  it('reads every page of the main column before any of the sidebar', () => {
+    const marks = [
+      mk('P', 0, 'main', 0),
+      mk('H2', 1, 'aside', 0),
+      mk('P', 2, 'main', 1),
+      mk('P', 3, 'aside', 1),
+    ]
+    const nodes = buildStructure(marks)
+    expect(nodes.map((n) => `${n.pageIndex}:${n.mcids[0]}`)).toEqual(['0:0', '1:2', '0:1', '1:3'])
+  })
+
+  it('keeps each column in page order', () => {
+    const marks = [mk('P', 5, 'aside', 1), mk('P', 4, 'aside', 0), mk('P', 1, 'main', 1), mk('P', 0, 'main', 0)]
+    const nodes = buildStructure(marks)
+    expect(nodes.map((n) => n.mcids[0])).toEqual([0, 1, 4, 5])
   })
 })
