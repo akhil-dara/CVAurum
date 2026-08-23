@@ -647,19 +647,6 @@
   justify-content: space-between;
   gap: 12px;
 }
-/* In a sidebar the date must sit UNDER the title, not beside it. Side by
-   side it claimed roughly a third of an already narrow column and squeezed
-   the title to one word per line - "Microsoft / Certified: / Power BI / Data
-   / Analyst / Associate / (PL-300)" against a floated "Sep 2014"
-   (2026-08-23 user report). The main column is untouched: it has the width
-   for a right-aligned date, and that alignment is the point there. */
-.rm-col-aside .rm-item-head {
-  display: block;
-}
-.rm-col-aside .rm-item-head > .rm-item-date {
-  display: block;
-  margin-top: 0.1em;
-}
 .rm-item-title {
   font-weight: 700;
   font-size: calc(var(--rm-fs) * 1.05);
