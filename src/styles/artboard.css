@@ -68,17 +68,26 @@
 .rm-body:not(.rm-single) {
   --rm-gutter: calc(var(--rm-pad) * 0.8);
 }
-.side-left .rm-col-aside {
-  padding-right: calc(var(--rm-gutter) / 2);
+/* Scoped to TWO-COLUMN bodies only. The .side-* class lives on .rm-root and
+   is present even for single-column templates, so an unscoped rule here fed
+   an UNDEFINED --rm-gutter into calc(), which makes the declaration invalid
+   at computed-value time — padding-left then resolves to its initial 0 and a
+   single-column resume loses its entire left page margin (user-reported
+   2026-08-19; the pixel gates could not see it, because they compare our PDF
+   against the DOM and BOTH lost the margin together). The var() fallback is
+   belt and braces: even a future rule that escapes this scope still gets a
+   real length instead of zero. */
+.side-left .rm-body:not(.rm-single) > .rm-col-aside {
+  padding-right: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
-.side-left .rm-col-main {
-  padding-left: calc(var(--rm-gutter) / 2);
+.side-left .rm-body:not(.rm-single) > .rm-col-main {
+  padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
-.side-right .rm-col-aside {
-  padding-left: calc(var(--rm-gutter) / 2);
+.side-right .rm-body:not(.rm-single) > .rm-col-aside {
+  padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
-.side-right .rm-col-main {
-  padding-right: calc(var(--rm-gutter) / 2);
+.side-right .rm-body:not(.rm-single) > .rm-col-main {
+  padding-right: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
 .rm-col-aside {
   flex: 0 0 var(--rm-aside-w, 34%);
