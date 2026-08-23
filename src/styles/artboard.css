@@ -58,6 +58,28 @@
   min-width: 0;
   padding: var(--rm-pad);
 }
+/* Two-column gutter (2026-08-19). Both columns used to apply the FULL page
+   margin on their INNER edges, so the space between the two text blocks was
+   twice the page margin — measured at 98px against a 49px margin, while a
+   reference two-column résumé runs ~40px. That stole width from the narrow
+   sidebar (37% of its column went to padding, leaving skills to wrap after a
+   word or two) and read as a hole down the middle of the page. The inner
+   edges now share ONE gutter instead; outer edges keep the page margin. */
+.rm-body:not(.rm-single) {
+  --rm-gutter: calc(var(--rm-pad) * 0.8);
+}
+.side-left .rm-col-aside {
+  padding-right: calc(var(--rm-gutter) / 2);
+}
+.side-left .rm-col-main {
+  padding-left: calc(var(--rm-gutter) / 2);
+}
+.side-right .rm-col-aside {
+  padding-left: calc(var(--rm-gutter) / 2);
+}
+.side-right .rm-col-main {
+  padding-right: calc(var(--rm-gutter) / 2);
+}
 .rm-col-aside {
   flex: 0 0 var(--rm-aside-w, 34%);
   min-width: 0; /* never let content force the column (and page) wider */
@@ -133,10 +155,19 @@
   object-position: center;
   background: color-mix(in srgb, var(--rm-muted) 18%, #e5e7eb);
 }
-.rm-photo.circle { border-radius: 9999px; }
-.rm-photo.rounded { border-radius: 0.85em; }
-.rm-photo.square { border-radius: 0; }
-.rm-photo.diamond { border-radius: 0; transform: none; }
+.rm-photo.circle {
+  border-radius: 9999px;
+}
+.rm-photo.rounded {
+  border-radius: 0.85em;
+}
+.rm-photo.square {
+  border-radius: 0;
+}
+.rm-photo.diamond {
+  border-radius: 0;
+  transform: none;
+}
 
 /* Monogram: initials in a colored badge (photo alternative). */
 .rm-monogram {
@@ -155,13 +186,27 @@
   /* scale initials to the badge size */
   font-size: calc(var(--rm-photo-size, 7.6em) * 0.26);
 }
-.rm-monogram.circle { border-radius: 9999px; }
-.rm-monogram.rounded { border-radius: 0.85em; }
-.rm-monogram.square { border-radius: 0; }
-.rm-monogram.diamond { border-radius: 0.6em; transform: rotate(45deg); }
-.rm-monogram.diamond > span { transform: rotate(-45deg); }
+.rm-monogram.circle {
+  border-radius: 9999px;
+}
+.rm-monogram.rounded {
+  border-radius: 0.85em;
+}
+.rm-monogram.square {
+  border-radius: 0;
+}
+.rm-monogram.diamond {
+  border-radius: 0.6em;
+  transform: rotate(45deg);
+}
+.rm-monogram.diamond > span {
+  transform: rotate(-45deg);
+}
 /* a diamond's rotated corners overflow its box (~0.2× each side), so reserve room */
-.rm-monogram.diamond { margin-bottom: 1em; margin-top: 0.6em; }
+.rm-monogram.diamond {
+  margin-bottom: 1em;
+  margin-top: 0.6em;
+}
 /* On a colored sidebar, the monogram inverts (light badge, dark initials) and
    sits with clear breathing room above the first section. */
 .rm-col-aside .rm-monogram {
@@ -212,7 +257,10 @@
   letter-spacing: 0.04em;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
   z-index: 6;
 }
 /* narrow sidebar columns: a compact pill floats clear ABOVE the title line —
@@ -267,7 +315,10 @@
   color: var(--rm-muted);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
 }
 .rm-section-hide svg {
   width: 1em;
@@ -329,7 +380,9 @@
   cursor: pointer;
   opacity: 0;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 .rm-visual-wrap:hover .rm-visual-hide {
   opacity: 1;
@@ -517,13 +570,28 @@
 
 /* rich text */
 .rm-rich p,
-.rm-rich div { margin: 0 0 0.25em; }
+.rm-rich div {
+  margin: 0 0 0.25em;
+}
 .rm-rich p:last-child,
-.rm-rich div:last-child { margin-bottom: 0; }
-.rm-rich strong { font-weight: 700; }
-.rm-rich em { font-style: italic; }
-.rm-rich ul { margin: 0.16em 0; padding-left: 1.1em; }
-.rm-rich a { color: var(--rm-primary); text-decoration: underline; text-underline-offset: 2px; }
+.rm-rich div:last-child {
+  margin-bottom: 0;
+}
+.rm-rich strong {
+  font-weight: 700;
+}
+.rm-rich em {
+  font-style: italic;
+}
+.rm-rich ul {
+  margin: 0.16em 0;
+  padding-left: 1.1em;
+}
+.rm-rich a {
+  color: var(--rm-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* bullets */
 .rm-bullets {
@@ -545,11 +613,26 @@
 }
 
 /* skills */
-.rm-skill-group { margin-bottom: 0.45em; position: relative; }
-.rm-skill-group:last-child { margin-bottom: 0; }
-.rm-skill-group-name { font-weight: 700; color: var(--rm-text); }
-.rm-skill-inline { color: var(--rm-muted); }
-.rm-chips { display: flex; flex-wrap: wrap; gap: 0.38em; margin-top: 0.22em; }
+.rm-skill-group {
+  margin-bottom: 0.45em;
+  position: relative;
+}
+.rm-skill-group:last-child {
+  margin-bottom: 0;
+}
+.rm-skill-group-name {
+  font-weight: 700;
+  color: var(--rm-text);
+}
+.rm-skill-inline {
+  color: var(--rm-muted);
+}
+.rm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38em;
+  margin-top: 0.22em;
+}
 .rm-chip {
   background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
   color: var(--rm-primary);
@@ -585,7 +668,11 @@
    align-items:flex-start (not center) because the label can now be several
    lines tall — centering against the whole block would float the meter well
    below where the eye expects it, beside the first line of text. */
-.rm-level { display: flex; align-items: flex-start; gap: 8px; }
+.rm-level {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
 /* Meter-row labels (.rm-mini-title in Languages, .rm-skill-group-name in
    Skills). flex-grow stays 0 — NOT flex:1 1 auto (tried first; flex-grow:1
    stretches the label across the ENTIRE row in a wide main-column context
@@ -620,9 +707,21 @@
    margin-top nudge from the row's flex-start baseline (tuned by eye per
    meter: each renders at a different natural height against the same
    1.4-line-height text row). */
-.rm-dots { display: inline-flex; gap: 3px; flex-shrink: 0; margin-top: calc((1em * var(--rm-lh, 1.4) - 7px) / 2); }
-.rm-dot { width: 7px; height: 7px; border-radius: 9999px; background: color-mix(in srgb, currentColor 22%, transparent); }
-.rm-dot.on { background: var(--rm-primary); }
+.rm-dots {
+  display: inline-flex;
+  gap: 3px;
+  flex-shrink: 0;
+  margin-top: calc((1em * var(--rm-lh, 1.4) - 7px) / 2);
+}
+.rm-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+.rm-dot.on {
+  background: var(--rm-primary);
+}
 .rm-stars {
   display: inline-flex;
   gap: 1px;
@@ -631,8 +730,12 @@
   flex-shrink: 0;
   margin-top: calc((1em * var(--rm-lh, 1.4) / 1.05 - 1em) / 2);
 }
-.rm-star { color: color-mix(in srgb, currentColor 24%, transparent); }
-.rm-star.on { color: var(--rm-primary); }
+.rm-star {
+  color: color-mix(in srgb, currentColor 24%, transparent);
+}
+.rm-star.on {
+  color: var(--rm-primary);
+}
 /* Capped, not flex:1 — a bar meter is a compact scale marker beside the label,
    same footprint class as the dot/star meters above, not a divider that
    stretches to fill whatever room the row has (was rendering full-row-wide).
@@ -647,34 +750,64 @@
   position: relative;
   margin-top: calc((1em * var(--rm-lh, 1.4) - 4px) / 2);
 }
-.rm-level-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--rm-primary); border-radius: inherit; }
+.rm-level-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--rm-primary);
+  border-radius: inherit;
+}
 /* keep meters legible on dark sidebars */
 .rm-col-aside .rm-dot.on,
-.rm-col-aside .rm-level-fill { background: currentColor; }
-.rm-col-aside .rm-star.on { color: currentColor; }
+.rm-col-aside .rm-level-fill {
+  background: currentColor;
+}
+.rm-col-aside .rm-star.on {
+  color: currentColor;
+}
 
 /* two-line entries used by aside lists */
-.rm-mini { margin-bottom: var(--rm-item-gap); position: relative; }
-.rm-mini:last-child { margin-bottom: 0; }
-.rm-mini-title { font-weight: 600; }
-.rm-mini-sub { color: var(--rm-muted); font-size: calc(var(--rm-fs) * 0.92); }
+.rm-mini {
+  margin-bottom: var(--rm-item-gap);
+  position: relative;
+}
+.rm-mini:last-child {
+  margin-bottom: 0;
+}
+.rm-mini-title {
+  font-weight: 600;
+}
+.rm-mini-sub {
+  color: var(--rm-muted);
+  font-size: calc(var(--rm-fs) * 0.92);
+}
 
 /* aside variant: lighten rules/headers against dark sidebar */
-.rm-col-aside .rm-section-title { color: inherit; border-color: color-mix(in srgb, currentColor 35%, transparent); }
+.rm-col-aside .rm-section-title {
+  color: inherit;
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+}
 .rm-col-aside .rm-item-title,
 .rm-col-aside .rm-item-org,
 .rm-col-aside .rm-skill-group-name,
-.rm-col-aside .rm-mini-title { color: inherit; }
+.rm-col-aside .rm-mini-title {
+  color: inherit;
+}
 .rm-col-aside .rm-item-sub,
 .rm-col-aside .rm-item-date,
 .rm-col-aside .rm-mini-sub,
-.rm-col-aside .rm-skill-inline { color: color-mix(in srgb, currentColor 75%, transparent); }
+.rm-col-aside .rm-skill-inline {
+  color: color-mix(in srgb, currentColor 75%, transparent);
+}
 .rm-col-aside .rm-chip {
   background: color-mix(in srgb, currentColor 22%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   color: inherit;
 }
-.rm-col-aside .rm-bullets li::marker { color: currentColor; }
+.rm-col-aside .rm-bullets li::marker {
+  color: currentColor;
+}
 
 /* ============================================ header variants */
 .rm-header-centered {
@@ -889,7 +1022,10 @@
   border-radius: 9999px;
   padding: 0;
   opacity: 0.55;
-  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
 }
 .mode-preview .rm-chip-edit:hover .rm-chip-del,
 .rm-chip-del:focus-visible {
@@ -924,7 +1060,9 @@
   background: color-mix(in srgb, var(--rm-primary) 6%, transparent);
   cursor: pointer;
   opacity: 0.75;
-  transition: opacity 0.12s ease, background 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease;
 }
 .mode-preview .rm-add-section:hover {
   opacity: 1;
@@ -955,7 +1093,11 @@
   background: var(--rm-bg);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease,
+    border-color 0.12s ease;
   z-index: 5;
 }
 .mode-preview .rm-item-del svg {
@@ -1015,7 +1157,9 @@
   cursor: text;
   border-radius: 2px;
   min-width: 8px;
-  transition: box-shadow 0.12s ease, background 0.12s ease;
+  transition:
+    box-shadow 0.12s ease,
+    background 0.12s ease;
 }
 .mode-preview .rm-editable:hover {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 38%, transparent);
@@ -1040,7 +1184,9 @@
  * pagination and the printed/exported output are unaffected. */
 .mode-preview .rm-item {
   border-radius: 4px;
-  transition: box-shadow 0.12s ease, background 0.12s ease;
+  transition:
+    box-shadow 0.12s ease,
+    background 0.12s ease;
 }
 .mode-preview .rm-item:hover {
   background: color-mix(in srgb, var(--rm-primary) 7%, transparent);
@@ -1050,7 +1196,9 @@
  * inside it (then the entry ring above takes over). */
 .mode-preview .rm-section {
   border-radius: 6px;
-  transition: box-shadow 0.12s ease, background 0.12s ease;
+  transition:
+    box-shadow 0.12s ease,
+    background 0.12s ease;
 }
 .mode-preview .rm-section:hover {
   box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rm-primary) 22%, transparent);
@@ -1192,7 +1340,9 @@
 /* Focus (zen) mode — dim everything except the section under the cursor.
    Edit canvas only; print/preview renders never carry the class. */
 .focus-mode .rm-section {
-  transition: opacity 0.25s ease, filter 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    filter 0.25s ease;
 }
 .focus-mode .rm-root:not(:has(.rm-section:hover)) .rm-section {
   opacity: 1; /* nothing hovered: show all */

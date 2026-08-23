@@ -16,6 +16,7 @@ import {
 } from './paint'
 import { PdfFontCache } from './fonts'
 import { createTagSink } from './structure'
+import { clampChromeOpToPage } from './paint'
 import { pxToPt, ptToPx, flipY } from './units'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 
@@ -1715,5 +1716,59 @@ describe('paintOps — tagged PDF marked content', () => {
       { pageIndex: 0, mcid: 0, role: 'P' },
       { pageIndex: 1, mcid: 0, role: 'P' },
     ])
+  })
+})
+
+describe('clampChromeOpToPage — chrome gradients continue across pages', () => {
+  const band = (over: Partial<Extract<DrawOp, { kind: 'rect' }>> = {}): DrawOp => ({
+    kind: 'rect',
+    xPx: 0,
+    yPx: 0,
+    wPx: 278,
+    hPx: 2400, // a full-document sidebar band
+    fillGradient: {
+      angleDeg: 180,
+      stops: [
+        { r: 1, g: 0, b: 0, a: 1 },
+        { r: 0, g: 0, b: 1, a: 1 },
+      ],
+    },
+    pageChrome: true,
+    ...over,
+  })
+
+  it('clamps the painted rect to the page, as before', () => {
+    const out = clampChromeOpToPage(band(), 1123, 0)
+    expect(out).toMatchObject({ kind: 'rect', yPx: 0, hPx: 1123 })
+  })
+
+  it('keeps the gradient box spanning the whole document on page 1', () => {
+    const out = clampChromeOpToPage(band(), 1123, 0)
+    expect(out.kind === 'rect' && out.gradientBoxPx).toEqual({ yPx: 0, hPx: 2400 })
+  })
+
+  it('shifts the gradient box UP on later pages so the ramp continues', () => {
+    // Page 3 of a document whose band top is 2000px: the gradient started
+    // 2000px above this page, so its box begins at -2000 in page space.
+    const out = clampChromeOpToPage(band(), 1123, 2000)
+    expect(out.kind === 'rect' && out.gradientBoxPx).toEqual({ yPx: -2000, hPx: 2400 })
+  })
+
+  it('leaves a plain-fill chrome band untouched (no gradient box invented)', () => {
+    const out = clampChromeOpToPage(band({ fillGradient: undefined, fill: { r: 0, g: 0, b: 0, a: 1 } }), 1123, 900)
+    expect(out.kind === 'rect' && out.gradientBoxPx).toBeUndefined()
+  })
+
+  it('passes non-rect chrome ops straight through', () => {
+    const line: DrawOp = {
+      kind: 'line',
+      x1Px: 0,
+      y1Px: 0,
+      x2Px: 10,
+      y2Px: 0,
+      widthPx: 1,
+      color: { r: 0, g: 0, b: 0, a: 1 },
+    }
+    expect(clampChromeOpToPage(line, 1123, 500)).toBe(line)
   })
 })

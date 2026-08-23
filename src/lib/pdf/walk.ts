@@ -1,5 +1,6 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { roleForElement } from './tagging'
+import { mainColumnTextFirst } from './readingOrder'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
@@ -1144,7 +1145,11 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
   }
   closeUpTo(null)
   tagPageChromeOps(ops, boxOf(root, root).hPx)
-  return ops
+  // Two-column layouts: put the main column's text ahead of the sidebar's in
+  // the TEXT LAYER, which is what an ATS reads (readingOrder.ts). Purely a
+  // reordering of text ops — no glyph moves, and single-column documents get
+  // the identical array back.
+  return mainColumnTextFirst(ops)
 }
 
 /**

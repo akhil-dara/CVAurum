@@ -234,16 +234,22 @@ function fillGradientRect(
   wPt: number,
   hPt: number,
   radiiPt: CornerRadii,
-  gradient: LinearGradient
+  gradient: LinearGradient,
+  /** Gradient extent in the SAME local space as the rect (top relative to the
+   *  rect's own top, so a negative top means the gradient began on an earlier
+   *  page). Defaults to the rect itself. */
+  gradBoxPt?: { topPt: number; hPt: number }
 ): void {
   const angleRad = (gradient.angleDeg * Math.PI) / 180
   // CSS: direction = (sin A, -cos A) in a y-down space (0deg = "to top" = -y).
   const dx = Math.sin(angleRad)
   const dy = -Math.cos(angleRad)
   // CSS spec formula for the gradient line's length within a W x H box.
-  const lineLen = Math.abs(wPt * dx) + Math.abs(hPt * dy)
+  const gradTopPt = gradBoxPt ? gradBoxPt.topPt : 0
+  const gradHPt = gradBoxPt ? gradBoxPt.hPt : hPt
+  const lineLen = Math.abs(wPt * dx) + Math.abs(gradHPt * dy)
   const cx = wPt / 2
-  const cy = hPt / 2
+  const cy = gradTopPt + gradHPt / 2
   const half = lineLen / 2
   const coords: [number, number, number, number] = [cx - half * dx, cy - half * dy, cx + half * dx, cy + half * dy]
 
@@ -879,7 +885,10 @@ export async function paintOps(
               pxToPt(op.wPx),
               pxToPt(op.hPx),
               radiiToPt(radii),
-              op.fillGradient
+              op.fillGradient,
+              op.gradientBoxPx
+                ? { topPt: pxToPt(op.gradientBoxPx.yPx - op.yPx), hPt: pxToPt(op.gradientBoxPx.hPx) }
+                : undefined
             )
           }
           break
@@ -1182,9 +1191,14 @@ function cropOpToBand(op: Extract<DrawOp, { kind: 'rect' | 'line' }>, bandTopPx:
  *  any other kind is returned unchanged as a safe no-op fallback rather than
  *  a crash, since there is no "full page height" concept for a line/image/
  *  svg/text op. */
-function clampChromeOpToPage(op: DrawOp, pageHeightPx: number): DrawOp {
+export function clampChromeOpToPage(op: DrawOp, pageHeightPx: number, docYAtPageTopPx = 0): DrawOp {
   if (op.kind !== 'rect') return op
-  return { ...op, yPx: 0, hPx: pageHeightPx }
+  const clamped: DrawOp = { ...op, yPx: 0, hPx: pageHeightPx }
+  if (!op.fillGradient) return clamped
+  // The band is redrawn per page, but its gradient belongs to the whole
+  // document: remember where the original rect sat relative to THIS page's
+  // top so the shading continues instead of restarting (2026-08-19).
+  return { ...clamped, gradientBoxPx: { yPx: op.yPx - docYAtPageTopPx, hPx: op.hPx } }
 }
 
 /**
@@ -1254,7 +1268,11 @@ export function assignOpsToPages(
 
   for (const op of ops) {
     if (op.pageChrome) {
-      for (const page of pages) page.push(clampChromeOpToPage(op, pageHeightPx))
+      // Page i shows document y starting at its own band top (page 1 starts
+      // at 0); that offset is what keeps a chrome gradient continuous.
+      pages.forEach((pageOps, i) =>
+        pageOps.push(clampChromeOpToPage(op, pageHeightPx, i === 0 ? 0 : bandTops[i] - pageTopPaddingPx))
+      )
       continue
     }
 

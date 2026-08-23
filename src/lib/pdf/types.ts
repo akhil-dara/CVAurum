@@ -136,6 +136,15 @@ export type DrawOp = DrawOpChrome &
         radiusPx?: number
         radii?: CornerRadii
         fillGradient?: LinearGradient
+        /**
+         * Where the GRADIENT's own box lives, when it differs from the rect
+         * being painted. Page chrome (a full-height sidebar band) is clamped
+         * to each page, but its gradient must keep running across the whole
+         * DOCUMENT: without this the shading restarts on every page and page
+         * 3 of a 3-page resume paints the gradient's start colour where the
+         * layout has its end colour. Same coordinate space as the rect.
+         */
+        gradientBoxPx?: { yPx: number; hPx: number }
       }
     | {
         kind: 'line'
