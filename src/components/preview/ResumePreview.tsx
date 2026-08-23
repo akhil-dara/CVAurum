@@ -294,12 +294,36 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         })
       }
       if (cancelled || myReq !== fitReq.current) return
-      const result = await fitOnePageScale(pageH, async (sc) => {
-        if (cancelled || myReq !== fitReq.current || !measureRef.current) return Number.POSITIVE_INFINITY
-        setMeasureScale(sc)
-        await raf2()
-        return measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
-      })
+      const result = await fitOnePageScale(
+        pageH,
+        async (sc) => {
+          if (cancelled || myReq !== fitReq.current || !measureRef.current) return Number.POSITIVE_INFINITY
+          setMeasureScale(sc)
+          await raf2()
+          return measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+        },
+        pageH - doc.metadata.page.margin * MM_TO_PX * 2,
+        // The TRUE page count at the scale just rendered, from the same
+        // print-measure portal and budgets the export uses. Without this the
+        // preview would pick its scale from a height estimate while the
+        // export picks from real pagination, and the two would disagree on
+        // the page count for exactly the documents auto-fit cannot fit.
+        async () => {
+          const printRoot = measureRef.current?.querySelector<HTMLElement>('.rm-root')
+          if (!printRoot) return Number.POSITIVE_INFINITY
+          try {
+            const pad = findMainColumnPaddingPx(printRoot)
+            return paginate({
+              blocks: extractPageBlocks(printRoot),
+              contentHeightPx: printRoot.getBoundingClientRect().height,
+              usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
+              firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
+            }).pageCount
+          } catch {
+            return Number.POSITIVE_INFINITY
+          }
+        }
+      )
       if (cancelled || myReq !== fitReq.current) return
       setMeasureScale(result)
       setFitScale(result)

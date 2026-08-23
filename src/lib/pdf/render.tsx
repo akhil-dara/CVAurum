@@ -43,6 +43,8 @@ declare global {
      *  computes itself via `extractPageBlocks` + `paginate` on the preview's
      *  measure portal — the WYSIWYG parity guarantee (spec section 7). */
     __cvaLastPaginationCuts?: number[]
+    /** DEV: the scale auto-fit settled on for the last export. */
+    __cvaLastFitScale?: number
   }
 }
 
@@ -237,22 +239,53 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     await raf2()
 
     if (doc.metadata.page.autoFit) {
-      await fitOnePageScale(pageHpx, async (scale) => {
-        root.render(<TemplateRenderer doc={doc} mode="print" fitScale={scale} />)
-        await raf2()
-        return container.scrollHeight
+      const marginPx = doc.metadata.page.margin * MM_TO_PX
+      await fitOnePageScale(
+        pageHpx,
+        async (scale) => {
+          root.render(<TemplateRenderer doc={doc} mode="print" fitScale={scale} />)
+          await raf2()
+          return container.scrollHeight
+        },
+        pageHpx - marginPx * 2,
+        async () => {
+          // TRUE page count at whatever scale was just rendered — the same
+          // blocks, budgets and paginator the export itself uses below, so
+          // the scale search can never be fooled by a height estimate.
+          const el = container.firstElementChild as HTMLElement | null
+          if (!el) return Number.POSITIVE_INFINITY
+          try {
+            const pad = findMainColumnPaddingPx(el)
+            return paginate({
+              blocks: extractPageBlocks(el),
+              contentHeightPx: el.getBoundingClientRect().height,
+              usablePageHeightPx: computeUsablePageHeightPx(pageHpx, pad),
+              firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, pad),
+            }).pageCount
+          } catch {
+            return Number.POSITIVE_INFINITY // no legal break here — never prefer this scale
+          }
+        }
+      ).then((scale) => {
+        // DEV instrumentation, same discipline as __cvaLastPaginationCuts:
+        // harnesses need to see WHICH scale auto-fit settled on, not just the
+        // page count it produced.
+        if (import.meta.env.DEV) window.__cvaLastFitScale = scale
+        return scale
       })
       await raf2()
-      // Auto-fit is a ONE-PAGE promise. When even the smallest fit scale
-      // cannot keep that promise, unshrunken multi-page output is strictly
-      // better than shrunken print-dialog output (user request 2026-08-17 —
-      // this used to throw PdfMultiPageUnsupportedError here and silently
-      // fall back to print): re-render at natural scale and paginate
-      // natively, identical to auto-fit OFF.
-      if (exceedsOnePage(container.scrollHeight, pageHpx, doc.metadata.page.margin)) {
-        root.render(<TemplateRenderer doc={doc} mode="print" />)
-        await raf2()
-      }
+      // The scale fitOnePageScale chose is KEPT, even when one page proved
+      // impossible. It used to re-render at natural size here, on the
+      // reasoning that unshrunken multi-page output beat shrunken
+      // print-dialog output — but the print fallback is long gone, and
+      // throwing the shrink away created a cliff: measured on a real resume,
+      // two extra work entries still fitted one page and a third produced
+      // THREE, last page 28% full (2026-08-23 user report). fitOnePageScale
+      // now falls back to the fewest pages the legibility floor allows, so
+      // that same document lands on two. Keeping the scale also makes the
+      // export agree with the preview, which never re-rendered at natural
+      // size — for auto-fit documents that overflow, the two used to
+      // disagree on the page count outright.
     }
 
     // Same tolerance PrintPage uses: trailing whitespace/rounding within the
