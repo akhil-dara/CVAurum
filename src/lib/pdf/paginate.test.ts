@@ -651,3 +651,41 @@ describe('chooseCut last resort: no ink may straddle the paper edge', () => {
     expect(cutsPx[0]).toBe(1100)
   })
 })
+
+describe('combineColumns — a heading flag must survive the merge (2026-08-23)', () => {
+  // Measured on a real two-column export: the aside's own block list carried
+  // a skill-group name with keepWithNext and the COMBINED list came back
+  // without it, so the cut chooser saw nothing to protect and ended the page
+  // on the group name with its keywords overleaf.
+  //
+  // The discriminator is the main column inking slightly PAST the aside's
+  // label. Merging overwrote the whole run's flag from that last sliver,
+  // where only the main column has ink and therefore only its "no" was
+  // heard - although the aside had not moved on to anything, it was simply
+  // in the gap between the label and its chips.
+  it('keeps the flag when only the OTHER column inks past the label', () => {
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 1000, bottomPx: 1016 },
+      { kind: 'line', topPx: 1020, bottomPx: 1100 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 1000, bottomPx: 1015, keepWithNext: true },
+      { kind: 'atomic', topPx: 1020, bottomPx: 1080 },
+    ]
+    const owner = combineColumns([main, aside]).find((b) => b.topPx <= 1005 && b.bottomPx >= 1015)
+    expect(owner).toBeDefined()
+    expect(owner!.keepWithNext).toBe(true)
+  })
+
+  it('releases the flag once the label’s OWN column moves on to content', () => {
+    // The existing last-contributing-span rule must still hold: a heading
+    // does not veto a later, unrelated gap once its own column has content.
+    const main: PageBlock[] = [{ kind: 'line', topPx: 1000, bottomPx: 1100 }]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 1000, bottomPx: 1015, keepWithNext: true },
+      { kind: 'atomic', topPx: 1020, bottomPx: 1100 },
+    ]
+    const owner = combineColumns([main, aside]).find((b) => b.bottomPx >= 1100)
+    expect(owner!.keepWithNext).toBeUndefined()
+  })
+})

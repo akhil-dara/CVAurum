@@ -527,6 +527,9 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
     ink: boolean
     tier?: Tier
     keepWithNext: boolean
+    /** Per column: true/false when that column has INK here, undefined when
+     *  it has none and therefore no opinion to contribute. */
+    keepByCol: (boolean | undefined)[]
   }
   const elementary: Elementary[] = []
   for (let i = 0; i < breakpoints.length - 1; i++) {
@@ -537,6 +540,7 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
     let ink = false
     let keepWithNext = false
     const gapTiers: Tier[] = []
+    const keepByCol: (boolean | undefined)[] = spansByColumn.map(() => undefined)
     for (let ci = 0; ci < spansByColumn.length; ci++) {
       const range = colRanges[ci]
       if (mid < range.top || mid > range.bottom) continue // out of this column's own range: no opinion
@@ -544,12 +548,13 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
       if (!span) continue
       if (span.ink) {
         ink = true
+        keepByCol[ci] = span.keepWithNext === true
         if (span.keepWithNext) keepWithNext = true
       } else if (span.tier) {
         gapTiers.push(span.tier)
       }
     }
-    elementary.push({ topPx: a, bottomPx: b, ink, tier: ink ? undefined : combineTiers(gapTiers), keepWithNext })
+    elementary.push({ topPx: a, bottomPx: b, ink, tier: ink ? undefined : combineTiers(gapTiers), keepWithNext, keepByCol })
   }
 
   // Runs track `ink` as an explicit boolean, never inferred from a `kind`/
@@ -565,18 +570,31 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
     keepWithNext: boolean
   }
   const runs: Run[] = []
+  let opinions: (boolean | undefined)[] = []
   for (const e of elementary) {
     const last = runs[runs.length - 1]
     const sameRun = last && last.bottomPx === e.topPx && last.ink === e.ink && (e.ink || last.tier === e.tier)
     if (sameRun) {
       last!.bottomPx = e.bottomPx
-      // Last-contributing-span-per-column (fix round HIGH fix): OVERWRITE,
-      // never OR — only the micro-interval immediately touching the run's
-      // trailing edge decides the run's final keepWithNext.
-      if (e.ink) last!.keepWithNext = e.keepWithNext
+      // Last-contributing-span-per-column: a column that has INK here states
+      // its answer and replaces its previous one; a column with NO ink here
+      // has no answer to give and must leave its previous one standing.
+      //
+      // Overwriting the run's whole flag from this interval instead lost a
+      // heading's veto the moment the OTHER column happened to still be
+      // inking — measured, a skill group's name kept its keepWithNext in the
+      // aside's own block list and arrived in the combined list without it,
+      // so a page ended on the group name with its keywords overleaf.
+      if (e.ink) {
+        e.keepByCol.forEach((v, ci) => {
+          if (v !== undefined) opinions[ci] = v
+        })
+        last!.keepWithNext = opinions.some((v) => v === true)
+      }
       continue
     }
-    runs.push({ ...e })
+    opinions = [...e.keepByCol]
+    runs.push({ ...e, keepWithNext: e.ink ? opinions.some((v) => v === true) : e.keepWithNext })
   }
 
   const blocks: PageBlock[] = []

@@ -1265,7 +1265,18 @@ export function extractPageBlocks(root: HTMLElement): PageBlock[] {
   }
 
   const main = findByClass(root, ['rm-col-main'])[0] ?? root
-  const combined = combineColumns([extractBlocksFromScope(main, rootTop), extractBlocksFromScope(aside, rootTop)])
+  const mainBlocks = extractBlocksFromScope(main, rootTop)
+  const asideBlocks = extractBlocksFromScope(aside, rootTop)
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    // Diagnosis only: a stranded heading needs the PRE-combine blocks to tell
+    // a flag that combineColumns lost from one that was never set. Guarded on
+    // `window` because the unit suite runs this extractor under node.
+    ;(window as unknown as { __cvaLastColumnBlocks?: unknown }).__cvaLastColumnBlocks = {
+      main: mainBlocks.map((b) => ({ ...b })),
+      aside: asideBlocks.map((b) => ({ ...b })),
+    }
+  }
+  const combined = combineColumns([mainBlocks, asideBlocks])
   if (import.meta.env.DEV) sanityCheckPageBlocks(combined)
   return combined
 }
