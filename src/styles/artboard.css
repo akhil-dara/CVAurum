@@ -83,6 +83,16 @@
 .side-left .rm-body:not(.rm-single) > .rm-col-main {
   padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
+/* Templates with icon chips HANG the icon in the column's left margin so the
+   heading text keeps one clean left edge (see .rm-icons below). On a
+   left-sidebar layout that margin is the narrow inner gutter, so the icon
+   reached past the column and sat half on the sidebar band — measured at 6-7px
+   of spill on creative/portrait after the gutter was tightened (2026-08-23
+   user report). The inner padding now reserves at least the icon's own width,
+   and stays the gutter value whenever that is already wider. */
+.rm-icons.side-left .rm-body:not(.rm-single) > .rm-col-main {
+  padding-left: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), 2.8em);
+}
 .side-right .rm-body:not(.rm-single) > .rm-col-aside {
   padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
@@ -363,6 +373,34 @@
 }
 .mode-preview .rm-section-hide:disabled,
 .mode-preview .rm-section:hover .rm-section-hide:disabled {
+  opacity: 0.3;
+}
+
+/* Reorder affordances (grip, up/down, column swap) stay QUIET until the
+   section is hovered or focused. They share the hide button's chrome, which
+   is permanently visible on the edit canvas, so adding four of them put SIX
+   always-on pills on every heading — a control panel sitting directly on top
+   of each section's heading rule (2026-08-23 user report: "see the bar of
+   summary and all.., many things"). The labelled Style pill and the hide
+   button still show, so nothing becomes undiscoverable; the rest appear
+   where the pointer already is. Keyboard users get them via :focus-visible
+   and :focus-within, so they are never reachable-but-invisible. */
+.mode-preview .rm-section-move {
+  opacity: 0;
+}
+.mode-preview .rm-section:hover .rm-section-move,
+.mode-preview .rm-section:focus-within .rm-section-move,
+.mode-preview .rm-section-move:focus-visible {
+  opacity: 1;
+}
+/* A disabled arrow (first/last section) must be as quiet as the rest at
+   rest — the generic .rm-section-hide:disabled rule above is more specific
+   than the plain .rm-section-move one, so it needs saying explicitly. */
+.mode-preview .rm-section-move:disabled {
+  opacity: 0;
+}
+.mode-preview .rm-section:hover .rm-section-move:disabled,
+.mode-preview .rm-section:focus-within .rm-section-move:disabled {
   opacity: 0.3;
 }
 
