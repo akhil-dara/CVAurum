@@ -599,16 +599,20 @@ describe('chooseCut never overflows a page when an earlier cut exists', () => {
     expect(cutsPx[0]).toBeCloseTo(920, 0)
   })
 
-  it('falls back downward only when the page has no legal cut at all', () => {
-    // One unbreakable block taller than the page: overflow is unavoidable,
-    // and cutting after it beats failing outright.
+  it('cuts AT the paper edge when the page has no legal cut at all', () => {
+    // One unbreakable block taller than the paper. This used to cut after the
+    // block (1820) on the reasoning that "overflow is unavoidable" — but
+    // overflow is not a cosmetic problem: every pixel between the paper's
+    // edge and the cut is painted off the sheet and is GONE from the file.
+    // Splitting the block at the edge is ugly and lossless, so it wins.
     const blocks: PageBlock[] = [
       { kind: 'atomic', topPx: 0, bottomPx: 1800 },
       { kind: 'section-gap', topPx: 1800, bottomPx: 1820 },
       { kind: 'line', topPx: 1820, bottomPx: 2600 },
     ]
     const { cutsPx } = paginate({ blocks, contentHeightPx: 2600, usablePageHeightPx: budget, maxPageHeightPx: paper })
-    expect(cutsPx[0]).toBeGreaterThan(budget)
+    expect(cutsPx[0]).toBeLessThanOrEqual(paper)
+    expect(cutsPx.every((c, i) => c - (cutsPx[i - 1] ?? 0) <= paper)).toBe(true)
   })
 
   it('keeps every page within budget for a long gap-poor document', () => {
@@ -623,5 +627,27 @@ describe('chooseCut never overflows a page when an earlier cut exists', () => {
       expect(cut - top).toBeLessThanOrEqual(budget + 1)
       top = cut
     }
+  })
+})
+
+describe('chooseCut last resort: no ink may straddle the paper edge', () => {
+  // A gap-poor sidebar can leave a page with no legal cut at all. Clamping to
+  // the paper edge stopped the bulk of the loss, but a line straddling that
+  // edge still had its baseline pushed off-sheet: measured with skills in a
+  // 0.38 sidebar, one bullet's tail ("...ation cycle. Outcome 13.") was the
+  // last string still missing from the export.
+  it('cuts at the top of the block that crosses the paper edge', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 1050 },
+      { kind: 'line', topPx: 1050, bottomPx: 2000 }, // straddles paper (1100)
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 2000, usablePageHeightPx: 1000, maxPageHeightPx: 1100 })
+    expect(cutsPx[0]).toBe(1050)
+  })
+
+  it('still splits a single block that is taller than the paper on its own', () => {
+    const blocks: PageBlock[] = [{ kind: 'atomic', topPx: 0, bottomPx: 3000 }]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 3000, usablePageHeightPx: 1000, maxPageHeightPx: 1100 })
+    expect(cutsPx[0]).toBe(1100)
   })
 })

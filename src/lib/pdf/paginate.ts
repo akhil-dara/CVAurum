@@ -145,7 +145,8 @@ function chooseCut(
   pageTop: number,
   idealY: number,
   windowLow: number,
-  maxPageHeightPx: number
+  maxPageHeightPx: number,
+  sorted: PageBlock[]
 ): number {
   for (const tier of TIER_PREFERENCE) {
     let best: number | undefined
@@ -200,14 +201,32 @@ function chooseCut(
   }
 
   // Nothing anywhere on this page — a single unbreakable block taller than
-  // the paper. Overflow is unavoidable; cutting after it beats failing.
-  for (const tier of TIER_PREFERENCE) {
-    let nearest: number | undefined
-    for (const c of candidates) {
-      if (c.tier !== tier || c.y <= idealY) continue
-      if (nearest === undefined || c.y < nearest) nearest = c.y
-    }
-    if (nearest !== undefined) return nearest
+  // the paper, which a deep sidebar reaches easily (a cut needs EVERY column
+  // clear at the same y, and a long chip list offers none). Cutting after the
+  // block was the old behaviour, on the reasoning that overflow is
+  // unavoidable. It is not merely unavoidable, it is destructive: measured
+  // with skills forced into a 0.38 sidebar, page one was asked to hold
+  // 3195px of a 1122px page and 53 of 88 strings were painted off the sheet
+  // and lost from the file. Splitting a block at the paper's edge can look
+  // wrong; it can never delete the user's words, so it wins.
+  if (Number.isFinite(maxPageHeightPx)) {
+    // Snap UP to the top of whatever block straddles the paper's edge. A cut
+    // exactly at the edge leaves that block's ink crossing the boundary, and
+    // a line whose baseline lands past the edge is painted off-sheet and lost
+    // all the same — which is how one bullet's tail still went missing after
+    // the edge clamp alone. Cutting above it keeps the block whole on the
+    // next page. A block that starts at or above pageTop is taller than the
+    // paper by itself, and splitting it is genuinely unavoidable.
+    const straddling = sorted.find(
+      (blk) => (blk.kind === 'line' || blk.kind === 'atomic') && blk.topPx < maxY && blk.bottomPx > maxY
+    )
+    // ...but only when the sacrifice is small. Snapping up unconditionally
+    // ends the page wherever the straddling block happens to start, which on
+    // a tall block cost a whole extra page (4 -> 5) and fragmented the
+    // sidebar so badly the importer recovered 4 of 70 keywords. Below this
+    // floor the block is long enough that splitting it is the better trade.
+    if (straddling && straddling.topPx > pageTop + maxPageHeightPx * 0.6) return straddling.topPx
+    return maxY
   }
   throw new PaginationImpossibleError('No legal page-break candidate exists for this document')
 }
@@ -274,7 +293,7 @@ export function paginate(input: PaginationInput): Pagination {
     }
     const idealY = pageTop + budget
     const windowLow = idealY - searchWindowRatio * budget
-    const cutY = chooseCut(candidates, pageTop, idealY, windowLow, maxPageHeightPx)
+    const cutY = chooseCut(candidates, pageTop, idealY, windowLow, maxPageHeightPx, sorted)
     // The downward fallback may land at or past the pin — the pin wins
     // (it is a mandatory boundary; the auto cut would duplicate or cross it).
     if (nextForced !== undefined && cutY >= nextForced) {
