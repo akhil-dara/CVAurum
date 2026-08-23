@@ -140,6 +140,42 @@ function fallsInsideInk(y: number, sorted: PageBlock[]): boolean {
   return sorted.some((b) => (b.kind === 'line' || b.kind === 'atomic') && y > b.topPx && y < b.bottomPx)
 }
 
+/** The lowest cut this page can take WITHOUT splitting ink: the top of the
+ *  block crossing the paper's edge. Returns undefined when that block starts
+ *  so high that the page would be mostly blank - the caller then has better
+ *  options than a near-empty page.
+ *
+ *  Never lands immediately after a block that must stay with the next one:
+ *  this path picks a y directly rather than from `candidates`, which is where
+ *  the widow rule is enforced, so it is the one place that veto can be
+ *  missed. It steps up ONCE past such a block, and only while the page stays
+ *  past the same floor - stepping repeatedly produced tiny pages that
+ *  stranded other headings instead. */
+function snapAbovePaperEdge(sorted: PageBlock[], pageTop: number, maxPageHeightPx: number): number | undefined {
+  const maxY = pageTop + maxPageHeightPx
+  const floor = pageTop + maxPageHeightPx * 0.6
+  const straddling = sorted.find(
+    (blk) => (blk.kind === 'line' || blk.kind === 'atomic') && blk.topPx < maxY && blk.bottomPx > maxY
+  )
+  if (!straddling || straddling.topPx <= floor) return undefined
+  let y = straddling.topPx
+  let prev: PageBlock | undefined
+  for (const blk of sorted) {
+    if (blk.bottomPx > y + 0.5) continue
+    if (!prev || blk.bottomPx > prev.bottomPx) prev = blk
+  }
+  if (prev?.keepWithNext) {
+    // Stepping up past the heading is only worth it while the page stays
+    // full enough; when it is not, DECLINE the snap rather than end the page
+    // on a heading whose content starts the next one. The caller's earlier
+    // -cut branch then picks a legal candidate, which honours the veto by
+    // construction.
+    if (prev.topPx <= floor) return undefined
+    y = prev.topPx
+  }
+  return y
+}
+
 /** Picks the single cut for one page, given everything already consumed
  *  (`pageTop`) and the ideal boundary for this page. */
 /** Which branch of chooseCut produced a cut. Diagnosis only - a stranded
@@ -193,9 +229,26 @@ function chooseCut(
     }
   }
 
-  // Still nothing that fits on the paper: take the latest legal cut EARLIER
-  // on this page. Ending a page early costs whitespace; ending it late costs
-  // content.
+  // Nothing legal on the paper at all. Before giving up page height, snap to
+  // the TOP of whatever block crosses the paper's edge: that is as far down
+  // as this page can go without splitting ink, so it keeps the page full.
+  //
+  // This used to be tried only AFTER the earlier-cut branch below, and the
+  // earlier branch takes the latest legal cut ANYWHERE above - which on a
+  // real resume meant a first page whose text reached 22% down the sheet,
+  // with the rest blank (2026-08-23 user report). Trying the snap first
+  // fills the page; the earlier cut remains the fallback when the straddling
+  // block starts too high for the snap's own floor.
+  if (Number.isFinite(maxPageHeightPx)) {
+    const snapped = snapAbovePaperEdge(sorted, pageTop, maxPageHeightPx)
+    if (snapped !== undefined) {
+      cutReasons.push('snap')
+      return snapped
+    }
+  }
+
+  // Still nothing: take the latest legal cut EARLIER on this page. Ending a
+  // page early costs whitespace; ending it late costs content.
   {
     let best: number | undefined
     let bestTier: Tier | undefined
@@ -241,22 +294,10 @@ function chooseCut(
     // a tall block cost a whole extra page (4 -> 5) and fragmented the
     // sidebar so badly the importer recovered 4 of 70 keywords. Below this
     // floor the block is long enough that splitting it is the better trade.
-    if (straddling && straddling.topPx > pageTop + maxPageHeightPx * 0.6) {
-      // This branch picks a y directly rather than from `candidates`, so it is
-      // the one place a cut can land immediately after a block that must stay
-      // with the next one - measured, it ended pages on a skill group's name
-      // with the keywords overleaf. Step up ONCE past such a block, and only
-      // while the page stays past the same 60% floor: walking up repeatedly
-      // produced tiny pages that stranded other labels instead.
-      let y = straddling.topPx
-      let prev: PageBlock | undefined
-      for (const blk of sorted) {
-        if (blk.bottomPx > y + 0.5) continue
-        if (!prev || blk.bottomPx > prev.bottomPx) prev = blk
-      }
-      if (prev?.keepWithNext && prev.topPx > pageTop + maxPageHeightPx * 0.6) y = prev.topPx
+    const snapped = snapAbovePaperEdge(sorted, pageTop, maxPageHeightPx)
+    if (snapped !== undefined) {
       cutReasons.push('snap')
-      return y
+      return snapped
     }
     cutReasons.push('clamp')
     return maxY
