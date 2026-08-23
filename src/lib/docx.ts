@@ -18,16 +18,9 @@ import {
   ImageRun,
   Packer,
   Paragraph,
-  ShadingType,
   Table,
-  TableCell,
-  TableLayoutType,
-  TableRow,
   TabStopType,
   TextRun,
-  VerticalAlign,
-  WidthType,
-  type IBorderOptions,
   type IParagraphOptions,
   type ParagraphChild,
 } from 'docx'
@@ -52,8 +45,6 @@ const BASE_SIZE = { name: 46, headline: 24, section: 21, title: 21, body: 20, su
 let SIZE = BASE_SIZE
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
-const NONE: IBorderOptions = { style: BorderStyle.NONE, size: 0, color: 'auto' }
-const NO_BORDERS = { top: NONE, bottom: NONE, left: NONE, right: NONE, insideHorizontal: NONE, insideVertical: NONE }
 
 /** Color context for one column (main vs shaded sidebar). */
 interface Ctx {
@@ -69,18 +60,15 @@ interface Ctx {
 function toHex(c: string | undefined, fallback: string): string {
   if (!c) return fallback
   let s = c.trim().replace(/^#/, '')
-  if (/^[0-9a-fA-F]{3}$/.test(s)) s = s.split('').map((x) => x + x).join('')
+  if (/^[0-9a-fA-F]{3}$/.test(s))
+    s = s
+      .split('')
+      .map((x) => x + x)
+      .join('')
   return /^[0-9a-fA-F]{6}$/.test(s) ? s.toUpperCase() : fallback
 }
 
 /** Mix a hex color toward another (0..1) — used to dim sidebar muted text. */
-function mix(hex: string, toward: string, t: number): string {
-  const p = (h: string) => [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16))
-  const a = p(hex)
-  const b = p(toward)
-  return a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('').toUpperCase()
-}
-
 function inlineRuns(node: Node, color: string, bold = false, italics = false): TextRun[] {
   const runs: TextRun[] = []
   node.childNodes.forEach((child) => {
@@ -143,21 +131,39 @@ const heading = (label: string, C: Ctx) =>
   new Paragraph({
     spacing: { before: 200, after: 80 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.accent, space: 3 } },
-    children: [new TextRun({ text: C.upper ? label.toUpperCase() : label, bold: true, color: C.accent, size: SIZE.section, font: C.headFont })],
+    children: [
+      new TextRun({
+        text: C.upper ? label.toUpperCase() : label,
+        bold: true,
+        color: C.accent,
+        size: SIZE.section,
+        font: C.headFont,
+      }),
+    ],
   })
 const titleDate = (title: string, date: string | undefined, C: Ctx, width: number, opts: IParagraphOptions = {}) => {
   const kids: ParagraphChild[] = [new TextRun({ text: title, bold: true, color: C.body, size: SIZE.title })]
   if (date) kids.push(new TextRun({ text: `\t${date}`, color: C.muted, size: SIZE.date }))
-  return new Paragraph({ spacing: { before: 110, after: 8 }, tabStops: date ? [{ type: TabStopType.RIGHT, position: width }] : undefined, children: kids, ...opts })
+  return new Paragraph({
+    spacing: { before: 110, after: 8 },
+    tabStops: date ? [{ type: TabStopType.RIGHT, position: width }] : undefined,
+    children: kids,
+    ...opts,
+  })
 }
-const sub = (s: string, C: Ctx) => new Paragraph({ spacing: { after: 16 }, children: [new TextRun({ text: s, italics: true, color: C.muted, size: SIZE.sub })] })
+const sub = (s: string, C: Ctx) =>
+  new Paragraph({
+    spacing: { after: 16 },
+    children: [new TextRun({ text: s, italics: true, color: C.muted, size: SIZE.sub })],
+  })
 const para = (runs: TextRun[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
 const summaryParas = (html: string, C: Ctx) => richToBlocks(html, C.body).map(para)
 const bulletPara = (html: string, C: Ctx) =>
   C.bullet === 'none'
     ? new Paragraph({ indent: { left: 180 }, spacing: { after: 16 }, children: richToRuns(html, C.body) })
     : new Paragraph({ bullet: { level: 0 }, spacing: { after: 16 }, children: richToRuns(html, C.body) })
-const bulletsOf = (items: string[], C: Ctx) => items.filter((h) => htmlToText(h).length > 0).map((h) => bulletPara(h, C))
+const bulletsOf = (items: string[], C: Ctx) =>
+  items.filter((h) => htmlToText(h).length > 0).map((h) => bulletPara(h, C))
 
 /* ------------------------------------------------------------------ photo */
 
@@ -177,14 +183,20 @@ function decodePhoto(dataUrl?: string): { data: Uint8Array; type: 'jpg' | 'png' 
     return null
   }
 }
-function photoParagraph(doc: ResumeDocument, sizePx: number, align: (typeof AlignmentType)[keyof typeof AlignmentType]): Paragraph | null {
+function photoParagraph(
+  doc: ResumeDocument,
+  sizePx: number,
+  align: (typeof AlignmentType)[keyof typeof AlignmentType]
+): Paragraph | null {
   if (!doc.metadata.layout.showPhoto) return null
   const decoded = decodePhoto(doc.content.basics.image)
   if (!decoded) return null
   return new Paragraph({
     alignment: align,
     spacing: { after: 120 },
-    children: [new ImageRun({ data: decoded.data, type: decoded.type, transformation: { width: sizePx, height: sizePx } })],
+    children: [
+      new ImageRun({ data: decoded.data, type: decoded.type, transformation: { width: sizePx, height: sizePx } }),
+    ],
   })
 }
 
@@ -222,17 +234,38 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       out.push(heading(label, C))
       for (const p of content.projects) {
         out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate), C, width))
-        if (p.url) out.push(new Paragraph({ spacing: { after: 24 }, children: [new TextRun({ text: prettyUrl(p.url), color: C.accent, size: SIZE.sub })] }))
+        if (p.url)
+          out.push(
+            new Paragraph({
+              spacing: { after: 24 },
+              children: [new TextRun({ text: prettyUrl(p.url), color: C.accent, size: SIZE.sub })],
+            })
+          )
         if (p.description) out.push(sub(p.description, C))
         out.push(...bulletsOf(p.highlights ?? [], C))
-        if (p.keywords?.length) out.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: p.keywords.join('  ·  '), color: C.muted, size: SIZE.sub })] }))
+        if (p.keywords?.length)
+          out.push(
+            new Paragraph({
+              spacing: { after: 30 },
+              children: [new TextRun({ text: p.keywords.join('  ·  '), color: C.muted, size: SIZE.sub })],
+            })
+          )
       }
     } else if (key === 'skills') {
       out.push(heading(label, C))
       for (const g of content.skills) {
         const hasKw = !!g.keywords?.length
         if (!hasKw && typeof g.rating === 'number' && meter) {
-          out.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: `${g.name}\t`, bold: true, color: C.body, size: SIZE.body }), ...meterRuns(g.rating, C.prof, C.accent, C.muted)], tabStops: [{ type: TabStopType.RIGHT, position: width }] }))
+          out.push(
+            new Paragraph({
+              spacing: { after: 30 },
+              children: [
+                new TextRun({ text: `${g.name}\t`, bold: true, color: C.body, size: SIZE.body }),
+                ...meterRuns(g.rating, C.prof, C.accent, C.muted),
+              ],
+              tabStops: [{ type: TabStopType.RIGHT, position: width }],
+            })
+          )
         } else {
           const kids: ParagraphChild[] = []
           if (g.name) kids.push(new TextRun({ text: `${g.name}:  `, bold: true, color: C.body, size: SIZE.body }))
@@ -244,16 +277,29 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       out.push(heading(label, C))
       for (const l of content.languages) {
         if (typeof l.rating === 'number' && meter) {
-          out.push(new Paragraph({ spacing: { after: 28 }, children: [new TextRun({ text: `${l.language}\t`, bold: true, color: C.body, size: SIZE.body }), ...meterRuns(l.rating, C.prof, C.accent, C.muted)], tabStops: [{ type: TabStopType.RIGHT, position: width }] }))
+          out.push(
+            new Paragraph({
+              spacing: { after: 28 },
+              children: [
+                new TextRun({ text: `${l.language}\t`, bold: true, color: C.body, size: SIZE.body }),
+                ...meterRuns(l.rating, C.prof, C.accent, C.muted),
+              ],
+              tabStops: [{ type: TabStopType.RIGHT, position: width }],
+            })
+          )
         } else {
-          const kids: ParagraphChild[] = [new TextRun({ text: l.language || '', bold: true, color: C.body, size: SIZE.body })]
-          if (l.fluency && C.prof !== 'none') kids.push(new TextRun({ text: `  —  ${l.fluency}`, color: C.muted, size: SIZE.sub }))
+          const kids: ParagraphChild[] = [
+            new TextRun({ text: l.language || '', bold: true, color: C.body, size: SIZE.body }),
+          ]
+          if (l.fluency && C.prof !== 'none')
+            kids.push(new TextRun({ text: `  —  ${l.fluency}`, color: C.muted, size: SIZE.sub }))
           out.push(new Paragraph({ spacing: { after: 28 }, children: kids }))
         }
       }
     } else if (key === 'certificates') {
       out.push(heading(label, C))
-      for (const c of content.certificates) out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date), C, width))
+      for (const c of content.certificates)
+        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date), C, width))
     } else if (key === 'awards') {
       out.push(heading(label, C))
       for (const a of content.awards) {
@@ -277,14 +323,23 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'interests') {
       out.push(heading(label, C))
       for (const it of content.interests) {
-        const kids: ParagraphChild[] = [new TextRun({ text: it.name || '', bold: true, color: C.body, size: SIZE.body })]
-        if (it.keywords?.length) kids.push(new TextRun({ text: `:  ${it.keywords.join(', ')}`, color: C.muted, size: SIZE.sub }))
+        const kids: ParagraphChild[] = [
+          new TextRun({ text: it.name || '', bold: true, color: C.body, size: SIZE.body }),
+        ]
+        if (it.keywords?.length)
+          kids.push(new TextRun({ text: `:  ${it.keywords.join(', ')}`, color: C.muted, size: SIZE.sub }))
         out.push(new Paragraph({ spacing: { after: 28 }, children: kids }))
       }
     } else if (key === 'references') {
       out.push(heading(label, C))
       for (const r of content.references) {
-        if (r.name) out.push(new Paragraph({ spacing: { after: 4 }, children: [new TextRun({ text: r.name, bold: true, color: C.body, size: SIZE.body })] }))
+        if (r.name)
+          out.push(
+            new Paragraph({
+              spacing: { after: 4 },
+              children: [new TextRun({ text: r.name, bold: true, color: C.body, size: SIZE.body })],
+            })
+          )
         if (r.reference) out.push(sub(r.reference, C))
       }
     } else if (key.startsWith('custom-')) {
@@ -307,9 +362,20 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
 function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
   const b = doc.content.basics
   const out: Paragraph[] = [
-    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: b.name || 'Your Name', bold: true, color: C.accent, size: SIZE.name, font: C.headFont })] }),
+    new Paragraph({
+      spacing: { after: 20 },
+      children: [
+        new TextRun({ text: b.name || 'Your Name', bold: true, color: C.accent, size: SIZE.name, font: C.headFont }),
+      ],
+    }),
   ]
-  if (b.label) out.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: b.label, color: C.accent, size: SIZE.headline, font: C.headFont })] }))
+  if (b.label)
+    out.push(
+      new Paragraph({
+        spacing: { after: 40 },
+        children: [new TextRun({ text: b.label, color: C.accent, size: SIZE.headline, font: C.headFont })],
+      })
+    )
   const contacts: string[] = []
   const email = cleanEmail(b.email)
   if (email) contacts.push(email)
@@ -322,7 +388,13 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
     if (handle && p.network) contacts.push(`${p.network}: ${handle}`)
     else if (handle || p.network) contacts.push(handle || p.network)
   }
-  if (contacts.length) out.push(new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: contacts.join('   •   '), color: C.muted, size: SIZE.sub })] }))
+  if (contacts.length)
+    out.push(
+      new Paragraph({
+        spacing: { after: 100 },
+        children: [new TextRun({ text: contacts.join('   •   '), color: C.muted, size: SIZE.sub })],
+      })
+    )
   return out
 }
 
@@ -340,8 +412,6 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
   const primary = toHex(metadata.theme.primary, '2563EB')
   const text = toHex(metadata.theme.text, '1A1A1A')
   const muted = toHex(metadata.theme.muted, '5B6472')
-  const sidebarBg = toHex(metadata.theme.sidebar, '0F172A')
-  const sidebarText = toHex(metadata.theme.sidebarText, 'E2E8F0')
   const background = toHex(metadata.theme.background, 'FFFFFF')
   const bodyFont = metadata.typography.fontFamily || 'Calibri'
   const headFont = metadata.typography.headingFamily || bodyFont
@@ -351,60 +421,33 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
 
   const page = metadata.page.format === 'Letter' ? TWIP.letter : TWIP.a4
   const order = resolveOrder(doc)
-  const twoCol = metadata.layout.columns === 2 && order.aside.length > 0
-  // Two-column bleeds the sidebar to the page edges (zero page margin); single
-  // column keeps normal print margins.
-  const contentW = twoCol ? page.w : page.w - TWIP.margin * 2
+  const contentW = page.w - TWIP.margin * 2
 
   const mainCtx: Ctx = { accent: primary, body: text, muted, headFont, upper, prof, bullet: bulletStyle }
 
-  let body: (Paragraph | Table)[]
-
-  if (twoCol) {
-    const asideW = Math.round(contentW * metadata.layout.sidebarWidth)
-    const mainW = contentW - asideW
-    const sideLeft = metadata.layout.sidebar === 'left'
-    const asideCtx: Ctx = { accent: sidebarText, body: sidebarText, muted: mix(sidebarText, sidebarBg, 0.35), headFont, upper, prof, bullet: bulletStyle }
-
-    const PAGE_PAD = 1000 // outer (page-edge) padding for the main column
-    const COL_GAP = 340 // gap between the two columns
-    const ASIDE_PAD = 430 // sidebar inner padding (text inset from the colored edge)
-    const mainInner = Math.max(1800, mainW - COL_GAP - PAGE_PAD)
-    const asideInner = Math.max(1200, asideW - ASIDE_PAD * 2)
-
-    const mainChildren = [...buildHeader(doc, mainCtx), ...buildSections(order.main, doc, mainCtx, mainInner)]
-    const asidePhoto = photoParagraph(doc, 110, AlignmentType.CENTER)
-    const asideChildren = [...(asidePhoto ? [asidePhoto] : []), ...buildSections(order.aside, doc, asideCtx, asideInner)]
-    if (!asideChildren.length) asideChildren.push(new Paragraph({ children: [] }))
-
-    const mainCell = new TableCell({
-      width: { size: mainW, type: WidthType.DXA },
-      verticalAlign: VerticalAlign.TOP,
-      margins: { top: 240, bottom: 200, left: sideLeft ? COL_GAP : PAGE_PAD, right: sideLeft ? PAGE_PAD : COL_GAP },
-      borders: NO_BORDERS,
-      children: mainChildren,
-    })
-    const asideCell = new TableCell({
-      width: { size: asideW, type: WidthType.DXA },
-      verticalAlign: VerticalAlign.TOP,
-      shading: { type: ShadingType.CLEAR, color: 'auto', fill: sidebarBg },
-      margins: { top: 300, bottom: 220, left: ASIDE_PAD, right: ASIDE_PAD },
-      borders: NO_BORDERS,
-      children: asideChildren,
-    })
-
-    const table = new Table({
-      layout: TableLayoutType.FIXED,
-      width: { size: contentW, type: WidthType.DXA },
-      columnWidths: sideLeft ? [asideW, mainW] : [mainW, asideW],
-      borders: NO_BORDERS,
-      rows: [new TableRow({ cantSplit: false, children: sideLeft ? [asideCell, mainCell] : [mainCell, asideCell] })],
-    })
-    body = [table]
-  } else {
-    const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
-    body = [...(photo ? [photo] : []), ...buildHeader(doc, mainCtx), ...buildSections(order.main, doc, mainCtx, contentW)]
-  }
+  // ALWAYS a single column, whatever the template's on-screen layout
+  // (2026-08-23). The Word export used to mirror a two-column template with a
+  // Word TABLE, which broke the two things this format exists for:
+  //
+  //  - Reading order. A left-sidebar template put the sidebar cell first, so
+  //    the file opened with "SKILLS | Languages: | TypeScript ..." and an ATS
+  //    read a keyword list before the candidate's name. Measured on the real
+  //    export, same defect the PDF text layer had (readingOrder.ts).
+  //  - Parseability. Table layout is the classic ATS failure: parsers walk
+  //    cells in their own order, or drop them. Our own per-ATS simulator warns
+  //    users about exactly this in their resume design.
+  //
+  // The PDF carries the design; the .docx is the safe, linear copy the README
+  // promises ("a clean, single-column, ATS-friendly Word document"). Sidebar
+  // sections keep their content and simply follow the main column, rendered in
+  // the MAIN colour context — sidebar text colours are chosen to sit on a dark
+  // band and would be unreadable on white paper.
+  const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
+  const body: (Paragraph | Table)[] = [
+    ...(photo ? [photo] : []),
+    ...buildHeader(doc, mainCtx),
+    ...buildSections([...order.main, ...order.aside], doc, mainCtx, contentW),
+  ]
 
   const document = new Document({
     creator: 'CVAurum',
@@ -421,11 +464,7 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
         properties: {
           page: {
             size: { width: page.w, height: page.h },
-            // Two-column shading meets the page edge cleanly with zero margins;
-            // single-column keeps comfortable print margins.
-            margin: twoCol
-              ? { top: 0, right: 0, bottom: 0, left: 0 }
-              : { top: TWIP.margin, right: TWIP.margin, bottom: TWIP.margin, left: TWIP.margin },
+            margin: { top: TWIP.margin, right: TWIP.margin, bottom: TWIP.margin, left: TWIP.margin },
           },
         },
         children: body,
