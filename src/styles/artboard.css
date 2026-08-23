@@ -103,7 +103,15 @@
   flex: 0 0 var(--rm-aside-w, 34%);
   min-width: 0; /* never let content force the column (and page) wider */
   overflow-wrap: break-word;
-  padding: var(--rm-pad);
+  /* The page's own margin is right for the page, and far too much for a
+     narrow sidebar: at the slider's minimum it took 39% of the band (49px
+     left + 20px right of 175px) and left 106px for content, which is what
+     broke "CERTIFICATIONS" mid-word and wrapped every certificate one word
+     per line (2026-08-23 user report). --rm-aside-w is a percentage of the
+     same containing block the column is sized from, so scaling it gives a
+     true fraction of the SIDEBAR's width. The min() keeps the default and
+     wider settings on the page margin exactly as before. */
+  padding: var(--rm-pad) min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
   background: var(--rm-sidebar-bg);
   color: var(--rm-sidebar-text);
 }
@@ -576,17 +584,36 @@
   vertical-align: -0.4em;
   flex: 0 0 auto;
 }
-/* ...and lay the heading out as icon + text BLOCK, so a heading that wraps in
-   a narrow sidebar keeps one clean left edge. Inline, only the first line was
-   pushed in by the icon and the rest ran back to the column edge, which read
-   as ragged (2026-08-23 user report):
+/* ...and HANG the icon in the sidebar's own left padding, so every line of
+   the heading - and the body beneath it - shares one left edge. Inline, only the first line was pushed in
+   by the icon and the rest ran back to the column edge, which read as ragged:
      [icon] TECHNICAL          [icon] TECHNICAL SKILLS &
    SKILLS & CORE          ->          CORE COMPETENCIES
-   COMPETENCIES                                              */
+   COMPETENCIES
+
+   Laid out as a FLEX row this aligned correctly but overflowed: a flex item
+   will not shrink below its longest word, so "CERTIFICATIONS" pushed the
+   heading straight out of the sidebar band (2026-08-23 user report). Indent
+   plus a negative text-indent keeps ordinary inline wrapping, which can
+   always break, while placing the icon in the hanging space. */
 .rm-icons .rm-col-aside .rm-section-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.45em;
+  position: relative;
+}
+.rm-icons .rm-col-aside .rm-section-icon {
+  position: absolute;
+  right: 100%;
+  top: 0.62em;
+  transform: translateY(-50%);
+  margin: 0 0.4em 0 0;
+}
+/* A heading word that cannot fit the column breaks rather than spilling out
+   of the sidebar band - "CERTIFICATIONS" ran past the edge and was clipped
+   at a narrow sidebar with a larger heading size (2026-08-23 user report).
+   This only ever engages when the word genuinely does not fit, so ordinary
+   headings wrap on spaces exactly as before. */
+.rm-col-aside .rm-section-title,
+.rm-col-aside .rm-chip {
+  overflow-wrap: break-word;
 }
 .rm-icons .rm-col-aside .rm-section-body {
   padding-left: 0;
@@ -619,6 +646,19 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+}
+/* In a sidebar the date must sit UNDER the title, not beside it. Side by
+   side it claimed roughly a third of an already narrow column and squeezed
+   the title to one word per line - "Microsoft / Certified: / Power BI / Data
+   / Analyst / Associate / (PL-300)" against a floated "Sep 2014"
+   (2026-08-23 user report). The main column is untouched: it has the width
+   for a right-aligned date, and that alignment is the point there. */
+.rm-col-aside .rm-item-head {
+  display: block;
+}
+.rm-col-aside .rm-item-head > .rm-item-date {
+  display: block;
+  margin-top: 0.1em;
 }
 .rm-item-title {
   font-weight: 700;
