@@ -636,3 +636,50 @@ describe('parseSkills — wrapped chip rows in a narrow sidebar (2026-08-23)', (
     for (let i = 0; i < 15; i++) expect(all).toContain(`kw${i}b`)
   })
 })
+
+describe('splitSections — verbose heading labels in plain-heading documents (2026-08-23)', () => {
+  // Sweeping the author's resume across all 52 templates found EIGHT
+  // (classic, ivy, newton, cambridge, vector, technical, academic,
+  // aurum-editorial) returning skills 0/70, and several of those also losing
+  // a whole job and most bullets. Cause: those templates style headings only
+  // by size — measured on classic, body 9.495 vs heading 10.1, under the
+  // 1.14x "styled" bar — so headings are recognised by the plain-case Tier 0
+  // path alone, which caps at 3 words AND demands <=6 leftover letters after
+  // the matched phrase. The document's own heading, "Technical Skills & Core
+  // Competencies", is 5 words with 16 leftover letters, so the section was
+  // never opened and its skills bled into the section above it.
+  const heading = (t: string) => proseLine(t, 10.1)
+  const body = (t: string) => proseLine(t, 9.5)
+
+  it('opens the skills section on a verbose custom label', () => {
+    const secs = splitSections(
+      graph([
+        heading('Summary'),
+        body('Analyst with four years across data and service operations.'),
+        heading('Professional Experience'),
+        body('Data Analyst, Tata Consultancy Services'),
+        heading('Technical Skills & Core Competencies'),
+        body('Programming & Querying: SQL, T-SQL, Stored Procedures'),
+        heading('Education'),
+        body('Master of Computer Application'),
+      ])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'summary', 'work', 'skills', 'education'])
+  })
+
+  it('accepts a label whose extra words are the same section vocabulary', () => {
+    const secs = splitSections(
+      graph([heading('Skills & Areas of Expertise'), body('SQL, Python, Power BI')])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'skills'])
+  })
+
+  it('still rejects a body sentence that merely starts with a section word', () => {
+    // The word cap is what keeps prose out; loosening it must not let a
+    // sentence beginning "Experience..." open a section.
+    const secs = splitSections(
+      graph([heading('Summary'), heading('Experience with modern data platforms and tooling')])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'summary'])
+  })
+})

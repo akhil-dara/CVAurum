@@ -60,6 +60,26 @@ const CONTAIN_KEYWORDS: { key: string; re: RegExp }[] = [
   { key: 'summary', re: /\b(summary|objective)\b/i },
 ]
 
+// Words that qualify a heading without changing its subject.
+const HEAD_FILLER =
+  /^(and|or|the|of|my|core|key|other|additional|areas?|technical|professional|relevant|selected|main|primary|general)$/i
+
+/** Is everything past the matched heading phrase still the SAME heading?
+ *  A verbose label ("Technical Skills & Core Competencies", "Skills & Areas
+ *  of Expertise") names one section; every leftover word is either a
+ *  connector or that same section's own vocabulary. Judging such a label by
+ *  its leftover LENGTH alone rejected it, and the section then never opened:
+ *  eight templates whose headings are sized rather than bolded or capitalised
+ *  imported skills 0/70, with the orphaned content corrupting the section
+ *  above it. */
+function sameTopicRemainder(leftover: string, key: string): boolean {
+  const words = leftover.split(/[^A-Za-z]+/).filter(Boolean)
+  if (!words.length) return true
+  const own = CONTAIN_KEYWORDS.find((k) => k.key === key)?.re
+  if (!own) return false
+  return words.every((w) => HEAD_FILLER.test(w) || own.test(w))
+}
+
 /** Does the line BEGIN with several capital letters? (e.g. "WORK EXPERIENCE") */
 const startsAllCaps = (t: string): boolean => /^[A-Z][A-Z][A-Z &/,'’-]+/.test(t)
 
@@ -86,9 +106,17 @@ function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false, plain
   // 9.9px headings).
   const tier0Allowed =
     styled || (!styledHeadingSeen && (plainHeadingHeight === 0 || line.height >= plainHeadingHeight - 0.35))
-  if (words.length <= 3 && !/\d/.test(t) && tier0Allowed) {
+  // The word cap is what keeps prose out of Tier 0, so it stays tight; 6 is
+  // the longest real heading label measured across the 52 templates
+  // ("Technical Skills & Core Competencies" is 5). A sentence that merely
+  // opens with a section word ("Experience with modern data platforms and
+  // tooling") runs past it, and the remainder test rejects the rest.
+  if (words.length <= 6 && !/\d/.test(t) && tier0Allowed) {
     for (const { key, re } of HEAD_PHRASES) {
-      if (re.test(t) && t.replace(re, '').replace(/[^a-z]/gi, '').length <= 6) return key
+      if (!re.test(t)) continue
+      const leftover = t.replace(re, '')
+      if (leftover.replace(/[^a-z]/gi, '').length <= 6) return key
+      if (sameTopicRemainder(leftover, key)) return key
     }
   }
   const shortStyled =
