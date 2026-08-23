@@ -278,6 +278,11 @@ function cleanName(t: string): string {
   return s.length >= 2 ? s : cleanEdge(t)
 }
 
+/** Two to four capitalised words, then a separator, then more text — the
+ *  shape of a header that packs the name and the headline onto ONE line.
+ *  A plain hyphen is deliberately absent: it appears inside real names. */
+const MERGED_NAME = /^[A-Z][A-Za-z.'’-]*(?:\s+[A-Z][A-Za-z.'’-]*){1,3}\s*[—–|·•]\s*\S/
+
 function scoreName(line: Line): number {
   const t = line.text.trim()
   if (NOT_A_NAME.test(t)) return -10
@@ -355,11 +360,21 @@ function parseHeader(header: Line[], content: ResumeContent) {
 
   // name = highest-scoring header line (ties broken by font size, then order)
   const named = [...header]
-    .map((l, i) => ({ l, i, s: scoreName(l) }))
+    // The merged-name bonus applies to the FIRST header line only. Scored
+    // anywhere, a headline of its own ("Data Analyst | Business Analyst |
+    // ...") has exactly the same shape and outranked the real name line
+    // immediately above it.
+    .map((l, i) => ({ l, i, s: scoreName(l) + (i === 0 && MERGED_NAME.test(l.text.trim()) ? 4 : 0) }))
     .filter((x) => x.s > 0)
     .sort((a, c) => c.s - a.s || c.l.height - a.l.height || a.i - c.i)[0]
   if (named) {
     b.name = cleanName(named.l.text)
+    // When the name shares its line with the headline, the remainder past
+    // the separator IS the headline — the next line is usually contact
+    // details, which the search below rightly skips, leaving no label at all.
+    const remainder = named.l.text.trim().slice(b.name.length)
+    const sep = remainder.match(/^\s*[—–|·•]\s*(\S.*)$/)
+    if (sep) b.label = cleanEdge(sep[1])
     // headline = the nearest following non-contact, letter-ish header line
     const after = header.slice(named.i + 1).find((l) => {
       const t = l.text
@@ -371,7 +386,7 @@ function parseHeader(header: Line[], content: ResumeContent) {
         t.length <= 60
       )
     })
-    if (after) b.label = cleanEdge(after.text)
+    if (after && !b.label) b.label = cleanEdge(after.text)
   }
 
   // Recover a name merged with a trailing role on one line (e.g. ALL-CAPS

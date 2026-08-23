@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSimpleList, parseSkills, splitSections } from './parse'
+import { parseLayout, parseSimpleList, parseSkills, splitSections } from './parse'
 import type { Item, LayoutGraph, Line } from './layoutGraph'
 
 // Minimal Line factory — only the fields parseSimpleList reads (text, bold)
@@ -681,5 +681,86 @@ describe('splitSections — verbose heading labels in plain-heading documents (2
       graph([heading('Summary'), heading('Experience with modern data platforms and tooling')])
     )
     expect(secs.map((s) => s.key)).toEqual(['header', 'summary'])
+  })
+})
+
+describe('parseBasics — name merged with the headline on one line (2026-08-23)', () => {
+  // compact packs name and headline onto ONE line and renders it SMALLER
+  // than body text (measured: 5.7 against a 6.46 body), so no "largest text
+  // wins" heuristic reaches it. scoreName judged the whole string — long,
+  // and carrying the separators — and gave it -3, below the >0 cut, so the
+  // header contributed no name at all and a document-wide fallback imported
+  // "Master of Computer Applications" out of the education section as the
+  // candidate's name. Worst possible ATS field to get wrong.
+  const hdr = (lines: Line[]): LayoutGraph => ({
+    lines,
+    bodySize: 6.4575,
+    lineGap: 9,
+    pageCount: 1,
+    charCount: lines.reduce((n, l) => n + l.text.length, 0),
+    twoColumn: false,
+    ocrPages: [],
+    ocrEngineFailed: false,
+  })
+
+  it('takes the leading name when a separator joins it to the role', () => {
+    const r = parseLayout(
+      hdr([
+        proseLine('Gowthami Pemmadi — Data Analyst | Business Analyst | Operations', 5.7, 45),
+        proseLine('gowthami.pemmadi9@gmail.com +91 93910 22393 Hyderabad, India', 6.1, 55),
+        upperLine('SUMMARY', 6.1),
+        proseLine('Analyst with four years across data and service operations.', 6.5, 82),
+        upperLine('EDUCATION', 6.1),
+        proseLine('Master of Computer Applications', 6.5, 110),
+      ])
+    )
+    expect(r.content.basics.name).toBe('Gowthami Pemmadi')
+  })
+
+  it('keeps the role from the same line as the headline', () => {
+    const r = parseLayout(
+      hdr([
+        proseLine('Gowthami Pemmadi — Data Analyst | Business Analyst', 5.7, 45),
+        proseLine('gowthami.pemmadi9@gmail.com +91 93910 22393', 6.1, 55),
+      ])
+    )
+    expect(r.content.basics.label).toContain('Data Analyst')
+  })
+
+  it('does not treat an ordinary sentence with a dash as a name line', () => {
+    const r = parseLayout(
+      hdr([
+        proseLine('Alex Morgan', 9, 45),
+        proseLine('alex@example.com', 6.1, 55),
+        upperLine('SUMMARY', 6.1),
+        proseLine('Senior engineer — builds reliable platforms at scale.', 6.5, 82),
+      ])
+    )
+    expect(r.content.basics.name).toBe('Alex Morgan')
+  })
+})
+
+describe('parseBasics — a headline is not a merged name line (2026-08-23)', () => {
+  // onyx puts the name on its own line and the roles on the next one. That
+  // roles line ("Data Analyst | Business Analyst | ...") has the very same
+  // "capitalised words then a separator" shape as compact's merged header,
+  // and when the bonus was scored positionally-blind it won, importing the
+  // candidate's name as "Data Analyst".
+  it('prefers the name line over a following roles line', () => {
+    const r = parseLayout({
+      lines: [
+        upperLine('GOWTHAMI PEMMADI', 12),
+        proseLine('Data Analyst | Business Analyst | Operations & Integration', 7, 20),
+        proseLine('gowthami.pemmadi9@gmail.com +91 93910 22393', 6.5, 32),
+      ],
+      bodySize: 6.5,
+      lineGap: 9,
+      pageCount: 1,
+      charCount: 120,
+      twoColumn: false,
+      ocrPages: [],
+      ocrEngineFailed: false,
+    })
+    expect(r.content.basics.name).toBe('GOWTHAMI PEMMADI')
   })
 })
