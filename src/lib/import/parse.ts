@@ -132,11 +132,97 @@ function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false, plain
   return null
 }
 
+/** The leading run of ALL-CAPS words, which on a side-label template is the
+ *  section's own label sitting left of the body on the same baseline.
+ *  Two letters minimum, so a single-letter logo glyph ("T Data Analyst")
+ *  is not mistaken for part of the label. */
+function leadingCapsRun(text: string): string {
+  const toks = text.trim().split(/\s+/)
+  const run: string[] = []
+  for (const tok of toks) {
+    if (!/^[A-Z]{2,}[A-Z.'’&-]*$/.test(tok)) break
+    run.push(tok)
+    if (run.length >= 3) break
+  }
+  return run.join(' ')
+}
+
+/** Splits a merged line at a character offset, keeping item geometry aligned
+ *  so run-based consumers (chip rows) still work on the remainder. */
+function lineAfter(line: Line, prefixLen: number): Line {
+  let cum = 0
+  let idx = 0
+  for (; idx < line.items.length && cum < prefixLen; idx++) cum += line.items[idx].str.length + 1
+  const items = line.items.slice(idx)
+  const text = line.text.trim().slice(prefixLen).replace(/^[\s:•·—–-]+/, '')
+  return { ...line, text, items, x: items[0]?.x ?? line.x }
+}
+
+/** A section label that WRAPS onto two lines. On a side-label template each
+ *  half merges into a different content line ("PROFESSIONAL  T Data Analyst
+ *  ..." / "EXPERIENCE  Tata Consultancy Services ..."), so only the second
+ *  half matched a heading and the section opened one line late, stranding
+ *  the first entry's title and dates in the section above. Where the label
+ *  stands alone the opposite happened: sapphire's "TECHNICAL SKILLS &" /
+ *  "CORE COMPETENCIES" both matched, opening the same section twice.
+ *
+ *  Rewrites such a pair into one heading line followed by whatever content
+ *  was merged into either half. */
+function unwrapWrappedLabels(lines: Line[], g: LayoutGraph): Line[] {
+  const out: Line[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const a = lines[i]
+    const b = lines[i + 1]
+    const runA = b ? leadingCapsRun(a.text) : ''
+    if (!runA || !b || b.page !== a.page || b.top - a.top > a.height * 3) {
+      out.push(a)
+      continue
+    }
+    const runB = leadingCapsRun(b.text)
+    if (!runB) {
+      out.push(a)
+      continue
+    }
+    const combined = `${runA} ${runB}`
+    const keyCombined = HEAD_PHRASES.find((ph) => ph.re.test(combined))
+    if (!keyCombined) {
+      out.push(a)
+      continue
+    }
+    // Only when the first half cannot stand as the heading on its own, or
+    // it trails a connector that plainly continues ("TECHNICAL SKILLS &").
+    const aloneMatches = HEAD_PHRASES.some((ph) => ph.re.test(runA))
+    if (aloneMatches && !/[&–—]$|(and|of|the)$/i.test(a.text.trim())) {
+      out.push(a)
+      continue
+    }
+    // The combined label must be essentially the whole phrase, not a phrase
+    // plus unrelated capitals.
+    const m = keyCombined.re.exec(combined)
+    const leftover = m ? combined.slice(m[0].length) : ''
+    const tidy = m && (leftover.replace(/[^a-z]/gi, '').length <= 6 || sameTopicRemainder(leftover, keyCombined.key))
+    if (!m || m.index !== 0 || !tidy) {
+      out.push(a)
+      continue
+    }
+    out.push({ ...a, text: combined, items: a.items.slice(0, 1), upper: true })
+    for (const [line, run] of [
+      [a, runA],
+      [b, runB],
+    ] as [Line, string][]) {
+      const rest = lineAfter(line, run.length)
+      if (rest.text.length > 3 && /[a-z0-9]/.test(rest.text)) out.push(rest)
+    }
+    i++ // both halves consumed
+  }
+  return out
+}
+
 export function splitSections(g: LayoutGraph): Section[] {
   const sections: Section[] = [{ key: 'header', title: '', lines: [] }]
   let styledHeadingSeen = false
   let plainHeadingHeight = 0
-  for (const line of g.lines) {
+  for (const line of unwrapWrappedLabels(g.lines, g)) {
     const key = headingKey(line, g, styledHeadingSeen, plainHeadingHeight)
     if (key) {
       // Side-label layouts (atelier) render the section label LEFT of the

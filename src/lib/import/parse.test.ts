@@ -764,3 +764,53 @@ describe('parseBasics — a headline is not a merged name line (2026-08-23)', ()
     expect(r.content.basics.name).toBe('GOWTHAMI PEMMADI')
   })
 })
+
+describe('splitSections — a section label that wraps onto two lines (2026-08-23)', () => {
+  // Side-label templates (contemporary, slate) set the section label to the
+  // LEFT of the body on the same baseline, so extraction merges them. When
+  // the label itself WRAPS, each half merges into a different content line:
+  //   "PROFESSIONAL  T Data Analyst - Client: Nexperia  Jun 2023 - Present"
+  //   "EXPERIENCE    Tata Consultancy Services (TCS)  Hyderabad, India"
+  // Only the second half matches a heading, so the section opened one line
+  // late and the first job's title and dates were stranded in the section
+  // above — measured as work 1/2 on the author's resume.
+  it('opens the section at the FIRST half of a wrapped side label', () => {
+    const secs = splitSections(
+      graph([
+        upperLine('SUMMARY', 9.8),
+        proseLine('Analyst with four years across data and service operations.', 9.3),
+        proseLine('PROFESSIONAL T Data Analyst — Client: Nexperia Jun 2023 — Present', 8.4),
+        proseLine('EXPERIENCE Tata Consultancy Services (TCS) Hyderabad, India', 8.4),
+        proseLine('Designed and own the Operational View dashboards in Spotfire.', 8.4),
+      ])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'summary', 'work'])
+    const work = secs[2].lines.map((l) => l.text)
+    expect(work[0]).toContain('Data Analyst')
+    expect(work[0]).toContain('Jun 2023')
+    expect(work[1]).toContain('Tata Consultancy Services')
+  })
+
+  // sapphire's own heading wraps as "TECHNICAL SKILLS &" / "CORE
+  // COMPETENCIES" with no content merged in. Both halves match the skills
+  // phrase, so the document reported TWO skills sections and the second
+  // one's first chip line was read as a group name.
+  it('does not open a second section on the continuation half', () => {
+    const secs = splitSections(
+      graph([
+        upperLine('TECHNICAL SKILLS &', 9.8),
+        upperLine('CORE COMPETENCIES', 9.8),
+        proseLine('Programming & Querying: SQL, T-SQL', 9.3),
+      ])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'skills'])
+    expect(secs[1].lines.map((l) => l.text)).toEqual(['Programming & Querying: SQL, T-SQL'])
+  })
+
+  it('leaves two genuinely different headings alone', () => {
+    const secs = splitSections(
+      graph([upperLine('EDUCATION', 9.8), proseLine('Master of Computer Application', 9.3), upperLine('LANGUAGES', 9.8), proseLine('English, Telugu', 9.3)])
+    )
+    expect(secs.map((s) => s.key)).toEqual(['header', 'education', 'languages'])
+  })
+})
