@@ -81,6 +81,8 @@ export interface Pagination {
   /** cut positions in continuous CSS px, ascending; empty = single page */
   cutsPx: number[]
   pageCount: number
+  /** which branch chose each cut - diagnosis only, never behaviour */
+  cutReasons?: CutReason[]
 }
 
 /** Thrown when no legal break candidate exists anywhere for a page's worth
@@ -140,6 +142,11 @@ function fallsInsideInk(y: number, sorted: PageBlock[]): boolean {
 
 /** Picks the single cut for one page, given everything already consumed
  *  (`pageTop`) and the ideal boundary for this page. */
+/** Which branch of chooseCut produced a cut. Diagnosis only - a stranded
+ *  heading looks identical whichever branch placed it, and the fix differs. */
+export type CutReason = 'window' | 'downward' | 'earlier' | 'clamp' | 'snap'
+const cutReasons: CutReason[] = []
+
 function chooseCut(
   candidates: Candidate[],
   pageTop: number,
@@ -155,7 +162,10 @@ function chooseCut(
       if (c.y <= pageTop || c.y > idealY || c.y < windowLow) continue
       if (best === undefined || c.y > best) best = c.y // prefer the LOWEST (closest to ideal) in this tier
     }
-    if (best !== undefined) return best
+    if (best !== undefined) {
+      cutReasons.push('window')
+      return best
+    }
   }
   // Nothing legal inside the window: scan DOWNWARD, but never past the
   // PHYSICAL page. A cut beyond the paper does not merely look wrong —
@@ -177,7 +187,10 @@ function chooseCut(
       if (c.tier !== tier || c.y <= idealY || c.y > maxY) continue
       if (nearest === undefined || c.y < nearest) nearest = c.y
     }
-    if (nearest !== undefined) return nearest
+    if (nearest !== undefined) {
+      cutReasons.push('downward')
+      return nearest
+    }
   }
 
   // Still nothing that fits on the paper: take the latest legal cut EARLIER
@@ -197,7 +210,10 @@ function chooseCut(
         bestTier = c.tier
       }
     }
-    if (best !== undefined) return best
+    if (best !== undefined) {
+      cutReasons.push('earlier')
+      return best
+    }
   }
 
   // Nothing anywhere on this page — a single unbreakable block taller than
@@ -225,7 +241,24 @@ function chooseCut(
     // a tall block cost a whole extra page (4 -> 5) and fragmented the
     // sidebar so badly the importer recovered 4 of 70 keywords. Below this
     // floor the block is long enough that splitting it is the better trade.
-    if (straddling && straddling.topPx > pageTop + maxPageHeightPx * 0.6) return straddling.topPx
+    if (straddling && straddling.topPx > pageTop + maxPageHeightPx * 0.6) {
+      // This branch picks a y directly rather than from `candidates`, so it is
+      // the one place a cut can land immediately after a block that must stay
+      // with the next one - measured, it ended pages on a skill group's name
+      // with the keywords overleaf. Step up ONCE past such a block, and only
+      // while the page stays past the same 60% floor: walking up repeatedly
+      // produced tiny pages that stranded other labels instead.
+      let y = straddling.topPx
+      let prev: PageBlock | undefined
+      for (const blk of sorted) {
+        if (blk.bottomPx > y + 0.5) continue
+        if (!prev || blk.bottomPx > prev.bottomPx) prev = blk
+      }
+      if (prev?.keepWithNext && prev.topPx > pageTop + maxPageHeightPx * 0.6) y = prev.topPx
+      cutReasons.push('snap')
+      return y
+    }
+    cutReasons.push('clamp')
     return maxY
   }
   throw new PaginationImpossibleError('No legal page-break candidate exists for this document')
@@ -247,6 +280,7 @@ function isLegalForcedCut(y: number, sorted: PageBlock[], contentHeightPx: numbe
 }
 
 export function paginate(input: PaginationInput): Pagination {
+  cutReasons.length = 0
   const {
     blocks,
     contentHeightPx,
@@ -307,7 +341,7 @@ export function paginate(input: PaginationInput): Pagination {
     pageIndex++
   }
 
-  return { cutsPx, pageCount: cutsPx.length + 1 }
+  return { cutsPx, pageCount: cutsPx.length + 1, cutReasons: cutReasons.slice() }
 }
 
 /* --------------------------------------------------------- combineColumns */

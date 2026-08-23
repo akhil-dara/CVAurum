@@ -136,7 +136,7 @@ describe('paginateOrThrow — wraps PaginationImpossibleError as PdfMultiPageUns
       { kind: 'line', topPx: 100, bottomPx: 190 },
     ]
     const result = paginateOrThrow({ blocks, contentHeightPx: 190, usablePageHeightPx: 105 })
-    expect(result).toEqual({ cutsPx: [90], pageCount: 2 })
+    expect(result).toMatchObject({ cutsPx: [90], pageCount: 2 })
   })
 
   it('a single-page document (no overflow) returns no cuts, unchanged', () => {

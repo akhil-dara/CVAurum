@@ -16,6 +16,7 @@ import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
+import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
 import { resolveForcedCutsPx } from './pageBreaks'
 import { parsePx } from './style'
@@ -43,6 +44,8 @@ declare global {
      *  computes itself via `extractPageBlocks` + `paginate` on the preview's
      *  measure portal — the WYSIWYG parity guarantee (spec section 7). */
     __cvaLastPaginationCuts?: number[]
+    __cvaLastPaginationBlocks?: { kind: string; topPx: number; bottomPx: number; keepWithNext?: boolean }[]
+    __cvaLastCutReasons?: string[]
     /** DEV: the scale auto-fit settled on for the last export. */
     __cvaLastFitScale?: number
   }
@@ -303,6 +306,8 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     const padding = findMainColumnPaddingPx(sheet)
 
     let cutsPx: number[] = []
+    let lastBlocks: PageBlock[] = []
+    let lastReasons: string[] = []
     let pageCount = 1
 
     if (overflow) {
@@ -322,6 +327,8 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
         forcedCutsPx: doc.metadata.page.autoFit ? [] : resolveForcedCutsPx(sheet, doc.metadata.page.breaks),
       })
       cutsPx = result.cutsPx
+      lastBlocks = blocks
+      lastReasons = result.cutReasons ?? []
       pageCount = result.pageCount
     } else if (!doc.metadata.page.autoFit && doc.metadata.page.breaks.length) {
       // Pins can force pagination even when the content fits one page
@@ -339,6 +346,8 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
           forcedCutsPx,
         })
         cutsPx = result.cutsPx
+        lastBlocks = blocks
+        lastReasons = result.cutReasons ?? []
         pageCount = result.pageCount
       }
     }
@@ -391,7 +400,13 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // either way, and always-assigning keeps the same staleness guarantee as
     // the deco boxes above — a single-page render publishes [] over whatever
     // a prior multi-page render left behind.
-    if (import.meta.env.DEV) window.__cvaLastPaginationCuts = cutsPx.slice()
+    if (import.meta.env.DEV) {
+      window.__cvaLastPaginationCuts = cutsPx.slice()
+      // Same DEV-only discipline: harnesses need the BLOCKS to tell a missing
+      // keepWithNext flag apart from one the chooser ignored.
+      window.__cvaLastPaginationBlocks = lastBlocks.map((blk) => ({ ...blk }))
+      window.__cvaLastCutReasons = lastReasons.slice()
+    }
 
     return stampPdfVersion(await pdfDoc.save())
   } finally {
