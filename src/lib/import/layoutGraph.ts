@@ -266,7 +266,15 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
         else if (it.x + it.width <= prevGutter) left++
         else right++
       }
-      if (left > 0 && right > 0 && straddle <= pageItems.length * 0.03) gutter = prevGutter
+      // Ink on BOTH sides is too strong a demand: a continuation page can
+      // hold ONLY the sidebar (aside's page 2) or only the main column.
+      // Such a page fell back to single-column, so its lines kept main-flow
+      // order instead of being emitted with the column they continue, and
+      // the section they belong to was split in two. Which SIDE the content
+      // falls on still identifies its column; a genuinely full-width
+      // continuation page still crosses the old gutter and is rejected by
+      // the straddle cap below.
+      if (left + right > 0 && straddle <= pageItems.length * 0.03) gutter = prevGutter
     }
     if (gutter == null) continue
     prevGutter = gutter

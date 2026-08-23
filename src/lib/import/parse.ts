@@ -888,10 +888,18 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   for (let i = 0; i < lines.length; i++) {
     if (consumed.has(i) || !isChipRow(lines[i])) continue
     const sig = { x: lines[i].x, h: lines[i].height, page: lines[i].page }
-    const keywords = lines[i].items.map((it) => it.str)
-    consumed.add(i)
-    let prev = lines[i]
-    for (let j = i + 1; j < lines.length && sameChipLine(lines[j], sig); j++) {
+    // A chip ROW needs two runs, but a group's first chip often sits alone
+    // on its line, so the run begins ABOVE the row that identified it. Walk
+    // back over every line still matching the chip signature: otherwise that
+    // lone chip is left over, reads as a group name, and displaces the real
+    // one (measured on `aside`: "Microsoft SQL Server" named the group that
+    // "Databases & Data Management" should have).
+    let start = i
+    while (start > 0 && !consumed.has(start - 1) && sameChipLine(lines[start - 1], sig)) start--
+    const keywords = lines[start].items.map((it) => it.str)
+    consumed.add(start)
+    let prev = lines[start]
+    for (let j = start + 1; j < lines.length && sameChipLine(lines[j], sig); j++) {
       const l = lines[j]
       // Font metrics, not a learned pitch: a wrapped line sits ~1.4x its own
       // height below its first line, while a new chip row adds the chip's
@@ -906,13 +914,28 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
       consumed.add(j)
       prev = l
     }
-    const above = i > 0 ? lines[i - 1] : null
+    const above = start > 0 ? lines[start - 1] : null
     let name = ''
-    if (above && !consumed.has(i - 1) && !sameChipLine(above, sig) && chipGroupName(stripBullet(above.text).trim())) {
+    let nameIdx = start - 1
+    if (above && !consumed.has(nameIdx) && !sameChipLine(above, sig) && chipGroupName(stripBullet(above.text).trim())) {
       name = stripBullet(above.text).trim()
-      consumed.add(i - 1)
+      consumed.add(nameIdx)
+      // The name itself wraps in a narrow column ("Databases & Data" /
+      // "Management"). Its own continuation sits at the name's left edge and
+      // height, one text line up rather than a full row.
+      const prior = nameIdx > 0 ? lines[nameIdx - 1] : null
+      if (
+        prior &&
+        !consumed.has(nameIdx - 1) &&
+        sameChipLine(prior, { x: above.x, h: above.height, page: above.page }) &&
+        above.top - prior.top < above.height * 1.8 &&
+        chipGroupName(`${stripBullet(prior.text).trim()} ${name}`)
+      ) {
+        name = `${stripBullet(prior.text).trim()} ${name}`
+        consumed.add(nameIdx - 1)
+      }
     }
-    chipBlocks.set(i, { name, keywords: clean(keywords) })
+    chipBlocks.set(start, { name, keywords: clean(keywords) })
   }
   const groups: ResumeContent['skills'] = []
   const loose: string[] = []

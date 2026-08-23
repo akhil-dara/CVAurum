@@ -814,3 +814,65 @@ describe('splitSections — a section label that wraps onto two lines (2026-08-2
     expect(secs.map((s) => s.key)).toEqual(['header', 'education', 'languages'])
   })
 })
+
+// Measured on the `aside` template: group names at x=437.4 h=8.2, chips at
+// x=442.2 h=7.4, chip rows 16.0 apart, wrapped lines 10.5 apart.
+const asideName = (text: string, top: number): Line => {
+  const l = line(text, false, 8.2, top)
+  l.x = 437.4
+  l.items = [{ str: text, x: 437.4, top, width: text.length * 4, height: 8.2, bold: false, page: 1, col: 2, aside: true }]
+  return l
+}
+const asideChips = (tokens: string[], top: number): Line => {
+  let x = 442.2
+  const items: Item[] = tokens.map((str) => {
+    const width = str.length * 4
+    const it: Item = { str, x, top, width, height: 7.4, bold: false, page: 1, col: 2, aside: true }
+    x += width + 12.7
+    return it
+  })
+  return { ...line(tokens.join(' '), false, 7.4, top), x: 442.2, items, aside: true }
+}
+
+describe('parseSkills — a group whose first chip stands alone (2026-08-23)', () => {
+  it('starts the group at the chip ABOVE the first multi-chip row', () => {
+    // "Microsoft SQL Server" is a chip on its own line, so no chip row began
+    // there; it was read as the group NAME and the real name was discarded.
+    const out = parseSkills([
+      asideName('Databases & Data Management', 183.8),
+      asideChips(['Microsoft SQL Server'], 207.6),
+      asideChips(['MySQL', 'SSMS'], 223.6),
+      asideChips(['Data Modelling', 'Data Quality'], 239.6),
+      asideChips(['Data Validation'], 255.6),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('Databases & Data Management')
+    expect(out[0].keywords).toEqual(['Microsoft SQL Server', 'MySQL', 'SSMS', 'Data Modelling', 'Data Quality', 'Data Validation'])
+  })
+
+  it('joins a group name that wrapped onto two lines', () => {
+    const out = parseSkills([
+      asideName('Databases & Data', 183.8),
+      asideName('Management', 194.3),
+      asideChips(['Microsoft SQL Server'], 207.6),
+      asideChips(['MySQL', 'SSMS'], 223.6),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].name).toBe('Databases & Data Management')
+    expect(out[0].keywords).toEqual(['Microsoft SQL Server', 'MySQL', 'SSMS'])
+  })
+
+  it('does not swallow the previous group when two groups sit back to back', () => {
+    const out = parseSkills([
+      asideName('Programming & Querying', 70.6),
+      asideChips(['SQL', 'T-SQL'], 83.8),
+      asideChips(['Stored Procedures'], 99.9),
+      asideName('Databases & Data Management', 183.8),
+      asideChips(['Microsoft SQL Server'], 207.6),
+      asideChips(['MySQL', 'SSMS'], 223.6),
+    ])
+    expect(out.map((g) => g.name)).toEqual(['Programming & Querying', 'Databases & Data Management'])
+    expect(out[0].keywords).toEqual(['SQL', 'T-SQL', 'Stored Procedures'])
+    expect(out[1].keywords).toEqual(['Microsoft SQL Server', 'MySQL', 'SSMS'])
+  })
+})
