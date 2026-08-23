@@ -139,6 +139,14 @@ export const LayoutSchema = z.object({
   itemGap: z.number().min(2).max(24).default(5),
   /** show small icons next to contact details / section headers */
   icons: z.boolean().default(true),
+  /**
+   * How a section heading's icon is presented. The badge is one of the
+   * loudest stylistic choices on the page, so it is worth a real control:
+   * 'chip' is the tinted rounded square templates have always drawn,
+   * 'none' removes the badge while leaving CONTACT icons alone (those are
+   * the separate `icons` switch).
+   */
+  sectionIconStyle: z.enum(['chip', 'plain', 'filled', 'circle', 'outline', 'none']).default('chip'),
   /** show the photo (if provided) */
   showPhoto: z.boolean().default(false),
   /** show a monogram (initials in a colored badge) instead of a photo */

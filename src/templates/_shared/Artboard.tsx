@@ -344,7 +344,11 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
 }
 
 function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: string; doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
-  const showIcon = config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id)
+  // 'none' drops the badge here rather than hiding it in CSS, so it leaves
+  // the accessibility tree and the tagged PDF too, not just the page.
+  const showIcon =
+    (doc.metadata.layout.sectionIconStyle ?? 'chip') !== 'none' &&
+    (config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id))
   // Per-section style overrides (user picks in the section gear) — scoped classes
   // that beat the template's root-level sec-*/skl-* defaults.
   const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
@@ -430,7 +434,8 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
   ensureFont(t.headingFamily)
   ensureFont(t.nameFamily)
 
-  const hasIcons = config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id)
+  const iconStyle = doc.metadata.layout.sectionIconStyle ?? 'chip'
+  const hasIcons = iconStyle !== 'none' && (config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id))
   const rootClass = [
     'rm-root',
     config.class,
@@ -442,6 +447,7 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
     `skl-${config.skills}`,
     `mode-${mode}`,
     `side-${doc.metadata.layout.sidebar}`,
+    `sicon-${iconStyle}`,
   ]
     .filter(Boolean)
     .join(' ')

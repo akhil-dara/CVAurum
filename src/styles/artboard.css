@@ -499,6 +499,43 @@
   background: color-mix(in srgb, currentColor 16%, transparent);
   color: inherit;
 }
+
+/* Section-icon treatments (2026-08-23). The heading badge is one of the
+   loudest stylistic choices on a resume, so it gets real variants rather
+   than the single tinted square every template used to draw. `sicon-chip`
+   IS that square and stays the default, so nothing moves unless asked.
+   `sicon-none` never reaches here - Artboard stops rendering the badge -
+   and leaves CONTACT icons alone, which are a separate switch. */
+.sicon-plain .rm-section-icon {
+  background: none;
+  width: 1.15em;
+  height: 1.15em;
+  border-radius: 0;
+  margin-right: 0.4em;
+  vertical-align: -0.2em;
+}
+.sicon-plain .rm-section-icon svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+.sicon-circle .rm-section-icon {
+  border-radius: 50%;
+}
+.sicon-filled .rm-section-icon {
+  background: var(--rm-primary);
+  color: var(--rm-bg);
+}
+.sicon-filled .rm-col-aside .rm-section-icon {
+  background: var(--rm-sidebar-text);
+  color: var(--rm-sidebar-bg);
+}
+.sicon-outline .rm-section-icon {
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--rm-primary) 55%, transparent);
+}
+.sicon-outline .rm-col-aside .rm-section-icon {
+  border-color: color-mix(in srgb, currentColor 45%, transparent);
+}
 /* Hanging icon chips: the chip sits in the left margin gutter so the heading
    TEXT shares one clean left edge with the body and the header name. Without
    this the icon pushes the title text inward and it reads as misaligned. */
@@ -524,18 +561,35 @@
   margin: 0 0.5em 0 0;
   vertical-align: -0.42em;
 }
-/* Narrow sidebars: keep the chip inline and indent the body to match the
-   heading text, so the chip never crowds the sidebar's left edge. */
+/* Narrow sidebars: keep the chip inline on the heading, but DON'T indent the
+   body to match it. The indent cost every sidebar line ~2.1em of an already
+   narrow column - enough, at a 34% sidebar, to wrap "Programming & Querying"
+   onto two lines and the section heading onto three (2026-08-23 user report).
+   The reference resume does the same: its sidebar headings carry an inline
+   icon while the contact lines beneath start at the column's own left edge. */
 .rm-icons .rm-col-aside .rm-section-icon {
   position: static;
   right: auto;
   top: auto;
   transform: none;
-  margin: 0 0.45em 0 0;
+  margin: 0;
   vertical-align: -0.4em;
+  flex: 0 0 auto;
+}
+/* ...and lay the heading out as icon + text BLOCK, so a heading that wraps in
+   a narrow sidebar keeps one clean left edge. Inline, only the first line was
+   pushed in by the icon and the rest ran back to the column edge, which read
+   as ragged (2026-08-23 user report):
+     [icon] TECHNICAL          [icon] TECHNICAL SKILLS &
+   SKILLS & CORE          ->          CORE COMPETENCIES
+   COMPETENCIES                                              */
+.rm-icons .rm-col-aside .rm-section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45em;
 }
 .rm-icons .rm-col-aside .rm-section-body {
-  padding-left: 2.1em;
+  padding-left: 0;
 }
 /* Section gallery previews have no page margin, so keep the chip inline. */
 .rm-section-preview .rm-section-icon {

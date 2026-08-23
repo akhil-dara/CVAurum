@@ -175,6 +175,21 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider label="Section spacing" value={m.layout.sectionGap} min={4} max={30} step={1} unit="pt" onChange={(v) => update((md) => { md.layout.sectionGap = v })} />
         <Slider label="Item spacing" value={m.layout.itemGap} min={2} max={20} step={1} unit="pt" onChange={(v) => update((md) => { md.layout.itemGap = v })} />
         <Toggle label="Show contact icons" checked={m.layout.icons} onChange={(v) => update((md) => { md.layout.icons = v })} />
+        <div>
+          <label className="label">Section icons</label>
+          <Segmented
+            value={m.layout.sectionIconStyle ?? 'chip'}
+            options={[
+              { value: 'chip', label: 'Chip' },
+              { value: 'plain', label: 'Plain' },
+              { value: 'filled', label: 'Filled' },
+              { value: 'circle', label: 'Circle' },
+              { value: 'outline', label: 'Outline' },
+              { value: 'none', label: 'None' },
+            ]}
+            onChange={(v) => update((md) => { md.layout.sectionIconStyle = v })}
+          />
+        </div>
         <Toggle label="Show photo" checked={m.layout.showPhoto} onChange={(v) => update((md) => { md.layout.showPhoto = v })} />
         {m.layout.showPhoto && (
           <>
