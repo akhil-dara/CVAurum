@@ -111,7 +111,12 @@
      same containing block the column is sized from, so scaling it gives a
      true fraction of the SIDEBAR's width. The min() keeps the default and
      wider settings on the page margin exactly as before. */
-  padding: var(--rm-pad) min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
+  padding: var(--rm-pad)
+    clamp(
+      calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2),
+      calc((var(--rm-aside-w, 34%) - 100px) * 0.3),
+      var(--rm-pad)
+    );
   background: var(--rm-sidebar-bg);
   color: var(--rm-sidebar-text);
 }
