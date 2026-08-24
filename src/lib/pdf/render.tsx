@@ -338,6 +338,14 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
       lastBlocks = blocks
       lastReasons = result.cutReasons ?? []
       pageCount = result.pageCount
+      if (import.meta.env.DEV) {
+        ;(window as unknown as { __cvaLastPaginationInput?: unknown }).__cvaLastPaginationInput = {
+          contentHeightPx,
+          usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),
+          firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, padding),
+          maxPageHeightPx: pageHpx,
+        }
+      }
     } else if (!doc.metadata.page.autoFit && doc.metadata.page.breaks.length) {
       // Pins can force pagination even when the content fits one page
       // ("move this to page 2" on a one-page doc — the feature's core use).

@@ -709,3 +709,31 @@ describe('paginate — stepping above a CHAIN of keep-with-next blocks', () => {
     expect(cutsPx[0]).not.toBeGreaterThan(806)
   })
 })
+
+describe('paginate — the paper-edge clamp must not strand a label either', () => {
+  // From a real export (sapphire, 34% sidebar, chip skills). The sidebar inks
+  // straight through the main column's gaps, so the combined list offers no
+  // candidate at all and the clamp fires. It returned the paper edge, which
+  // fell exactly on the boundary after an entry label - stranding it with its
+  // first body line overleaf. Cutting EARLIER than the edge can never lose
+  // content (it only moves content to the next page), so the clamp can afford
+  // to step above the label; only cutting LATER is destructive.
+  it('steps above a keep-with-next block rather than clamping onto its edge', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 898 },
+      { kind: 'line', topPx: 898, bottomPx: 1123, keepWithNext: true }, // label
+      { kind: 'line', topPx: 1123, bottomPx: 1442 }, // the body it introduces
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 1442, usablePageHeightPx: 1000, maxPageHeightPx: 1123 })
+    expect(cutsPx[0]).toBe(898)
+  })
+
+  it('still clamps at the paper edge when stepping up would empty the page', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 1123, keepWithNext: true }, // taller than the floor allows
+      { kind: 'line', topPx: 1123, bottomPx: 1442 },
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 1442, usablePageHeightPx: 1000, maxPageHeightPx: 1123 })
+    expect(cutsPx[0]).toBe(1123)
+  })
+})
