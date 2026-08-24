@@ -555,7 +555,14 @@
 .rm-icons .rm-section-icon {
   position: absolute;
   right: 100%;
+  /* Centre of the heading's FIRST LINE BOX, which is half a line-height down -
+     not a fixed em. The em value is the fallback for browsers without the `lh`
+     unit, and is what this used to be: correct at ONE line-height and drifting
+     from there. Line-height is a user slider running 1.0 to 2.2, so at the top
+     of its travel the badge sat a third of a heading above its own text
+     (measured: +1.5px at 1.0 to -6.1px at 2.2 - 2026-08-25 user report). */
   top: 0.56em;
+  top: 0.5lh;
   transform: translateY(-50%);
   margin: 0 0.42em 0 0;
   vertical-align: baseline;
@@ -632,7 +639,9 @@
 .rm-icons .rm-col-aside .rm-section-icon {
   position: absolute;
   right: 100%;
+  /* Same first-line-box centring as the main column above. */
   top: 0.62em;
+  top: 0.5lh;
   transform: translateY(-50%);
   margin: 0 0.4em 0 0;
 }
