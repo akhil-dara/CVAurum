@@ -1141,8 +1141,16 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
       const role = roleForElement((n as Text).parentElement, root)
       const column: 'main' | 'aside' = (n as Text).parentElement?.closest('.rm-col-aside') ? 'aside' : 'main'
       const blockId = logicalBlockId((n as Text).parentElement, root)
+      // `aria-hidden` is the document saying this text is decoration, not
+      // content. PDF says the same thing with an Artifact, and an artifact's
+      // glyphs are painted as outlines instead of extractable text. Without
+      // this the entry badge - a single letter echoing the employer's initial
+      // - was extracted in front of the job title, so an ATS read the position
+      // as "T Data Analyst" rather than "Data Analyst".
+      const decorative = isAriaHidden((n as Text).parentElement, root)
       for (const run of extractRuns(n as Text, root)) {
-        ops.push({ kind: 'text', run, role: run.isDecorative ? 'Artifact' : role, column, blockId })
+        const r = decorative ? { ...run, isDecorative: true } : run
+        ops.push({ kind: 'text', run: r, role: r.isDecorative ? 'Artifact' : role, column, blockId })
       }
     }
   }
@@ -1343,6 +1351,37 @@ function extractBlocksFromScope(scope: Element, rootTop: number): PageBlock[] {
  *  to ONE block from their own box and flagged `keepWithNext`. See
  *  `extractPageBlocks`'s doc comment for why a whole ROW, not just the title
  *  text run. */
+/**
+ * True when `el` sits under an `aria-hidden` element.
+ *
+ * The templates already mark their decoration this way - the entry badge, the
+ * monogram, rating dots and stars, section icons - so this needs no list of
+ * class names to keep in step with them.
+ */
+const ariaHiddenCache = new WeakMap<Element, boolean>()
+function isAriaHidden(from: Element | null, root: Element): boolean {
+  let el: Element | null = from
+  const seen: Element[] = []
+  let hidden = false
+  while (el) {
+    const cached = ariaHiddenCache.get(el)
+    if (cached !== undefined) {
+      hidden = cached
+      break
+    }
+    seen.push(el)
+    const v = el.getAttribute('aria-hidden')
+    if (v !== null && v !== 'false') {
+      hidden = true
+      break
+    }
+    if (el === root) break
+    el = el.parentElement
+  }
+  for (const e of seen) ariaHiddenCache.set(e, hidden)
+  return hidden
+}
+
 /** A stable id for the nearest BLOCK-level ancestor of a text node - the
  *  paragraph, bullet or heading a reader thinks of as one unit. Every visual
  *  line of that block shares the id, which is what lets the structure tree
