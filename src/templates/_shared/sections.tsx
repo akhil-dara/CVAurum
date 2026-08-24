@@ -628,7 +628,16 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
           return (
             <div className="rm-skill-group" key={s.id} data-item-id={s.id}>
               <div className="rm-level">
-                <span className="rm-skill-group-name">{s.name}</span>
+                <span className="rm-skill-group-name">
+                  {/* Same chunking as a keyword: a group named "BI, Reporting
+                      & Visualisation" wrapped with "&" alone on a line. */}
+                  {keywordChunks(s.name || '', '').map((piece, pi) => (
+                    <Fragment key={pi}>
+                      {pi > 0 ? ' ' : null}
+                      {piece.includes(' ') ? <span className="rm-kw-tail">{piece}</span> : piece}
+                    </Fragment>
+                  ))}
+                </span>
                 <Proficiency rating={s.rating} style={prof} />
               </div>
               <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
@@ -647,6 +656,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
             apply={(c, v) => { c.skills[i].name = v }}
             className="rm-skill-group-name"
             placeholder="Category"
+            chunk
           />
         ) : null
         return (

@@ -11,13 +11,14 @@
  * Rich fields (bullets, summary) also get the same "/" quick-insert menu as
  * the panel editor — type "/" at a word start for verbs, metric templates, etc.
  */
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeContent } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { filterSlash, type Slash } from '@/lib/slashCommands'
 import { RichText } from './atoms'
+import { keywordChunks } from '@/lib/keywordChunks'
 
 export type EditFn = (recipe: (c: ResumeContent) => void) => void
 /** Mutate document metadata (layout/typography/theme) from the canvas. */
@@ -265,6 +266,7 @@ export function Ed({
   className,
   placeholder,
   spellCheck,
+  chunk,
 }: {
   edit?: EditFn
   value: string
@@ -276,9 +278,25 @@ export function Ed({
   className?: string
   placeholder?: string
   spellCheck?: boolean
+  /** Render the value in break-safe pieces when not editing (keywordChunks). */
+  chunk?: boolean
 }) {
   if (!edit) {
     if (rich) return <RichText html={value} className={className} />
+    // `chunk` splits the value where a line may break, so a lone connector
+    // never holds a line by itself - "BI, Reporting & Visualisation" wrapped
+    // with "&" alone in a narrow sidebar. Only outside edit mode: the editable
+    // branch is a contenteditable and must stay one plain text node.
+    if (chunk && value) {
+      const pieces = keywordChunks(value, '')
+      const inner = pieces.map((piece, i) => (
+        <Fragment key={i}>
+          {i > 0 ? ' ' : null}
+          {piece.includes(' ') ? <span className="rm-kw-tail">{piece}</span> : piece}
+        </Fragment>
+      ))
+      return className ? <span className={className}>{inner}</span> : <>{inner}</>
+    }
     return className ? <span className={className}>{value}</span> : <>{value || ''}</>
   }
   return (

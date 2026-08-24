@@ -111,7 +111,9 @@
      same containing block the column is sized from, so scaling it gives a
      true fraction of the SIDEBAR's width. The min() keeps the default and
      wider settings on the page margin exactly as before. */
-  padding: var(--rm-pad) min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
+  --rm-aside-pad-l: min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
+  --rm-aside-pad-r: min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
+  padding: var(--rm-pad) var(--rm-aside-pad-r) var(--rm-pad) var(--rm-aside-pad-l);
   background: var(--rm-sidebar-bg);
   color: var(--rm-sidebar-text);
 }
@@ -599,6 +601,34 @@
 .rm-icons .rm-col-aside .rm-section-title {
   position: relative;
 }
+/* The icon hangs outside its heading, into the band's margin, so its SIZE is
+   what decides whether the band still looks like it has one: measured at a 26%
+   sidebar, text sat 37px from the band edge and the icon 10px, which reads as
+   no margin at all on the side the eye lands on first (2026-08-24 user report,
+   localhost against the deployed build).
+
+   Shrinking the icon rather than padding the band. Reserving room by raising
+   the padding costs the column 10-12px of TEXT, and a narrower sidebar wraps
+   taller, which stranded twice as many headings at page ends - paying for a
+   margin with the layout is not a trade worth making. A smaller mark hangs in
+   less space and leaves the text where it was. */
+.rm-icons .rm-col-aside .rm-section-icon {
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.3em;
+}
+/* ...and a floor just large enough that the mark cannot leave the band. A
+   right-hand sidebar pads its left side with the inner gutter alone, which put
+   the icon at -2px, outside. Kept to the icon's own hang so it costs the text
+   nothing at the widths where the padding is already larger. */
+.rm-icons .rm-col-aside,
+.rm-icons.side-right .rm-body:not(.rm-single) > .rm-col-aside {
+  padding-left: max(var(--rm-aside-pad-l, 0px), 2.1em);
+}
+.rm-icons.side-right .rm-body:not(.rm-single) > .rm-col-aside {
+  padding-left: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), 2.1em);
+}
+
 .rm-icons .rm-col-aside .rm-section-icon {
   position: absolute;
   right: 100%;
