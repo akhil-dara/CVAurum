@@ -1658,6 +1658,54 @@ function pushRowBlock(el: Element, rootTop: number, out: PageBlock[], keepWithNe
   pushOwnBoxBlock(el, rootTop, out, 'line', keepWithNext)
 }
 
+/**
+ * One atomic block per visual ROW of a wrapped chip list.
+ *
+ * Rows are read from the chips' own boxes rather than assumed: a flex list
+ * wraps where it wraps. Per ROW rather than per CHIP because chips sharing a
+ * row share a top, and as separate blocks they would OVERLAP - the tiling this
+ * feeds degrades silently on overlapping geometry rather than complaining.
+ *
+ * Falls back to the container's own box whenever the rows do not describe it
+ * cleanly - no element children, or any row overlapping the one before it -
+ * so a list this cannot read behaves exactly as it did when it was atomic.
+ */
+function pushChipRowBlocks(el: Element, rootTop: number, out: PageBlock[]): void {
+  const boxes: Array<{ top: number; bottom: number }> = []
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType !== Node.ELEMENT_NODE) continue
+    const child = node as Element
+    if (isSkippedElement(child)) continue
+    const r = child.getBoundingClientRect()
+    if (r.height <= 0) continue
+    boxes.push({ top: r.top - rootTop, bottom: r.bottom - rootTop })
+  }
+  if (!boxes.length) {
+    pushOwnBoxBlock(el, rootTop, out, 'atomic', false)
+    return
+  }
+  boxes.sort((a, b) => a.top - b.top)
+  const rows: Array<{ top: number; bottom: number }> = []
+  for (const box of boxes) {
+    const last = rows[rows.length - 1]
+    // Same row when the boxes overlap vertically at all: a taller chip must
+    // not start a row of its own.
+    if (last && box.top < last.bottom - 0.5) {
+      last.bottom = Math.max(last.bottom, box.bottom)
+      continue
+    }
+    rows.push({ top: box.top, bottom: box.bottom })
+  }
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].top < rows[i - 1].bottom - 0.01) {
+      // Rows that still overlap would corrupt the tiling; keep the old shape.
+      pushOwnBoxBlock(el, rootTop, out, 'atomic', false)
+      return
+    }
+  }
+  for (const row of rows) out.push({ kind: 'atomic', topPx: row.top, bottomPx: row.bottom })
+}
+
 /** Recursively collects every ink block ('line'/'atomic') within `el`'s own
  *  subtree, in document order — the entry-level (and title-row-level) walk
  *  `extractSectionBlocks` drives. Atomic elements and title/plain ROWS
@@ -1666,6 +1714,18 @@ function pushRowBlock(el: Element, rootTop: number, out: PageBlock[], keepWithNe
  *  anything else recurses through its child text/element nodes. */
 function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
   if (isAtomicElement(el)) {
+    // A wrapped chip LIST is atomic per ROW, not as a whole. One block for the
+    // entire container makes it an indivisible slab, and since a cut needs
+    // EVERY column clear at the same y, an atomic sidebar list also swallows
+    // the MAIN column's gaps for its whole height. Measured on a real resume
+    // at line-height 1.54: with chips, page one ended 32% full; with the same
+    // content as an inline list - identical text, no atomic blocks - 85%.
+    // Chips wrap into rows and a break between two rows is as ordinary as one
+    // between two lines of text.
+    if ((el as HTMLElement).classList.contains('rm-chips')) {
+      pushChipRowBlocks(el, rootTop, out)
+      return
+    }
     pushOwnBoxBlock(el, rootTop, out, 'atomic', false)
     return
   }
