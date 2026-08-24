@@ -48,3 +48,68 @@ export function mainColumnTextFirst(ops: DrawOp[]): DrawOp[] {
   for (const op of ops) (isAsideText(op) ? aside : rest).push(op)
   return [...rest, ...aside]
 }
+
+/**
+ * Per PAGE, put the sidebar's text first when doing so REJOINS a section the
+ * page break split - and only then.
+ *
+ * `mainColumnTextFirst` is right about page one: the candidate's name has to
+ * be the first thing a parser reads. Applied to every page it has a cost that
+ * only shows up in multi-page documents. Measured on a real two-column resume
+ * at line-height 1.95, the text layer read
+ *
+ *   ... SKILLS, <half the skills>, | EDUCATION, <education>, <rest of skills>
+ *
+ * so the tail of the skills list arrives AFTER the EDUCATION heading, and a
+ * parser - which files text under the last heading it saw - files those skills
+ * under Education. That is the "skills and experience all mixed up" report:
+ * the characters are all present and in the right columns, but they are
+ * attributed to the wrong section.
+ *
+ * Emitting the sidebar first on that page joins the two halves of the skills
+ * list back together, and costs nothing on the main column because the main
+ * column opens with its own heading.
+ *
+ * The rule is deliberately narrow. A page is reordered only when
+ *   - it is not the first page (page one must lead with the name), AND
+ *   - the sidebar's first text there is NOT a heading - it continues a
+ *     section that began on an earlier page, so it has something to rejoin.
+ *
+ * Working through what each order costs, with K for a sidebar section and E
+ * for a main one, both split across the break:
+ *
+ *   main first    S E1 K1 | E2 D K2 L    E2 misfiled, K2 misfiled
+ *   sidebar first S E1 K1 | K2 L E2 D    K2 rejoins K1; E2 still misfiled
+ *
+ * The main column's continuation is misfiled either way - nothing can put it
+ * next to its own first half, because the other column's page-one text sits
+ * between them and page order is fixed. So flipping is never worse, and is
+ * better whenever the sidebar is the column that continues. When the sidebar
+ * instead starts a fresh section on the page there is nothing to rejoin and
+ * the page is left alone.
+ *
+ * Pages that are not reordered are returned by REFERENCE, so anything that
+ * does not meet both conditions is byte-identical to before.
+ */
+export function sidebarFirstOnContinuationPages(pages: DrawOp[][]): DrawOp[][] {
+  const isMainText = (op: DrawOp) => op.kind === 'text' && op.column !== 'aside' && !op.run.isDecorative
+  const isHeading = (op: DrawOp) => op.kind === 'text' && op.role === 'H2'
+
+  let changed = false
+  const out = pages.map((ops, pageIndex) => {
+    if (pageIndex === 0) return ops
+    const firstAside = ops.find(isAsideText)
+    if (!firstAside || isHeading(firstAside)) return ops
+    if (!ops.some(isMainText)) return ops
+
+    // Move ONLY the sidebar's own text, and only as far as the main column's
+    // first text - so every rect, image and decoration keeps both its place
+    // and its painting order relative to the text that sits on it.
+    const aside = ops.filter(isAsideText)
+    const kept = ops.filter((op) => !isAsideText(op))
+    const insertAt = kept.findIndex(isMainText)
+    changed = true
+    return [...kept.slice(0, insertAt), ...aside, ...kept.slice(insertAt)]
+  })
+  return changed ? out : pages
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mainColumnTextFirst } from './readingOrder'
+import { mainColumnTextFirst, sidebarFirstOnContinuationPages } from './readingOrder'
 import type { DrawOp, TextRun } from './types'
 
 const run = (text: string): TextRun => ({
@@ -58,5 +58,54 @@ describe('mainColumnTextFirst', () => {
   it('is a no-op for a right-sidebar template, which is already in order', () => {
     const ops = [text('Name', 'main'), text('SKILLS', 'aside')]
     expect(strs(mainColumnTextFirst(ops))).toEqual(['Name', 'SKILLS'])
+  })
+})
+
+const head = (t: string, column?: 'main' | 'aside'): DrawOp => ({
+  kind: 'text',
+  run: run(t),
+  role: 'H2',
+  column,
+})
+
+describe('sidebarFirstOnContinuationPages', () => {
+  // Page 1 ends inside SKILLS; page 2 opens a fresh EDUCATION in the main
+  // column and carries the rest of the skills in the sidebar. Main-first puts
+  // the skills tail AFTER the EDUCATION heading, so a linear parser files it
+  // under EDUCATION - the "skills and experience mixed up" report.
+  const page1 = [head('SUMMARY', 'main'), text('did things', 'main'), head('SKILLS', 'aside'), text('Go', 'aside')]
+
+  it('puts the sidebar first on a page where it continues and the main column starts fresh', () => {
+    const page2 = [head('EDUCATION', 'main'), text('BSc', 'main'), text('Python', 'aside')]
+    const out = sidebarFirstOnContinuationPages([page1, page2])
+    expect(strs(out[1])).toEqual(['Python', 'EDUCATION', 'BSc'])
+  })
+
+  it('never reorders page 1 - the candidate name has to come first', () => {
+    const out = sidebarFirstOnContinuationPages([page1])
+    expect(out[0]).toBe(page1)
+  })
+
+  it('leaves a page alone when the sidebar starts its own section there', () => {
+    const page2 = [head('EDUCATION', 'main'), head('LANGUAGES', 'aside'), text('Telugu', 'aside')]
+    const out = sidebarFirstOnContinuationPages([page1, page2])
+    expect(out[1]).toBe(page2)
+  })
+
+  it('still rejoins the sidebar when BOTH columns continue - the main half is stranded either way', () => {
+    const page2 = [text('more experience', 'main'), text('Python', 'aside')]
+    const out = sidebarFirstOnContinuationPages([page1, page2])
+    expect(strs(out[1])).toEqual(['Python', 'more experience'])
+  })
+
+  it('keeps decoration ahead of the text it sits under', () => {
+    const page2 = [rect(), head('EDUCATION', 'main'), text('Python', 'aside')]
+    const out = sidebarFirstOnContinuationPages([page1, page2])
+    expect(strs(out[1])).toEqual(['RECT', 'Python', 'EDUCATION'])
+  })
+
+  it('leaves a single-column document untouched', () => {
+    const pages = [[text('a', 'main')], [text('b', 'main')]]
+    expect(sidebarFirstOnContinuationPages(pages)).toBe(pages)
   })
 })

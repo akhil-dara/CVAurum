@@ -32,6 +32,7 @@ import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
+import { sidebarFirstOnContinuationPages } from './readingOrder'
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
 const JPEG_MAGIC = [0xff, 0xd8, 0xff]
@@ -1336,7 +1337,10 @@ export async function paintPages(
   captureDecoBoxes?: DecoBox[],
   tagSink?: TagSink
 ): Promise<void> {
-  const perPageOps = assignOpsToPages(ops, cutsPx, pageTopPaddingPx, pageHeightPx)
+  // Page assignment first, then the per-page reading order: which column a
+  // page should lead with depends on what the break actually split, which is
+  // only knowable once the ops are on pages. See its own doc comment.
+  const perPageOps = sidebarFirstOnContinuationPages(assignOpsToPages(ops, cutsPx, pageTopPaddingPx, pageHeightPx))
   for (let i = 0; i < pages.length; i++) {
     tagSink?.startPage(i)
     await paintOps(pages[i], perPageOps[i] ?? [], fonts, pageHeightPt, captureDecoBoxes, tagSink)
