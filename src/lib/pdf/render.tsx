@@ -16,6 +16,7 @@ import { fitOnePageScale } from '@/lib/fitOnePage'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
+import { keepHyphenatedWordsWhole } from './hyphens'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
 import { resolveForcedCutsPx } from './pageBreaks'
@@ -299,6 +300,11 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     const overflow = exceedsOnePage(container.scrollHeight, pageHpx, doc.metadata.page.margin)
 
     const sheet = container.firstElementChild as HTMLElement
+    // Before anything measures the layout: keep hyphenated words whole, so a
+    // line can never break inside "SLA-compliant" or "(PL-300)" and tear a
+    // keyword across two lines of the exported text (hyphens.ts). Changes no
+    // characters - only where the line wraps.
+    keepHyphenatedWordsWhole(sheet)
     // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only
     // ever CONSUMED when pagination actually runs (assignOpsToPages' single-
     // page shortcut ignores it entirely), so this has zero effect on the
