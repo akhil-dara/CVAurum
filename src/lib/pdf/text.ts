@@ -340,6 +340,9 @@ export interface VisualLine {
   topPx: number
   bottomPx: number
   xPx: number
+  /** Right edge, so a consumer can tell a flush neighbour from one across a
+   *  gap - a gap is where a reader inserts a space that no character backs. */
+  rightPx: number
   text: string
   column: 'main' | 'aside'
 }
@@ -388,6 +391,7 @@ export function visualLines(root: HTMLElement): VisualLine[] {
         topPx: seg.rect.top - rootRect.top,
         bottomPx: seg.rect.bottom - rootRect.top,
         xPx: seg.rect.left - rootRect.left,
+        rightPx: seg.rect.right - rootRect.left,
         text,
         column,
       })

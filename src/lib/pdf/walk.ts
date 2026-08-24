@@ -1494,10 +1494,14 @@ function pushTextLineBlocks(node: Text, rootTop: number, out: PageBlock[]): void
     if (bottomPx <= topPx) continue
     lines.push({ kind: 'line', topPx, bottomPx })
   }
-  // Widow/orphan control: a page break may not strand one line of a wrapped
-  // paragraph on its own (widows.ts). Expressed as keepWithNext so the rule
-  // survives combineColumns and applies to two-column resumes too.
-  const keep = keepFlagsForParagraph(lines.length)
+  // A KEYWORD is never split across pages, however many lines it wraps to.
+  // Reported against a real export: page two's sidebar opened with
+  // "& Request Analytics", the tail of "Incident, Change, Problem & Request
+  // Analytics" left behind on page one. Half a term on each side of a page
+  // break is worse than a wrap - neither half is searchable, and the reader
+  // cannot tell they belong together.
+  const inKeyword = !!node.parentElement?.closest('.rm-kw')
+  const keep = inKeyword ? lines.map((_, i) => i < lines.length - 1) : keepFlagsForParagraph(lines.length)
   lines.forEach((line, i) => {
     if (keep[i]) line.keepWithNext = true
     out.push(line)
