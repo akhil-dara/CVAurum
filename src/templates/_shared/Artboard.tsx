@@ -3,13 +3,14 @@
  * resume DOM. All visual parameters become CSS variables on .rm-root so the
  * exact same tree renders on screen and in the printed PDF.
  */
-import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
+import { applyKeywordFit } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { ContactIcons, networkIcon, prettyUrl, cleanEmail } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
@@ -421,6 +422,7 @@ export function SectionPreview({ doc, config, sectionKey }: { doc: ResumeDocumen
 }
 
 export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitScale = 1, onAddSection }: { doc: ResumeDocument; config: TemplateConfig; mode?: RenderMode; edit?: EditFn; editMeta?: MetaEditFn; fitScale?: number; onAddSection?: () => void }) {
+  const rootRef = useRef<HTMLDivElement>(null)
   const vars = useVars(doc, fitScale)
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
   // with their inline "Add item" affordance; print/thumbnail show content only.
@@ -461,8 +463,17 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
     </aside>
   ) : null
 
+  // After every render, in BOTH trees this component serves - the on-screen
+  // preview and the offscreen one the PDF is painted from - keep each keyword
+  // that fits its column from breaking mid-term (keywordFit.ts). Running it
+  // here rather than on the export's DOM alone is what keeps the exported
+  // wrap identical to the previewed one.
+  useLayoutEffect(() => {
+    if (rootRef.current) applyKeywordFit(rootRef.current)
+  })
+
   return (
-    <div className={rootClass} style={vars} data-template={config.id}>
+    <div ref={rootRef} className={rootClass} style={vars} data-template={config.id}>
       <div className={`rm-body ${twoCol ? '' : 'rm-single'}`}>
         {twoCol && doc.metadata.layout.sidebar === 'left' ? AsideCol : null}
         <main className="rm-col-main">

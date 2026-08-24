@@ -5,7 +5,7 @@
  * (<Ed>) and write straight back to the store; otherwise they render plain so
  * print/thumbnail stay clean.
  */
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
+import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -16,6 +16,27 @@ import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
+
+/**
+ * A keyword list where each term is its own element.
+ *
+ * Rendered as separate spans purely so a line break can be kept from falling
+ * inside a term - `keywordFit.ts` marks the ones that fit unbreakable. The
+ * text is character-for-character what `items.join(sep)` produced before, so
+ * everything downstream (copy, search, the exported text layer) is unchanged.
+ */
+function KeywordList({ items, sep }: { items: string[]; sep: string }) {
+  return (
+    <>
+      {items.map((k, i) => (
+        <Fragment key={i}>
+          {i > 0 ? sep : null}
+          <span className="rm-kw">{k}</span>
+        </Fragment>
+      ))}
+    </>
+  )
+}
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 /** Any of these values carries real text? (strings or string arrays) */
@@ -502,7 +523,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               {edit || e.score ? <Ed edit={edit} value={e.score} apply={(c, v) => { c.education[i].score = v }} className="rm-item-score" placeholder="GPA" /> : null}
             </div>
             {has(e.summary) ? <RichText html={e.summary} /> : null}
-            {e.courses?.length ? <div className="rm-skill-inline">{e.courses.join(' · ')}</div> : null}
+            {e.courses?.length ? <div className="rm-skill-inline"><KeywordList items={e.courses} sep=" · " /></div> : null}
             <ItemDelete edit={edit} sectionKey="education" id={e.id} label={ADD_LABEL.education} />
           </article>
         )
@@ -628,7 +649,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
             ) : hasKeywords && chipStyle ? (
               <Chips items={s.keywords!} />
             ) : hasKeywords ? (
-              <span className="rm-skill-inline">{s.name ? ': ' : ''}{s.keywords!.join(' · ')}</span>
+              <span className="rm-skill-inline">{s.name ? ': ' : ''}<KeywordList items={s.keywords!} sep=" · " /></span>
             ) : null}
             <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
           </div>
@@ -791,7 +812,7 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
               addLabel="+ keyword"
               placeholder="Keyword"
             />
-          ) : it.keywords?.length ? <span className="rm-skill-inline"> — {it.keywords.join(', ')}</span> : null}
+          ) : it.keywords?.length ? <span className="rm-skill-inline"> — <KeywordList items={it.keywords} sep=", " /></span> : null}
           <ItemDelete edit={edit} sectionKey="interests" id={it.id} label={ADD_LABEL.interests} />
         </div>
         )

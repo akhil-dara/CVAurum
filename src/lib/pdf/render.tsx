@@ -304,6 +304,8 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // line can never break inside "SLA-compliant" or "(PL-300)" and tear a
     // keyword across two lines of the exported text (hyphens.ts). Changes no
     // characters - only where the line wraps.
+    // Keywords are handled a level up, by the Artboard both this tree and the
+    // preview render (keywordFit.ts), so the two wrap the same way.
     keepHyphenatedWordsWhole(sheet)
     // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only
     // ever CONSUMED when pagination actually runs (assignOpsToPages' single-
