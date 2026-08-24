@@ -114,30 +114,90 @@ export function applyKeywordFit(root: HTMLElement): void {
  */
 const MIN_HEADING_SCALE = 0.72
 
+/**
+ * Where a word too long for its column must not be allowed to break.
+ *
+ * Section titles, and the CONTAINERS of a keyword list rather than the terms
+ * themselves: shrinking one term of a list and not its neighbours looks like a
+ * mistake, while shrinking the group keeps it uniform. Measured on pinnacle at
+ * a 22% sidebar, "Cross-Functional Collaboration" had "Collaboration" broken
+ * into "Collaborati" and "on", which matches nothing.
+ */
+const FIT_CONTAINERS = '.rm-section-title, .rm-skill-inline, .rm-chips'
+
 export function fitHeadingWords(root: HTMLElement): void {
-  const heads = Array.from(root.querySelectorAll<HTMLElement>('.rm-section-title'))
-  for (const el of heads) el.style.fontSize = ''
-  if (!heads.length) return
-  for (const el of heads) {
-    // The heading's OWN content box, not its parent's: a section title carries
-    // padding for the icon that hangs beside it, and measuring the parent
-    // credited the text with 119px where it actually had 109.
-    const cs = getComputedStyle(el)
-    const avail = el.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0')
-    if (!Number.isFinite(avail) || avail <= 0) continue
-    const widest = widestWordPx(el, root)
-    // Two pixels of margin, not zero. A range's client rects do not include
-    // the letter-spacing that follows the last glyph, which uppercase headings
-    // routinely carry, so a word measuring just inside the column still wraps;
-    // and shrinking to exactly the column width leaves the result on the
-    // rounding boundary, where it breaks again.
-    const target = avail - 2
-    if (widest <= target) continue
-    const scale = Math.max(MIN_HEADING_SCALE, target / widest)
-    const size = parseFloat(cs.fontSize || '0')
+  const boxes = Array.from(root.querySelectorAll<HTMLElement>(FIT_CONTAINERS))
+  for (const el of boxes) el.style.fontSize = ''
+  for (const el of boxes) {
+    const over = worstWordOverflow(el, root)
+    if (over <= 1) continue
+    const scale = Math.max(MIN_HEADING_SCALE, 1 / over)
+    const size = parseFloat(getComputedStyle(el).fontSize || '0')
     if (size > 0) el.style.fontSize = `${size * scale}px`
   }
 }
+
+/**
+ * How much the worst word overflows the box it actually has to fit in.
+ *
+ * Each word is measured against ITS OWN box, not the container's: in the chip
+ * style every term sits in a padded chip narrower than the list around it, so
+ * measuring the container credits a word with room it does not have - which is
+ * why "Collaboration" kept breaking after the container was already being
+ * shrunk. Returns 1 when everything fits.
+ */
+function worstWordOverflow(el: Element, root: Element): number {
+  const doc = el.ownerDocument
+  if (!doc) return 1
+  let worst = 1
+  const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  let node: Node | null
+  while ((node = walker.nextNode())) {
+    const text = node as Text
+    if (!text.data.trim()) continue
+    if (hiddenWithin(text.parentElement, root)) continue
+    // Two pixels of margin: a range's client rects exclude the letter-spacing
+    // after the last glyph, which uppercase headings carry, and landing exactly
+    // on the column width leaves the result on the rounding boundary.
+    const avail = boxWidthFor(text, el) - 2
+    if (avail <= 0) continue
+    for (const m of text.data.matchAll(/\S+/g)) {
+      const range = doc.createRange()
+      range.setStart(text, m.index)
+      range.setEnd(text, m.index + m[0].length)
+      let w = 0
+      for (const r of range.getClientRects()) w += r.width
+      if (w / avail > worst) worst = w / avail
+    }
+  }
+  return worst
+}
+
+/** Content width of the box this text actually wraps inside - the chip, not
+ *  the chip list; the heading, not the section. */
+function boxWidthFor(text: Text, container: Element): number {
+  let el: Element | null = text.parentElement
+  while (el) {
+    const cs = getComputedStyle(el)
+    const parentDisplay = el.parentElement ? getComputedStyle(el.parentElement).display : ''
+    const isItem = parentDisplay.includes('flex') || parentDisplay.includes('grid')
+    if (cs.display !== 'inline' || isItem || el === container) return contentWidth(el as HTMLElement, cs)
+    if (el === container) break
+    el = el.parentElement
+  }
+  return contentWidth(container as HTMLElement, getComputedStyle(container))
+}
+
+/** Width available to TEXT: the box less its padding AND its borders. The
+ *  bar section style puts a 3px border down the left of every heading, and
+ *  crediting the text with it left the shrink a hair short - "CERTIFICATIONS"
+ *  still spilled its final S. */
+function contentWidth(el: HTMLElement, cs: CSSStyleDeclaration): number {
+  const pad = parseFloat(cs.paddingLeft || '0') + parseFloat(cs.paddingRight || '0')
+  const border = parseFloat(cs.borderLeftWidth || '0') + parseFloat(cs.borderRightWidth || '0')
+  return Math.max(0, el.getBoundingClientRect().width - pad - border)
+}
+
 
 /** Width of the widest single word, measured unwrapped: summing a range's
  *  per-line rects gives the width the word WOULD occupy, even when it has

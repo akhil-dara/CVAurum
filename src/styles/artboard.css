@@ -111,12 +111,7 @@
      same containing block the column is sized from, so scaling it gives a
      true fraction of the SIDEBAR's width. The min() keeps the default and
      wider settings on the page margin exactly as before. */
-  padding: var(--rm-pad)
-    clamp(
-      calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2),
-      calc((var(--rm-aside-w, 34%) - 100px) * 0.3),
-      var(--rm-pad)
-    );
+  padding: var(--rm-pad) min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
   background: var(--rm-sidebar-bg);
   color: var(--rm-sidebar-text);
 }
@@ -652,32 +647,26 @@
   justify-content: space-between;
   gap: 12px;
 }
-/* When the title and its date cannot both fit, wrap the DATE to its own line
-   rather than wrapping the title.
-   Measured on a real resume: "Master of Computer Applications (MCA), Computer
-   Applications" needs only 0.85-0.95 of the row and "Salesforce Administrator
-   & Data Analyst - Clients: ..." 1.0-1.13 - so these titles are not too long
-   at all, they wrap because the date beside them takes the width. A title
-   split in two is then split in the COPIED text as well, in every reader.
+/* Title and date share the row: the TITLE wraps and the date keeps its place
+   at the top right, which is what every other builder does and what the author
+   compared against side by side (2026-08-24). The previous rule did the
+   opposite - it held the title at its natural width so the DATE wrapped to a
+   line of its own - on the reasoning that a wrapped title is also split in the
+   COPIED text. True, but it left a date floating alone under a heading with a
+   gap above it, and the author called that out on sight in both the experience
+   and education sections. A split title is recoverable by any reader that
+   joins the lines of a block; a date orphaned from its entry looks broken to a
+   person, and people read these too.
 
-   min-width: min(100%, max-content) is what expresses it: while the title
-   fits on one line it refuses to shrink, so the date is the thing that wraps;
-   once the title genuinely exceeds the row it falls back to the full width
-   and wraps normally, which is the only option for a name like "Microsoft
-   Certified: Power BI Data Analyst Associate (PL-300)" at ~2x its column.
-
-   MAIN column only. The same idea applied to the sidebar broke certificate
-   name/issuer pairing on import (52/52 -> 35/52), because it put a line
-   between the two. */
-.rm-col-main .rm-item-head {
-  flex-wrap: wrap;
-}
+   min-width: 0 is what expresses it - without it a flex item refuses to
+   shrink below its content, which is precisely what pushed the date away. */
 .rm-col-main .rm-item-head > .rm-item-title,
 .rm-col-main .rm-item-head > .rm-mini-title {
-  min-width: min(100%, max-content);
+  min-width: 0;
 }
 .rm-col-main .rm-item-head > .rm-item-date {
   margin-left: auto;
+  white-space: nowrap;
 }
 .rm-item-title {
   font-weight: 700;
@@ -1066,6 +1055,23 @@
   border-bottom: none;
   padding: 1px 0 1px 10px;
   border-left: 3px solid var(--rm-primary);
+}
+/* In the SIDEBAR the accent bar is dropped rather than indenting its heading,
+   so every line of the band - heading and body alike - starts on one left
+   edge. Measured before this: heading text at 45px, body text at 32px, which
+   reads as a mistake rather than a style (2026-08-24 user report). Removing
+   the indent also gives each heading 13px more width, and a heading too narrow
+   for its longest word is what broke CERTIFICATIONS and COMPETENCIES mid-word
+   at the tighter sidebar settings.
+
+   Dropping the bar, NOT pulling the heading left with a negative margin: the
+   section icon hangs at right:100% of the heading, so moving the heading moved
+   the icon with it and put it 5px OUTSIDE the band, clipped. The bar is
+   near-invisible against a coloured sidebar anyway; the main column keeps it. */
+.sec-bar .rm-col-aside .rm-section-title,
+.rm-col-aside .rm-section[class*='sec-ov-bar'] .rm-section-title {
+  border-left: none;
+  padding-left: 0;
 }
 .sec-plain .rm-section-title {
   border-bottom: none;
