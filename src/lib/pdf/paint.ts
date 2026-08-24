@@ -724,7 +724,23 @@ export async function paintOps(
       // not text-showing operators at all, and the invisible run deliberately
       // sits on top of the first piece rather than after it.
       if (run.outlineOnly) {
-        await paintGlyphOutlines(page, run, fonts, pageHeightPt)
+        const drawnWidthPx = await paintGlyphOutlines(page, run, fonts, pageHeightPt)
+        // Register the glyph box, exactly as the decorative branch below does.
+        // The visual harness builds its "text is here" boxes from the PDF's
+        // TEXT items, and outline-painted content has none - so these glyphs
+        // were invisible to it: their anti-aliasing read as structural
+        // difference, and their extractable run's geometry was never compared
+        // against what was drawn at all. Registering the box closes both
+        // blind spots. Capture is dev-only (`capturing` gates it in
+        // render.tsx), so exported files are byte-identical.
+        if (captureDecoBoxes) {
+          captureDecoBoxes.push({
+            xPx: run.xPx,
+            yPx: run.baselinePx - run.sizePx,
+            wPx: drawnWidthPx,
+            hPx: run.sizePx * 1.2,
+          })
+        }
         if (mark) tagSink?.end(page, mark)
         continue
       }
