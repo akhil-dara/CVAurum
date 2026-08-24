@@ -17,7 +17,6 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { keepHyphenatedWordsWhole } from './hyphens'
-import { applyKeywordFit, fitHeadingWords } from './keywordFit'
 import { substituteUnsupportedChars } from './charFallback'
 import { visualLines } from './text'
 import type { PageBlock } from './paginate'
@@ -245,6 +244,17 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     ])
     await raf2()
 
+    // Render once more now the webfonts have resolved. The Artboard's layout
+    // effect is what fits headings and keywords, and it fires before the fonts
+    // land - so on its first pass it measures FALLBACK metrics and a heading
+    // that fits in the fallback face still breaks in the real one. Re-rendering
+    // re-runs it against the real thing, and leaves it the single place that
+    // decides: applying the same passes again by hand from here re-measured a
+    // layout the effect had already settled and moved it a fraction of a pixel,
+    // which was enough to make the DOM's page cuts disagree with the ops'.
+    root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
+    await raf2()
+
     if (doc.metadata.page.autoFit) {
       const marginPx = doc.metadata.page.margin * MM_TO_PX
       await fitOnePageScale(
@@ -319,8 +329,6 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // paste from Word carries - was being dropped outright, so a certificate
     // named "... (PL-300)" reached the text layer as "(PL300)".
     substituteUnsupportedChars(sheet)
-    fitHeadingWords(sheet)
-    applyKeywordFit(sheet)
     keepHyphenatedWordsWhole(sheet)
     // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only
     // ever CONSUMED when pagination actually runs (assignOpsToPages' single-

@@ -113,17 +113,22 @@ export function applyKeywordFit(root: HTMLElement): void {
  * is how text has been lost here before.
  */
 const MIN_HEADING_SCALE = 0.72
+const SCALE_LADDER = [1, 0.95, 0.9, 0.85, 0.8, 0.76, MIN_HEADING_SCALE]
 
 /**
  * Where a word too long for its column must not be allowed to break.
  *
- * Section titles, and the CONTAINERS of a keyword list rather than the terms
- * themselves: shrinking one term of a list and not its neighbours looks like a
+ * SIDEBAR only - section titles there, and the CONTAINERS of a keyword list
+ * rather than the terms themselves. A main-column heading has the width of the
+ * page and never has to break, and shrinking one changed the width of the rule
+ * beneath it, which the pixel comparison saw as a structural difference
+ * between the two render paths. The containers rather than the terms: shrinking one term of a list and not its neighbours looks like a
  * mistake, while shrinking the group keeps it uniform. Measured on pinnacle at
  * a 22% sidebar, "Cross-Functional Collaboration" had "Collaboration" broken
  * into "Collaborati" and "on", which matches nothing.
  */
-const FIT_CONTAINERS = '.rm-section-title, .rm-skill-inline, .rm-chips'
+const FIT_CONTAINERS =
+  '.rm-col-aside .rm-section-title, .rm-col-aside .rm-skill-inline, .rm-col-aside .rm-chips'
 
 export function fitHeadingWords(root: HTMLElement): void {
   const boxes = Array.from(root.querySelectorAll<HTMLElement>(FIT_CONTAINERS))
@@ -131,9 +136,17 @@ export function fitHeadingWords(root: HTMLElement): void {
   for (const el of boxes) {
     const over = worstWordOverflow(el, root)
     if (over <= 1) continue
-    const scale = Math.max(MIN_HEADING_SCALE, 1 / over)
+    // Pick from a LADDER rather than computing a continuous scale. The same
+    // heading is measured in two different trees - the export's print sheet and
+    // the app's measure portal - and a continuous scale lands a fraction of a
+    // pixel apart in each, which is enough for their page cuts to disagree
+    // (the multi-page parity check allows half a pixel). A rung is the same
+    // rung in both unless the measurement differs by a whole step.
+    const scale = SCALE_LADDER.find((r) => r <= 1 / over) ?? MIN_HEADING_SCALE
     const size = parseFloat(getComputedStyle(el).fontSize || '0')
-    if (size > 0) el.style.fontSize = `${size * scale}px`
+    if (size <= 0) continue
+    if (scale >= 1) continue
+    el.style.fontSize = `${size * scale}px`
   }
 }
 
