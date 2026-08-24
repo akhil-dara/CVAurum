@@ -326,6 +326,99 @@ export function textNodeLineSegments(node: Text): TextLineSegment[] {
  * needs: the rendered string, its x, its baseline y, and its style. Coordinates
  * are in CSS px relative to `root` — the painter converts to points.
  */
+/** Previous/next text node in document order. `skipBlank` walks past
+ *  whitespace-only nodes to the nearest node carrying real characters. */
+function adjacentTextNode(node: Text, forward: boolean, skipBlank = true): Text | null {
+  let cur: Node | null = node
+  while (cur) {
+    let step: Node | null = forward ? cur.nextSibling : cur.previousSibling
+    if (!step) {
+      cur = cur.parentNode
+      if (!cur || (cur as Element).classList?.contains('rm-root')) return null
+      continue
+    }
+    // Descend to the nearest edge leaf of the sibling subtree.
+    while (step) {
+      if (step.nodeType === Node.TEXT_NODE) {
+        // A zero-length node renders nothing - splitText(0) leaves one behind
+        // in front of every wrapped range - so it never ends the walk.
+        if ((step as Text).data.length === 0) break
+        if (!skipBlank || (step as Text).data.trim() !== '') return step as Text
+        break
+      }
+      if (step.nodeType !== Node.ELEMENT_NODE) break
+      const next: Node | null = forward ? step.firstChild : step.lastChild
+      if (!next) break
+      step = next
+    }
+    cur = step ?? cur
+    if (cur === node) return null
+  }
+  return null
+}
+
+/** First (or last) character box of a text node - the edge that meets the
+ *  space, so we can tell whether the line continued or wrapped. */
+function edgeCharRect(node: Text, last: boolean): DOMRect | null {
+  const i = last ? node.data.length - 1 : 0
+  if (i < 0) return null
+  const r = document.createRange()
+  r.setStart(node, i)
+  r.setEnd(node, i + 1)
+  const rects = Array.from(r.getClientRects())
+  return rects.length ? rects[last ? rects.length - 1 : 0] : null
+}
+
+/** True when the text before AND after this space sit on the same line as it. */
+function sharesLineWithNeighbours(node: Text, rect: DOMRect): boolean {
+  const prev = adjacentTextNode(node, false)
+  const next = adjacentTextNode(node, true)
+  if (!prev || !next) return false
+  const a = edgeCharRect(prev, true)
+  const b = edgeCharRect(next, false)
+  if (!a || !b) return false
+  return Math.abs(a.top - rect.top) <= 1 && Math.abs(b.top - rect.top) <= 1
+}
+
+/**
+ * Rect of the rendered space immediately before `node`, or `null`.
+ *
+ * A whitespace-only text node between two inline elements is a REAL space
+ * ("Cloud & DevOps:" + " " + "AWS"); dropping it concatenates the two words in
+ * the extracted text, so an ATS reads "DevOps:AWS". It is returned for the
+ * FOLLOWING run to absorb rather than painted on its own, because a standalone
+ * space is its own PDF text item - 66 of them on one page - and every one is a
+ * gap that splits a visual line into fragments. Column detection reads those
+ * fragments as columns: it cost `compact` a phantom third column and a whole
+ * work entry.
+ *
+ * Returns null unless the space genuinely renders (whitespace between BLOCK
+ * elements collapses to no box at all) and both neighbours sit on its line. A
+ * space at a wrap is a hanging space, parked past the column edge and carrying
+ * no meaning: the line break already separates the two words.
+ */
+function leadingSpaceRect(node: Text, cs: CSSStyleDeclaration): DOMRect | null {
+  // Document order, not siblings: the space that separates "Languages:" from
+  // the list after it sits BETWEEN the two spans, so it is a sibling of this
+  // node's parent, not of this node.
+  const space = adjacentTextNode(node, false, false)
+  if (!space) return null
+  if (space.data.trim() !== '') return null
+  const spaceStyle = space.parentElement ? getComputedStyle(space.parentElement) : cs
+  if (collapseWhitespace(space.data, spaceStyle.whiteSpace) !== ' ') return null
+  const range = document.createRange()
+  range.selectNodeContents(space)
+  const rects = Array.from(range.getClientRects()).filter((r) => r.width > 0.01 && r.height > 0.01)
+  if (rects.length !== 1) return null
+  const rect = rects[0]
+  const before = adjacentTextNode(space, false)
+  const a = before ? edgeCharRect(before, true) : null
+  const b = edgeCharRect(node, false)
+  if (!a || !b) return null
+  if (Math.abs(a.top - rect.top) > 1 || Math.abs(b.top - rect.top) > 1) return null
+  return rect
+}
+
 export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   const parent = node.parentElement
   const data = node.data
@@ -347,15 +440,22 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   if (!segments.length) return []
 
   const metrics = layoutMetricsFor(font)
+  // Only the first line can carry the space that precedes the node.
+  const lead = leadingSpaceRect(node, cs)
   const runs: TextRun[] = []
   for (const seg of segments) {
-    const text = applyTextTransform(collapseWhitespace(data.slice(seg.start, seg.end), cs.whiteSpace), cs.textTransform)
+    let text = applyTextTransform(collapseWhitespace(data.slice(seg.start, seg.end), cs.whiteSpace), cs.textTransform)
     if (text.trim() === '') continue
+    // Absorb the preceding space: starting the run at the space's own left
+    // edge leaves every glyph exactly where it was - the space advances the
+    // pen by precisely the width it occupies on screen.
+    const absorb = lead && runs.length === 0 && Math.abs(lead.top - seg.rect.top) <= 1
+    if (absorb) text = ' ' + text
 
     runs.push({
       text,
-      xPx: seg.rect.left - rootRect.left,
-      widthPx: seg.rect.right - seg.rect.left,
+      xPx: (absorb ? lead!.left : seg.rect.left) - rootRect.left,
+      widthPx: seg.rect.right - (absorb ? lead!.left : seg.rect.left),
       baselinePx: halfLeadingBaselinePx(seg.rect.top, rootRect.top, seg.rect.bottom - seg.rect.top, metrics),
       sizePx: parsePx(cs.fontSize),
       family: cs.fontFamily,
