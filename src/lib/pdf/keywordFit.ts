@@ -21,9 +21,12 @@
  * the PDF disagree with the preview it was previewed from.
  */
 
-/** Terms that must survive whole. Both are single elements already, so this
- *  only ever toggles a style - it never restructures anyone's DOM. */
-const KEYWORD_SELECTOR = '.rm-kw, .rm-chip'
+/** Terms that must survive whole, plus the last-word-and-separator pair
+ *  inside each one: when a term is too wide to keep whole, that shorter pair
+ *  still fits, and keeping IT unbreakable is what stops a separator from
+ *  opening the next line. All are single elements already, so this only ever
+ *  toggles a style - it never restructures anyone's DOM. */
+const KEYWORD_SELECTOR = '.rm-kw, .rm-kw-tail, .rm-chip'
 
 /**
  * Width available to `el`, in CSS px.

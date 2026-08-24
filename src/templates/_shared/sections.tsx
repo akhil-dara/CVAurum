@@ -37,9 +37,20 @@ function KeywordList({ items, sep }: { items: string[]; sep: string }) {
     <>
       {items.map((k, i) => {
         const last = i === items.length - 1
+        // A term too wide to keep whole still must not leave its separator
+        // stranded at the head of the next line, so the separator is tied to
+        // the term's LAST WORD - a short pair that fits even where the whole
+        // term does not. Measured: without this, deedy at a 22% sidebar still
+        // opened three lines with a mid-dot.
+        const cut = k.lastIndexOf(' ')
+        const head = cut > 0 ? k.slice(0, cut + 1) : ''
+        const tail = (cut > 0 ? k.slice(cut + 1) : k) + (last ? '' : glued)
         return (
           <Fragment key={i}>
-            <span className="rm-kw">{k}{last ? '' : glued}</span>
+            <span className="rm-kw">
+              {head}
+              <span className="rm-kw-tail">{tail}</span>
+            </span>
             {last ? null : ' '}
           </Fragment>
         )
