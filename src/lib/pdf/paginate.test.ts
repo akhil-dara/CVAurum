@@ -737,3 +737,46 @@ describe('paginate — the paper-edge clamp must not strand a label either', () 
     expect(cutsPx[0]).toBe(1123)
   })
 })
+
+describe('paginate — the paper clamp must respect the page top padding', () => {
+  // Pages after the first are painted offset DOWN by the artboard's top
+  // padding (paint.ts's assignOpsToPages), so a band may only be as tall as
+  // the paper LESS that padding. The clamp used the raw paper height for every
+  // page, which let the last band-worth of padding paint below the sheet:
+  // measured on the adversarial fixture, a skill chip drawn at 1064-1081 of a
+  // 1122-tall band vanished from the exported text entirely.
+  it('never clamps a later page taller than the paper minus its top padding', () => {
+    const usable = 1000
+    const firstUsable = 1050 // => top padding is 50
+    const paper = 1100
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 1000 },
+      { kind: 'section-gap', topPx: 1000, bottomPx: 1010 },
+      // One unbreakable run far taller than a page: page 2 has no legal cut
+      // anywhere and must fall through to the clamp.
+      { kind: 'line', topPx: 1010, bottomPx: 4000 },
+    ]
+    const { cutsPx } = paginate({
+      blocks,
+      contentHeightPx: 4000,
+      usablePageHeightPx: usable,
+      firstPageUsablePageHeightPx: firstUsable,
+      maxPageHeightPx: paper,
+    })
+    expect(cutsPx.length).toBeGreaterThan(1)
+    const secondBand = cutsPx[1] - cutsPx[0]
+    expect(secondBand).toBeLessThanOrEqual(paper - (firstUsable - usable))
+  })
+
+  it('still lets page 1 use the whole paper, which is painted at offset zero', () => {
+    const blocks: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 4000 }]
+    const { cutsPx } = paginate({
+      blocks,
+      contentHeightPx: 4000,
+      usablePageHeightPx: 1000,
+      firstPageUsablePageHeightPx: 1050,
+      maxPageHeightPx: 1100,
+    })
+    expect(cutsPx[0]).toBe(1100)
+  })
+})

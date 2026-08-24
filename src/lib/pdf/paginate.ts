@@ -406,8 +406,21 @@ export function paginate(input: PaginationInput): Pagination {
   // legitimately different numbers, not the same value applied twice.
   // Forced cuts cap each fill region: content up to the next pin must fit
   // in whole pages; the pin itself is always a boundary.
+  // How far past its own top a band may reach before the paint falls off the
+  // sheet. Page 1 is painted at offset zero, so the whole paper is available.
+  // Every later page is shifted DOWN by the artboard's top padding
+  // (paint.ts's assignOpsToPages), so its band may only be the paper LESS that
+  // padding - and the padding is exactly what page 1's extra budget is made
+  // of. Using the raw paper height for every page is what let the last
+  // padding's worth of a clamped band paint below the sheet: measured on the
+  // adversarial fixture, a skill chip drawn at 1064-1081 of a 1122-tall band
+  // was simply absent from the exported text.
+  const topPaddingPx = Math.max(0, firstPageUsablePageHeightPx - usablePageHeightPx)
+
   while (true) {
     const budget = pageIndex === 0 ? firstPageUsablePageHeightPx : usablePageHeightPx
+    const maxForPage =
+      pageIndex === 0 ? maxPageHeightPx : Math.max(budget, maxPageHeightPx - topPaddingPx)
     const nextForced = forced.find((f) => f > pageTop)
     const regionEnd = nextForced ?? contentHeightPx
     if (regionEnd - pageTop <= budget) {
@@ -419,7 +432,7 @@ export function paginate(input: PaginationInput): Pagination {
     }
     const idealY = pageTop + budget
     const windowLow = idealY - searchWindowRatio * budget
-    const cutY = chooseCut(candidates, pageTop, idealY, windowLow, maxPageHeightPx, sorted)
+    const cutY = chooseCut(candidates, pageTop, idealY, windowLow, maxForPage, sorted)
     // The downward fallback may land at or past the pin — the pin wins
     // (it is a mandatory boundary; the auto cut would duplicate or cross it).
     if (nextForced !== undefined && cutY >= nextForced) {
