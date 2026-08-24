@@ -18,6 +18,7 @@ import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { keepHyphenatedWordsWhole } from './hyphens'
 import { applyKeywordFit, fitHeadingWords } from './keywordFit'
+import { substituteUnsupportedChars } from './charFallback'
 import { visualLines } from './text'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
@@ -313,6 +314,11 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // fallback face can still be too wide in the real one - which is how
     // "CERTIFICATIONS" kept arriving broken as "CERTIFICATIO" + "NS" even with
     // the fit pass in place. Both passes are idempotent.
+    // Before anything measures or paints: swap characters the embedded fonts
+    // cannot draw for equivalents they can. A non-breaking hyphen - what a
+    // paste from Word carries - was being dropped outright, so a certificate
+    // named "... (PL-300)" reached the text layer as "(PL300)".
+    substituteUnsupportedChars(sheet)
     fitHeadingWords(sheet)
     applyKeywordFit(sheet)
     keepHyphenatedWordsWhole(sheet)
