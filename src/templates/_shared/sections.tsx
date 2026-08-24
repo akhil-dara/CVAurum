@@ -16,6 +16,7 @@ import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
+import { keywordChunks } from '@/lib/keywordChunks'
 
 /**
  * A keyword list where each term is its own element.
@@ -37,19 +38,21 @@ function KeywordList({ items, sep }: { items: string[]; sep: string }) {
     <>
       {items.map((k, i) => {
         const last = i === items.length - 1
-        // A term too wide to keep whole still must not leave its separator
-        // stranded at the head of the next line, so the separator is tied to
-        // the term's LAST WORD - a short pair that fits even where the whole
-        // term does not. Measured: without this, deedy at a 22% sidebar still
-        // opened three lines with a mid-dot.
-        const cut = k.lastIndexOf(' ')
-        const head = cut > 0 ? k.slice(0, cut + 1) : ''
-        const tail = (cut > 0 ? k.slice(cut + 1) : k) + (last ? '' : glued)
+        // A term too wide to keep whole still must not break badly:
+        // keywordChunks decides which spaces inside it may take a line break,
+        // keeping the separator with the last word and a lone connector with
+        // the word it joins. Pieces rejoin with single spaces and reproduce
+        // the term exactly.
+        const pieces = keywordChunks(k, last ? '' : glued)
         return (
           <Fragment key={i}>
             <span className="rm-kw">
-              {head}
-              <span className="rm-kw-tail">{tail}</span>
+              {pieces.map((piece, pi) => (
+                <Fragment key={pi}>
+                  {pi > 0 ? ' ' : null}
+                  {piece.includes(' ') ? <span className="rm-kw-tail">{piece}</span> : piece}
+                </Fragment>
+              ))}
             </span>
             {last ? null : ' '}
           </Fragment>

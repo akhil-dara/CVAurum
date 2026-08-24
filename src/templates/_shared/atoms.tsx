@@ -1,5 +1,5 @@
 /** Small shared building blocks used by section renderers across all templates. */
-import { memo } from 'react'
+import { Fragment, memo } from 'react'
 import {
   Mail,
   Phone,
@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { keywordChunks } from '@/lib/keywordChunks'
 
 /** Sanitized rich-text block. */
 export const RichText = memo(function RichText({
@@ -68,7 +69,16 @@ export function Chips({ items }: { items: string[] }) {
     <div className="rm-chips">
       {items.map((k, i) => (
         <span key={i} className="rm-chip">
-          {k}
+          {/* A chip too wide for a narrow sidebar has to wrap inside itself,
+              and CSS takes any space it finds - including the ones around a
+              lone "&". keywordChunks decides which spaces may break; pieces
+              rejoin with single spaces and reproduce the keyword exactly. */}
+          {keywordChunks(k, '').map((piece, pi) => (
+            <Fragment key={pi}>
+              {pi > 0 ? ' ' : null}
+              {piece.includes(' ') ? <span className="rm-kw-tail">{piece}</span> : piece}
+            </Fragment>
+          ))}
         </span>
       ))}
     </div>
