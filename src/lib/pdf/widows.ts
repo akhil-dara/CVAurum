@@ -29,10 +29,18 @@ export const MIN_PARAGRAPH_LINES = 2
  * "reporting effort by ~40%...". The column order is correct and has nowhere
  * else to put the sidebar, so the fix is not to break the bullet.
  *
+ * Raised from 4 to 12 (2026-08-24) so the rule is UNIVERSAL rather than a
+ * list of special cases. Any single run the reader sees as one value - a
+ * bullet, a certificate name, a whole skill group rendered as one comma list
+ * - moves whole. Measured on a real export before this: "Operations & Service
+ * Analytics: ... First-Time Resolution - Ticket" ended one page and "Aging -
+ * Backlog Analysis - ..." resumed 27 lines later, after EDUCATION and AWARDS,
+ * tearing "Ticket Aging" in half.
+ *
  * Bounded deliberately: refusing to split a LONG paragraph would strand whole
  * pages, so anything above this keeps the two-lines-either-side rule.
  */
-export const KEEP_WHOLE_MAX_LINES = 4
+export const KEEP_WHOLE_MAX_LINES = 12
 
 /**
  * For a paragraph of `lineCount` visual lines, returns a flag per line:

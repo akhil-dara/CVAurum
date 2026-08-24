@@ -30,10 +30,11 @@ describe('keepFlagsForParagraph', () => {
     expect(legalCuts(keepFlagsForParagraph(4))).toEqual([])
   })
 
-  it('allows a FIVE-line paragraph to split, two lines either side', () => {
-    // Past the keep-whole bound the original rule takes over; refusing to
-    // split long paragraphs would strand whole pages.
-    expect(legalCuts(keepFlagsForParagraph(5))).toEqual([1, 2])
+  it('allows a paragraph past the bound to split, two lines either side', () => {
+    // The bound is what makes the rule universal: any run the reader sees as
+    // one value moves whole. Past it, the original rule takes over, because
+    // refusing to split a genuinely long paragraph would strand whole pages.
+    expect(legalCuts(keepFlagsForParagraph(13))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 
   it('keeps at least two lines on both sides of any cut', () => {
@@ -54,9 +55,10 @@ describe('keepFlagsForParagraph', () => {
   })
 
   it('honours a stricter minimum when asked', () => {
-    // minLines 3 => a cut needs three lines on each side.
-    expect(legalCuts(keepFlagsForParagraph(6, 3))).toEqual([2])
-    expect(legalCuts(keepFlagsForParagraph(5, 3))).toEqual([])
+    // minLines 3 => a cut needs three lines on each side. Measured above the
+    // keep-whole bound, since at or below it nothing splits at all.
+    expect(legalCuts(keepFlagsForParagraph(14, 3))).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(legalCuts(keepFlagsForParagraph(13, 12))).toEqual([])
   })
 
   it('is empty for a zero-line paragraph rather than throwing', () => {
@@ -134,12 +136,12 @@ describe('keepFlagsForParagraph — a short paragraph is not split at all (2026-
   })
 
   it('still allows a LONG paragraph to split, with two lines either side', () => {
-    // Refusing to split a long paragraph would strand whole pages.
-    const flags = keepFlagsForParagraph(9)
+    // Past the keep-whole bound; refusing to split these would strand pages.
+    const flags = keepFlagsForParagraph(15)
     expect(flags[0]).toBe(true)
     expect(flags[1]).toBe(false)
-    expect(flags[6]).toBe(false)
-    expect(flags[7]).toBe(true)
-    expect(flags[8]).toBe(false)
+    expect(flags[12]).toBe(false)
+    expect(flags[13]).toBe(true)
+    expect(flags[14]).toBe(false)
   })
 })
