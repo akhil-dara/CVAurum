@@ -371,7 +371,14 @@ export function visualLines(root: HTMLElement): VisualLine[] {
       const el = t.parentElement
       if (!el) return NodeFilter.FILTER_REJECT
       if (el.closest('.no-print')) return NodeFilter.FILTER_REJECT
-      if (el.closest('[aria-hidden]:not([aria-hidden="false"])')) return NodeFilter.FILTER_REJECT
+      // Bounded at `root`: the editing canvas wraps the artboard in its own
+      // aria-hidden chrome, and an unbounded closest() would report every line
+      // in the document as decoration.
+      for (let a: Element | null = el; a; a = a.parentElement) {
+        const v = a.getAttribute('aria-hidden')
+        if (v !== null && v !== 'false') return NodeFilter.FILTER_REJECT
+        if (a === root) break
+      }
       const cs = getComputedStyle(el)
       if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) {
         return NodeFilter.FILTER_REJECT

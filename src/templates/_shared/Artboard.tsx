@@ -10,7 +10,7 @@ import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
-import { applyKeywordFit } from '@/lib/pdf/keywordFit'
+import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { ContactIcons, networkIcon, prettyUrl, cleanEmail } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
@@ -469,7 +469,11 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
   // here rather than on the export's DOM alone is what keeps the exported
   // wrap identical to the previewed one.
   useLayoutEffect(() => {
-    if (rootRef.current) applyKeywordFit(rootRef.current)
+    if (!rootRef.current) return
+    // Headings first: shrinking one changes the width available to nothing
+    // else, but it must be settled before keywords are measured against it.
+    fitHeadingWords(rootRef.current)
+    applyKeywordFit(rootRef.current)
   })
 
   return (

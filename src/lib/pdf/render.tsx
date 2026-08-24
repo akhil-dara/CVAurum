@@ -17,6 +17,7 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { keepHyphenatedWordsWhole } from './hyphens'
+import { applyKeywordFit, fitHeadingWords } from './keywordFit'
 import { visualLines } from './text'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
@@ -305,8 +306,15 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // line can never break inside "SLA-compliant" or "(PL-300)" and tear a
     // keyword across two lines of the exported text (hyphens.ts). Changes no
     // characters - only where the line wraps.
-    // Keywords are handled a level up, by the Artboard both this tree and the
-    // preview render (keywordFit.ts), so the two wrap the same way.
+    // Keywords and heading widths are handled a level up, by the Artboard that
+    // both this tree and the preview render (keywordFit.ts). Re-run them here:
+    // the Artboard's layout effect fires before ensureFontsReady resolves, so
+    // it measures against FALLBACK metrics, and a heading that fits in the
+    // fallback face can still be too wide in the real one - which is how
+    // "CERTIFICATIONS" kept arriving broken as "CERTIFICATIO" + "NS" even with
+    // the fit pass in place. Both passes are idempotent.
+    fitHeadingWords(sheet)
+    applyKeywordFit(sheet)
     keepHyphenatedWordsWhole(sheet)
     // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only
     // ever CONSUMED when pagination actually runs (assignOpsToPages' single-

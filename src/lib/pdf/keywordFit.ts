@@ -97,3 +97,88 @@ export function applyKeywordFit(root: HTMLElement): void {
     }
   }
 }
+
+/**
+ * Shrinks a section heading just enough that no WORD in it has to break.
+ *
+ * The sidebar sets `overflow-wrap: break-word` so an over-long value cannot
+ * escape its band. That is right for a value and wrong for a heading: at the
+ * narrowest sidebar it split "CERTIFICATIONS" into "CERTIFICATIO" and "NS",
+ * and "CORE COMPETENCIES" into "COMPETENCI" and "ES". A parser looking for
+ * those sections finds neither - a heading is the marker it segments the whole
+ * document by, so breaking one costs far more than breaking a keyword.
+ *
+ * Shrinking is the only option that keeps the word whole. Letting it overflow
+ * means the band clips it and the characters vanish from the text layer, which
+ * is how text has been lost here before.
+ */
+const MIN_HEADING_SCALE = 0.72
+
+export function fitHeadingWords(root: HTMLElement): void {
+  const heads = Array.from(root.querySelectorAll<HTMLElement>('.rm-section-title'))
+  for (const el of heads) el.style.fontSize = ''
+  if (!heads.length) return
+  for (const el of heads) {
+    // The heading's OWN content box, not its parent's: a section title carries
+    // padding for the icon that hangs beside it, and measuring the parent
+    // credited the text with 119px where it actually had 109.
+    const cs = getComputedStyle(el)
+    const avail = el.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0')
+    if (!Number.isFinite(avail) || avail <= 0) continue
+    const widest = widestWordPx(el, root)
+    // Two pixels of margin, not zero. A range's client rects do not include
+    // the letter-spacing that follows the last glyph, which uppercase headings
+    // routinely carry, so a word measuring just inside the column still wraps;
+    // and shrinking to exactly the column width leaves the result on the
+    // rounding boundary, where it breaks again.
+    const target = avail - 2
+    if (widest <= target) continue
+    const scale = Math.max(MIN_HEADING_SCALE, target / widest)
+    const size = parseFloat(cs.fontSize || '0')
+    if (size > 0) el.style.fontSize = `${size * scale}px`
+  }
+}
+
+/** Width of the widest single word, measured unwrapped: summing a range's
+ *  per-line rects gives the width the word WOULD occupy, even when it has
+ *  already been broken across two lines. */
+function widestWordPx(el: Element, root: Element): number {
+  const doc = el.ownerDocument
+  if (!doc) return 0
+  let widest = 0
+  const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  let node: Node | null
+  while ((node = walker.nextNode())) {
+    const text = node as Text
+    if (!text.data.trim()) continue
+    if (hiddenWithin(text.parentElement, root)) continue
+    for (const m of text.data.matchAll(/\S+/g)) {
+      const range = doc.createRange()
+      range.setStart(text, m.index)
+      range.setEnd(text, m.index + m[0].length)
+      let w = 0
+      for (const r of range.getClientRects()) w += r.width
+      if (w > widest) widest = w
+    }
+  }
+  return widest
+}
+
+/**
+ * True when `el` sits under an `aria-hidden` element INSIDE `root`.
+ *
+ * Bounded deliberately: the editing canvas wraps the artboard in its own
+ * aria-hidden chrome, so an unbounded `closest` reports every element in the
+ * document as decoration. That silently made this whole pass a no-op - every
+ * heading measured as zero-width and none were ever shrunk.
+ */
+function hiddenWithin(from: Element | null, root: Element): boolean {
+  let el: Element | null = from
+  while (el) {
+    const v = el.getAttribute('aria-hidden')
+    if (v !== null && v !== 'false') return true
+    if (el === root) return false
+    el = el.parentElement
+  }
+  return false
+}
