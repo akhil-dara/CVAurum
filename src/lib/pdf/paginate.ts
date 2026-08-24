@@ -140,6 +140,41 @@ function fallsInsideInk(y: number, sorted: PageBlock[]): boolean {
   return sorted.some((b) => (b.kind === 'line' || b.kind === 'atomic') && y > b.topPx && y < b.bottomPx)
 }
 
+/**
+ * The ORIGINAL one-link step, kept as a safety net for the clamp.
+ *
+ * The chain walk above declines when no step leaves the page full enough,
+ * on the theory that the caller's earlier-cut branch will find a legal
+ * candidate. When it cannot - a deep sidebar inks through every gap, so the
+ * combined list offers no candidate at all - the page falls through to the
+ * paper-edge clamp, and the clamp SPLITS the straddling block. A line cut by
+ * the paper's edge is painted off-sheet and its words are gone from the file:
+ * measured, one bullet lost "ation cycle. Outcome 13." in four layouts.
+ *
+ * So before clamping, take the single step even though the chain rejected it.
+ * It can leave a label stranded, which is a blemish; the clamp deletes text,
+ * which is not recoverable.
+ */
+function snapOneStepAbovePaperEdge(sorted: PageBlock[], pageTop: number, maxPageHeightPx: number): number | undefined {
+  const maxY = pageTop + maxPageHeightPx
+  const floor = pageTop + maxPageHeightPx * 0.6
+  const straddling = sorted.find(
+    (blk) => (blk.kind === 'line' || blk.kind === 'atomic') && blk.topPx < maxY && blk.bottomPx > maxY
+  )
+  if (!straddling || straddling.topPx <= floor) return undefined
+  let y = straddling.topPx
+  let prev: PageBlock | undefined
+  for (const blk of sorted) {
+    if (blk.bottomPx > y + 0.5) continue
+    if (!prev || blk.bottomPx > prev.bottomPx) prev = blk
+  }
+  if (prev?.keepWithNext) {
+    if (prev.topPx <= floor) return undefined
+    y = prev.topPx
+  }
+  return y
+}
+
 /** The lowest cut this page can take WITHOUT splitting ink: the top of the
  *  block crossing the paper's edge. Returns undefined when that block starts
  *  so high that the page would be mostly blank - the caller then has better
@@ -307,6 +342,13 @@ function chooseCut(
     if (snapped !== undefined) {
       cutReasons.push('snap')
       return snapped
+    }
+    // Last chance to avoid splitting a line: the chain's veto is about page
+    // fullness and a stranded label, and neither is worth deleting words for.
+    const oneStep = snapOneStepAbovePaperEdge(sorted, pageTop, maxPageHeightPx)
+    if (oneStep !== undefined) {
+      cutReasons.push('snap')
+      return oneStep
     }
     cutReasons.push('clamp')
     return maxY
