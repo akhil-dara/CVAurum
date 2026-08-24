@@ -1,10 +1,14 @@
 /**
  * "What ATS sees" — serialize the resume to the plain linear text an ATS parser
- * reads. This mirrors the REAL reading order of the rendered document (an ATS
- * reads the underlying text stream, not the visual layout): header first, then
- * a left sidebar (it precedes the main column in the DOM), then the main
- * column, then a right sidebar. Two-column layouts therefore show their honest
- * parse order here — which is exactly what this view exists to reveal.
+ * reads. This mirrors the REAL reading order of the EXPORTED FILE (an ATS reads
+ * the underlying text stream, not the visual layout): header first, then the
+ * main column, then the sidebar, whichever side that sidebar is drawn on.
+ *
+ * It used to put a left sidebar first, on the grounds that it comes first in
+ * the DOM. That stopped being true when the exporter began emitting the main
+ * column ahead of the sidebar in the text layer (readingOrder.ts, asserted by
+ * the two-column ATS gate: the candidate's name is the first text item). The
+ * view was showing people a worse parse than their own PDF produces.
  *
  * 100% client-side and deterministic: no rendering, no network — the same
  * content model the templates draw from, flattened to text.
@@ -143,11 +147,21 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
   return out
 }
 
+/**
+ * The order sections are read in, matching the exported text layer.
+ *
+ * The main column always comes first in a two-column export - which side the
+ * sidebar is drawn on changes nothing, because the exporter reorders the text
+ * layer rather than following the DOM.
+ */
+export function atsSectionOrder(main: string[], aside: string[], twoCol: boolean): string[] {
+  return twoCol ? [...main, ...aside] : main
+}
+
 export function resumeToAtsText(doc: ResumeDocument): string {
   const b = doc.content.basics
   const { main, aside } = resolveOrder(doc)
   const twoCol = doc.metadata.layout.columns === 2 && aside.length > 0
-  const sidebarLeft = doc.metadata.layout.sidebar === 'left'
 
   const head: string[] = []
   if (b.name) head.push(b.name)
@@ -164,8 +178,7 @@ export function resumeToAtsText(doc: ResumeDocument): string {
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
   if (loc) head.push(loc)
 
-  // Honest DOM order: left sidebar text precedes the main column.
-  const order = twoCol ? (sidebarLeft ? [...aside, ...main] : [...main, ...aside]) : main
+  const order = atsSectionOrder(main, aside, twoCol)
   const body = order.flatMap((key) => sectionText(key, doc))
 
   return [...head, ...body].join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'

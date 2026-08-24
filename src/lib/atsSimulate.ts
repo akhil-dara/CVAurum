@@ -172,14 +172,23 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   }
 
   // two-column reading order
+  //
+  // What the export actually does matters here, and it is not what this
+  // finding used to claim. Our PDF emits the main column ahead of the sidebar
+  // on every page, so anything reading in content order gets the name and
+  // experience first (asserted by the two-column ATS gate). Two real risks
+  // remain, and they are different from each other: a parser that rebuilds
+  // the page from glyph POSITIONS reads left to right and so hits a left
+  // sidebar first, and a resume longer than one page interleaves for
+  // everyone, because each page carries its own main-then-sidebar pair.
   if (sig.twoColumn && w.twoCol > 0) {
-    const sidebar = sig.sidebarLabels
+    const sidebar = sig.sidebarLabels || 'the side column'
     findings.push({
       severity: w.twoCol >= 12 ? 'risk' : 'minor',
       title: 'Two-column layout',
       detail: w.twoCol >= 12
-        ? `This parser reads the sidebar (${sidebar || 'side column'}) before the main column, which can scramble the order. A single-column template is the safest choice for it.`
-        : `Handled reasonably, but the sidebar is read before the main column. Verify the order in "What an ATS sees".`,
+        ? `Your PDF puts the main column ahead of the sidebar (${sidebar}), so a parser reading in order gets your name and experience first. This one rebuilds the page from where text sits instead, so a side column can still land out of order — and on a resume over one page, each page is read main-column-then-sidebar, so a sidebar section continuing overleaf arrives in two pieces. A single-column template avoids both.`
+        : `Handled reasonably: your PDF emits the main column before the sidebar (${sidebar}), so the name and experience are read first. On a resume over one page, each page is read main-column-then-sidebar, so a sidebar section that continues overleaf arrives in two pieces. Check the order in "What an ATS sees".`,
     })
     penalty += w.twoCol
   }
