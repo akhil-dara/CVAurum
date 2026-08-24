@@ -647,6 +647,33 @@
   justify-content: space-between;
   gap: 12px;
 }
+/* When the title and its date cannot both fit, wrap the DATE to its own line
+   rather than wrapping the title.
+   Measured on a real resume: "Master of Computer Applications (MCA), Computer
+   Applications" needs only 0.85-0.95 of the row and "Salesforce Administrator
+   & Data Analyst - Clients: ..." 1.0-1.13 - so these titles are not too long
+   at all, they wrap because the date beside them takes the width. A title
+   split in two is then split in the COPIED text as well, in every reader.
+
+   min-width: min(100%, max-content) is what expresses it: while the title
+   fits on one line it refuses to shrink, so the date is the thing that wraps;
+   once the title genuinely exceeds the row it falls back to the full width
+   and wraps normally, which is the only option for a name like "Microsoft
+   Certified: Power BI Data Analyst Associate (PL-300)" at ~2x its column.
+
+   MAIN column only. The same idea applied to the sidebar broke certificate
+   name/issuer pairing on import (52/52 -> 35/52), because it put a line
+   between the two. */
+.rm-col-main .rm-item-head {
+  flex-wrap: wrap;
+}
+.rm-col-main .rm-item-head > .rm-item-title,
+.rm-col-main .rm-item-head > .rm-mini-title {
+  min-width: min(100%, max-content);
+}
+.rm-col-main .rm-item-head > .rm-item-date {
+  margin-left: auto;
+}
 .rm-item-title {
   font-weight: 700;
   font-size: calc(var(--rm-fs) * 1.05);
