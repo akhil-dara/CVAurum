@@ -24,16 +24,26 @@ import { usePopoverA11y } from './popoverA11y'
  * inside a term - `keywordFit.ts` marks the ones that fit unbreakable. The
  * text is character-for-character what `items.join(sep)` produced before, so
  * everything downstream (copy, search, the exported text layer) is unchanged.
+ *
+ * The separator travels WITH the term before it, and only the space after it
+ * is left as a break opportunity. Otherwise a wrap can fall on the space in
+ * front of a separator and start the next line with it - measured on a real
+ * export, three lines began " . ", which reads as a bullet marker to anything
+ * parsing the text rather than as a list separator.
  */
 function KeywordList({ items, sep }: { items: string[]; sep: string }) {
+  const glued = sep.replace(/\s+$/, '')
   return (
     <>
-      {items.map((k, i) => (
-        <Fragment key={i}>
-          {i > 0 ? sep : null}
-          <span className="rm-kw">{k}</span>
-        </Fragment>
-      ))}
+      {items.map((k, i) => {
+        const last = i === items.length - 1
+        return (
+          <Fragment key={i}>
+            <span className="rm-kw">{k}{last ? '' : glued}</span>
+            {last ? null : ' '}
+          </Fragment>
+        )
+      })}
     </>
   )
 }
