@@ -17,6 +17,7 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { keepHyphenatedWordsWhole } from './hyphens'
+import { visualLines } from './text'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
 import { resolveForcedCutsPx } from './pageBreaks'
@@ -339,6 +340,9 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
       lastReasons = result.cutReasons ?? []
       pageCount = result.pageCount
       if (import.meta.env.DEV) {
+        // Ground truth for the line-level 1:1 check: what the print DOM
+        // actually draws, before it is torn down and only the canvas remains.
+        ;(window as unknown as { __cvaLastVisualLines?: unknown }).__cvaLastVisualLines = visualLines(sheet)
         ;(window as unknown as { __cvaLastPaginationInput?: unknown }).__cvaLastPaginationInput = {
           contentHeightPx,
           usablePageHeightPx: computeUsablePageHeightPx(pageHpx, padding),

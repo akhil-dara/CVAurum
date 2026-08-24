@@ -334,6 +334,68 @@ export function textNodeLineSegments(node: Text): TextLineSegment[] {
   return segments
 }
 
+
+/** One rendered line of the print DOM: what it says, and where it sits. */
+export interface VisualLine {
+  topPx: number
+  bottomPx: number
+  xPx: number
+  text: string
+  column: 'main' | 'aside'
+}
+
+/**
+ * Every line the print DOM actually draws, in document order.
+ *
+ * This is the ground truth an exported PDF has to reproduce line for line:
+ * Edge and Chrome copy a PDF one line at a time, so a text layer that carries
+ * the right characters divided into the wrong lines is not 1:1, however well
+ * a whitespace-normalised comparison scores.
+ *
+ * Skips what the exporter skips - no-print chrome, hidden subtrees, and
+ * anything under aria-hidden, whose glyphs are painted as artifacts with no
+ * extractable text behind them on purpose.
+ */
+export function visualLines(root: HTMLElement): VisualLine[] {
+  const rootRect = root.getBoundingClientRect()
+  const doc = root.ownerDocument
+  if (!doc) return []
+  const out: VisualLine[] = []
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => {
+      const t = n as Text
+      if (!t.data || !t.data.trim()) return NodeFilter.FILTER_REJECT
+      const el = t.parentElement
+      if (!el) return NodeFilter.FILTER_REJECT
+      if (el.closest('.no-print')) return NodeFilter.FILTER_REJECT
+      if (el.closest('[aria-hidden]:not([aria-hidden="false"])')) return NodeFilter.FILTER_REJECT
+      const cs = getComputedStyle(el)
+      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) {
+        return NodeFilter.FILTER_REJECT
+      }
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+  let node: Node | null
+  while ((node = walker.nextNode())) {
+    const t = node as Text
+    const cs = getComputedStyle(t.parentElement as Element)
+    const column: 'main' | 'aside' = t.parentElement?.closest('.rm-col-aside') ? 'aside' : 'main'
+    for (const seg of textNodeLineSegments(t)) {
+      const text = applyTextTransform(collapseWhitespace(t.data.slice(seg.start, seg.end), cs.whiteSpace), cs.textTransform)
+      if (!text.trim()) continue
+      out.push({
+        topPx: seg.rect.top - rootRect.top,
+        bottomPx: seg.rect.bottom - rootRect.top,
+        xPx: seg.rect.left - rootRect.left,
+        text,
+        column,
+      })
+    }
+  }
+  return out
+}
+
 /**
  * Turn a DOM Text node into per-LINE runs carrying exactly what the painter
  * needs: the rendered string, its x, its baseline y, and its style. Coordinates
