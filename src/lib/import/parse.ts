@@ -590,10 +590,35 @@ function isDateLine(text: string): boolean {
   return rest.split(/\s+/).filter(Boolean).length <= 1
 }
 
+/** A SHORT line carrying a full date range is an entry header, not a bullet.
+ *  Resumes put the job title and its dates on one line and indent it, and the
+ *  section's left margin can be set by something further left - a
+ *  keyword-stuffed paragraph, in the case this was measured on - which made
+ *  the header count as indented. The entry then lost its title AND its dates,
+ *  and imported the keyword pile as its position.
+ *
+ *  Bounded by what is LEFT once the range and location are removed: a real
+ *  bullet that mentions a range ("Led the 2019 - 2020 migration of the billing
+ *  platform to a new provider") still has a sentence there and stays a
+ *  bullet. */
+function isDatedHeaderLine(text: string): boolean {
+  if (isBullet(text)) return false
+  const t = stripBullet(text).trim()
+  const m = RANGE_RE.exec(t)
+  if (!m) return false
+  const rest = t
+    .replace(m[0], ' ')
+    .replace(LOCATION_RE, ' ')
+    .replace(/[|,·•–—()-]/g, ' ')
+    .trim()
+  return rest.split(/\s+/).filter(Boolean).length <= 5
+}
+
 function makeIsHighlight(lines: Line[], g: LayoutGraph): (l: Line) => boolean {
   const leftX = sectionLeftX(lines)
   const indent = Math.max(4, g.bodySize * 0.5)
-  return (l: Line) => !isDateLine(l.text) && (isBullet(l.text) || l.x > leftX + indent)
+  return (l: Line) =>
+    !isDateLine(l.text) && !isDatedHeaderLine(l.text) && (isBullet(l.text) || l.x > leftX + indent)
 }
 
 /**

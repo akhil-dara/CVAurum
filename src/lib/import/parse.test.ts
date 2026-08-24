@@ -948,3 +948,65 @@ describe('work entries — a date line indented past the bullets (2026-08-23)', 
     expect(r.content.work[1].startDate).toBe('2018-06')
   })
 })
+
+describe('work entries — a short line carrying a date RANGE is a header (2026-08-24)', () => {
+  const at = (text: string, x: number, top: number, h = 8.9): Line => {
+    const l = line(text, false, h, top)
+    l.x = x
+    l.items = [{ str: text, x, top, width: text.length * 4, height: h, bold: false, page: 1, col: 0, aside: false }]
+    return l
+  }
+  const g = (lines: Line[]): LayoutGraph => ({
+    lines,
+    bodySize: 8.2,
+    lineGap: 11,
+    pageCount: 1,
+    charCount: lines.reduce((n, l) => n + l.text.length, 0),
+    twoColumn: false,
+    ocrPages: [],
+    ocrEngineFailed: false,
+  })
+
+  // A real resume put the job title and its dates on ONE line, indented past
+  // a keyword-stuffed paragraph that set the section's left margin - so the
+  // header counted as "indented" and became bullet #0. The entry lost both
+  // its title and its dates, and imported the keyword pile as its position.
+  it('reads title and dates off one indented line', () => {
+    const r = parseLayout(
+      g([
+        at('Madhu Baditaboyina', 29, 40, 14),
+        at('madhu@example.com', 29, 56),
+        { ...at('EXPERIENCE', 29, 90, 12.7), upper: true },
+        at('Active Directory, Azure AD, IAM, PAM, CyberArk, SSO, MFA, Conditional Access', 29, 110),
+        at('Security Analyst 05/2022 - 09/2025', 62, 130),
+        at('Tata Consultancy Services Hyderabad', 62, 144),
+        at('\u2022 Monitored SIEM alerts and triaged security incidents around the clock.', 70, 160),
+      ])
+    )
+    // The keyword-stuffed line forms an entry of its own - separate problem.
+    // What this pins is that the real job keeps its title AND its dates.
+    const job = r.content.work.find((w) => w.startDate)
+    expect(job).toBeDefined()
+    expect(job!.position).toContain('Security Analyst')
+    expect(job!.startDate).toBe('2022-05')
+    expect(job!.endDate).toBe('2025-09')
+  })
+
+  it('leaves a wordy bullet that mentions a range as a bullet', () => {
+    const r = parseLayout(
+      g([
+        at('Alex Morgan', 29, 40, 14),
+        at('alex@example.com', 29, 56),
+        { ...at('EXPERIENCE', 29, 90, 12.7), upper: true },
+        at('Platform Engineer 03/2021 - Present', 62, 110),
+        at('Vertex Labs', 62, 124),
+        at('\u2022 Led the 2019 - 2020 migration of the billing platform to a new provider.', 70, 140),
+        at('Software Engineer 06/2018 - 02/2021', 62, 180),
+        at('Northwind Software', 62, 194),
+        at('\u2022 Built the design-system library adopted by nine teams.', 70, 210),
+      ])
+    )
+    expect(r.content.work).toHaveLength(2)
+    expect(r.content.work[0].highlights.join(' ')).toContain('migration of the billing platform')
+  })
+})
