@@ -310,6 +310,19 @@ export function textNodeLineSegments(node: Text): TextLineSegment[] {
   }
   offsets.push({ start: segStart, end: len })
 
+  // A wrap puts its space on ONE of the two lines, and Chromium is not
+  // consistent about which: measured on a real export, most wrapped lines
+  // ended with their space but one began with it, so the copied text read
+  // "queue-level" then " performance". Hand every such space back to the line
+  // it broke from, so a line never opens with one and joining two lines always
+  // finds a separator between the words.
+  for (let i = 1; i < offsets.length; i++) {
+    while (offsets[i].start < offsets[i].end && /\s/.test(node.data[offsets[i].start])) {
+      offsets[i].start++
+      offsets[i - 1].end = offsets[i].start
+    }
+  }
+
   const segments: TextLineSegment[] = []
   for (const { start, end } of offsets) {
     if (end <= start) continue
