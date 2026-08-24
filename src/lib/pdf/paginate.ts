@@ -148,9 +148,11 @@ function fallsInsideInk(y: number, sorted: PageBlock[]): boolean {
  *  Never lands immediately after a block that must stay with the next one:
  *  this path picks a y directly rather than from `candidates`, which is where
  *  the widow rule is enforced, so it is the one place that veto can be
- *  missed. It steps up ONCE past such a block, and only while the page stays
- *  past the same floor - stepping repeatedly produced tiny pages that
- *  stranded other headings instead. */
+ *  missed. It steps up past EVERY such block in turn, not just the nearest -
+ *  one step can land the cut on the bottom edge of the label the step was
+ *  meant to save, which is the same stranding one block higher. Each step
+ *  must still leave the page past the floor; when one cannot, the snap is
+ *  declined outright rather than traded for a near-empty page. */
 function snapAbovePaperEdge(sorted: PageBlock[], pageTop: number, maxPageHeightPx: number): number | undefined {
   const maxY = pageTop + maxPageHeightPx
   const floor = pageTop + maxPageHeightPx * 0.6
@@ -159,18 +161,25 @@ function snapAbovePaperEdge(sorted: PageBlock[], pageTop: number, maxPageHeightP
   )
   if (!straddling || straddling.topPx <= floor) return undefined
   let y = straddling.topPx
-  let prev: PageBlock | undefined
-  for (const blk of sorted) {
-    if (blk.bottomPx > y + 0.5) continue
-    if (!prev || blk.bottomPx > prev.bottomPx) prev = blk
-  }
-  if (prev?.keepWithNext) {
-    // Stepping up past the heading is only worth it while the page stays
-    // full enough; when it is not, DECLINE the snap rather than end the page
-    // on a heading whose content starts the next one. The caller's earlier
-    // -cut branch then picks a legal candidate, which honours the veto by
-    // construction.
+  // Follow the whole CHAIN, not one link. A single step moves the cut off the
+  // straddling block, but it can land exactly on the bottom edge of the label
+  // that introduces it - which is the stranding this exists to prevent, just
+  // one block higher up. Measured on a real export: a skill-group label and
+  // the group above it were both keepWithNext, so one step put the cut
+  // between the label and its own keywords.
+  for (;;) {
+    let prev: PageBlock | undefined
+    for (const blk of sorted) {
+      if (blk.bottomPx > y + 0.5) continue
+      if (!prev || blk.bottomPx > prev.bottomPx) prev = blk
+    }
+    if (!prev?.keepWithNext) break
+    // Stepping up is only worth it while the page stays full enough; when it
+    // is not, DECLINE the snap rather than end the page on a heading whose
+    // content starts the next one. The caller's earlier-cut branch then picks
+    // a legal candidate, which honours the veto by construction.
     if (prev.topPx <= floor) return undefined
+    if (prev.topPx >= y) break // zero-height block: no progress to be made
     y = prev.topPx
   }
   return y

@@ -689,3 +689,23 @@ describe('combineColumns — a heading flag must survive the merge (2026-08-23)'
     expect(owner!.keepWithNext).toBeUndefined()
   })
 })
+
+describe('paginate — stepping above a CHAIN of keep-with-next blocks', () => {
+  // Taken from a real export (sapphire, 22% sidebar): a skill-group label at
+  // 772-806 introduces its keywords at 808-1090, and the block above the
+  // label is keepWithNext as well. Stepping up a single block moves the cut
+  // off the straddling block and straight onto the label's own bottom edge,
+  // which stranded "ETL, Automation & Integration" at the foot of the page
+  // with its keywords overleaf. The step has to follow the whole chain.
+  it('never lands a cut between a keep-with-next block and what it introduces', () => {
+    const blocks: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 595 },
+      { kind: 'line', topPx: 597, bottomPx: 770, keepWithNext: true },
+      { kind: 'line', topPx: 772, bottomPx: 806, keepWithNext: true }, // the label
+      { kind: 'line', topPx: 808, bottomPx: 1090, keepWithNext: true }, // its keywords
+      { kind: 'line', topPx: 1092, bottomPx: 1129 }, // straddles the paper edge
+    ]
+    const { cutsPx } = paginate({ blocks, contentHeightPx: 1400, usablePageHeightPx: 1000, maxPageHeightPx: 1123 })
+    expect(cutsPx[0]).not.toBeGreaterThan(806)
+  })
+})
