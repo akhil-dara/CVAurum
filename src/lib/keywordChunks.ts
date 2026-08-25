@@ -15,6 +15,9 @@
 
 /** A token that means nothing alone: an ampersand, a slash, a plus. Two
  *  characters at most, and no letters or digits. */
+const OPENERS = ['(', '[', '{']
+const CLOSERS = [')', ']', '}']
+
 function isConnector(token: string): boolean {
   return token.length <= 2 && !/[A-Za-z0-9]/.test(token)
 }
@@ -36,6 +39,24 @@ export function keywordChunks(term: string, separator: string): string[] {
     current = words[i]
   }
   pieces.unshift(current)
+
+  // A bracket is a promise that what follows belongs together, so a group that
+  // opens one is a single piece. Measured on a real resume in the chip style,
+  // "Salesforce CRM Analytics (Einstein / TCRM)" wrapped as
+  //     Salesforce  CRM  Analytics  (Einstein
+  //     / TCRM)
+  // - the words in the right order, but the parenthetical torn in half. An
+  // UNCLOSED bracket is left alone: gluing the rest of the term to it would
+  // turn one bad wrap into an unbreakable run.
+  for (let i = 0; i < pieces.length; i++) {
+    const open = OPENERS.indexOf(pieces[i][0])
+    if (open < 0) continue
+    const close = CLOSERS[open]
+    if (pieces[i].includes(close)) continue
+    const end = pieces.findIndex((piece, j) => j > i && piece.includes(close))
+    if (end < 0) continue // never closes - leave it to wrap normally
+    pieces.splice(i, end - i + 1, pieces.slice(i, end + 1).join(' '))
+  }
 
   // Fold away any piece carrying no word at all - a term ending in a connector
   // produces one ("& ." from "trailing &"), and that is the very line this

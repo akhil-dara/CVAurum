@@ -37,3 +37,34 @@ describe('keywordChunks', () => {
     }
   })
 })
+
+describe('a bracketed aside is one piece', () => {
+  // Measured on a real resume in the chip style: "Salesforce CRM Analytics
+  // (Einstein / TCRM)" wrapped as
+  //     Salesforce  CRM  Analytics  (Einstein
+  //     / TCRM)
+  // The words are in the right order, but the parenthetical is torn in half -
+  // "(Einstein" left dangling at the end of one line and "/ TCRM)" alone on the
+  // next. A bracket is a promise that what follows belongs together.
+  it('keeps a parenthetical whole', () => {
+    expect(keywordChunks('Salesforce CRM Analytics (Einstein / TCRM)', ' ·')).toEqual([
+      'Salesforce',
+      'CRM',
+      'Analytics',
+      '(Einstein / TCRM) ·',
+    ])
+  })
+
+  it('keeps square and curly groups whole too', () => {
+    expect(keywordChunks('Airflow [batch and stream]', '')).toEqual(['Airflow', '[batch and stream]'])
+  })
+
+  it('leaves an unclosed bracket to wrap normally rather than gluing the rest of the term', () => {
+    expect(keywordChunks('Some (thing else entirely', '')).toEqual(['Some', '(thing', 'else', 'entirely'])
+  })
+
+  it('still reproduces the term exactly', () => {
+    const term = 'Salesforce CRM Analytics (Einstein / TCRM)'
+    expect(keywordChunks(term, ' ·').join(' ')).toBe(term + ' ·')
+  })
+})
