@@ -1672,19 +1672,37 @@
   position: relative;
 }
 .rm-inline-edit .rm-kw-x {
-  display: none;
-  margin-left: 0.12em;
-  padding: 0 0.15em;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  margin-left: 0.05em;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+  padding: 0 0.12em;
   border: 0;
-  background: none;
+  border-radius: 0.35em;
+  background: color-mix(in srgb, currentColor 18%, var(--rm-bg));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
   color: var(--rm-muted);
   cursor: pointer;
   font-size: 0.9em;
   line-height: 1;
 }
 .mode-preview .rm-inline-edit .rm-kw-edit:hover .rm-kw-x,
-.mode-preview .rm-inline-edit .rm-kw-edit:focus-within .rm-kw-x {
-  display: inline;
+.mode-preview .rm-inline-edit .rm-kw-edit:focus-within .rm-kw-x,
+.mode-preview .rm-chip-edit:hover .rm-kw-x,
+.mode-preview .rm-chip-edit:focus-within .rm-kw-x {
+  opacity: 1;
+  pointer-events: auto;
 }
 .rm-inline-edit .rm-kw-x:hover {
   color: var(--rm-primary);
@@ -1702,17 +1720,72 @@
 /* Reorder grip on a keyword. Same discoverability as the remove control: it
    appears on hover or focus rather than sitting on every chip permanently,
    because a resume covered in grips is noise. */
+/* The grip is ALWAYS in the edit chip, exactly like the remove cross beside
+ * it. Revealing it on hover added its width to the chip - measured at 15.5px -
+ * and near a wrap boundary that pushed the chip out from under the pointer:
+ * hover lost, grip gone, chip back, hover again, several times a second. That
+ * is the shake reported on the sidebar's skills.
+ *
+ * Reserving the space costs the EXPORT nothing, because the export renders
+ * .rm-chip and never .rm-chip-edit - it has neither this grip nor the cross.
+ * Hover now changes only how loud the grip is, never the layout, which also
+ * means it can be seen and tapped without a pointer at all. */
+.rm-chip-edit,
+.rm-kw-edit {
+  position: relative;
+}
+/* Shown for the keyword you are POINTING AT or have TAPPED, never for all of
+ * them at once. Permanently visible grips turned a run of skills into text
+ * peppered with smudges - they read as damage rather than as handles.
+ *
+ * :focus-within is what makes this work without a mouse: a tap focuses the
+ * keyword and its handles stay put, where hover alone can never be satisfied
+ * on a touch screen. And out of flow, so appearing cannot resize the keyword
+ * and shove the line about, which is what made the list shake. */
+/* A handle floats ABOVE the word it belongs to, never beside it.
+ *
+ * Beside it, three things went wrong at once and all three were reported:
+ * it sat in the gap between two skills so it read as belonging to whichever
+ * one the eye picked ("mixing with next skill"); the first item of a wrapped
+ * row had its handle hanging off the edge, clipped ("not visible"); and the
+ * cross came to rest on top of the FOLLOWING keyword, so the click went to
+ * that one instead ("cross not clickable").
+ *
+ * Above the word, the handle is unambiguously that word's, is never clipped
+ * by a row edge, and has nothing else beneath the pointer. It stays out of
+ * flow, so showing it still costs no width - which is what stopped the list
+ * shaking - and it answers to :focus-within as well as :hover, so a tap
+ * reaches it on a touch screen where hover never fires. */
 .rm-kw-grip {
-  display: none;
-  margin-right: 0.18em;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  /* INSIDE its own chip. Floating it above put a first-row chip's handle on
+     the group heading above it, and hanging it beside the chip made it read as
+     the neighbour's. Inside, the only thing it can ever cover is the first few
+     pixels of the chip it belongs to, and only while that chip is pointed at. */
+  left: 0.04em;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  min-width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+  padding: 0 0.12em;
   border: 0;
-  background: none;
+  border-radius: 0.35em;
+  /* currentColor keeps this legible on a white page and on a coloured
+     sidebar alike, without either being named here. */
+  background: color-mix(in srgb, currentColor 18%, var(--rm-bg));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
   color: var(--rm-muted);
   cursor: grab;
   font-size: 0.85em;
   line-height: 1;
-  vertical-align: baseline;
 }
 .rm-kw-grip:active {
   cursor: grabbing;
@@ -1721,7 +1794,8 @@
 .mode-preview .rm-chip-edit:focus-within .rm-kw-grip,
 .mode-preview .rm-kw-edit:hover .rm-kw-grip,
 .mode-preview .rm-kw-edit:focus-within .rm-kw-grip {
-  display: inline;
+  opacity: 1;
+  pointer-events: auto;
 }
 .rm-kw-grip:hover {
   color: var(--rm-primary);
@@ -1876,3 +1950,36 @@
   font-size: 0.78em;
   font-weight: 500;
 }
+
+
+/* A skill group's own controls, permanently visible.
+ *
+ * They were revealed only on hover, which on a touch screen means never - and
+ * even with a mouse they sat at the group's top-right, directly on top of a
+ * heading like "Databases & Data Management" that fills the column. Reserving
+ * room on the heading instead is not open to us: that heading is printed, and
+ * padding it on the canvas would make the preview wrap differently from the
+ * export.
+ *
+ * So they move up into the gap ABOVE the group, which is empty space that
+ * already exists between groups. Nothing is covered, nothing is reserved, and
+ * they are visible and tappable without a pointer.
+ */
+/* Left where they were, and shown only for the group being worked on.
+ *
+ * There is nowhere else for them to go. Above the group is the PREVIOUS
+ * group's text - measured, groups sit about 4px apart in the running-text
+ * styles, so controls placed above group N landed squarely on group N-1 - and
+ * beside the heading is the heading itself. Permanently visible, they cover
+ * words in every dense layout; that was measured across all five styles.
+ *
+ * What was actually missing is a way to reach them WITHOUT a pointer, and
+ * :focus-within supplies it: tapping a group reveals its controls and they
+ * stay, where hover can never fire on a touch screen. */
+.mode-preview .rm-col-aside .rm-skill-group:focus-within > .rm-item-move {
+  display: inline-flex;
+}
+.mode-preview .rm-col-aside .rm-skill-group:focus-within > .rm-item-del {
+  opacity: 1;
+}
+

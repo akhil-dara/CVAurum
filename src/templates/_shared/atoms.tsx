@@ -75,10 +75,14 @@ export function LevelBar({ value = 0, max = 5 }: { value?: number; max?: number 
 }
 
 export function Chips({ items }: { items: string[] }) {
-  if (!items?.length) return null
+  // A keyword that is only whitespace is not a keyword. Blanks are pruned when
+  // a chip loses focus, but one that never lost focus - or arrived from an
+  // import - reached the page as an EMPTY PILL, and printed as one too.
+  const real = (items ?? []).filter((k) => (k || '').trim().length > 0)
+  if (!real.length) return null
   return (
     <div className="rm-chips">
-      {items.map((k, i) => (
+      {real.map((k, i) => (
         <span key={i} className="rm-chip">
           {/* A chip too wide for a narrow sidebar has to wrap inside itself,
               and CSS takes any space it finds - including the ones around a
