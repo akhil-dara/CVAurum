@@ -780,3 +780,47 @@ describe('paginate — the paper clamp must respect the page top padding', () =>
     expect(cutsPx[0]).toBe(1100)
   })
 })
+
+describe('combineColumns — a shared line boundary is a legal break', () => {
+  // Wrapped lines TOUCH: a line's top is the previous line's bottom, so a
+  // column is never "clear" over a span, only at a point. Merging every
+  // adjacent inked interval into one run threw those points away, and a
+  // two-column page was left with almost nowhere legal to break: measured on a
+  // real resume, four legal breaks in the whole document and a first page that
+  // ended 13% full, immediately after the header.
+  it('splits the combined run where BOTH columns are between lines', () => {
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 10 },
+      { kind: 'line', topPx: 10, bottomPx: 20 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 10 },
+      { kind: 'line', topPx: 10, bottomPx: 20 },
+    ]
+    const out = combineColumns([main, aside]).filter((b) => b.kind === 'line')
+    expect(out.map((b) => `${b.topPx}-${b.bottomPx}`)).toEqual(['0-10', '10-20'])
+  })
+
+  it('keeps one run when the other column is mid-line there', () => {
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 10 },
+      { kind: 'line', topPx: 10, bottomPx: 20 },
+    ]
+    const aside: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 20 }]
+    const out = combineColumns([main, aside]).filter((b) => b.kind === 'line')
+    expect(out.map((b) => `${b.topPx}-${b.bottomPx}`)).toEqual(['0-20'])
+  })
+
+  it('does not offer a break after a block that must stay with the next', () => {
+    const main: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 10, keepWithNext: true },
+      { kind: 'line', topPx: 10, bottomPx: 20 },
+    ]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 10 },
+      { kind: 'line', topPx: 10, bottomPx: 20 },
+    ]
+    const out = combineColumns([main, aside]).filter((b) => b.kind === 'line')
+    expect(out[0].keepWithNext).toBe(true)
+  })
+})

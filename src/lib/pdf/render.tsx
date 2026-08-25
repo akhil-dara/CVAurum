@@ -274,7 +274,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
           try {
             const pad = findMainColumnPaddingPx(el)
             return paginate({
-              blocks: extractPageBlocks(el),
+              blocks: extractPageBlocks(el, computeUsablePageHeightPx(pageHpx, pad)),
               contentHeightPx: el.getBoundingClientRect().height,
               usablePageHeightPx: computeUsablePageHeightPx(pageHpx, pad),
               firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, pad),
@@ -347,7 +347,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
       // natural scale) — they paginate natively exactly like auto-fit OFF
       // (spec 1b, user request 2026-08-17: no more silent print fallback for
       // ordinary overflow). Pins stay auto-fit-OFF-only.
-      const blocks = extractPageBlocks(sheet)
+      const blocks = extractPageBlocks(sheet, computeUsablePageHeightPx(pageHpx, padding))
       const contentHeightPx = sheet.getBoundingClientRect().height
       const result = paginateOrThrow({
         blocks,
@@ -375,7 +375,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     } else if (!doc.metadata.page.autoFit && doc.metadata.page.breaks.length) {
       // Pins can force pagination even when the content fits one page
       // ("move this to page 2" on a one-page doc — the feature's core use).
-      const blocks = extractPageBlocks(sheet)
+      const blocks = extractPageBlocks(sheet, computeUsablePageHeightPx(pageHpx, padding))
       const contentHeightPx = sheet.getBoundingClientRect().height
       const forcedCutsPx = resolveForcedCutsPx(sheet, doc.metadata.page.breaks)
       if (forcedCutsPx.length) {

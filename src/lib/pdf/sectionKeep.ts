@@ -25,9 +25,21 @@ import type { PageBlock } from './paginate'
  * How tall a main-column section may be, as a fraction of one page's usable
  * height, and still be held together.
  *
- * The trade is direct: raise it and fewer sections are torn across a break,
- * but a page can end further short of its bottom. Chosen by measurement -
- * see the sweep in the commit that introduced this.
+ * The trade is direct, and was measured rather than guessed. Holding together
+ * any section that could fit a page at all (fraction 1.0) took section
+ * ATTRIBUTION from 3/8 configurations clean to 7/8 - and page FILL from 24/25
+ * down to 17/25, introducing pages that ended 12, 28 and 31 percent full. That
+ * is the same "the page break is improper" defect the fraction is supposed to
+ * help with, arriving by another route, so the ceiling stays low: this protects
+ * a genuinely SHORT section from being torn in half (a 87px Education section
+ * split 57+30 was the case that prompted it) and leaves a section approaching a
+ * full page to break normally.
+ *
+ * A main-column section that spans a break still has its continuation filed
+ * under the preceding heading. That cannot be fixed by ordering (see
+ * readingOrder.ts) and cannot be fixed here without paying in blank space; it
+ * needs either a repeated heading on the continuation page, which the user
+ * has rejected, or content that fits.
  */
 export const KEEP_WHOLE_MAX_FRACTION = 0.4
 

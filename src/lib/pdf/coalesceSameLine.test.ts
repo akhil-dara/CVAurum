@@ -32,6 +32,16 @@ describe('coalesceSameLineBlocks', () => {
     expect(spans(coalesceSameLineBlocks([line(100, 120.3), line(120, 140)]))).toEqual(['100-120.3', '120-140'])
   })
 
+  it('keeps stacked lines apart at a TIGHT line-height, where the boxes overlap', () => {
+    // At line-height 1.1 the leading is smaller than the font's natural line
+    // box, so consecutive lines overlap by a few px while still being separate
+    // lines. A plain "do they overlap" test merges them, which is how a
+    // sidebar's skill groups became 88-173px indivisible blocks again and left
+    // page one 13% full at that setting.
+    const out = coalesceSameLineBlocks([line(100, 119), line(114, 133), line(128, 147)])
+    expect(spans(out)).toEqual(['100-119', '114-133', '128-147'])
+  })
+
   it('carries keepWithNext when it does merge', () => {
     expect(coalesceSameLineBlocks([line(100, 120, true), line(102, 118)])[0].keepWithNext).toBe(true)
   })

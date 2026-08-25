@@ -674,11 +674,31 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
     tier?: Tier
     keepWithNext: boolean
   }
+  // A y where EVERY column is between lines rather than inside one. Wrapped
+  // lines touch - a line's top IS the previous line's bottom - so a column is
+  // never clear over a SPAN there, only at a point, and merging every adjacent
+  // inked interval into one run threw those points away. Measured on a real
+  // two-column resume that left the whole document with four legal breaks and
+  // a first page 13% full. Splitting the run at such a y gives
+  // `buildCandidates` two adjacent blocks and therefore a break between them.
+  const SEAM_EPS = 0.5
+  const seams = new Set<number>()
+  for (const y of breakpoints) {
+    if (y <= globalTop || y >= globalBottom) continue
+    const insideSomething = spansByColumn.some((spans, ci) => {
+      const range = colRanges[ci]
+      if (y < range.top || y > range.bottom) return false // this column has no opinion here
+      return spans.some((sp) => sp.ink && y > sp.topPx + SEAM_EPS && y < sp.bottomPx - SEAM_EPS)
+    })
+    if (!insideSomething) seams.add(y)
+  }
+
   const runs: Run[] = []
   let opinions: (boolean | undefined)[] = []
   for (const e of elementary) {
     const last = runs[runs.length - 1]
-    const sameRun = last && last.bottomPx === e.topPx && last.ink === e.ink && (e.ink || last.tier === e.tier)
+    const sameRun =
+      last && last.bottomPx === e.topPx && last.ink === e.ink && (e.ink || last.tier === e.tier) && !seams.has(e.topPx)
     if (sameRun) {
       last!.bottomPx = e.bottomPx
       // Last-contributing-span-per-column: a column that has INK here states

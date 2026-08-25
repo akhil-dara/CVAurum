@@ -7,6 +7,7 @@ import { collectLinkOps } from './links'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
+import { keepShortSectionsWhole } from './sectionKeep'
 
 /**
  * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
@@ -1271,7 +1272,7 @@ function tagPageChromeOps(ops: DrawOp[], contentHeightPx: number): void {
  * would NOT be byte-identical for a column containing any image/svg/chip
  * block even though it's semantically equivalent to paginate.ts).
  */
-export function extractPageBlocks(root: HTMLElement): PageBlock[] {
+export function extractPageBlocks(root: HTMLElement, usablePageHeightPx?: number): PageBlock[] {
   const rootTop = root.getBoundingClientRect().top
   const aside = findByClass(root, ['rm-col-aside'])[0]
 
@@ -1282,7 +1283,10 @@ export function extractPageBlocks(root: HTMLElement): PageBlock[] {
   }
 
   const main = findByClass(root, ['rm-col-main'])[0] ?? root
-  const mainBlocks = extractBlocksFromScope(main, rootTop)
+  // Only the MAIN column is held together. A sidebar section split by a break
+  // is rejoined in the reading order (readingOrder.ts); a main-column one
+  // cannot be, so not splitting it is the only remedy - see sectionKeep.ts.
+  const mainBlocks = keepShortSectionsWhole(extractBlocksFromScope(main, rootTop), usablePageHeightPx ?? 0)
   const asideBlocks = extractBlocksFromScope(aside, rootTop)
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     // Diagnosis only: a stranded heading needs the PRE-combine blocks to tell
@@ -1804,6 +1808,16 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
  * never across entries or sections (those are joined by explicit
  * `'entry-gap'`/`'section-gap'` blocks afterward, which this never touches).
  */
+export /** Do these two boxes sit on the SAME visual line? True when they overlap
+ *  vertically by more than half the shorter box - the same test the line-level
+ *  gate uses to fold drawn segments into lines. */
+function sharesLine(a: PageBlock, b: PageBlock): boolean {
+  const overlap = Math.min(a.bottomPx, b.bottomPx) - Math.max(a.topPx, b.topPx)
+  if (overlap <= 0) return false
+  const shorter = Math.min(a.bottomPx - a.topPx, b.bottomPx - b.topPx)
+  return shorter > 0 && overlap > shorter * 0.5
+}
+
 export function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
   const EPS = 0.5
   const out: PageBlock[] = []
@@ -1819,10 +1833,14 @@ export function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
     // had 4 legal breaks in total, and page one ended 14% full with the break
     // falling right after the header.
     //
-    // The comparison keeps its EPS tolerance, on the other side of the
-    // boundary, so sub-pixel rounding between stacked lines still does not
-    // read as an overlap.
-    if (prev && prev.kind === 'line' && b.kind === 'line' && b.topPx < prev.bottomPx - EPS) {
+    // Overlap alone is not enough to tell them apart, either. At a TIGHT
+    // line-height the leading is smaller than the font's natural line box, so
+    // consecutive lines genuinely overlap by a few px - measured at
+    // line-height 1.1, ~5px of a 19px box - and a plain overlap test merges
+    // them again. So the test is PROPORTIONAL: two boxes share a line when
+    // they overlap by more than half the shorter one, which is true for a
+    // label beside its value and false for stacked lines at any leading.
+    if (prev && prev.kind === 'line' && b.kind === 'line' && sharesLine(prev, b)) {
       out[out.length - 1] = {
         kind: 'line',
         topPx: Math.min(prev.topPx, b.topPx),
