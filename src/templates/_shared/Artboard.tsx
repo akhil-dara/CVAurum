@@ -432,7 +432,7 @@ function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: stri
         <span className="rm-section-title-text">{sectionLabel(sectionKey, doc)}</span>
       </h2>
       <div className="rm-section-body">
-        <SectionBody sectionKey={sectionKey} doc={doc} config={config} edit={edit} />
+        <SectionBody sectionKey={sectionKey} doc={doc} config={config} edit={edit} editMeta={editMeta} />
       </div>
     </section>
   )

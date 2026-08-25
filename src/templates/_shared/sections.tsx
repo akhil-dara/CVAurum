@@ -13,7 +13,7 @@ import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
-import { Ed, type EditFn } from './Editable'
+import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
 import { keywordChunks } from '@/lib/keywordChunks'
@@ -81,6 +81,13 @@ export type SecOpts = {
   entryLayout?: string
   showBadges?: boolean
   scoreStyle?: string
+  /** entry logo / letter-badge size and shape (the section's own overrides) */
+  badgeSize?: string
+  badgeShape?: string
+  /** Writes those two back. Present only in edit mode, and only when the
+   *  caller can reach section metadata - the canvas logo menu uses it so the
+   *  mark can be styled where it is seen, not only from the side panel. */
+  setBadge?: (key: 'badgeSize' | 'badgeShape', v: string) => void
 }
 const show = (v?: boolean) => v !== false
 
@@ -231,7 +238,73 @@ const LazyCropper = lazy(() => import('@/components/editor/ImageCropper').then((
  * through the same crop → downscale flow as the panel's logo picker, and the
  * result is a small local data URI — nothing ever leaves the device.
  */
-function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; onChange: (v: string) => void }) {
+const MARK_SIZES = [
+  { v: '', label: 'Auto' },
+  { v: 's', label: 'S' },
+  { v: 'm', label: 'M' },
+  { v: 'l', label: 'L' },
+]
+const MARK_SHAPES = [
+  { v: '', label: 'Auto', title: 'Template default shape' },
+  { v: 'rounded', label: '▢', title: 'Rounded corners' },
+  { v: 'circle', label: '◯', title: 'Circle' },
+  { v: 'square', label: '□', title: 'Square' },
+]
+
+/** One row of the canvas mark menu: a label and its four small toggles. */
+function MarkRow({
+  label,
+  value,
+  options,
+  onPick,
+}: {
+  label: string
+  value?: string
+  options: { v: string; label: string; title?: string }[]
+  onPick: (v: string) => void
+}) {
+  return (
+    <div className="flex items-center gap-1 px-2 py-1">
+      <span className="w-9 shrink-0 text-[11px] text-muted-foreground">{label}</span>
+      <div className="grid flex-1 grid-cols-4 gap-1">
+        {options.map((o) => (
+          <button
+            key={o.v || 'auto'}
+            type="button"
+            role="menuitemradio"
+            aria-checked={(value ?? '') === o.v}
+            title={o.title || o.label}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onPick(o.v)}
+            className={`min-w-0 truncate rounded-md border px-1 py-1 text-[11px] font-medium transition ${
+              (value ?? '') === o.v
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CanvasLogo({
+  logo,
+  badge,
+  onChange,
+  size,
+  shape,
+  setBadge,
+}: {
+  logo?: string
+  badge?: string
+  onChange: (v: string) => void
+  size?: string
+  shape?: string
+  setBadge?: (key: 'badgeSize' | 'badgeShape', v: string) => void
+}) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<{ top: number; left: number } | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -256,9 +329,13 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
 
   const onClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (logo) {
+    // A letter badge is just as stylable as an uploaded mark, so it opens the
+    // menu rather than jumping straight to the file picker - the picker is
+    // still one click away inside it. Only a genuinely empty slot (the hover
+    // "+ Logo" chip) skips ahead, where picking a file is the whole point.
+    if (logo || badge) {
       const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-      setMenu({ top: Math.min(r.bottom + 6, window.innerHeight - 96), left: Math.max(8, Math.min(r.left, window.innerWidth - 176)) })
+      setMenu({ top: Math.min(r.bottom + 6, window.innerHeight - 240), left: Math.max(8, Math.min(r.left, window.innerWidth - 248)) })
     } else {
       inputRef.current?.click()
     }
@@ -288,13 +365,28 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
         createPortal(
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setMenu(null)} />
-            <div ref={menuRef} role="menu" aria-label="Logo options" tabIndex={-1} className="fixed z-[61] w-40 rounded-lg border border-border bg-surface p-1 text-foreground shadow-float" style={{ top: menu.top, left: menu.left }}>
+            <div ref={menuRef} role="menu" aria-label="Logo options" tabIndex={-1} className="fixed z-[61] w-56 rounded-lg border border-border bg-surface p-1 text-foreground shadow-float" style={{ top: menu.top, left: menu.left }}>
               <button type="button" role="menuitem" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted" onClick={() => { setMenu(null); inputRef.current?.click() }}>
-                Replace logo
+                {logo ? 'Replace logo' : 'Add logo'}
               </button>
-              <button type="button" role="menuitem" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10" onClick={() => { setMenu(null); onChange('') }}>
-                Remove logo
-              </button>
+              {logo ? (
+                <button type="button" role="menuitem" className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10" onClick={() => { setMenu(null); onChange('') }}>
+                  Remove logo
+                </button>
+              ) : null}
+              {/* Size and shape live here because this is where the author is
+                  looking at the mark. They stay open while being tried, so a
+                  size can be compared against the page without reopening. */}
+              {setBadge ? (
+                <>
+                  <div className="my-1 border-t border-border" />
+                  <MarkRow label="Size" value={size} options={MARK_SIZES} onPick={(v) => setBadge('badgeSize', v)} />
+                  <MarkRow label="Shape" value={shape} options={MARK_SHAPES} onPick={(v) => setBadge('badgeShape', v)} />
+                  <p className="px-2 pb-1 pt-0.5 text-[10px] leading-snug text-muted-foreground">
+                    Applies to every entry in this section.
+                  </p>
+                </>
+              ) : null}
             </div>
           </>,
           document.body,
@@ -392,6 +484,7 @@ function ItemHead({
   href,
   setHref,
   linkLabel,
+  opts,
 }: {
   title: ReactNode
   date?: ReactNode
@@ -399,6 +492,9 @@ function ItemHead({
   logo?: string
   edit?: EditFn
   setLogo?: Apply
+  /** The section's own settings - the mark's size and shape, and the setter
+   *  the canvas menu writes them back through. */
+  opts?: SecOpts
   href?: string
   /** Present when this entry's link can be edited from the canvas. */
   setHref?: (c: ResumeDocument['content'], v: string) => void
@@ -410,7 +506,14 @@ function ItemHead({
   return (
     <div className="rm-item-head">
       {edit && setLogo ? (
-        <CanvasLogo logo={logoOk} badge={badge} onChange={(v) => edit((c) => setLogo(c, v))} />
+        <CanvasLogo
+          logo={logoOk}
+          badge={badge}
+          onChange={(v) => edit((c) => setLogo(c, v))}
+          size={opts?.badgeSize}
+          shape={opts?.badgeShape}
+          setBadge={opts?.setBadge}
+        />
       ) : logoOk ? (
         <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
       ) : badge ? (
@@ -794,6 +897,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
         return (
         <article className={`rm-item rm-keep${markClass(w.logo, entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id} data-item-id={w.id}>
           <ItemHead
+            opts={opts}
             badge={entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined}
             href={safeHref(w.url)}
             setHref={(c, val) => { c.work[i].url = val }}
@@ -842,6 +946,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         return (
           <article className={`rm-item rm-keep${markClass(e.logo, entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id} data-item-id={e.id}>
             <ItemHead
+            opts={opts}
             badge={entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined}
             href={safeHref(e.url)}
             setHref={(c, val) => { c.education[i].url = val }}
@@ -889,6 +994,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
         return (
         <article className={`rm-item rm-keep${markClass(undefined, opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id} data-item-id={p.id}>
           <ItemHead
+            opts={opts}
             badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
             href={safeHref(p.url)}
             setHref={(c, val) => { c.projects[i].url = val }}
@@ -1164,6 +1270,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         return (
         <article className={`rm-item rm-keep${markClass(v.logo, entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id} data-item-id={v.id}>
           <ItemHead
+            opts={opts}
             badge={entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined}
             href={safeHref(v.url)}
             setHref={(c, val) => { c.volunteer[i].url = val }}
@@ -1259,6 +1366,7 @@ function Custom({ doc, sectionKey, edit, opts }: { doc: ResumeDocument; sectionK
         return (
         <article className="rm-item rm-keep" key={it.id} data-item-id={it.id}>
           <ItemHead
+            opts={opts}
             badge={opts?.showBadges ? badgeLetter(it.name || it.subtitle) : undefined}
             title={<Ed edit={edit} value={it.name} apply={(c, v) => { c.custom[secIndex].items[i].name = v }} placeholder="Title" />}
             date={singleDate(edit, show(opts?.showDates), it.date ?? '', (c, v) => { c.custom[secIndex].items[i].date = v })}
@@ -1355,8 +1463,31 @@ function sectionRenderer(sectionKey: string, doc: ResumeDocument, config: Templa
 }
 
 /** Render the body of any section by key. */
-export function SectionBody({ sectionKey, doc, config, edit }: { sectionKey: string; doc: ResumeDocument; config: TemplateConfig; edit?: EditFn }) {
-  const opts: SecOpts = doc.metadata.layout.sectionSettings?.[sectionKey] ?? {}
+export function SectionBody({
+  sectionKey,
+  doc,
+  config,
+  edit,
+  editMeta,
+}: {
+  sectionKey: string
+  doc: ResumeDocument
+  config: TemplateConfig
+  edit?: EditFn
+  editMeta?: MetaEditFn
+}) {
+  const saved = doc.metadata.layout.sectionSettings?.[sectionKey]
+  // An empty value clears the override so the template's own choice returns -
+  // storing '' instead would pin the section to a size no template asked for.
+  const setBadge = editMeta
+    ? (key: 'badgeSize' | 'badgeShape', v: string) =>
+        editMeta((m) => {
+          const ss = ((m.layout.sectionSettings ??= {})[sectionKey] ??= {}) as Record<string, unknown>
+          if (v) ss[key] = v
+          else delete ss[key]
+        })
+    : undefined
+  const opts: SecOpts = { ...(saved ?? {}), setBadge }
   const body = sectionRenderer(sectionKey, doc, config, edit, opts)
   // Summary is a single field (always editable); every other section is a list,
   // so offer an inline "+ Add" affordance on the canvas (edit mode only).
