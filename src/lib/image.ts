@@ -34,6 +34,14 @@ export async function cropToDataUrl(src: string, area: CropArea, out = CROP_PX):
   if (!ctx) return src
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
+  // JPEG has no alpha, and a fresh canvas is transparent BLACK - so every
+  // transparent pixel of the source encodes as black. A company logo on a
+  // transparent background is mostly transparent, which is why adding one
+  // produced a solid black disc where the mark should be (reported with the
+  // TCS logo, 2026-08-25). Painting the sheet white first is what a logo on
+  // paper looks like anyway.
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, out, out)
   ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, out, out)
   return canvas.toDataURL('image/jpeg', QUALITY)
 }
@@ -59,6 +67,10 @@ export async function downscaleDataUrl(dataUrl: string, max = 512, quality = QUA
     const ctx = canvas.getContext('2d')
     if (!ctx) return dataUrl
     ctx.imageSmoothingQuality = 'high'
+    // Same reason as the crop above: without a white ground, transparency
+    // becomes black the moment this is encoded as JPEG.
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
     ctx.drawImage(img, 0, 0, w, h)
     const out = canvas.toDataURL('image/jpeg', quality)
     return out.length < dataUrl.length ? out : dataUrl
