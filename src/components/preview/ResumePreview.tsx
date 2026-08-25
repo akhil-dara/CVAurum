@@ -133,6 +133,75 @@ function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
   )
 }
 
+/**
+ * Moves an interpolated page-separator up until it clears content.
+ *
+ * A separator that cannot be anchored to an element is placed proportionally,
+ * and a proportional guess lands wherever it lands - measured, one came to
+ * rest 1px inside a skills chip, so the 4px rule was painted across the pill
+ * and the page looked as though it had cut the chip in half. The PDF had
+ * done nothing of the sort.
+ */
+function snapClearOfInk(y: number, root: HTMLElement, scale: number): number | null {
+  const rootTop = root.getBoundingClientRect().top
+  const boxes = Array.from(
+    root.querySelectorAll<HTMLElement>(
+      '.rm-chip, .rm-chip-edit, .rm-kw-edit, .rm-item-head, .rm-item-sub, .rm-section-title, li, p'
+    )
+  )
+    .map((n) => n.getBoundingClientRect())
+    .filter((r) => r.height > 0)
+    .map((r) => ({ top: (r.top - rootTop) / scale, bottom: (r.bottom - rootTop) / scale }))
+    .sort((p1, p2) => p1.top - p2.top)
+  if (!boxes.length) return y
+
+  // The rule is ~3px thick with a shadow, so it needs a hair of clearance -
+  // but only a hair. Demanding more than a wrapped chip row's own gap (~5px)
+  // means no gap ever qualifies, and the line then climbs out of the whole
+  // list: measured, an early attempt moved it 255px and pointed at the wrong
+  // place entirely. A separator in the wrong place is as bad as one drawn
+  // through a pill.
+  // Exactly half the rule's own 3px height (PageChrome draws it at y-1.5,
+  // height 3). Asking for more than that disqualifies the ~3.4px gap between
+  // two wrapped chip rows, and the search then leaps to the next section
+  // break: measured, 255px in one direction and 514px in the other. A
+  // separator pointing at the wrong page is no better than one drawn through
+  // a pill.
+  const HALF = 1.5
+
+  // Merge the boxes into occupied bands, then take the GAP between bands that
+  // sits closest to where the break really is.
+  const bands: { top: number; bottom: number }[] = []
+  for (const b2 of boxes) {
+    const last = bands[bands.length - 1]
+    if (last && b2.top <= last.bottom) last.bottom = Math.max(last.bottom, b2.bottom)
+    else bands.push({ top: b2.top, bottom: b2.bottom })
+  }
+  const inside = bands.find((b2) => y > b2.top - HALF && y < b2.bottom + HALF)
+  if (!inside) return y
+
+  // Only a SMALL correction is honest. Past this the nearest clear gap is in
+  // another part of the page, and a separator drawn there says the page ends
+  // somewhere it does not - which is no better than one drawn through a pill.
+  // This module already suppresses a separator it cannot place; the same
+  // judgement applies here, and the "Page k / N" chip still marks the page.
+  const MAX_NUDGE = 14
+  let best: number | null = null
+  let bestDist = Infinity
+  for (let i = 0; i < bands.length; i++) {
+    const gapTop = bands[i].bottom
+    const gapBottom = i + 1 < bands.length ? bands[i + 1].top : gapTop + 1000
+    if (gapBottom - gapTop < HALF * 2) continue
+    const candidate = Math.min(Math.max(y, gapTop + HALF), gapBottom - HALF)
+    const dist = Math.abs(candidate - y)
+    if (dist < bestDist) {
+      bestDist = dist
+      best = candidate
+    }
+  }
+  return bestDist <= MAX_NUDGE ? best : null
+}
+
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
   const fitToWidth = useEditorStore((s) => s.autoFit)
@@ -498,8 +567,18 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 separators.push({ y: top - PAGE_GAP_PX / 2 })
                 badgeTops.push(top)
               } else if (fallbackYs[i] != null) {
-                separators.push({ y: fallbackYs[i]!, thin: true })
-                badgeTops.push(fallbackYs[i]!)
+                // Interpolated, so it can land in the MIDDLE of a chip or a
+                // line, and drawn there it reads as though the page break
+                // sliced that pill in half - reported against a skills chip
+                // whose exported PDF was in fact perfectly intact. Snapping up
+                // to the top of whatever it would cross keeps the page end
+                // visible without ever crossing ink, which is the same
+                // judgement this module already makes when it suppresses a
+                // separator it cannot place.
+                const snapped = snapClearOfInk(fallbackYs[i]!, editRoot, scaleNow)
+                // The badge marks the page whether or not a rule can be drawn.
+                if (snapped !== null) separators.push({ y: snapped, thin: true })
+                badgeTops.push(snapped ?? fallbackYs[i]!)
               } else {
                 badgeTops.push(result.cutsPx[i] * badgeScale)
               }
