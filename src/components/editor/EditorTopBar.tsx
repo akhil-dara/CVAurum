@@ -28,6 +28,7 @@ import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
 import { exportResumePdf } from '@/lib/pdf/export'
+import { lastUnsupportedCharacters } from '@/lib/pdf/render'
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -38,6 +39,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const { zoom, autoFit, zoomIn, zoomOut, setAutoFit, atsView, setAtsView, previewExact, setPreviewExact, pdfExporting } =
     useEditorStore()
 
+  const toast = useAppStore((s) => s.toast)
   const past = useStore(useResumeStore.temporal, (s) => s.pastStates.length)
   const future = useStore(useResumeStore.temporal, (s) => s.futureStates.length)
   const { undo, redo } = useResumeStore.temporal.getState()
@@ -79,7 +81,20 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     if (useEditorStore.getState().pdfExporting) return
     useEditorStore.getState().setPdfExporting(true)
     try {
-      await exportResumePdf(useResumeStore.getState().doc ?? doc)
+      const outcome = await exportResumePdf(useResumeStore.getState().doc ?? doc)
+      // A character no embedded font can draw is DROPPED, not shown as a box,
+      // so an export can succeed while losing whole sentences - a name written
+      // in Telugu simply is not in the file. Say so rather than hand over a
+      // resume with the author's own name missing.
+      if (outcome === 'native') {
+        const missing = lastUnsupportedCharacters()
+        if (missing.length) {
+          toast(
+            `Exported, but ${missing.length} character${missing.length > 1 ? 's' : ''} could not be drawn and were left out: ${missing.slice(0, 8).join(' ')}${missing.length > 8 ? '...' : ''}. Try a template whose font covers this script.`,
+            'error'
+          )
+        }
+      }
     } finally {
       useEditorStore.getState().setPdfExporting(false)
       setExportOpen(false)

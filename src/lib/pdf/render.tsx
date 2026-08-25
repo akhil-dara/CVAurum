@@ -220,6 +220,17 @@ function raf2(): Promise<void> {
   })
 }
 
+/**
+ * Characters the last export could not draw, and therefore dropped. Read by
+ * the export surface after `renderResumePdf` resolves.
+ */
+let lastUnsupported: string[] = []
+
+/** The characters the most recent export silently dropped, if any. */
+export function lastUnsupportedCharacters(): string[] {
+  return lastUnsupported
+}
+
 export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> {
   const fmt = doc.metadata.page.format === 'Letter' ? 'Letter' : 'A4'
   const { w: pageWpx, h: pageHpx } = PAGE_DIMENSIONS[fmt]
@@ -409,7 +420,28 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     const pdfaConforming = applyPdfAConformance(pdfDoc, icc, `${docInfo.title}|${docInfo.created.toISOString()}`)
 
     const ops = buildDrawList(sheet)
+
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
+    // Characters no embedded font can draw are DROPPED, not shown as boxes, so
+    // an export can succeed while silently losing whole sentences. Collect
+    // them so the export surface can say so instead of handing over a resume
+    // with the author's own name missing.
+    lastUnsupported = []
+    {
+      const byFont = new Map<string, { family: string; weight: number; text: string }>()
+      for (const op of ops) {
+        if (op.kind !== 'text' || op.run.isDecorative || !op.run.text) continue
+        const key = `${op.run.family}|${op.run.weight}`
+        const entry = byFont.get(key)
+        if (entry) entry.text += op.run.text
+        else byFont.set(key, { family: op.run.family, weight: op.run.weight, text: op.run.text })
+      }
+      const found = new Set<string>()
+      for (const { family, weight, text } of byFont.values()) {
+        for (const ch of await fonts.missingGlyphs(family, weight, text)) found.add(ch)
+      }
+      lastUnsupported = [...found]
+    }
     // Dev-only gate-instrumentation hook (task 15) — see the `declare global`
     // block above. Single if-check: zero cost for every real (non-harness)
     // caller, which never sets the flag.

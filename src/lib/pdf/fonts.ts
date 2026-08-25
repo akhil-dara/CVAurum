@@ -89,6 +89,36 @@ export class PdfFontCache {
     return p
   }
 
+  /**
+   * The distinct characters in `text` this (family, weight) has no glyph for.
+   *
+   * A character with no glyph is not drawn as a box - it is dropped, so a
+   * resume written in a script the embedded fonts do not cover exports
+   * "successfully" while carrying none of its own words. Measured: a summary
+   * in Telugu, Japanese and Hindi produced a 60KB PDF with all three scripts
+   * absent from the text layer.
+   */
+  async missingGlyphs(family: string, weight: number, text: string): Promise<string[]> {
+    if (!text) return []
+    let font: FontkitFont
+    try {
+      font = await this.embedGlyphOutlines(family, weight)
+    } catch {
+      return [] // no font resolved at all is a different failure, reported elsewhere
+    }
+    const has = (font as unknown as { hasGlyphForCodePoint?: (cp: number) => boolean }).hasGlyphForCodePoint
+    if (typeof has !== 'function') return []
+    const missing = new Set<string>()
+    for (const ch of text) {
+      const cp = ch.codePointAt(0)
+      if (cp === undefined) continue
+      // Whitespace and control characters are never drawn; absence is normal.
+      if (cp <= 0x20) continue
+      if (!has.call(font, cp)) missing.add(ch)
+    }
+    return [...missing]
+  }
+
   private bytesFor(key: string): Promise<Uint8Array> {
     let p = this.bytesCache.get(key)
     if (!p) {
