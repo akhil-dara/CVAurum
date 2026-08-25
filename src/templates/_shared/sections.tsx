@@ -373,6 +373,7 @@ function EditableChips({
   placeholder = 'Skill',
   variant = 'chips',
   lead = '',
+  onMove,
 }: {
   items: string[]
   edit?: EditFn
@@ -389,10 +390,14 @@ function EditableChips({
   /** Text before the first keyword in the inline variant (the ": " after a
    *  group name), so editing does not change the punctuation. */
   lead?: string
+  /** Move the keyword at `from` to `to`. Absent means this list cannot be
+   *  reordered, and no affordance is shown for it. */
+  onMove?: (from: number, to: number) => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<number | null>(null)
   const deleting = useRef(false)
+  const [grabbed, setGrabbed] = useState<number | null>(null)
   useEffect(() => {
     if (pendingFocus.current == null || !wrapRef.current) return
     const eds = wrapRef.current.querySelectorAll<HTMLElement>('.rm-chip-edit .rm-editable')
@@ -418,13 +423,89 @@ function EditableChips({
   }
 
   const stop = (e: { preventDefault: () => void }) => e.preventDefault()
+
+  // Reordering. A chip is draggable only while its HANDLE is held: the keyword
+  // itself is contentEditable, and a permanently draggable chip turns an
+  // ordinary attempt to select a word into a drag of the whole chip.
+  const dragFrom = useRef<number | null>(null)
+  /**
+   * Commit whatever is being edited BEFORE the list order changes.
+   *
+   * Each keyword is a contentEditable that only takes a new value from props
+   * while it is NOT focused. Move the list under a focused one and it keeps
+   * the text it was showing, then writes that text back at its new index on
+   * blur: reordering ["TypeScript", "Go"] produced ["Go", "Go"], losing a
+   * keyword outright. Blurring first makes the pending edit land on the index
+   * it was actually typed into.
+   */
+  const commitBeforeMove = () => {
+    const el = document.activeElement as HTMLElement | null
+    if (el && wrapRef.current?.contains(el)) el.blur()
+  }
+  const dragProps = (ki: number) =>
+    onMove
+      ? {
+          onDragStart: (e: React.DragEvent) => {
+            dragFrom.current = ki
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('text/plain', String(ki)) // Firefox needs a payload
+          },
+          onDragOver: (e: React.DragEvent) => {
+            if (dragFrom.current === null || dragFrom.current === ki) return
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'move'
+          },
+          onDrop: (e: React.DragEvent) => {
+            e.preventDefault()
+            const from = dragFrom.current
+            dragFrom.current = null
+            setGrabbed(null)
+            if (from !== null && from !== ki) {
+              commitBeforeMove()
+              onMove(from, ki)
+            }
+          },
+          onDragEnd: () => {
+            dragFrom.current = null
+            setGrabbed(null)
+          },
+          // Alt+arrows do the same without a mouse, which is the only way a
+          // keyboard user can reorder at all.
+          onKeyDown: (e: React.KeyboardEvent) => {
+            // Alt+Arrow alone is the browser's Back and Forward, so the move
+            // shortcut takes Shift too.
+            if (!e.altKey || !e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return
+            const to = e.key === 'ArrowLeft' ? ki - 1 : ki + 1
+            if (to < 0 || to >= items.length) return
+            e.preventDefault()
+            commitBeforeMove()
+            pendingFocus.current = to
+            onMove(ki, to)
+          },
+        }
+      : {}
+  const handle = (ki: number, k: string) =>
+    onMove ? (
+      <button
+        type="button"
+        className="rm-kw-grip no-print"
+        aria-label={`Reorder ${k || placeholder}. Hold Alt and Shift and press the left or right arrow key to move it.`}
+        title="Drag to reorder (or Alt + Shift + arrow keys)"
+        onMouseDown={() => setGrabbed(ki)}
+        onMouseUp={() => setGrabbed(null)}
+      >
+        &#10247;
+      </button>
+    ) : null
+
   if (variant === 'inline') {
     return (
       <span className="rm-skill-inline rm-inline-edit" ref={wrapRef as unknown as React.Ref<HTMLSpanElement>} onBlur={onWrapBlur}>
         {lead}
         {items.map((k, ki) => (
-          <span key={ki} className="rm-kw-edit">
+          <span key={ki} className="rm-kw-edit" draggable={grabbed === ki} {...dragProps(ki)}>
             {ki > 0 ? <span className="rm-kw-sep"> · </span> : null}
+            {handle(ki, k)}
             <Ed
               edit={edit}
               value={k}
@@ -457,7 +538,8 @@ function EditableChips({
   return (
     <div className="rm-chips rm-chips-edit" ref={wrapRef} onBlur={onWrapBlur}>
       {items.map((k, ki) => (
-        <span key={ki} className="rm-chip rm-chip-edit">
+        <span key={ki} className="rm-chip rm-chip-edit" draggable={grabbed === ki} {...dragProps(ki)}>
+          {handle(ki, k)}
           <Ed
             edit={edit}
             value={k}
@@ -744,6 +826,11 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
                 onAdd={() => edit((c) => { (c.skills[i].keywords ??= []).push('') })}
                 onRemove={(ki) => edit((c) => { c.skills[i].keywords?.splice(ki, 1) })}
                 onPruneEmpty={() => edit((c) => { c.skills[i].keywords = (c.skills[i].keywords ?? []).filter((k) => (k || '').trim().length > 0) })}
+                onMove={(from, to) => edit((c) => {
+                  const list = (c.skills[i].keywords ??= [])
+                  const [moved] = list.splice(from, 1)
+                  list.splice(to, 0, moved)
+                })}
               />
             ) : hasKeywords && chipStyle ? (
               <Chips items={s.keywords!} />

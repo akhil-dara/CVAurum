@@ -1607,3 +1607,36 @@
   text-underline-offset: 0.15em;
   text-decoration-thickness: from-font;
 }
+
+/* Reorder grip on a keyword. Same discoverability as the remove control: it
+   appears on hover or focus rather than sitting on every chip permanently,
+   because a resume covered in grips is noise. */
+.rm-kw-grip {
+  display: none;
+  margin-right: 0.18em;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rm-muted);
+  cursor: grab;
+  font-size: 0.85em;
+  line-height: 1;
+  vertical-align: baseline;
+}
+.rm-kw-grip:active {
+  cursor: grabbing;
+}
+.mode-preview .rm-chip-edit:hover .rm-kw-grip,
+.mode-preview .rm-chip-edit:focus-within .rm-kw-grip,
+.mode-preview .rm-kw-edit:hover .rm-kw-grip,
+.mode-preview .rm-kw-edit:focus-within .rm-kw-grip {
+  display: inline;
+}
+.rm-kw-grip:hover {
+  color: var(--rm-primary);
+}
+/* The chip being dragged reads as lifted. */
+.mode-preview [draggable='true'].rm-chip-edit,
+.mode-preview [draggable='true'].rm-kw-edit {
+  opacity: 0.55;
+}
