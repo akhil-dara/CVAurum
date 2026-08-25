@@ -83,6 +83,8 @@ interface ContactEntry {
 
 function buildContacts(doc: ResumeDocument): ContactEntry[] {
   const b = doc.content.basics
+  // How URLs READ is the author's choice; where they POINT never changes.
+  const disp = doc.metadata.links?.display ?? 'pretty'
   const out: ContactEntry[] = []
   const { Mail, Phone, Globe, MapPin } = ContactIcons
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
@@ -90,14 +92,14 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
   if (email) out.push({ icon: <Mail />, text: email, href: `mailto:${email}` })
   if (b.phone) out.push({ icon: <Phone />, text: b.phone, href: `tel:${b.phone.replace(/[^\d+]/g, '')}` })
   if (loc) out.push({ icon: <MapPin />, text: loc })
-  if (b.url) out.push({ icon: <Globe />, text: prettyUrl(b.url), href: safeHref(b.url) })
+  if (b.url) out.push({ icon: <Globe />, text: prettyUrl(b.url, disp), href: safeHref(b.url) })
   for (const p of b.profiles ?? []) {
     const Icon = networkIcon(p.network)
     // Keep profiles legible even when the template hides icons: prefer the clean
     // URL (so LinkedIn vs GitHub is obvious), else show "Network · handle" rather
     // than a bare, ambiguous username.
     const handle = (p.username || '').replace(/^@+/, '')
-    const text = prettyUrl(p.url) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
+    const text = prettyUrl(p.url, disp) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
     if (text) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
   }
   return out
@@ -450,6 +452,9 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
     `mode-${mode}`,
     `side-${doc.metadata.layout.sidebar}`,
     `sicon-${iconStyle}`,
+    // Underlining links is off by default - a resume full of underlines reads
+    // badly - but a reader cannot otherwise SEE which text is clickable.
+    doc.metadata.links?.underline ? 'links-underline' : '',
   ]
     .filter(Boolean)
     .join(' ')

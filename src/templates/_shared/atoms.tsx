@@ -103,9 +103,21 @@ export function networkIcon(network?: string): LucideIcon {
 export const ContactIcons = { Mail, Phone, Globe, MapPin }
 
 /** Strip protocol for cleaner display of URLs. */
-export function prettyUrl(url?: string): string {
+/**
+ * How a URL should READ on the page. The link's destination is always the full
+ * address - this only decides what the reader sees, which used to be forced to
+ * one form with no way to ask for another.
+ */
+export function prettyUrl(url?: string, display: 'pretty' | 'full' | 'short' = 'pretty'): string {
   if (!url) return ''
-  return url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+  const trimmed = url.trim()
+  if (display === 'full') return trimmed
+  const bare = trimmed.replace(/^https?:\/\//, '').replace(/\/$/, '')
+  if (display !== 'short') return bare
+  // Drop the host and any leading path segments, keeping the last meaningful
+  // one: "linkedin.com/in/someone" reads as "someone".
+  const parts = bare.split('/').filter(Boolean)
+  return parts.length > 1 ? parts[parts.length - 1] : bare.replace(/^www\./, '')
 }
 
 /**

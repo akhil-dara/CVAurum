@@ -1598,3 +1598,12 @@
 .rm-inline-edit .rm-kw-x:hover {
   color: var(--rm-primary);
 }
+
+/* Optional link underlines (2026-08-25). The export makes every URL clickable,
+   but nothing on the page says so; an author who wants that visible can turn
+   it on. Off by default, because a resume full of underlines reads badly. */
+.rm-root.links-underline a[href] {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: from-font;
+}

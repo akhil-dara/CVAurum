@@ -237,6 +237,30 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Toggle label="Fit to one page" checked={m.page.autoFit} onChange={(v) => update((md) => { md.page.autoFit = v })} />
         <p className="-mt-1 text-[11px] text-muted-foreground">Auto-shrinks type &amp; spacing so a near-full resume fits one page.</p>
       </FieldGroup>
+
+      <FieldGroup title="Links">
+        <div>
+          <label className="label">Show URLs as</label>
+          <Segmented
+            value={m.links?.display ?? 'pretty'}
+            options={[
+              { value: 'pretty', label: 'Tidy' },
+              { value: 'full', label: 'Full' },
+              { value: 'short', label: 'Short' },
+            ]}
+            onChange={(v) => update((md) => { md.links.display = v })}
+          />
+        </div>
+        <p className="-mt-1 text-[11px] text-muted-foreground">
+          Tidy drops https://, Full shows the address exactly as entered, Short keeps just the handle. Every link stays
+          clickable in the exported PDF whichever you pick.
+        </p>
+        <Toggle
+          label="Underline links"
+          checked={m.links?.underline ?? false}
+          onChange={(v) => update((md) => { md.links.underline = v })}
+        />
+      </FieldGroup>
     </div>
   )
 }

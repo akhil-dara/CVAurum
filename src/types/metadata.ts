@@ -159,18 +159,38 @@ export const LayoutSchema = z.object({
   photoSize: z.enum(['s', 'm', 'l']).default('m'),
 })
 
+/**
+ * How URLs are DISPLAYED. The target is always the full, normalised address -
+ * display and destination are separate concerns, and conflating them is why
+ * an author could not choose to show a full URL even when they wanted to.
+ *
+ *   pretty  github.com/someone          (scheme and trailing slash dropped)
+ *   full    https://github.com/someone  (exactly as entered)
+ *   short   someone                     (host dropped too, for a tidy line)
+ */
+export const LinkDisplaySchema = z.enum(['pretty', 'full', 'short'])
+export type LinkDisplay = z.infer<typeof LinkDisplaySchema>
+
+export const LinksSchema = z.object({
+  display: LinkDisplaySchema.default('pretty'),
+  /** Underline links so a reader can SEE which text is clickable. */
+  underline: z.boolean().default(false),
+})
+
 export const MetadataSchema = z.object({
   template: z.string().default('modern'),
   page: PageSchema.default({}),
   theme: ThemeSchema.default({}),
   typography: TypographySchema.default({}),
   layout: LayoutSchema.default({}),
+  links: LinksSchema.default({}),
 })
 
 export type Page = z.infer<typeof PageSchema>
 export type Theme = z.infer<typeof ThemeSchema>
 export type Typography = z.infer<typeof TypographySchema>
 export type Layout = z.infer<typeof LayoutSchema>
+export type Links = z.infer<typeof LinksSchema>
 export type Metadata = z.infer<typeof MetadataSchema>
 
 /** Page pixel dimensions at 96dpi (CSS px). 1mm = 96/25.4 px. */
