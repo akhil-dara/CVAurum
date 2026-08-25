@@ -34,11 +34,16 @@
     --surface: 0 0% 100%;
     --surface-muted: 220 20% 97%;
     --muted: 220 16% 95%;
-    --muted-foreground: 220 9% 46%;
+    /* Darkened to clear WCAG AA in the light theme (2026-08-25). At 46% the
+       muted foreground scored 4.31:1 on the muted surface, and the 42% primary
+       scored 3.65:1 both as a button background under white text and as accent
+       text on white. Both are now measured by gate-contrast.cjs; the hues are
+       unchanged, only the lightness. */
+    --muted-foreground: 220 9% 44%;
     --border: 220 16% 90%;
     --input: 220 16% 87%;
-    --ring: 36 68% 42%;
-    --primary: 36 68% 42%;
+    --ring: 36 68% 37%;
+    --primary: 36 68% 37%;
     --primary-foreground: 0 0% 100%;
     --accent: 189 94% 43%;
     --accent-foreground: 222 47% 11%;
@@ -47,10 +52,15 @@
     --danger: 0 72% 51%;
     --radius: 0.7rem;
     --canvas: 220 18% 90%;
+    /* The wordmark's gold. On white the brand gold (#c8941f) reads at 2.72:1,
+       below AA for 16px text, so the light theme uses a darker gold; on the
+       dark background the brand gold has plenty of contrast and is kept. */
+    --brand-gold: #9a6c10;
     color-scheme: light;
   }
 
   .dark {
+    --brand-gold: #c8941f;
     --background: 225 26% 6%;
     --foreground: 220 20% 93%;
     --surface: 224 22% 9%;

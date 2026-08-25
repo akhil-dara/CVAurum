@@ -186,7 +186,11 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
             <HoverZoom key={persona.id} doc={doc} label={`${persona.role} example`}>
             <button
               onClick={() => onPick(persona)}
-              className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
+              // The CARD follows the theme; only the thumbnail below is paper
+              // white. It used to be white throughout while its text used
+              // theme tokens, so in dark mode the title was light-on-white and
+              // effectively invisible (2026-08-25 report).
+              className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
               title={`Start from the ${persona.role} example`}
             >
               <div className="aspect-[210/297] overflow-hidden border-b border-border bg-white">

@@ -17,7 +17,7 @@ export function Logo({ to = '/app', compact = false }: { to?: string; compact?: 
       </span>
       {!compact && (
         <span className="text-base font-semibold tracking-tight">
-          CV<span style={{ color: '#c8941f' }}>Aurum</span>
+          CV<span style={{ color: 'var(--brand-gold)' }}>Aurum</span>
         </span>
       )}
     </Link>
