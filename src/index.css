@@ -37,9 +37,11 @@
     /* Darkened to clear WCAG AA in the light theme (2026-08-25). At 46% the
        muted foreground scored 4.31:1 on the muted surface, and the 42% primary
        scored 3.65:1 both as a button background under white text and as accent
-       text on white. Both are now measured by gate-contrast.cjs; the hues are
-       unchanged, only the lightness. */
-    --muted-foreground: 220 9% 44%;
+       text on white. Widening the audit to the editor's own panels found the
+       muted foreground again at 4.09:1 on the CANVAS, which is darker than the
+       muted surface, so it moves once more to 41%. All measured by
+       gate-contrast.cjs; the hues are unchanged, only the lightness. */
+    --muted-foreground: 220 9% 41%;
     --border: 220 16% 90%;
     --input: 220 16% 87%;
     --ring: 36 68% 37%;
@@ -47,7 +49,8 @@
     --primary-foreground: 0 0% 100%;
     --accent: 189 94% 43%;
     --accent-foreground: 222 47% 11%;
-    --success: 142 64% 40%;
+    /* 40% put the ATS badge at 3.12:1 on white; 32% clears AA at 10px. */
+    --success: 142 64% 32%;
     --warning: 32 95% 44%;
     --danger: 0 72% 51%;
     --radius: 0.7rem;
