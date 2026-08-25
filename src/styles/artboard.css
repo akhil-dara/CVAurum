@@ -1680,6 +1680,17 @@
   display: inline-flex;
 }
 
+/* A SINGLE-column artboard hangs its section badge in the page margin, so a
+   small margin leaves the badge nowhere to go: at a 6mm margin the mark sat 5px
+   past the page's own left edge, which the paper cannot carry. The two-column
+   layout already reserves its inner gutter for exactly this; single column
+   needs the same floor against the page margin. 2.1em is the badge's own hang
+   (1.55em wide plus its 0.55em margin), so this costs nothing whenever the
+   margin is already wider - which it is at every default. */
+.rm-icons.rm-single .rm-col-main {
+  padding-left: max(var(--rm-pad), 2.2em);
+}
+
 /* Gutter-label headings (sec-side) hide the main column's badge outright
    (.sec-side .rm-col-main .rm-section-icon { display: none }), so nothing
    hangs in that column's margin and there is nothing to reserve room for.
