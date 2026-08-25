@@ -14,13 +14,112 @@ import { FONTS } from '@/data/fonts'
 import { usePopoverA11y } from './popoverA11y'
 
 /** Curated accent palette — enough range for any industry, all print-safe. */
-const ACCENTS = ['#2563eb', '#0f766e', '#7c3aed', '#b91c1c', '#d4982f', '#a16207', '#db2777', '#15803d', '#475569', '#0f172a']
+const ACCENTS = [
+  '#2563eb',
+  '#0f766e',
+  '#7c3aed',
+  '#b91c1c',
+  '#d4982f',
+  '#a16207',
+  '#db2777',
+  '#15803d',
+  '#475569',
+  '#0f172a',
+]
+
+/**
+ * The contact line: how the details are arranged, what sits between them, and
+ * whether they carry icons.
+ *
+ * Templates used to decide all three, so an author who wanted their details
+ * stacked in a narrow sidebar, or dots between them, had to change TEMPLATE to
+ * get it. These are presentation choices, not template identity.
+ */
+function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
+  const { contactStyle, contactSeparator, icons } = doc.metadata.layout
+  const row = <T extends string>(
+    name: string,
+    value: T,
+    options: { v: T; label: string; title?: string }[],
+    set: (v: T) => void
+  ) => (
+    <div className="mb-1 flex items-center gap-1.5">
+      <span className="w-14 shrink-0 text-[10px] text-muted-foreground">{name}</span>
+      <div className="flex flex-1 gap-1" role="radiogroup" aria-label={name}>
+        {options.map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            role="radio"
+            aria-checked={value === o.v}
+            title={o.title || o.label}
+            onClick={() => set(o.v)}
+            className={`min-w-0 flex-1 truncate rounded-md border px-1 py-1 text-[11px] font-medium transition ${
+              value === o.v
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:border-primary/50'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+  return (
+    <div className="px-2 pb-1.5">
+      {row<'inline' | 'stacked'>(
+        'Arrange',
+        contactStyle ?? 'inline',
+        [
+          { v: 'inline', label: 'Inline', title: 'All on one wrapping line' },
+          { v: 'stacked', label: 'Stacked', title: 'One detail per row - reads better in a narrow sidebar' },
+        ],
+        (v) =>
+          editMeta((m) => {
+            m.layout.contactStyle = v
+          })
+      )}
+      {row<'none' | 'dot' | 'pipe' | 'slash' | 'dash'>(
+        'Between',
+        contactSeparator ?? 'none',
+        [
+          { v: 'none', label: 'Space', title: 'Spacing only' },
+          { v: 'dot', label: '·', title: 'Middle dot' },
+          { v: 'pipe', label: '|', title: 'Vertical bar' },
+          { v: 'slash', label: '/', title: 'Slash' },
+          { v: 'dash', label: '–', title: 'En dash' },
+        ],
+        (v) =>
+          editMeta((m) => {
+            m.layout.contactSeparator = v
+          })
+      )}
+      {row<'on' | 'off'>(
+        'Icons',
+        icons === false ? 'off' : 'on',
+        [
+          { v: 'on', label: 'Show' },
+          { v: 'off', label: 'Hide' },
+        ],
+        (v) =>
+          editMeta((m) => {
+            m.layout.icons = v === 'on'
+          })
+      )}
+      {contactStyle === 'stacked' ? (
+        <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">Stacked rows never take a separator.</p>
+      ) : null}
+    </div>
+  )
+}
 
 /** Identity mark: exactly ONE of none / monogram / photo — never a placeholder. */
 function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
   const { monogram, showPhoto } = doc.metadata.layout
   const hasImage = !!doc.content.basics.image
-  const current: 'none' | 'monogram' | 'photo' = showPhoto && hasImage ? 'photo' : monogram ? 'monogram' : showPhoto ? 'photo' : 'none'
+  const current: 'none' | 'monogram' | 'photo' =
+    showPhoto && hasImage ? 'photo' : monogram ? 'monogram' : showPhoto ? 'photo' : 'none'
   const pick = (v: 'none' | 'monogram' | 'photo') =>
     editMeta((m) => {
       m.layout.monogram = v === 'monogram'
@@ -49,7 +148,8 @@ function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: 
       </div>
       {current === 'photo' && !hasImage && (
         <p className="mt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
-          No photo uploaded yet — add one under Content → Personal details. Nothing prints until you do (no placeholder, ever).
+          No photo uploaded yet — add one under Content → Personal details. Nothing prints until you do (no placeholder,
+          ever).
         </p>
       )}
     </div>
@@ -117,7 +217,11 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                       <span className="flex h-8 w-full items-center justify-center overflow-hidden rounded-[3px] border border-border/70 bg-white p-1">
                         <HeaderMini kind={h.value} />
                       </span>
-                      <span className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{h.label}</span>
+                      <span
+                        className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
+                      >
+                        {h.label}
+                      </span>
                     </button>
                   )
                 })}
@@ -127,6 +231,11 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                 Identity mark
               </div>
               <IdentityMarkPicker doc={doc} editMeta={editMeta} />
+              <div className="mx-2 my-1 border-t border-border" />
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Contact line
+              </div>
+              <ContactLinePicker doc={doc} editMeta={editMeta} />
               <div className="mx-2 my-1 border-t border-border" />
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Accent color
@@ -176,7 +285,7 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
               </p>
             </div>
           </>,
-          document.body,
+          document.body
         )}
     </>
   )

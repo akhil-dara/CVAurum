@@ -31,6 +31,8 @@ export const ProfileSchema = z.object({
    *  address, so wanting to show "Portfolio" instead was simply not possible,
    *  and editing the text on the canvas overwrote the address itself. */
   label: z.string().optional(),
+  /** An explicit icon choice, overriding the guess made from `network`. */
+  icon: z.string().optional(),
 })
 
 export const BasicsSchema = z.object({

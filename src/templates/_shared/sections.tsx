@@ -91,6 +91,10 @@ export type SecOpts = {
    *  caller can reach section metadata - the canvas logo menu uses it so the
    *  mark can be styled where it is seen, not only from the side panel. */
   setBadge?: (key: 'badgeSize' | 'badgeShape', v: string) => void
+  /** Document-level, carried here because this bag is the channel that
+   *  reaches an entry row - the link card says whether the result will be
+   *  clickable, and it should not say so when the author turned that off. */
+  linksClickable?: boolean
 }
 const show = (v?: boolean) => v !== false
 
@@ -332,7 +336,12 @@ function CanvasLogo({
   usePopoverA11y(menu != null, () => setMenu(null), menuRef)
 
   const pick = (file?: File) => {
-    if (!file || !file.type.startsWith('image/')) return
+    // Deliberately permissive about the TYPE. An .ai file is reported as
+    // application/postscript (or nothing at all), so this test dropped it in
+    // silence - the picker simply appeared to do nothing. The cropper decodes
+    // the file and says plainly when it cannot, which is the useful answer.
+    // Video and audio are still refused: nothing here can make sense of them.
+    if (!file || /^(video|audio)\//.test(file.type)) return
     const reader = new FileReader()
     reader.onload = () => setCropSrc(String(reader.result))
     reader.readAsDataURL(file)
@@ -461,7 +470,7 @@ function CanvasLogo({
         // print ink color, which is illegible on the app's dark-mode surface.
         createPortal(
           <Suspense fallback={null}>
-            <LazyCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
+            <LazyCropper kind="logo" src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />
           </Suspense>,
           document.body
         )}
@@ -530,7 +539,13 @@ function ItemHead({
           title
         )}
         {edit && setHref ? (
-          <LinkButton href={href} label={linkLabel || 'this entry'} onChange={(v) => edit((c) => setHref(c, v))} />
+          <LinkButton
+            href={href}
+            label={linkLabel || 'this entry'}
+            text={linkLabel}
+            clickable={opts?.linksClickable !== false}
+            onChange={(v) => edit((c) => setHref(c, v))}
+          />
         ) : null}
       </div>
       {date ? <div className="rm-item-date">{date}</div> : null}
@@ -1201,6 +1216,12 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 c.projects[i].url = val
               }}
               linkLabel={p.name}
+              // Without this the head had no `edit`, so a project's title
+              // carried neither the link button nor the mark control - every
+              // other entry type had both. A project link could only be typed
+              // into the URL line underneath, which is the one place it should
+              // NOT have had to be.
+              edit={edit}
               title={
                 edit ? (
                   <Ed
@@ -1228,7 +1249,12 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 }
               )}
             />
-            {edit ? (
+            {/* The link line shows only when there IS a link. It used to be an
+                always-present empty slot in edit mode - a mystery field - and
+                it duplicated the title's own link editor, so two controls
+                wrote one value and each undid the other. The title's chain
+                button is where a project link is SET; this line displays it. */}
+            {edit && p.url ? (
               <div className="rm-item-link">
                 <Ed
                   edit={edit}
@@ -1239,7 +1265,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                   placeholder="Project link (e.g. github.com/you/project)"
                 />
               </div>
-            ) : p.url ? (
+            ) : !edit && p.url ? (
               <div className="rm-item-link">
                 {safeHref(p.url) ? <a href={safeHref(p.url)}>{prettyUrl(p.url)}</a> : prettyUrl(p.url)}
               </div>
@@ -1934,6 +1960,14 @@ function Custom({
             <ItemHead
               opts={opts}
               badge={opts?.showBadges ? badgeLetter(it.name || it.subtitle) : undefined}
+              // A custom item carries a url like every other entry, so it gets
+              // the same link treatment rather than a field nothing could set.
+              href={safeHref(it.url)}
+              setHref={(c, val) => {
+                c.custom[secIndex].items[i].url = val
+              }}
+              linkLabel={it.name || it.subtitle}
+              edit={edit}
               title={
                 <Ed
                   edit={edit}
@@ -2130,7 +2164,7 @@ export function SectionBody({
           else delete ss[key]
         })
     : undefined
-  const opts: SecOpts = { ...(saved ?? {}), setBadge }
+  const opts: SecOpts = { ...(saved ?? {}), setBadge, linksClickable: doc.metadata.links?.clickable !== false }
   const body = sectionRenderer(sectionKey, doc, config, edit, opts)
   // Summary is a single field (always editable); every other section is a list,
   // so offer an inline "+ Add" affordance on the canvas (edit mode only).

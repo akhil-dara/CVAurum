@@ -12,7 +12,7 @@ import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
-import { ContactIcons, networkIcon, prettyUrl, cleanEmail } from './atoms'
+import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
@@ -71,6 +71,11 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-font-name': fontStack(t.nameFamily || t.headingFamily || t.fontFamily),
       '--rm-aside-w': `${(layout.sidebarWidth * 100).toFixed(1)}%`,
       '--rm-photo-size': layout.photoSize === 's' ? '6em' : layout.photoSize === 'l' ? '9.6em' : '7.6em',
+      // The glyph itself, as a CSS `content` string. Written as real
+      // characters rather than escapes: this value is handed to CSS verbatim.
+      '--rm-contact-sep': (
+        { none: '""', dot: '"·"', pipe: '"|"', slash: '"/"', dash: '"–"' } as Record<string, string>
+      )[layout.contactSeparator ?? 'none'],
       '--rm-photo-align':
         layout.photoAlign === 'left' ? 'flex-start' : layout.photoAlign === 'right' ? 'flex-end' : 'center',
       '--rm-photo-margin':
@@ -103,7 +108,7 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
     out.push({ icon: <Globe />, text: b.urlLabel?.trim() || prettyUrl(b.url, disp), href: safeHref(b.url) })
   }
   for (const p of b.profiles ?? []) {
-    const Icon = networkIcon(p.network)
+    const Icon = contactIcon(p.network, p.icon)
     // Keep profiles legible even when the template hides icons: prefer the clean
     // URL (so LinkedIn vs GitHub is obvious), else show "Network · handle" rather
     // than a bare, ambiguous username.
@@ -112,15 +117,64 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
       p.label?.trim() ||
       prettyUrl(p.url, disp) ||
       (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
-    if (text) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
+    // Same rule as the canvas: no address and no handle means no contact,
+    // however the row happens to be named.
+    if (text && (p.url?.trim() || handle)) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
   }
   return out
 }
 
-function Contacts({ entries, icons }: { entries: ContactEntry[]; icons: boolean }) {
+/**
+ * Which icon a contact wears.
+ *
+ * The icon used to be guessed from the network NAME and nothing else, so a
+ * network the map had not heard of got a generic chain link that could not be
+ * changed. This offers the choice where the link itself is edited.
+ */
+function IconPicker({ value, onPick }: { value?: string; onPick: (v: string) => void }) {
+  return (
+    <div className="mb-1.5">
+      <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Icon</span>
+      <div className="grid grid-cols-8 gap-1">
+        {CONTACT_ICON_CHOICES.map((o) => {
+          const on = (value ?? '') === o.v
+          return (
+            <button
+              key={o.v || 'auto'}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={o.label}
+              title={o.label}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onPick(o.v)}
+              className={`flex h-7 items-center justify-center rounded-md border transition ${
+                on
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/50'
+              }`}
+            >
+              <o.Icon className="h-3.5 w-3.5" />
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** The classes that carry the author's contact-line choices. */
+function contactsClass(doc: ResumeDocument): string {
+  const { contactStyle, contactSeparator } = doc.metadata.layout
+  return `rm-contacts${contactStyle === 'stacked' ? ' rm-contacts-stacked' : ''}${
+    contactSeparator && contactSeparator !== 'none' ? ' rm-contacts-sep' : ''
+  }`
+}
+
+function Contacts({ entries, icons, cls }: { entries: ContactEntry[]; icons: boolean; cls: string }) {
   if (!entries.length) return null
   return (
-    <div className="rm-contacts">
+    <div className={cls}>
       {entries.map((e, i) => (
         <span className="rm-contact" key={i}>
           {icons ? e.icon : null}
@@ -137,6 +191,7 @@ function Contacts({ entries, icons }: { entries: ContactEntry[]; icons: boolean 
  * (LinkedIn, GitHub…) stay as links — they're URL-backed, managed in the panel.
  */
 function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: EditFn; icons: boolean }) {
+  const cls = contactsClass(doc)
   const b = doc.content.basics
   const { Mail, Phone, Globe, MapPin } = ContactIcons
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
@@ -150,7 +205,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
     </span>
   )
   return (
-    <div className="rm-contacts">
+    <div className={cls}>
       {field(
         <Mail />,
         <Ed
@@ -209,6 +264,19 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         <LinkButton
           href={b.url}
           label="your website"
+          text={b.urlLabel ?? ''}
+          clickable={doc.metadata.links?.clickable !== false}
+          onRemove={() =>
+            edit((c) => {
+              c.basics.url = ''
+              c.basics.urlLabel = ''
+            })
+          }
+          onText={(v) =>
+            edit((c) => {
+              c.basics.urlLabel = v
+            })
+          }
           onChange={(v) =>
             edit((c) => {
               c.basics.url = v.trim()
@@ -217,7 +285,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         />
       )}
       {(b.profiles ?? []).map((p, i) => {
-        const Icon = networkIcon(p.network)
+        const Icon = contactIcon(p.network, p.icon)
         const handle = (p.username || '').replace(/^@+/, '')
         const text =
           p.label?.trim() ||
@@ -230,7 +298,14 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         // row of the side panel's list. Rendering one regardless put a blank
         // "Label" slot behind a link icon on the canvas, which read as a third
         // mystery field sitting beside the two real ones.
-        const blank = !p.url?.trim() && !handle && !p.network?.trim() && !p.label?.trim()
+        // A contact row exists to point somewhere. With no address and no
+        // handle it points nowhere, whatever it is NAMED - and naming it was
+        // enough to keep it alive: a profile carrying only network:'Portfolio'
+        // printed the word "Portfolio" on every render and survived every
+        // refresh, with nothing on the page able to remove it (real document,
+        // 2026-08-26). The network and the label describe a link; they are not
+        // one on their own.
+        const blank = !p.url?.trim() && !handle
         return !blank && (text || edit)
           ? field(
               <Icon />,
@@ -246,6 +321,28 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
               <LinkButton
                 href={p.url}
                 label={p.network || 'this profile'}
+                text={p.label ?? ''}
+                clickable={doc.metadata.links?.clickable !== false}
+                extra={
+                  <IconPicker
+                    value={p.icon}
+                    onPick={(v) =>
+                      edit((c) => {
+                        ;(c.basics.profiles ??= [])[i].icon = v
+                      })
+                    }
+                  />
+                }
+                onRemove={() =>
+                  edit((c) => {
+                    c.basics.profiles = (c.basics.profiles ?? []).filter((_, j) => j !== i)
+                  })
+                }
+                onText={(v) =>
+                  edit((c) => {
+                    ;(c.basics.profiles ??= [])[i].label = v
+                  })
+                }
                 onChange={(v) =>
                   edit((c) => {
                     ;(c.basics.profiles ??= [])[i].url = v.trim()
@@ -363,7 +460,7 @@ function Header({
   const ContactsEl = edit ? (
     <EditableContacts doc={doc} edit={edit} icons={icons} />
   ) : (
-    <Contacts entries={entries} icons={icons} />
+    <Contacts entries={entries} icons={icons} cls={contactsClass(doc)} />
   )
 
   const nameEl = edit ? (

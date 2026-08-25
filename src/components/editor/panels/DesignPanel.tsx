@@ -44,33 +44,171 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             <button
               key={p.name}
               title={p.name}
-              onClick={() => update((md) => { md.theme.primary = p.color })}
+              onClick={() =>
+                update((md) => {
+                  md.theme.primary = p.color
+                })
+              }
               className="h-8 w-full rounded-md border border-border transition-transform hover:scale-110"
-              style={{ background: p.color, outline: m.theme.primary === p.color ? '2px solid hsl(var(--ring))' : undefined, outlineOffset: 2 }}
+              style={{
+                background: p.color,
+                outline: m.theme.primary === p.color ? '2px solid hsl(var(--ring))' : undefined,
+                outlineOffset: 2,
+              }}
             />
           ))}
         </div>
-        <ColorField label="Primary" value={m.theme.primary} onChange={(v) => update((md) => { md.theme.primary = v })} />
-        <ColorField label="Body text" value={m.theme.text} onChange={(v) => update((md) => { md.theme.text = v })} />
-        <ColorField label="Muted text" value={m.theme.muted} onChange={(v) => update((md) => { md.theme.muted = v })} />
-        <ColorField label="Background" value={m.theme.background} onChange={(v) => update((md) => { md.theme.background = v })} />
+        <ColorField
+          label="Primary"
+          value={m.theme.primary}
+          onChange={(v) =>
+            update((md) => {
+              md.theme.primary = v
+            })
+          }
+        />
+        <ColorField
+          label="Body text"
+          value={m.theme.text}
+          onChange={(v) =>
+            update((md) => {
+              md.theme.text = v
+            })
+          }
+        />
+        <ColorField
+          label="Muted text"
+          value={m.theme.muted}
+          onChange={(v) =>
+            update((md) => {
+              md.theme.muted = v
+            })
+          }
+        />
+        <ColorField
+          label="Background"
+          value={m.theme.background}
+          onChange={(v) =>
+            update((md) => {
+              md.theme.background = v
+            })
+          }
+        />
         {twoCol && (
           <>
-            <ColorField label="Sidebar" value={m.theme.sidebar} onChange={(v) => update((md) => { md.theme.sidebar = v })} />
-            <ColorField label="Sidebar text" value={m.theme.sidebarText} onChange={(v) => update((md) => { md.theme.sidebarText = v })} />
+            <ColorField
+              label="Sidebar"
+              value={m.theme.sidebar}
+              onChange={(v) =>
+                update((md) => {
+                  md.theme.sidebar = v
+                })
+              }
+            />
+            <ColorField
+              label="Sidebar text"
+              value={m.theme.sidebarText}
+              onChange={(v) =>
+                update((md) => {
+                  md.theme.sidebarText = v
+                })
+              }
+            />
           </>
         )}
       </FieldGroup>
 
       <FieldGroup title="Typography">
-        <FontSelect label="Body font" value={m.typography.fontFamily} onChange={(v) => update((md) => { md.typography.fontFamily = v })} />
-        <FontSelect label="Heading font" value={m.typography.headingFamily} onChange={(v) => update((md) => { md.typography.headingFamily = v })} allowInherit />
-        <FontSelect label="Name font" value={m.typography.nameFamily} onChange={(v) => update((md) => { md.typography.nameFamily = v })} allowInherit />
-        <Slider label="Font size" value={m.typography.fontSize} min={8} max={14} step={0.25} unit="pt" onChange={(v) => update((md) => { md.typography.fontSize = v })} />
-        <Slider label="Line height" value={m.typography.lineHeight} min={1} max={2} step={0.02} onChange={(v) => update((md) => { md.typography.lineHeight = v })} format={(v) => v.toFixed(2)} />
-        <Slider label="Letter spacing" value={m.typography.letterSpacing} min={-0.02} max={0.1} step={0.005} onChange={(v) => update((md) => { md.typography.letterSpacing = v })} format={(v) => `${v.toFixed(3)}em`} />
-        <Slider label="Name size" value={m.typography.headingScale} min={1} max={2.4} step={0.05} onChange={(v) => update((md) => { md.typography.headingScale = v })} format={(v) => `${v.toFixed(2)}×`} />
-        <Toggle label="Uppercase headings" checked={m.typography.uppercaseHeadings} onChange={(v) => update((md) => { md.typography.uppercaseHeadings = v })} />
+        <FontSelect
+          label="Body font"
+          value={m.typography.fontFamily}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.fontFamily = v
+            })
+          }
+        />
+        <FontSelect
+          label="Heading font"
+          value={m.typography.headingFamily}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.headingFamily = v
+            })
+          }
+          allowInherit
+        />
+        <FontSelect
+          label="Name font"
+          value={m.typography.nameFamily}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.nameFamily = v
+            })
+          }
+          allowInherit
+        />
+        <Slider
+          label="Font size"
+          value={m.typography.fontSize}
+          min={8}
+          max={14}
+          step={0.25}
+          unit="pt"
+          onChange={(v) =>
+            update((md) => {
+              md.typography.fontSize = v
+            })
+          }
+        />
+        <Slider
+          label="Line height"
+          value={m.typography.lineHeight}
+          min={1}
+          max={2}
+          step={0.02}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.lineHeight = v
+            })
+          }
+          format={(v) => v.toFixed(2)}
+        />
+        <Slider
+          label="Letter spacing"
+          value={m.typography.letterSpacing}
+          min={-0.02}
+          max={0.1}
+          step={0.005}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.letterSpacing = v
+            })
+          }
+          format={(v) => `${v.toFixed(3)}em`}
+        />
+        <Slider
+          label="Name size"
+          value={m.typography.headingScale}
+          min={1}
+          max={2.4}
+          step={0.05}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.headingScale = v
+            })
+          }
+          format={(v) => `${v.toFixed(2)}×`}
+        />
+        <Toggle
+          label="Uppercase headings"
+          checked={m.typography.uppercaseHeadings}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.uppercaseHeadings = v
+            })
+          }
+        />
         <div>
           <label className="label">Bullet style</label>
           <div className="grid grid-cols-4 gap-1.5">
@@ -79,7 +217,11 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                 key={val}
                 type="button"
                 title={val[0].toUpperCase() + val.slice(1)}
-                onClick={() => update((md) => { md.typography.bulletStyle = val })}
+                onClick={() =>
+                  update((md) => {
+                    md.typography.bulletStyle = val
+                  })
+                }
                 className={cn(
                   'flex h-9 items-center justify-center rounded-md border text-base leading-none transition',
                   m.typography.bulletStyle === val
@@ -103,9 +245,15 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               { value: 'text', label: 'Text' },
               { value: 'none', label: 'Off' },
             ]}
-            onChange={(v) => update((md) => { md.typography.proficiency = v })}
+            onChange={(v) =>
+              update((md) => {
+                md.typography.proficiency = v
+              })
+            }
           />
-          <p className="-mt-1 text-[11px] text-muted-foreground">How the 0–5 rating on skills &amp; languages is shown.</p>
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            How the 0–5 rating on skills &amp; languages is shown.
+          </p>
         </div>
       </FieldGroup>
 
@@ -120,18 +268,28 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   key={h.value || 'auto'}
                   type="button"
                   title={h.label}
-                  onClick={() => update((md) => { md.layout.headerStyle = (h.value || undefined) as typeof md.layout.headerStyle })}
+                  onClick={() =>
+                    update((md) => {
+                      md.layout.headerStyle = (h.value || undefined) as typeof md.layout.headerStyle
+                    })
+                  }
                   className={`flex w-[64px] flex-col items-center gap-1 rounded-lg border p-1.5 transition ${on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'}`}
                 >
                   <span className="flex h-8 w-full items-center justify-center overflow-hidden rounded-[3px] border border-border/70 bg-white p-1">
                     <HeaderMini kind={h.value} />
                   </span>
-                  <span className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>{h.label}</span>
+                  <span
+                    className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    {h.label}
+                  </span>
                 </button>
               )
             })}
           </div>
-          <p className="-mt-0 text-[11px] text-muted-foreground">How your name &amp; contacts compose — on top of any template.</p>
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            How your name &amp; contacts compose — on top of any template.
+          </p>
         </div>
         <div>
           <label className="label">Columns</label>
@@ -141,19 +299,21 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               { value: '1', label: 'Single' },
               { value: '2', label: 'Two column' },
             ]}
-            onChange={(v) => update((md) => {
-              md.layout.columns = v === '2' ? 2 : 1
-              // seed a sidebar if switching to two-column with none.
-              if (md.layout.columns === 2 && md.layout.aside.length === 0) {
-                const move = ['skills', 'languages', 'interests'].filter((k) => md.layout.main.includes(k))
-                md.layout.main = md.layout.main.filter((k) => !move.includes(k))
-                md.layout.aside = move
-              }
-              if (md.layout.columns === 1) {
-                md.layout.main = [...md.layout.main, ...md.layout.aside]
-                md.layout.aside = []
-              }
-            })}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.columns = v === '2' ? 2 : 1
+                // seed a sidebar if switching to two-column with none.
+                if (md.layout.columns === 2 && md.layout.aside.length === 0) {
+                  const move = ['skills', 'languages', 'interests'].filter((k) => md.layout.main.includes(k))
+                  md.layout.main = md.layout.main.filter((k) => !move.includes(k))
+                  md.layout.aside = move
+                }
+                if (md.layout.columns === 1) {
+                  md.layout.main = [...md.layout.main, ...md.layout.aside]
+                  md.layout.aside = []
+                }
+              })
+            }
           />
         </div>
         {twoCol && (
@@ -166,15 +326,63 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   { value: 'left', label: 'Left' },
                   { value: 'right', label: 'Right' },
                 ]}
-                onChange={(v) => update((md) => { md.layout.sidebar = v })}
+                onChange={(v) =>
+                  update((md) => {
+                    md.layout.sidebar = v
+                  })
+                }
               />
             </div>
-            <Slider label="Sidebar width" value={m.layout.sidebarWidth} min={0.24} max={0.44} step={0.01} onChange={(v) => update((md) => { md.layout.sidebarWidth = v })} format={(v) => `${Math.round(v * 100)}%`} />
+            <Slider
+              label="Sidebar width"
+              value={m.layout.sidebarWidth}
+              min={0.24}
+              max={0.44}
+              step={0.01}
+              onChange={(v) =>
+                update((md) => {
+                  md.layout.sidebarWidth = v
+                })
+              }
+              format={(v) => `${Math.round(v * 100)}%`}
+            />
           </>
         )}
-        <Slider label="Section spacing" value={m.layout.sectionGap} min={4} max={30} step={1} unit="pt" onChange={(v) => update((md) => { md.layout.sectionGap = v })} />
-        <Slider label="Item spacing" value={m.layout.itemGap} min={2} max={20} step={1} unit="pt" onChange={(v) => update((md) => { md.layout.itemGap = v })} />
-        <Toggle label="Show contact icons" checked={m.layout.icons} onChange={(v) => update((md) => { md.layout.icons = v })} />
+        <Slider
+          label="Section spacing"
+          value={m.layout.sectionGap}
+          min={4}
+          max={30}
+          step={1}
+          unit="pt"
+          onChange={(v) =>
+            update((md) => {
+              md.layout.sectionGap = v
+            })
+          }
+        />
+        <Slider
+          label="Item spacing"
+          value={m.layout.itemGap}
+          min={2}
+          max={20}
+          step={1}
+          unit="pt"
+          onChange={(v) =>
+            update((md) => {
+              md.layout.itemGap = v
+            })
+          }
+        />
+        <Toggle
+          label="Show contact icons"
+          checked={m.layout.icons}
+          onChange={(v) =>
+            update((md) => {
+              md.layout.icons = v
+            })
+          }
+        />
         <div>
           <label className="label">Section icons</label>
           <Segmented
@@ -187,10 +395,22 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               { value: 'outline', label: 'Outline' },
               { value: 'none', label: 'None' },
             ]}
-            onChange={(v) => update((md) => { md.layout.sectionIconStyle = v })}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.sectionIconStyle = v
+              })
+            }
           />
         </div>
-        <Toggle label="Show photo" checked={m.layout.showPhoto} onChange={(v) => update((md) => { md.layout.showPhoto = v })} />
+        <Toggle
+          label="Show photo"
+          checked={m.layout.showPhoto}
+          onChange={(v) =>
+            update((md) => {
+              md.layout.showPhoto = v
+            })
+          }
+        />
         {m.layout.showPhoto && (
           <>
             <div>
@@ -202,7 +422,11 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   { value: 'rounded', label: 'Rounded' },
                   { value: 'square', label: 'Square' },
                 ]}
-                onChange={(v) => update((md) => { md.layout.photoShape = v })}
+                onChange={(v) =>
+                  update((md) => {
+                    md.layout.photoShape = v
+                  })
+                }
               />
             </div>
             <div>
@@ -214,7 +438,11 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   { value: 'm', label: 'Medium' },
                   { value: 'l', label: 'Large' },
                 ]}
-                onChange={(v) => update((md) => { md.layout.photoSize = v })}
+                onChange={(v) =>
+                  update((md) => {
+                    md.layout.photoSize = v
+                  })
+                }
               />
             </div>
             <div>
@@ -226,7 +454,11 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   { value: 'center', label: 'Center' },
                   { value: 'right', label: 'Right' },
                 ]}
-                onChange={(v) => update((md) => { md.layout.photoAlign = v })}
+                onChange={(v) =>
+                  update((md) => {
+                    md.layout.photoAlign = v
+                  })
+                }
               />
             </div>
           </>
@@ -242,12 +474,38 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               { value: 'A4', label: 'A4' },
               { value: 'Letter', label: 'US Letter' },
             ]}
-            onChange={(v) => update((md) => { md.page.format = v })}
+            onChange={(v) =>
+              update((md) => {
+                md.page.format = v
+              })
+            }
           />
         </div>
-        <Slider label="Margins" value={m.page.margin} min={6} max={30} step={1} unit="mm" onChange={(v) => update((md) => { md.page.margin = v })} />
-        <Toggle label="Fit to one page" checked={m.page.autoFit} onChange={(v) => update((md) => { md.page.autoFit = v })} />
-        <p className="-mt-1 text-[11px] text-muted-foreground">Auto-shrinks type &amp; spacing so a near-full resume fits one page.</p>
+        <Slider
+          label="Margins"
+          value={m.page.margin}
+          min={6}
+          max={30}
+          step={1}
+          unit="mm"
+          onChange={(v) =>
+            update((md) => {
+              md.page.margin = v
+            })
+          }
+        />
+        <Toggle
+          label="Fit to one page"
+          checked={m.page.autoFit}
+          onChange={(v) =>
+            update((md) => {
+              md.page.autoFit = v
+            })
+          }
+        />
+        <p className="-mt-1 text-[11px] text-muted-foreground">
+          Auto-shrinks type &amp; spacing so a near-full resume fits one page.
+        </p>
       </FieldGroup>
 
       <FieldGroup title="Links">
@@ -260,7 +518,11 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               { value: 'full', label: 'Full' },
               { value: 'short', label: 'Short' },
             ]}
-            onChange={(v) => update((md) => { md.links.display = v })}
+            onChange={(v) =>
+              update((md) => {
+                md.links.display = v
+              })
+            }
           />
         </div>
         <p className="-mt-1 text-[11px] text-muted-foreground">
@@ -268,9 +530,22 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           clickable in the exported PDF whichever you pick.
         </p>
         <Toggle
+          label="Clickable in the PDF"
+          checked={m.links?.clickable !== false}
+          onChange={(v) =>
+            update((md) => {
+              md.links.clickable = v
+            })
+          }
+        />
+        <Toggle
           label="Underline links"
           checked={m.links?.underline ?? false}
-          onChange={(v) => update((md) => { md.links.underline = v })}
+          onChange={(v) =>
+            update((md) => {
+              md.links.underline = v
+            })
+          }
         />
       </FieldGroup>
     </div>

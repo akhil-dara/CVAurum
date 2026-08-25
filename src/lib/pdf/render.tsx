@@ -419,7 +419,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
 
     const pdfaConforming = applyPdfAConformance(pdfDoc, icc, `${docInfo.title}|${docInfo.created.toISOString()}`)
 
-    const ops = buildDrawList(sheet)
+    const ops = buildDrawList(sheet, { clickableLinks: doc.metadata.links?.clickable !== false })
 
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
     // Characters no embedded font can draw are DROPPED, not shown as boxes, so

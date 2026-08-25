@@ -1,74 +1,182 @@
-import { useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { usePopoverA11y } from './popoverA11y'
 
 /**
- * The link popup: a small chain button that opens a URL field in place.
+ * The link editor: a small chain button that opens a card naming the two
+ * things a link actually has.
  *
- * Display text and destination are separate concerns - the text around this
- * button is edited directly, while the address lives only in here. That is
- * the whole point: typing a friendly name over a link used to overwrite the
- * link itself, because one field held both.
+ * A link is a DISPLAY TEXT and a DESTINATION, and conflating them is the
+ * oldest bug in this area - typing a friendly name over a link used to
+ * overwrite the link itself, because one field held both. The first version
+ * of this card exposed a single unlabelled box reading "Paste or type a
+ * link", which left the author guessing whether it wanted the words on the
+ * page or the address behind them (reported 2026-08-25). Both are now
+ * labelled, and the card says plainly whether the result will be clickable.
  *
- * It started life on entry titles and now serves contact rows too, which is
- * why it lives in its own module rather than inside sections.tsx.
+ * It renders through a portal, like the entry-logo menu: the resume page
+ * scales and clips, so a card laid out inline would either disturb the line
+ * it sits on or be cut off at the sheet edge.
  */
-export function LinkButton({ href, onChange, label }: { href?: string; onChange: (v: string) => void; label: string }) {
-  const [open, setOpen] = useState(false)
+export function LinkButton({
+  href,
+  onChange,
+  label,
+  text,
+  onText,
+  onRemove,
+  extra,
+  clickable = true,
+}: {
+  href?: string
+  onChange: (v: string) => void
+  /** What this link is attached to, for screen readers. */
+  label: string
+  /** The words the reader sees, when this caller owns them. */
+  text?: string
+  /** Present only when the display text is this link's to change. */
+  onText?: (v: string) => void
+  /** What "remove" means for this caller, when clearing the address alone is
+   *  not enough. A contact ROW exists in order to be a link, so removing its
+   *  link removes the row - otherwise clearing the URL left "LinkedIn ·
+   *  alexmorgan" sitting on the page, and the link looked like it had refused
+   *  to go (reported 2026-08-25). */
+  onRemove?: () => void
+  /** Caller-supplied controls shown inside the card - the contact rows use it
+   *  for the icon picker, which belongs with the link it decorates. */
+  extra?: ReactNode
+  /** Whether links are live in the export (metadata.links.clickable). */
+  clickable?: boolean
+}) {
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null)
   const [draft, setDraft] = useState('')
+  const [draftText, setDraftText] = useState('')
+  const cardRef = useRef<HTMLDivElement>(null)
+  usePopoverA11y(at != null, () => setAt(null), cardRef)
   const stop = (e: { preventDefault: () => void }) => e.preventDefault()
-  if (!open) {
-    return (
+
+  const commit = () => {
+    const url = draft.trim()
+    // Emptying the field and applying means the same as pressing Remove -
+    // erasing the address and finding the row still there is the exact
+    // complaint this answers.
+    if (!url && onRemove) {
+      onRemove()
+      setAt(null)
+      return
+    }
+    onChange(url)
+    if (onText) onText(draftText.trim())
+    setAt(null)
+  }
+  const remove = () => {
+    if (onRemove) onRemove()
+    else onChange('')
+    setAt(null)
+  }
+
+  const field = (name: string, value: string, set: (v: string) => void, placeholder: string, autoFocus = false) => (
+    <label className="mb-1.5 block">
+      <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">{name}</span>
+      <input
+        autoFocus={autoFocus}
+        className="input h-7 w-full text-xs"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => set(e.target.value)}
+        // The text around this card is editable and handles its own keys, so
+        // the field keeps them to itself - otherwise Enter here means "new
+        // paragraph" over there.
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit()
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            setAt(null)
+          }
+        }}
+        onKeyUp={(e) => e.stopPropagation()}
+      />
+    </label>
+  )
+
+  return (
+    <>
       <button
         type="button"
         className={`rm-title-link-btn no-print${href ? ' is-linked' : ''}`}
         contentEditable={false}
         onMouseDown={stop}
-        onClick={() => {
+        onClick={(e) => {
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
           setDraft(href || '')
-          setOpen(true)
+          setDraftText(text || '')
+          setAt({
+            top: Math.min(r.bottom + 6, window.innerHeight - 210),
+            left: Math.max(8, Math.min(r.left, window.innerWidth - 268)),
+          })
         }}
         aria-label={href ? `Edit the link on ${label}` : `Add a link to ${label}`}
         title={href ? `Edit link: ${href}` : 'Add a link'}
       >
         &#128279;
       </button>
-    )
-  }
-  const commit = (v: string) => {
-    onChange(v.trim())
-    setOpen(false)
-  }
-  return (
-    <span className="rm-title-link-edit no-print" contentEditable={false} onMouseDown={stop}>
-      <input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        // The heading around this is editable and handles its own keys, so the
-        // field keeps them to itself - otherwise Enter here means "new
-        // paragraph" over there.
-        onKeyDown={(e) => {
-          e.stopPropagation()
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            commit(draft)
-          }
-          if (e.key === 'Escape') {
-            e.preventDefault()
-            setOpen(false)
-          }
-        }}
-        onKeyUp={(e) => e.stopPropagation()}
-        placeholder="Paste or type a link"
-        aria-label={`Link for ${label}`}
-      />
-      <button type="button" onMouseDown={stop} onClick={() => commit(draft)}>
-        Apply
-      </button>
-      {href ? (
-        <button type="button" onMouseDown={stop} onClick={() => commit('')} aria-label="Remove the link">
-          Remove
-        </button>
-      ) : null}
-    </span>
+      {at &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[60]" onClick={() => setAt(null)} />
+            <div
+              ref={cardRef}
+              role="dialog"
+              aria-label={`Link on ${label}`}
+              tabIndex={-1}
+              className="fixed z-[61] w-64 rounded-lg border border-border bg-surface p-2 text-foreground shadow-float"
+              style={{ top: at.top, left: at.left }}
+              onMouseDown={stop}
+            >
+              {onText ? field('Shown as', draftText, setDraftText, 'Words on the page', true) : null}
+              {extra}
+              {field('Goes to', draft, setDraft, 'https://example.com', !onText)}
+              <p className="mb-2 text-[10px] leading-snug text-muted-foreground">
+                {onText
+                  ? 'Leave "Shown as" empty to print the address itself.'
+                  : `Reads as "${text || label}" on the page - edit those words on the page itself.`}{' '}
+                {clickable
+                  ? 'Clickable in the exported PDF.'
+                  : 'Not clickable in the export - turn links on under Design.'}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground"
+                  onMouseDown={stop}
+                  onClick={commit}
+                >
+                  Apply
+                </button>
+                {/* Offered whenever removal MEANS something here, not only when a link
+                    is currently set. A contact row keeps its display text after
+                    its URL is cleared - "Portfolio" with no address behind it -
+                    and gating this on `href` left that row with no way off the
+                    page at all. */}
+                {href || onRemove ? (
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-1 text-xs text-danger hover:bg-danger/10"
+                    onMouseDown={stop}
+                    onClick={remove}
+                  >
+                    {onRemove ? 'Remove' : 'Remove link'}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+    </>
   )
 }

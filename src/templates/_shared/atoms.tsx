@@ -12,6 +12,17 @@ import {
   Dribbble,
   Youtube,
   Instagram,
+  Facebook,
+  Twitch,
+  Gitlab,
+  Send,
+  FileText,
+  BookOpen,
+  Code2,
+  Briefcase,
+  GraduationCap,
+  PenTool,
+  Music,
   type LucideIcon,
 } from 'lucide-react'
 import { sanitizeHtml } from '@/lib/sanitize'
@@ -88,16 +99,78 @@ export function Chips({ items }: { items: string[] }) {
 const NETWORK_ICONS: Record<string, LucideIcon> = {
   linkedin: Linkedin,
   github: Github,
+  gitlab: Gitlab,
   twitter: Twitter,
   x: Twitter,
   dribbble: Dribbble,
   youtube: Youtube,
   instagram: Instagram,
+  facebook: Facebook,
+  twitch: Twitch,
+  telegram: Send,
+  behance: PenTool,
+  medium: BookOpen,
+  substack: BookOpen,
+  'stack overflow': Code2,
+  stackoverflow: Code2,
+  leetcode: Code2,
+  kaggle: Code2,
+  scholar: GraduationCap,
+  'google scholar': GraduationCap,
+  orcid: GraduationCap,
+  portfolio: Briefcase,
+  website: Globe,
+  blog: FileText,
+  spotify: Music,
+  soundcloud: Music,
+  // Reachable only as an explicit choice, so every option in
+  // CONTACT_ICON_CHOICES resolves to a real icon.
+  mail: Mail,
+  phone: Phone,
+  link: LinkIcon,
 }
+
+/**
+ * The icons an author can pick from by hand.
+ *
+ * Guessing from the network NAME covers the common cases and nothing else: a
+ * network the map has never heard of got a generic chain link with no way to
+ * change it, which is what "no icon customization" meant. An explicit choice
+ * always wins over the guess.
+ */
+export const CONTACT_ICON_CHOICES: { v: string; label: string; Icon: LucideIcon }[] = [
+  { v: '', label: 'Auto', Icon: LinkIcon },
+  { v: 'linkedin', label: 'LinkedIn', Icon: Linkedin },
+  { v: 'github', label: 'GitHub', Icon: Github },
+  { v: 'gitlab', label: 'GitLab', Icon: Gitlab },
+  { v: 'x', label: 'X', Icon: Twitter },
+  { v: 'instagram', label: 'Instagram', Icon: Instagram },
+  { v: 'facebook', label: 'Facebook', Icon: Facebook },
+  { v: 'youtube', label: 'YouTube', Icon: Youtube },
+  { v: 'twitch', label: 'Twitch', Icon: Twitch },
+  { v: 'dribbble', label: 'Dribbble', Icon: Dribbble },
+  { v: 'behance', label: 'Behance', Icon: PenTool },
+  { v: 'medium', label: 'Writing', Icon: BookOpen },
+  { v: 'stackoverflow', label: 'Code', Icon: Code2 },
+  { v: 'scholar', label: 'Scholar', Icon: GraduationCap },
+  { v: 'portfolio', label: 'Portfolio', Icon: Briefcase },
+  { v: 'blog', label: 'Document', Icon: FileText },
+  { v: 'telegram', label: 'Telegram', Icon: Send },
+  { v: 'website', label: 'Website', Icon: Globe },
+  { v: 'mail', label: 'Mail', Icon: Mail },
+  { v: 'phone', label: 'Phone', Icon: Phone },
+]
 
 export function networkIcon(network?: string): LucideIcon {
   if (!network) return LinkIcon
   return NETWORK_ICONS[network.toLowerCase().trim()] ?? LinkIcon
+}
+
+/** The author's explicit choice if they made one, else the guess. */
+export function contactIcon(network?: string, override?: string): LucideIcon {
+  const key = (override || '').toLowerCase().trim()
+  if (key && NETWORK_ICONS[key]) return NETWORK_ICONS[key]
+  return networkIcon(network)
 }
 
 export const ContactIcons = { Mail, Phone, Globe, MapPin }

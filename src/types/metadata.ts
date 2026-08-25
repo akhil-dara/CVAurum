@@ -143,6 +143,13 @@ export const LayoutSchema = z.object({
   itemGap: z.number().min(2).max(24).default(5),
   /** show small icons next to contact details / section headers */
   icons: z.boolean().default(true),
+  /** How the contact line is arranged. A narrow sidebar reads far better with
+   *  one contact per row than with a wrapping run of them. */
+  contactStyle: z.enum(['inline', 'stacked']).default('inline'),
+  /** What sits between contacts on an inline row. Templates used to hard-code
+   *  this, so an author who wanted dots between their details - or nothing at
+   *  all - had to change template to get them. */
+  contactSeparator: z.enum(['none', 'dot', 'pipe', 'slash', 'dash']).default('none'),
   /**
    * How a section heading's icon is presented. The badge is one of the
    * loudest stylistic choices on the page, so it is worth a real control:
@@ -181,6 +188,10 @@ export const LinksSchema = z.object({
   display: LinkDisplaySchema.default('pretty'),
   /** Underline links so a reader can SEE which text is clickable. */
   underline: z.boolean().default(false),
+  /** Whether links are LIVE in the exported PDF. Some readers want the
+   *  address printed but not clickable - for a paper submission, or where a
+   *  live link in a PDF is unwelcome - so this is the author's call. */
+  clickable: z.boolean().default(true),
 })
 
 export const MetadataSchema = z.object({

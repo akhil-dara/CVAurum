@@ -1041,7 +1041,7 @@ function svgIconOps(svg: Element, root: HTMLElement, ops: DrawOp[]): void {
  * order matters: later ops paint on top, exactly like CSS paints backgrounds
  * before the text that sits on them.
  */
-export function buildDrawList(root: HTMLElement): DrawOp[] {
+export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boolean }): DrawOp[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
     acceptNode: (n) => {
       if (n.nodeType === Node.ELEMENT_NODE) {
@@ -1167,7 +1167,9 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
   // Link annotations are collected in their own pass: a PDF link is not ink,
   // it is a rectangle carrying a URI action, and its geometry comes from the
   // anchor's own line boxes rather than from anything the glyph walk saw.
-  ops.push(...collectLinkOps(root))
+  // The author can print the address without making it live (metadata.links
+  // .clickable) - a paper submission has no use for a clickable rectangle.
+  if (opts?.clickableLinks !== false) ops.push(...collectLinkOps(root))
   return mainColumnTextFirst(coalesceTextOps(ops))
 }
 
