@@ -1640,3 +1640,42 @@
 .mode-preview [draggable='true'].rm-kw-edit {
   opacity: 0.55;
 }
+
+/* Move this entry up or down, on the canvas. Sits beside the entry's delete
+   control and follows the same rule: visible on hover or keyboard focus, never
+   permanently, so an ordinary read of the page is not covered in controls. */
+.rm-item-move {
+  position: absolute;
+  top: 0;
+  right: 1.7em;
+  display: none;
+  gap: 0.05em;
+}
+.rm-item-move button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15em;
+  height: 1.15em;
+  padding: 0;
+  border: 0;
+  border-radius: 0.2em;
+  background: none;
+  color: var(--rm-muted);
+  cursor: pointer;
+}
+.rm-item-move button:hover {
+  color: var(--rm-primary);
+}
+.rm-item-move svg {
+  width: 0.9em;
+  height: 0.9em;
+}
+.mode-preview .rm-item:hover > .rm-item-move,
+.mode-preview .rm-item:focus-within > .rm-item-move,
+.mode-preview .rm-skill-group:hover > .rm-item-move,
+.mode-preview .rm-skill-group:focus-within > .rm-item-move,
+.mode-preview .rm-mini:hover > .rm-item-move,
+.mode-preview .rm-mini:focus-within > .rm-item-move {
+  display: inline-flex;
+}

@@ -80,6 +80,36 @@ export function pushNewItem(content: ResumeContent, sectionKey: string): void {
   if (Array.isArray(list)) list.push(item)
 }
 
+/**
+ * Move an item one place earlier or later within its own section.
+ *
+ * Shares `listFor` with the delete above so the canvas and the side panel
+ * agree about where a section's items live, custom sections included. Moving
+ * past either end does nothing rather than wrapping, because a keyboard user
+ * holding the shortcut down should stop at the end, not cycle forever.
+ */
+export function moveItem(content: ResumeContent, sectionKey: string, id: string, delta: number): void {
+  const list = listFor(content, sectionKey)
+  if (!list) return
+  const from = list.findIndex((x: AnyItem) => x.id === id)
+  if (from < 0) return
+  const to = from + delta
+  if (to < 0 || to >= list.length) return
+  const [moved] = list.splice(from, 1)
+  list.splice(to, 0, moved)
+}
+
+/** The content array a section key names, or null when it names no list. */
+function listFor(content: ResumeContent, sectionKey: string): AnyItem[] | null {
+  if (sectionKey.startsWith('custom-')) {
+    const scId = sectionKey.slice('custom-'.length)
+    return content.custom.find((c) => c.id === scId)?.items ?? null
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const list = (content as any)[sectionKey]
+  return Array.isArray(list) ? list : null
+}
+
 /** Remove an item by id from the right content array for a section key (standard or
  *  custom). Shared by the side panel's Trash2 delete and the canvas's hover trash
  *  button — one splice-by-id implementation, so both stay in sync. */

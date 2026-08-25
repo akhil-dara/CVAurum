@@ -7,11 +7,11 @@
  */
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Trash2 } from 'lucide-react'
+import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
-import { pushNewItem, removeItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
+import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn } from './Editable'
 import { CanvasDate } from './CanvasDate'
@@ -340,6 +340,42 @@ function ItemHead({ title, date, badge, logo, edit, setLogo }: { title: ReactNod
  * in lib/sections.ts — so there's one splice-by-id implementation, not two.
  * Never rendered in print/thumbnail (no `edit` there).
  */
+/**
+ * Move this entry up or down, on the canvas.
+ *
+ * Entries could be dragged in the side panel and nowhere else, so reordering
+ * meant leaving the document you were looking at. Buttons rather than drag:
+ * entries are stacked, a drag inside markup that is largely contentEditable
+ * fights text selection, and two buttons are reachable from the keyboard for
+ * free.
+ */
+function ItemMove({ edit, sectionKey, id, label }: { edit?: EditFn; sectionKey: string; id?: string; label: string }) {
+  if (!edit || !id) return null
+  const move = (delta: number) => edit((c) => moveItem(c, sectionKey, id, delta))
+  return (
+    <span className="rm-item-move no-print" contentEditable={false}>
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => move(-1)}
+        aria-label={`Move ${label} earlier`}
+        title={`Move ${label} up`}
+      >
+        <ChevronUp />
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => move(1)}
+        aria-label={`Move ${label} later`}
+        title={`Move ${label} down`}
+      >
+        <ChevronDown />
+      </button>
+    </span>
+  )
+}
+
 function ItemDelete({ edit, sectionKey, id, label }: { edit?: EditFn; sectionKey: string; id?: string; label: string }) {
   if (!edit || !id) return null
   return (
@@ -636,6 +672,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               onPruneEmpty={edit ? () => edit((c) => { c.work[i].highlights = c.work[i].highlights.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
+          <ItemMove edit={edit} sectionKey="work" id={w.id} label={ADD_LABEL.work} />
           <ItemDelete edit={edit} sectionKey="work" id={w.id} label={ADD_LABEL.work} />
         </article>
         )
@@ -680,6 +717,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             </div>
             {has(e.summary) ? <RichText html={e.summary} /> : null}
             {e.courses?.length ? <div className="rm-skill-inline"><KeywordList items={e.courses} sep=" · " /></div> : null}
+            <ItemMove edit={edit} sectionKey="education" id={e.id} label={ADD_LABEL.education} />
             <ItemDelete edit={edit} sectionKey="education" id={e.id} label={ADD_LABEL.education} />
           </article>
         )
@@ -737,6 +775,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
               />
             ) : p.keywords?.length ? <Chips items={p.keywords} /> : null
           ) : null}
+          <ItemMove edit={edit} sectionKey="projects" id={p.id} label={ADD_LABEL.projects} />
           <ItemDelete edit={edit} sectionKey="projects" id={p.id} label={ADD_LABEL.projects} />
         </article>
         )
@@ -779,6 +818,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
                 </span>
                 <Proficiency rating={s.rating} style={prof} />
               </div>
+              <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
               <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
             </div>
           )
@@ -837,6 +877,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
             ) : hasKeywords ? (
               <span className="rm-skill-inline">{stacked || !s.name ? '' : ': '}<KeywordList items={s.keywords!} sep=" · " /></span>
             ) : null}
+            <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
             <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
           </div>
         )
@@ -869,6 +910,7 @@ function Languages({ doc, edit, opts }: { doc: ResumeDocument; config: TemplateC
               {prof !== 'none' && (edit || l.fluency) ? <Ed edit={edit} value={l.fluency} apply={(c, v) => { c.languages[i].fluency = v }} className="rm-mini-sub" placeholder="Fluency" /> : null}
             </div>
           )}
+          <ItemMove edit={edit} sectionKey="languages" id={l.id} label={ADD_LABEL.languages} />
           <ItemDelete edit={edit} sectionKey="languages" id={l.id} label={ADD_LABEL.languages} />
         </div>
         )
@@ -889,6 +931,7 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
             {edit || cert.date ? <span className="rm-item-date">{singleDate(edit, true, cert.date, (c, v) => { c.certificates[i].date = v })}</span> : null}
           </div>
           {edit || cert.issuer ? <Ed edit={edit} value={cert.issuer} apply={(c, v) => { c.certificates[i].issuer = v }} className="rm-mini-sub" placeholder="Issuer" /> : null}
+          <ItemMove edit={edit} sectionKey="certificates" id={cert.id} label={ADD_LABEL.certificates} />
           <ItemDelete edit={edit} sectionKey="certificates" id={cert.id} label={ADD_LABEL.certificates} />
         </div>
         )
@@ -910,6 +953,7 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           </div>
           {edit || a.awarder ? <Ed edit={edit} value={a.awarder} apply={(c, v) => { c.awards[i].awarder = v }} className="rm-mini-sub" placeholder="Awarder" /> : null}
           {has(a.summary) ? <RichText html={a.summary} /> : null}
+          <ItemMove edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
           <ItemDelete edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
         </div>
         )
@@ -931,6 +975,7 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           </div>
           {edit || p.publisher ? <Ed edit={edit} value={p.publisher} apply={(c, v) => { c.publications[i].publisher = v }} className="rm-mini-sub" placeholder="Publisher" /> : null}
           {has(p.summary) ? <RichText html={p.summary} /> : null}
+          <ItemMove edit={edit} sectionKey="publications" id={p.id} label={ADD_LABEL.publications} />
           <ItemDelete edit={edit} sectionKey="publications" id={p.id} label={ADD_LABEL.publications} />
         </div>
         )
@@ -971,6 +1016,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               onPruneEmpty={edit ? () => edit((c) => { c.volunteer[i].highlights = c.volunteer[i].highlights.filter((h) => htmlToText(h).trim().length > 0) }) : undefined}
             />
           ) : null}
+          <ItemMove edit={edit} sectionKey="volunteer" id={v.id} label={ADD_LABEL.volunteer} />
           <ItemDelete edit={edit} sectionKey="volunteer" id={v.id} label={ADD_LABEL.volunteer} />
         </article>
         )
@@ -999,6 +1045,7 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
               placeholder="Keyword"
             />
           ) : it.keywords?.length ? <span className="rm-skill-inline"> — <KeywordList items={it.keywords} sep=", " /></span> : null}
+          <ItemMove edit={edit} sectionKey="interests" id={it.id} label={ADD_LABEL.interests} />
           <ItemDelete edit={edit} sectionKey="interests" id={it.id} label={ADD_LABEL.interests} />
         </div>
         )
@@ -1016,6 +1063,7 @@ function References({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
           <div className="rm-mini" key={r.id} data-item-id={r.id}>
             <Ed edit={edit} as="div" value={r.name} apply={(c, v) => { c.references[i].name = v }} className="rm-mini-title" placeholder="Name" />
             {edit || r.reference ? <Ed edit={edit} as="div" value={r.reference} apply={(c, v) => { c.references[i].reference = v }} className="rm-mini-sub" placeholder="“Available on request”" /> : null}
+            <ItemMove edit={edit} sectionKey="references" id={r.id} label={ADD_LABEL.references} />
             <ItemDelete edit={edit} sectionKey="references" id={r.id} label={ADD_LABEL.references} />
           </div>
         )
