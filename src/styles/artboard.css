@@ -1724,3 +1724,19 @@
 .rm-icons.side-left.sec-side .rm-body:not(.rm-single) > .rm-col-main {
   padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
+
+/* An entry whose TITLE carries a link (rm-title-link, deliberately not
+   rm-item-link - that name already belongs to the project's visible URL line
+   below the title, and reusing it restyled that line by accident). The title
+   keeps the heading's own colour and weight: a resume where every linked role
+   turns blue reads as a web page. The link is invisible until the author turns
+   underlines on, or until the reader hovers it on screen; it is clickable in
+   the export either way. */
+.rm-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+.mode-preview .rm-title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

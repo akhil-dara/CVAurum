@@ -312,7 +312,23 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
   )
 }
 
-function ItemHead({ title, date, badge, logo, edit, setLogo }: { title: ReactNode; date?: ReactNode; badge?: string; logo?: string; edit?: EditFn; setLogo?: Apply }) {
+function ItemHead({
+  title,
+  date,
+  badge,
+  logo,
+  edit,
+  setLogo,
+  href,
+}: {
+  title: ReactNode
+  date?: ReactNode
+  badge?: string
+  logo?: string
+  edit?: EditFn
+  setLogo?: Apply
+  href?: string
+}) {
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
   const logoOk = logo && /^(data:image\/|blob:)/i.test(logo) ? logo : undefined
@@ -327,7 +343,20 @@ function ItemHead({ title, date, badge, logo, edit, setLogo }: { title: ReactNod
           {badge}
         </span>
       ) : null}
-      <div className="rm-item-title">{title}</div>
+      {/* An entry with a link makes its own TITLE the link, so the author gets
+          a hyperlink whose display text is whatever they wrote - rather than a
+          bare URL printed underneath it. The exporter turns any anchor into a
+          clickable region, so this is live in the PDF too. On the canvas the
+          click is swallowed: the title is being edited, not followed. */}
+      <div className="rm-item-title">
+        {href ? (
+          <a className="rm-title-link" href={href} onClick={edit ? (e) => e.preventDefault() : undefined}>
+            {title}
+          </a>
+        ) : (
+          title
+        )}
+      </div>
       {date ? <div className="rm-item-date">{date}</div> : null}
     </div>
   )
@@ -688,6 +717,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
         <article className={`rm-item rm-keep${markClass(w.logo, entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`} key={w.id} data-item-id={w.id}>
           <ItemHead
             badge={entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined}
+            href={safeHref(w.url)}
             logo={w.logo}
             edit={edit}
             setLogo={(c, v) => { c.work[i].logo = v }}
@@ -733,6 +763,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
           <article className={`rm-item rm-keep${markClass(e.logo, entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`} key={e.id} data-item-id={e.id}>
             <ItemHead
             badge={entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined}
+            href={safeHref(e.url)}
             logo={e.logo}
             edit={edit}
             setLogo={(c, v) => { c.education[i].logo = v }}
@@ -777,7 +808,8 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
         <article className={`rm-item rm-keep${markClass(undefined, opts?.showBadges ? badgeLetter(p.name) : undefined)}`} key={p.id} data-item-id={p.id}>
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
-            title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : safeHref(p.url) ? <a href={safeHref(p.url)}>{p.name}</a> : p.name}
+            href={safeHref(p.url)}
+            title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : p.name}
             date={rangeDate(edit, show(opts?.showDates), p.startDate, p.endDate, (c, v) => { c.projects[i].startDate = v }, (c, v) => { c.projects[i].endDate = v })}
           />
           {edit ? (
@@ -1049,6 +1081,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         <article className={`rm-item rm-keep${markClass(v.logo, entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined)}`} key={v.id} data-item-id={v.id}>
           <ItemHead
             badge={entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined}
+            href={safeHref(v.url)}
             logo={v.logo}
             edit={edit}
             setLogo={(c, val) => { c.volunteer[i].logo = val }}

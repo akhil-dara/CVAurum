@@ -182,7 +182,10 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                 }}
                 title={m.title}
               >
-                {m.icon} <span className="hidden sm:inline">{m.label}</span>
+                {/* Icon-only until lg. The three labels cost about 150px, which
+                    is what pushed Export off the right edge at tablet width;
+                    each button keeps its `title`, so it still has a name. */}
+                {m.icon} <span className="hidden lg:inline">{m.label}</span>
               </button>
             )
           })}
@@ -210,9 +213,12 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           <Command className="h-[18px] w-[18px]" />
         </button>
 
-        {/* re-open the guided tour — in the ⋮ menu below md */}
+        {/* re-open the guided tour — in the ⋮ menu below lg. It used to appear
+            at md, which is exactly the width where the bar overflowed: the
+            extra controls arrived before there was room for them, and Export
+            was pushed 94px off the right edge. */}
         <button
-          className="btn-icon hidden md:flex"
+          className="btn-icon hidden lg:flex"
           onClick={() => window.dispatchEvent(new Event('cvaurum:open-tour'))}
           title="Show the quick tour"
           aria-label="Show the quick tour"
@@ -251,12 +257,16 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           )}
         </div>
 
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <ThemeToggle />
         </div>
 
-        {/* phone overflow menu — everything that left the bar stays reachable */}
-        <div className="relative md:hidden">
+        {/* overflow menu — everything that left the bar stays reachable */}
+        {/* Stays until the controls it holds reappear at lg - otherwise there
+            is a band between md and lg where they are hidden from the bar AND
+            from the menu, so the tour and the theme toggle cannot be reached
+            at all. */}
+        <div className="relative lg:hidden">
           <button className="btn-icon" onClick={() => setMoreOpen((o) => !o)} title="More" aria-label="More options" aria-expanded={moreOpen}>
             <MoreVertical className="h-[18px] w-[18px]" />
           </button>
