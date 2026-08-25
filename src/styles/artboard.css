@@ -1300,7 +1300,29 @@
 /* The x is its own small ghost-icon circle (same recipe as the item trash
    button) so it reads as an integrated control, not a bare glyph floating
    after the word — with a real hover target instead of just opacity. */
+/* Out of the chip's flow, like the grip at the other end.
+ *
+ * In flow it added about 1.2em to EVERY edit chip while the printed chip has
+ * no such button, so the canvas wrapped the list far harder than the export
+ * did: measured on a real resume, the skills section stood 26% taller on the
+ * canvas, 66 chip rows against the export's 53. That is a WYSIWYG break in
+ * its own right, and it is also why a page cut could not be matched to an
+ * element - the two trees genuinely disagreed about where everything sat.
+ *
+ * Shown when the chip is pointed at or tapped, so at rest the canvas chip is
+ * exactly the printed chip. */
 .mode-preview .rm-chip-del {
+  position: absolute;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+  right: 0.02em;
+  opacity: 0;
+  pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
   cursor: pointer;
   border: none;
   background: transparent;
@@ -1315,15 +1337,16 @@
   justify-content: center;
   border-radius: 9999px;
   padding: 0;
-  opacity: 0.55;
   transition:
     opacity 0.12s ease,
     color 0.12s ease,
     background 0.12s ease;
 }
 .mode-preview .rm-chip-edit:hover .rm-chip-del,
+.mode-preview .rm-chip-edit:focus-within .rm-chip-del,
 .rm-chip-del:focus-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .rm-chip-del:hover,
 .rm-chip-del:focus-visible {
@@ -1783,17 +1806,27 @@
   align-items: center;
   justify-content: center;
   position: absolute;
-  /* INSIDE its own chip. Floating it above put a first-row chip's handle on
-     the group heading above it, and hanging it beside the chip made it read as
-     the neighbour's. Inside, the only thing it can ever cover is the first few
-     pixels of the chip it belongs to, and only while that chip is pointed at. */
+  /* INSIDE its own chip, and visible at rest like the remove cross opposite
+     it. Floating it above put a first-row chip's handle on the group heading;
+     hanging it beside the chip made it read as the neighbour's and let one
+     chip's cross swallow it. Out of flow, so being visible costs no width and
+     the canvas chip stays the size of the printed one. */
   left: 0.04em;
   top: 50%;
   bottom: auto;
   transform: translateY(-50%);
   z-index: 6;
+  /* Shown for the chip being pointed at or tapped, not for all of them at
+     once. Visible at rest, these sit ON the first and last letters - a chip
+     reading "T-SQL" came out bracketed by handles and "Advanced Excel" lost
+     its final letter. There is no room to put them anywhere else without
+     widening the chip, and widening it is what broke WYSIWYG in the first
+     place. So they wait until they are wanted, and :focus-within brings them
+     up on a tap where hover never fires. */
   opacity: 0;
   pointer-events: none;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 22%, transparent);
   min-width: 1.15em;
   height: 1.15em;
   margin: 0;
