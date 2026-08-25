@@ -1679,3 +1679,14 @@
 .mode-preview .rm-mini:focus-within > .rm-item-move {
   display: inline-flex;
 }
+
+/* Gutter-label headings (sec-side) hide the main column's badge outright
+   (.sec-side .rm-col-main .rm-section-icon { display: none }), so nothing
+   hangs in that column's margin and there is nothing to reserve room for.
+   Without this the reservation still applied, and picking a badge style moved
+   the main column on a template where the badge is never drawn - measured on
+   atelier, 33.7px of padding with a badge against 19.7px without, changing the
+   gap between every gutter label and its body. */
+.rm-icons.side-left.sec-side .rm-body:not(.rm-single) > .rm-col-main {
+  padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+}
