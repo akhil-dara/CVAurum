@@ -275,7 +275,29 @@ function SectionCard({
         </button>
       </div>
       {open && (
-        <div className="border-t border-border p-3">
+        <div className="space-y-3 border-t border-border p-3">
+          {/* A heading's own address. It could be set from the canvas gear
+              alone, and a phone never shows the canvas in edit mode, so this
+              was one more thing a reader on a phone simply could not do. */}
+          <div>
+            <label className="label" htmlFor={`sec-url-${sectionKey}`}>
+              Heading link
+            </label>
+            <input
+              id={`sec-url-${sectionKey}`}
+              className="input w-full"
+              value={doc.metadata.layout.sectionSettings?.[sectionKey]?.url ?? ''}
+              placeholder="Leave empty for no link"
+              onChange={(e) => {
+                const v = e.target.value
+                useResumeStore.getState().updateMetadata((m) => {
+                  const bag = ((m.layout.sectionSettings ??= {})[sectionKey] ??= {}) as Record<string, unknown>
+                  if (v.trim()) bag.url = v
+                  else delete bag.url
+                })
+              }}
+            />
+          </div>
           <SectionItemsEditor doc={doc} sectionKey={sectionKey} />
         </div>
       )}
