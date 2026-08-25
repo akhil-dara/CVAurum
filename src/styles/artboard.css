@@ -1934,6 +1934,8 @@
 .mode-preview .rm-item-head:focus-within .rm-title-link-btn,
 .mode-preview .rm-contact:hover .rm-title-link-btn,
 .mode-preview .rm-contact:focus-within .rm-title-link-btn,
+.mode-preview .rm-section-title:hover .rm-title-link-btn,
+.mode-preview .rm-section-title:focus-within .rm-title-link-btn,
 .rm-title-link-btn:focus-visible {
   opacity: 1;
 }

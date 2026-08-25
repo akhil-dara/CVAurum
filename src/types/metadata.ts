@@ -134,6 +134,10 @@ export const LayoutSchema = z.object({
         chipSize: z.enum(['s', 'm', 'l']).optional(),
         /** entry logo / letter-badge shape */
         badgeShape: z.enum(['rounded', 'circle', 'square']).optional(),
+        /** An address for the section's own HEADING. Every other line on the
+         *  page could be linked; a heading could not, so a portfolio or a
+         *  publication list had nowhere to point. */
+        url: z.string().optional(),
       })
     )
     .default({}),

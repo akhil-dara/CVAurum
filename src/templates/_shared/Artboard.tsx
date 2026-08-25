@@ -629,7 +629,41 @@ function Section({
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
       <h2 className="rm-section-title">
         {showIcon ? <SectionIcon sectionKey={sectionKey} /> : null}
-        <span className="rm-section-title-text">{sectionLabel(sectionKey, doc)}</span>
+        {/* A linked heading points where the author says, and the exporter
+            turns any anchor into a clickable region, so it is live in the PDF
+            exactly like a linked entry title. */}
+        {safeHref(ss?.url) ? (
+          <a
+            className="rm-title-link"
+            href={safeHref(ss?.url)}
+            onClick={edit ? (e) => e.preventDefault() : undefined}
+          >
+            <span className="rm-section-title-text">{sectionLabel(sectionKey, doc)}</span>
+          </a>
+        ) : (
+          <span className="rm-section-title-text">{sectionLabel(sectionKey, doc)}</span>
+        )}
+        {editMeta ? (
+          <LinkButton
+            href={ss?.url}
+            label={sectionLabel(sectionKey, doc)}
+            text={sectionLabel(sectionKey, doc)}
+            clickable={doc.metadata.links?.clickable !== false}
+            onChange={(v) =>
+              editMeta((m) => {
+                const bag = ((m.layout.sectionSettings ??= {})[sectionKey] ??= {}) as Record<string, unknown>
+                if (v) bag.url = v
+                else delete bag.url
+              })
+            }
+            onRemove={() =>
+              editMeta((m) => {
+                const bag = ((m.layout.sectionSettings ??= {})[sectionKey] ??= {}) as Record<string, unknown>
+                delete bag.url
+              })
+            }
+          />
+        ) : null}
       </h2>
       <div className="rm-section-body">
         <SectionBody sectionKey={sectionKey} doc={doc} config={config} edit={edit} editMeta={editMeta} />
