@@ -169,6 +169,10 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  /* Anchors the link button, which hangs outside this row so that showing it
+     cannot widen a row that WRAPS - a wrapped row that grows under the pointer
+     is exactly what made the skills list shake. */
+  position: relative;
 }
 .rm-contact svg {
   width: 1em;
@@ -1895,9 +1899,25 @@
 
 /* Set or change an entry title's link from the canvas. Same visibility rule as
    the other canvas affordances - hover or keyboard focus, never permanently. */
+/* Present at all times, quiet until wanted - never display:none.
+ *
+ * Hidden outright it could not be reached on a touch screen at all, since
+ * hover is the only thing that revealed it; and revealing it ADDED its width
+ * to the row, which is the same growth-on-hover that made the skills list
+ * shake. Out of flow it costs nothing to show, and :focus-within means a tap
+ * brings it up and keeps it there. */
 .rm-title-link-btn {
-  display: none;
-  margin-left: 0.3em;
+  /* In the row's own flow and ALWAYS there, merely quiet.
+     Hanging it outside instead put it on top of the entry's date, where the
+     click went to the date rather than the button; and hiding it outright
+     could not be reached on a touch screen at all. Always present means
+     showing it costs no layout, so nothing shifts under the pointer - the
+     export never renders this button, so the printed line is unchanged. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
+  margin-left: 0.25em;
   padding: 0;
   border: 0;
   background: none;
@@ -1911,8 +1931,11 @@
   color: var(--rm-primary);
 }
 .mode-preview .rm-item-head:hover .rm-title-link-btn,
-.mode-preview .rm-item-head:focus-within .rm-title-link-btn {
-  display: inline;
+.mode-preview .rm-item-head:focus-within .rm-title-link-btn,
+.mode-preview .rm-contact:hover .rm-title-link-btn,
+.mode-preview .rm-contact:focus-within .rm-title-link-btn,
+.rm-title-link-btn:focus-visible {
+  opacity: 1;
 }
 /* Contact rows get the same affordance. Until now a profile's address could
    only be reached from the side panel, where three inputs sharing one line had
