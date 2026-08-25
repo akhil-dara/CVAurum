@@ -1740,3 +1740,54 @@
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
+
+/* Set or change an entry title's link from the canvas. Same visibility rule as
+   the other canvas affordances - hover or keyboard focus, never permanently. */
+.rm-title-link-btn {
+  display: none;
+  margin-left: 0.3em;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rm-muted);
+  cursor: pointer;
+  font-size: 0.8em;
+  line-height: 1;
+  vertical-align: baseline;
+}
+.rm-title-link-btn.is-linked {
+  color: var(--rm-primary);
+}
+.mode-preview .rm-item-head:hover .rm-title-link-btn,
+.mode-preview .rm-item-head:focus-within .rm-title-link-btn {
+  display: inline;
+}
+.rm-title-link-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-left: 0.35em;
+  vertical-align: middle;
+}
+.rm-title-link-edit input {
+  width: 15em;
+  max-width: 40vw;
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--rm-primary);
+  border-radius: 0.25em;
+  background: var(--rm-bg);
+  color: var(--rm-text);
+  font-size: 0.8em;
+  font-weight: 400;
+  outline: none;
+}
+.rm-title-link-edit button {
+  padding: 0.1em 0.4em;
+  border: 0;
+  border-radius: 0.25em;
+  background: color-mix(in srgb, var(--rm-primary) 14%, transparent);
+  color: var(--rm-primary);
+  cursor: pointer;
+  font-size: 0.78em;
+  font-weight: 500;
+}

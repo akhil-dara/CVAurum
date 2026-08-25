@@ -312,6 +312,76 @@ function CanvasLogo({ logo, badge, onChange }: { logo?: string; badge?: string; 
   )
 }
 
+/**
+ * Set, change or clear the link on an entry's title, from the canvas.
+ *
+ * The address could only be typed into the side panel, so linking a heading
+ * meant leaving the document to do it and coming back to see the result. This
+ * puts the same field on the heading itself, revealed like every other canvas
+ * affordance - on hover or keyboard focus, never permanently.
+ */
+function TitleLinkButton({ href, onChange, label }: { href?: string; onChange: (v: string) => void; label: string }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const stop = (e: { preventDefault: () => void }) => e.preventDefault()
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className={`rm-title-link-btn no-print${href ? ' is-linked' : ''}`}
+        contentEditable={false}
+        onMouseDown={stop}
+        onClick={() => {
+          setDraft(href || '')
+          setOpen(true)
+        }}
+        aria-label={href ? `Edit the link on ${label}` : `Add a link to ${label}`}
+        title={href ? `Edit link: ${href}` : 'Add a link'}
+      >
+        &#128279;
+      </button>
+    )
+  }
+  const commit = (v: string) => {
+    onChange(v.trim())
+    setOpen(false)
+  }
+  return (
+    <span className="rm-title-link-edit no-print" contentEditable={false} onMouseDown={stop}>
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        // The heading around this is editable and handles its own keys, so the
+        // field keeps them to itself - otherwise Enter here means "new
+        // paragraph" over there.
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit(draft)
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            setOpen(false)
+          }
+        }}
+        onKeyUp={(e) => e.stopPropagation()}
+        placeholder="Paste or type a link"
+        aria-label={`Link for ${label}`}
+      />
+      <button type="button" onMouseDown={stop} onClick={() => commit(draft)}>
+        Apply
+      </button>
+      {href ? (
+        <button type="button" onMouseDown={stop} onClick={() => commit('')} aria-label="Remove the link">
+          Remove
+        </button>
+      ) : null}
+    </span>
+  )
+}
+
 function ItemHead({
   title,
   date,
@@ -320,6 +390,8 @@ function ItemHead({
   edit,
   setLogo,
   href,
+  setHref,
+  linkLabel,
 }: {
   title: ReactNode
   date?: ReactNode
@@ -328,6 +400,9 @@ function ItemHead({
   edit?: EditFn
   setLogo?: Apply
   href?: string
+  /** Present when this entry's link can be edited from the canvas. */
+  setHref?: (c: ResumeDocument['content'], v: string) => void
+  linkLabel?: string
 }) {
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
@@ -356,6 +431,9 @@ function ItemHead({
         ) : (
           title
         )}
+        {edit && setHref ? (
+          <TitleLinkButton href={href} label={linkLabel || 'this entry'} onChange={(v) => edit((c) => setHref(c, v))} />
+        ) : null}
       </div>
       {date ? <div className="rm-item-date">{date}</div> : null}
     </div>
@@ -718,6 +796,8 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
           <ItemHead
             badge={entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined}
             href={safeHref(w.url)}
+            setHref={(c, val) => { c.work[i].url = val }}
+            linkLabel={w.position || w.name}
             logo={w.logo}
             edit={edit}
             setLogo={(c, v) => { c.work[i].logo = v }}
@@ -764,6 +844,8 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             <ItemHead
             badge={entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined}
             href={safeHref(e.url)}
+            setHref={(c, val) => { c.education[i].url = val }}
+            linkLabel={e.institution || e.area}
             logo={e.logo}
             edit={edit}
             setLogo={(c, v) => { c.education[i].logo = v }}
@@ -809,6 +891,8 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
           <ItemHead
             badge={opts?.showBadges ? badgeLetter(p.name) : undefined}
             href={safeHref(p.url)}
+            setHref={(c, val) => { c.projects[i].url = val }}
+            linkLabel={p.name}
             title={edit ? <Ed edit={edit} value={p.name} apply={(c, v) => { c.projects[i].name = v }} placeholder="Project name" /> : p.name}
             date={rangeDate(edit, show(opts?.showDates), p.startDate, p.endDate, (c, v) => { c.projects[i].startDate = v }, (c, v) => { c.projects[i].endDate = v })}
           />
@@ -1082,6 +1166,8 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
           <ItemHead
             badge={entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined}
             href={safeHref(v.url)}
+            setHref={(c, val) => { c.volunteer[i].url = val }}
+            linkLabel={v.organization || v.position}
             logo={v.logo}
             edit={edit}
             setLogo={(c, val) => { c.volunteer[i].logo = val }}
