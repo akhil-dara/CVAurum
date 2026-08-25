@@ -101,6 +101,12 @@ type Tier = 'section-gap' | 'entry-gap' | 'line'
  *  ... else lowest entry-gap ... else lowest line/atomic gap"). */
 const TIER_PREFERENCE: Tier[] = ['section-gap', 'entry-gap', 'line']
 
+/** Fraction of a line's box, at each end, that is leading rather than glyphs -
+ *  so a cut landing there passes through empty space. */
+const SEAM_TOLERANCE_RATIO = 0.3
+/** ...and an absolute ceiling, so a tall block never donates a big cut zone. */
+const SEAM_MAX_TOLERANCE_PX = 4
+
 interface Candidate {
   y: number
   tier: Tier
@@ -681,14 +687,31 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
   // two-column resume that left the whole document with four legal breaks and
   // a first page 13% full. Splitting the run at such a y gives
   // `buildCandidates` two adjacent blocks and therefore a break between them.
-  const SEAM_EPS = 0.5
+  // How far into a line's BOX a cut may fall and still be passing through
+  // leading rather than glyphs. A line's box is its glyphs plus the leading
+  // above and below them, so its outermost sliver carries no ink at all.
+  //
+  // Without this allowance a tight line-height has no legal cut anywhere: at
+  // line-height 1.1 consecutive lines OVERLAP by a pixel or two, so every y in
+  // a column is strictly inside some line's box and a boundary is never clear.
+  // Measured on a real resume, the whole document offered two cuts, one of
+  // them past the paper, and the first page ended 60% full.
+  //
+  // Capped in absolute px as well as proportionally so a very tall block - a
+  // photo, a heading at display size - never donates a big cut zone.
+  const seamTolerance = (sp: { topPx: number; bottomPx: number }) =>
+    Math.min(SEAM_MAX_TOLERANCE_PX, (sp.bottomPx - sp.topPx) * SEAM_TOLERANCE_RATIO)
   const seams = new Set<number>()
   for (const y of breakpoints) {
     if (y <= globalTop || y >= globalBottom) continue
     const insideSomething = spansByColumn.some((spans, ci) => {
       const range = colRanges[ci]
       if (y < range.top || y > range.bottom) return false // this column has no opinion here
-      return spans.some((sp) => sp.ink && y > sp.topPx + SEAM_EPS && y < sp.bottomPx - SEAM_EPS)
+      return spans.some((sp) => {
+        if (!sp.ink) return false
+        const tol = seamTolerance(sp)
+        return y > sp.topPx + tol && y < sp.bottomPx - tol
+      })
     })
     if (!insideSomething) seams.add(y)
   }

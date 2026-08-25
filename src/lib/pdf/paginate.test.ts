@@ -824,3 +824,36 @@ describe('combineColumns — a shared line boundary is a legal break', () => {
     expect(out[0].keepWithNext).toBe(true)
   })
 })
+
+describe('combineColumns — a tight line-height still leaves somewhere to break', () => {
+  // At a tight line-height consecutive lines OVERLAP: the leading is smaller
+  // than the font's natural line box, so line N+1's box starts a pixel or two
+  // above line N's ends. Requiring a y strictly outside every box then leaves
+  // NO legal cut anywhere in the document - measured on a real resume at
+  // line-height 1.1, the whole thing offered two cuts, one of them past the
+  // paper, and the first page ended 60% full.
+  //
+  // A line's box is its glyphs plus the leading around them, so a cut landing
+  // in that outermost sliver passes through empty space.
+  it('breaks where two overlapping lines meet, because the overlap is leading', () => {
+    const overlapping = (): PageBlock[] => [
+      { kind: 'line', topPx: 0, bottomPx: 16 },
+      { kind: 'line', topPx: 14, bottomPx: 30 },
+      { kind: 'line', topPx: 28, bottomPx: 44 },
+    ]
+    const out = combineColumns([overlapping(), overlapping()]).filter((b) => b.kind === 'line')
+    expect(out.length).toBeGreaterThan(1)
+  })
+
+  it('still refuses a cut through the middle of a line', () => {
+    const main: PageBlock[] = [{ kind: 'line', topPx: 0, bottomPx: 60 }]
+    const aside: PageBlock[] = [
+      { kind: 'line', topPx: 0, bottomPx: 30 },
+      { kind: 'line', topPx: 30, bottomPx: 60 },
+    ]
+    // The aside's boundary at 30 sits deep inside the main column's single
+    // 60px block, well past its leading, so it is not a legal cut.
+    const out = combineColumns([main, aside]).filter((b) => b.kind === 'line')
+    expect(out.map((b) => `${b.topPx}-${b.bottomPx}`)).toEqual(['0-60'])
+  })
+})
