@@ -1781,6 +1781,13 @@
 .mode-preview .rm-item-head:focus-within .rm-title-link-btn {
   display: inline;
 }
+/* Contact rows get the same affordance. Until now a profile's address could
+   only be reached from the side panel, where three inputs sharing one line had
+   squeezed the URL down to about three visible characters. */
+.mode-preview .rm-contact:hover .rm-title-link-btn,
+.mode-preview .rm-contact:focus-within .rm-title-link-btn {
+  display: inline;
+}
 .rm-title-link-edit {
   display: inline-flex;
   align-items: center;

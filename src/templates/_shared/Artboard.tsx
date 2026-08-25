@@ -14,6 +14,7 @@ import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { ContactIcons, networkIcon, prettyUrl, cleanEmail } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
+import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
@@ -108,7 +109,9 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
     // than a bare, ambiguous username.
     const handle = (p.username || '').replace(/^@+/, '')
     const text =
-      p.label?.trim() || prettyUrl(p.url, disp) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
+      p.label?.trim() ||
+      prettyUrl(p.url, disp) ||
+      (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
     if (text) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
   }
   return out
@@ -137,16 +140,41 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   const b = doc.content.basics
   const { Mail, Phone, Globe, MapPin } = ContactIcons
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
-  const field = (icon: ReactNode, el: ReactNode, key: string) => (
+  // `after` is where the link popup goes: the row's text is what the reader
+  // sees, and the chain button beside it owns the address.
+  const field = (icon: ReactNode, el: ReactNode, key: string, after?: ReactNode) => (
     <span className="rm-contact" key={key}>
       {icons ? icon : null}
       {el}
+      {after}
     </span>
   )
   return (
     <div className="rm-contacts">
-      {field(<Mail />, <Ed edit={edit} value={cleanEmail(b.email)} apply={(c, v) => { c.basics.email = v.trim() }} placeholder="email@example.com" />, 'em')}
-      {field(<Phone />, <Ed edit={edit} value={b.phone} apply={(c, v) => { c.basics.phone = v.trim() }} placeholder="+1 555 000 0000" />, 'ph')}
+      {field(
+        <Mail />,
+        <Ed
+          edit={edit}
+          value={cleanEmail(b.email)}
+          apply={(c, v) => {
+            c.basics.email = v.trim()
+          }}
+          placeholder="email@example.com"
+        />,
+        'em'
+      )}
+      {field(
+        <Phone />,
+        <Ed
+          edit={edit}
+          value={b.phone}
+          apply={(c, v) => {
+            c.basics.phone = v.trim()
+          }}
+          placeholder="+1 555 000 0000"
+        />,
+        'ph'
+      )}
       {field(
         <MapPin />,
         <Ed
@@ -158,7 +186,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           }}
           placeholder="City, Region"
         />,
-        'loc',
+        'loc'
       )}
       {/* Typing here sets the LABEL, not the address. It used to write
           straight to basics.url, so giving a link custom text destroyed the
@@ -177,13 +205,24 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           }}
           placeholder="yoursite.com"
         />,
-        'url'
+        'url',
+        <LinkButton
+          href={b.url}
+          label="your website"
+          onChange={(v) =>
+            edit((c) => {
+              c.basics.url = v.trim()
+            })
+          }
+        />
       )}
       {(b.profiles ?? []).map((p, i) => {
         const Icon = networkIcon(p.network)
         const handle = (p.username || '').replace(/^@+/, '')
         const text =
-          p.label?.trim() || prettyUrl(p.url) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
+          p.label?.trim() ||
+          prettyUrl(p.url) ||
+          (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
         // Editable on the canvas at last - a profile link used to be a plain
         // span, so its text could only be changed by editing the URL in the
         // side panel, which is not the same thing at all.
@@ -198,10 +237,21 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
               <Ed
                 edit={edit}
                 value={text}
-                apply={(c, v) => { (c.basics.profiles ??= [])[i].label = v.trim() }}
+                apply={(c, v) => {
+                  ;(c.basics.profiles ??= [])[i].label = v.trim()
+                }}
                 placeholder="Label"
               />,
-              `p${i}`
+              `p${i}`,
+              <LinkButton
+                href={p.url}
+                label={p.network || 'this profile'}
+                onChange={(v) =>
+                  edit((c) => {
+                    ;(c.basics.profiles ??= [])[i].url = v.trim()
+                  })
+                }
+              />
             )
           : null
       })}
@@ -288,7 +338,17 @@ function HeaderVisual({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaE
   return doc.metadata.layout.monogram ? <Monogram doc={doc} editMeta={editMeta} /> : null
 }
 
-function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
+function Header({
+  doc,
+  config,
+  edit,
+  editMeta,
+}: {
+  doc: ResumeDocument
+  config: TemplateConfig
+  edit?: EditFn
+  editMeta?: MetaEditFn
+}) {
   const b = doc.content.basics
   const icons = doc.metadata.layout.icons
   const entries = buildContacts(doc)
@@ -300,15 +360,37 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
   const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} editMeta={editMeta} />
   // On-canvas gear to recompose the header (edit mode only).
   const Gear = editMeta ? <HeaderGear doc={doc} editMeta={editMeta} /> : null
-  const ContactsEl = edit ? <EditableContacts doc={doc} edit={edit} icons={icons} /> : <Contacts entries={entries} icons={icons}/>
+  const ContactsEl = edit ? (
+    <EditableContacts doc={doc} edit={edit} icons={icons} />
+  ) : (
+    <Contacts entries={entries} icons={icons} />
+  )
 
   const nameEl = edit ? (
-    <Ed edit={edit} as="h1" className="rm-name" value={b.name} apply={(c, v) => { c.basics.name = v }} placeholder="Your Name" />
+    <Ed
+      edit={edit}
+      as="h1"
+      className="rm-name"
+      value={b.name}
+      apply={(c, v) => {
+        c.basics.name = v
+      }}
+      placeholder="Your Name"
+    />
   ) : (
     <h1 className="rm-name">{name}</h1>
   )
   const headlineEl = edit ? (
-    <Ed edit={edit} as="div" className="rm-headline" value={b.label ?? ''} apply={(c, v) => { c.basics.label = v }} placeholder="Headline — e.g. Senior Software Engineer" />
+    <Ed
+      edit={edit}
+      as="div"
+      className="rm-headline"
+      value={b.label ?? ''}
+      apply={(c, v) => {
+        c.basics.label = v
+      }}
+      placeholder="Headline — e.g. Senior Software Engineer"
+    />
   ) : b.label ? (
     <div className="rm-headline">{b.label}</div>
   ) : null
@@ -356,9 +438,7 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
           {HeaderPhoto}
           {NameBlock}
         </div>
-        <div className="rm-header-aside">
-          {ContactsEl}
-        </div>
+        <div className="rm-header-aside">{ContactsEl}</div>
       </header>
     )
   }
@@ -370,7 +450,18 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
         {HeaderPhoto}
         <div className="rm-header-main">
           <h1 className="rm-name">
-            {edit ? <Ed edit={edit} value={b.name} apply={(c, v) => { c.basics.name = v }} placeholder="Your Name" /> : name}
+            {edit ? (
+              <Ed
+                edit={edit}
+                value={b.name}
+                apply={(c, v) => {
+                  c.basics.name = v
+                }}
+                placeholder="Your Name"
+              />
+            ) : (
+              name
+            )}
             {b.label ? <span className="rm-headline-inline"> — {b.label}</span> : null}
           </h1>
           {ContactsEl}
@@ -382,7 +473,7 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
   // standard
   return (
     <header className="rm-header rm-header-standard">
-        {Gear}
+      {Gear}
       <div className="rm-header-main">
         {nameEl}
         {headlineEl}
@@ -393,7 +484,19 @@ function Header({ doc, config, edit, editMeta }: { doc: ResumeDocument; config: 
   )
 }
 
-function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: string; doc: ResumeDocument; config: TemplateConfig; edit?: EditFn; editMeta?: MetaEditFn }) {
+function Section({
+  sectionKey,
+  doc,
+  config,
+  edit,
+  editMeta,
+}: {
+  sectionKey: string
+  doc: ResumeDocument
+  config: TemplateConfig
+  edit?: EditFn
+  editMeta?: MetaEditFn
+}) {
   // 'none' drops the badge here rather than hiding it in CSS, so it leaves
   // the accessibility tree and the tagged PDF too, not just the page.
   const showIcon =
@@ -444,7 +547,15 @@ function Section({ sectionKey, doc, config, edit, editMeta }: { sectionKey: stri
  * actually look in the chosen template. Icons are forced inline here (the
  * hanging-icon gutter only exists inside a full page), so nothing clips.
  */
-export function SectionPreview({ doc, config, sectionKey }: { doc: ResumeDocument; config: TemplateConfig; sectionKey: string }) {
+export function SectionPreview({
+  doc,
+  config,
+  sectionKey,
+}: {
+  doc: ResumeDocument
+  config: TemplateConfig
+  sectionKey: string
+}) {
   const vars = useVars(doc, 1)
   const t = doc.metadata.typography
   ensureFont(t.fontFamily)
@@ -471,7 +582,23 @@ export function SectionPreview({ doc, config, sectionKey }: { doc: ResumeDocumen
   )
 }
 
-export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitScale = 1, onAddSection }: { doc: ResumeDocument; config: TemplateConfig; mode?: RenderMode; edit?: EditFn; editMeta?: MetaEditFn; fitScale?: number; onAddSection?: () => void }) {
+export function Artboard({
+  doc,
+  config,
+  mode = 'preview',
+  edit,
+  editMeta,
+  fitScale = 1,
+  onAddSection,
+}: {
+  doc: ResumeDocument
+  config: TemplateConfig
+  mode?: RenderMode
+  edit?: EditFn
+  editMeta?: MetaEditFn
+  fitScale?: number
+  onAddSection?: () => void
+}) {
   const rootRef = useRef<HTMLDivElement>(null)
   const vars = useVars(doc, fitScale)
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
@@ -509,7 +636,11 @@ export function Artboard({ doc, config, mode = 'preview', edit, editMeta, fitSca
 
   const AsideCol = twoCol ? (
     <aside className="rm-col-aside">
-      {doc.metadata.layout.showPhoto && doc.content.basics.image ? <Photo doc={doc} editMeta={editMeta} /> : doc.metadata.layout.monogram ? <Monogram doc={doc} editMeta={editMeta} /> : null}
+      {doc.metadata.layout.showPhoto && doc.content.basics.image ? (
+        <Photo doc={doc} editMeta={editMeta} />
+      ) : doc.metadata.layout.monogram ? (
+        <Monogram doc={doc} editMeta={editMeta} />
+      ) : null}
       {aside.map((key) => (
         <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
       ))}

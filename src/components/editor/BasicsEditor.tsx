@@ -32,36 +32,115 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
     <div className="space-y-3">
       <div className="flex items-start gap-3">
         <div>
-          <PhotoPicker image={b.image} onPick={onPhoto} onClear={() => update((c) => { c.basics.image = '' })} />
+          <PhotoPicker
+            image={b.image}
+            onPick={onPhoto}
+            onClear={() =>
+              update((c) => {
+                c.basics.image = ''
+              })
+            }
+          />
           {b.image && (
             <button
               type="button"
               className="mt-1 block w-full text-center text-[10px] text-muted-foreground hover:text-foreground"
-              onClick={() => updateDoc((d) => { d.metadata.layout.showPhoto = !d.metadata.layout.showPhoto })}
+              onClick={() =>
+                updateDoc((d) => {
+                  d.metadata.layout.showPhoto = !d.metadata.layout.showPhoto
+                })
+              }
             >
               {showPhoto ? 'Hide on resume' : 'Show on resume'}
             </button>
           )}
         </div>
         <div className="flex-1 space-y-3">
-          <TextField label="Full name" value={b.name} onChange={(v) => update((c) => { c.basics.name = v })} placeholder="Alex Morgan" />
-          <TextField label="Headline / title" value={b.label ?? ''} onChange={(v) => update((c) => { c.basics.label = v })} placeholder="Senior Software Engineer" />
+          <TextField
+            label="Full name"
+            value={b.name}
+            onChange={(v) =>
+              update((c) => {
+                c.basics.name = v
+              })
+            }
+            placeholder="Alex Morgan"
+          />
+          <TextField
+            label="Headline / title"
+            value={b.label ?? ''}
+            onChange={(v) =>
+              update((c) => {
+                c.basics.label = v
+              })
+            }
+            placeholder="Senior Software Engineer"
+          />
         </div>
       </div>
 
       <Row>
-        <TextField label="Email" value={b.email ?? ''} onChange={(v) => update((c) => { c.basics.email = v })} placeholder="you@email.com" />
-        <TextField label="Phone" value={b.phone ?? ''} onChange={(v) => update((c) => { c.basics.phone = v })} placeholder="(555) 123-4567" />
+        <TextField
+          label="Email"
+          value={b.email ?? ''}
+          onChange={(v) =>
+            update((c) => {
+              c.basics.email = v
+            })
+          }
+          placeholder="you@email.com"
+        />
+        <TextField
+          label="Phone"
+          value={b.phone ?? ''}
+          onChange={(v) =>
+            update((c) => {
+              c.basics.phone = v
+            })
+          }
+          placeholder="(555) 123-4567"
+        />
       </Row>
       <Row>
-        <TextField label="City" value={b.location?.city ?? ''} onChange={(v) => update((c) => { c.basics.location = { ...c.basics.location, city: v } })} placeholder="San Francisco" />
-        <TextField label="Region / State" value={b.location?.region ?? ''} onChange={(v) => update((c) => { c.basics.location = { ...c.basics.location, region: v } })} placeholder="CA" />
+        <TextField
+          label="City"
+          value={b.location?.city ?? ''}
+          onChange={(v) =>
+            update((c) => {
+              c.basics.location = { ...c.basics.location, city: v }
+            })
+          }
+          placeholder="San Francisco"
+        />
+        <TextField
+          label="Region / State"
+          value={b.location?.region ?? ''}
+          onChange={(v) =>
+            update((c) => {
+              c.basics.location = { ...c.basics.location, region: v }
+            })
+          }
+          placeholder="CA"
+        />
       </Row>
-      <TextField label="Website" value={b.url ?? ''} onChange={(v) => update((c) => { c.basics.url = v })} placeholder="https://yoursite.com" />
+      <TextField
+        label="Website"
+        value={b.url ?? ''}
+        onChange={(v) =>
+          update((c) => {
+            c.basics.url = v
+          })
+        }
+        placeholder="https://yoursite.com"
+      />
       <TextField
         label="Website shown as"
         value={b.urlLabel ?? ''}
-        onChange={(v) => update((c) => { c.basics.urlLabel = v })}
+        onChange={(v) =>
+          update((c) => {
+            c.basics.urlLabel = v
+          })
+        }
         placeholder="Leave empty to show the address"
       />
 
@@ -108,7 +187,23 @@ function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: (f?: 
   )
 }
 
-const COMMON_NETWORKS = ['LinkedIn', 'GitHub', 'Portfolio', 'Twitter', 'X', 'Dribbble', 'Behance', 'Medium', 'Dev.to', 'Stack Overflow', 'GitLab', 'YouTube', 'Instagram', 'Google Scholar', 'ORCID']
+const COMMON_NETWORKS = [
+  'LinkedIn',
+  'GitHub',
+  'Portfolio',
+  'Twitter',
+  'X',
+  'Dribbble',
+  'Behance',
+  'Medium',
+  'Dev.to',
+  'Stack Overflow',
+  'GitLab',
+  'YouTube',
+  'Instagram',
+  'Google Scholar',
+  'ORCID',
+]
 
 function Profiles({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateContent)
@@ -122,19 +217,53 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
       </datalist>
       <div className="space-y-2">
         {profiles.map((p, i) => (
-          <div key={p.id ?? i} className="flex items-center gap-2">
+          <div key={p.id ?? i} className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <input
+                className="input w-28"
+                list="rm-networks"
+                value={p.network}
+                placeholder="LinkedIn"
+                title="Pick a network or type your own"
+                onChange={(e) =>
+                  update((c) => {
+                    c.basics.profiles![i].network = e.target.value
+                  })
+                }
+              />
+              <input
+                className="input min-w-0 flex-1"
+                value={p.label ?? ''}
+                placeholder="Shown as (optional)"
+                title="Text shown instead of the address - leave empty to show the address"
+                onChange={(e) =>
+                  update((c) => {
+                    c.basics.profiles![i].label = e.target.value
+                  })
+                }
+              />
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded text-muted-foreground/60 hover:bg-danger/10 hover:text-danger"
+                onClick={() =>
+                  update((c) => {
+                    c.basics.profiles = profiles.filter((_, j) => j !== i)
+                  })
+                }
+                aria-label="Remove profile"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+            {/* The ADDRESS gets a line to itself. It is far the longest value
+                here, and sharing a row with the other two left it about three
+                characters wide - unreadable, and reported as such. The two
+                SHORT values pair off above it instead. */}
             <input
-              className="input w-28"
-              list="rm-networks"
-              value={p.network}
-              placeholder="LinkedIn"
-              title="Pick a network or type your own"
-              onChange={(e) => update((c) => { c.basics.profiles![i].network = e.target.value })}
-            />
-            <input
-              className="input flex-1"
+              className="input w-full"
               value={p.url || p.username}
-              placeholder="URL or @username"
+              placeholder="https://linkedin.com/in/yourname"
+              title="Where the link points"
               onChange={(e) =>
                 update((c) => {
                   const val = e.target.value
@@ -143,30 +272,16 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 })
               }
             />
-            {/* What the reader SEES, kept apart from where the link goes.
-                Without it the displayed text was always derived from the
-                address, so showing "Portfolio" instead was impossible. */}
-            <input
-              className="input w-28"
-              value={p.label ?? ''}
-              placeholder="Shown as"
-              title="Text shown instead of the address - leave empty to show the address"
-              onChange={(e) => update((c) => { c.basics.profiles![i].label = e.target.value })}
-            />
-            <button
-              type="button"
-              className="flex h-8 w-8 items-center justify-center rounded text-muted-foreground/60 hover:bg-danger/10 hover:text-danger"
-              onClick={() => update((c) => { c.basics.profiles = profiles.filter((_, j) => j !== i) })}
-              aria-label="Remove profile"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
           </div>
         ))}
         <button
           type="button"
           className="btn-ghost btn-sm text-primary hover:bg-primary/10"
-          onClick={() => update((c) => { c.basics.profiles = [...profiles, { id: uid(), network: '', username: '', url: '' }] })}
+          onClick={() =>
+            update((c) => {
+              c.basics.profiles = [...profiles, { id: uid(), network: '', username: '', url: '' }]
+            })
+          }
         >
           <Plus className="h-4 w-4" /> Add profile
         </button>
