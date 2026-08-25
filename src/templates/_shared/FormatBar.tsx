@@ -103,9 +103,39 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
     onCommit()
   }
 
+  /**
+   * Pull the selection in off any whitespace at its ends.
+   *
+   * Selecting a word by double-click takes the space after it too, and a link
+   * that swallows its trailing space underlines a gap and makes the next word
+   * hard to reach - reported from a real resume, where "from " was linked
+   * including the space.
+   */
+  const trimSelection = () => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return
+    const r = sel.getRangeAt(0)
+    const startText = r.startContainer as Text
+    while (
+      startText.nodeType === Node.TEXT_NODE &&
+      r.startOffset < startText.length &&
+      /\s/.test(startText.data[r.startOffset])
+    ) {
+      r.setStart(startText, r.startOffset + 1)
+    }
+    const endText = r.endContainer as Text
+    while (endText.nodeType === Node.TEXT_NODE && r.endOffset > 0 && /\s/.test(endText.data[r.endOffset - 1])) {
+      r.setEnd(endText, r.endOffset - 1)
+    }
+  }
+
   const applyLink = () => {
     const url = linkTarget(href)
+    // execCommand acts on the FOCUSED editable, and focusing the URL box took
+    // focus away from it - without this the command lands nowhere.
+    host?.focus()
     restore()
+    trimSelection()
     // An unusable URL removes the link rather than writing a broken one.
     if (url) document.execCommand('createLink', false, url)
     else document.execCommand('unlink')
@@ -138,9 +168,24 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
             value={href}
             onChange={(e) => setHref(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') applyLink()
-              if (e.key === 'Escape') { setLinking(false); setHref('') }
+              // This box is a PORTAL, and React bubbles events through the
+              // component tree rather than the DOM one - so every key pressed
+              // here also reached the editable that owns the bar. Enter there
+              // means "new paragraph": it deleted the selected text and split
+              // the paragraph in two, and no link was ever made.
+              e.stopPropagation()
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                applyLink()
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setLinking(false)
+                setHref('')
+              }
             }}
+            onKeyUp={(e) => e.stopPropagation()}
+            onInput={(e) => e.stopPropagation()}
             placeholder="Paste or type a link"
             aria-label="Link address"
             className="h-7 w-56 rounded border border-border bg-surface-muted px-2 text-xs text-foreground outline-none focus:border-primary"
