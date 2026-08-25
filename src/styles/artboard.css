@@ -176,6 +176,22 @@
   flex: none;
   opacity: 0.8;
 }
+/* One contact per row. A sidebar is too narrow for a wrapping run of them,
+   and templates offered no way to say so. */
+.rm-contacts.rm-contacts-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28em;
+}
+/* A visible separator between inline contacts, drawn BEFORE every contact but
+   the first. Using ::before on the following item (rather than ::after on the
+   preceding one) keeps a separator from ever dangling at the end of a wrapped
+   row. Stacked rows never take one. */
+.rm-contacts.rm-contacts-sep:not(.rm-contacts-stacked) .rm-contact + .rm-contact::before {
+  content: var(--rm-contact-sep, '·');
+  margin-right: 0.5em;
+  opacity: 0.5;
+}
 .rm-photo {
   flex: none;
   display: block;
@@ -326,6 +342,15 @@
   gap: 0.45em;
   z-index: 6;
 }
+/* The "Page k / N" chip sits in the top-right corner of every page, and a
+   section that OPENS a page puts this whole controls row in that exact corner
+   - the two drew on top of each other, the pill hiding the page number. Only a
+   page-starting section is affected, so only it steps aside; every other
+   section keeps the corner it has always had. */
+.mode-preview .rm-section[data-page-start] > .rm-section-controls {
+  right: 5.4em;
+}
+
 /* Narrow aside columns: the controls row floats well above its OWN heading
    (see the -2.3em rule above) to clear the heading text, which puts it right
    at the boundary of the section-gap above it. On a short section-gap that
@@ -390,7 +415,6 @@
   cursor: grabbing;
 }
 .rm-section-hide:disabled {
-  pointer-events: none;
 }
 .mode-preview .rm-section-hide:disabled,
 .mode-preview .rm-section:hover .rm-section-hide:disabled {
@@ -1213,10 +1237,18 @@
   font-size: 0.95em;
   cursor: pointer;
   opacity: 0;
+  /* Hidden means untouchable. Opacity alone leaves a control fully
+     hit-testable, so this invisible pill lay over a skill chip's remove cross
+     and stole its hover - the two traded hover back and forth and the UI
+     shook under the cursor. Safe here because a PARENT hover reveals it: a
+     control whose own :hover is what reveals it must never do this, or it can
+     never be hovered at all (that is what made the Style pill unclickable). */
+  pointer-events: none;
   transition: opacity 0.12s ease;
 }
 .mode-preview .rm-bullet-row:hover .rm-bullet-del {
   opacity: 1;
+  pointer-events: auto;
 }
 .mode-preview .rm-bullet-addrow {
   list-style: none;
@@ -1340,12 +1372,29 @@
   background: var(--rm-bg);
   cursor: pointer;
   opacity: 0;
+  /* Hidden means untouchable. Opacity alone leaves a control fully
+     hit-testable, so this invisible pill lay over a skill chip's remove cross
+     and stole its hover - the two traded hover back and forth and the UI
+     shook under the cursor. Safe here because a PARENT hover reveals it: a
+     control whose own :hover is what reveals it must never do this, or it can
+     never be hovered at all (that is what made the Style pill unclickable). */
+  pointer-events: none;
   transition:
     opacity 0.12s ease,
     color 0.12s ease,
     background 0.12s ease,
     border-color 0.12s ease;
   z-index: 5;
+}
+/* Hanging the pill outside the item works in the main column, where there is
+   margin to hang into. In a SIDEBAR the item is only as wide as the column, so
+   left:100% drops the control onto the main column's first entry - measured
+   against a skill group whose delete pill landed on the entry logo beside it.
+   Keep it inside the column there. */
+.mode-preview .rm-col-aside .rm-item-del {
+  left: auto;
+  right: 0.1em;
+  margin-left: 0;
 }
 .mode-preview .rm-item-del svg {
   width: 0.9em;
@@ -1356,6 +1405,7 @@
 .mode-preview .rm-skill-group:hover .rm-item-del,
 .rm-item-del:focus-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .rm-item-del:hover,
 .rm-item-del:focus-visible {
@@ -1419,7 +1469,6 @@
 .mode-preview .rm-editable:empty::before {
   content: attr(data-placeholder);
   opacity: 0.4;
-  pointer-events: none;
 }
 .mode-preview .rm-editable.rm-rich:empty::before {
   display: inline;
@@ -1692,6 +1741,16 @@
   right: 1.7em;
   display: none;
   gap: 0.05em;
+  /* These sit OVER the row they reorder, and a narrow sidebar leaves a skill
+     group's name running straight under them - unreadable, both at once. An
+     opaque backing in the local page colour lets them occlude cleanly instead
+     of blending into the text. */
+  padding: 0 0.15em;
+  border-radius: 0.3em;
+  background: var(--rm-bg);
+}
+.rm-col-aside .rm-item-move {
+  background: var(--rm-sidebar-bg);
 }
 .rm-item-move button {
   display: inline-flex;
