@@ -26,6 +26,11 @@ export const ProfileSchema = z.object({
   network: z.string().optional().default(''),
   username: z.string().optional().default(''),
   url: z.string().optional().default(''),
+  /** What the reader SEES for this link. Empty means "derive it from the URL",
+   *  which is what every profile did before: the displayed text was the
+   *  address, so wanting to show "Portfolio" instead was simply not possible,
+   *  and editing the text on the canvas overwrote the address itself. */
+  label: z.string().optional(),
 })
 
 export const BasicsSchema = z.object({
@@ -38,6 +43,8 @@ export const BasicsSchema = z.object({
   /** Rich-text (sanitized HTML) professional summary. */
   summary: z.string().optional().default(''),
   location: LocationSchema.optional().default({}),
+  /** What the reader sees for `url` - see ProfileSchema.label. */
+  urlLabel: z.string().optional(),
   profiles: z.array(ProfileSchema).optional().default([]),
 })
 

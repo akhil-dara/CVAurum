@@ -96,14 +96,19 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
   if (email) out.push({ icon: <Mail />, text: email, href: `mailto:${email}` })
   if (b.phone) out.push({ icon: <Phone />, text: b.phone, href: `tel:${b.phone.replace(/[^\d+]/g, '')}` })
   if (loc) out.push({ icon: <MapPin />, text: loc })
-  if (b.url) out.push({ icon: <Globe />, text: prettyUrl(b.url, disp), href: safeHref(b.url) })
+  // The author's own words win over anything derived from the address: a link
+  // labelled "Portfolio" is what they typed, not what the URL happens to say.
+  if (b.url || b.urlLabel) {
+    out.push({ icon: <Globe />, text: b.urlLabel?.trim() || prettyUrl(b.url, disp), href: safeHref(b.url) })
+  }
   for (const p of b.profiles ?? []) {
     const Icon = networkIcon(p.network)
     // Keep profiles legible even when the template hides icons: prefer the clean
     // URL (so LinkedIn vs GitHub is obvious), else show "Network · handle" rather
     // than a bare, ambiguous username.
     const handle = (p.username || '').replace(/^@+/, '')
-    const text = prettyUrl(p.url, disp) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
+    const text =
+      p.label?.trim() || prettyUrl(p.url, disp) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
     if (text) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
   }
   return out
@@ -155,12 +160,50 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         />,
         'loc',
       )}
-      {field(<Globe />, <Ed edit={edit} value={prettyUrl(b.url)} apply={(c, v) => { c.basics.url = v.trim() }} placeholder="yoursite.com" />, 'url')}
+      {/* Typing here sets the LABEL, not the address. It used to write
+          straight to basics.url, so giving a link custom text destroyed the
+          link - the display and the destination were the same field. */}
+      {field(
+        <Globe />,
+        <Ed
+          edit={edit}
+          value={b.urlLabel?.trim() || prettyUrl(b.url)}
+          apply={(c, v) => {
+            const next = v.trim()
+            // Still typing an address? Treat it as the address, which is what
+            // an empty document expects. Anything else is a label.
+            if (!c.basics.url || next === prettyUrl(c.basics.url)) c.basics.url = next
+            else c.basics.urlLabel = next
+          }}
+          placeholder="yoursite.com"
+        />,
+        'url'
+      )}
       {(b.profiles ?? []).map((p, i) => {
         const Icon = networkIcon(p.network)
         const handle = (p.username || '').replace(/^@+/, '')
-        const text = prettyUrl(p.url) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
-        return text ? field(<Icon />, <span>{text}</span>, `p${i}`) : null
+        const text =
+          p.label?.trim() || prettyUrl(p.url) || (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
+        // Editable on the canvas at last - a profile link used to be a plain
+        // span, so its text could only be changed by editing the URL in the
+        // side panel, which is not the same thing at all.
+        // A profile carrying nothing at all is not a contact - it is an empty
+        // row of the side panel's list. Rendering one regardless put a blank
+        // "Label" slot behind a link icon on the canvas, which read as a third
+        // mystery field sitting beside the two real ones.
+        const blank = !p.url?.trim() && !handle && !p.network?.trim() && !p.label?.trim()
+        return !blank && (text || edit)
+          ? field(
+              <Icon />,
+              <Ed
+                edit={edit}
+                value={text}
+                apply={(c, v) => { (c.basics.profiles ??= [])[i].label = v.trim() }}
+                placeholder="Label"
+              />,
+              `p${i}`
+            )
+          : null
       })}
     </div>
   )
