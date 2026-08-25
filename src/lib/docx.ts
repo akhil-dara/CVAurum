@@ -238,7 +238,9 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
           out.push(
             new Paragraph({
               spacing: { after: 24 },
-              children: [new TextRun({ text: prettyUrl(p.url), color: C.accent, size: SIZE.sub })],
+              children: [
+                new TextRun({ text: prettyUrl(p.url, doc.metadata.links?.display), color: C.accent, size: SIZE.sub }),
+              ],
             })
           )
         if (p.description) out.push(sub(p.description, C))
@@ -382,9 +384,13 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
   if (b.phone) contacts.push(b.phone)
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
   if (loc) contacts.push(loc)
-  if (b.url) contacts.push(prettyUrl(b.url))
+  // The author's display choice applies wherever a URL is SHOWN, not just in
+  // the PDF - a Word export that ignores it contradicts the document it came
+  // from.
+  const linkDisplay = doc.metadata.links?.display
+  if (b.url) contacts.push(prettyUrl(b.url, linkDisplay))
   for (const p of b.profiles ?? []) {
-    const handle = p.username || prettyUrl(p.url)
+    const handle = p.username || prettyUrl(p.url, linkDisplay)
     if (handle && p.network) contacts.push(`${p.network}: ${handle}`)
     else if (handle || p.network) contacts.push(handle || p.network)
   }

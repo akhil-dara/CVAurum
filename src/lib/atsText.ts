@@ -77,7 +77,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'projects':
       push(
         c.projects.flatMap((p) => [
-          ...entryHead(p.name, prettyUrl(p.url), formatDateRange(p.startDate, p.endDate)),
+          ...entryHead(p.name, prettyUrl(p.url, doc.metadata.links?.display), formatDateRange(p.startDate, p.endDate)),
           ...(htmlToText(p.description) ? [htmlToText(p.description)] : []),
           ...p.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           ...(p.keywords?.length ? [p.keywords.join(', ')] : []),
@@ -170,9 +170,10 @@ export function resumeToAtsText(doc: ResumeDocument): string {
   const email = cleanEmail(b.email)
   if (email) head.push(email)
   if (b.phone) head.push(b.phone)
-  if (b.url) head.push(prettyUrl(b.url))
+  const linkDisplay = doc.metadata.links?.display
+  if (b.url) head.push(prettyUrl(b.url, linkDisplay))
   for (const p of b.profiles ?? []) {
-    const t = prettyUrl(p.url) || [p.network, p.username].filter(Boolean).join(' ')
+    const t = prettyUrl(p.url, linkDisplay) || [p.network, p.username].filter(Boolean).join(' ')
     if (t) head.push(t)
   }
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
