@@ -70,6 +70,10 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-font-name': fontStack(t.nameFamily || t.headingFamily || t.fontFamily),
       '--rm-aside-w': `${(layout.sidebarWidth * 100).toFixed(1)}%`,
       '--rm-photo-size': layout.photoSize === 's' ? '6em' : layout.photoSize === 'l' ? '9.6em' : '7.6em',
+      '--rm-photo-align':
+        layout.photoAlign === 'left' ? 'flex-start' : layout.photoAlign === 'right' ? 'flex-end' : 'center',
+      '--rm-photo-margin':
+        layout.photoAlign === 'left' ? '0 auto 0 0' : layout.photoAlign === 'right' ? '0 0 0 auto' : '0 auto',
       '--rm-bullet-type': BULLET_TYPE[t.bulletStyle] ?? 'disc',
     } as CSSProperties
   }, [theme, t, layout, page, fitScale])

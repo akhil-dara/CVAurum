@@ -217,6 +217,18 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                 onChange={(v) => update((md) => { md.layout.photoSize = v })}
               />
             </div>
+            <div>
+              <label className="label">Photo position</label>
+              <Segmented
+                value={m.layout.photoAlign}
+                options={[
+                  { value: 'left', label: 'Left' },
+                  { value: 'center', label: 'Center' },
+                  { value: 'right', label: 'Right' },
+                ]}
+                onChange={(v) => update((md) => { md.layout.photoAlign = v })}
+              />
+            </div>
           </>
         )}
       </FieldGroup>

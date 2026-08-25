@@ -178,11 +178,22 @@
 }
 .rm-photo {
   flex: none;
+  display: block;
   width: var(--rm-photo-size, 7.6em);
   height: var(--rm-photo-size, 7.6em);
   object-fit: cover;
   object-position: center;
   background: color-mix(in srgb, var(--rm-muted) 18%, #e5e7eb);
+  /* Placement is the author's choice, and it needs room beneath it. The photo
+     used to sit hard against the column's left edge with the first heading
+     tight underneath, which reads as a mistake rather than a decision. */
+  margin: var(--rm-photo-margin, 0 auto);
+  margin-bottom: var(--rm-photo-gap, 1em);
+}
+/* The photo's own margins are carried by its wrapper when one is present -
+   see .rm-visual-wrap below, which is the single place that box is defined. */
+.rm-visual-wrap .rm-photo {
+  margin: 0;
 }
 .rm-photo.circle {
   border-radius: 9999px;
@@ -416,8 +427,16 @@
 
 /* on-canvas photo/monogram hide control (edit mode only) */
 .rm-visual-wrap {
+  /* relative: the hide button positions against this box.
+     block + fit-content + auto margins: an INLINE-flex box ignores auto
+     margins, so the photo stayed pinned to the column's left edge whatever
+     the author chose. This is the only definition of this box - an earlier
+     attempt added a second rule above and lost to this one on `display`. */
   position: relative;
-  display: inline-flex;
+  display: block;
+  width: fit-content;
+  margin: var(--rm-photo-margin, 0 auto);
+  margin-bottom: var(--rm-photo-gap, 1em);
 }
 .rm-visual-hide {
   position: absolute;

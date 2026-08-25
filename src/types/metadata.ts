@@ -159,6 +159,10 @@ export const LayoutSchema = z.object({
   photoShape: z.enum(['circle', 'rounded', 'square', 'diamond']).default('circle'),
   /** photo size */
   photoSize: z.enum(['s', 'm', 'l']).default('m'),
+  /** Where the photo sits across its column. Centred by default: a sidebar
+   *  portrait pinned to the left edge with the heading tight underneath reads
+   *  as a mistake rather than a choice (2026-08-25 report). */
+  photoAlign: z.enum(['left', 'center', 'right']).default('center'),
 })
 
 /**
