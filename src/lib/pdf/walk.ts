@@ -1799,12 +1799,25 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
  * never across entries or sections (those are joined by explicit
  * `'entry-gap'`/`'section-gap'` blocks afterward, which this never touches).
  */
-function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
+export function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
   const EPS = 0.5
   const out: PageBlock[] = []
   for (const b of blocks) {
     const prev = out[out.length - 1]
-    if (prev && prev.kind === 'line' && b.kind === 'line' && b.topPx <= prev.bottomPx + EPS) {
+    // Sharing a line means the two boxes genuinely OVERLAP. Stacked lines
+    // TOUCH - a wrapped line's top is the previous line's bottom - and
+    // treating that as sharing a line merged whole paragraphs into one
+    // indivisible block. A cut needs every column clear at the same y, so one
+    // column's merged paragraph then deleted every break the OTHER column
+    // offered for its whole height: measured on a real two-column resume, the
+    // sidebar's skill groups became single blocks up to 194px, the document
+    // had 4 legal breaks in total, and page one ended 14% full with the break
+    // falling right after the header.
+    //
+    // The comparison keeps its EPS tolerance, on the other side of the
+    // boundary, so sub-pixel rounding between stacked lines still does not
+    // read as an overlap.
+    if (prev && prev.kind === 'line' && b.kind === 'line' && b.topPx < prev.bottomPx - EPS) {
       out[out.length - 1] = {
         kind: 'line',
         topPx: Math.min(prev.topPx, b.topPx),
