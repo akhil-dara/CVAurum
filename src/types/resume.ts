@@ -47,6 +47,10 @@ export const BasicsSchema = z.object({
   location: LocationSchema.optional().default({}),
   /** What the reader sees for `url` - see ProfileSchema.label. */
   urlLabel: z.string().optional(),
+  /** An explicit icon for the website link. Profiles could already choose one
+   *  and this row could not, so the first link on the page was the only one
+   *  stuck with the globe. */
+  urlIcon: z.string().optional(),
   profiles: z.array(ProfileSchema).optional().default([]),
 })
 

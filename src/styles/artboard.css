@@ -1686,9 +1686,16 @@
 .rm-inline-edit .rm-kw-edit {
   position: relative;
 }
+/* INSIDE its own keyword, mirroring the grip at the other end.
+   At left:100% it sat just beyond its keyword's right edge - which is exactly
+   where the NEXT keyword's grip lives - so one keyword's remove button covered
+   the neighbour's drag handle and took its clicks. Measured: the grip came
+   back BLOCKED by .rm-kw-x. Both handles now stay within the word they
+   belong to. */
 .rm-inline-edit .rm-kw-x {
   position: absolute;
-  left: 100%;
+  left: auto;
+  right: 0.02em;
   top: 50%;
   bottom: auto;
   transform: translateY(-50%);

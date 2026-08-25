@@ -105,7 +105,8 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
   // The author's own words win over anything derived from the address: a link
   // labelled "Portfolio" is what they typed, not what the URL happens to say.
   if (b.url || b.urlLabel) {
-    out.push({ icon: <Globe />, text: b.urlLabel?.trim() || prettyUrl(b.url, disp), href: safeHref(b.url) })
+    const UrlIcon = b.urlIcon ? contactIcon(undefined, b.urlIcon) : Globe
+    out.push({ icon: <UrlIcon />, text: b.urlLabel?.trim() || prettyUrl(b.url, disp), href: safeHref(b.url) })
   }
   for (const p of b.profiles ?? []) {
     const Icon = contactIcon(p.network, p.icon)
@@ -247,7 +248,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           straight to basics.url, so giving a link custom text destroyed the
           link - the display and the destination were the same field. */}
       {field(
-        <Globe />,
+        b.urlIcon ? (() => { const I = contactIcon(undefined, b.urlIcon); return <I /> })() : <Globe />,
         <Ed
           edit={edit}
           value={b.urlLabel?.trim() || prettyUrl(b.url)}
@@ -266,6 +267,16 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           label="your website"
           text={b.urlLabel ?? ''}
           clickable={doc.metadata.links?.clickable !== false}
+          extra={
+            <IconPicker
+              value={b.urlIcon}
+              onPick={(v) =>
+                edit((c) => {
+                  c.basics.urlIcon = v
+                })
+              }
+            />
+          }
           onRemove={() =>
             edit((c) => {
               c.basics.url = ''

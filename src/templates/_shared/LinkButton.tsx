@@ -137,9 +137,11 @@ export function LinkButton({
               style={{ top: at.top, left: at.left }}
               onMouseDown={stop}
             >
+              {/* The two text fields stay together - they are the pair the
+                  reader is comparing - and anything extra follows them. */}
               {onText ? field('Shown as', draftText, setDraftText, 'Words on the page', true) : null}
-              {extra}
               {field('Goes to', draft, setDraft, 'https://example.com', !onText)}
+              {extra}
               <p className="mb-2 text-[10px] leading-snug text-muted-foreground">
                 {onText
                   ? 'Leave "Shown as" empty to print the address itself.'
