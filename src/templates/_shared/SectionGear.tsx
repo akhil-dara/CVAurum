@@ -26,6 +26,7 @@ type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' 
 const STYLE_FIELDS = [
   'headingStyle',
   'skillsStyle',
+  'chipSize',
   'entryLayout',
   'scoreStyle',
   'bulletStyle',
@@ -52,6 +53,13 @@ const SCORE_STYLES: { label: string; value: string }[] = [
   { label: 'Inline', value: '' },
   { label: 'Right', value: 'right' },
   { label: 'Pill', value: 'pill' },
+]
+
+/** How much room a skill pill takes around its text. */
+const CHIP_SIZES: { label: string; value: string }[] = [
+  { label: 'Auto', value: '' },
+  { label: 'Compact', value: 's' },
+  { label: 'Roomy', value: 'l' },
 ]
 
 /** Skills display styles ('' = the template's own default). */
@@ -347,6 +355,7 @@ export function SectionGear({
     field:
       | 'headingStyle'
       | 'skillsStyle'
+      | 'chipSize'
       | 'entryLayout'
       | 'scoreStyle'
       | 'bulletStyle'
@@ -755,6 +764,25 @@ export function SectionGear({
                         />
                       ))}
                     </div>
+                    {/* Only the pill-shaped styles have a pill to size. */}
+                    {['chips', 'tags', ''].includes(opts.skillsStyle ?? '') && (
+                      <div className="mt-1.5">
+                        <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Pill size
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {CHIP_SIZES.map((z) => (
+                            <StyleChip
+                              key={z.value || 'auto'}
+                              label={z.label}
+                              kind={`z:${z.value}`}
+                              on={(opts.chipSize ?? '') === z.value}
+                              onClick={() => setStyle('chipSize', z.value || undefined)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </Group>
                 )}
 

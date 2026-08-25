@@ -821,13 +821,36 @@
   gap: 0.38em;
   margin-top: 0.22em;
 }
+/* Pill size is a setting, and the default is one notch tighter than it was
+   (2026-08-25 report: "this pill size more coming"). A long term now keeps any
+   bracketed aside whole, so it wraps INSIDE its pill rather than being torn
+   across lines - correct to read, but it makes that pill two lines tall, and
+   generous padding on top of that reads as bulky. */
 .rm-chip {
   background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
   color: var(--rm-primary);
   border-radius: 0.3em;
-  padding: 0.14em 0.55em;
-  font-size: calc(var(--rm-fs) * 0.9);
+  padding: var(--rm-chip-pad-y, 0.1em) var(--rm-chip-pad-x, 0.45em);
+  font-size: calc(var(--rm-fs) * var(--rm-chip-fs, 0.88));
   font-weight: 500;
+  line-height: var(--rm-chip-lh, 1.25);
+}
+.rm-section.chip-s {
+  --rm-chip-pad-y: 0.04em;
+  --rm-chip-pad-x: 0.34em;
+  --rm-chip-fs: 0.82;
+  --rm-chip-lh: 1.2;
+}
+.rm-section.chip-m {
+  --rm-chip-pad-y: 0.1em;
+  --rm-chip-pad-x: 0.45em;
+  --rm-chip-fs: 0.88;
+}
+.rm-section.chip-l {
+  --rm-chip-pad-y: 0.2em;
+  --rm-chip-pad-x: 0.7em;
+  --rm-chip-fs: 0.95;
+  --rm-chip-lh: 1.35;
 }
 
 /* level meters (skills/languages). .rm-level-fill is a <span> — a

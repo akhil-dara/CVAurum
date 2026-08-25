@@ -398,6 +398,22 @@ function ItemDelete({ edit, sectionKey, id, label }: { edit?: EditFn; sectionKey
  * each chip is editable text + an × to remove, with a "+" to add, blank chips
  * pruned when focus leaves. Without `edit` it renders plain, print-clean chips.
  */
+/** Drag payload naming the list a keyword came from, so another group can
+ *  adopt it. A plain text/plain drop stays an ordinary in-list move. */
+const KW_MIME = 'application/x-cvaurum-keyword'
+
+/**
+ * The keyword currently being dragged, shared by every list on the page.
+ *
+ * `dataTransfer` alone is not enough to carry this. Its payload is readable on
+ * DROP but not reliably on DRAGOVER, which is where a list has to decide
+ * whether to accept the drop at all - and automated drags populate it not at
+ * all, so the behaviour could not be tested. The transfer object is still
+ * filled in, because a drag that leaves the page entirely should still carry
+ * its text somewhere useful.
+ */
+let activeKeywordDrag: { listId: string; index: number; text: string } | null = null
+
 function EditableChips({
   items,
   edit,
@@ -410,6 +426,8 @@ function EditableChips({
   variant = 'chips',
   lead = '',
   onMove,
+  listId,
+  onAdopt,
 }: {
   items: string[]
   edit?: EditFn
@@ -429,6 +447,12 @@ function EditableChips({
   /** Move the keyword at `from` to `to`. Absent means this list cannot be
    *  reordered, and no affordance is shown for it. */
   onMove?: (from: number, to: number) => void
+  /** Identifies this list so a keyword can be dragged into a DIFFERENT one.
+   *  Absent means keywords stay inside their own list. */
+  listId?: string
+  /** Take the keyword `text`, which came from the list `fromId`, and put it at
+   *  `toIndex` in this one. The source list removes it itself. */
+  onAdopt?: (fromId: string, fromIndex: number, text: string, toIndex: number) => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<number | null>(null)
@@ -484,10 +508,20 @@ function EditableChips({
           onDragStart: (e: React.DragEvent) => {
             dragFrom.current = ki
             e.dataTransfer.effectAllowed = 'move'
-            e.dataTransfer.setData('text/plain', String(ki)) // Firefox needs a payload
+            // Carries which LIST the keyword came from, so another group can
+            // adopt it. Firefox also needs a payload for the drag to start.
+            e.dataTransfer.setData('text/plain', items[ki] ?? '')
+            if (listId) {
+              const payload = { listId, index: ki, text: items[ki] ?? '' }
+              activeKeywordDrag = payload
+              e.dataTransfer.setData(KW_MIME, JSON.stringify(payload))
+            }
           },
           onDragOver: (e: React.DragEvent) => {
-            if (dragFrom.current === null || dragFrom.current === ki) return
+            // A keyword from ANOTHER group is welcome even though this list did
+            // not start the drag, so the check cannot be "did I start it".
+            const foreign = !!onAdopt && !!activeKeywordDrag && activeKeywordDrag.listId !== listId
+            if (!foreign && (dragFrom.current === null || dragFrom.current === ki)) return
             e.preventDefault()
             e.dataTransfer.dropEffect = 'move'
           },
@@ -496,6 +530,13 @@ function EditableChips({
             const from = dragFrom.current
             dragFrom.current = null
             setGrabbed(null)
+            const dragged = activeKeywordDrag
+            activeKeywordDrag = null
+            if (onAdopt && dragged && dragged.listId !== listId) {
+              commitBeforeMove()
+              onAdopt(dragged.listId, dragged.index, dragged.text, ki)
+              return
+            }
             if (from !== null && from !== ki) {
               commitBeforeMove()
               onMove(from, ki)
@@ -503,6 +544,7 @@ function EditableChips({
           },
           onDragEnd: () => {
             dragFrom.current = null
+            activeKeywordDrag = null
             setGrabbed(null)
           },
           // Alt+arrows do the same without a mouse, which is the only way a
@@ -870,6 +912,20 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
                   const list = (c.skills[i].keywords ??= [])
                   const [moved] = list.splice(from, 1)
                   list.splice(to, 0, moved)
+                })}
+                listId={s.id}
+                onAdopt={(fromId, fromIndex, text, toIndex) => edit((c) => {
+                  // Take it out of the group it came from and put it in this
+                  // one. Removing by INDEX and checking the text still matches:
+                  // the index is what the drag captured, and the text is what
+                  // proves the list has not changed under it.
+                  const src = c.skills.find((g) => g.id === fromId)
+                  if (!src?.keywords) return
+                  const at = src.keywords[fromIndex] === text ? fromIndex : src.keywords.indexOf(text)
+                  if (at < 0) return
+                  src.keywords.splice(at, 1)
+                  const dest = (c.skills[i].keywords ??= [])
+                  dest.splice(Math.min(toIndex, dest.length), 0, text)
                 })}
               />
             ) : hasKeywords && chipStyle ? (
