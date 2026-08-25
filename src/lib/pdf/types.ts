@@ -253,4 +253,20 @@ export type DrawOp = DrawOpChrome &
          */
         blockId?: number
       }
+    | {
+        /**
+         * A clickable region. This paints no ink at all - the glyphs under it
+         * are drawn by ordinary `text` ops - it only tells the reader that the
+         * rectangle is a link, which in PDF is an annotation rather than page
+         * content. One op per LINE of a link, so a URL that wraps is clickable
+         * on both of its lines.
+         */
+        kind: 'link'
+        xPx: number
+        yPx: number
+        wPx: number
+        hPx: number
+        /** Already normalised and vetted by `linkTarget` - never raw input. */
+        url: string
+      }
   )

@@ -17,6 +17,8 @@ import {
   PDFNumber,
   PDFOperator,
   PDFOperatorNames,
+  PDFArray,
+  PDFString,
   rgb,
   setTextRenderingMode,
   TextRenderingMode,
@@ -1006,6 +1008,31 @@ export async function paintOps(
           // rounded and square photo boxes rather than fixing it uniformly.
           break
         }
+        case 'link': {
+          // Not ink: a PDF link is an annotation on the page, so nothing is
+          // drawn here. The glyphs under the rectangle are painted by ordinary
+          // text ops - this only makes the region clickable.
+          //
+          // Border [0,0,0] is what keeps readers from drawing their own black
+          // box around it; without it Acrobat outlines every link.
+          const x1 = pxToPt(op.xPx)
+          const y1 = flipY(pxToPt(op.yPx + op.hPx), pageHeightPt)
+          const x2 = pxToPt(op.xPx + op.wPx)
+          const y2 = flipY(pxToPt(op.yPx), pageHeightPt)
+          const ctx = page.doc.context
+          const annot = ctx.obj({
+            Type: 'Annot',
+            Subtype: 'Link',
+            Rect: [x1, y1, x2, y2],
+            Border: [0, 0, 0],
+            F: 4, // print the annotation, per the PDF spec's flag bit 3
+            A: ctx.obj({ Type: 'Action', S: 'URI', URI: PDFString.of(op.url) }),
+          })
+          const existing = page.node.get(PDFName.of('Annots'))
+          if (existing instanceof PDFArray) existing.push(ctx.register(annot))
+          else page.node.set(PDFName.of('Annots'), ctx.obj([ctx.register(annot)]))
+          break
+        }
         case 'svg': {
           // A decorative inline icon (walk.ts's svgIconOps — section-heading
           // chips, contact-row marks). `op.d` and `op.strokeWidthPx` are
@@ -1083,6 +1110,7 @@ function opBandAnchorPx(op: DrawOp): number {
     case 'roundedBorder':
     case 'image':
     case 'svg':
+    case 'link':
       return op.yPx
   }
 }
@@ -1103,6 +1131,7 @@ function translateOpY(op: DrawOp, dyPx: number): DrawOp {
     case 'roundedBorder':
     case 'image':
     case 'svg':
+    case 'link':
       return { ...op, yPx: op.yPx + dyPx }
   }
 }

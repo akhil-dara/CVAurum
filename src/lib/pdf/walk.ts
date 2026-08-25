@@ -3,6 +3,7 @@ import { roleForElement } from './tagging'
 import { mainColumnTextFirst } from './readingOrder'
 import { keepFlagsForParagraph } from './widows'
 import { coalesceTextOps } from './coalesce'
+import { collectLinkOps } from './links'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
@@ -1162,6 +1163,10 @@ export function buildDrawList(root: HTMLElement): DrawOp[] {
   // the identical array back.
   // Rejoin runs that a print-DOM span split apart, BEFORE the column
   // reorder - contiguity is a property of paint order (coalesce.ts).
+  // Link annotations are collected in their own pass: a PDF link is not ink,
+  // it is a rectangle carrying a URI action, and its geometry comes from the
+  // anchor's own line boxes rather than from anything the glyph walk saw.
+  ops.push(...collectLinkOps(root))
   return mainColumnTextFirst(coalesceTextOps(ops))
 }
 
