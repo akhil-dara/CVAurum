@@ -115,7 +115,9 @@ export const LayoutSchema = z.object({
           .enum(['underline', 'rule-after', 'bar', 'boxed', 'lead-rule', 'badge', 'strike', 'plain'])
           .optional(),
         /** how the skills section displays its keywords (skills section only) */
-        skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid']).optional(),
+        // 'stacked' puts the group name on its own line with the keyword
+        // list beneath it, rather than running the list on after the name.
+        skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid', 'stacked']).optional(),
         /** how the section's entries are laid out (overrides the template's flow) */
         entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided']).optional(),
         /** how the education score (GPA) is placed: inline (default), pushed right, or a pill */

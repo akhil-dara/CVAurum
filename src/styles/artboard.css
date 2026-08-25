@@ -1562,3 +1562,39 @@
 .focus-mode .rm-root:has(.rm-section:hover) .rm-header {
   opacity: 0.45;
 }
+
+/* Stacked skills (2026-08-25 user request: "any style customization to begin
+   skills from next line?"). The group name keeps its own line and the keyword
+   list starts beneath it, rather than running on after a colon. */
+.rm-skill-stacked .rm-skill-group-name {
+  display: block;
+}
+.rm-skill-stacked .rm-skill-inline {
+  display: block;
+  margin-top: 0.12em;
+}
+/* Inline keyword editing on the canvas. The keywords render exactly as they
+   print - running text with the same separator - and the affordances sit on
+   top rather than replacing the markup with pills, which is what made the
+   edit view disagree with the preview. */
+.rm-inline-edit .rm-kw-edit {
+  position: relative;
+}
+.rm-inline-edit .rm-kw-x {
+  display: none;
+  margin-left: 0.12em;
+  padding: 0 0.15em;
+  border: 0;
+  background: none;
+  color: var(--rm-muted);
+  cursor: pointer;
+  font-size: 0.9em;
+  line-height: 1;
+}
+.mode-preview .rm-inline-edit .rm-kw-edit:hover .rm-kw-x,
+.mode-preview .rm-inline-edit .rm-kw-edit:focus-within .rm-kw-x {
+  display: inline;
+}
+.rm-inline-edit .rm-kw-x:hover {
+  color: var(--rm-primary);
+}

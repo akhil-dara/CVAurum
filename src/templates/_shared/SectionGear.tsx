@@ -60,6 +60,7 @@ const SKILL_STYLES: { label: string; value: string }[] = [
   { label: 'Pills', value: 'chips' },
   { label: 'Tags', value: 'tags' },
   { label: 'Inline', value: 'inline' },
+  { label: 'Stacked', value: 'stacked' },
   { label: 'Grid', value: 'grid' },
 ]
 

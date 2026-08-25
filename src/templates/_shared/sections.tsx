@@ -371,6 +371,8 @@ function EditableChips({
   onPruneEmpty,
   addLabel = '+ skill',
   placeholder = 'Skill',
+  variant = 'chips',
+  lead = '',
 }: {
   items: string[]
   edit?: EditFn
@@ -380,6 +382,13 @@ function EditableChips({
   onPruneEmpty?: () => void
   addLabel?: string
   placeholder?: string
+  /** Match the style the document actually uses, so the canvas shows what the
+   *  export will show. 'inline' renders the keywords as running text with the
+   *  same separator the preview uses. */
+  variant?: 'chips' | 'inline'
+  /** Text before the first keyword in the inline variant (the ": " after a
+   *  group name), so editing does not change the punctuation. */
+  lead?: string
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<number | null>(null)
@@ -400,10 +409,51 @@ function EditableChips({
 
   if (!edit) {
     const visible = items.filter((k) => (k || '').trim().length > 0)
-    return visible.length ? <Chips items={visible} /> : null
+    if (!visible.length) return null
+    return variant === 'inline' ? (
+      <span className="rm-skill-inline">{lead}<KeywordList items={visible} sep=" · " /></span>
+    ) : (
+      <Chips items={visible} />
+    )
   }
 
   const stop = (e: { preventDefault: () => void }) => e.preventDefault()
+  if (variant === 'inline') {
+    return (
+      <span className="rm-skill-inline rm-inline-edit" ref={wrapRef as unknown as React.Ref<HTMLSpanElement>} onBlur={onWrapBlur}>
+        {lead}
+        {items.map((k, ki) => (
+          <span key={ki} className="rm-kw-edit">
+            {ki > 0 ? <span className="rm-kw-sep"> · </span> : null}
+            <Ed
+              edit={edit}
+              value={k}
+              apply={(c, v) => setItem?.(c, ki, v)}
+              placeholder={placeholder}
+              spellCheck={false}
+              onEnter={onAdd ? () => { pendingFocus.current = items.length; onAdd() } : undefined}
+            />
+            {onRemove && (
+              <button
+                type="button"
+                className="rm-kw-x no-print"
+                aria-label={`Remove ${k || placeholder}`}
+                onMouseDown={(e) => { deleting.current = true; stop(e) }}
+                onClick={() => { onRemove(ki); deleting.current = false }}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+        {onAdd && (
+          <button type="button" className="rm-add-btn no-print" onMouseDown={stop} onClick={() => { pendingFocus.current = items.length; onAdd() }}>
+            {addLabel}
+          </button>
+        )}
+      </span>
+    )
+  }
   return (
     <div className="rm-chips rm-chips-edit" ref={wrapRef} onBlur={onWrapBlur}>
       {items.map((k, ki) => (
@@ -617,7 +667,14 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
   // The user's per-section display choice wins over the template's default.
   // tags/grid reuse the chips markup (distinct keyword elements) restyled by CSS.
   const override = opts?.skillsStyle
-  const style = override ? (override === 'inline' ? 'inline' : 'chips') : config.skills
+  // 'inline' and 'stacked' both render the keyword LIST as running text; they
+  // differ only in whether that list starts after the group name or beneath
+  // it. Everything else reuses the chip markup, restyled by CSS.
+  const style = override
+    ? override === 'inline' || override === 'stacked'
+      ? override
+      : 'chips'
+    : config.skills
   const prof = (opts?.meterStyle ?? doc.metadata.typography.proficiency) as ProfStyle
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
   return (
@@ -645,6 +702,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
           )
         }
         const chipStyle = style === 'chips' || style === 'grouped-chips' || style === 'bars' || style === 'dots'
+        const stacked = style === 'stacked'
         // A group can carry BOTH a rating and keywords (the common case: user
         // sets a level in the side panel on a chip group). Meter still applies —
         // it just gets the keywords rendered below it instead of standing alone.
@@ -660,7 +718,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
           />
         ) : null
         return (
-          <div className="rm-skill-group" key={s.id} data-item-id={s.id}>
+          <div className={`rm-skill-group${stacked ? ' rm-skill-stacked' : ''}`} key={s.id} data-item-id={s.id}>
             {showMeter ? (
               <div className="rm-level">
                 {nameEl}
@@ -670,9 +728,16 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
               nameEl
             )}
             {edit ? (
-              // Always editable on the canvas — add/edit/remove skills inline,
-              // regardless of the template's display style.
+              // The canvas renders the style the document actually uses, with
+              // the editing affordances laid over it. It used to render chips
+              // whatever the style was, so an inline list looked like pills
+              // while being edited and like running text everywhere else -
+              // the editing surface disagreeing with its own output.
               <EditableChips
+                variant={chipStyle ? 'chips' : 'inline'}
+                // The colon joins the name to the list; stacked puts the
+                // list on its own line, where a leading colon reads as a typo.
+                lead={!chipStyle && s.name && !stacked ? ': ' : ''}
                 items={s.keywords ?? []}
                 edit={edit}
                 setItem={(c, ki, v) => { (c.skills[i].keywords ??= [])[ki] = v }}
@@ -683,7 +748,7 @@ function Skills({ doc, config, edit, opts }: { doc: ResumeDocument; config: Temp
             ) : hasKeywords && chipStyle ? (
               <Chips items={s.keywords!} />
             ) : hasKeywords ? (
-              <span className="rm-skill-inline">{s.name ? ': ' : ''}<KeywordList items={s.keywords!} sep=" · " /></span>
+              <span className="rm-skill-inline">{stacked || !s.name ? '' : ': '}<KeywordList items={s.keywords!} sep=" · " /></span>
             ) : null}
             <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
           </div>
