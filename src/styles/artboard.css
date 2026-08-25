@@ -882,6 +882,17 @@
   font-weight: 500;
   line-height: var(--rm-chip-lh, 1.25);
 }
+/* A pill holding a term too long for one line is already twice the height of
+   its neighbours; full padding on top of that is what made it read as an
+   oversized block. Marked by keywordFit.ts. ONLY these three properties may
+   appear here: each is invisible to the line count that decides the mark, so
+   the mark cannot flip once applied. */
+.rm-chip-wrapped {
+  padding-top: 0.015em;
+  padding-bottom: 0.015em;
+  line-height: 1.16;
+}
+
 .rm-section.chip-s {
   --rm-chip-pad-y: 0.04em;
   --rm-chip-pad-x: 0.34em;

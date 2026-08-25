@@ -85,6 +85,30 @@ export function applyKeywordFit(root: HTMLElement): void {
   for (const m of measured) {
     if (m.naturalPx <= m.availPx - 1) m.el.style.whiteSpace = 'nowrap'
   }
+  // A term too long for its column has to wrap INSIDE its pill, which is right
+  // to read but leaves that pill two lines tall beside one-line neighbours -
+  // and carrying full padding on both lines is what makes it read as an
+  // oversized block rather than one long term. It gives up the padding.
+  //
+  // Keyed on the number of LINE BOXES the text occupies, measured over the
+  // text node alone. The class below changes only vertical padding and
+  // line-height, and neither can change how many lines a run of text needs, so
+  // the answer cannot move once the class is applied. An earlier attempt keyed
+  // on the rendered HEIGHT, which the class itself changes: pill wraps, loses
+  // its padding, drops under the threshold, is unmarked, regains the padding,
+  // wraps again - every frame, and the whole page shook.
+  //
+  // The text node rather than the element: on the canvas a chip also holds a
+  // grip and a remove button, whose own rects would each count as a line.
+  for (const m of measured) {
+    if (!m.el.classList.contains('rm-chip')) continue
+    const holder = m.el.querySelector('.rm-editable') ?? m.el
+    const textNode = Array.from(holder.childNodes).find((n) => n.nodeType === 3 && (n.textContent || '').trim())
+    if (!textNode) continue
+    const range = document.createRange()
+    range.selectNodeContents(textNode)
+    m.el.classList.toggle('rm-chip-wrapped', range.getClientRects().length > 1)
+  }
   if (import.meta.env?.DEV) {
     // What was kept whole and what was conceded, with the two widths behind
     // each call, so the keyword gate can check the arithmetic rather than
