@@ -822,6 +822,32 @@ export async function paintOps(
       // run's same-line snap would target the wrong endpoint. tzPct stays
       // 100 whenever neither branch's scaling applied, so this reduces to
       // the old `xPt + embeddedWidthPt` there.
+      // Underline and strike-through are RULED, not drawn by the font, so
+      // they are painted here against the run's own true advance rather than
+      // an estimate. Offsets follow the usual typographic proportions of the
+      // em: the underline sits just below the baseline, the strike near the
+      // middle of the x-height.
+      if (run.underline || run.lineThrough) {
+        const widthPt = embeddedWidthPt * (tzPct / 100)
+        if (widthPt > 0) {
+          const thickness = Math.max(0.4, sizePt * 0.055)
+          const baseYPt = flipY(pxToPt(run.baselinePx), pageHeightPt)
+          for (const [on, dy] of [
+            [run.underline, -sizePt * 0.11],
+            [run.lineThrough, sizePt * 0.26],
+          ] as const) {
+            if (!on) continue
+            page.drawLine({
+              start: { x: xPt, y: baseYPt + dy },
+              end: { x: xPt + widthPt, y: baseYPt + dy },
+              thickness,
+              color: rgb(run.color.r / 255, run.color.g / 255, run.color.b / 255),
+              opacity: run.color.a,
+            })
+          }
+        }
+      }
+
       const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
       prevRealEnd = {
         baselinePx: run.baselinePx,

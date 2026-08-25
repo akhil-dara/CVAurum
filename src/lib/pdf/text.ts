@@ -505,6 +505,12 @@ function leadingSpaceRect(node: Text, cs: CSSStyleDeclaration): DOMRect | null {
   return rect
 }
 
+/** True when `cs` (or an ancestor it inherited from) draws `want`. */
+function decorationOf(cs: CSSStyleDeclaration, want: 'underline' | 'line-through'): boolean {
+  const line = cs.textDecorationLine || cs.textDecoration || ''
+  return line.includes(want)
+}
+
 export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   const parent = node.parentElement
   const data = node.data
@@ -550,6 +556,12 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       color,
       letterSpacingPx: cs.letterSpacing === 'normal' ? 0 : parsePx(cs.letterSpacing),
       smallCapsScale,
+      // `textDecorationLine` reports the decoration this element declares; it
+      // is inherited visually from an ancestor <u>/<s> through the box tree,
+      // so read the LINE property (which resolves that) rather than the
+      // shorthand.
+      ...(decorationOf(cs, 'underline') ? { underline: true as const } : {}),
+      ...(decorationOf(cs, 'line-through') ? { lineThrough: true as const } : {}),
       isDecorative: false,
     })
   }

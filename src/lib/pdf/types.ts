@@ -19,6 +19,15 @@ export interface TextRun {
   color: Rgba
   letterSpacingPx: number
   /**
+   * `text-decoration-line` on the run, painted as a ruled line rather than by
+   * the font. Without this, text the author underlines or strikes through on
+   * the canvas looks right on screen and loses the decoration entirely in the
+   * exported PDF - the canvas would be lying about the output, which is the
+   * one thing the editing surface must not do.
+   */
+  underline?: boolean
+  lineThrough?: boolean
+  /**
    * Synthetic small-caps size ratio for this run (`font-variant: small-caps`),
    * measured off Chromium by `smallCapsScaleFor` — 0 (or absent) means the run
    * has no small-caps treatment, which is every synthesized run and every

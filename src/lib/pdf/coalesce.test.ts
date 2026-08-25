@@ -55,3 +55,25 @@ describe('coalesceTextOps', () => {
     expect(texts(out)).toEqual(['a', 'b'])
   })
 })
+
+describe('coalesceTextOps — decoration is part of a run style', () => {
+  // Underline and strike-through are ruled by the painter, not by the font, so
+  // two runs that differ only in decoration LOOK identical to a style test that
+  // ignores it. Merging them keeps the FIRST run's flags and silently drops the
+  // rest: "Plain start <u>underlined middle</u>" exported with no underline at
+  // all, even though the DOM computed `text-decoration-line: underline`.
+  it('does not merge an underlined run into a plain neighbour', () => {
+    const out = coalesceTextOps([op('Plain start ', 0, 60), op('underlined middle', 60, 80, { underline: true })])
+    expect(texts(out)).toEqual(['Plain start ', 'underlined middle'])
+  })
+
+  it('does not merge a struck run into a plain neighbour', () => {
+    const out = coalesceTextOps([op('kept ', 0, 30), op('struck', 30, 40, { lineThrough: true })])
+    expect(texts(out)).toEqual(['kept ', 'struck'])
+  })
+
+  it('still merges two runs that share the same decoration', () => {
+    const out = coalesceTextOps([op('under', 0, 30, { underline: true }), op('lined', 30, 30, { underline: true })])
+    expect(texts(out)).toEqual(['underlined'])
+  })
+})

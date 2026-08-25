@@ -13,6 +13,7 @@
  */
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { FormatBar } from './FormatBar'
 import type { ResumeContent } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sanitizeHtml } from '@/lib/sanitize'
@@ -225,6 +226,9 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
         onKeyDown={onKeyDown}
         className={`rm-editable${rich ? ' rm-rich' : ''}${className ? ' ' + className : ''}`}
       />
+      {/* Rich fields only: a plain field stores text, so formatting applied to
+          one would be dropped on the next commit. */}
+      {rich && <FormatBar host={ref.current} onCommit={scheduleCommit} />}
       {menu &&
         createPortal(
           <div
