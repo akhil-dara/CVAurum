@@ -620,6 +620,21 @@ async function paintTrackedHeading(
       color: rgb(run.color.r, run.color.g, run.color.b),
       opacity: run.color.a,
     })
+  } catch (e) {
+    // Drawing SHAPES the run, and fontkit's Indic syllable shaper is a
+    // regenerator-transpiled state machine whose runtime is not bundled: a
+    // resume containing Devanagari or Telugu threw `regeneratorRuntime is not
+    // defined` from inside pdf-lib and took the ENTIRE export down with it, so
+    // the author got no file at all. Reproduced on the polished and creative
+    // templates - fonts routing through the simpler shaper were unaffected,
+    // which is why it only ever showed on some.
+    //
+    // One run that cannot be shaped costs that run's extractable text, not the
+    // document. Its characters have no glyphs in this font and are dropped
+    // from the output regardless, and the export already reports exactly those
+    // characters to the author (see `lastUnsupportedCharacters`), so this is
+    // not a silent loss - it is the same loss, without the crash.
+    console.warn('[pdf] could not shape a run; its text is omitted from the extractable layer', e)
   } finally {
     // Always restore normal (filled) rendering mode and 100% horizontal
     // scaling, even if drawText threw — otherwise every op after this one
@@ -655,6 +670,31 @@ async function paintTrackedHeading(
  * exercised directly in tests by just passing an array. `undefined` (the
  * default) costs a single `if` check per decorative run and nothing else.
  */
+/**
+ * `font.widthOfTextAtSize`, but a shaping failure costs one measurement rather
+ * than the whole export.
+ *
+ * Measuring runs the font's OpenType shaper, and fontkit's Indic syllable
+ * shaper is a regenerator-transpiled state machine whose runtime is not
+ * bundled - so a resume containing Devanagari or Telugu threw
+ * `regeneratorRuntime is not defined` from deep inside pdf-lib and took the
+ * entire export down with it. Reproduced on the polished and creative
+ * templates; the fonts that route through the simpler shaper were unaffected,
+ * which is why it only showed on some.
+ *
+ * The characters that trigger it have no glyphs in these fonts and are dropped
+ * from the output anyway (the export reports them - see
+ * `lastUnsupportedCharacters`), so the browser's own laid-out width for the run
+ * is both available and the right answer here.
+ */
+function safeWidthPt(font: PDFFont, text: string, sizePt: number, fallbackPt: number): number {
+  try {
+    return font.widthOfTextAtSize(text, sizePt)
+  } catch {
+    return fallbackPt
+  }
+}
+
 export async function paintOps(
   page: PDFPage,
   ops: DrawOp[],
@@ -744,7 +784,7 @@ export async function paintOps(
       // the check and is left exactly where the browser put it.
       let snappedToChain = false
       if (prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
-        const spaceWidthPt = font.widthOfTextAtSize(' ', sizePt)
+        const spaceWidthPt = safeWidthPt(font, ' ', sizePt, sizePt * 0.25)
         const chainWidthPt = prevRealEnd.endXPt - prevRealEnd.chainStartXPt
         const negAllowancePt = Math.max(spaceWidthPt, DRIFT_FRACTION * chainWidthPt)
         const gapPt = xPt - prevRealEnd.endXPt
@@ -759,7 +799,7 @@ export async function paintOps(
       // Tz ratio needs, AND exactly the "untracked width" the tracked
       // branch's OWN Tz ratio needs (see paintTrackedHeading's doc comment)
       // as the denominator against the visible tracked width.
-      const embeddedWidthPt = font.widthOfTextAtSize(run.text, sizePt)
+      const embeddedWidthPt = safeWidthPt(font, run.text, sizePt, pxToPt(run.widthPx || 0))
       let tzPct = 100
 
       // Small-caps runs take the tracked (two-layer) path even at zero
@@ -805,6 +845,13 @@ export async function paintOps(
             color: rgb(run.color.r, run.color.g, run.color.b),
             opacity: run.color.a,
           })
+        } catch (e) {
+          // The visible twin of the invisible layer above, and it shapes the
+          // run the same way - so it fails the same way on a script fontkit's
+          // transpiled shaper cannot handle. Losing this run is losing text
+          // the font has no glyphs for anyway; losing the export is losing the
+          // resume. See the note on the invisible layer for the whole story.
+          console.warn('[pdf] could not shape a run; it is omitted from the page', e)
         } finally {
           if (tzPct !== 100) {
             page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(100)]))
