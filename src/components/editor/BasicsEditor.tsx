@@ -4,6 +4,7 @@ import { useResumeStore } from '@/store/useResumeStore'
 import { uid } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
 import { TextField, Row, Labeled } from './fields/Inputs'
+import { CONTACT_ICON_CHOICES } from '@/templates/_shared/atoms'
 import { ImageCropper } from './ImageCropper'
 
 export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
@@ -133,6 +134,25 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
         }
         placeholder="https://yoursite.com"
       />
+      <div>
+        <label className="label">Website icon</label>
+        <select
+          className="input w-full"
+          value={b.urlIcon ?? ''}
+          aria-label="Website icon"
+          onChange={(e) =>
+            update((c) => {
+              c.basics.urlIcon = e.target.value
+            })
+          }
+        >
+          {CONTACT_ICON_CHOICES.map((o) => (
+            <option key={o.v || 'auto'} value={o.v}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <TextField
         label="Website shown as"
         value={b.urlLabel ?? ''}
@@ -210,6 +230,9 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
   const profiles = doc.content.basics.profiles ?? []
   return (
     <Labeled label="Profiles & links">
+      {/* The canvas has a richer icon picker, but a phone never shows the
+          canvas in edit mode - it edits through this panel - so the choice has
+          to exist here too or it does not exist for those readers at all. */}
       <datalist id="rm-networks">
         {COMMON_NETWORKS.map((n) => (
           <option key={n} value={n} />
@@ -231,6 +254,23 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                   })
                 }
               />
+              <select
+                className="input w-24 shrink-0"
+                value={p.icon ?? ''}
+                title="Icon shown beside this link"
+                aria-label="Icon"
+                onChange={(e) =>
+                  update((c) => {
+                    c.basics.profiles![i].icon = e.target.value
+                  })
+                }
+              >
+                {CONTACT_ICON_CHOICES.map((o) => (
+                  <option key={o.v || 'auto'} value={o.v}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
               <input
                 className="input min-w-0 flex-1"
                 value={p.label ?? ''}
