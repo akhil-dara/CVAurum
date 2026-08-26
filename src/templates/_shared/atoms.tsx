@@ -198,6 +198,20 @@ export function prettyUrl(url?: string, display: 'pretty' | 'full' | 'short' = '
 }
 
 /**
+ * The words a link SHOWS - the one rule every renderer must agree on.
+ *
+ * A link is a display name and a destination. The page prints the name when
+ * there is one and the tidied address otherwise; the Word file and the ATS
+ * text used to print the address either way, so a site the author had named
+ * Portfolio came out of Word as myportfolio.com/work. One document cannot
+ * read two ways, so all three now ask this.
+ */
+export function linkWords(url?: string, label?: string, display: 'pretty' | 'full' | 'short' = 'pretty'): string {
+  const named = (label || '').trim()
+  return named || prettyUrl(url, display)
+}
+
+/**
  * Normalize an email for display: decode stray percent-encoding (e.g. a pasted
  * "%7C" pipe), drop a `mailto:` prefix, and extract the address token if the
  * stored value has surrounding junk. Falls back to a trimmed, leading-symbol-

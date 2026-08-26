@@ -13,7 +13,17 @@ export function usePopoverA11y(open: boolean, onClose: () => void, panelRef: Rea
   useEffect(() => {
     if (!open) return
     restore.current = document.activeElement as HTMLElement | null
-    const t = setTimeout(() => panelRef.current?.focus(), 30)
+    const t = setTimeout(() => {
+      const panel = panelRef.current
+      if (!panel) return
+      // A panel that auto-focuses a field of its own has ALREADY put focus
+      // where the author needs it. Taking it back 30ms later meant the link
+      // card looked ready to type into and swallowed every keystroke - the
+      // caret sat in Goes to, then focus jumped to the card itself and the
+      // typing went nowhere. Only panels with nothing focused get the nudge.
+      if (panel.contains(document.activeElement)) return
+      panel.focus()
+    }, 30)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()

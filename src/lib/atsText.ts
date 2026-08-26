@@ -16,9 +16,23 @@
 import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { formatDate, formatDateRange, htmlToText } from '@/lib/utils'
-import { cleanEmail, prettyUrl } from '@/templates/_shared/atoms'
+import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
+
+/** A project's further named links, as the page prints them. */
+const namedLinks = (links?: Array<{ url?: string; label?: string }>) =>
+  (links ?? [])
+    .map((l) => linkWords(l.url, l.label, 'short'))
+    .filter(Boolean)
+    .join('  ·  ')
+
+/** A credential's meta line, ending with its short Verify word when it has one -
+ *  the page ends it that way, so the text an ATS reads should too. */
+const verified = (org?: string, url?: string, urlLabel?: string) => {
+  const word = (urlLabel || '').trim()
+  return word && url?.trim() ? [org, word].filter(Boolean).join(' | ') : org
+}
 
 function heading(label: string): string[] {
   return ['', label, '='.repeat(Math.max(6, Math.min(label.length, 28)))]
@@ -79,6 +93,10 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         c.projects.flatMap((p) => [
           ...entryHead(p.name, prettyUrl(p.url, doc.metadata.links?.display), formatDateRange(p.startDate, p.endDate)),
           ...(htmlToText(p.description) ? [htmlToText(p.description)] : []),
+          // The further named links, in the place the page prints them. They
+          // were in the PDF and nowhere else, so a reader pasting the text lost
+          // every one of them.
+          ...(namedLinks(p.links) ? [namedLinks(p.links)] : []),
           ...p.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           ...(p.keywords?.length ? [p.keywords.join(', ')] : []),
           '',
@@ -96,13 +114,20 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
       push(c.languages.filter((l) => l.language).map((l) => line(l.language, l.fluency)))
       break
     case 'certificates':
-      push(c.certificates.filter((x) => x.name).map((x) => line(x.name, x.issuer, formatDate(x.date))))
+      push(
+        c.certificates
+          .filter((x) => x.name)
+          .map((x) => line(x.name, verified(x.issuer, x.url, x.urlLabel), formatDate(x.date))),
+      )
       break
     case 'awards':
       push(
         c.awards
           .filter((a) => a.title)
-          .flatMap((a) => [line(a.title, a.awarder, formatDate(a.date)), ...(htmlToText(a.summary) ? [htmlToText(a.summary)] : [])]),
+          .flatMap((a) => [
+            line(a.title, verified(a.awarder, a.url, a.urlLabel), formatDate(a.date)),
+            ...(htmlToText(a.summary) ? [htmlToText(a.summary)] : []),
+          ]),
       )
       break
     case 'publications':
@@ -171,9 +196,12 @@ export function resumeToAtsText(doc: ResumeDocument): string {
   if (email) head.push(email)
   if (b.phone) head.push(b.phone)
   const linkDisplay = doc.metadata.links?.display
-  if (b.url) head.push(prettyUrl(b.url, linkDisplay))
+  // A named contact link reads as its name here too. The page shows Portfolio;
+  // this used to show myportfolio.com/work, so the ATS preview disagreed with
+  // the document it was previewing.
+  if (b.url) head.push(linkWords(b.url, b.urlLabel, linkDisplay))
   for (const p of b.profiles ?? []) {
-    const t = prettyUrl(p.url, linkDisplay) || [p.network, p.username].filter(Boolean).join(' ')
+    const t = linkWords(p.url, p.label, linkDisplay) || [p.network, p.username].filter(Boolean).join(' ')
     if (t) head.push(t)
   }
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')

@@ -15,6 +15,7 @@ import {
   AlignmentType,
   BorderStyle,
   Document,
+  ExternalHyperlink,
   ImageRun,
   Packer,
   Paragraph,
@@ -27,8 +28,8 @@ import {
 import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { sanitizeHtml } from '@/lib/sanitize'
-import { downloadBlob, formatDate, formatDateRange, htmlToText, resumeFilename } from '@/lib/utils'
-import { prettyUrl, cleanEmail } from '@/templates/_shared/atoms'
+import { downloadBlob, formatDate, formatDateRange, htmlToText, resumeFilename, safeHref } from '@/lib/utils'
+import { prettyUrl, cleanEmail, linkWords } from '@/templates/_shared/atoms'
 
 /* ----------------------------------------------------------------- helpers */
 
@@ -151,6 +152,28 @@ const titleDate = (title: string, date: string | undefined, C: Ctx, width: numbe
     ...opts,
   })
 }
+/**
+ * A link, the way the page prints it: the author's own words, and a real
+ * hyperlink behind them when there is an address.
+ *
+ * The Word file used to print URLs as coloured text that nothing could click,
+ * and it ignored the display name entirely - a site named Portfolio came out
+ * as myportfolio.com/work, and a project's further links and a credential's
+ * Verify were not there at all.
+ */
+const linkRun = (url: string | undefined, words: string, C: Ctx, size: number = SIZE.sub): ParagraphChild => {
+  const run = new TextRun({ text: words, color: C.accent, size, underline: {} })
+  const href = safeHref(url)
+  return href ? new ExternalHyperlink({ children: [run], link: href }) : run
+}
+
+/** The short Verify a credential line ends with, when it has one. */
+const verifyPara = (url: string | undefined, urlLabel: string | undefined, C: Ctx): Paragraph[] => {
+  const words = (urlLabel || '').trim()
+  if (!words || !safeHref(url)) return []
+  return [new Paragraph({ spacing: { after: 16 }, children: [linkRun(url, words, C)] })]
+}
+
 const sub = (s: string, C: Ctx) =>
   new Paragraph({
     spacing: { after: 16 },
@@ -238,12 +261,23 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
           out.push(
             new Paragraph({
               spacing: { after: 24 },
-              children: [
-                new TextRun({ text: prettyUrl(p.url, doc.metadata.links?.display), color: C.accent, size: SIZE.sub }),
-              ],
+              children: [linkRun(p.url, prettyUrl(p.url, doc.metadata.links?.display), C)],
             })
           )
         if (p.description) out.push(sub(p.description, C))
+        {
+          const named = (p.links ?? []).filter((l) => (l.url || '').trim() || (l.label || '').trim())
+          if (named.length)
+            out.push(
+              new Paragraph({
+                spacing: { after: 24 },
+                children: named.flatMap((l, li) => [
+                  ...(li > 0 ? [new TextRun({ text: '  ·  ', color: C.muted, size: SIZE.sub })] : []),
+                  linkRun(l.url, linkWords(l.url, l.label, 'short') || prettyUrl(l.url), C),
+                ]),
+              })
+            )
+        }
         out.push(...bulletsOf(p.highlights ?? [], C))
         if (p.keywords?.length)
           out.push(
@@ -300,12 +334,15 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       }
     } else if (key === 'certificates') {
       out.push(heading(label, C))
-      for (const c of content.certificates)
+      for (const c of content.certificates) {
         out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date), C, width))
+        out.push(...verifyPara(c.url, c.urlLabel, C))
+      }
     } else if (key === 'awards') {
       out.push(heading(label, C))
       for (const a of content.awards) {
         out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date), C, width))
+        out.push(...verifyPara(a.url, a.urlLabel, C))
         if (has(a.summary)) out.push(...summaryParas(a.summary, C))
       }
     } else if (key === 'publications') {
@@ -378,27 +415,36 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
         children: [new TextRun({ text: b.label, color: C.accent, size: SIZE.headline, font: C.headFont })],
       })
     )
-  const contacts: string[] = []
+  // Each contact carries its own destination, so the reader can click the word
+  // Linkedin in Word the way they can in the PDF. They used to be flattened
+  // into one string, which meant one plain run and nothing to click.
+  const contacts: Array<{ words: string; url?: string }> = []
   const email = cleanEmail(b.email)
-  if (email) contacts.push(email)
-  if (b.phone) contacts.push(b.phone)
+  if (email) contacts.push({ words: email, url: `mailto:${email}` })
+  if (b.phone) contacts.push({ words: b.phone, url: `tel:${b.phone.replace(/[^\d+]/g, '')}` })
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
-  if (loc) contacts.push(loc)
+  if (loc) contacts.push({ words: loc })
   // The author's display choice applies wherever a URL is SHOWN, not just in
   // the PDF - a Word export that ignores it contradicts the document it came
   // from.
   const linkDisplay = doc.metadata.links?.display
-  if (b.url) contacts.push(prettyUrl(b.url, linkDisplay))
+  if (b.url) contacts.push({ words: linkWords(b.url, b.urlLabel, linkDisplay), url: b.url })
   for (const p of b.profiles ?? []) {
-    const handle = p.username || prettyUrl(p.url, linkDisplay)
-    if (handle && p.network) contacts.push(`${p.network}: ${handle}`)
-    else if (handle || p.network) contacts.push(handle || p.network)
+    const handle = linkWords(p.url, p.label, linkDisplay) || p.username
+    if (handle && p.network) contacts.push({ words: `${p.network}: ${handle}`, url: p.url })
+    else if (handle || p.network) contacts.push({ words: handle || p.network, url: p.url })
   }
-  if (contacts.length)
+  const shown = contacts.filter((c) => c.words)
+  if (shown.length)
     out.push(
       new Paragraph({
         spacing: { after: 100 },
-        children: [new TextRun({ text: contacts.join('   •   '), color: C.muted, size: SIZE.sub })],
+        children: shown.flatMap((c, i) => [
+          ...(i > 0 ? [new TextRun({ text: '   •   ', color: C.muted, size: SIZE.sub })] : []),
+          c.url && safeHref(c.url)
+            ? linkRun(c.url, c.words, C)
+            : new TextRun({ text: c.words, color: C.muted, size: SIZE.sub }),
+        ]),
       })
     )
   return out

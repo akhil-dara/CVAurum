@@ -1261,7 +1261,13 @@
   pointer-events: none;
   transition: opacity 0.12s ease;
 }
-.mode-preview .rm-bullet-row:hover .rm-bullet-del {
+/* Focus reveals it too. Tabbing used to land on a control at opacity 0: the
+   focus ring was drawn on something invisible, so focus appeared to leave the
+   page, and Enter there deleted a bullet with nothing on screen to warn of it.
+   :focus-within covers arriving by keyboard, :focus-visible the button itself. */
+.mode-preview .rm-bullet-row:hover .rm-bullet-del,
+.mode-preview .rm-bullet-row:focus-within .rm-bullet-del,
+.mode-preview .rm-bullet-del:focus-visible {
   opacity: 1;
   pointer-events: auto;
 }

@@ -12,7 +12,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { formatDateRange, formatDate, htmlToText, safeHref, uid } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
-import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
+import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { CanvasDate } from './CanvasDate'
@@ -1291,7 +1291,14 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
               </div>
             ) : !edit && p.url ? (
               <div className="rm-item-link">
-                {safeHref(p.url) ? <a href={safeHref(p.url)}>{prettyUrl(p.url)}</a> : prettyUrl(p.url)}
+                {/* The author's link-display choice reached the Word file and
+                    the ATS text but not the page it came from, so setting it
+                    to full or short changed two of the three. */}
+                {safeHref(p.url) ? (
+                  <a href={safeHref(p.url)}>{prettyUrl(p.url, doc.metadata.links?.display)}</a>
+                ) : (
+                  prettyUrl(p.url, doc.metadata.links?.display)
+                )}
               </div>
             ) : null}
             {edit || p.description ? (
@@ -1317,7 +1324,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                   .map((l, at) => ({ l, at }))
                   .filter(({ l }) => (l.url || '').trim() || (l.label || '').trim())
                   .map(({ l, at }, li) => {
-                    const shown = (l.label || '').trim() || prettyUrl(l.url, 'short') || prettyUrl(l.url)
+                    const shown = linkWords(l.url, l.label, 'short') || prettyUrl(l.url)
                     const href = safeHref(l.url)
                     return (
                       <Fragment key={l.id ?? li}>
@@ -1337,7 +1344,22 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                               <a
                                 className="rm-named-link is-editable"
                                 href={href || undefined}
+                                // A link that has a name but no address yet -
+                                // exactly what Add another link creates - is an
+                                // anchor with no href, which the keyboard
+                                // cannot reach at all. Made focusable in its
+                                // own right, and Space opens it as well as
+                                // Enter, which a bare anchor never does.
+                                role="button"
+                                tabIndex={0}
                                 title={`Edit this link${l.url ? `: ${l.url}` : ''}`}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    open(e)
+                                  }
+                                }}
                                 onClick={(e) => {
                                   e.preventDefault()
                                   open(e)

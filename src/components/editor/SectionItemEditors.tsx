@@ -327,6 +327,19 @@ function ItemFields({
             />
             <TextField label="Company" value={item.name} onChange={set('name')} placeholder="Vertex Labs" />
           </Row>
+          {/* The entry's link. It could be set from the canvas chain button
+              alone, and the panel is where every other field of this entry
+              lives - so on a phone, with the panel open over the canvas, a
+              wrong address already live in the exported PDF could not be
+              corrected. Five other section types have had this field all
+              along. */}
+          <TextField
+            label="Link"
+            value={item.url ?? ''}
+            onChange={set('url')}
+            placeholder="https://vertexlabs.io"
+          />
+
           <Row>
             <TextField
               label="Location"
@@ -365,6 +378,19 @@ function ItemFields({
             onChange={set('institution')}
             placeholder="UC Berkeley"
           />
+          {/* The entry's link. It could be set from the canvas chain button
+              alone, and the panel is where every other field of this entry
+              lives - so on a phone, with the panel open over the canvas, a
+              wrong address already live in the exported PDF could not be
+              corrected. Five other section types have had this field all
+              along. */}
+          <TextField
+            label="Link"
+            value={item.url ?? ''}
+            onChange={set('url')}
+            placeholder="https://berkeley.edu"
+          />
+
           <Row>
             <TextField label="Degree" value={item.studyType} onChange={set('studyType')} placeholder="B.S." />
             <TextField label="Field of study" value={item.area} onChange={set('area')} placeholder="Computer Science" />
@@ -602,6 +628,9 @@ function ItemFields({
             <TextField label="Role" value={item.position} onChange={set('position')} />
             <TextField label="Organization" value={item.organization} onChange={set('organization')} />
           </Row>
+          {/* Same gap as work and education: the canvas chain button was the
+              only way in. */}
+          <TextField label="Link" value={item.url ?? ''} onChange={set('url')} placeholder="https://example.org" />
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
             <DateField
