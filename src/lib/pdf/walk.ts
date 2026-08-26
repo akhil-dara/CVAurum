@@ -1,7 +1,7 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
 import { roleForElement } from './tagging'
 import { mainColumnTextFirst } from './readingOrder'
-import { keepFlagsForParagraph } from './widows'
+import { keepFlagsForParagraph, KEEP_WHOLE_MAX_LINES, KEEP_WHOLE_MAX_LINES_TWO_COL } from './widows'
 import { coalesceTextOps } from './coalesce'
 import { collectLinkOps } from './links'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
@@ -1496,6 +1496,18 @@ function pushOwnBoxBlock(
 /** Pushes one 'line' block per visually-wrapped line of a text node, via
  *  text.ts's shared `textNodeLineSegments` — the exact geometry
  *  `extractRuns` paints from. */
+/** Does this element's page carry a sidebar? Memoised per root. */
+const ASIDE_BY_ROOT = new WeakMap<Element, boolean>()
+function hasAside(el: Element): boolean {
+  const root = el.closest('.rm-root')
+  if (!root) return false
+  const cached = ASIDE_BY_ROOT.get(root)
+  if (cached !== undefined) return cached
+  const found = !!root.querySelector('.rm-col-aside')
+  ASIDE_BY_ROOT.set(root, found)
+  return found
+}
+
 function pushTextLineBlocks(node: Text, rootTop: number, out: PageBlock[]): void {
   if (!node.data || node.data.trim() === '') return
   const lines: PageBlock[] = []
@@ -1512,7 +1524,11 @@ function pushTextLineBlocks(node: Text, rootTop: number, out: PageBlock[]): void
   // break is worse than a wrap - neither half is searchable, and the reader
   // cannot tell they belong together.
   const inKeyword = !!node.parentElement?.closest('.rm-kw')
-  const keep = inKeyword ? lines.map((_, i) => i < lines.length - 1) : keepFlagsForParagraph(lines.length)
+  const el0 = node.parentElement
+  const keepMax0 = el0 && !el0.closest('.rm-col-aside') && hasAside(el0) ? KEEP_WHOLE_MAX_LINES_TWO_COL : KEEP_WHOLE_MAX_LINES
+  const keep = inKeyword
+    ? lines.map((_, i) => i < lines.length - 1)
+    : keepFlagsForParagraph(lines.length, undefined, keepMax0)
   lines.forEach((line, i) => {
     if (keep[i]) line.keepWithNext = true
     out.push(line)
@@ -1770,7 +1786,8 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
     merged.forEach((b, i) => {
       if (b.kind === 'line') lineIdx.push(i)
     })
-    const keep = keepFlagsForParagraph(lineIdx.length)
+    const keepMax1 = !el.closest('.rm-col-aside') && hasAside(el) ? KEEP_WHOLE_MAX_LINES_TWO_COL : KEEP_WHOLE_MAX_LINES
+    const keep = keepFlagsForParagraph(lineIdx.length, undefined, keepMax1)
     lineIdx.forEach((bi, k) => {
       if (keep[k]) merged[bi].keepWithNext = true
     })

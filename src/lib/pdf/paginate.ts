@@ -517,6 +517,8 @@ interface ColumnSpan {
   tier?: Tier
   /** set when `ink` — mirrors the source block's own `keepWithNext` */
   keepWithNext?: boolean
+  /** Indivisible: a seam may never fall inside it, at any tolerance. */
+  atomic?: boolean
 }
 
 function columnSpans(blocks: PageBlock[]): ColumnSpan[] {
@@ -533,7 +535,15 @@ function columnSpans(blocks: PageBlock[]): ColumnSpan[] {
       // "line" tier buildCandidates derives implicitly for a single column.
       spans.push({ topPx: prev.bottomPx, bottomPx: b.topPx, ink: false, tier: 'line' })
     }
-    spans.push({ topPx: b.topPx, bottomPx: b.bottomPx, ink: true, keepWithNext: b.keepWithNext === true })
+    spans.push({
+      topPx: b.topPx,
+      bottomPx: b.bottomPx,
+      ink: true,
+      keepWithNext: b.keepWithNext === true,
+      // An atomic block is indivisible - a chip row, a badge - and the seam
+      // test below must not be allowed to nick it. See the tolerance there.
+      atomic: b.kind === 'atomic',
+    })
   }
   return spans
 }
@@ -748,7 +758,20 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
       if (y < range.top || y > range.bottom) return false // this column has no opinion here
       return spans.some((sp) => {
         if (!sp.ink) return false
-        const tol = seamTolerance(sp)
+        // A seam is allowed to sit a hair inside an ordinary line, because two
+        // columns rarely agree on a boundary to the pixel. An ATOMIC block has
+        // no such slack: it is one indivisible thing, and a seam even 4px into
+        // it splits it into two blocks, which hands buildCandidates a legal
+        // cut straight through the middle.
+        //
+        // Measured on a real export: a 19px chip reading "License & Seat
+        // Management" occupied 1032-1051, a seam landed at 1036 - within the
+        // 4px tolerance - and the page was cut there. The pill is a rect and
+        // was cropped across both pages, while its text is anchored to one
+        // band, so page one printed an EMPTY PILL and page two printed the
+        // words with no pill around them. Reported by the author as half a
+        // pill on one page and the rest on the next.
+        const tol = sp.atomic ? 0 : seamTolerance(sp)
         return y > sp.topPx + tol && y < sp.bottomPx - tol
       })
     })
@@ -759,8 +782,8 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
   let opinions: (boolean | undefined)[] = []
   for (const e of elementary) {
     const last = runs[runs.length - 1]
-    const sameRun =
-      last && last.bottomPx === e.topPx && last.ink === e.ink && (e.ink || last.tier === e.tier) && !seams.has(e.topPx)
+    const contiguous = !!last && last.bottomPx === e.topPx && last.ink === e.ink && (e.ink || last.tier === e.tier)
+    const sameRun = contiguous && !seams.has(e.topPx)
     if (sameRun) {
       last!.bottomPx = e.bottomPx
       // Last-contributing-span-per-column: a column that has INK here states
@@ -780,7 +803,17 @@ export function combineColumns(columns: PageBlock[][]): PageBlock[] {
       }
       continue
     }
-    opinions = [...e.keepByCol]
+    // A seam ends the run but not what each column has already said; a column
+    // that has not inked since its last statement still means it. Resetting
+    // here dropped a heading's veto in the very gap it protects - and, it
+    // turns out, dropped every keep-whole flag a paragraph had set as well.
+    if (contiguous && e.ink) {
+      e.keepByCol.forEach((v, ci) => {
+        if (v !== undefined) opinions[ci] = v
+      })
+    } else {
+      opinions = [...e.keepByCol]
+    }
     runs.push({ ...e, keepWithNext: e.ink ? opinions.some((v) => v === true) : e.keepWithNext })
   }
 

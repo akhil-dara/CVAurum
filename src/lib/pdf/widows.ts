@@ -42,6 +42,11 @@ export const MIN_PARAGRAPH_LINES = 2
  */
 export const KEEP_WHOLE_MAX_LINES = 12
 
+/** The ceiling for a MAIN-COLUMN paragraph beside a sidebar. Each page emits
+ *  its main column then its aside, so a torn sentence there ends up with the
+ *  whole sidebar between its halves in the text layer. */
+export const KEEP_WHOLE_MAX_LINES_TWO_COL = 30
+
 /**
  * For a paragraph of `lineCount` visual lines, returns a flag per line:
  * `true` means a page break must NOT fall immediately after that line.
@@ -49,9 +54,13 @@ export const KEEP_WHOLE_MAX_LINES = 12
  * The last line is never flagged — breaking after a COMPLETE paragraph is
  * always fine, and flagging it would glue the paragraph to whatever follows.
  */
-export function keepFlagsForParagraph(lineCount: number, minLines = MIN_PARAGRAPH_LINES): boolean[] {
+export function keepFlagsForParagraph(
+  lineCount: number,
+  minLines = MIN_PARAGRAPH_LINES,
+  keepWholeMax = KEEP_WHOLE_MAX_LINES
+): boolean[] {
   const flags: boolean[] = []
-  const keepWhole = lineCount <= KEEP_WHOLE_MAX_LINES
+  const keepWhole = lineCount <= keepWholeMax
   for (let i = 0; i < lineCount; i++) {
     const isLast = i === lineCount - 1
     const linesBefore = i + 1
