@@ -115,14 +115,22 @@ interface Candidate {
 /** Builds every legal candidate break position from the sorted block list.
  *  A candidate that would violate the keepWithNext widow rule is dropped
  *  here so the scan below never has to special-case it. */
-function buildCandidates(sorted: PageBlock[]): Candidate[] {
+/**
+ * `ignoreKeep` drops the keep-with-next vetoes.
+ *
+ * Only the relief valve below uses it, and only once every honest cut has
+ * been refused. A veto exists to stop a heading being parted from its
+ * content, which is a blemish; the alternative at that point is splitting a
+ * block at the paper's edge, which loses words. Typography yields to content.
+ */
+function buildCandidates(sorted: PageBlock[], ignoreKeep = false): Candidate[] {
   const candidates: Candidate[] = []
   for (let i = 0; i < sorted.length; i++) {
     const block = sorted[i]
     if (block.kind === 'section-gap' || block.kind === 'entry-gap') {
       // The gap block IS the candidate: its own span is the empty region.
       const predecessor = sorted[i - 1]
-      if (predecessor?.keepWithNext) continue // cut may not fall right after a heading
+      if (!ignoreKeep && predecessor?.keepWithNext) continue // cut may not fall right after a heading
       candidates.push({ y: (block.topPx + block.bottomPx) / 2, tier: block.kind })
       continue
     }
@@ -132,7 +140,7 @@ function buildCandidates(sorted: PageBlock[]): Candidate[] {
     const next = sorted[i + 1]
     if (!next) continue
     if (next.kind === 'section-gap' || next.kind === 'entry-gap') continue
-    if (block.keepWithNext) continue // cut may not fall right after a heading
+    if (!ignoreKeep && block.keepWithNext) continue // cut may not fall right after a heading
     candidates.push({ y: (block.bottomPx + next.topPx) / 2, tier: 'line' })
   }
   return candidates
@@ -230,7 +238,7 @@ function snapAbovePaperEdge(sorted: PageBlock[], pageTop: number, maxPageHeightP
  *  (`pageTop`) and the ideal boundary for this page. */
 /** Which branch of chooseCut produced a cut. Diagnosis only - a stranded
  *  heading looks identical whichever branch placed it, and the fix differs. */
-export type CutReason = 'window' | 'downward' | 'earlier' | 'clamp' | 'snap'
+export type CutReason = 'window' | 'downward' | 'earlier' | 'clamp' | 'snap' | 'relief'
 const cutReasons: CutReason[] = []
 
 function chooseCut(
@@ -315,6 +323,37 @@ function chooseCut(
     }
     if (best !== undefined) {
       cutReasons.push('earlier')
+      return best
+    }
+  }
+
+  // RELIEF VALVE. Every cut this page could make honestly has been refused,
+  // and what follows splits a block at the paper's edge. Before paying that,
+  // give up the keep-with-next promises and look again: a heading parted from
+  // its content is a blemish, while a split block loses the author's words.
+  // Content outranks typography, so the vetoes yield first.
+  //
+  // This is also what makes the vetoes safe to state strongly. Every earlier
+  // attempt at strengthening them traded stranded headings for dropped text,
+  // because a stricter veto simply removed the last legal cut and dropped the
+  // paginator straight into the clamp below.
+  {
+    const relaxed = buildCandidates(sorted, true).filter((c) => !fallsInsideInk(c.y, sorted))
+    let best: number | undefined
+    let bestTier: Tier | undefined
+    for (const c of relaxed) {
+      if (c.y <= pageTop || c.y > maxY) continue
+      const better =
+        best === undefined ||
+        c.y > best ||
+        (c.y === best && TIER_PREFERENCE.indexOf(c.tier) < TIER_PREFERENCE.indexOf(bestTier as Tier))
+      if (better) {
+        best = c.y
+        bestTier = c.tier
+      }
+    }
+    if (best !== undefined) {
+      cutReasons.push('relief')
       return best
     }
   }
