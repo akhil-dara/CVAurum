@@ -1282,6 +1282,34 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 />
               </div>
             ) : null}
+            {/* Further named links, after the description: a repository, a demo,
+                a write-up. Printed as short NAMES rather than addresses, which
+                is how a reader scans them - three bare URLs on a line is noise.
+                The exporter turns any anchor into a clickable region, so these
+                are live in the PDF like every other link. */}
+            {(p.links ?? []).some((l) => (l.url || '').trim() || (l.label || '').trim()) ? (
+              <div className="rm-item-links">
+                {(p.links ?? [])
+                  .filter((l) => (l.url || '').trim() || (l.label || '').trim())
+                  .map((l, li) => {
+                    const shown = (l.label || '').trim() || prettyUrl(l.url, 'short') || prettyUrl(l.url)
+                    const href = safeHref(l.url)
+                    return (
+                      <Fragment key={l.id ?? li}>
+                        {li > 0 ? <span className="rm-item-links-sep" aria-hidden> &middot; </span> : null}
+                        {href ? (
+                          <a className="rm-named-link" href={href} onClick={edit ? (e) => e.preventDefault() : undefined}>
+                            {shown}
+                          </a>
+                        ) : (
+                          <span className="rm-named-link">{shown}</span>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+              </div>
+            ) : null}
+
             {show(opts?.showBullets) ? (
               <Bullets
                 items={p.highlights}

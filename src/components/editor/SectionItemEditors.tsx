@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
-import { cn } from '@/lib/utils'
+import type { NamedLink } from '@/types/resume'
+import { cn, uid } from '@/lib/utils'
 import { newItem, removeItem, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
@@ -397,6 +398,51 @@ function ItemFields({
             placeholder="Pulse — Observability"
           />
           <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://github.com/…" />
+          {/* A project usually has more than one place to point at - the
+              repository, a demo, a write-up - and printing three bare
+              addresses reads far worse than three short names. Each row is a
+              NAME and where it goes; the page shows the name. */}
+          <Labeled label="More links">
+            <div className="space-y-1.5">
+              {((item.links ?? []) as NamedLink[]).map((lnk: NamedLink, li: number) => (
+                <div key={lnk.id ?? li} className="flex items-center gap-2">
+                  <input
+                    className="input w-32 shrink-0"
+                    value={lnk.label ?? ''}
+                    placeholder="Shown as"
+                    aria-label="Link name"
+                    onChange={(e) =>
+                      set('links')(((item.links ?? []) as NamedLink[]).map((x: NamedLink, xi: number) => (xi === li ? { ...x, label: e.target.value } : x)))
+                    }
+                  />
+                  <input
+                    className="input min-w-0 flex-1"
+                    value={lnk.url ?? ''}
+                    placeholder="https://…"
+                    aria-label="Link address"
+                    onChange={(e) =>
+                      set('links')(((item.links ?? []) as NamedLink[]).map((x: NamedLink, xi: number) => (xi === li ? { ...x, url: e.target.value } : x)))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded text-muted-foreground/60 hover:bg-danger/10 hover:text-danger"
+                    aria-label="Remove link"
+                    onClick={() => set('links')(((item.links ?? []) as NamedLink[]).filter((_: NamedLink, xi: number) => xi !== li))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="text-[13px] font-medium text-primary"
+                onClick={() => set('links')([...((item.links ?? []) as NamedLink[]), { id: uid(), label: '', url: '' }])}
+              >
+                + Add link
+              </button>
+            </div>
+          </Labeled>
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
             <DateField

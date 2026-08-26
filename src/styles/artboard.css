@@ -2073,3 +2073,22 @@
   font-size: 12px;
   color: var(--muted-foreground, inherit);
 }
+
+
+/* Named project links: short names on one line, dot separated, the way a
+   reader scans them. Underlining follows the document's own link setting, so
+   they match every other link on the page rather than inventing a style. */
+.rm-item-links {
+  font-size: calc(var(--rm-fs) * 0.92);
+  color: var(--rm-muted);
+  margin-top: 0.1em;
+}
+/* No underline rule of its own: `.rm-root.links-underline a[href]` above
+   already governs every anchor on the page, so these follow the document's
+   own setting instead of inventing a second one. */
+.rm-named-link {
+  color: inherit;
+}
+.rm-item-links-sep {
+  opacity: 0.6;
+}

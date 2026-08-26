@@ -93,11 +93,25 @@ export const EducationSchema = z.object({
   courses: z.array(z.string()).optional().default([]),
 })
 
+/** One named link. The label is what the reader sees, the url is where it
+ *  goes. A project routinely has more than one - a repository, a demo, a
+ *  write-up - and three bare addresses read far worse than three short names. */
+export const NamedLinkSchema = z.object({
+  id: z.string().optional(),
+  label: z.string().optional().default(''),
+  url: z.string().optional().default(''),
+})
+
+export type NamedLink = z.infer<typeof NamedLinkSchema>
+
 export const ProjectSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional().default(''),
   description: z.string().optional().default(''),
   url: z.string().optional().default(''),
+  /** Further named links, printed after the description as short names rather
+   *  than addresses. `url` above stays the project's primary link. */
+  links: z.array(NamedLinkSchema).optional(),
   startDate: z.string().optional().default(''),
   endDate: z.string().optional().default(''),
   highlights: z.array(z.string()).optional().default([]),
