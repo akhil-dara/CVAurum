@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
+import { SectionGear } from '@/templates/_shared/SectionGear'
 import { uid, cn } from '@/lib/utils'
 import { BODY_SECTION_KEYS, DEFAULT_LABELS, customKey, sectionLabel } from '@/lib/sections'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
@@ -190,6 +191,7 @@ function SectionCard({
   onRemove: () => void
   onRename: (label: string) => void
 }) {
+  const updateMeta = useResumeStore((st) => st.updateMetadata)
   const [menu, setMenu] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [renaming, setRenaming] = useState(false)
@@ -297,6 +299,15 @@ function SectionCard({
                 })
               }}
             />
+          </div>
+          {/* The very same Style popover the canvas offers. It already knows
+              how to present itself as a bottom sheet on a phone; it simply had
+              no way in from here, so every section style - skills layout,
+              badge size and shape, bullet style - was unreachable without a
+              canvas, which a phone never shows in edit mode. */}
+          <div className="rm-panel-gear flex items-center justify-between gap-2">
+            <span className="text-[12px] text-muted-foreground">Section style</span>
+            <SectionGear sectionKey={sectionKey} doc={doc} editMeta={updateMeta} />
           </div>
           <SectionItemsEditor doc={doc} sectionKey={sectionKey} />
         </div>

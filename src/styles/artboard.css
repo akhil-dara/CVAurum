@@ -2059,3 +2059,17 @@
   opacity: 1;
 }
 
+
+
+/* The Style pill, borrowed by the side panel.
+   On the canvas it is an absolutely-placed ghost that only appears on hover of
+   its section; in a panel row there is no section to hover and nowhere to hang
+   from, so it becomes an ordinary inline button that is simply always there. */
+.rm-panel-gear .rm-section-gear {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+  height: 1.9rem;
+  font-size: 12px;
+  color: var(--muted-foreground, inherit);
+}
