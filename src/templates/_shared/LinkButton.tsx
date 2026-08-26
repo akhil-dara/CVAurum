@@ -26,6 +26,7 @@ export function LinkButton({
   onText,
   onRemove,
   extra,
+  renderTrigger,
   clickable = true,
 }: {
   href?: string
@@ -45,6 +46,14 @@ export function LinkButton({
   /** Caller-supplied controls shown inside the card - the contact rows use it
    *  for the icon picker, which belongs with the link it decorates. */
   extra?: ReactNode
+  /** Own the trigger instead of taking the chain button.
+   *
+   *  A row of named project links is read as WORDS - a chain glyph after each
+   *  one would sit in the line's own flow, so the canvas line would be wider
+   *  than the printed line and could wrap where print does not. Handing the
+   *  caller the opener lets the word itself be the control: nothing is added
+   *  to the line, and a tap lands on a whole word rather than a 12px glyph. */
+  renderTrigger?: (open: (e: { currentTarget: EventTarget | null; preventDefault: () => void }) => void, linked: boolean) => ReactNode
   /** Whether links are live in the export (metadata.links.clickable). */
   clickable?: boolean
 }) {
@@ -103,27 +112,33 @@ export function LinkButton({
     </label>
   )
 
+  const open = (e: { currentTarget: EventTarget | null; preventDefault: () => void }) => {
+    const r = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+    setDraft(href || '')
+    setDraftText(text || '')
+    setAt({
+      top: Math.min((r?.bottom ?? 0) + 6, window.innerHeight - 210),
+      left: Math.max(8, Math.min(r?.left ?? 0, window.innerWidth - 268)),
+    })
+  }
+
   return (
     <>
-      <button
-        type="button"
-        className={`rm-title-link-btn no-print${href ? ' is-linked' : ''}`}
-        contentEditable={false}
-        onMouseDown={stop}
-        onClick={(e) => {
-          const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-          setDraft(href || '')
-          setDraftText(text || '')
-          setAt({
-            top: Math.min(r.bottom + 6, window.innerHeight - 210),
-            left: Math.max(8, Math.min(r.left, window.innerWidth - 268)),
-          })
-        }}
-        aria-label={href ? `Edit the link on ${label}` : `Add a link to ${label}`}
-        title={href ? `Edit link: ${href}` : 'Add a link'}
-      >
-        &#128279;
-      </button>
+      {renderTrigger ? (
+        renderTrigger(open, Boolean(href))
+      ) : (
+        <button
+          type="button"
+          className={`rm-title-link-btn no-print${href ? ' is-linked' : ''}`}
+          contentEditable={false}
+          onMouseDown={stop}
+          onClick={open}
+          aria-label={href ? `Edit the link on ${label}` : `Add a link to ${label}`}
+          title={href ? `Edit link: ${href}` : 'Add a link'}
+        >
+          &#128279;
+        </button>
+      )}
       {at &&
         createPortal(
           <>

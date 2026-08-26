@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom'
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
-import { formatDateRange, formatDate, htmlToText, safeHref } from '@/lib/utils'
+import { formatDateRange, formatDate, htmlToText, safeHref, uid } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
@@ -488,6 +488,7 @@ function ItemHead({
   href,
   setHref,
   linkLabel,
+  linkExtra,
   opts,
 }: {
   title: ReactNode
@@ -503,6 +504,9 @@ function ItemHead({
   /** Present when this entry's link can be edited from the canvas. */
   setHref?: (c: ResumeDocument['content'], v: string) => void
   linkLabel?: string
+  /** Extra actions for this entry's link popover - a project uses it to add
+   *  a further named link, which has nowhere else to be created from. */
+  linkExtra?: ReactNode
 }) {
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
@@ -544,6 +548,7 @@ function ItemHead({
             label={linkLabel || 'this entry'}
             text={linkLabel}
             clickable={opts?.linksClickable !== false}
+            extra={linkExtra}
             onChange={(v) => edit((c) => setHref(c, v))}
           />
         ) : null}
@@ -1216,6 +1221,25 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 c.projects[i].url = val
               }}
               linkLabel={p.name}
+              linkExtra={
+                edit ? (
+                  <button
+                    type="button"
+                    className="mb-2 w-full rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+                    onClick={() =>
+                      edit((c) => {
+                        const list = (c.projects[i].links ??= [])
+                        // Seeded with a name: a link with neither name nor
+                        // address does not render, so a blank one would be
+                        // created and then be unreachable.
+                        list.push({ id: uid(), label: 'Link', url: '' })
+                      })
+                    }
+                  >
+                    + Add another link
+                  </button>
+                ) : undefined
+              }
               // Without this the head had no `edit`, so a project's title
               // carried neither the link button nor the mark control - every
               // other entry type had both. A project link could only be typed
@@ -1290,15 +1314,58 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
             {(p.links ?? []).some((l) => (l.url || '').trim() || (l.label || '').trim()) ? (
               <div className="rm-item-links">
                 {(p.links ?? [])
-                  .filter((l) => (l.url || '').trim() || (l.label || '').trim())
-                  .map((l, li) => {
+                  .map((l, at) => ({ l, at }))
+                  .filter(({ l }) => (l.url || '').trim() || (l.label || '').trim())
+                  .map(({ l, at }, li) => {
                     const shown = (l.label || '').trim() || prettyUrl(l.url, 'short') || prettyUrl(l.url)
                     const href = safeHref(l.url)
                     return (
                       <Fragment key={l.id ?? li}>
                         {li > 0 ? <span className="rm-item-links-sep" aria-hidden> &middot; </span> : null}
-                        {href ? (
-                          <a className="rm-named-link" href={href} onClick={edit ? (e) => e.preventDefault() : undefined}>
+                        {edit ? (
+                          // The WORD is the control. A chain button after each
+                          // name would sit in the line's flow, so the canvas
+                          // line would be wider than the printed one and could
+                          // wrap where print does not - and a tap target the
+                          // size of a glyph is no target at all on a phone.
+                          <LinkButton
+                            href={l.url}
+                            label={shown}
+                            text={l.label}
+                            clickable={opts?.linksClickable !== false}
+                            renderTrigger={(open) => (
+                              <a
+                                className="rm-named-link is-editable"
+                                href={href || undefined}
+                                title={`Edit this link${l.url ? `: ${l.url}` : ''}`}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  open(e)
+                                }}
+                              >
+                                {shown}
+                              </a>
+                            )}
+                            onChange={(v) =>
+                              edit((c) => {
+                                const t = c.projects[i].links?.[at]
+                                if (t) t.url = v
+                              })
+                            }
+                            onText={(v) =>
+                              edit((c) => {
+                                const t = c.projects[i].links?.[at]
+                                if (t) t.label = v
+                              })
+                            }
+                            onRemove={() =>
+                              edit((c) => {
+                                c.projects[i].links?.splice(at, 1)
+                              })
+                            }
+                          />
+                        ) : href ? (
+                          <a className="rm-named-link" href={href}>
                             {shown}
                           </a>
                         ) : (

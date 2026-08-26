@@ -2089,6 +2089,18 @@
 .rm-named-link {
   color: inherit;
 }
+/* On the canvas these words ARE the link editor - clicking one opens the card
+   that names it and points it somewhere. Only the cursor and a dotted hint say
+   so, because neither costs a pixel of layout: a chain button after each name
+   would widen the line and could wrap it where the printed line does not. */
+.mode-preview .rm-named-link.is-editable {
+  cursor: pointer;
+}
+.mode-preview .rm-named-link.is-editable:hover,
+.mode-preview .rm-named-link.is-editable:focus-visible {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
 .rm-item-links-sep {
   opacity: 0.6;
 }
