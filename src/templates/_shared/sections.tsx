@@ -1695,7 +1695,7 @@ function Languages({
   )
 }
 
-function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
+function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   return (
     <>
       {doc.content.certificates.map((cert, i) => {
@@ -1719,6 +1719,33 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                   cert.name
                 )}
               </span>
+              {edit ? (
+                <LinkButton
+                  href={cert.url}
+                  label={cert.name || 'this certificate'}
+                  text={cert.urlLabel}
+                  clickable={opts?.linksClickable !== false}
+                  onChange={(v) =>
+                    edit((c) => {
+                      c.certificates[i].url = v
+                    })
+                  }
+                  onText={(v) =>
+                    edit((c) => {
+                      c.certificates[i].urlLabel = v
+                    })
+                  }
+                  // Clearing the address takes the word with it. Leaving the
+                  // word behind meant a credential carrying a Verify it would
+                  // never print, waiting to reappear if an address came back.
+                  onRemove={() =>
+                    edit((c) => {
+                      c.certificates[i].url = ''
+                      c.certificates[i].urlLabel = ''
+                    })
+                  }
+                />
+              ) : null}
               {edit || cert.date ? (
                 <span className="rm-item-date">
                   {singleDate(edit, true, cert.date, (c, v) => {
@@ -1750,13 +1777,59 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                 <span className="rm-mini-verify-sep" aria-hidden>
                   {' | '}
                 </span>
-                <a
-                  className="rm-named-link"
-                  href={safeHref(cert.url)}
-                  onClick={edit ? (e) => e.preventDefault() : undefined}
-                >
-                  {(cert.urlLabel || '').trim()}
-                </a>
+                {edit ? (
+                  // The word is the control here too, exactly as a project's
+                  // named links work: clicking Verify opens the card that owns
+                  // both the word and the address it stands for.
+                  <LinkButton
+                    href={cert.url}
+                    label={(cert.urlLabel || '').trim()}
+                    text={cert.urlLabel}
+                    clickable={opts?.linksClickable !== false}
+                    renderTrigger={(open) => (
+                      <a
+                        className="rm-named-link is-editable"
+                        href={safeHref(cert.url)}
+                        role="button"
+                        tabIndex={0}
+                        title={`Edit this link: ${cert.url}`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            open(e)
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          open(e)
+                        }}
+                      >
+                        {(cert.urlLabel || '').trim()}
+                      </a>
+                    )}
+                    onChange={(v) =>
+                      edit((c) => {
+                        c.certificates[i].url = v
+                      })
+                    }
+                    onText={(v) =>
+                      edit((c) => {
+                        c.certificates[i].urlLabel = v
+                      })
+                    }
+                    onRemove={() =>
+                      edit((c) => {
+                        c.certificates[i].url = ''
+                        c.certificates[i].urlLabel = ''
+                      })
+                    }
+                  />
+                ) : (
+                  <a className="rm-named-link" href={safeHref(cert.url)}>
+                    {(cert.urlLabel || '').trim()}
+                  </a>
+                )}
               </span>
             ) : null}
             <ItemMove edit={edit} sectionKey="certificates" id={cert.id} label={ADD_LABEL.certificates} />
@@ -1768,7 +1841,7 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
   )
 }
 
-function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
+function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   return (
     <>
       {doc.content.awards.map((a, i) => {
@@ -1792,7 +1865,34 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                   a.title
                 )}
               </span>
-              {edit || a.date ? (
+                            {edit ? (
+                <LinkButton
+                  href={a.url}
+                  label={a.title || 'this award'}
+                  text={a.urlLabel}
+                  clickable={opts?.linksClickable !== false}
+                  onChange={(v) =>
+                    edit((c) => {
+                      c.awards[i].url = v
+                    })
+                  }
+                  onText={(v) =>
+                    edit((c) => {
+                      c.awards[i].urlLabel = v
+                    })
+                  }
+                  // Clearing the address takes the word with it. Leaving the
+                  // word behind meant a credential carrying a Verify it would
+                  // never print, waiting to reappear if an address came back.
+                  onRemove={() =>
+                    edit((c) => {
+                      c.awards[i].url = ''
+                      c.awards[i].urlLabel = ''
+                    })
+                  }
+                />
+              ) : null}
+{edit || a.date ? (
                 <span className="rm-item-date">
                   {singleDate(edit, true, a.date, (c, v) => {
                     c.awards[i].date = v
@@ -1818,13 +1918,56 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                 <span className="rm-mini-verify-sep" aria-hidden>
                   {' | '}
                 </span>
-                <a
-                  className="rm-named-link"
-                  href={safeHref(a.url)}
-                  onClick={edit ? (e) => e.preventDefault() : undefined}
-                >
-                  {(a.urlLabel || '').trim()}
-                </a>
+                {edit ? (
+                  <LinkButton
+                    href={a.url}
+                    label={(a.urlLabel || '').trim()}
+                    text={a.urlLabel}
+                    clickable={opts?.linksClickable !== false}
+                    renderTrigger={(open) => (
+                      <a
+                        className="rm-named-link is-editable"
+                        href={safeHref(a.url)}
+                        role="button"
+                        tabIndex={0}
+                        title={`Edit this link: ${a.url}`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            open(e)
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          open(e)
+                        }}
+                      >
+                        {(a.urlLabel || '').trim()}
+                      </a>
+                    )}
+                    onChange={(v) =>
+                      edit((c) => {
+                        c.awards[i].url = v
+                      })
+                    }
+                    onText={(v) =>
+                      edit((c) => {
+                        c.awards[i].urlLabel = v
+                      })
+                    }
+                    onRemove={() =>
+                      edit((c) => {
+                        c.awards[i].url = ''
+                        c.awards[i].urlLabel = ''
+                      })
+                    }
+                  />
+                ) : (
+                  <a className="rm-named-link" href={safeHref(a.url)}>
+                    {(a.urlLabel || '').trim()}
+                  </a>
+                )}
               </span>
             ) : null}
             {has(a.summary) ? <RichText html={a.summary} /> : null}
@@ -2283,9 +2426,9 @@ function sectionRenderer(
     case 'languages':
       return <Languages doc={doc} config={config} edit={edit} opts={opts} />
     case 'certificates':
-      return <Certificates doc={doc} edit={edit} />
+      return <Certificates doc={doc} edit={edit} opts={opts} />
     case 'awards':
-      return <Awards doc={doc} edit={edit} />
+      return <Awards doc={doc} edit={edit} opts={opts} />
     case 'publications':
       return <Publications doc={doc} edit={edit} />
     case 'volunteer':
