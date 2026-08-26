@@ -132,6 +132,11 @@ export const AwardSchema = z.object({
   title: z.string().optional().default(''),
   date: z.string().optional().default(''),
   awarder: z.string().optional().default(''),
+  /** Where the award can be checked, and the short word that stands for it -
+   *  the same Verify a credential line ends with. Leave the name empty and the
+   *  award's own title carries the link instead. */
+  url: z.string().optional(),
+  urlLabel: z.string().optional(),
   summary: z.string().optional().default(''),
 })
 

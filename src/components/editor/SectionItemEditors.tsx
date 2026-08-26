@@ -559,6 +559,18 @@ function ItemFields({
             <TextField label="Awarder" value={item.awarder} onChange={set('awarder')} placeholder="Vertex Labs" />
             <DateField label="Date" value={item.date} onChange={set('date')} />
           </Row>
+          <Row>
+            <TextField label="Link" value={item.url ?? ''} onChange={set('url')} placeholder="https://…" />
+            {/* Name it and the word prints after the awarder, the way a
+                credential line ends. Leave it empty and the award's own title
+                carries the link. */}
+            <TextField
+              label="Link shown as"
+              value={item.urlLabel ?? ''}
+              onChange={set('urlLabel')}
+              placeholder="Verify"
+            />
+          </Row>
           <Labeled label="Summary">
             <RichTextEditor
               value={item.summary ?? ''}

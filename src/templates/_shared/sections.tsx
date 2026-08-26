@@ -1687,15 +1687,22 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
         return (
           <div className="rm-mini" key={a.id} data-item-id={a.id}>
             <div className="rm-item-head">
-              <Ed
-                edit={edit}
-                value={a.title}
-                apply={(c, v) => {
-                  c.awards[i].title = v
-                }}
-                className="rm-mini-title"
-                placeholder="Award"
-              />
+              <span className="rm-mini-title">
+                {edit ? (
+                  <Ed
+                    edit={edit}
+                    value={a.title}
+                    apply={(c, v) => {
+                      c.awards[i].title = v
+                    }}
+                    placeholder="Award"
+                  />
+                ) : safeHref(a.url) && !(a.urlLabel || '').trim() ? (
+                  <a href={safeHref(a.url)}>{a.title}</a>
+                ) : (
+                  a.title
+                )}
+              </span>
               {edit || a.date ? (
                 <span className="rm-item-date">
                   {singleDate(edit, true, a.date, (c, v) => {
@@ -1714,6 +1721,22 @@ function Awards({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                 className="rm-mini-sub"
                 placeholder="Awarder"
               />
+            ) : null}
+            {/* Same short named link a credential line ends with, so an award
+                that can be checked reads the same way as a certificate. */}
+            {(a.urlLabel || '').trim() && safeHref(a.url) ? (
+              <span className="rm-mini-verify">
+                <span className="rm-mini-verify-sep" aria-hidden>
+                  {' | '}
+                </span>
+                <a
+                  className="rm-named-link"
+                  href={safeHref(a.url)}
+                  onClick={edit ? (e) => e.preventDefault() : undefined}
+                >
+                  {(a.urlLabel || '').trim()}
+                </a>
+              </span>
             ) : null}
             {has(a.summary) ? <RichText html={a.summary} /> : null}
             <ItemMove edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
