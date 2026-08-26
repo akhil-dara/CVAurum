@@ -271,17 +271,6 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                   </option>
                 ))}
               </select>
-              <input
-                className="input min-w-0 flex-1"
-                value={p.label ?? ''}
-                placeholder="Shown as (optional)"
-                title="Text shown instead of the address - leave empty to show the address"
-                onChange={(e) =>
-                  update((c) => {
-                    c.basics.profiles![i].label = e.target.value
-                  })
-                }
-              />
               <button
                 type="button"
                 className="flex h-8 w-8 items-center justify-center rounded text-muted-foreground/60 hover:bg-danger/10 hover:text-danger"
@@ -295,6 +284,21 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
+            {/* Adding the icon chooser to the row above squeezed this one until
+                its own placeholder read "Shown" - the same crowding that had
+                made the address unreadable. Three short controls share the top
+                row; the two long values each get a line. */}
+            <input
+              className="input w-full"
+              value={p.label ?? ''}
+              placeholder="Shown as (optional) - defaults to the address"
+              title="Text shown instead of the address"
+              onChange={(e) =>
+                update((c) => {
+                  c.basics.profiles![i].label = e.target.value
+                })
+              }
+            />
             {/* The ADDRESS gets a line to itself. It is far the longest value
                 here, and sharing a row with the other two left it about three
                 characters wide - unreadable, and reported as such. The two
