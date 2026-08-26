@@ -532,7 +532,18 @@ function ItemFields({
             <TextField label="Issuer" value={item.issuer} onChange={set('issuer')} placeholder="Amazon Web Services" />
             <DateField label="Date" value={item.date} onChange={set('date')} />
           </Row>
-          <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://…" />
+          <Row>
+            <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://…" />
+            {/* Name it and the word is printed after the issuer, the way a
+                credential line usually ends. Leave it empty and the
+                certificate's own title carries the link instead. */}
+            <TextField
+              label="Link shown as"
+              value={item.urlLabel ?? ''}
+              onChange={set('urlLabel')}
+              placeholder="Verify"
+            />
+          </Row>
         </>
       )
     case 'awards':

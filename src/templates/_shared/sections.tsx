@@ -1624,7 +1624,7 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                     }}
                     placeholder="Certificate"
                   />
-                ) : safeHref(cert.url) ? (
+                ) : safeHref(cert.url) && !(cert.urlLabel || '').trim() ? (
                   <a href={safeHref(cert.url)}>{cert.name}</a>
                 ) : (
                   cert.name
@@ -1648,6 +1648,27 @@ function Certificates({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                 className="rm-mini-sub"
                 placeholder="Issuer"
               />
+            ) : null}
+            {/* The short word a credential line ends with - Verify, Badge,
+                Credential. Named, so the reader sees a word rather than an
+                address, which is how the reference CV prints these. */}
+            {/* Shown on the canvas as well as in the export: gating it on
+                print alone meant the page promised something the author could
+                not see while editing it. The word itself is set in the panel,
+                so the click is swallowed here. */}
+            {(cert.urlLabel || '').trim() && safeHref(cert.url) ? (
+              <span className="rm-mini-verify">
+                <span className="rm-mini-verify-sep" aria-hidden>
+                  {' | '}
+                </span>
+                <a
+                  className="rm-named-link"
+                  href={safeHref(cert.url)}
+                  onClick={edit ? (e) => e.preventDefault() : undefined}
+                >
+                  {(cert.urlLabel || '').trim()}
+                </a>
+              </span>
             ) : null}
             <ItemMove edit={edit} sectionKey="certificates" id={cert.id} label={ADD_LABEL.certificates} />
             <ItemDelete edit={edit} sectionKey="certificates" id={cert.id} label={ADD_LABEL.certificates} />

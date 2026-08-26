@@ -2092,3 +2092,15 @@
 .rm-item-links-sep {
   opacity: 0.6;
 }
+
+
+/* The short named link a credential line ends with. It follows the issuer on
+   the same line, in the issuer's own colour, so it reads as part of that line
+   rather than as a new one. */
+.rm-mini-sub + .rm-mini-verify {
+  font-size: calc(var(--rm-fs) * 0.92);
+  color: var(--rm-muted);
+}
+.rm-mini-verify-sep {
+  opacity: 0.5;
+}

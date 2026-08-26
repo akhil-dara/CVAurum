@@ -141,6 +141,11 @@ export const CertificateSchema = z.object({
   date: z.string().optional().default(''),
   issuer: z.string().optional().default(''),
   url: z.string().optional().default(''),
+  /** Name the link and it is printed AFTER the issuer as a short word - the
+   *  "Verify" that a credential line usually ends with - leaving the title as
+   *  plain text. Leave it empty and the title itself is the link, which is how
+   *  this behaved before. */
+  urlLabel: z.string().optional(),
 })
 
 export const PublicationSchema = z.object({
