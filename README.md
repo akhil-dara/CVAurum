@@ -60,12 +60,14 @@ A resume tool should be beautiful, private, and instant — without asking you t
 ## 🚀 Features
 
 ### 🎨 Templates & Design
+
 - **52 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Marquee, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono, and Opal — each with icon-chip section headings and a refined type scale.
 - Most templates are **ATS-safe** and flagged with a shield so you know which ones parse cleanly.
 - **Full typography control:** separate body / heading / name fonts (**45 bundled, self-hosted fonts** — no CDN), font size, line-height, letter-spacing, accent colors, spacing, and margins.
 - **Layout freedom:** two-column ↔ single-column, **A4 or US-Letter** page size, light / dark / system theme.
 
 ### 📝 Editing Experience
+
 - **Edit directly on the resume** — click any text on the canvas (name, title, summary, company, bullets…) and type. Changes sync live to the form panel, undo/redo, and autosave. Prefer forms? Both work, always in sync.
 - **Live WYSIWYG preview** on an A4 / US-Letter page with **page-break guides** and full multi-page support.
 - **Rich text** (TipTap) for summaries and bullet points.
@@ -76,6 +78,8 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **⌘K / Ctrl+K command palette** — a keyboard-first, fuzzy-searchable menu for every action: switch any template, set a font or accent, add a section, change canvas mode, export, toggle theme — without touching the mouse.
 - **Slash commands** — type `/` in any summary for a quick-insert menu (quantified-bullet template, strong action verbs, %/$ metric placeholders, dates). On-device, no dependency.
 - **Focus mode** — dim everything except the section under your cursor for distraction-free editing.
+- **Links that read as words, not addresses** — every link keeps its _display text_ separate from where it _goes_, so a link can read "Portfolio" or "Verify" while pointing anywhere. One popover does add, change and remove, on the contact line, entry titles, **section headings**, and projects; contacts also choose their icon from 20 (LinkedIn, GitHub, GitLab, Scholar, Behance, Telegram…). A project can carry **several named links** — `Android-Phonepe-Forensics · Paytm-Forensics` — and a certification can end its line with a short **Verify**. Links are clickable in the exported PDF by default, and that can be turned off for a paper submission. Underlining them is a one-switch choice.
+- **Editing on a phone** — the canvas is a desktop surface, so on a phone the form panel _is_ the editor: contact icons, section heading links, and the whole per-section style sheet (heading style, skills layout, badge size and shape, bullets) open as a bottom sheet from the panel, with no horizontal scrolling.
 - **Per-entry logos** — add a small company / institution logo beside any experience, education, or volunteering entry, with a friendly cropper and per-section size & shape controls.
 - **Per-section bullet & meter styles** — pick the bullet marker (disc, circle, square, dash, arrow, check, diamond, none) and the skills/languages proficiency meter (dots, bars, stars, text, none) per section.
 - **Drag-and-drop section reordering** (dnd-kit), show/hide sections, custom sections, and section renaming.
@@ -86,28 +90,33 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Job application tracker:** a drag-and-drop kanban board (Wishlist → Applied → Interview → Offer → Rejected) to manage your search.
 
 ### 📊 ATS & Job Tailoring
+
 - **Deterministic ATS analysis** — instant, private, and **no LLM required**. Structural checks for contact info, summary, quantified bullets, action verbs, length, ATS-safe layout, and standard headings, plus an overall **ATS score**.
 - **Per-ATS parse simulation** — a deterministic, on-device emulation of how five real applicant-tracking systems (**Workday, Greenhouse, Lever, Taleo, iCIMS**) each read your résumé, with a per-system parse score, the profile it would extract, and the specific structural risks (two-column reading order, photos, non-standard headings, keyword stuffing…). The weakest system is the one that gates you. Framed honestly as guidance, not a claim about any vendor's internals.
 - **On-device writing coach** — flags weak/vague openers, passive voice, first-person pronouns, clichés, missing metrics, and over-long bullets, each with a concrete fix and stronger-verb suggestions. Pure string analysis; zero network.
-- **Recruiter skim heatmap** — see where a ~7-second first skim actually lands on *your* page: translucent heat over the live canvas plus a numbered **1→6 likely-gaze path**. Fully deterministic (type size · weight · F-pattern position · structure) and fully on-device — the same résumé always produces the same map, so you can iterate against it while you type. Toggle it from the ATS panel or ⌘K.
+- **Recruiter skim heatmap** — see where a ~7-second first skim actually lands on _your_ page: translucent heat over the live canvas plus a numbered **1→6 likely-gaze path**. Fully deterministic (type size · weight · F-pattern position · structure) and fully on-device — the same résumé always produces the same map, so you can iterate against it while you type. Toggle it from the ATS panel or ⌘K.
 - **“What ATS sees” view:** one click swaps the designed resume for the exact plain text an ATS parser reads — in its true reading order — so you can verify nothing is lost or scrambled before you apply.
 - **Live job-description tailoring:** paste a JD and instantly see **matched vs. missing keywords** and a **match score**.
-- **Semantic JD match (optional)** — goes beyond keywords: a small on-device language model ([MiniLM](https://huggingface.co/Xenova/all-MiniLM-L6-v2), Apache-2.0) checks whether each JD requirement is actually *expressed* in your résumé, even when the wording differs — “built CI pipelines” ≈ “automated build & deploy”. Strictly **opt-in** (a one-time ~34 MB download, **self-hosted from this site — never a third-party CDN**), runs in a worker on your device, and works offline after the first load.
+- **Semantic JD match (optional)** — goes beyond keywords: a small on-device language model ([MiniLM](https://huggingface.co/Xenova/all-MiniLM-L6-v2), Apache-2.0) checks whether each JD requirement is actually _expressed_ in your résumé, even when the wording differs — “built CI pipelines” ≈ “automated build & deploy”. Strictly **opt-in** (a one-time ~34 MB download, **self-hosted from this site — never a third-party CDN**), runs in a worker on your device, and works offline after the first load.
 
 ### 📄 Import & Export
+
 - **Import an existing PDF résumé** — drop in a PDF and CVAurum reconstructs it into editable, structured sections (contact, experience, education, skills…) **entirely in your browser — nothing is uploaded.** Text-based PDFs work best; scanned / image-only PDFs are read with **on-device OCR** (self-hosted [Tesseract](https://github.com/naptha/tesseract.js), no cloud). Always give the result a quick review.
-- **One-click PDF export** from CVAurum's own in-browser vector engine — **selectable, ATS-exact text** (not a rasterized image), verified pixel-faithful to the preview on every template, ~50 KB files, automatic print fallback.
+- **One-click PDF export** from CVAurum's own in-browser vector engine — **selectable, ATS-exact text** (not a rasterized image), verified pixel-faithful to the preview on every template, ~50 KB files, automatic print fallback. Links are exported as **real clickable regions**, not just underlined words.
 - **Word (.docx) export** — a clean, single-column, **ATS-friendly** Word document with real bullet lists, preserved bold, and your template's accent color and fonts. Generated entirely in your browser; nothing is uploaded.
 - **Import & export JSON Resume files** — built on the [JSON Resume schema](https://jsonresume.org/schema) so your data round-trips with the wider ecosystem.
 
 ### 🔐 Secure Sharing
+
 - **Encrypted share links** — send a private link whose résumé rides **inside the URL fragment** (which browsers never send to a server). The payload is **AES-256-GCM** encrypted with a key stretched from your passphrase via **PBKDF2-SHA-256 (600k iterations)** — so even if the link is cached or logged somewhere, it's unreadable without the passphrase (which you share through a different channel). Copy the link, use the native share sheet, or send it over WhatsApp; there is no plaintext link. For full-fidelity sharing with trusted people, export JSON.
 
 ### 📲 Installable & Offline (PWA)
+
 - **Install it like a native app** on desktop or mobile (Add to Home Screen / Install).
 - **Works fully offline, zero external requests** — all 45 fonts are **bundled** and the whole app is precached by a service worker, so CVAurum never contacts a third-party server (not even for fonts). Build resumes with no connection at all.
 
 ### 🔒 Privacy by Default
+
 - No server, no account, no analytics, no tracking, no cookies. (More in [Privacy](#-privacy).)
 
 ---
@@ -118,12 +127,12 @@ A resume tool should be beautiful, private, and instant — without asking you t
   <img src="docs/screenshots/hero.png" alt="CVAurum — a résumé this beautiful never leaves your browser" width="100%" />
 </p>
 
-| Edit right on the page | See how 5 ATS parse it |
-| --- | --- |
+| Edit right on the page                 | See how 5 ATS parse it                             |
+| -------------------------------------- | -------------------------------------------------- |
 | ![Editor](docs/screenshots/editor.png) | ![ATS parser simulation](docs/screenshots/ats.png) |
 
-| Restyle any section, live | Share an encrypted link |
-| --- | --- |
+| Restyle any section, live                          | Share an encrypted link                          |
+| -------------------------------------------------- | ------------------------------------------------ |
 | ![Per-section styles](docs/screenshots/styles.png) | ![Encrypted sharing](docs/screenshots/share.png) |
 
 <p align="center">
@@ -135,6 +144,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 ## ⚡ Quick Start
 
 ### Prerequisites
+
 - **Node.js ≥ 18.18**
 - A modern browser
 
@@ -154,51 +164,56 @@ Open **http://localhost:5173** and start building. CVAurum makes **zero external
 
 ### All scripts
 
-| Command | What it does |
-| --- | --- |
-| `npm install` | Install dependencies |
-| `npm run dev` | Start the Vite dev server on `http://localhost:5173` |
-| `npm run build` | Typecheck + production build to `dist/` |
-| `npm run preview` | Preview the production build locally |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run format` | Run Prettier |
+| Command             | What it does                                         |
+| ------------------- | ---------------------------------------------------- |
+| `npm install`       | Install dependencies                                 |
+| `npm run dev`       | Start the Vite dev server on `http://localhost:5173` |
+| `npm run build`     | Typecheck + production build to `dist/`              |
+| `npm run preview`   | Preview the production build locally                 |
+| `npm run typecheck` | `tsc --noEmit`                                       |
+| `npm run format`    | Run Prettier                                         |
 
 ---
 
 ## 🧭 Usage Highlights
 
 ### Templates
+
 Choose from **52 templates** and switch between them at any time — your content stays put while the design changes. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
 
 ### ATS Analysis & Job Tailoring
+
 The **ATS engine is fully deterministic** — it runs instantly, in your browser, with **no LLM and no network call**. It checks for the things real applicant tracking systems care about: contact details, a summary, quantified and action-verb-driven bullets, appropriate length, an ATS-safe layout, and standard section headings — then rolls everything into an overall **ATS score**.
 
 Want to target a specific role? Paste the **job description** into the tailoring panel and CVAurum highlights **matched vs. missing keywords** and gives you a live **match score** so you know exactly what to add.
 
 ### Import & Export
+
 **Bring in an existing PDF résumé** — CVAurum parses it into structured, editable sections right in your browser (the file is never uploaded). It detects columns, headings, dated entries, bullets, and contact details deterministically; **scanned or image-only PDFs fall back to on-device OCR** (a self-hosted Tesseract engine, loaded only when needed). PDF parsing is best-effort, so review the imported fields before you rely on them.
 
 CVAurum also speaks the **[JSON Resume schema](https://jsonresume.org/schema)**, with CVAurum's visual metadata namespaced under `meta.cvaurum`. That means you can:
+
 - **Import** an existing JSON Resume file and keep editing.
 - **Export** your resume as JSON Resume — exports **round-trip** with the JSON Resume ecosystem, and the `meta.cvaurum` namespace preserves your template, fonts, and layout choices.
 
 Imports are validated with **Zod**, so bringing in a file is safe and predictable.
 
 ### PDF Export
+
 CVAurum generates your PDF **directly in the browser with its own vector rendering engine** — one click, no print dialog, nothing uploaded. The export is true vector output: **real selectable text that round-trips exactly** through ATS parsers (verified across every template against the on-screen preview and against parser-view extraction), icons and accents as sharp vectors at any zoom, photos at original quality, and compact file sizes (~50 KB typical).
 
 Every export is validated by an automated gate before a template ships: the text layer must match the preview **exactly**, the reading order must be what a recruiter's parser expects, and the pixels must match the screen at least as faithfully as the browser's own print output.
 
 **Every export conforms to two ISO standards at once**, verified on every release against [veraPDF](https://verapdf.org/), the industry reference validator:
 
-- **PDF/A-2B** (ISO 19005-2) — the archival profile, with all fonts and an sRGB colour profile embedded so the file reproduces identically years from now. *144/144 rules, 0 failures.*
-- **PDF/UA-1** (ISO 14289-1) — the accessibility standard. The export is **fully tagged**: headings, paragraphs and bullet lists are real structure elements, and decoration is marked as an artifact, so a screen reader announces *"heading level 2, Experience"* instead of guessing from font sizes. *106/106 rules, 0 failures.*
+- **PDF/A-2B** (ISO 19005-2) — the archival profile, with all fonts and an sRGB colour profile embedded so the file reproduces identically years from now. _144/144 rules, 0 failures._
+- **PDF/UA-1** (ISO 14289-1) — the accessibility standard. The export is **fully tagged**: headings, paragraphs and bullet lists are real structure elements, and decoration is marked as an artifact, so a screen reader announces _"heading level 2, Experience"_ instead of guessing from font sizes. _106/106 rules, 0 failures._
 
 The structure tree also carries **logical reading order**, not paint order: on a sidebar template your name is announced first, even though the sidebar is painted first.
 
 Conformance is enforced across single-page, two-column, image-heavy and multi-page documents, and re-checked on the production build under its real Content-Security-Policy. Offline exports are conformant too — the colour profile is precached.
 
-**Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date and a declared document language, in an XMP metadata packet (PDF 2.0 retires the legacy info dictionary, so XMP is the single source of truth). Readers show *your name* in the title bar instead of the filename — and no library name appears anywhere in the file.
+**Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date and a declared document language, in an XMP metadata packet (PDF 2.0 retires the legacy info dictionary, so XMP is the single source of truth). Readers show _your name_ in the title bar instead of the filename — and no library name appears anywhere in the file.
 
 **Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have.
 
@@ -225,20 +240,20 @@ Your resume data never leaves your browser unless **you** explicitly export it (
 
 Everything is **client-side**:
 
-| Concern | Library |
-| --- | --- |
-| UI framework | **React 18** + **Vite** + **TypeScript** |
-| Styling / theming | **Tailwind CSS v3** (design tokens, dark mode) |
-| State | **Zustand** + **zundo** (undo/redo) |
-| Drag & drop | **dnd-kit** |
-| Animation | **Framer Motion** |
-| Rich text | **TipTap** |
-| Validation / safe import | **Zod** |
-| Local persistence | **idb-keyval** (IndexedDB) |
-| Word export | **docx** (in-browser .docx generation) |
-| Offline / installable | **vite-plugin-pwa** (Workbox service worker) |
-| Icons | **lucide-react** |
-| Data contract | **JSON Resume schema** + CVAurum metadata under `meta.cvaurum` |
+| Concern                  | Library                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| UI framework             | **React 18** + **Vite** + **TypeScript**                       |
+| Styling / theming        | **Tailwind CSS v3** (design tokens, dark mode)                 |
+| State                    | **Zustand** + **zundo** (undo/redo)                            |
+| Drag & drop              | **dnd-kit**                                                    |
+| Animation                | **Framer Motion**                                              |
+| Rich text                | **TipTap**                                                     |
+| Validation / safe import | **Zod**                                                        |
+| Local persistence        | **idb-keyval** (IndexedDB)                                     |
+| Word export              | **docx** (in-browser .docx generation)                         |
+| Offline / installable    | **vite-plugin-pwa** (Workbox service worker)                   |
+| Icons                    | **lucide-react**                                               |
+| Data contract            | **JSON Resume schema** + CVAurum metadata under `meta.cvaurum` |
 
 ---
 

@@ -398,6 +398,14 @@ export function Landing() {
               a="A resume is a concise, one-to-two page summary tailored to a specific job (common in the US). A CV is a longer, comprehensive record of your academic and professional history (standard in academia and much of Europe). CVAurum builds both — pick a compact template for a resume, or add sections for a full CV."
             />
             <Faq
+              q="Are the links in my PDF clickable?"
+              a="Yes, by default — they are real clickable regions in the file, not underlined words. Each link also keeps its display text separate from its destination, so it can read Portfolio or Verify while pointing anywhere: a project can carry several named links, and a certification can end its line with a short Verify. If you are printing on paper or submitting somewhere a live link is unwelcome, one switch in Design turns clickability off while keeping the text."
+            />
+            <Faq
+              q="Can I edit on my phone?"
+              a="Yes. The drag-and-drop canvas is a desktop surface, so on a phone the form panel is the editor — and everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop."
+            />
+            <Faq
               q="What file formats can I download?"
               a="A crisp vector PDF with real, selectable text; an editable Word (.docx) that mirrors your template; and the open JSON Resume format. Every export is free and unlimited — no paywall, no watermark."
             />
@@ -592,8 +600,8 @@ function HeroCinema({
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/65">
             52 designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a
-            built-in ATS check with a parser&apos;s-eye view, PDF import with on-device OCR — and not a single byte of
-            your career story sent to any server.
+            built-in ATS check with a parser&apos;s-eye view, PDF import with on-device OCR, exports whose links still
+            click — and not a single byte of your career story sent to any server.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
