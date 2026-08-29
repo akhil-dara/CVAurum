@@ -33,6 +33,7 @@ export function LinkButton({
   extra,
   renderTrigger,
   hint,
+  textPlaceholder,
   clickable = true,
 }: {
   href?: string
@@ -63,6 +64,9 @@ export function LinkButton({
   /** Replaces the default explanation line, for callers whose Shown as means
    *  something more specific - the heading card renames the heading with it. */
   hint?: string
+  /** Placeholder for the Shown as field, when the empty state has a specific
+   *  meaning - a credential suggests Verify there. */
+  textPlaceholder?: string
   /** Whether links are live in the export (metadata.links.clickable). */
   clickable?: boolean
 }) {
@@ -168,7 +172,7 @@ export function LinkButton({
             >
               {/* The two text fields stay together - they are the pair the
                   reader is comparing - and anything extra follows them. */}
-              {onText ? field('Shown as', draftText, setDraftText, 'Words on the page', true) : null}
+              {onText ? field('Shown as', draftText, setDraftText, textPlaceholder ?? 'Words on the page', true) : null}
               {field('Goes to', draft, setDraft, 'https://example.com', !onText)}
               {extra}
               <p className="mb-1.5 text-[10px] leading-snug text-muted-foreground">

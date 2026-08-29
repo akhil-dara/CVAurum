@@ -198,8 +198,15 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
   // `after` is where the link popup goes: the row's text is what the reader
   // sees, and the chain button beside it owns the address.
-  const field = (icon: ReactNode, el: ReactNode, key: string, after?: ReactNode, linked?: boolean) => (
-    <span className={`rm-contact${linked ? ' rm-contact-linked' : ''}`} key={key}>
+  // 'auto' marks rows whose link nobody AUTHORED - email and phone become
+  // mailto:/tel: on their own. They join the underline parity (print
+  // underlines them when underlining is on) but not the dotted link X-ray,
+  // which marks the words an author attached an address to.
+  const field = (icon: ReactNode, el: ReactNode, key: string, after?: ReactNode, linked?: boolean | 'auto') => (
+    <span
+      className={`rm-contact${linked ? ' rm-contact-linked' : ''}${linked === 'auto' ? ' rm-contact-auto' : ''}`}
+      key={key}
+    >
       {icons ? icon : null}
       {el}
       {after}
@@ -221,7 +228,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         undefined,
         // These flags mirror buildContacts exactly: the rows that print as
         // anchors are the rows the underline switch must reach on the canvas.
-        !!cleanEmail(b.email)
+        cleanEmail(b.email) ? 'auto' : undefined
       )}
       {field(
         <Phone />,
@@ -235,7 +242,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         />,
         'ph',
         undefined,
-        !!b.phone
+        b.phone ? 'auto' : undefined
       )}
       {field(
         <MapPin />,

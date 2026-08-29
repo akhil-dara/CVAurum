@@ -1336,13 +1336,23 @@
   opacity: 0;
   pointer-events: none;
   cursor: pointer;
-  border: none;
-  background: transparent;
-  color: inherit;
+  /* A BUTTON, not a ghost. It was a bare glyph in the pill's own text colour
+     over a transparent background - measured: the same rgb(122,94,34) as the
+     letter underneath it, i.e. invisible by construction (reported live,
+     2026-08-29). Opaque page-colour backing with a border and the danger
+     colour it acts in; it occludes the letter under it cleanly while the chip
+     is pointed at, which is this canvas's settled idiom for revealed
+     controls - there is no room beside the text without widening the chip,
+     and widening it is what broke WYSIWYG in the first place. */
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  background: var(--rm-bg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  color: #dc2626;
   font-size: 1em;
+  font-weight: 700;
   line-height: 1;
-  width: 1.2em;
-  height: 1.2em;
+  width: 1.35em;
+  height: 1.35em;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -1363,7 +1373,7 @@
 .rm-chip-del:hover,
 .rm-chip-del:focus-visible {
   color: #b91c1c;
-  background: color-mix(in srgb, #ef4444 20%, transparent);
+  background: color-mix(in srgb, #ef4444 18%, var(--rm-bg));
 }
 /* Match the chip's own padding rhythm so "+ skill" sits at the same height as
    the chips beside it, instead of a slightly mismatched pill in the wrap. */
@@ -1648,6 +1658,7 @@
   transition: opacity 0.15s ease;
 }
 .rm-item:hover .rm-logo-add,
+.rm-mini:hover .rm-logo-add,
 .rm-logo-btn:focus-visible .rm-logo-add {
   opacity: 1;
 }
@@ -1681,7 +1692,8 @@
    aligned left edge. Without this, only the title was pushed right, which
    read as a big ragged gap. --rm-mark-left lets padded layouts (timeline,
    cards) shift the gutter inward instead of fighting over padding. */
-.rm-item.rm-has-mark {
+.rm-item.rm-has-mark,
+.rm-mini.rm-has-mark {
   padding-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
 }
 /* The mark anchors to the HEAD (its positioned ancestor) and hangs one full
@@ -1689,14 +1701,20 @@
    much extra padding the layout (timeline, cards) added before it. */
 .rm-item.rm-has-mark > .rm-item-head .rm-item-logo,
 .rm-item.rm-has-mark > .rm-item-head .rm-item-badge,
-.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn {
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn,
+.rm-mini.rm-has-mark > .rm-item-head .rm-item-logo,
+.rm-mini.rm-has-mark > .rm-item-head .rm-logo-btn {
   position: absolute;
   left: calc(-1 * (var(--rm-badge-size, 1.65em) + 0.5em));
   top: 0.05em;
 }
-/* inside the edit-mode logo button, the mark itself stays in normal flow */
+/* inside the edit-mode logo button, the mark itself stays in normal flow -
+   without this the img is itself pulled to the gutter, out of its own button,
+   which collapses to 0x0 and leaves the img with no size basis (measured:
+   a 2px sliver where the certificate badge should be). */
 .rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-logo,
-.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-badge {
+.rm-item.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-badge,
+.rm-mini.rm-has-mark > .rm-item-head .rm-logo-btn .rm-item-logo {
   position: static;
 }
 
@@ -1762,13 +1780,14 @@
   height: 1.15em;
   margin: 0;
   padding: 0 0.12em;
-  border: 0;
-  border-radius: 0.35em;
-  background: color-mix(in srgb, currentColor 18%, var(--rm-bg));
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
-  color: var(--rm-muted);
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 9999px;
+  background: var(--rm-bg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  color: #dc2626;
   cursor: pointer;
   font-size: 0.9em;
+  font-weight: 700;
   line-height: 1;
 }
 .mode-preview .rm-inline-edit .rm-kw-edit:hover .rm-kw-x,
@@ -1809,7 +1828,7 @@
    and prints. Ink only, no geometry, so the line lays out exactly as it
    prints, and none of this exists in the print tree. */
 .rm-root.mode-preview:not(.links-underline) a[href],
-.rm-root.mode-preview:not(.links-underline) .rm-contact-linked > .rm-editable {
+.rm-root.mode-preview:not(.links-underline) .rm-contact-linked:not(.rm-contact-auto) > .rm-editable {
   text-decoration: underline dotted;
   text-decoration-color: color-mix(in srgb, var(--rm-primary) 50%, transparent);
   text-decoration-thickness: 1px;
@@ -1818,7 +1837,7 @@
 /* The same marks in gray when the export will not make them clickable: the
    links are kept, but a reader of the file cannot follow them. */
 .rm-root.mode-preview.links-off:not(.links-underline) a[href],
-.rm-root.mode-preview.links-off:not(.links-underline) .rm-contact-linked > .rm-editable {
+.rm-root.mode-preview.links-off:not(.links-underline) .rm-contact-linked:not(.rm-contact-auto) > .rm-editable {
   text-decoration-color: color-mix(in srgb, var(--rm-muted) 55%, transparent);
 }
 .rm-root.mode-preview.links-off.links-underline a[href],
@@ -1900,11 +1919,14 @@
   border-radius: 0.35em;
   /* currentColor keeps this legible on a white page and on a coloured
      sidebar alike, without either being named here. */
-  background: color-mix(in srgb, currentColor 18%, var(--rm-bg));
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
-  color: var(--rm-muted);
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  background: var(--rm-bg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  /* Full text colour, not muted: measured grey-on-grey at 10.7px, which the
+     author reasonably read as nothing there (reported live, 2026-08-29). */
+  color: var(--rm-text);
   cursor: grab;
-  font-size: 0.85em;
+  font-size: 0.95em;
   line-height: 1;
 }
 .rm-kw-grip:active {
@@ -2073,6 +2095,18 @@
   transform: translateY(-50%);
   margin: 0;
   width: 1.1em;
+  /* Quiet at rest. At 0.4 opacity the glyph FILLED the inter-contact gap, so
+     the line read as if its spacing had been trimmed away (reported live,
+     2026-08-29). The row's own hover or a tap brings it up - flush at
+     left:100%, so the pointer never crosses dead ground reaching it. */
+  opacity: 0;
+  pointer-events: none;
+}
+.mode-preview .rm-contact:hover > .rm-title-link-btn,
+.mode-preview .rm-contact:focus-within > .rm-title-link-btn,
+.rm-contact > .rm-title-link-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 .rm-title-link-btn.is-linked {
   color: var(--rm-primary);

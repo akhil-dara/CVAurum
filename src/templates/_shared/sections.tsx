@@ -1740,9 +1740,42 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
     <>
       {doc.content.certificates.map((cert, i) => {
         if (!edit && !anyText(cert.name, cert.issuer)) return null
+        // Locally-encoded only, like every logo here - a remote URL would
+        // break the zero-external-requests promise.
+        const logoOk = cert.logo && /^(data:image\/|blob:)/i.test(cert.logo) ? cert.logo : undefined
         return (
-          <div className="rm-mini" key={cert.id} data-item-id={cert.id}>
+          // The gutter exists only when the mark does - with edit alone it
+          // would be a canvas-only indent the print tree never has. The FIRST
+          // logo is born in the panel's Issuer logo picker; once it exists,
+          // the canvas badge is the full control.
+          <div className={`rm-mini${logoOk ? ' rm-has-mark' : ''}`} key={cert.id} data-item-id={cert.id}>
             <div className="rm-item-head">
+              {/* The same mark anatomy an entry has: the badge hangs in its
+                  own left gutter, so the name and the issuer line share one
+                  text edge instead of the issuer diving under the logo -
+                  which is what made the first placement read as clutter
+                  (reported live, 2026-08-29). While editing it is the same
+                  CanvasLogo control entries use: change, crop, size, shape. */}
+              {edit ? (
+                // With no logo yet this is the same hover-revealed "+ Logo"
+                // chip an entry shows - absolute in the left margin, so the
+                // canvas item still measures exactly what prints. Click it
+                // and the picker, cropper and size/shape menu are all the
+                // entry's own machinery.
+                <CanvasLogo
+                  logo={logoOk}
+                  onChange={(v) =>
+                    edit((c) => {
+                      c.certificates[i].logo = v
+                    })
+                  }
+                  size={opts?.badgeSize}
+                  shape={opts?.badgeShape}
+                  setBadge={opts?.setBadge}
+                />
+              ) : logoOk ? (
+                <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
+              ) : null}
               <span className="rm-mini-title">
                 {edit ? (
                   <Ed
@@ -1765,6 +1798,8 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                   label={cert.name || 'this certificate'}
                   text={cert.urlLabel}
                   clickable={opts?.linksClickable !== false}
+                  textPlaceholder='Verify - or leave empty to link the title'
+                  hint='The short word the line ends with, pointing at the credential.'
                   onChange={(v) =>
                     edit((c) => {
                       c.certificates[i].url = v
@@ -1911,6 +1946,8 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                   label={a.title || 'this award'}
                   text={a.urlLabel}
                   clickable={opts?.linksClickable !== false}
+                  textPlaceholder='Verify - or leave empty to link the title'
+                  hint='The short word the line ends with, pointing at the credential.'
                   onChange={(v) =>
                     edit((c) => {
                       c.awards[i].url = v

@@ -151,6 +151,9 @@ export const CertificateSchema = z.object({
    *  plain text. Leave it empty and the title itself is the link, which is how
    *  this behaved before. */
   urlLabel: z.string().optional(),
+  /** A small issuer logo beside the name - AWS's cube, Google's G - the same
+   *  locally-encoded-only deal an entry logo gets. */
+  logo: z.string().optional(),
 })
 
 export const PublicationSchema = z.object({

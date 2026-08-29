@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Labeled({ label, hint, children, className }: { label?: string; hint?: string; children: ReactNode; className?: string }) {
@@ -195,6 +195,36 @@ export function TagInput({
         {value.map((t, i) => (
           <span key={`${t}-${i}`} className="chip gap-1 bg-primary/10 text-primary">
             {t}
+            {/* Reorder lives in the panel too. The canvas grip is a desktop
+                affordance - a phone shows the panel, where until now the order
+                could not be changed at all. Buttons rather than drag, exactly
+                like entry reordering: reachable by tap and by keyboard. */}
+            <button
+              type="button"
+              className="disabled:opacity-25"
+              disabled={i === 0}
+              onClick={() => {
+                const next = [...value]
+                ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+                onChange(next)
+              }}
+              aria-label={`Move ${t} earlier`}
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              className="disabled:opacity-25"
+              disabled={i === value.length - 1}
+              onClick={() => {
+                const next = [...value]
+                ;[next[i], next[i + 1]] = [next[i + 1], next[i]]
+                onChange(next)
+              }}
+              aria-label={`Move ${t} later`}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
             <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))} aria-label={`Remove ${t}`}>
               <X className="h-3 w-3" />
             </button>

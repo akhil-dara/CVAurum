@@ -404,6 +404,16 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
       if (!t) return
       if (overlayRef.current?.contains(t)) return
       const r = root()
+      // Keyword-level hover means keyword-level work: a chip reveals its own
+      // grip and cross, and this ENTRY cluster would portal itself at the
+      // entry's top-right - measured landing exactly on the last chip's cross
+      // in a sidebar (clarity, inline skills), so the entry chrome swallowed
+      // the click meant for the chip's. The cluster stands back while the
+      // pointer is on a keyword; the entry's own gutter still summons it.
+      if (t.closest?.('.rm-chip-edit, .rm-kw-edit')) {
+        setHover(null)
+        return
+      }
       const item = t.closest?.<HTMLElement>('[data-item-id]')
       if (item && r?.contains(item)) {
         const sectionEl = item.closest<HTMLElement>('[data-section]')
@@ -468,7 +478,13 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
         <div
           ref={overlayRef}
           className="fixed z-40 flex items-center gap-1 rounded-full bg-surface/80 p-0.5 backdrop-blur-sm"
-          style={{ top: hover.top - 10, left: hover.right - 96 }}
+          // Fully ABOVE the entry, not 14px into it. Half-inside, it sat on
+          // the first keyword line of a narrow sidebar entry, and because it
+          // eats its own pointerover, the chip underneath could never be
+          // hovered again - the cluster kept itself alive by being pointed
+          // at. Above the top edge it can only cover the previous entry's
+          // tail, whose controls are not revealed - they need THEIR hover.
+          style={{ top: hover.top - 30, left: hover.right - 96 }}
           data-canvas-entry-cluster
         >
           <button
