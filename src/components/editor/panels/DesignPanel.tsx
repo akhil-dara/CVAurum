@@ -526,11 +526,11 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           />
         </div>
         <p className="-mt-1 text-[11px] text-muted-foreground">
-          Tidy drops https://, Full shows the address exactly as entered, Short keeps just the handle. Every link stays
-          clickable in the exported PDF whichever you pick.
+          Tidy drops https://, Full shows the address exactly as entered, Short keeps just the handle. How a link
+          reads is separate from whether it is clickable - the toggle below decides that.
         </p>
         <Toggle
-          label="Clickable in the PDF"
+          label="Clickable links (PDF and Word)"
           checked={m.links?.clickable !== false}
           onChange={(v) =>
             update((md) => {

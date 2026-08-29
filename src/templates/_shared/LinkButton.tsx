@@ -170,7 +170,13 @@ export function LinkButton({
                     ? 'Leave "Shown as" empty to print the address itself.'
                     : `Reads as "${text || label}" on the page.`)}
                 {clickable ? null : (
-                  <span className="text-danger"> Links are off for this document - turn them on under Design.</span>
+                  <span className="text-danger">
+                    {' '}
+                    Links are off for this document - turn them on under Design.
+                    {onText
+                      ? ' With links off, a name hides the address - leave "Shown as" empty to print the address itself.'
+                      : ''}
+                  </span>
                 )}
               </p>
               <div className="flex items-center gap-1">

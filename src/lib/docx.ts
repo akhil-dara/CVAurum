@@ -70,6 +70,12 @@ function toHex(c: string | undefined, fallback: string): string {
 }
 
 /** Mix a hex color toward another (0..1) — used to dim sidebar muted text. */
+/** Whether this export writes live hyperlinks. Set per export, like SIZE.
+ *  The PDF has always honoured the author's clickable switch - annotations
+ *  are skipped, ink unchanged - and the Word file ignored it, so choosing
+ *  "not clickable" produced a dead-text PDF and a fully live .docx. */
+let LINKS_LIVE = true
+
 function inlineRuns(node: Node, color: string, bold = false, italics = false, size: number = SIZE.body): ParagraphChild[] {
   const runs: ParagraphChild[] = []
   node.childNodes.forEach((child) => {
@@ -88,7 +94,7 @@ function inlineRuns(node: Node, color: string, bold = false, italics = false, si
     // An inline link made on the canvas is a real hyperlink here too - it
     // used to flatten to its words alone, so the Word copy lost the address.
     if (tag === 'a') {
-      const href = safeHref(el.getAttribute('href') || '')
+      const href = LINKS_LIVE ? safeHref(el.getAttribute('href') || '') : undefined
       const inner = inlineRuns(el, color, bold, italics, size)
       if (href && inner.length) {
         runs.push(new ExternalHyperlink({ children: inner, link: href }))
@@ -156,7 +162,7 @@ const titleDate = (title: string, date: string | undefined, C: Ctx, width: numbe
   const titleRun = new TextRun({ text: title, bold: true, color: C.body, size: SIZE.title })
   // A linked title is a hyperlink here for the same reason it is one in the
   // PDF: the page made its own title the link, so the Word copy does too.
-  const href = url ? safeHref(url) : undefined
+  const href = url && LINKS_LIVE ? safeHref(url) : undefined
   const kids: ParagraphChild[] = [href ? new ExternalHyperlink({ children: [titleRun], link: href }) : titleRun]
   if (date) kids.push(new TextRun({ text: `\t${date}`, color: C.muted, size: SIZE.date }))
   return new Paragraph({
@@ -177,7 +183,9 @@ const titleDate = (title: string, date: string | undefined, C: Ctx, width: numbe
  */
 const linkRun = (url: string | undefined, words: string, C: Ctx, size: number = SIZE.sub): ParagraphChild => {
   const run = new TextRun({ text: words, color: C.accent, size, underline: {} })
-  const href = safeHref(url)
+  // With links off the words keep their look and lose only the liveness -
+  // the same deal the PDF gives them.
+  const href = LINKS_LIVE ? safeHref(url) : undefined
   return href ? new ExternalHyperlink({ children: [run], link: href }) : run
 }
 
@@ -465,7 +473,7 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
         spacing: { after: 100 },
         children: shown.flatMap((c, i) => [
           ...(i > 0 ? [new TextRun({ text: '   •   ', color: C.muted, size: SIZE.sub })] : []),
-          c.url && safeHref(c.url)
+          c.url && LINKS_LIVE && safeHref(c.url)
             ? linkRun(c.url, c.words, C)
             : new TextRun({ text: c.words, color: C.muted, size: SIZE.sub }),
         ]),
@@ -478,6 +486,7 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
 
 export async function exportDocumentDocx(doc: ResumeDocument, filename?: string, fitScale = 1) {
   const { metadata } = doc
+  LINKS_LIVE = metadata.links?.clickable !== false
   // Apply the live one-page fit so the Word doc lands on the same page count as
   // the PDF. Clamp to the same floor the on-screen fit uses (never unreadable).
   const scale = Math.min(1, Math.max(0.66, fitScale || 1))
