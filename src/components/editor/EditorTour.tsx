@@ -18,19 +18,31 @@ interface Step {
   sel?: string
   title: string
   body: string
+  /** What this step says on a phone, where the canvas is hidden behind the
+   *  panel and hover does not exist. The desktop body told a phone user to
+   *  click text they could not see and hover things a finger cannot - the
+   *  guidance was WRONG there, not merely unanchored (reported live,
+   *  2026-08-29). Steps without one read the same everywhere. */
+  mobileBody?: string
+  /** A step about a desktop-only surface (the command palette) is skipped on
+   *  a phone rather than described apologetically. */
+  desktopOnly?: boolean
 }
 
+/* Titles carry no numbers - the prefix is added at render, so skipping the
+   desktop-only steps on a phone keeps the numbering sequential. */
 const STEPS: Step[] = [
   { title: 'Welcome — quick tour 👋', body: "A 30-second look at where everything is. Skip anytime, and reopen it from the “?” in the top bar." },
-  { sel: '[data-tour="nav"]', title: '1 · Choose a section', body: 'Switch between Content, Design, Templates, and the ATS check here.' },
-  { sel: '[data-tour="panel"]', title: '2 · Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
-  { sel: '[data-tour="canvas"]', title: '3 · Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.' },
-  { sel: '[data-tour="canvas"]', title: '4 · Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The eye icon beside it hides the section. The header has its own Style pill too, with photo/monogram options.' },
-  { sel: '[data-tour="modes"]', title: '5 · Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads — plus a per-system parse simulation (Workday, Greenhouse, Lever, Taleo, iCIMS) and an on-device writing coach.' },
-  { sel: '[data-tour="templates"]', title: '6 · Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.' },
-  { sel: '[data-tour="share"]', title: '7 · Share privately', body: 'Send an encrypted link — your résumé is sealed with a passphrase inside the link and never touches a server, so even a cached link can’t be read without it.' },
-  { sel: '[data-tour="palette"]', title: '8 · Do anything with ⌘K', body: 'Press ⌘K / Ctrl+K for a command palette — switch templates, fonts, accents, add sections, change mode. Inside a summary, type “/” for quick inserts.' },
-  { sel: '[data-tour="export"]', title: '9 · Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
+  { sel: '[data-tour="nav"]', title: 'Choose a section', body: 'Switch between Content, Design, Templates, and the ATS check here.', mobileBody: 'The bottom bar switches between Content, Design, Templates, the ATS check and Preview.' },
+  { sel: '[data-tour="panel"]', title: 'Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
+  { sel: '[data-tour="canvas"]', title: 'Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.', mobileBody: 'On a phone this panel is the editor — everything you type lands on the resume instantly. Tap Preview any time to see the page itself.' },
+  { sel: '[data-tour="canvas"]', title: 'Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The eye icon beside it hides the section. The header has its own Style pill too, with photo/monogram options.', mobileBody: 'Open “Style” beside any section in the panel for its full style sheet — heading style, skills layout, badge size and shape. The ⋯ menu renames, hides or removes it.' },
+  { title: 'Links that read as words', body: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Click the chain beside a title or contact, or the printed word itself, for one card: Shown as, Goes to, and whether exports make links clickable. While editing, a faint dotted mark shows which words carry a link.', mobileBody: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Each link is a plain pair of fields in the panel, and one switch (in any link card, or under Design) turns clickability on or off for the whole document.' },
+  { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads — plus a per-system parse simulation (Workday, Greenhouse, Lever, Taleo, iCIMS) and an on-device writing coach.' },
+  { sel: '[data-tour="templates"]', title: 'Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.', mobileBody: 'Try any of 52 designs — tap one to switch. Nothing is re-typed.' },
+  { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link — your résumé is sealed with a passphrase inside the link and never touches a server, so even a cached link can’t be read without it.' },
+  { sel: '[data-tour="palette"]', title: 'Do anything with ⌘K', body: 'Press ⌘K / Ctrl+K for a command palette — switch templates, fonts, accents, add sections, change mode. Inside a summary, type “/” for quick inserts.', desktopOnly: true },
+  { sel: '[data-tour="export"]', title: 'Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
 ]
 
 export function EditorTour() {
@@ -62,7 +74,11 @@ export function EditorTour() {
     return () => window.removeEventListener('cvaurum:open-tour', onOpen)
   }, [])
 
-  const step = STEPS[i]
+  // md is where the canvas appears beside the panel (`hidden md:block`), so
+  // it is also where the desktop wording becomes true.
+  const mobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  const steps = mobile ? STEPS.filter((st) => !st.desktopOnly) : STEPS
+  const step = steps[i]
 
   // Measure the current target (re-measure on step change, resize, scroll).
   const measure = useCallback(() => {
@@ -96,7 +112,7 @@ export function EditorTour() {
 
   if (!open) return null
 
-  const last = i === STEPS.length - 1
+  const last = i === steps.length - 1
   const vw = window.innerWidth
   const vh = window.innerHeight
 
@@ -140,18 +156,19 @@ export function EditorTour() {
         <div className="mb-1 flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             {i === 0 && <Sparkles className="h-4 w-4 text-primary" />}
+            {i > 0 ? `${i} · ` : ''}
             {step.title}
           </div>
           <button className="btn-icon h-6 w-6 shrink-0" onClick={finish} aria-label="Skip tour" title="Skip">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{(mobile && step.mobileBody) || step.body}</p>
 
         <div className="mt-4 flex items-center justify-between">
           {/* progress dots */}
           <div className="flex items-center gap-1.5">
-            {STEPS.map((_, n) => (
+            {steps.map((_, n) => (
               <span key={n} className={`h-1.5 rounded-full transition-all ${n === i ? 'w-4 bg-primary' : 'w-1.5 bg-muted-foreground/30'}`} />
             ))}
           </div>
