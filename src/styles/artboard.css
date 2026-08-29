@@ -1800,6 +1800,33 @@
   text-decoration-thickness: from-font;
 }
 
+/* LINK X-RAY (editing only). Nothing at rest said which words carry a link -
+   with underlining off (the default), a linked Linkedin and a plain word were
+   pixel-identical, and whether the export would make them clickable was
+   invisible without opening Design. While editing, linked text shows a DOTTED
+   underline - dotted is this canvas's editor-information mark (the named-link
+   hover already speaks it), solid remains the document's own underline choice
+   and prints. Ink only, no geometry, so the line lays out exactly as it
+   prints, and none of this exists in the print tree. */
+.rm-root.mode-preview:not(.links-underline) a[href],
+.rm-root.mode-preview:not(.links-underline) .rm-contact-linked > .rm-editable {
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, var(--rm-primary) 50%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+/* The same marks in gray when the export will not make them clickable: the
+   links are kept, but a reader of the file cannot follow them. */
+.rm-root.mode-preview.links-off:not(.links-underline) a[href],
+.rm-root.mode-preview.links-off:not(.links-underline) .rm-contact-linked > .rm-editable {
+  text-decoration-color: color-mix(in srgb, var(--rm-muted) 55%, transparent);
+}
+.rm-root.mode-preview.links-off.links-underline a[href],
+.rm-root.mode-preview.links-off.links-underline .rm-contact-linked > .rm-editable {
+  text-decoration-style: dotted;
+  text-decoration-color: color-mix(in srgb, var(--rm-muted) 70%, transparent);
+}
+
 /* Reorder grip on a keyword. Same discoverability as the remove control: it
    appears on hover or focus rather than sitting on every chip permanently,
    because a resume covered in grips is noise. */

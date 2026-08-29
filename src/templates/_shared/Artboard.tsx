@@ -667,6 +667,7 @@ function Section({
             href={ss?.url}
             label={sectionLabel(sectionKey, doc)}
             text={sectionLabel(sectionKey, doc)}
+            hint='"Shown as" renames the heading. Leave the address empty to remove the link.'
             clickable={doc.metadata.links?.clickable !== false}
             // The card used to say the heading's words could be edited on the
             // page itself - true for entry titles, false here, where the
@@ -792,6 +793,10 @@ export function Artboard({
     // Underlining links is off by default - a resume full of underlines reads
     // badly - but a reader cannot otherwise SEE which text is clickable.
     doc.metadata.links?.underline ? 'links-underline' : '',
+    // Editing-time signal only: the canvas grays its link marks when the
+    // export will not make them clickable, so the state is visible without
+    // opening Design. Print styling never reads this class.
+    doc.metadata.links?.clickable === false ? 'links-off' : '',
   ]
     .filter(Boolean)
     .join(' ')

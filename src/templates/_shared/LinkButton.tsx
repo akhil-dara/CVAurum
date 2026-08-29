@@ -27,6 +27,7 @@ export function LinkButton({
   onRemove,
   extra,
   renderTrigger,
+  hint,
   clickable = true,
 }: {
   href?: string
@@ -54,6 +55,9 @@ export function LinkButton({
    *  caller the opener lets the word itself be the control: nothing is added
    *  to the line, and a tap lands on a whole word rather than a 12px glyph. */
   renderTrigger?: (open: (e: { currentTarget: EventTarget | null; preventDefault: () => void }) => void, linked: boolean) => ReactNode
+  /** Replaces the default explanation line, for callers whose Shown as means
+   *  something more specific - the heading card renames the heading with it. */
+  hint?: string
   /** Whether links are live in the export (metadata.links.clickable). */
   clickable?: boolean
 }) {
@@ -157,13 +161,17 @@ export function LinkButton({
               {onText ? field('Shown as', draftText, setDraftText, 'Words on the page', true) : null}
               {field('Goes to', draft, setDraft, 'https://example.com', !onText)}
               {extra}
+              {/* One line, and the default state goes unnarrated: a card that
+                  recites "clickable in the exported PDF" under every link is
+                  noise, while the OFF state is the surprise worth a sentence. */}
               <p className="mb-2 text-[10px] leading-snug text-muted-foreground">
-                {onText
-                  ? 'Leave "Shown as" empty to print the address itself.'
-                  : `Reads as "${text || label}" on the page - edit those words on the page itself.`}{' '}
-                {clickable
-                  ? 'Clickable in the exported PDF.'
-                  : 'Not clickable in the export - turn links on under Design.'}
+                {hint ??
+                  (onText
+                    ? 'Leave "Shown as" empty to print the address itself.'
+                    : `Reads as "${text || label}" on the page.`)}
+                {clickable ? null : (
+                  <span className="text-danger"> Links are off for this document - turn them on under Design.</span>
+                )}
               </p>
               <div className="flex items-center gap-1">
                 <button
@@ -186,7 +194,7 @@ export function LinkButton({
                     onMouseDown={stop}
                     onClick={remove}
                   >
-                    {onRemove ? 'Remove' : 'Remove link'}
+                    Remove
                   </button>
                 ) : null}
               </div>
