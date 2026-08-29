@@ -6,6 +6,12 @@
  */
 
 .rm-root {
+  /* The artboard owns its own alignment. The dashboard renders a thumbnail
+     inside a card that centres its label, and without this the whole resume
+     inherited that centre - every line of the preview centred while the same
+     document sat left-aligned in the editor (reported live, 2026-08-29).
+     Blocks that centre on purpose (rm-center headers) still say so. */
+  text-align: left;
   --rm-fs: 10.5px;
   --rm-lh: 1.4;
   --rm-ls: 0em;
@@ -1439,6 +1445,23 @@
   left: auto;
   right: 0.1em;
   margin-left: 0;
+}
+/* The trash hangs 0.3em outside its entry, and that strip was dead ground:
+   crossing it dropped the entry's hover, the button went pointer-events:none,
+   and it could never come back - hovering the button's own box hit nothing,
+   so the only way to see it again was to re-enter the entry (measured:
+   visible-at-arrival 0 in projects, education and work; reported live,
+   2026-08-29). While the button is touchable, its hit area now reaches back
+   over the gap to the entry's edge, so the crossing never leaves the entry's
+   hover tree. At rest the button is pointer-events:none, so this extra area
+   steals nothing from the page. */
+.mode-preview .rm-item-del::before {
+  content: '';
+  position: absolute;
+  left: -0.5em;
+  top: -0.3em;
+  bottom: -0.3em;
+  width: 0.7em;
 }
 .mode-preview .rm-item-del svg {
   width: 0.9em;
