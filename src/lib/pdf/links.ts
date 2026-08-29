@@ -45,6 +45,33 @@ export function linkTarget(raw?: string | null): string | null {
  * `aria-hidden` anchors are skipped: the templates mark decoration that way,
  * and a decorative mark is not something a reader should be able to click.
  */
+type Box = { left: number; top: number; width: number; height: number }
+
+/** Merge rects that sit on the same line into the line box they came from.
+ *  Exported for its unit test - the two-line case is the one that matters and
+ *  a browser probe could not be made to produce a wrapping anchor reliably. */
+export function mergeRuns(rects: Box[]): Box[] {
+  const out: Box[] = []
+  for (const r of rects.slice().sort((x, y) => x.top - y.top || x.left - y.left)) {
+    const last = out[out.length - 1]
+    // Same line when the vertical extents overlap by most of their height -
+    // superscripts and inline icons sit apart and stay apart.
+    const sameLine =
+      last && Math.min(last.top + last.height, r.top + r.height) - Math.max(last.top, r.top) > Math.min(last.height, r.height) * 0.6
+    if (!sameLine) {
+      out.push({ left: r.left, top: r.top, width: r.width, height: r.height })
+      continue
+    }
+    const left = Math.min(last.left, r.left)
+    const top = Math.min(last.top, r.top)
+    last.width = Math.max(last.left + last.width, r.left + r.width) - left
+    last.height = Math.max(last.top + last.height, r.top + r.height) - top
+    last.left = left
+    last.top = top
+  }
+  return out
+}
+
 export function collectLinkOps(root: HTMLElement): DrawOp[] {
   // The unit suite drives buildDrawList with a hand-built element stub rather
   // than a real DOM. A stub that cannot be queried simply has no anchors -
@@ -62,7 +89,13 @@ export function collectLinkOps(root: HTMLElement): DrawOp[] {
     if (hidden) continue
     const url = linkTarget(a.getAttribute('href'))
     if (!url) continue
-    for (const r of Array.from(a.getClientRects())) {
+    // getClientRects can hand back one rect PER WORD, not per line - a title
+    // reading "Pulse - Open-source observability" came back as three, and the
+    // spaces between the words were then not clickable at all. Rects sharing a
+    // line are merged back into the line box they came from; a link that
+    // genuinely wraps still gets one rect per line, which is the point of
+    // walking rects in the first place.
+    for (const r of mergeRuns(Array.from(a.getClientRects()))) {
       if (r.width <= 0 || r.height <= 0) continue
       ops.push({
         kind: 'link',
