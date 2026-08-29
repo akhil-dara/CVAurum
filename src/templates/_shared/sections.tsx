@@ -1187,7 +1187,18 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 />
               ) : null}
             </div>
-            {has(e.summary) ? <RichText html={e.summary} /> : null}
+            {has(e.summary) || edit ? (
+              <Ed
+                edit={edit}
+                value={e.summary ?? ''}
+                apply={(c, val) => {
+                  c.education[i].summary = val
+                }}
+                rich
+                multiline
+                placeholder="Summary"
+              />
+            ) : null}
             {e.courses?.length ? (
               <div className="rm-skill-inline">
                 <KeywordList items={e.courses} sep=" · " />
@@ -1278,23 +1289,51 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 it duplicated the title's own link editor, so two controls
                 wrote one value and each undid the other. The title's chain
                 button is where a project link is SET; this line displays it. */}
-            {edit && p.url ? (
+            {p.url ? (
               <div className="rm-item-link">
-                <Ed
-                  edit={edit}
-                  value={p.url}
-                  apply={(c, v) => {
-                    c.projects[i].url = v
-                  }}
-                  placeholder="Project link (e.g. github.com/you/project)"
-                />
-              </div>
-            ) : !edit && p.url ? (
-              <div className="rm-item-link">
-                {/* The author's link-display choice reached the Word file and
-                    the ATS text but not the page it came from, so setting it
-                    to full or short changed two of the three. */}
-                {safeHref(p.url) ? (
+                {/* Same words in both modes - the edit branch used to show the
+                    raw address while print showed the tidied one, which is up
+                    to a line-wrap of divergence. On the canvas the words are
+                    the control, like every other named link. */}
+                {edit ? (
+                  <LinkButton
+                    href={p.url}
+                    label={p.name || 'this project'}
+                    clickable={opts?.linksClickable !== false}
+                    renderTrigger={(open) => (
+                      <a
+                        className="rm-named-link is-editable"
+                        href={safeHref(p.url)}
+                        role="button"
+                        tabIndex={0}
+                        title={`Edit this link: ${p.url}`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            open(e)
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          open(e)
+                        }}
+                      >
+                        {prettyUrl(p.url, doc.metadata.links?.display)}
+                      </a>
+                    )}
+                    onChange={(v) =>
+                      edit((c) => {
+                        c.projects[i].url = v
+                      })
+                    }
+                    onRemove={() =>
+                      edit((c) => {
+                        c.projects[i].url = ''
+                      })
+                    }
+                  />
+                ) : safeHref(p.url) ? (
                   <a href={safeHref(p.url)}>{prettyUrl(p.url, doc.metadata.links?.display)}</a>
                 ) : (
                   prettyUrl(p.url, doc.metadata.links?.display)
@@ -1309,6 +1348,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                   apply={(c, v) => {
                     c.projects[i].description = v
                   }}
+                  rich
                   placeholder="One-line description"
                 />
               </div>
@@ -1970,7 +2010,18 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                 )}
               </span>
             ) : null}
-            {has(a.summary) ? <RichText html={a.summary} /> : null}
+            {has(a.summary) || edit ? (
+              <Ed
+                edit={edit}
+                value={a.summary ?? ''}
+                apply={(c, val) => {
+                  c.awards[i].summary = val
+                }}
+                rich
+                multiline
+                placeholder="Summary"
+              />
+            ) : null}
             <ItemMove edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
             <ItemDelete edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
           </div>
@@ -2023,7 +2074,18 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                 placeholder="Publisher"
               />
             ) : null}
-            {has(p.summary) ? <RichText html={p.summary} /> : null}
+            {has(p.summary) || edit ? (
+              <Ed
+                edit={edit}
+                value={p.summary ?? ''}
+                apply={(c, val) => {
+                  c.publications[i].summary = val
+                }}
+                rich
+                multiline
+                placeholder="Summary"
+              />
+            ) : null}
             <ItemMove edit={edit} sectionKey="publications" id={p.id} label={ADD_LABEL.publications} />
             <ItemDelete edit={edit} sectionKey="publications" id={p.id} label={ADD_LABEL.publications} />
           </div>
@@ -2093,7 +2155,18 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 />
               </div>
             ) : null}
-            {has(v.summary) ? <RichText html={v.summary} /> : null}
+            {has(v.summary) || edit ? (
+              <Ed
+                edit={edit}
+                value={v.summary ?? ''}
+                apply={(c, val) => {
+                  c.volunteer[i].summary = val
+                }}
+                rich
+                multiline
+                placeholder="Summary"
+              />
+            ) : null}
             {show(opts?.showBullets) ? (
               <Bullets
                 items={v.highlights}

@@ -198,8 +198,8 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
   // `after` is where the link popup goes: the row's text is what the reader
   // sees, and the chain button beside it owns the address.
-  const field = (icon: ReactNode, el: ReactNode, key: string, after?: ReactNode) => (
-    <span className="rm-contact" key={key}>
+  const field = (icon: ReactNode, el: ReactNode, key: string, after?: ReactNode, linked?: boolean) => (
+    <span className={`rm-contact${linked ? ' rm-contact-linked' : ''}`} key={key}>
       {icons ? icon : null}
       {el}
       {after}
@@ -217,7 +217,11 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           }}
           placeholder="email@example.com"
         />,
-        'em'
+        'em',
+        undefined,
+        // These flags mirror buildContacts exactly: the rows that print as
+        // anchors are the rows the underline switch must reach on the canvas.
+        !!cleanEmail(b.email)
       )}
       {field(
         <Phone />,
@@ -229,7 +233,9 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           }}
           placeholder="+1 555 000 0000"
         />,
-        'ph'
+        'ph',
+        undefined,
+        !!b.phone
       )}
       {field(
         <MapPin />,
@@ -293,7 +299,8 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
               c.basics.url = v.trim()
             })
           }
-        />
+        />,
+        !!b.url
       )}
       {(b.profiles ?? []).map((p, i) => {
         const Icon = contactIcon(p.network, p.icon)
@@ -359,7 +366,8 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
                     ;(c.basics.profiles ??= [])[i].url = v.trim()
                   })
                 }
-              />
+              />,
+              !!p.url?.trim()
             )
           : null
       })}
@@ -660,6 +668,18 @@ function Section({
             label={sectionLabel(sectionKey, doc)}
             text={sectionLabel(sectionKey, doc)}
             clickable={doc.metadata.links?.clickable !== false}
+            // The card used to say the heading's words could be edited on the
+            // page itself - true for entry titles, false here, where the
+            // heading is a plain span. Shown as now renames it for real,
+            // through the same record the panel's Rename writes, so the words
+            // are edited in the card that talks about them.
+            onText={(v) =>
+              editMeta((m) => {
+                const next = v.trim()
+                if (next) (m.layout.headings ??= {})[sectionKey] = next
+                else if (m.layout.headings) delete m.layout.headings[sectionKey]
+              })
+            }
             onChange={(v) =>
               editMeta((m) => {
                 const bag = ((m.layout.sectionSettings ??= {})[sectionKey] ??= {}) as Record<string, unknown>

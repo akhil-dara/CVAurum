@@ -1767,6 +1767,15 @@
   text-underline-offset: 0.15em;
   text-decoration-thickness: from-font;
 }
+/* The editing canvas has no anchors in the contact block - the rows are
+   editors - so the switch changed the export and not the page the author was
+   looking at. The rows that print as links carry a marker instead, and get
+   the same decoration the printed anchor gets. */
+.rm-root.links-underline.mode-preview .rm-contact-linked > .rm-editable {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: from-font;
+}
 
 /* Reorder grip on a keyword. Same discoverability as the remove control: it
    appears on hover or focus rather than sitting on every chip permanently,
@@ -2115,7 +2124,7 @@
 /* The short named link a credential line ends with. It follows the issuer on
    the same line, in the issuer's own colour, so it reads as part of that line
    rather than as a new one. */
-.rm-mini-sub + .rm-mini-verify {
+.rm-mini-verify {
   font-size: calc(var(--rm-fs) * 0.92);
   color: var(--rm-muted);
 }

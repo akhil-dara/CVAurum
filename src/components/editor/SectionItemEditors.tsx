@@ -479,12 +479,9 @@ function ItemFields({
               singleWith={item.startDate}
             />
           </Row>
-          <TextField
-            label="One-line description"
-            value={item.description}
-            onChange={set('description')}
-            placeholder="What is it?"
-          />
+          <Labeled label="One-line description">
+            <RichTextEditor value={item.description ?? ''} onChange={set('description')} minHeight={36} />
+          </Labeled>
           <BulletsEditor label="Highlights" items={item.highlights ?? []} onChange={set('highlights')} />
           <TagInput label="Tech / keywords" value={item.keywords ?? []} onChange={set('keywords')} />
         </>

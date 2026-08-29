@@ -200,8 +200,10 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
       timer.current = setTimeout(commit, 300)
       return
     }
-    // Plain single-line fields: Enter commits & blurs.
-    if (!rich) {
+    // Single-line fields - plain or rich - commit and leave on Enter. A rich
+    // one-liner used to fall through to the browser default, which split a
+    // one-line value into two paragraphs.
+    if (!rich || !multiline) {
       e.preventDefault()
       ;(e.target as HTMLElement).blur()
     }

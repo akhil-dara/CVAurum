@@ -70,12 +70,12 @@ function toHex(c: string | undefined, fallback: string): string {
 }
 
 /** Mix a hex color toward another (0..1) — used to dim sidebar muted text. */
-function inlineRuns(node: Node, color: string, bold = false, italics = false): TextRun[] {
-  const runs: TextRun[] = []
+function inlineRuns(node: Node, color: string, bold = false, italics = false, size: number = SIZE.body): ParagraphChild[] {
+  const runs: ParagraphChild[] = []
   node.childNodes.forEach((child) => {
     if (child.nodeType === 3) {
       const t = child.textContent ?? ''
-      if (t) runs.push(new TextRun({ text: t, bold, italics, color, size: SIZE.body }))
+      if (t) runs.push(new TextRun({ text: t, bold, italics, color, size }))
       return
     }
     if (child.nodeType !== 1) return
@@ -85,17 +85,27 @@ function inlineRuns(node: Node, color: string, bold = false, italics = false): T
       runs.push(new TextRun({ text: '', break: 1 }))
       return
     }
-    runs.push(...inlineRuns(el, color, bold || tag === 'strong' || tag === 'b', italics || tag === 'em' || tag === 'i'))
+    // An inline link made on the canvas is a real hyperlink here too - it
+    // used to flatten to its words alone, so the Word copy lost the address.
+    if (tag === 'a') {
+      const href = safeHref(el.getAttribute('href') || '')
+      const inner = inlineRuns(el, color, bold, italics, size)
+      if (href && inner.length) {
+        runs.push(new ExternalHyperlink({ children: inner, link: href }))
+        return
+      }
+    }
+    runs.push(...inlineRuns(el, color, bold || tag === 'strong' || tag === 'b', italics || tag === 'em' || tag === 'i', size))
   })
   return runs
 }
-function richToRuns(html: string, color: string): TextRun[] {
+function richToRuns(html: string, color: string, size: number = SIZE.body): ParagraphChild[] {
   const tmp = document.createElement('div')
   tmp.innerHTML = sanitizeHtml(html)
-  const runs = inlineRuns(tmp, color)
-  return runs.length ? runs : [new TextRun({ text: htmlToText(html), color, size: SIZE.body })]
+  const runs = inlineRuns(tmp, color, false, false, size)
+  return runs.length ? runs : [new TextRun({ text: htmlToText(html), color, size })]
 }
-function richToBlocks(html: string, color: string): TextRun[][] {
+function richToBlocks(html: string, color: string): ParagraphChild[][] {
   const tmp = document.createElement('div')
   tmp.innerHTML = sanitizeHtml(html)
   const blockTags = new Set(['P', 'DIV', 'UL', 'OL', 'LI'])
@@ -104,7 +114,7 @@ function richToBlocks(html: string, color: string): TextRun[][] {
     const runs = inlineRuns(tmp, color)
     return runs.length ? [runs] : []
   }
-  const blocks: TextRun[][] = []
+  const blocks: ParagraphChild[][] = []
   const collect = (el: Element) => {
     if (el.tagName === 'UL' || el.tagName === 'OL') Array.from(el.children).forEach(collect)
     else {
@@ -142,8 +152,12 @@ const heading = (label: string, C: Ctx) =>
       }),
     ],
   })
-const titleDate = (title: string, date: string | undefined, C: Ctx, width: number, opts: IParagraphOptions = {}) => {
-  const kids: ParagraphChild[] = [new TextRun({ text: title, bold: true, color: C.body, size: SIZE.title })]
+const titleDate = (title: string, date: string | undefined, C: Ctx, width: number, opts: IParagraphOptions = {}, url?: string) => {
+  const titleRun = new TextRun({ text: title, bold: true, color: C.body, size: SIZE.title })
+  // A linked title is a hyperlink here for the same reason it is one in the
+  // PDF: the page made its own title the link, so the Word copy does too.
+  const href = url ? safeHref(url) : undefined
+  const kids: ParagraphChild[] = [href ? new ExternalHyperlink({ children: [titleRun], link: href }) : titleRun]
   if (date) kids.push(new TextRun({ text: `\t${date}`, color: C.muted, size: SIZE.date }))
   return new Paragraph({
     spacing: { before: 110, after: 8 },
@@ -179,7 +193,7 @@ const sub = (s: string, C: Ctx) =>
     spacing: { after: 16 },
     children: [new TextRun({ text: s, italics: true, color: C.muted, size: SIZE.sub })],
   })
-const para = (runs: TextRun[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
+const para = (runs: ParagraphChild[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
 const summaryParas = (html: string, C: Ctx) => richToBlocks(html, C.body).map(para)
 const bulletPara = (html: string, C: Ctx) =>
   C.bullet === 'none'
@@ -239,7 +253,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'work') {
       out.push(heading(label, C))
       for (const w of content.work) {
-        out.push(titleDate(w.position || w.name || 'Role', formatDateRange(w.startDate, w.endDate), C, width))
+        out.push(titleDate(w.position || w.name || 'Role', formatDateRange(w.startDate, w.endDate), C, width, {}, w.url))
         const s = [w.name && w.position ? w.name : '', w.location].filter(Boolean).join('  ·  ')
         if (s) out.push(sub(s, C))
         if (has(w.summary)) out.push(...summaryParas(w.summary!, C))
@@ -248,15 +262,22 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'education') {
       out.push(heading(label, C))
       for (const e of content.education) {
-        out.push(titleDate(e.institution || 'Institution', formatDateRange(e.startDate, e.endDate), C, width))
+        out.push(titleDate(e.institution || 'Institution', formatDateRange(e.startDate, e.endDate), C, width, {}, e.url))
         const line = [[e.studyType, e.area].filter(Boolean).join(', '), e.score].filter(Boolean).join('  ·  ')
         if (line) out.push(sub(line, C))
+        if (e.courses?.length)
+          out.push(
+            new Paragraph({
+              spacing: { after: 24 },
+              children: [new TextRun({ text: e.courses.join('  ·  '), color: C.muted, size: SIZE.sub })],
+            })
+          )
         if (has(e.summary)) out.push(...summaryParas(e.summary!, C))
       }
     } else if (key === 'projects') {
       out.push(heading(label, C))
       for (const p of content.projects) {
-        out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate), C, width))
+        out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate), C, width, {}, p.url))
         if (p.url)
           out.push(
             new Paragraph({
@@ -264,7 +285,10 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
               children: [linkRun(p.url, prettyUrl(p.url, doc.metadata.links?.display), C)],
             })
           )
-        if (p.description) out.push(sub(p.description, C))
+        if (has(p.description))
+          out.push(
+            new Paragraph({ spacing: { after: 16 }, children: richToRuns(p.description, C.muted, SIZE.sub) })
+          )
         {
           const named = (p.links ?? []).filter((l) => (l.url || '').trim() || (l.label || '').trim())
           if (named.length)
@@ -335,26 +359,26 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'certificates') {
       out.push(heading(label, C))
       for (const c of content.certificates) {
-        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date), C, width))
+        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date), C, width, {}, (c.urlLabel || '').trim() ? undefined : c.url))
         out.push(...verifyPara(c.url, c.urlLabel, C))
       }
     } else if (key === 'awards') {
       out.push(heading(label, C))
       for (const a of content.awards) {
-        out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date), C, width))
+        out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date), C, width, {}, (a.urlLabel || '').trim() ? undefined : a.url))
         out.push(...verifyPara(a.url, a.urlLabel, C))
         if (has(a.summary)) out.push(...summaryParas(a.summary, C))
       }
     } else if (key === 'publications') {
       out.push(heading(label, C))
       for (const p of content.publications) {
-        out.push(titleDate([p.name, p.publisher].filter(Boolean).join('  —  '), formatDate(p.releaseDate), C, width))
+        out.push(titleDate([p.name, p.publisher].filter(Boolean).join('  —  '), formatDate(p.releaseDate), C, width, {}, p.url))
         if (has(p.summary)) out.push(...summaryParas(p.summary, C))
       }
     } else if (key === 'volunteer') {
       out.push(heading(label, C))
       for (const v of content.volunteer) {
-        out.push(titleDate(v.position || v.organization || 'Role', formatDateRange(v.startDate, v.endDate), C, width))
+        out.push(titleDate(v.position || v.organization || 'Role', formatDateRange(v.startDate, v.endDate), C, width, {}, v.url))
         if (v.position && v.organization) out.push(sub(v.organization, C))
         if (has(v.summary)) out.push(...summaryParas(v.summary, C))
         out.push(...bulletsOf(v.highlights ?? [], C))
@@ -387,7 +411,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       if (!section || !section.items.length) continue
       out.push(heading(label, C))
       for (const it of section.items) {
-        out.push(titleDate(it.name || '', formatDate(it.date), C, width))
+        out.push(titleDate(it.name || '', formatDate(it.date), C, width, {}, it.url))
         const s = [it.subtitle, it.location].filter(Boolean).join('  ·  ')
         if (s) out.push(sub(s, C))
         if (has(it.summary)) out.push(...summaryParas(it.summary, C))

@@ -131,7 +131,14 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
       )
       break
     case 'publications':
-      push(c.publications.filter((p) => p.name).map((p) => line(p.name, p.publisher, formatDate(p.releaseDate))))
+      push(
+        c.publications
+          .filter((p) => p.name)
+          .flatMap((p) => [
+            line(p.name, p.publisher, formatDate(p.releaseDate)),
+            ...(htmlToText(p.summary) ? [htmlToText(p.summary)] : []),
+          ]),
+      )
       break
     case 'volunteer':
       push(
