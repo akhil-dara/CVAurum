@@ -2033,7 +2033,6 @@
   align-items: center;
   justify-content: center;
   opacity: 0.4;
-  margin-left: 0.25em;
   padding: 0;
   border: 0;
   background: none;
@@ -2042,6 +2041,38 @@
   font-size: 0.8em;
   line-height: 1;
   vertical-align: baseline;
+  /* NET-ZERO WIDTH. In flow and always present - but its width is taken back
+     by its own right margin, so the line measures exactly what the print tree
+     measures. In flow alone it added its glyph to every title and contact:
+     measured 15-18px per title in every template, +18.8px per onyx contact
+     row, and on deedy a whole extra WRAP LINE the export did not have. The
+     glyph paints in the following gap (contacts leave 1.1em, a title's date
+     gap is wider still), and with no stacking context of its own, any real
+     content it grazes paints and clicks OVER it - so it can shadow only empty
+     space. Hover changes nothing: same box, same margins, opacity only. */
+  width: 1em;
+  margin-left: 0.1em;
+  margin-right: -1.1em;
+}
+/* A contact row is display:flex with a 5px gap, and a flex GAP cannot be
+   cancelled by any margin - so a row carrying the button stayed exactly one
+   gap wider than print (measured: 5.0px, and 0.0 the moment the button was
+   display:none). Swallowing the gap with a bigger negative margin fixed the
+   number and glued the glyph to the neighbour's first letter - the neighbour
+   moved 5px INTO the button's overhang. A contact row is shrink-wrapped with
+   nothing at its right edge (the trap that forbids absolute here for TITLES
+   is their right-aligned date), so out of flow is simply correct: the row
+   measures print exactly and the glyph sits in the untouched 1.1em gap. */
+.rm-contact {
+  position: relative;
+}
+.rm-contact > .rm-title-link-btn {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  width: 1.1em;
 }
 .rm-title-link-btn.is-linked {
   color: var(--rm-primary);
@@ -2055,13 +2086,10 @@
 .rm-title-link-btn:focus-visible {
   opacity: 1;
 }
-/* Contact rows get the same affordance. Until now a profile's address could
-   only be reached from the side panel, where three inputs sharing one line had
-   squeezed the URL down to about three visible characters. */
-.mode-preview .rm-contact:hover .rm-title-link-btn,
-.mode-preview .rm-contact:focus-within .rm-title-link-btn {
-  display: inline;
-}
+/* (A leftover display:inline hover override for contact rows lived here. It
+   dated from a display:none era; with the button net-zero-width it would have
+   swapped inline-flex for inline on hover - width ignored, margins kept - and
+   moved the line 1.1em under the pointer. Removed rather than kept inert.) */
 .rm-title-link-edit {
   display: inline-flex;
   align-items: center;
