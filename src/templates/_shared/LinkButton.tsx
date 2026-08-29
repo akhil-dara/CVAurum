@@ -1,6 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { usePopoverA11y } from './popoverA11y'
+// The one deliberate store import in _shared: the card must show and change
+// whether exports make links clickable, and that state is the document's, not
+// any caller's. Threading a writer through ten call sites to avoid this line
+// bought nothing. The card only mounts in edit mode, so print never runs it.
+import { useResumeStore } from '@/store/useResumeStore'
 
 /**
  * The link editor: a small chain button that opens a card naming the two
@@ -62,6 +67,11 @@ export function LinkButton({
   clickable?: boolean
 }) {
   const [at, setAt] = useState<{ top: number; left: number } | null>(null)
+  const liveLinks = useResumeStore((s) => s.doc?.metadata.links?.clickable !== false)
+  const setLiveLinks = (v: boolean) =>
+    useResumeStore.getState().updateMetadata((m) => {
+      m.links.clickable = v
+    })
   const [draft, setDraft] = useState('')
   const [draftText, setDraftText] = useState('')
   const cardRef = useRef<HTMLDivElement>(null)
@@ -161,24 +171,37 @@ export function LinkButton({
               {onText ? field('Shown as', draftText, setDraftText, 'Words on the page', true) : null}
               {field('Goes to', draft, setDraft, 'https://example.com', !onText)}
               {extra}
-              {/* One line, and the default state goes unnarrated: a card that
-                  recites "clickable in the exported PDF" under every link is
-                  noise, while the OFF state is the surprise worth a sentence. */}
-              <p className="mb-2 text-[10px] leading-snug text-muted-foreground">
+              <p className="mb-1.5 text-[10px] leading-snug text-muted-foreground">
                 {hint ??
                   (onText
                     ? 'Leave "Shown as" empty to print the address itself.'
                     : `Reads as "${text || label}" on the page.`)}
-                {clickable ? null : (
-                  <span className="text-danger">
-                    {' '}
-                    Links are off for this document - turn them on under Design.
-                    {onText
-                      ? ' With links off, a name hides the address - leave "Shown as" empty to print the address itself.'
-                      : ''}
-                  </span>
-                )}
               </p>
+              {/* The clickable state lives HERE, where links are edited - it
+                  used to exist only as a Design switch, so nothing at the link
+                  itself said whether the export would honour it, or offered a
+                  way to change that (reported live, 2026-08-29). One document-
+                  wide state, so the row says so plainly. */}
+              <label className="mb-2 flex cursor-pointer items-start gap-1.5 text-[10px] leading-snug text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-[1px] h-3 w-3 accent-primary"
+                  checked={liveLinks}
+                  onChange={(e) => setLiveLinks(e.target.checked)}
+                />
+                <span>
+                  Clickable in the PDF and Word exports
+                  <span className="opacity-70"> - one setting for every link in this resume</span>
+                  {/* Only when a name is actually SET: keyed on the ability
+                      to have one, this warned under an empty Shown as too. */}
+                  {!liveLinks && draftText.trim() ? (
+                    <span className="text-danger">
+                      {'. '}
+                      With links off this name hides the address - clear "Shown as" to print the address itself.
+                    </span>
+                  ) : null}
+                </span>
+              </label>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
