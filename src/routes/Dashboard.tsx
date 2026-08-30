@@ -13,6 +13,7 @@ import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/das
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 import { useLazyMount } from '@/components/preview/lazyMount'
+import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000
 // Settling grace before the backup-staleness notice can fire — same window the
@@ -463,9 +464,7 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
               commit, unbounded - the same storm the template gallery had. The
               aspect box holds the size; the resume arrives via the shared
               idle queue. */}
-          {seen ? <PreviewThumb doc={doc} width={210} /> : (
-            <div className="h-full w-full animate-pulse rounded-sm bg-gradient-to-b from-muted/70 to-muted/30" aria-hidden />
-          )}
+          {seen ? <PreviewThumb doc={doc} width={210} /> : <ThumbSkeleton accent={doc.metadata?.theme?.primary} />}
         </div>
       </button>
       <div className="mt-2 flex items-start justify-between gap-2 px-0.5">

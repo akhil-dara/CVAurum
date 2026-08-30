@@ -15,39 +15,11 @@
  */
 import { useEffect, useRef, useState } from 'react'
 
-let mountQueue: Array<() => void> = []
+type QueueEntry = { fn: () => void; inView?: () => boolean }
+let mountQueue: QueueEntry[] = []
 let draining = false
 let lastScrollTs = 0
 let scrollHooked = false
-/* Rolling frame health. Strict quiescence read as "the gallery takes ages to
- * load": a reader who keeps gently scrolling never pauses 160ms, so nothing
- * ever filled for them. A gentle scroll has frame budget to spare - when the
- * last few frames all ran fast, one card can mount mid-scroll without
- * dropping the rate. A flick still blocks everything: its frames are busy. */
-let frameTimes: number[] = []
-let frameClockOn = false
-function hookFrameClock() {
-  // Runs only while the queue drains - a permanent rAF loop would keep the
-  // page from ever being truly idle, which is the exact sin (the forever-
-  // animating hero) this module exists to prevent.
-  if (frameClockOn || typeof window === 'undefined') return
-  frameClockOn = true
-  let last = performance.now()
-  const tick = (t: number) => {
-    if (!draining && mountQueue.length === 0) {
-      frameClockOn = false
-      frameTimes = []
-      return
-    }
-    frameTimes.push(t - last)
-    if (frameTimes.length > 5) frameTimes.shift()
-    last = t
-    requestAnimationFrame(tick)
-  }
-  requestAnimationFrame(tick)
-}
-const framesHealthy = () => frameTimes.length === 5 && frameTimes.every((d) => d < 22)
-
 function hookScrollClock() {
   if (scrollHooked || typeof window === 'undefined') return
   scrollHooked = true
@@ -55,16 +27,30 @@ function hookScrollClock() {
 }
 
 function grantNextMount() {
-  if (performance.now() - lastScrollTs < 160 && !framesHealthy()) {
+  /* Quiescence only - a 100ms breath, which even attentive browsing takes
+   * between looks. Granting mid-scroll whenever frames looked healthy was
+   * tried and measured: the first card to mount put a 250ms stall under a
+   * moving wheel. The accent sketches carry the visual meanwhile; a pause
+   * this short fills the viewport before the eye settles. */
+  if (performance.now() - lastScrollTs < 100) {
     scheduleGrant()
     return
   }
-  const next = mountQueue.pop()
-  if (!next) {
+  if (!mountQueue.length) {
     draining = false
     return
   }
-  next()
+  // A card the reader can SEE beats every queued card they cannot - newest
+  // first within each class, so the cards beside where they stopped win.
+  let idx = mountQueue.length - 1
+  for (let i = mountQueue.length - 1; i >= 0; i--) {
+    if (mountQueue[i].inView?.()) {
+      idx = i
+      break
+    }
+  }
+  const [next] = mountQueue.splice(idx, 1)
+  next.fn()
   scheduleGrant()
 }
 
@@ -73,10 +59,9 @@ function scheduleGrant() {
   else setTimeout(grantNextMount, 120)
 }
 
-export function enqueueMount(fn: () => void) {
+export function enqueueMount(fn: () => void, inView?: () => boolean) {
   hookScrollClock()
-  hookFrameClock()
-  mountQueue.push(fn)
+  mountQueue.push({ fn, inView })
   if (!draining) {
     draining = true
     scheduleGrant()
@@ -119,9 +104,17 @@ export function useLazyMount<T extends Element>(
       // scroll rather than declaring it off-screen forever.
       if (r.height > 0 && r.bottom > -marginPx && r.top < window.innerHeight + marginPx && !queued.current) {
         queued.current = true
-        enqueueMount(() => {
-          if (alive.current) setSeen(true)
-        })
+        enqueueMount(
+          () => {
+            if (alive.current) setSeen(true)
+          },
+          () => {
+            const el2 = ref.current
+            if (!el2) return false
+            const r2 = el2.getBoundingClientRect()
+            return r2.height > 0 && r2.bottom > 0 && r2.top < window.innerHeight
+          }
+        )
       }
     }
     const schedule = () => {

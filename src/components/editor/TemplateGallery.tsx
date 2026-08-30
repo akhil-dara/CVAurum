@@ -10,6 +10,7 @@ import { HoverZoom } from '@/components/preview/HoverZoom'
 import { cn } from '@/lib/utils'
 import { SAMPLE_CONTENT } from '@/data/sample'
 import { useLazyMount } from '@/components/preview/lazyMount'
+import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 
 export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   const applyTemplate = useResumeStore((s) => s.applyTemplate)
@@ -115,10 +116,12 @@ function TemplateCard({
           style={{ minHeight: 150 * 1.294 + 16 }}
           className="relative flex justify-center overflow-hidden border-b border-border bg-white p-2"
         >
-          {/* A pulsing sheet, not blank white - an empty card read as the
-              theme failing to load rather than loading. */}
-          {seen ? <PreviewThumb doc={previewDoc} width={150} /> : (
-            <div className="h-full w-full animate-pulse rounded-sm bg-gradient-to-b from-muted/70 to-muted/30" aria-hidden />
+          {/* The template's own accent sketches the card while the real
+              render arrives - blank white read as the theme failing. */}
+          {seen ? (
+            <PreviewThumb doc={previewDoc} width={150} />
+          ) : (
+            <ThumbSkeleton accent={(tpl.defaults as { theme?: { primary?: string } })?.theme?.primary} />
           )}
           {active && (
             <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">

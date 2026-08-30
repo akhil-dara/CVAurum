@@ -18,6 +18,7 @@ import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import type { ResumeContent } from '@/types/document'
 import { useLazyMount } from '@/components/preview/lazyMount'
+import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 
 /** Create/import a resume and land the user in the editor. */
 export function useResumeActions() {
@@ -218,9 +219,7 @@ function SampleCard({
         title={`Start from the ${persona.role} example`}
       >
         <div ref={thumbRef} className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
-          {seen ? <PreviewThumb doc={doc} width={210} /> : (
-            <div className="h-full w-full animate-pulse rounded-sm bg-gradient-to-b from-muted/70 to-muted/30" aria-hidden />
-          )}
+          {seen ? <PreviewThumb doc={doc} width={210} /> : <ThumbSkeleton accent={doc.metadata?.theme?.primary} />}
         </div>
         <div className="p-3">
           <div className="text-sm font-semibold text-foreground">{persona.role}</div>

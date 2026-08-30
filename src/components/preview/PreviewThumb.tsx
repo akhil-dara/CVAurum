@@ -9,6 +9,10 @@ import { MIN_FIT } from '@/lib/fitOnePage'
 /** How many correction passes a card may take before it settles for what it
  *  has. Three lands within a percent or so of the exporter's own search. */
 const MAX_FIT_PASSES = 4
+/** At grid-card sizes the second correction is already sub-pixel - passes
+ *  beyond it double every card's mount cost for nothing a reader can see. */
+const SMALL_FIT_PASSES = 2
+const SMALL_W = 260
 
 /** A scaled, non-interactive single-page thumbnail of a resume.
  *  It sizes itself to its parent's CONTENT box (ResizeObserver), so responsive
@@ -67,7 +71,8 @@ export const PreviewThumb = memo(function PreviewThumb({
       run.current.passes = MAX_FIT_PASSES
       return
     }
-    if (run.current.passes >= MAX_FIT_PASSES) return
+    const maxPasses = w < SMALL_W ? SMALL_FIT_PASSES : MAX_FIT_PASSES
+    if (run.current.passes >= maxPasses) return
     const h = inner.current?.scrollHeight ?? 0
     if (!h) return
     if (h <= pageH + 1) {
@@ -78,7 +83,7 @@ export const PreviewThumb = memo(function PreviewThumb({
     const next = Math.min(1, Math.max(MIN_FIT, fit * (pageH / h)))
     if (Math.abs(next - fit) > 0.005) setFit(next)
     else run.current.passes = MAX_FIT_PASSES
-  }, [doc, pageH, fit, key])
+  }, [doc, pageH, fit, key, w])
 
   const scale = w / pageW
   return (
