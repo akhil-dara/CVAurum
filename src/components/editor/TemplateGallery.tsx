@@ -79,6 +79,57 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
  * would otherwise pay the render again, and scrolling is exactly when the
  * main thread is least able to afford it.
  */
+/* One card mounts at a time, and only when the main thread is idle.
+ *
+ * Latching alone was not enough: every card that came NEAR the viewport
+ * rendered the user's whole resume synchronously inside the scroll frame, and
+ * several latch in one burst - measured at avg 30ms/frame, p95 100ms, worst
+ * 283ms with 1.2s of long tasks across one swipe of the gallery, which is the
+ * slow-motion scroll the author reported (2026-08-30). Queued through idle
+ * time, scrolling stays at frame rate over placeholders that already hold
+ * each card's exact height, and the pause that follows is when the resumes
+ * actually render - one per grant, so no single stall exceeds one card. */
+let mountQueue: Array<() => void> = []
+let draining = false
+/* Idle alone was not enough: the idle timeout fired MID-SCROLL and a single
+ * card render is 100-260ms, so the stall just moved (re-measured: worst frame
+ * 267ms). Grants now also wait for scroll QUIESCENCE - no scroll event for
+ * 160ms - so while the wheel is moving, nothing renders at all. And the queue
+ * is served newest-first: the cards granted first are the ones beside where
+ * the reader actually stopped, not the ones they scrolled past. */
+let lastScrollTs = 0
+let scrollHooked = false
+function hookScrollClock() {
+  if (scrollHooked || typeof window === 'undefined') return
+  scrollHooked = true
+  window.addEventListener('scroll', () => { lastScrollTs = performance.now() }, { capture: true, passive: true })
+}
+function grantNextMount() {
+  if (performance.now() - lastScrollTs < 160) {
+    scheduleGrant()
+    return
+  }
+  const next = mountQueue.pop()
+  if (!next) {
+    draining = false
+    return
+  }
+  next()
+  scheduleGrant()
+}
+function scheduleGrant() {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => grantNextMount(), { timeout: 250 })
+  else setTimeout(grantNextMount, 120)
+}
+function enqueueMount(fn: () => void) {
+  hookScrollClock()
+  mountQueue.push(fn)
+  if (!draining) {
+    draining = true
+    scheduleGrant()
+  }
+}
+
 function useSeen<T extends Element>(
   // How far ahead to render. A phone has less CPU to spare and less screen to
   // fill, so it reaches for fewer: every card is a whole resume, and a budget
@@ -87,6 +138,14 @@ function useSeen<T extends Element>(
 ) {
   const ref = useRef<T | null>(null)
   const [seen, setSeen] = useState(false)
+  const queued = useRef(false)
+  const alive = useRef(true)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
   useEffect(() => {
     if (seen) return
     let frame = 0
@@ -97,7 +156,12 @@ function useSeen<T extends Element>(
       const r = el.getBoundingClientRect()
       // A zero-height box has not been laid out yet; ask again on the next
       // scroll rather than declaring it off-screen forever.
-      if (r.height > 0 && r.bottom > -marginPx && r.top < window.innerHeight + marginPx) setSeen(true)
+      if (r.height > 0 && r.bottom > -marginPx && r.top < window.innerHeight + marginPx && !queued.current) {
+        queued.current = true
+        enqueueMount(() => {
+          if (alive.current) setSeen(true)
+        })
+      }
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(check)
