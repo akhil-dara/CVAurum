@@ -90,8 +90,12 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             >
               <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
                 <h2 className="text-sm font-semibold">{PANEL_TITLES[leftTab]}</h2>
+                {/* Not "Preview": the bottom bar already has a Preview that
+                    means the exact-PDF view, and two buttons with one name
+                    and two meanings read as a bug. This one just puts the
+                    editable page on screen. */}
                 <button className="btn-ghost btn-sm md:hidden" onClick={() => setLeftOpen(false)}>
-                  <Eye className="h-4 w-4" /> Preview
+                  <Eye className="h-4 w-4" /> View page
                 </button>
               </div>
               <div className="panel-scroll w-full flex-1 p-4">

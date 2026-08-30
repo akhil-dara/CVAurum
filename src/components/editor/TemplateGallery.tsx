@@ -115,7 +115,11 @@ function TemplateCard({
           style={{ minHeight: 150 * 1.294 + 16 }}
           className="relative flex justify-center overflow-hidden border-b border-border bg-white p-2"
         >
-          {seen ? <PreviewThumb doc={previewDoc} width={150} /> : null}
+          {/* A pulsing sheet, not blank white - an empty card read as the
+              theme failing to load rather than loading. */}
+          {seen ? <PreviewThumb doc={previewDoc} width={150} /> : (
+            <div className="h-full w-full animate-pulse rounded-sm bg-gradient-to-b from-muted/70 to-muted/30" aria-hidden />
+          )}
           {active && (
             <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Check className="h-3.5 w-3.5" />

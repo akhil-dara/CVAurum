@@ -288,34 +288,41 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 its own placeholder read "Shown" - the same crowding that had
                 made the address unreadable. Three short controls share the top
                 row; the two long values each get a line. */}
-            <input
-              className="input w-full"
-              value={p.label ?? ''}
-              placeholder="Shown as (optional) - defaults to the address"
-              title="Text shown instead of the address"
-              onChange={(e) =>
-                update((c) => {
-                  c.basics.profiles![i].label = e.target.value
-                })
-              }
-            />
+            {/* The same two words the link card uses - Shown as, Goes to - so
+                the panel and the popover describe a link in one vocabulary.
+                Bare placeholder-only inputs here read as mystery fields. */}
+            <label className="block">
+              <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Shown as</span>
+              <input
+                className="input w-full"
+                value={p.label ?? ''}
+                placeholder="Leave empty to show the address"
+                onChange={(e) =>
+                  update((c) => {
+                    c.basics.profiles![i].label = e.target.value
+                  })
+                }
+              />
+            </label>
             {/* The ADDRESS gets a line to itself. It is far the longest value
                 here, and sharing a row with the other two left it about three
                 characters wide - unreadable, and reported as such. The two
                 SHORT values pair off above it instead. */}
-            <input
-              className="input w-full"
-              value={p.url || p.username}
-              placeholder="https://linkedin.com/in/yourname"
-              title="Where the link points"
-              onChange={(e) =>
-                update((c) => {
-                  const val = e.target.value
-                  if (/^https?:\/\//.test(val)) c.basics.profiles![i].url = val
-                  else c.basics.profiles![i].username = val
-                })
-              }
-            />
+            <label className="block">
+              <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Goes to</span>
+              <input
+                className="input w-full"
+                value={p.url || p.username}
+                placeholder="https://linkedin.com/in/yourname"
+                onChange={(e) =>
+                  update((c) => {
+                    const val = e.target.value
+                    if (/^https?:\/\//.test(val)) c.basics.profiles![i].url = val
+                    else c.basics.profiles![i].username = val
+                  })
+                }
+              />
+            </label>
           </div>
         ))}
         <button

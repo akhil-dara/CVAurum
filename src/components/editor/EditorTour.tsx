@@ -27,6 +27,11 @@ interface Step {
   /** A step about a desktop-only surface (the command palette) is skipped on
    *  a phone rather than described apologetically. */
   desktopOnly?: boolean
+  /** On a phone, SHOW the surface the step talks about - the tour used to
+   *  describe the template gallery while the Content form stayed on screen,
+   *  which read as the tour being broken. Runs when the step opens, phone
+   *  only; desktop anchors its ring to the real control instead. */
+  mobileShow?: { tab?: 'content' | 'design' | 'templates' | 'ats'; panelOpen?: boolean }
 }
 
 /* Titles carry no numbers - the prefix is added at render, so skipping the
@@ -34,12 +39,12 @@ interface Step {
 const STEPS: Step[] = [
   { title: 'Welcome — quick tour 👋', body: "A 30-second look at where everything is. Skip anytime, and reopen it from the “?” in the top bar." },
   { sel: '[data-tour="nav"]', title: 'Choose a section', body: 'Switch between Content, Design, Templates, and the ATS check here.', mobileBody: 'The bottom bar switches between Content, Design, Templates, the ATS check and Preview.' },
-  { sel: '[data-tour="panel"]', title: 'Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
-  { sel: '[data-tour="canvas"]', title: 'Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.', mobileBody: 'On a phone this panel is the editor — everything you type lands on the resume instantly. Tap Preview any time to see the page itself.' },
+  { sel: '[data-tour="panel"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
+  { sel: '[data-tour="canvas"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.', mobileBody: 'On a phone this panel is the editor — everything you type lands on the resume instantly. Tap Preview any time to see the page itself.' },
   { sel: '[data-tour="canvas"]', title: 'Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The eye icon beside it hides the section. The header has its own Style pill too, with photo/monogram options.', mobileBody: 'Open “Style” beside any section in the panel for its full style sheet — heading style, skills layout, badge size and shape. The ⋯ menu renames, hides or removes it.' },
-  { title: 'Links that read as words', body: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Click the chain beside a title or contact, or the printed word itself, for one card: Shown as, Goes to, and whether exports make links clickable. While editing, a faint dotted mark shows which words carry a link.', mobileBody: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Each link is a plain pair of fields in the panel, and one switch (in any link card, or under Design) turns clickability on or off for the whole document.' },
+  { mobileShow: { tab: 'content', panelOpen: true }, title: 'Links that read as words', body: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Click the chain beside a title or contact, or the printed word itself, for one card: Shown as, Goes to, and whether exports make links clickable. While editing, a faint dotted mark shows which words carry a link.', mobileBody: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Each link is a plain pair of fields in the panel, and one switch (in any link card, or under Design) turns clickability on or off for the whole document.' },
   { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads — plus a per-system parse simulation (Workday, Greenhouse, Lever, Taleo, iCIMS) and an on-device writing coach.' },
-  { sel: '[data-tour="templates"]', title: 'Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.', mobileBody: 'Try any of 52 designs — tap one to switch. Nothing is re-typed.' },
+  { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: 'Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.', mobileBody: 'Try any of 52 designs — tap one to switch. Nothing is re-typed.' },
   { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link — your résumé is sealed with a passphrase inside the link and never touches a server, so even a cached link can’t be read without it.' },
   { sel: '[data-tour="palette"]', title: 'Do anything with ⌘K', body: 'Press ⌘K / Ctrl+K for a command palette — switch templates, fonts, accents, add sections, change mode. Inside a summary, type “/” for quick inserts.', desktopOnly: true },
   { sel: '[data-tour="export"]', title: 'Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
@@ -79,6 +84,17 @@ export function EditorTour() {
   const mobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
   const steps = mobile ? STEPS.filter((st) => !st.desktopOnly) : STEPS
   const step = steps[i]
+
+  // Bring the surface a step talks about onto the screen (phone only).
+  useEffect(() => {
+    if (!open || !mobile || !step?.mobileShow) return
+    import('@/store/useEditorStore').then(({ useEditorStore }) => {
+      const es = useEditorStore.getState()
+      if (step.mobileShow!.tab) es.setLeftTab(step.mobileShow!.tab)
+      if (step.mobileShow!.panelOpen !== undefined) es.setLeftOpen(step.mobileShow!.panelOpen)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, i, mobile])
 
   // Measure the current target (re-measure on step change, resize, scroll).
   const measure = useCallback(() => {

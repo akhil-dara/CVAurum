@@ -19,6 +19,34 @@ let mountQueue: Array<() => void> = []
 let draining = false
 let lastScrollTs = 0
 let scrollHooked = false
+/* Rolling frame health. Strict quiescence read as "the gallery takes ages to
+ * load": a reader who keeps gently scrolling never pauses 160ms, so nothing
+ * ever filled for them. A gentle scroll has frame budget to spare - when the
+ * last few frames all ran fast, one card can mount mid-scroll without
+ * dropping the rate. A flick still blocks everything: its frames are busy. */
+let frameTimes: number[] = []
+let frameClockOn = false
+function hookFrameClock() {
+  // Runs only while the queue drains - a permanent rAF loop would keep the
+  // page from ever being truly idle, which is the exact sin (the forever-
+  // animating hero) this module exists to prevent.
+  if (frameClockOn || typeof window === 'undefined') return
+  frameClockOn = true
+  let last = performance.now()
+  const tick = (t: number) => {
+    if (!draining && mountQueue.length === 0) {
+      frameClockOn = false
+      frameTimes = []
+      return
+    }
+    frameTimes.push(t - last)
+    if (frameTimes.length > 5) frameTimes.shift()
+    last = t
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+const framesHealthy = () => frameTimes.length === 5 && frameTimes.every((d) => d < 22)
 
 function hookScrollClock() {
   if (scrollHooked || typeof window === 'undefined') return
@@ -27,7 +55,7 @@ function hookScrollClock() {
 }
 
 function grantNextMount() {
-  if (performance.now() - lastScrollTs < 160) {
+  if (performance.now() - lastScrollTs < 160 && !framesHealthy()) {
     scheduleGrant()
     return
   }
@@ -47,6 +75,7 @@ function scheduleGrant() {
 
 export function enqueueMount(fn: () => void) {
   hookScrollClock()
+  hookFrameClock()
   mountQueue.push(fn)
   if (!draining) {
     draining = true

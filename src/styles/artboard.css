@@ -1364,11 +1364,17 @@
     color 0.12s ease,
     background 0.12s ease;
 }
-.mode-preview .rm-chip-edit:hover .rm-chip-del,
-.mode-preview .rm-chip-edit:focus-within .rm-chip-del,
-.rm-chip-del:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
+/* Hover hardware only. On a phone the two handles landed INSIDE the chip a
+   finger had just tapped - on a short word like Go they covered every letter,
+   and reordering by drag is misery at that size anyway. Touch users get the
+   panel's own move and remove controls, which exist for exactly this. */
+@media (hover: hover) and (pointer: fine) {
+  .mode-preview .rm-chip-edit:hover .rm-chip-del,
+  .mode-preview .rm-chip-edit:focus-within .rm-chip-del,
+  .rm-chip-del:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .rm-chip-del:hover,
 .rm-chip-del:focus-visible {
@@ -1790,12 +1796,14 @@
   font-weight: 700;
   line-height: 1;
 }
-.mode-preview .rm-inline-edit .rm-kw-edit:hover .rm-kw-x,
-.mode-preview .rm-inline-edit .rm-kw-edit:focus-within .rm-kw-x,
-.mode-preview .rm-chip-edit:hover .rm-kw-x,
-.mode-preview .rm-chip-edit:focus-within .rm-kw-x {
-  opacity: 1;
-  pointer-events: auto;
+@media (hover: hover) and (pointer: fine) {
+  .mode-preview .rm-inline-edit .rm-kw-edit:hover .rm-kw-x,
+  .mode-preview .rm-inline-edit .rm-kw-edit:focus-within .rm-kw-x,
+  .mode-preview .rm-chip-edit:hover .rm-kw-x,
+  .mode-preview .rm-chip-edit:focus-within .rm-kw-x {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .rm-inline-edit .rm-kw-x:hover {
   color: var(--rm-primary);
@@ -1932,12 +1940,14 @@
 .rm-kw-grip:active {
   cursor: grabbing;
 }
-.mode-preview .rm-chip-edit:hover .rm-kw-grip,
-.mode-preview .rm-chip-edit:focus-within .rm-kw-grip,
-.mode-preview .rm-kw-edit:hover .rm-kw-grip,
-.mode-preview .rm-kw-edit:focus-within .rm-kw-grip {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .mode-preview .rm-chip-edit:hover .rm-kw-grip,
+  .mode-preview .rm-chip-edit:focus-within .rm-kw-grip,
+  .mode-preview .rm-kw-edit:hover .rm-kw-grip,
+  .mode-preview .rm-kw-edit:focus-within .rm-kw-grip {
+    opacity: 1;
   pointer-events: auto;
+}
 }
 .rm-kw-grip:hover {
   color: var(--rm-primary);

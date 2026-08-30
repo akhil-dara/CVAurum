@@ -463,7 +463,9 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
               commit, unbounded - the same storm the template gallery had. The
               aspect box holds the size; the resume arrives via the shared
               idle queue. */}
-          {seen ? <PreviewThumb doc={doc} width={210} /> : null}
+          {seen ? <PreviewThumb doc={doc} width={210} /> : (
+            <div className="h-full w-full animate-pulse rounded-sm bg-gradient-to-b from-muted/70 to-muted/30" aria-hidden />
+          )}
         </div>
       </button>
       <div className="mt-2 flex items-start justify-between gap-2 px-0.5">

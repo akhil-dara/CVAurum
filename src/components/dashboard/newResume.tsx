@@ -218,7 +218,9 @@ function SampleCard({
         title={`Start from the ${persona.role} example`}
       >
         <div ref={thumbRef} className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
-          <PreviewThumb doc={doc} width={210} />
+          {seen ? <PreviewThumb doc={doc} width={210} /> : (
+            <div className="h-full w-full animate-pulse rounded-sm bg-gradient-to-b from-muted/70 to-muted/30" aria-hidden />
+          )}
         </div>
         <div className="p-3">
           <div className="text-sm font-semibold text-foreground">{persona.role}</div>

@@ -17,6 +17,11 @@ import { linkTarget } from '@/lib/pdf/links'
 
 /** Approximate bar height, used only to decide whether it fits above. */
 const BAR_H = 40
+/* A finger is not a cursor: on a coarse pointer the bar sits BELOW the
+ * selection - Android's own copy menu owns the space above it, and the two
+ * stacked was the "phone copy thing" covering ours - and every control grows
+ * to a tappable size. */
+const coarse = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
 type Cmd = 'bold' | 'italic' | 'underline' | 'strikeThrough' | 'removeFormat'
 
@@ -37,7 +42,7 @@ function selectionInside(host: HTMLElement | null): Range | null {
   return range
 }
 
-export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onCommit: () => void }) {
+export function FormatBar({ hostRef, onCommit }: { hostRef: { current: HTMLElement | null }; onCommit: () => void }) {
   const [at, setAt] = useState<{ top: number; left: number; below: boolean } | null>(null)
   const [linking, setLinking] = useState(false)
   const [href, setHref] = useState('')
@@ -45,7 +50,9 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
 
   useEffect(() => {
     const sync = () => {
-      const range = selectionInside(host)
+      // Read the ref at event time: it is always current, where a captured
+      // host value is whatever the mount render happened to see (null).
+      const range = selectionInside(hostRef.current)
       if (!range) {
         // Keep the bar open while the user is typing into its own URL box -
         // focusing that input necessarily drops the selection in the field.
@@ -59,9 +66,10 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
       const rects = range.getClientRects()
       const r = rects.length ? rects[0] : range.getBoundingClientRect()
       if (!r.width && !r.height) return
-      // Above the selection, unless there is no room up there.
-      const below = r.top < BAR_H + 12
-      setAt({ top: below ? r.bottom + 8 : r.top - 8, left: r.left + r.width / 2, below })
+      // Above the selection unless there is no room - or unless the pointer
+      // is a finger, whose platform menu already claims the space above.
+      const below = coarse() || r.top < BAR_H + 12
+      setAt({ top: below ? r.bottom + (coarse() ? 14 : 8) : r.top - 8, left: r.left + r.width / 2, below })
     }
     // Focusing a field reveals its editing affordances ("+ bullet", the drag
     // rail), which reflows the canvas AFTER the selection event fires -
@@ -71,7 +79,7 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
     const syncSoon = () => requestAnimationFrame(() => requestAnimationFrame(sync))
     const onSelect = () => { sync(); syncSoon() }
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(sync) : null
-    if (host && ro) ro.observe(host)
+    if (hostRef.current && ro) ro.observe(hostRef.current)
     document.addEventListener('selectionchange', onSelect)
     // The bar is position:fixed, so its coordinates are viewport-relative and
     // go stale the moment anything scrolls - including the canvas's own inner
@@ -85,7 +93,8 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
       window.removeEventListener('scroll', sync, true)
       window.removeEventListener('resize', sync)
     }
-  }, [host, linking])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linking])
 
   if (!at) return null
 
@@ -133,7 +142,7 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
     const url = linkTarget(href)
     // execCommand acts on the FOCUSED editable, and focusing the URL box took
     // focus away from it - without this the command lands nowhere.
-    host?.focus()
+    hostRef.current?.focus()
     restore()
     trimSelection()
     // An unusable URL removes the link rather than writing a broken one.
@@ -203,7 +212,7 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
               title={b.label}
               aria-label={b.label}
               onClick={() => run(b.cmd)}
-              className={`h-7 w-7 rounded text-sm text-foreground hover:bg-surface-muted ${b.className ?? ''}`}
+              className={`${coarse() ? 'h-10 w-10 text-base' : 'h-7 w-7 text-sm'} rounded text-foreground hover:bg-surface-muted ${b.className ?? ''}`}
             >
               {b.glyph}
             </button>
@@ -223,7 +232,7 @@ export function FormatBar({ host, onCommit }: { host: HTMLElement | null; onComm
             title="Clear formatting"
             aria-label="Clear formatting"
             onClick={() => run('removeFormat')}
-            className="h-7 w-7 rounded text-xs text-muted-foreground hover:bg-surface-muted"
+            className={`${coarse() ? 'h-10 w-10 text-sm' : 'h-7 w-7 text-xs'} rounded text-muted-foreground hover:bg-surface-muted`}
           >
             ✕
           </button>

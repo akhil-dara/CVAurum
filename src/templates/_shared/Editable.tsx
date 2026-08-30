@@ -230,7 +230,11 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
       />
       {/* Rich fields only: a plain field stores text, so formatting applied to
           one would be dropped on the next commit. */}
-      {rich && <FormatBar host={ref.current} onCommit={scheduleCommit} />}
+      {/* The REF, not ref.current: current is null during the first render,
+          and a component that renders only when something real changes never
+          re-runs this line - the bar depended on incidental re-renders to
+          learn its host, and died the day those stopped. */}
+      {rich && <FormatBar hostRef={ref} onCommit={scheduleCommit} />}
       {menu &&
         createPortal(
           <div
