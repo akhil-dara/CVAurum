@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
+import { Eye,
   Settings2,
   EyeOff,
   ArrowLeftRight,
@@ -310,10 +310,18 @@ export function SectionGear({
   sectionKey,
   doc,
   editMeta,
+  variant = 'canvas',
 }: {
   sectionKey: string
   doc: ResumeDocument
   editMeta: MetaEditFn
+  /** The side panel borrows only the Style button. The default return is the
+   *  whole canvas control cluster - grip, hide, move, pin - whose absolutely
+   *  positioned members escaped a panel card and covered the header's own
+   *  controls, so a tap on the panel's show/hide eye landed on an invisible
+   *  canvas control instead (reported from a phone, 2026-08-30). The panel
+   *  has its own grip, eye and menu; it borrows none of ours. */
+  variant?: 'canvas' | 'panel'
 }) {
   const [open, setOpen] = useState(false)
   // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
@@ -372,9 +380,14 @@ export function SectionGear({
       m.layout.sectionSettings[sectionKey] = cur
     })
 
+  const isHidden = doc.metadata.layout.hidden.includes(sectionKey)
   const hide = () =>
     editMeta((m) => {
-      if (!m.layout.hidden.includes(sectionKey)) m.layout.hidden.push(sectionKey)
+      // A toggle, not a one-way door: the style sheet is where a phone user
+      // went looking for the way back after hiding a section, and its only
+      // offer was Hide again.
+      if (m.layout.hidden.includes(sectionKey)) m.layout.hidden = m.layout.hidden.filter((k) => k !== sectionKey)
+      else m.layout.hidden.push(sectionKey)
     })
 
   // "Start on new page" pin (2026-08-17 spec section 1): a section-level
@@ -469,9 +482,10 @@ export function SectionGear({
 
   return (
     <>
-      <div className="rm-section-controls no-print">
+      <div className={variant === 'panel' ? 'contents' : 'rm-section-controls no-print'}>
         {/* Canvas drag grip — the session logic lives in CanvasReorder.tsx
             (document-level listeners find it via data-canvas-drag). */}
+        {variant === 'canvas' && (
         <button
           type="button"
           className="rm-section-hide rm-section-move rm-section-grip"
@@ -483,6 +497,7 @@ export function SectionGear({
         >
           <GripVertical />
         </button>
+        )}
         <button
           type="button"
           className="rm-section-gear"
@@ -494,6 +509,7 @@ export function SectionGear({
         >
           <Settings2 /> Style
         </button>
+        {variant === 'canvas' && (
         <button
           type="button"
           className="rm-section-hide rm-section-move"
@@ -506,6 +522,8 @@ export function SectionGear({
         >
           <ArrowUp />
         </button>
+        )}
+        {variant === 'canvas' && (
         <button
           type="button"
           className="rm-section-hide rm-section-move"
@@ -518,6 +536,7 @@ export function SectionGear({
         >
           <ArrowDown />
         </button>
+        )}
         {twoCol && (
           <button
             type="button"
@@ -531,6 +550,7 @@ export function SectionGear({
             <ArrowLeftRight />
           </button>
         )}
+        {variant === 'canvas' && (
         <button
           type="button"
           className="rm-section-hide"
@@ -542,6 +562,7 @@ export function SectionGear({
         >
           <EyeOff />
         </button>
+        )}
         {pinned && !autoFitOn && (
           <button
             type="button"
@@ -840,13 +861,21 @@ export function SectionGear({
                   </button>
                 )}
                 <button
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger/10"
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm ${isHidden ? 'text-foreground hover:bg-muted' : 'text-danger hover:bg-danger/10'}`}
                   onClick={() => {
                     hide()
                     setOpen(false)
                   }}
                 >
-                  <EyeOff className="h-4 w-4" /> Hide section
+                  {isHidden ? (
+                    <>
+                      <Eye className="h-4 w-4" /> Show section
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="h-4 w-4" /> Hide section
+                    </>
+                  )}
                 </button>
               </div>
             </div>

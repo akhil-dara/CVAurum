@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
-import { useState } from 'react'
-import {
+import { useState, useEffect } from 'react'
+import { ChevronUp,
   GripVertical,
   Eye,
   EyeOff,
@@ -37,6 +37,24 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   const updateMetadata = useResumeStore((s) => s.updateMetadata)
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  // The tour's restyle step talks about the Style button; expanding the first
+  // section card is what puts one on screen for a phone to look at.
+  useEffect(() => {
+    const onShow = () => {
+      const first = doc.metadata.layout.main[0] ?? doc.metadata.layout.aside[0]
+      if (!first) return
+      setExpanded(first)
+      // The expanded card's Style row is usually below the fold - the whole
+      // point is for it to be LOOKED at, so bring it to the middle.
+      setTimeout(() => {
+        document.querySelector('.rm-panel-gear .rm-section-gear')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }, 200)
+    }
+    window.addEventListener('cvaurum:tour-show-style', onShow)
+    return () => window.removeEventListener('cvaurum:tour-show-style', onShow)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.metadata.layout.main, doc.metadata.layout.aside])
   const [addOpen, setAddOpen] = useState(false)
 
   const layout = doc.metadata.layout
@@ -111,6 +129,18 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
     setAddOpen(false)
   }
 
+  // Buttons as well as drag - the grip is unusable on a phone, where the
+  // browser claims the gesture for scrolling, and this panel is the ONLY
+  // place a phone can reorder sections at all.
+  const shiftSection = (key: string, dir: -1 | 1) =>
+    updateMetadata((m) => {
+      const col = m.layout.main.includes(key) ? m.layout.main : m.layout.aside
+      const i = col.indexOf(key)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= col.length) return
+      ;[col[i], col[j]] = [col[j], col[i]]
+    })
+
   const renderCard = (key: string, handle: { attributes: Record<string, unknown>; listeners: Record<string, unknown> | undefined }) => (
     <SectionCard
       doc={doc}
@@ -121,6 +151,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
       open={expanded === key}
       onToggle={() => setExpanded((e) => (e === key ? null : key))}
       onHide={() => toggleHidden(key)}
+      onShift={(dir) => shiftSection(key, dir)}
       onMove={() => moveColumn(key)}
       onRemove={() => removeSection(key)}
       onRename={(l) => renameSection(key, l)}
@@ -175,6 +206,7 @@ function SectionCard({
   open,
   onToggle,
   onHide,
+  onShift,
   onMove,
   onRemove,
   onRename,
@@ -187,6 +219,7 @@ function SectionCard({
   open: boolean
   onToggle: () => void
   onHide: () => void
+  onShift: (dir: -1 | 1) => void
   onMove: () => void
   onRemove: () => void
   onRename: (label: string) => void
@@ -205,7 +238,7 @@ function SectionCard({
       <div className="flex items-center gap-1 px-1.5 py-1.5">
         <button
           type="button"
-          className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
+          className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
           {...handle.attributes}
           {...handle.listeners}
           aria-label="Drag to reorder"
@@ -232,13 +265,13 @@ function SectionCard({
             {count > 0 && <span className="rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">{count}</span>}
           </button>
         )}
-        <button type="button" className="btn-icon h-7 w-7" onClick={onHide} title={hidden ? 'Show section' : 'Hide section'}>
+        <button type="button" className="btn-icon h-9 w-9 md:h-7 md:w-7" onClick={onHide} title={hidden ? 'Show section' : 'Hide section'}>
           {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
         <div className="relative">
           <button
             type="button"
-            className="btn-icon h-7 w-7"
+            className="btn-icon h-9 w-9 md:h-7 md:w-7"
             onClick={(e) => {
               const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
               setMenuPos({ top: r.bottom + 4, left: Math.max(8, Math.min(r.right - 160, window.innerWidth - 168)) })
@@ -259,6 +292,12 @@ function SectionCard({
                   <button className="btn-ghost w-full justify-start" onClick={() => { setRenaming(true); setMenu(false) }}>
                     <Check className="h-4 w-4" /> Rename
                   </button>
+                  <button className="btn-ghost w-full justify-start" onClick={() => { onShift(-1); setMenu(false) }}>
+                    <ChevronUp className="h-4 w-4" /> Move up
+                  </button>
+                  <button className="btn-ghost w-full justify-start" onClick={() => { onShift(1); setMenu(false) }}>
+                    <ChevronDown className="h-4 w-4" /> Move down
+                  </button>
                   {twoCol && (
                     <button className="btn-ghost w-full justify-start" onClick={() => { onMove(); setMenu(false) }}>
                       <ArrowLeftRight className="h-4 w-4" /> Switch column
@@ -272,7 +311,7 @@ function SectionCard({
               document.body,
             )}
         </div>
-        <button type="button" className="btn-icon h-7 w-7" onClick={onToggle} aria-label={open ? 'Collapse' : 'Expand'}>
+        <button type="button" className="btn-icon h-9 w-9 md:h-7 md:w-7" onClick={onToggle} aria-label={open ? 'Collapse' : 'Expand'}>
           <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
         </button>
       </div>
@@ -307,7 +346,7 @@ function SectionCard({
               canvas, which a phone never shows in edit mode. */}
           <div className="rm-panel-gear flex items-center justify-between gap-2">
             <span className="text-[12px] text-muted-foreground">Section style</span>
-            <SectionGear sectionKey={sectionKey} doc={doc} editMeta={updateMeta} />
+            <SectionGear sectionKey={sectionKey} doc={doc} editMeta={updateMeta} variant="panel" />
           </div>
           <SectionItemsEditor doc={doc} sectionKey={sectionKey} />
         </div>

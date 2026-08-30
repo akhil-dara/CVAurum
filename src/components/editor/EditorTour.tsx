@@ -31,7 +31,12 @@ interface Step {
    *  describe the template gallery while the Content form stayed on screen,
    *  which read as the tour being broken. Runs when the step opens, phone
    *  only; desktop anchors its ring to the real control instead. */
-  mobileShow?: { tab?: 'content' | 'design' | 'templates' | 'ats'; panelOpen?: boolean }
+  mobileShow?: { tab?: 'content' | 'design' | 'templates' | 'ats'; panelOpen?: boolean; event?: string }
+  /** Anchor to use on a phone when the desktop one is hidden there - the
+   *  restyle step rings the panel's own Style button instead of a canvas
+   *  that is not on screen, so the centered fallback card cannot end up
+   *  covering the very control the words describe. */
+  mobileSel?: string
 }
 
 /* Titles carry no numbers - the prefix is added at render, so skipping the
@@ -40,8 +45,8 @@ const STEPS: Step[] = [
   { title: 'Welcome — quick tour 👋', body: "A 30-second look at where everything is. Skip anytime, and reopen it from the “?” in the top bar." },
   { sel: '[data-tour="nav"]', title: 'Choose a section', body: 'Switch between Content, Design, Templates, and the ATS check here.', mobileBody: 'The bottom bar switches between Content, Design, Templates, the ATS check and Preview.' },
   { sel: '[data-tour="panel"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
-  { sel: '[data-tour="canvas"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.', mobileBody: 'On a phone this panel is the editor — everything you type lands on the resume instantly. Tap Preview any time to see the page itself.' },
-  { sel: '[data-tour="canvas"]', title: 'Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The eye icon beside it hides the section. The header has its own Style pill too, with photo/monogram options.', mobileBody: 'Open “Style” beside any section in the panel for its full style sheet — heading style, skills layout, badge size and shape. The ⋯ menu renames, hides or removes it.' },
+  { sel: '[data-tour="canvas"]', mobileShow: { panelOpen: false }, title: 'Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.', mobileBody: 'This is the page itself — tap any text to edit it right there. The Content tab below reopens the full forms; everything you type lands here instantly.' },
+  { sel: '[data-tour="canvas"]', mobileSel: '.rm-panel-gear .rm-section-gear', mobileShow: { tab: 'content', panelOpen: true, event: 'cvaurum:tour-show-style' }, title: 'Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The eye icon beside it hides the section. The header has its own Style pill too, with photo/monogram options.', mobileBody: 'This “Style” button opens a section’s full style sheet — heading style, entry layout, badge size and shape. Every section card has one; the ⋯ menu renames, hides or removes the section.' },
   { mobileShow: { tab: 'content', panelOpen: true }, title: 'Links that read as words', body: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Click the chain beside a title or contact, or the printed word itself, for one card: Shown as, Goes to, and whether exports make links clickable. While editing, a faint dotted mark shows which words carry a link.', mobileBody: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Each link is a plain pair of fields in the panel, and one switch (in any link card, or under Design) turns clickability on or off for the whole document.' },
   { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads — plus a per-system parse simulation (Workday, Greenhouse, Lever, Taleo, iCIMS) and an on-device writing coach.' },
   { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: 'Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.', mobileBody: 'Try any of 52 designs — tap one to switch. Nothing is re-typed.' },
@@ -92,14 +97,20 @@ export function EditorTour() {
       const es = useEditorStore.getState()
       if (step.mobileShow!.tab) es.setLeftTab(step.mobileShow!.tab)
       if (step.mobileShow!.panelOpen !== undefined) es.setLeftOpen(step.mobileShow!.panelOpen)
+      // Some steps need a surface prepared beyond tab switching - the restyle
+      // step asks the organizer to expand its first card so the Style button
+      // the words point at is actually on screen.
+      if (step.mobileShow!.event) setTimeout(() => window.dispatchEvent(new Event(step.mobileShow!.event!)), 120)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, i, mobile])
 
   // Measure the current target (re-measure on step change, resize, scroll).
   const measure = useCallback(() => {
-    if (!open || !step?.sel) return setRect(null)
-    const el = document.querySelector(step.sel) as HTMLElement | null
+    const mobileNow = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    const sel = (mobileNow && step?.mobileSel) || step?.sel
+    if (!open || !sel) return setRect(null)
+    const el = document.querySelector(sel) as HTMLElement | null
     const r = el?.getBoundingClientRect() ?? null
     setRect(r && r.width > 4 && r.height > 4 ? r : null)
   }, [open, step])
