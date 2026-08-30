@@ -26,18 +26,55 @@ export async function fitOnePageScale(
    *  0.995 believing it saved a page when the paginator still produced three.
    *  Callers that can paginate (the exporter and the live preview) pass this
    *  so both pick the identical scale. */
-  countPages?: () => Promise<number>
+  countPages?: () => Promise<number>,
+  /** The scale the previous fit settled on. One edit rarely moves the answer
+   *  far, so the search brackets it first - measured, an edit pause paid ~10
+   *  sequential render+layout probes of the whole hidden resume; seeded, a
+   *  typical one pays 5-6. */
+  hint?: number
 ): Promise<number> {
   if ((await measure(1)) <= pageH) return 1 // already fits — no shrink
-  if ((await measure(MIN_FIT)) > pageH) return fewestPagesScale(pageH, measure, subsequentPageH, countPages)
-  let lo = MIN_FIT // largest scale known to fit
-  let hi = 1 // smallest scale known NOT to fit
-  for (let i = 0; i < 7; i++) {
-    const mid = (lo + hi) / 2
-    if ((await measure(mid)) <= pageH) lo = mid
-    else hi = mid
+  /* The search walks a DISCRETE grid of scales, and its answer is THE largest
+   * grid scale that fits - a unique value no matter where the search started.
+   * That is what lets the preview seed itself from its previous answer while
+   * the exporter searches cold, and still land on the identical scale: a
+   * plain binary search from two different brackets converges to two
+   * different thousandths, and preview and export MUST agree (the parity
+   * gate exists because they once did not). */
+  const STEP = 0.004
+  const N = Math.floor((1 - MIN_FIT) / STEP) // grid: MIN_FIT + i*STEP, i in [0, N]
+  const scaleAt = (i: number) => Number((MIN_FIT + i * STEP).toFixed(3))
+  const fits = async (i: number) => (await measure(scaleAt(i))) <= pageH
+  let loI = 0 // largest index known (or assumed, then verified) to fit
+  let hiI = N + 1 // smallest index known not to fit (N+1 stands for scale 1)
+  let loVerified = false
+  if (hint && hint > MIN_FIT && hint < 1) {
+    const h = Math.max(0, Math.min(N, Math.round((hint - MIN_FIT) / STEP)))
+    const K = 10 // +-0.04 around the previous answer
+    if (await fits(h)) {
+      loI = h
+      loVerified = true
+      const up = Math.min(N, h + K)
+      if (up > h && (await fits(up))) loI = up
+      else if (up > h) hiI = up
+    } else {
+      hiI = h
+      const down = Math.max(0, h - K)
+      if (down < h && (await fits(down))) {
+        loI = down
+        loVerified = true
+      }
+    }
   }
-  const result = Number(lo.toFixed(3))
+  if (!loVerified) {
+    if (!(await fits(0))) return fewestPagesScale(pageH, measure, subsequentPageH, countPages)
+  }
+  while (hiI - loI > 1) {
+    const mid = (loI + hiI) >> 1
+    if (await fits(mid)) loI = mid
+    else hiI = mid
+  }
+  const result = scaleAt(loI)
   await measure(result)
   return result
 }

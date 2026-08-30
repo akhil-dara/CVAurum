@@ -27,8 +27,8 @@ import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
-import { exportResumePdf } from '@/lib/pdf/export'
-import { lastUnsupportedCharacters } from '@/lib/pdf/render'
+// Loaded on the export click: pdf-lib + fontkit are ~1.2MB the editor
+// never needs until the moment a file is actually produced.
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -81,12 +81,14 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     if (useEditorStore.getState().pdfExporting) return
     useEditorStore.getState().setPdfExporting(true)
     try {
+      const { exportResumePdf } = await import('@/lib/pdf/export')
       const outcome = await exportResumePdf(useResumeStore.getState().doc ?? doc)
       // A character no embedded font can draw is DROPPED, not shown as a box,
       // so an export can succeed while losing whole sentences - a name written
       // in Telugu simply is not in the file. Say so rather than hand over a
       // resume with the author's own name missing.
       if (outcome === 'native') {
+        const { lastUnsupportedCharacters } = await import('@/lib/pdf/metrics')
         const missing = lastUnsupportedCharacters()
         if (missing.length) {
           toast(

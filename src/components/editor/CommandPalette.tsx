@@ -14,7 +14,6 @@ import { BODY_SECTION_KEYS, DEFAULT_LABELS } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
-import { exportResumePdf } from '@/lib/pdf/export'
 
 interface Cmd {
   id: string
@@ -130,6 +129,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
           if (useEditorStore.getState().pdfExporting) return
           useEditorStore.getState().setPdfExporting(true)
           try {
+            const { exportResumePdf } = await import('@/lib/pdf/export')
             await exportResumePdf(useResumeStore.getState().doc ?? doc)
           } finally {
             useEditorStore.getState().setPdfExporting(false)

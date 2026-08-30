@@ -45,9 +45,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   toasts: [],
 
   init: async () => {
-    const [settings, library] = await Promise.all([loadSettings(), loadAllDocs()])
-    set({ settings, settingsLoaded: true, library, libraryLoaded: true })
+    // Settings gate the first paint (the theme must be right before anything
+    // shows); the LIBRARY does not. Loading every stored resume in full -
+    // photos included - used to block the splash on every route, including
+    // the landing page (needs zero documents) and the editor (loads its own
+    // one by id). It fills in behind the first paint now, and the two
+    // consumers (dashboard, landing) key on libraryLoaded.
+    const settings = await loadSettings()
+    set({ settings, settingsLoaded: true })
     get().applyTheme()
+    void loadAllDocs().then((library) => set({ library, libraryLoaded: true }))
   },
 
   refreshLibrary: async () => {

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +10,61 @@ export function Labeled({ label, hint, children, className }: { label?: string; 
       {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   )
+}
+
+/* The same 300ms the canvas's own Ed has had all along. Panel inputs wrote
+ * the store on EVERY keystroke, and each write re-renders the panel plus both
+ * artboard trees - measured at 48ms per key against the canvas's 15 (2026-
+ * 08-30), which is the sluggish panel typing the author reported. The field
+ * owns its text while focused and flushes on pause, blur and unmount; while
+ * it is NOT focused, outside changes (undo, import, another field) flow in
+ * untouched. */
+function useDebouncedText(value: string, onChange: (v: string) => void) {
+  const [draft, setDraft] = useState(value)
+  const focused = useRef(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latest = useRef({ value, onChange, draft })
+  latest.current = { value, onChange, draft }
+
+  useEffect(() => {
+    if (!focused.current) setDraft(value)
+  }, [value])
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current)
+        const { value: v, onChange: fn, draft: d } = latest.current
+        if (d !== v) fn(d)
+      }
+    },
+    []
+  )
+
+  const flush = () => {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+    const { value: v, onChange: fn, draft: d } = latest.current
+    if (d !== v) fn(d)
+  }
+  const set = (v: string) => {
+    setDraft(v)
+    latest.current.draft = v
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(flush, 300)
+  }
+  return {
+    draft,
+    set,
+    onFocus: () => {
+      focused.current = true
+    },
+    onBlur: () => {
+      focused.current = false
+      flush()
+    },
+  }
 }
 
 export function TextField({
@@ -27,9 +82,18 @@ export function TextField({
   hint?: string
   type?: string
 }) {
+  const t = useDebouncedText(value, onChange)
   return (
     <Labeled label={label} hint={hint}>
-      <input className="input" type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <input
+        className="input"
+        type={type}
+        value={t.draft}
+        placeholder={placeholder}
+        onChange={(e) => t.set(e.target.value)}
+        onFocus={t.onFocus}
+        onBlur={t.onBlur}
+      />
     </Labeled>
   )
 }
@@ -47,9 +111,18 @@ export function TextAreaField({
   placeholder?: string
   rows?: number
 }) {
+  const t = useDebouncedText(value, onChange)
   return (
     <Labeled label={label}>
-      <textarea className="textarea" rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <textarea
+        className="textarea"
+        rows={rows}
+        value={t.draft}
+        placeholder={placeholder}
+        onChange={(e) => t.set(e.target.value)}
+        onFocus={t.onFocus}
+        onBlur={t.onBlur}
+      />
     </Labeled>
   )
 }

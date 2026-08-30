@@ -8,7 +8,7 @@ import { newItem, removeItem, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
 import { LogoPicker } from './fields/LogoPicker'
-import { RichTextEditor } from './fields/RichTextEditor'
+import { RichTextLazy as RichTextEditor } from './fields/RichTextLazy'
 import { BulletsEditor } from './fields/BulletsEditor'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

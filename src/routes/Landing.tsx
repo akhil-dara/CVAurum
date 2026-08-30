@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, useInView, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import {
   FileText,
   Plus,
@@ -517,6 +517,12 @@ function HeroCinema({
   onImportPdf: () => void
 }) {
   const reduce = useReducedMotion()
+  // The aurora kept drifting long after the reader scrolled past it - three
+  // infinite animations writing styles every frame under a whole page that no
+  // longer showed them. They run only while the hero is actually on screen.
+  const heroRef = useRef<HTMLElement | null>(null)
+  const heroInView = useInView(heroRef, { amount: 0.05 })
+  const drift = !reduce && heroInView
   // The morph reel: identical sample content flowing through contrasting
   // designs — the template engine demonstrating itself.
   const morph = useMemo(
@@ -530,10 +536,16 @@ function HeroCinema({
   )
   const [ti, setTi] = useState(0)
   useEffect(() => {
-    if (reduce) return
-    const t = setInterval(() => setTi((i) => (i + 1) % morph.length), 3400)
+    // The crossfade mounted a fresh full-resume render every 3.4 seconds
+    // FOREVER - scrolled past, tab hidden, it kept spending a frame budget
+    // nobody was watching. It ticks only while the hero is on screen and the
+    // tab is visible.
+    if (reduce || !heroInView) return
+    const t = setInterval(() => {
+      if (!document.hidden) setTi((i) => (i + 1) % morph.length)
+    }, 3400)
     return () => clearInterval(t)
-  }, [reduce, morph.length])
+  }, [reduce, morph.length, heroInView])
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [7, -7]), { stiffness: 110, damping: 16 })
@@ -546,27 +558,27 @@ function HeroCinema({
   }
 
   return (
-    <section id="hero-stage" className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
+    <section ref={heroRef} id="hero-stage" className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
       {/* drifting aurora */}
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -top-40 left-[8%] h-[34rem] w-[34rem] rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(closest-side,#d4982f55,transparent)' }}
-        animate={reduce ? undefined : { x: [0, 60, -30, 0], y: [0, 30, 10, 0] }}
+        className="pointer-events-none absolute -top-40 left-[8%] h-[34rem] w-[34rem] rounded-full"
+        style={{ background: 'radial-gradient(closest-side,#d4982f4d,#d4982f1f 55%,transparent 85%)' }}
+        animate={drift ? { x: [0, 60, -30, 0], y: [0, 30, 10, 0] } : undefined}
         transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -bottom-56 right-[4%] h-[38rem] w-[38rem] rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(closest-side,#5b5df033,transparent)' }}
-        animate={reduce ? undefined : { x: [0, -70, 20, 0], y: [0, -30, 20, 0] }}
+        className="pointer-events-none absolute -bottom-56 right-[4%] h-[38rem] w-[38rem] rounded-full"
+        style={{ background: 'radial-gradient(closest-side,#5b5df02e,#5b5df014 55%,transparent 85%)' }}
+        animate={drift ? { x: [0, -70, 20, 0], y: [0, -30, 20, 0] } : undefined}
         transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute right-1/3 top-1/3 h-[26rem] w-[26rem] rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(closest-side,#2dd4bf22,transparent)' }}
-        animate={reduce ? undefined : { x: [0, 40, -40, 0], y: [0, -40, 24, 0] }}
+        className="pointer-events-none absolute right-1/3 top-1/3 h-[26rem] w-[26rem] rounded-full"
+        style={{ background: 'radial-gradient(closest-side,#2dd4bf1f,#2dd4bf0f 55%,transparent 85%)' }}
+        animate={drift ? { x: [0, 40, -40, 0], y: [0, -40, 24, 0] } : undefined}
         transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
       />
       {/* fine dot grid for depth */}

@@ -1,6 +1,6 @@
 import { GripVertical, Trash2, Plus } from 'lucide-react'
 import { SortableList } from '../SortableList'
-import { RichTextEditor } from './RichTextEditor'
+import { RichTextLazy as RichTextEditor } from './RichTextLazy'
 import { Labeled } from './Inputs'
 
 export function BulletsEditor({

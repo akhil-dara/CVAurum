@@ -325,6 +325,10 @@
     animation: land-rise both;
     animation-timeline: view();
     animation-range: entry 0% entry 55%;
+    /* Its own layer, so the scroll-driven opacity/transform runs on the
+       compositor instead of restyling a whole section every scroll frame -
+       measured: worst frame 250ms with five unlayered sections revealing. */
+    will-change: opacity, transform;
   }
   @keyframes land-rise {
     from { opacity: 0.12; transform: translateY(30px); }

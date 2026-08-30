@@ -85,7 +85,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setLeftOpen: (leftOpen) => set({ leftOpen }),
   setHighlightKeywords: (highlightKeywords) => set({ highlightKeywords }),
   setFocusItem: (focusItem) => set({ focusItem }),
-  setOnePageScale: (onePageScale) => set({ onePageScale }),
+  // Written after every doc change by the auto-fit effect; when the value
+  // has not moved (almost always), writing it anyway told every subscriber
+  // something happened. Skip the no-op.
+  setOnePageScale: (onePageScale) => {
+    if (get().onePageScale !== onePageScale) set({ onePageScale })
+  },
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),
   setFocusMode: (focusMode) => set({ focusMode }),

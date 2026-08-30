@@ -17,6 +17,7 @@ import { SAMPLES, type SamplePersona } from '@/data/samples'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import type { ResumeContent } from '@/types/document'
+import { useLazyMount } from '@/components/preview/lazyMount'
 
 /** Create/import a resume and land the user in the editor. */
 export function useResumeActions() {
@@ -183,30 +184,48 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
         <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
         <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-2 lg:grid-cols-4">
           {docs.map(({ persona, doc }) => (
-            <HoverZoom key={persona.id} doc={doc} label={`${persona.role} example`}>
-            <button
-              onClick={() => onPick(persona)}
-              // The CARD follows the theme; only the thumbnail below is paper
-              // white. It used to be white throughout while its text used
-              // theme tokens, so in dark mode the title was light-on-white and
-              // effectively invisible (2026-08-25 report).
-              className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
-              title={`Start from the ${persona.role} example`}
-            >
-              <div className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
-                <PreviewThumb doc={doc} width={210} />
-              </div>
-              <div className="p-3">
-                <div className="text-sm font-semibold text-foreground">{persona.role}</div>
-                <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{persona.blurb}</div>
-              </div>
-            </button>
-            </HoverZoom>
+            <SampleCard key={persona.id} persona={persona} doc={doc} onPick={onPick} />
           ))}
         </div>
       </div>
     </div>,
     document.body,
+  )
+}
+
+function SampleCard({
+  persona,
+  doc,
+  onPick,
+}: {
+  persona: SamplePersona
+  doc: ReturnType<typeof createDocument>
+  onPick: (p: SamplePersona) => void
+}) {
+  // Four full resumes used to mount synchronously the moment the modal
+  // opened. Each card now waits for its idle grant like every other
+  // thumbnail; the aspect box holds the layout meanwhile.
+  const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
+  return (
+    <HoverZoom doc={doc} label={`${persona.role} example`}>
+      <button
+        onClick={() => onPick(persona)}
+        // The CARD follows the theme; only the thumbnail below is paper
+        // white. It used to be white throughout while its text used
+        // theme tokens, so in dark mode the title was light-on-white and
+        // effectively invisible (2026-08-25 report).
+        className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
+        title={`Start from the ${persona.role} example`}
+      >
+        <div ref={thumbRef} className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
+          <PreviewThumb doc={doc} width={210} />
+        </div>
+        <div className="p-3">
+          <div className="text-sm font-semibold text-foreground">{persona.role}</div>
+          <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{persona.blurb}</div>
+        </div>
+      </button>
+    </HoverZoom>
   )
 }
 

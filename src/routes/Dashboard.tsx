@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
+import { useLazyMount } from '@/components/preview/lazyMount'
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000
 // Settling grace before the backup-staleness notice can fire — same window the
@@ -128,6 +129,7 @@ export function Dashboard() {
   useTitle('Your Resumes · CVAurum')
   const navigate = useNavigate()
   const library = useAppStore((s) => s.library)
+  const libraryLoaded = useAppStore((s) => s.libraryLoaded)
 
   // Storage durability: local-first means a denied persist() grant can end in
   // the browser silently evicting all site data under disk pressure. Check the
@@ -309,7 +311,16 @@ export function Dashboard() {
           </div>
         </div>
 
-        {library.length === 0 ? (
+        {!libraryLoaded ? (
+          // The library now loads behind the first paint - showing the empty
+          // state before it arrives would flash "no resumes yet" at someone
+          // who has twelve.
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4" aria-busy>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="aspect-[210/297] animate-pulse rounded-xl border border-border bg-muted/40" />
+            ))}
+          </div>
+        ) : library.length === 0 ? (
           <EmptyState
             onNew={() => setChooser(true)}
             onExample={() => setSampleOpen(true)}
@@ -417,6 +428,7 @@ function NewCard({ onClick }: { onClick: () => void }) {
 }
 
 function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: () => void; onChanged: () => void }) {
+  const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
   const [menu, setMenu] = useState(false)
   const toast = useAppStore((s) => s.toast)
 
@@ -446,8 +458,12 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
         onClick={onOpen}
         className="block w-full overflow-hidden rounded-xl border border-border bg-white shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card"
       >
-        <div className="flex aspect-[210/297] justify-center overflow-hidden bg-white">
-          <PreviewThumb doc={doc} width={210} />
+        <div ref={thumbRef} className="flex aspect-[210/297] justify-center overflow-hidden bg-white">
+          {/* One full resume per SAVED DOCUMENT rendered in the route's first
+              commit, unbounded - the same storm the template gallery had. The
+              aspect box holds the size; the resume arrives via the shared
+              idle queue. */}
+          {seen ? <PreviewThumb doc={doc} width={210} /> : null}
         </div>
       </button>
       <div className="mt-2 flex items-start justify-between gap-2 px-0.5">

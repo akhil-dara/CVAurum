@@ -38,7 +38,7 @@
  * outright rather than estimated (see PageChrome.tsx's own comment).
  * Auto-fit scales the page to the available width.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
@@ -57,7 +57,7 @@ import {
   computeFirstPageUsablePageHeightPx,
   findMainColumnPaddingPx,
   exceedsOnePage,
-} from '@/lib/pdf/render'
+} from '@/lib/pdf/metrics'
 import { resolveForcedCutsPx } from '@/lib/pdf/pageBreaks'
 import {
   collectSectionAnchors,
@@ -270,6 +270,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // Publish the settled one-page scale so silent exports (Word) can shrink to
   // the same page count the preview/PDF lands on.
   const setOnePageScale = useEditorStore((s) => s.setOnePageScale)
+  const measureDoc = useDeferredValue(doc)
+  // A fresh closure here defeated TemplateRenderer's memo, so every
+  // incidental state change in this component re-rendered the whole canvas.
+  const openAddSection = useCallback(() => setAddOpen(true), [])
 
   // Track available width for fit-to-width zoom. THREE signals, not one
   // (2026-08-17, mobile fix): on phones the canvas mounts inside a
@@ -392,7 +396,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           } catch {
             return Number.POSITIVE_INFINITY
           }
-        }
+        },
+        // Seed from the previous answer: an edit rarely moves the fit far,
+        // and the grid search lands on the identical scale either way - the
+        // hint only trims probes (the exporter searches cold and agrees).
+        fitScaleRef.current
       )
       if (cancelled || myReq !== fitReq.current) return
       setMeasureScale(result)
@@ -684,7 +692,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           data-role="pdf-measure"
           style={{ position: 'fixed', top: 0, left: -100000, width: pageW, pointerEvents: 'none', zIndex: -1 }}
         >
-          <TemplateRenderer doc={doc} mode="print" fitScale={measureScale} />
+          {/* The DEFERRED doc: this offscreen tree re-rendered in the same
+              commit as the visible canvas on every store write - two full
+              artboards before a typed character could paint - while every
+              reader of it (auto-fit, pagination, the height observer) waits
+              at least 200ms anyway. React renders it when the urgent work is
+              done; nothing that consumes it can tell the difference. */}
+          <TemplateRenderer doc={measureDoc} mode="print" fitScale={measureScale} />
         </div>,
         document.body
       )}
@@ -738,7 +752,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                     edit={updateContent}
                     editMeta={updateMetadata}
                     fitScale={fitScale}
-                    onAddSection={() => setAddOpen(true)}
+                    onAddSection={openAddSection}
                   />
                 )}
               </div>

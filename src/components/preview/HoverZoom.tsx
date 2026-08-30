@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { startTransition, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS } from '@/types/metadata'
@@ -37,7 +37,11 @@ export function HoverZoom({
     const fitsRight = r.right + 12 + width < window.innerWidth
     const left = fitsRight ? r.right + 12 : Math.max(8, r.left - width - 12)
     const top = Math.min(Math.max(8, r.top - 40), Math.max(8, window.innerHeight - previewH - 8))
-    setPos({ top, left })
+    // The flyout is a full-resume render (~200-350ms). As an urgent update it
+    // froze the pointer for that long; as a transition, React yields to input
+    // and the pop lands a frame or two later - which a 220ms dwell already
+    // made imperceptible.
+    startTransition(() => setPos({ top, left }))
   }
   const onEnter = () => {
     timer.current = window.setTimeout(show, 220)

@@ -24,7 +24,12 @@ const PANEL_TITLES: Record<string, string> = {
 }
 
 export function Editor({ doc }: { doc: ResumeDocument }) {
-  const { leftTab, leftOpen } = useEditorStore()
+  // Two narrow selectors, not the whole store: selecting the store object
+  // re-rendered the entire editor - both artboard trees included - on EVERY
+  // editor-store write, and ResumePreview writes onePageScale after each doc
+  // change, so typing paid a second full-tree render for nothing.
+  const leftTab = useEditorStore((s) => s.leftTab)
+  const leftOpen = useEditorStore((s) => s.leftOpen)
 
   // Global undo/redo shortcuts.
   useEffect(() => {
