@@ -159,12 +159,25 @@ function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: 
 export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
   const [open, setOpen] = useState(false)
   const [top, setTop] = useState(0)
+  const [sheet, setSheet] = useState(false)
   const current = doc.metadata.layout.headerStyle ?? ''
   const panelRef = useRef<HTMLDivElement>(null)
   // Escape closes; focus moves in on open and back to the gear on close.
   usePopoverA11y(open, () => setOpen(false), panelRef)
 
   const openPopover = (e: React.MouseEvent) => {
+    // Phones get a bottom sheet, exactly like the section style sheet. As a
+    // floating panel this opened level with the header - mid-screen on a
+    // phone - so most of its height hung below the viewport and the reader
+    // saw a cut-off card that would not scroll (reported from a phone,
+    // 2026-08-30; the panel itself scrolled, but only within the sliver
+    // that was actually on screen).
+    if (document.documentElement.clientWidth < 640) {
+      setSheet(true)
+      setOpen(true)
+      return
+    }
+    setSheet(false)
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
     setTop(Math.max(8, Math.min(r.top - 4, window.innerHeight - 420)))
     setOpen(true)
@@ -190,15 +203,19 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
       {open &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+            <div className={`fixed inset-0 z-[60] ${sheet ? 'bg-black/35' : ''}`} onClick={() => setOpen(false)} />
             <div
               ref={panelRef}
               role="dialog"
               aria-modal="true"
               tabIndex={-1}
               aria-label="Header style and layout"
-              className="fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float"
-              style={{ top, left: Math.max(8, document.documentElement.clientWidth - 304 - 12) }}
+              className={
+                sheet
+                  ? 'fixed inset-x-0 bottom-0 z-[61] overflow-y-auto overflow-x-hidden overscroll-contain rounded-t-2xl border-t border-border bg-surface p-1.5 pb-4 text-foreground shadow-float'
+                  : 'fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float'
+              }
+              style={sheet ? { maxHeight: Math.round(window.innerHeight * 0.8) } : { top, left: Math.max(8, document.documentElement.clientWidth - 304 - 12) }}
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Header <span className="font-normal normal-case">— layout</span>
