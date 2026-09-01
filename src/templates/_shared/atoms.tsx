@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { noBreakCompoundsHtml } from '@/lib/pdf/hyphens'
 import { keywordChunks } from '@/lib/keywordChunks'
 
 /** Sanitized rich-text block. */
@@ -37,7 +38,10 @@ export const RichText = memo(function RichText({
   className?: string
 }) {
   if (!html) return null
-  return <div className={`rm-rich ${className ?? ''}`} dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />
+  // noBreakCompoundsHtml: the PDF exporter keeps hyphenated words whole
+  // (hyphens.ts); rendering from the same processed string keeps the canvas
+  // wrapping lines exactly where the export will.
+  return <div className={`rm-rich ${className ?? ''}`} dangerouslySetInnerHTML={{ __html: noBreakCompoundsHtml(sanitizeHtml(html)) }} />
 })
 
 /** 0–max filled dots (proficiency). */

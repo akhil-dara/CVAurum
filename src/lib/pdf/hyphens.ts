@@ -60,7 +60,7 @@ export function hyphenTokenRanges(text: string): Array<[number, number]> {
  * Runs on the print DOM only, before layout is measured. Skips text that is
  * already inside a nowrap span so it is safe to call more than once.
  */
-export function keepHyphenatedWordsWhole(root: Element): void {
+export function keepHyphenatedWordsWhole(root: Element | DocumentFragment): void {
   const doc = root.ownerDocument
   if (!doc) return
   const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT)
@@ -87,4 +87,27 @@ export function keepHyphenatedWordsWhole(root: Element): void {
       span.appendChild(tail)
     }
   }
+}
+
+/**
+ * The same policy for a rich-text HTML STRING, applied at render time.
+ *
+ * The preview's React trees cannot take the DOM pass above - splitting
+ * React-managed text nodes corrupts the next reconciliation - but rich text
+ * renders through dangerouslySetInnerHTML, where React never looks inside.
+ * Processing the string BEFORE it becomes __html gives the preview the same
+ * wraps the exporter's DOM pass produces, so a hyphenated word at a line
+ * boundary can no longer wrap differently on canvas than in the PDF
+ * (gate-caught: 'high-scale' at the end of a summary line, double template).
+ * The exporter's own pass then finds data-cva-nowrap already set and skips.
+ *
+ * Runs AFTER sanitizeHtml - the sanitizer strips style and data attributes,
+ * so wrapping first would be undone.
+ */
+export function noBreakCompoundsHtml(html: string): string {
+  if (!html || !COMPOUND.test(html)) return html
+  const tpl = document.createElement('template')
+  tpl.innerHTML = html
+  keepHyphenatedWordsWhole(tpl.content as unknown as Element)
+  return tpl.innerHTML
 }
