@@ -13,6 +13,15 @@
  * when it can't fit even at MIN_FIT (then it's left full size and paginates).
  */
 export const MIN_FIT = 0.66
+/** How far a SPARSE page may grow to fill itself. Auto-fit used to work in
+ *  one direction only - an overflowing page shrank, a half-empty one just
+ *  stayed small, leaving a strip of dead paper under short resumes. Capped
+ *  modestly: at 1.15 a 10.5pt body reaches ~12pt, which fills a page without
+ *  reading as a poster. */
+export const MAX_FIT_UP = 1.15
+/** One grid step of the deterministic fit search - shared by the shrink and
+ *  grow directions so preview and export land on identical scales. */
+export const FIT_STEP = 0.004
 
 export async function fitOnePageScale(
   pageH: number,
@@ -33,7 +42,33 @@ export async function fitOnePageScale(
    *  typical one pays 5-6. */
   hint?: number
 ): Promise<number> {
-  if ((await measure(1)) <= pageH) return 1 // already fits — no shrink
+  if ((await measure(1)) <= pageH) {
+    /* GROW. The page already fits - fill it instead of leaving it sparse.
+     * Same discrete grid as the shrink search, so the answer is THE largest
+     * fitting grid scale however the search gets there, and the exporter
+     * (searching cold) agrees with the preview to the digit. The cap is
+     * probed first: most sparse pages fit the whole cap, making the common
+     * case two measurements. */
+    const NUp = Math.floor((MAX_FIT_UP - 1) / FIT_STEP)
+    if (NUp <= 0) return 1
+    const upAt = (i: number) => Number((1 + i * FIT_STEP).toFixed(3))
+    const fitsUp = async (i: number) => (await measure(upAt(i))) <= pageH
+    if (await fitsUp(NUp)) {
+      const r = upAt(NUp)
+      await measure(r)
+      return r
+    }
+    let lo = 0 // largest index known to fit (index 0 == scale 1, known)
+    let hi = NUp // known not to fit
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1
+      if (await fitsUp(mid)) lo = mid
+      else hi = mid
+    }
+    const r = upAt(lo)
+    await measure(r)
+    return r
+  }
   /* The search walks a DISCRETE grid of scales, and its answer is THE largest
    * grid scale that fits - a unique value no matter where the search started.
    * That is what lets the preview seed itself from its previous answer while
@@ -41,7 +76,7 @@ export async function fitOnePageScale(
    * plain binary search from two different brackets converges to two
    * different thousandths, and preview and export MUST agree (the parity
    * gate exists because they once did not). */
-  const STEP = 0.004
+  const STEP = FIT_STEP
   const N = Math.floor((1 - MIN_FIT) / STEP) // grid: MIN_FIT + i*STEP, i in [0, N]
   const scaleAt = (i: number) => Number((MIN_FIT + i * STEP).toFixed(3))
   const fits = async (i: number) => (await measure(scaleAt(i))) <= pageH

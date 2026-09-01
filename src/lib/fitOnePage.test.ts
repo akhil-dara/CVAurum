@@ -19,9 +19,27 @@ const linear = (fullHeight: number) => {
 }
 
 describe('fitOnePageScale', () => {
-  it('leaves a résumé that already fits at full size alone', async () => {
+  it('grows a sparse page toward the cap, on the grid', async () => {
+    // 300px of content on a 400px page: room to grow. The cap binds first
+    // (300 * 1.15 = 345 <= 400), so the answer is the cap's grid value.
     const { measure } = linear(300)
-    expect(await fitOnePageScale(400, measure)).toBe(1)
+    expect(await fitOnePageScale(400, measure)).toBeCloseTo(1.148, 3)
+  })
+
+  it('grows only as far as the page allows when the cap does not fit', async () => {
+    // 370px on a 400px page: 1.15x would be 425 - too tall. The answer is
+    // the largest grid scale with 370*s <= 400 (~1.08).
+    const { measure } = linear(370)
+    const s = await fitOnePageScale(400, measure)
+    expect(370 * s).toBeLessThanOrEqual(400)
+    expect(s).toBeGreaterThan(1.07)
+    expect(s).toBeLessThanOrEqual(1.081)
+  })
+
+  it('never grows past the cap however much room the page has', async () => {
+    const { measure } = linear(10) // could grow 40x; must not
+    const s = await fitOnePageScale(400, measure)
+    expect(s).toBeLessThanOrEqual(1.15)
   })
 
   it('shrinks just enough to reach one page', async () => {

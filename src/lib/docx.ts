@@ -489,7 +489,7 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
   LINKS_LIVE = metadata.links?.clickable !== false
   // Apply the live one-page fit so the Word doc lands on the same page count as
   // the PDF. Clamp to the same floor the on-screen fit uses (never unreadable).
-  const scale = Math.min(1, Math.max(0.66, fitScale || 1))
+  const scale = Math.min(1.15, Math.max(0.66, fitScale || 1))
   SIZE =
     scale === 1
       ? BASE_SIZE
