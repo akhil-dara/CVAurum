@@ -341,20 +341,31 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // through trial scales. Re-runs (debounced) on any content or design change.
   // Because both the editor and the export use this identical routine on the
   // identical print-mode content, the on-screen page count ALWAYS matches the PDF.
+  /* Refit pending: from the moment the doc changes until the fit effect's
+   * one state update snaps the canvas, the visible page is stable-OLD - a
+   * window the grow search stretched past what height-stability polling can
+   * detect, and one the deferred measure doc stretches further. Armed here
+   * on the IMMEDIATE doc, cleared by the (deferred) fit effect below, so
+   * harnesses can wait on it instead of guessing. */
+  useEffect(() => {
+    if (import.meta.env.DEV) window.__cvaFitBusy = autoFit
+  }, [doc, autoFit, pageH])
+
   useEffect(() => {
     if (!autoFit) {
       setMeasureScale(1)
       if (fitScaleRef.current !== 1) setFitScale(1)
       setOnePageScale(1)
+      if (import.meta.env.DEV) window.__cvaFitBusy = false
       return
     }
     let cancelled = false
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
       await ensureFontsReady([
-        doc.metadata.typography.fontFamily,
-        doc.metadata.typography.headingFamily,
-        doc.metadata.typography.nameFamily,
+        measureDoc.metadata.typography.fontFamily,
+        measureDoc.metadata.typography.headingFamily,
+        measureDoc.metadata.typography.nameFamily,
       ])
       // Wait for the photo in the measure render to load too — an unsized image
       // makes the header (and thus the fit) measure short, diverging from the PDF.
@@ -375,7 +386,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           await raf2()
           return measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
         },
-        pageH - doc.metadata.page.margin * MM_TO_PX * 2,
+        pageH - measureDoc.metadata.page.margin * MM_TO_PX * 2,
         // The TRUE page count at the scale just rendered, from the same
         // print-measure portal and budgets the export uses. Without this the
         // preview would pick its scale from a height estimate while the
@@ -406,13 +417,20 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       setMeasureScale(result)
       setFitScale(result)
       setOnePageScale(result)
+      if (import.meta.env.DEV) {
+        window.__cvaFitBusy = false
+        window.__cvaPreviewFitScale = result
+      }
     }, 200)
     return () => {
       cancelled = true
       clearTimeout(id)
     }
-    // `doc` changes on every edit → debounced re-fit; pageH covers page-size changes.
-  }, [doc, autoFit, pageH])
+    // Keyed on the DEFERRED doc - the same value the measure portal renders -
+    // so every measurement reads the tree it thinks it is reading. (Keying on
+    // `doc` measured mid-deferral: a stale portal, a scale chosen for the
+    // wrong document, and no later re-run to correct it.)
+  }, [measureDoc, autoFit, pageH])
 
   // Keep the editable-canvas height current after a fit change (sizes the sheet).
   useEffect(() => {

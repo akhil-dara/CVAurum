@@ -70,6 +70,8 @@ declare global {
     __cvaLastCutReasons?: string[]
     /** DEV: the scale auto-fit settled on for the last export. */
     __cvaLastFitScale?: number
+    __cvaPreviewFitScale?: number
+    __cvaFitBusy?: boolean
   }
 }
 
@@ -158,6 +160,21 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // which was enough to make the DOM's page cuts disagree with the ops'.
     root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
     await raf2()
+
+    /* Text passes BEFORE the fit search, so the search measures the exact
+     * DOM the painter will walk. They used to run only after it - the fit
+     * then measured breakable hyphens while the paint kept them whole, and
+     * a compound word at a line boundary re-wrapped AFTER the scale was
+     * chosen (caught at grow scales: a summary gained a line the fit never
+     * saw). Both passes are idempotent; fit re-renders only change fitScale,
+     * which React reconciles without touching the mutated text nodes. */
+    {
+      const sheetEarly = container.firstElementChild as HTMLElement | null
+      if (sheetEarly) {
+        substituteUnsupportedChars(sheetEarly)
+        keepHyphenatedWordsWhole(sheetEarly)
+      }
+    }
 
     if (doc.metadata.page.autoFit) {
       const marginPx = doc.metadata.page.margin * MM_TO_PX
