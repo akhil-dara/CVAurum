@@ -1044,7 +1044,9 @@
 
 /* two-line entries used by aside lists */
 .rm-mini {
-  margin-bottom: var(--rm-item-gap);
+  /* The mini rhythm: see --rm-item-gap-mini in Artboard.tsx - a one-line row
+     never pays a job-block's separation. */
+  margin-bottom: var(--rm-item-gap-mini, var(--rm-item-gap));
   position: relative;
 }
 .rm-mini:last-child {

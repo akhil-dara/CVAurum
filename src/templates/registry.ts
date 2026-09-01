@@ -292,7 +292,7 @@ export const TEMPLATES: TemplateConfig[] = [
     defaults: defs(
       'aurum',
       { primary: '#1c1a17', text: '#23211d', muted: '#6b6357' },
-      { fontFamily: 'Source Sans 3', headingFamily: 'Source Sans 3', nameFamily: 'Source Serif 4', fontSize: 9.8, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.55, uppercaseHeadings: true },
+      { fontFamily: 'Source Sans 3', headingFamily: 'Source Sans 3', nameFamily: 'Source Serif 4', fontSize: 9.8, lineHeight: 1.34, letterSpacing: 0, headingScale: 1.55, uppercaseHeadings: true },
       { columns: 1, icons: false, sectionGap: 12, itemGap: 7 }
     ),
   },

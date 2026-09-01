@@ -59,6 +59,13 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-section-title-size': `${(fs * 1.06).toFixed(2)}px`,
       '--rm-section-gap': `${(layout.sectionGap * PT_TO_PX * fitScale).toFixed(2)}px`,
       '--rm-item-gap': `${(layout.itemGap * PT_TO_PX * fitScale).toFixed(2)}px`,
+      /* One slider, two rhythms. The item gap is sized so two multi-line
+       * ENTRY blocks read as separate; between two ONE-LINE minis (a
+       * language, an interest, a credential line) the same gap reads as a
+       * hole - the built-in example's languages sat 21pt apart for 10pt of
+       * text. Minis take a derived fraction, so tightening or loosening the
+       * one slider keeps both rhythms in proportion. */
+      '--rm-item-gap-mini': `${Math.max(2, layout.itemGap * 0.55 * PT_TO_PX * fitScale).toFixed(2)}px`,
       '--rm-pad': `${(page.margin * MM_TO_PX).toFixed(2)}px`,
       '--rm-text': theme.text,
       '--rm-muted': theme.muted,
