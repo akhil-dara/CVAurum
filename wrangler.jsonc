@@ -6,6 +6,11 @@
   // `name` must match the Cloudflare Worker this repo deploys to (prod.<sub>.workers.dev).
   "name": "prod",
   "compatibility_date": "2025-06-01",
+  // Serve ONLY the custom domain (cvaurum.com). Without these, every deploy
+  // also publishes the prod.<sub>.workers.dev copy of the site, which Google
+  // can index as a duplicate and users can land on by accident.
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"

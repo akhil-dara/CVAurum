@@ -244,7 +244,7 @@ export function Landing() {
               See all <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6" data-nosnippet>
             {showcase.map(({ id, doc }) => (
               <button
                 key={id}
@@ -642,7 +642,7 @@ function HeroCinema({
           </p>
 
           {/* phones: the same live morph, compact — the product stays visible */}
-          <div className="mt-10 flex justify-center md:hidden" aria-hidden>
+          <div className="mt-10 flex justify-center md:hidden" aria-hidden data-nosnippet>
             <div className="relative w-64 overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_60px_-18px_rgba(0,0,0,0.8)]">
               <div className="relative aspect-[210/297] overflow-hidden">
                 <AnimatePresence initial={false}>
@@ -670,7 +670,7 @@ function HeroCinema({
         </motion.div>
 
         {/* the product, demonstrated: ONE resume re-skinning itself live */}
-        <div className="hidden [perspective:1400px] md:block" aria-hidden>
+        <div className="hidden [perspective:1400px] md:block" aria-hidden data-nosnippet>
           <motion.div
             style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }}
             className="relative mx-auto h-[34rem] w-[30rem]"
