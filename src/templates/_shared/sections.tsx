@@ -1302,7 +1302,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                     clickable={opts?.linksClickable !== false}
                     renderTrigger={(open) => (
                       <a
-                        className="rm-named-link is-editable"
+                        className="rm-named-link rm-tag-link is-editable"
                         href={safeHref(p.url)}
                         role="button"
                         tabIndex={0}
@@ -1334,9 +1334,11 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                     }
                   />
                 ) : safeHref(p.url) ? (
-                  <a href={safeHref(p.url)}>{prettyUrl(p.url, doc.metadata.links?.display)}</a>
+                  <a className="rm-named-link rm-tag-link" href={safeHref(p.url)}>
+                    {prettyUrl(p.url, doc.metadata.links?.display)}
+                  </a>
                 ) : (
-                  prettyUrl(p.url, doc.metadata.links?.display)
+                  <span className="rm-named-link rm-tag-link">{prettyUrl(p.url, doc.metadata.links?.display)}</span>
                 )}
               </div>
             ) : null}
@@ -1368,7 +1370,13 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                     const href = safeHref(l.url)
                     return (
                       <Fragment key={l.id ?? li}>
-                        {li > 0 ? <span className="rm-item-links-sep" aria-hidden> &middot; </span> : null}
+                        {li > 0 ? (
+                          doc.metadata.links?.style === 'tag' ? (
+                            ' '
+                          ) : (
+                            <span className="rm-item-links-sep" aria-hidden> &middot; </span>
+                          )
+                        ) : null}
                         {edit ? (
                           // The WORD is the control. A chain button after each
                           // name would sit in the line's flow, so the canvas
@@ -1382,7 +1390,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                             clickable={opts?.linksClickable !== false}
                             renderTrigger={(open) => (
                               <a
-                                className="rm-named-link is-editable"
+                                className="rm-named-link rm-tag-link is-editable"
                                 href={href || undefined}
                                 // A link that has a name but no address yet -
                                 // exactly what Add another link creates - is an
@@ -1427,11 +1435,11 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                             }
                           />
                         ) : href ? (
-                          <a className="rm-named-link" href={href}>
+                          <a className="rm-named-link rm-tag-link" href={href}>
                             {shown}
                           </a>
                         ) : (
-                          <span className="rm-named-link">{shown}</span>
+                          <span className="rm-named-link rm-tag-link">{shown}</span>
                         )}
                       </Fragment>
                     )
@@ -1849,9 +1857,13 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                 so the click is swallowed here. */}
             {(cert.urlLabel || '').trim() && safeHref(cert.url) ? (
               <span className="rm-mini-verify">
-                <span className="rm-mini-verify-sep" aria-hidden>
-                  {' | '}
-                </span>
+                {doc.metadata.links?.style === 'tag' ? (
+                  ' '
+                ) : (
+                  <span className="rm-mini-verify-sep" aria-hidden>
+                    {' | '}
+                  </span>
+                )}
                 {edit ? (
                   // The word is the control here too, exactly as a project's
                   // named links work: clicking Verify opens the card that owns
@@ -1863,7 +1875,7 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                     clickable={opts?.linksClickable !== false}
                     renderTrigger={(open) => (
                       <a
-                        className="rm-named-link is-editable"
+                        className="rm-named-link rm-tag-link rm-verify-link is-editable"
                         href={safeHref(cert.url)}
                         role="button"
                         tabIndex={0}
@@ -1901,7 +1913,7 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                     }
                   />
                 ) : (
-                  <a className="rm-named-link" href={safeHref(cert.url)}>
+                  <a className="rm-named-link rm-tag-link rm-verify-link" href={safeHref(cert.url)}>
                     {(cert.urlLabel || '').trim()}
                   </a>
                 )}
@@ -1992,9 +2004,13 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                 that can be checked reads the same way as a certificate. */}
             {(a.urlLabel || '').trim() && safeHref(a.url) ? (
               <span className="rm-mini-verify">
-                <span className="rm-mini-verify-sep" aria-hidden>
-                  {' | '}
-                </span>
+                {doc.metadata.links?.style === 'tag' ? (
+                  ' '
+                ) : (
+                  <span className="rm-mini-verify-sep" aria-hidden>
+                    {' | '}
+                  </span>
+                )}
                 {edit ? (
                   <LinkButton
                     href={a.url}
@@ -2003,7 +2019,7 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                     clickable={opts?.linksClickable !== false}
                     renderTrigger={(open) => (
                       <a
-                        className="rm-named-link is-editable"
+                        className="rm-named-link rm-tag-link rm-verify-link is-editable"
                         href={safeHref(a.url)}
                         role="button"
                         tabIndex={0}
@@ -2041,7 +2057,7 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                     }
                   />
                 ) : (
-                  <a className="rm-named-link" href={safeHref(a.url)}>
+                  <a className="rm-named-link rm-tag-link rm-verify-link" href={safeHref(a.url)}>
                     {(a.urlLabel || '').trim()}
                   </a>
                 )}

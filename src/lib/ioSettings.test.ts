@@ -46,6 +46,38 @@ describe('exported settings survive a round trip', () => {
     expect(back.metadata.typography.fontSize).toBe(11)
   })
 
+  it('keeps the folio icon style, the icon size and the link style', () => {
+    const m = MetadataSchema.parse({
+      layout: { sectionIconStyle: 'folio', sectionIconSize: 'l' },
+      links: { style: 'plain' },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.layout.sectionIconStyle).toBe('folio')
+    expect(back.metadata.layout.sectionIconSize).toBe('l')
+    expect(back.metadata.links.style).toBe('plain')
+  })
+
+  it('a document saved before the folio chip existed imports on the new defaults', () => {
+    // Older files carry none of these keys. They land on the defaults a new
+    // document gets - folio chips at the medium size, tag-shaped named links -
+    // while every explicit value they DO carry (chip, above) is kept.
+    const older = { template: 'sapphire', layout: { sectionIconStyle: 'chip' } }
+    const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse(older))))
+    expect(back.metadata.layout.sectionIconStyle).toBe('chip')
+    expect(back.metadata.layout.sectionIconSize).toBe('m')
+    expect(back.metadata.links.style).toBe('tag')
+    const raw = toJsonResume(docWith(MetadataSchema.parse({}))) as unknown as {
+      meta: { cvaurum: { layout: Record<string, unknown>; links: Record<string, unknown> } }
+    }
+    delete raw.meta.cvaurum.layout.sectionIconStyle
+    delete raw.meta.cvaurum.layout.sectionIconSize
+    delete raw.meta.cvaurum.links.style
+    const fresh = fromJsonResume(raw as never)
+    expect(fresh.metadata.layout.sectionIconStyle).toBe('folio')
+    expect(fresh.metadata.layout.sectionIconSize).toBe('m')
+    expect(fresh.metadata.links.style).toBe('tag')
+  })
+
   it('one unrecognised setting does not take every other setting down with it', () => {
     const m = MetadataSchema.parse({ links: { display: 'short' }, typography: { fontSize: 12 } })
     const raw = toJsonResume(docWith(m)) as unknown as { meta: { cvaurum: Record<string, unknown> } }

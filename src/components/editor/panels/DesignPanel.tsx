@@ -386,8 +386,9 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <div>
           <label className="label">Section icons</label>
           <Segmented
-            value={m.layout.sectionIconStyle ?? 'chip'}
+            value={m.layout.sectionIconStyle ?? 'folio'}
             options={[
+              { value: 'folio', label: 'Folio' },
               { value: 'chip', label: 'Chip' },
               { value: 'plain', label: 'Plain' },
               { value: 'filled', label: 'Filled' },
@@ -398,6 +399,22 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             onChange={(v) =>
               update((md) => {
                 md.layout.sectionIconStyle = v
+              })
+            }
+          />
+        </div>
+        <div>
+          <label className="label">Icon size</label>
+          <Segmented
+            value={m.layout.sectionIconSize ?? 'm'}
+            options={[
+              { value: 's', label: 'S' },
+              { value: 'm', label: 'M' },
+              { value: 'l', label: 'L' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.sectionIconSize = v
               })
             }
           />
@@ -509,6 +526,25 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
       </FieldGroup>
 
       <FieldGroup title="Links">
+        <div>
+          <label className="label">Link style</label>
+          <Segmented
+            value={m.links?.style ?? 'tag'}
+            options={[
+              { value: 'tag', label: 'Tag' },
+              { value: 'plain', label: 'Plain' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.links.style = v
+              })
+            }
+          />
+        </div>
+        <p className="-mt-1 text-[11px] text-muted-foreground">
+          Tag sets named links (a project&apos;s Portfolio, a credential&apos;s Verify) in a small paper tag; Plain
+          prints the bare word. Contact links are never tagged.
+        </p>
         <div>
           <label className="label">Show URLs as</label>
           <Segmented

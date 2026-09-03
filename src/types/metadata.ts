@@ -157,11 +157,16 @@ export const LayoutSchema = z.object({
   /**
    * How a section heading's icon is presented. The badge is one of the
    * loudest stylistic choices on the page, so it is worth a real control:
-   * 'chip' is the tinted rounded square templates have always drawn,
-   * 'none' removes the badge while leaving CONTACT icons alone (those are
-   * the separate `icons` switch).
+   * 'folio' is a paper-toned chip with a folded corner and a solid glyph,
+   * the default for new documents; 'chip' is the tinted rounded square
+   * templates drew before it; 'none' removes the badge while leaving
+   * CONTACT icons alone (those are the separate `icons` switch). Values are
+   * only ever ADDED here: an unknown value fails the whole metadata parse
+   * and a stored document would come back on defaults.
    */
-  sectionIconStyle: z.enum(['chip', 'plain', 'filled', 'circle', 'outline', 'none']).default('chip'),
+  sectionIconStyle: z.enum(['folio', 'chip', 'plain', 'filled', 'circle', 'outline', 'none']).default('folio'),
+  /** How large the section-heading badge is, for every icon style. */
+  sectionIconSize: z.enum(['s', 'm', 'l']).default('m'),
   /** show the photo (if provided) */
   showPhoto: z.boolean().default(false),
   /** show a monogram (initials in a colored badge) instead of a photo */
@@ -196,6 +201,11 @@ export const LinksSchema = z.object({
    *  address printed but not clickable - for a paper submission, or where a
    *  live link in a PDF is unwelcome - so this is the author's call. */
   clickable: z.boolean().default(true),
+  /** How a NAMED link (a project's Portfolio, a credential's Verify) is
+   *  drawn: 'tag' sets the word in a small paper-toned tag with an accent
+   *  bar, 'plain' prints the bare word. Contact and header links are never
+   *  tagged. Purely visual - the text every exporter reads is the same. */
+  style: z.enum(['plain', 'tag']).default('tag'),
 })
 
 export const MetadataSchema = z.object({

@@ -18,17 +18,52 @@ import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
+import { FolioIcon, folioIconKind } from './folioIcons'
 
 /** Traditional templates render headings without icon chips. */
 const NO_SECTION_ICONS = new Set(['classic', 'ivy', 'academic', 'elegant', 'minimal', 'executive', 'sienna'])
 
-function SectionIcon({ sectionKey }: { sectionKey: string }) {
+function SectionIcon({ sectionKey, style }: { sectionKey: string; style: string }) {
+  if (style === 'folio') {
+    // The folio chip: a solid glyph (sibling svgs, one fill each - the PDF
+    // painter reads one fill per <svg> root) and two fold triangles, a light
+    // outer wedge with a darker inner one, which read as a folded page
+    // corner. Each fold is its own svg for the same one-fill reason. Custom
+    // and unknown sections take the set's fallback glyph.
+    return (
+      <span className="rm-section-icon" aria-hidden>
+        <FolioIcon kind={folioIconKind(sectionKey)} />
+        <svg className="rm-folio-fold rm-folio-fold-lt" viewBox="0 0 8 8" aria-hidden focusable="false">
+          <polygon points="0,0 8,0 8,8" />
+        </svg>
+        <svg className="rm-folio-fold rm-folio-fold-dk" viewBox="0 0 8 8" aria-hidden focusable="false">
+          <polygon points="8,0 8,8 3.2,8" />
+        </svg>
+      </span>
+    )
+  }
   const Icon = sectionIconFor(sectionKey)
   return (
     <span className="rm-section-icon" aria-hidden>
       <Icon />
     </span>
   )
+}
+
+/** Root classes shared by the artboard and the section-gallery preview, so a
+ *  preview shows the badge style, badge size and link style the page has. */
+function iconAndLinkClasses(doc: ResumeDocument): string[] {
+  const { layout, links } = doc.metadata
+  const size = layout.sectionIconSize ?? 'm'
+  return [
+    `sicon-${layout.sectionIconStyle ?? 'folio'}`,
+    size === 's' ? 'sicon-size-s' : size === 'l' ? 'sicon-size-l' : '',
+    // Underlining links is off by default - a resume full of underlines reads
+    // badly - but a reader cannot otherwise SEE which text is clickable.
+    links?.underline ? 'links-underline' : '',
+    // Named links (a project's Portfolio, a credential's Verify) as small tags.
+    (links?.style ?? 'tag') === 'tag' ? 'links-tag' : '',
+  ]
 }
 
 const PT_TO_PX = 96 / 72
@@ -629,9 +664,8 @@ function Section({
 }) {
   // 'none' drops the badge here rather than hiding it in CSS, so it leaves
   // the accessibility tree and the tagged PDF too, not just the page.
-  const showIcon =
-    (doc.metadata.layout.sectionIconStyle ?? 'chip') !== 'none' &&
-    (config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id))
+  const iconStyle = doc.metadata.layout.sectionIconStyle ?? 'folio'
+  const showIcon = iconStyle !== 'none' && (config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id))
   // Per-section style overrides (user picks in the section gear) — scoped classes
   // that beat the template's root-level sec-*/skl-* defaults.
   const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
@@ -661,7 +695,7 @@ function Section({
     <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
       <h2 className="rm-section-title">
-        {showIcon ? <SectionIcon sectionKey={sectionKey} /> : null}
+        {showIcon ? <SectionIcon sectionKey={sectionKey} style={iconStyle} /> : null}
         {/* A linked heading points where the author says, and the exporter
             turns any anchor into a clickable region, so it is live in the PDF
             exactly like a linked entry title. */}
@@ -738,7 +772,9 @@ export function SectionPreview({
   ensureFont(t.fontFamily)
   ensureFont(t.headingFamily)
   ensureFont(t.nameFamily)
-  const hasIcons = config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id)
+  const hasIcons =
+    (doc.metadata.layout.sectionIconStyle ?? 'folio') !== 'none' &&
+    (config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id))
   const cls = [
     'rm-root',
     'rm-section-preview',
@@ -749,6 +785,7 @@ export function SectionPreview({
     `sec-${config.section}`,
     `skl-${config.skills}`,
     'mode-preview',
+    ...iconAndLinkClasses(doc),
   ]
     .filter(Boolean)
     .join(' ')
@@ -790,7 +827,7 @@ export function Artboard({
   ensureFont(t.headingFamily)
   ensureFont(t.nameFamily)
 
-  const iconStyle = doc.metadata.layout.sectionIconStyle ?? 'chip'
+  const iconStyle = doc.metadata.layout.sectionIconStyle ?? 'folio'
   const hasIcons = iconStyle !== 'none' && (config.sectionIcons ?? !NO_SECTION_ICONS.has(config.id))
   const rootClass = [
     'rm-root',
@@ -803,10 +840,7 @@ export function Artboard({
     `skl-${config.skills}`,
     `mode-${mode}`,
     `side-${doc.metadata.layout.sidebar}`,
-    `sicon-${iconStyle}`,
-    // Underlining links is off by default - a resume full of underlines reads
-    // badly - but a reader cannot otherwise SEE which text is clickable.
-    doc.metadata.links?.underline ? 'links-underline' : '',
+    ...iconAndLinkClasses(doc),
     // Editing-time signal only: the canvas grays its link marks when the
     // export will not make them clickable, so the state is visible without
     // opening Design. Print styling never reads this class.

@@ -81,6 +81,25 @@ const ENTRY_LAYOUTS: { label: string; value: string }[] = [
   { label: 'Divided', value: 'divided' },
 ]
 
+/** Section badge treatments - one choice for the whole document, so the row
+ *  that offers them says so. Folio first: it is the default. */
+const ICON_STYLES: { label: string; value: Metadata['layout']['sectionIconStyle'] }[] = [
+  { label: 'Folio', value: 'folio' },
+  { label: 'Chip', value: 'chip' },
+  { label: 'Plain', value: 'plain' },
+  { label: 'Filled', value: 'filled' },
+  { label: 'Circle', value: 'circle' },
+  { label: 'Outline', value: 'outline' },
+  { label: 'None', value: 'none' },
+]
+
+/** Section badge sizes, document-wide as well. */
+const ICON_SIZES: { label: string; value: Metadata['layout']['sectionIconSize']; title: string }[] = [
+  { label: 'S', value: 's', title: 'Small badges' },
+  { label: 'M', value: 'm', title: 'Medium badges' },
+  { label: 'L', value: 'l', title: 'Large badges' },
+]
+
 /* Tiny visual mock of each style so users SEE what they're picking. */
 function Mini({ kind }: { kind: string }) {
   const t = 'rounded-[1px] bg-foreground/55' // fake text bar
@@ -248,6 +267,62 @@ function Mini({ kind }: { kind: string }) {
           <span className={`h-[3px] w-4/5 ${t}`} />
         </span>
       )
+    // section badge styles (document-wide): a badge beside a heading bar
+    case 'i:folio':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className="relative h-[11px] w-[11px] shrink-0 overflow-hidden rounded-[2px] border border-primary/40 bg-primary/10">
+            <span className={`absolute left-[3px] top-[3px] h-[5px] w-[5px] rounded-[1px] ${a}`} />
+            <span className="absolute -right-[3px] -top-[3px] h-[6px] w-[6px] rotate-45 bg-primary/50" />
+          </span>
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'i:chip':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className="flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-[3px] bg-primary/15">
+            <span className={`h-[5px] w-[5px] rounded-[1px] ${a}`} />
+          </span>
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'i:plain':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className={`h-[7px] w-[7px] shrink-0 rounded-[1px] ${a}`} />
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'i:filled':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className={`flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-[3px] ${a}`}>
+            <span className="h-[5px] w-[5px] rounded-[1px] bg-white/90" />
+          </span>
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'i:circle':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className="flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <span className={`h-[5px] w-[5px] rounded-full ${a}`} />
+          </span>
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'i:outline':
+      return (
+        <span className="flex w-8 items-center gap-[4px]">
+          <span className="flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-[3px] border border-primary/60">
+            <span className={`h-[5px] w-[5px] rounded-[1px] ${a}`} />
+          </span>
+          <span className={`h-[3px] w-4 ${t}`} />
+        </span>
+      )
+    case 'i:none':
+      return <span className={`h-[3px] w-5 ${t}`} />
     default:
       return null
   }
@@ -340,6 +415,20 @@ export function SectionGear({
   // it here so the popover can say so instead of silently doing nothing when
   // no group has a level set yet.
   const skillsHaveRatedGroup = base !== 'skills' || doc.content.skills.some((s) => typeof s.rating === 'number')
+
+  // The section badge is ONE choice for the whole page - its style and its
+  // size - so these write layout-wide fields through the same editMeta path
+  // the per-section fields use, and their rows say "all sections".
+  const iconStyle = layout.sectionIconStyle ?? 'folio'
+  const iconSize = layout.sectionIconSize ?? 'm'
+  const setIconStyle = (v: Metadata['layout']['sectionIconStyle']) =>
+    editMeta((m) => {
+      m.layout.sectionIconStyle = v
+    })
+  const setIconSize = (v: Metadata['layout']['sectionIconSize']) =>
+    editMeta((m) => {
+      m.layout.sectionIconSize = v
+    })
 
   // Keep the panel usable if the window changes underneath it.
   useEffect(() => {
@@ -732,6 +821,35 @@ export function SectionGear({
                         kind={`h:${s.value}`}
                         on={(opts.headingStyle ?? '') === s.value}
                         onClick={() => setStyle('headingStyle', s.value || undefined)}
+                      />
+                    ))}
+                  </div>
+                </Group>
+
+                {/* Section badge - style and size are document-wide, unlike
+                    every row above, and the labels say so. */}
+                <Group label="Section icons (all sections)">
+                  <div className="grid grid-cols-4 gap-1">
+                    {ICON_STYLES.map((s) => (
+                      <StyleChip
+                        key={s.value}
+                        label={s.label}
+                        kind={`i:${s.value}`}
+                        on={iconStyle === s.value}
+                        onClick={() => setIconStyle(s.value)}
+                      />
+                    ))}
+                  </div>
+                </Group>
+                <Group label="Icon size (all sections)">
+                  <div className="grid grid-cols-3 gap-1">
+                    {ICON_SIZES.map((z) => (
+                      <ChipBtn
+                        key={z.value}
+                        label={z.label}
+                        title={z.title}
+                        on={iconSize === z.value}
+                        onClick={() => setIconSize(z.value)}
                       />
                     ))}
                   </div>

@@ -2067,3 +2067,186 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     ])
   })
 })
+
+describe('buildDrawList - sibling <svg> pieces (folio section chip, 2026-09-04)', () => {
+  // svgIconOps reads ONE fill and ONE stroke per <svg> root and ignores any
+  // fill attribute on a child, so a glyph whose pieces differ in colour has
+  // to be split into sibling <svg> elements, each carrying its own fill on
+  // the root. The folio chip's two fold triangles are exactly that: a light
+  // outer triangle and a darker inner one. This pins the contract the chip
+  // relies on - two svgs, two ops, two fills, and no stroke on either.
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const g = globalThis as unknown as { Node?: unknown; NodeFilter?: unknown; HTMLImageElement?: unknown }
+  const originalNode = g.Node
+  const originalNodeFilter = g.NodeFilter
+  const originalHTMLImageElement = g.HTMLImageElement
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    g.Node = originalNode
+    g.NodeFilter = originalNodeFilter
+    g.HTMLImageElement = originalHTMLImageElement
+  })
+
+  interface FakeRect {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: FakeEl[]
+    lastElementChild: FakeEl | null
+    ownerSVGElement: FakeEl | null
+    getBoundingClientRect: () => FakeRect
+    getAttribute: (name: string) => string | null
+    querySelectorAll: (sel: string) => FakeEl[]
+    contains: (n: FakeEl) => boolean
+    cs: Record<string, string>
+  }
+
+  const BASE_CS: Record<string, string> = {
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    borderTopWidth: '0px',
+    borderTopStyle: 'none',
+    borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px',
+    borderRightStyle: 'none',
+    borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px',
+    borderBottomStyle: 'none',
+    borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px',
+    borderLeftStyle: 'none',
+    borderLeftColor: 'rgba(0,0,0,0)',
+    borderTopLeftRadius: '0px',
+    borderTopRightRadius: '0px',
+    borderBottomRightRadius: '0px',
+    borderBottomLeftRadius: '0px',
+    opacity: '1',
+    display: 'block',
+    visibility: 'visible',
+    content: 'none',
+    position: 'static',
+    color: 'rgb(0, 0, 0)',
+    fill: 'rgb(0, 0, 0)',
+    stroke: 'none',
+    strokeWidth: '0px',
+  }
+
+  function makeCs(overrides: Record<string, string>): CSSStyleDeclaration {
+    const merged: Record<string, string> = { ...BASE_CS, ...overrides }
+    return {
+      ...merged,
+      getPropertyValue: (name: string) => merged[name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] ?? '',
+    } as unknown as CSSStyleDeclaration
+  }
+
+  function makeEl(
+    tagName: string,
+    rect: FakeRect,
+    csOverrides: Record<string, string> = {},
+    children: FakeEl[] = [],
+    attrs: Record<string, string> = {}
+  ): FakeEl {
+    const el: FakeEl = {
+      nodeType: 1,
+      tagName,
+      classList: { contains: () => false },
+      childNodes: children,
+      lastElementChild: children.length ? children[children.length - 1] : null,
+      ownerSVGElement: null,
+      getBoundingClientRect: () => rect,
+      getAttribute: (name) => (name in attrs ? attrs[name] : null),
+      // svgIconOps asks an <svg> for '*'; the link pass asks the root for
+      // 'a[href]' and there are no anchors in this tree.
+      querySelectorAll: (sel) => (sel === '*' ? children : []),
+      contains: (n) => n === el || children.some((c) => c === n || c.contains(n)),
+      cs: { ...BASE_CS, ...csOverrides },
+    }
+    if (tagName === 'svg') for (const c of children) c.ownerSVGElement = el
+    return el
+  }
+
+  function fakeCreateTreeWalker(root: FakeEl, acceptNode: (n: FakeEl) => number) {
+    const ACCEPT = 1
+    const seq: FakeEl[] = []
+    const visit = (node: FakeEl) => {
+      for (const child of node.childNodes) {
+        if (acceptNode(child) === ACCEPT) {
+          seq.push(child)
+          visit(child)
+        }
+      }
+    }
+    visit(root)
+    let idx = -1
+    const walker = {
+      currentNode: root as unknown as Node,
+      nextNode: () => {
+        idx++
+        if (idx >= seq.length) return null
+        walker.currentNode = seq[idx] as unknown as Node
+        return walker.currentNode
+      },
+    }
+    return walker
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
+    g.HTMLImageElement = class {}
+    globalThis.document = {
+      createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
+        fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl) => number),
+      // parseColor's last-resort path asks for a canvas when it meets a
+      // keyword it cannot parse ('none'); there is none here, and CSS.supports
+      // is absent under node anyway, so it must simply report no colour.
+      createElement: () => ({ getContext: () => null }),
+    } as unknown as Document
+    globalThis.getComputedStyle = ((el: unknown, pseudo?: string) =>
+      pseudo ? makeCs({ content: 'none' }) : makeCs((el as FakeEl).cs)) as unknown as typeof getComputedStyle
+  }
+
+  it('paints two sibling polygon svgs as two svg ops with their own fills and no stroke', () => {
+    install()
+    const light = makeEl(
+      'svg',
+      { left: 20, top: 10, width: 6, height: 6 },
+      { fill: 'rgb(120, 140, 200)', stroke: 'none', strokeWidth: '0px' },
+      [makeEl('polygon', { left: 0, top: 0, width: 0, height: 0 }, {}, [], { points: '0,0 8,0 8,8' })],
+      { viewBox: '0 0 8 8' }
+    )
+    const dark = makeEl(
+      'svg',
+      { left: 20, top: 10, width: 6, height: 6 },
+      { fill: 'rgb(37, 99, 235)', stroke: 'none', strokeWidth: '0px' },
+      [makeEl('polygon', { left: 0, top: 0, width: 0, height: 0 }, {}, [], { points: '8,0 8,8 3.2,8' })],
+      { viewBox: '0 0 8 8' }
+    )
+    const chip = makeEl('SPAN', { left: 10, top: 5, width: 18, height: 18 }, { position: 'relative' }, [light, dark])
+    const root = makeEl('DIV', { left: 0, top: 0, width: 800, height: 1000 }, {}, [chip])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const svgOps = ops.filter((o) => o.kind === 'svg') as Extract<DrawOp, { kind: 'svg' }>[]
+
+    expect(svgOps.length).toBe(2)
+    expect(svgOps[0].d).toBe('M 0 0 L 8 0 L 8 8 Z')
+    expect(svgOps[1].d).toBe('M 8 0 L 8 8 L 3.2 8 Z')
+    expect(svgOps[0].fill).toEqual({ r: 120 / 255, g: 140 / 255, b: 200 / 255, a: 1 })
+    expect(svgOps[1].fill).toEqual({ r: 37 / 255, g: 99 / 255, b: 235 / 255, a: 1 })
+    expect(svgOps[0].fill).not.toEqual(svgOps[1].fill)
+    expect(svgOps[0].stroke).toBeUndefined()
+    expect(svgOps[1].stroke).toBeUndefined()
+    // Both sit at the chip's corner, in document order: light first, dark on top.
+    expect(svgOps[0].xPx).toBe(20)
+    expect(svgOps[1].xPx).toBe(20)
+  })
+})

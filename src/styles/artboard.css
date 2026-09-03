@@ -25,6 +25,13 @@
   --rm-bg: #ffffff;
   --rm-sidebar-bg: #0f172a;
   --rm-sidebar-text: #e2e8f0;
+  /* Folio surfaces (2026-09-04): the paper-toned section chip and the tag
+     drawn around a named link share one paper, one hairline and one pair of
+     fold shades, all mixed from the document's own colours. */
+  --rm-folio-paper: color-mix(in srgb, var(--rm-bg) 92%, #c8941f 8%);
+  --rm-folio-line: color-mix(in srgb, var(--rm-primary) 22%, transparent);
+  --rm-folio-fold-lt: color-mix(in srgb, var(--rm-primary) 42%, var(--rm-folio-paper));
+  --rm-folio-fold-dk: var(--rm-primary);
   --rm-font-body: 'Inter', system-ui, sans-serif;
   --rm-font-heading: var(--rm-font-body);
   --rm-font-name: var(--rm-font-heading);
@@ -599,6 +606,97 @@
 .sicon-outline .rm-col-aside .rm-section-icon {
   border-color: color-mix(in srgb, currentColor 45%, transparent);
 }
+/* Folio (2026-09-04, the default for new documents): a paper-toned square
+   with a folded corner and a solid glyph. Built to the PDF painter's rules
+   (walk.ts): the chip is a background plus a UNIFORM 1px border with a
+   radius, which paints as one rounded rect and one rounded border (a
+   per-edge accent would paint as four straight lines and lose the radius);
+   every coloured piece of the glyph, and each fold triangle, is its OWN
+   <svg> with the fill on the svg root and no stroke, because the painter
+   reads one fill and one stroke per <svg> and ignores child fill attributes.
+   Same 1.55em footprint as the chip (border-box). */
+.sicon-folio .rm-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--rm-folio-paper);
+  border: 1px solid var(--rm-folio-line);
+  border-radius: 0.28em;
+  color: var(--rm-primary);
+}
+.sicon-folio .rm-section-icon .rm-folio-ink,
+.sicon-folio .rm-section-icon .rm-folio-tint,
+.sicon-folio .rm-section-icon .rm-folio-paper {
+  position: absolute;
+  inset: 18%;
+  width: 64%;
+  height: 64%;
+  stroke: none;
+  stroke-width: 0;
+  fill: currentColor;
+}
+.sicon-folio .rm-section-icon .rm-folio-tint {
+  opacity: 0.55;
+}
+/* Negative space that must read as the chip's own paper, not as white. */
+.sicon-folio .rm-section-icon .rm-folio-paper {
+  fill: var(--rm-folio-paper);
+}
+.sicon-folio .rm-section-icon .rm-folio-fold {
+  /* Inset inside the 1px border so the fold sits wholly within the chip's
+     rounded clip: the canvas clips to the rounded box, the painter does not,
+     and a fold that overhangs the corner renders as two different shapes. */
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  width: 0.5em;
+  height: 0.5em;
+  stroke: none;
+  stroke-width: 0;
+}
+.sicon-folio .rm-section-icon .rm-folio-fold-lt {
+  fill: var(--rm-folio-fold-lt);
+}
+.sicon-folio .rm-section-icon .rm-folio-fold-dk {
+  fill: var(--rm-folio-fold-dk);
+}
+/* Dark sidebar: paper, hairline and folds mixed from the band's own colours.
+   The variables are redefined on the chip so the glyph's paper pieces and
+   the folds inherit them without a rule of their own. */
+.sicon-folio .rm-col-aside .rm-section-icon {
+  --rm-folio-paper: color-mix(in srgb, var(--rm-sidebar-bg) 84%, var(--rm-sidebar-text) 16%);
+  --rm-folio-line: color-mix(in srgb, var(--rm-sidebar-text) 32%, transparent);
+  --rm-folio-fold-dk: var(--rm-sidebar-text);
+  --rm-folio-fold-lt: color-mix(in srgb, var(--rm-sidebar-text) 45%, var(--rm-sidebar-bg));
+  background: var(--rm-folio-paper);
+  border-color: var(--rm-folio-line);
+  color: var(--rm-sidebar-text);
+}
+.sicon-folio .rm-col-aside .rm-section-icon .rm-folio-fold {
+  width: 0.4em;
+  height: 0.4em;
+}
+/* The badge heading style rotates the chip 45deg and fills it with the
+   accent; the painter cannot rotate, so the folds are dropped there for
+   canvas and PDF to agree, and the glyph's paper pieces take the fill. */
+.rm-root .rm-section.sec-ov-badge .rm-section-icon .rm-folio-fold {
+  display: none;
+}
+.rm-root .rm-section.sec-ov-badge .rm-section-icon {
+  --rm-folio-paper: var(--rm-primary);
+}
+.rm-root .rm-col-aside .rm-section.sec-ov-badge .rm-section-icon {
+  --rm-folio-paper: color-mix(in srgb, #fff 88%, var(--rm-sidebar-bg));
+}
+/* The on-line heading style paints the chip in the page colour to mask its
+   rule, so the paper pieces follow that colour too. */
+.rm-root .rm-section.sec-ov-strike .rm-section-icon {
+  --rm-folio-paper: var(--rm-bg);
+}
+.rm-root .rm-col-aside .rm-section.sec-ov-strike .rm-section-icon {
+  --rm-folio-paper: var(--rm-sidebar-bg);
+}
 /* Hanging icon chips: the chip sits in the left margin gutter so the heading
    TEXT shares one clean left edge with the body and the header name. Without
    this the icon pushes the title text inward and it reads as misaligned. */
@@ -721,6 +819,108 @@
 }
 .rm-section-preview .rm-section-body {
   padding-left: 0;
+}
+/* The folio chip positions its folds against its own box, so wherever a
+   rule above keeps the chip INLINE with `position: static` (boxed, bar and
+   side headings; the gallery preview) it must be `relative` instead - one
+   class more specific than each of those rules, and after them. Hanging
+   chips are already `absolute`, which contains the folds just as well, and
+   are left alone: made relative they would keep right/top/transform as a
+   relative shift and land a heading-width off the page (the trap
+   templates.css's on-line rule documents). */
+.rm-root.sicon-folio.sec-boxed .rm-col-main .rm-section-icon,
+.rm-root.sicon-folio.sec-bar .rm-col-main .rm-section-icon,
+.rm-root.sicon-folio.sec-side .rm-col-main .rm-section-icon,
+.rm-root.sicon-folio.rm-section-preview .rm-section-icon {
+  /* Main column only: the sidebar's chip hangs absolute with right:100%
+     under every heading style, and turning THAT relative shifted it a
+     whole column off the page (stress gate, sapphire). */
+  position: relative;
+}
+
+/* Badge size (2026-09-04), for every icon style. The hanging offsets are in
+   lh and em, so they follow the box on their own; the inner mark, the fold
+   and the plain style's bare glyph take their own scale. */
+.sicon-size-s .rm-section-icon {
+  width: 1.3em;
+  height: 1.3em;
+}
+.sicon-size-l .rm-section-icon {
+  width: 1.9em;
+  height: 1.9em;
+}
+.sicon-size-s .rm-section-icon svg {
+  width: 0.8em;
+  height: 0.8em;
+}
+.sicon-size-l .rm-section-icon svg {
+  width: 1.15em;
+  height: 1.15em;
+}
+.sicon-size-s.sicon-plain .rm-section-icon {
+  width: 1em;
+  height: 1em;
+}
+.sicon-size-l.sicon-plain .rm-section-icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+.sicon-size-s.sicon-plain .rm-section-icon svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+.sicon-size-l.sicon-plain .rm-section-icon svg {
+  width: 1.45em;
+  height: 1.45em;
+}
+.sicon-size-s.sicon-folio .rm-section-icon .rm-folio-fold {
+  width: 0.42em;
+  height: 0.42em;
+}
+.sicon-size-l.sicon-folio .rm-section-icon .rm-folio-fold {
+  width: 0.6em;
+  height: 0.6em;
+}
+/* Sidebar sizes: the mark hangs in the band's own padding (see above), so
+   it stays a step smaller than the main column's. */
+.sicon-size-s .rm-col-aside .rm-section-icon {
+  width: 1em;
+  height: 1em;
+}
+.sicon-size-l .rm-col-aside .rm-section-icon {
+  width: 1.4em;
+  height: 1.4em;
+}
+.sicon-size-s .rm-col-aside .rm-section-icon svg {
+  width: 0.7em;
+  height: 0.7em;
+}
+.sicon-size-l .rm-col-aside .rm-section-icon svg {
+  width: 1em;
+  height: 1em;
+}
+.sicon-size-s.sicon-folio .rm-col-aside .rm-section-icon .rm-folio-fold {
+  width: 0.34em;
+  height: 0.34em;
+}
+.sicon-size-l.sicon-folio .rm-col-aside .rm-section-icon .rm-folio-fold {
+  width: 0.48em;
+  height: 0.48em;
+}
+/* The badge heading style sizes its diamond itself (templates.css); scale it
+   with the same steps so the size choice reads there too. */
+.rm-root.sicon-size-s .rm-section.sec-ov-badge .rm-section-icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+.rm-root.sicon-size-l .rm-section.sec-ov-badge .rm-section-icon {
+  width: 1.8em;
+  height: 1.8em;
+}
+/* A large chip hangs 1.9em + its 0.42em margin, past the 2.2em floor the
+   single-column page reserves for it (see .rm-icons.rm-single below). */
+.rm-icons.rm-single.sicon-size-l .rm-col-main {
+  padding-left: max(var(--rm-pad), 2.6em);
 }
 .rm-section-body {
   display: flex;
@@ -2254,4 +2454,78 @@
 }
 .rm-mini-verify-sep {
   opacity: 0.5;
+}
+
+/* Tag-shaped named links (2026-09-04, the default): a project's Portfolio
+   or a credential's Verify set in a small paper tag with an accent bar,
+   sharing the folio chip's paper and hairline. Built to the PDF painter's
+   rules (walk.ts): inline-block plus nowrap, because the painter takes ONE
+   box per element and an inline tag that wrapped would paint as a single
+   rect merged across both lines; the accent is a ::before box rather than
+   a thicker left border, because a rounded box with MIXED per-edge borders
+   paints as four straight lines and loses its radius, while the uniform
+   1px border keeps it. Contact and header links are never tagged; the
+   editing-only dotted mark and the hover hint keep their higher
+   specificity and still apply. max-width keeps a long user-typed label
+   from running past its column. */
+.links-tag .rm-tag-link {
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+  position: relative;
+  padding: 0.02em 0.45em 0.02em 0.62em;
+  margin: 0 0.28em 0.1em 0;
+  border: 1px solid var(--rm-folio-line);
+  border-radius: 3px;
+  background: var(--rm-folio-paper);
+  text-decoration: none;
+  line-height: 1.35;
+  vertical-align: baseline;
+}
+.links-tag .rm-tag-link::before {
+  content: '';
+  position: absolute;
+  left: 0.16em;
+  top: 0.22em;
+  bottom: 0.22em;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--rm-primary);
+}
+.links-tag .rm-verify-link {
+  color: var(--rm-muted);
+}
+/* The project's URL LINE is an address, not a word: .rm-item-link breaks it
+   inside its column on purpose, and a nowrap tag would undo that and run a
+   long full-display URL past a narrow column (any two-column template, or a
+   project moved to the sidebar) on the canvas and in the PDF alike. Let this
+   one tag wrap INSIDE itself: an inline-block that wraps internally is still
+   a single rectangle, so the painter's one-box-per-element rule (walk.ts
+   boxOf) holds - only an inline element that spans lines merges rects. */
+.links-tag .rm-item-link .rm-tag-link {
+  white-space: normal;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* The tag's own margin does the separating; the printed separators go. A
+   Verify tag keeps a little room from the issuer it used to follow a bar. */
+/* Between tags the separator glyph is not rendered at all (sections.tsx
+   emits a plain space in tag mode) so the DOM text and the PDF text layer
+   agree on 'Portfolio Source' - hiding the glyph with display:none left the
+   DOM reading 'PortfolioSource'. */
+.links-tag .rm-mini-verify .rm-tag-link {
+  margin-left: 0.35em;
+}
+/* Dark sidebar: the same tag on the band's own paper. */
+.links-tag .rm-col-aside .rm-tag-link {
+  --rm-folio-paper: color-mix(in srgb, var(--rm-sidebar-bg) 84%, var(--rm-sidebar-text) 16%);
+  --rm-folio-line: color-mix(in srgb, var(--rm-sidebar-text) 32%, transparent);
+  background: var(--rm-folio-paper);
+  border-color: var(--rm-folio-line);
+}
+.links-tag .rm-col-aside .rm-tag-link::before {
+  background: var(--rm-sidebar-text);
+}
+.links-tag .rm-col-aside .rm-verify-link {
+  color: inherit;
 }

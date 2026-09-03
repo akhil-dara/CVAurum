@@ -135,6 +135,8 @@ interface TemplateConfig {
       sectionGap: number;        // vertical gap between sections (px)
       itemGap: number;           // vertical gap between items (px)
       icons: boolean;            // show contact/section icons
+      sectionIconStyle: 'folio' | 'chip' | 'plain' | 'filled' | 'circle' | 'outline' | 'none'; // section badge (folio = folded-corner paper chip)
+      sectionIconSize: 's' | 'm' | 'l'; // section badge size
       showPhoto: boolean;        // render a photo if one is present
       photoShape: 'circle' | 'rounded' | 'square';
     };
@@ -199,6 +201,8 @@ These map directly onto the `--rm-*` color variables (see the
 | `sectionGap` | Gap between sections (px) → `--rm-section-gap` |
 | `itemGap` | Gap between items within a section (px) → `--rm-item-gap` |
 | `icons` | Show contact/section icons |
+| `sectionIconStyle` | Section badge: `'folio'` (default, a folded-corner paper chip), `'chip'`, `'plain'`, `'filled'`, `'circle'`, `'outline'`, `'none'`. The author's choice; kept across template switches |
+| `sectionIconSize` | Section badge size, `'s'` / `'m'` / `'l'` (also kept across switches) |
 | `showPhoto` | Render the photo if one is present in the resume data |
 | `photoShape` | `'circle'`, `'rounded'`, or `'square'` |
 
@@ -219,6 +223,7 @@ guarantees them, so style against them freely.
 | `.rm-contacts` | The contact row/list (email, phone, links, location). |
 | `.rm-section` | One section wrapper (Experience, Education, …). |
 | `.rm-section-title` | The section heading text. |
+| `.rm-section-icon` | The heading's badge. The root carries `sicon-<style>` and, for S/L, `sicon-size-s` / `sicon-size-l`; the folio style adds `.rm-folio-ink` / `.rm-folio-tint` / `.rm-folio-paper` glyph svgs and two `.rm-folio-fold` svgs inside. |
 | `.rm-section-body` | The section's content container. |
 | `.rm-item` | A single entry within a section (a job, a degree, …). |
 | `.rm-item-title` | The entry's title (company / role / school). |
@@ -226,6 +231,7 @@ guarantees them, so style against them freely.
 | `.rm-item-sub` | The entry's secondary line (location, sub-title). |
 | `.rm-bullets` | The bullet list inside an item. |
 | `.rm-chip` | A skill/tag chip (used by the `chips` / `grouped-chips` skill modes). |
+| `.rm-named-link` / `.rm-tag-link` | A named link printed as a word: a project's further links and its URL line, a credential's Verify (which also carries `.rm-verify-link`). With `links-tag` on the root (the default) it draws as a small paper tag. |
 | `.rm-col-main` | The main column (two-column layouts). |
 | `.rm-col-aside` | The sidebar column (two-column layouts). |
 
