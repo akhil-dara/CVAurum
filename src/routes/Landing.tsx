@@ -232,7 +232,36 @@ export function Landing() {
         </section>
 
         {/* template showcase */}
-        <section id="templates" className="mx-auto max-w-6xl px-6 py-14 land-reveal">
+        {/* A full-bleed band of the paper art behind the template strip: ivory
+            with one gold stroke in the light theme, charcoal sheets with gold
+            edges in the dark one. Feathered top and bottom so it reads as a
+            place on the page, not a slab. */}
+        <div className="relative">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 overflow-hidden"
+            style={{ maskImage: 'linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent)', WebkitMaskImage: 'linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent)' }}
+          >
+            <img
+              src="/art/band-ivory-stroke-1280.webp"
+              srcSet="/art/band-ivory-stroke-1280.webp 1280w, /art/band-ivory-stroke-1920.webp 1920w"
+              sizes="100vw"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover opacity-80 dark:hidden"
+            />
+            <img
+              src="/art/band-sheets-1280.webp"
+              srcSet="/art/band-sheets-1280.webp 1280w, /art/band-sheets-1920.webp 1920w"
+              sizes="100vw"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 hidden h-full w-full object-cover opacity-60 dark:block"
+            />
+          </div>
+        <section id="templates" className="relative mx-auto max-w-6xl px-6 py-14 land-reveal">
           <div className="mb-6 flex items-end justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Start from a recruiter-ready template</h2>
@@ -263,6 +292,7 @@ export function Landing() {
             ))}
           </div>
         </section>
+        </div>
 
         {/* feature band */}
         <section className="border-y border-border bg-surface-muted/40">
@@ -550,6 +580,15 @@ function HeroCinema({
   const my = useMotionValue(0)
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [7, -7]), { stiffness: 110, damping: 16 })
   const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-9, 9]), { stiffness: 110, damping: 16 })
+  // The backdrop art moves against the pointer (a few px, sprung) so the
+  // stage reads as a space with depth rather than a poster; the gold glow
+  // follows the pointer across the whole stage.
+  const bgX = useSpring(useTransform(mx, [-0.5, 0.5], [16, -16]), { stiffness: 60, damping: 18 })
+  const bgY = useSpring(useTransform(my, [-0.5, 0.5], [12, -12]), { stiffness: 60, damping: 18 })
+  const glowSX = useSpring(mx, { stiffness: 50, damping: 18 })
+  const glowSY = useSpring(my, { stiffness: 50, damping: 18 })
+  const glowLeft = useTransform(glowSX, (v) => `${(v + 0.5) * 100}%`)
+  const glowTop = useTransform(glowSY, (v) => `${(v + 0.5) * 100}%`)
   const onMove = (e: React.MouseEvent<HTMLElement>) => {
     if (reduce) return
     const r = e.currentTarget.getBoundingClientRect()
@@ -559,6 +598,54 @@ function HeroCinema({
 
   return (
     <section ref={heroRef} id="hero-stage" className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
+      {/* Backdrop art: black paper threaded with gold. A still for everyone;
+          for viewers who allow motion, a slow loop of the same scene fades in
+          over it (a palindrome, so it never pops at the seam) and the whole
+          layer drifts against the pointer. Overscaled a touch so the parallax
+          never shows an edge. */}
+      <motion.div aria-hidden className="pointer-events-none absolute inset-0 will-change-transform" style={{ x: bgX, y: bgY, scale: 1.06 }}>
+        <img
+          src="/art/hero-veins-1280.webp"
+          srcSet="/art/hero-veins-1280.webp 1280w, /art/hero-veins-1920.webp 1920w"
+          sizes="100vw"
+          alt=""
+          decoding="async"
+          fetchPriority="high"
+          className={`absolute inset-0 h-full w-full object-cover opacity-90${reduce ? '' : ' hero-still-drift'}`}
+        />
+        {drift && (
+          <video
+            className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-[1400ms] data-[ready=true]:opacity-90"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster="/art/hero-veins-1280.webp"
+            onCanPlay={(e) => {
+              e.currentTarget.dataset.ready = 'true'
+            }}
+          >
+            <source src="/art/hero-loop-veins.webm" type="video/webm" />
+            <source src="/art/hero-loop-veins.mp4" type="video/mp4" />
+          </video>
+        )}
+      </motion.div>
+      {/* legibility: the copy column stays ink-dark, the edges vignette */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(10,12,18,.86) 0%, rgba(10,12,18,.62) 42%, rgba(10,12,18,.28) 100%), radial-gradient(120% 80% at 50% 115%, rgba(10,12,18,.92), transparent 60%)',
+        }}
+      />
+      {/* a warm glow that follows the pointer across the stage */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{ left: glowLeft, top: glowTop, background: 'radial-gradient(closest-side, rgba(212,152,47,.22), transparent 70%)' }}
+      />
       {/* drifting aurora */}
       <motion.div
         aria-hidden

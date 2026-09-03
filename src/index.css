@@ -271,6 +271,20 @@
 
 /* Landing hero: shimmering gold sweep across the key word. */
 /* hero cards: a slow specular sheen sweeping across the paper */
+/* The hero's still backdrop breathes: a 40s scale drift, alternating, so the
+   stage is never frozen even before (or without) the video loop. */
+@keyframes hero-still-drift {
+  from { transform: scale(1); }
+  to { transform: scale(1.07) translate3d(-0.6%, 0.4%, 0); }
+}
+.hero-still-drift {
+  animation: hero-still-drift 40s ease-in-out infinite alternate;
+  transform-origin: 60% 40%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-still-drift { animation: none; }
+}
+
 .hero-sheen {
   position: absolute;
   inset: 0;
