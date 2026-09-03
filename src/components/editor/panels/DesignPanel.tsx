@@ -386,6 +386,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <div>
           <label className="label">Section icons</label>
           <Segmented
+            wrap
             value={m.layout.sectionIconStyle ?? 'folio'}
             options={[
               { value: 'folio', label: 'Folio' },
