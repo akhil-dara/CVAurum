@@ -82,5 +82,9 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       hidden: cur.layout.hidden,
       headings: cur.layout.headings,
     },
+    // Link settings are the author's, not the template's: display, the
+    // clickable switch, underlining and the tag style all used to reset on
+    // every switch because the rebuild had no slot for them.
+    links: cur.links,
   })
 }
