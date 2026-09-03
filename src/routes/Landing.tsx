@@ -141,9 +141,9 @@ export function Landing() {
 
       {/* nav — ink glass over the hero, theme glass past it */}
       <header
-        className={`sticky top-0 z-30 border-b backdrop-blur transition-colors duration-300 ${
+        className={`sticky top-0 z-30 border-b transition-colors duration-300 ${overHero ? '' : 'backdrop-blur '}${
           overHero
-            ? 'border-white/10 bg-[#0a0c12]/70 text-white [&_.btn-ghost]:text-white/85 [&_.btn-ghost:hover]:bg-white/10 [&_.btn-outline]:border-white/25 [&_.btn-outline]:bg-transparent [&_.btn-outline]:text-white [&_.btn-outline:hover]:bg-white/10'
+            ? 'border-white/10 bg-[#0a0c12]/85 text-white [&_.btn-ghost]:text-white/85 [&_.btn-ghost:hover]:bg-white/10 [&_.btn-outline]:border-white/25 [&_.btn-outline]:bg-transparent [&_.btn-outline]:text-white [&_.btn-outline:hover]:bg-white/10'
             : 'border-border bg-background/80'
         }`}
       >
@@ -585,10 +585,17 @@ function HeroCinema({
   // follows the pointer across the whole stage.
   const bgX = useSpring(useTransform(mx, [-0.5, 0.5], [16, -16]), { stiffness: 60, damping: 18 })
   const bgY = useSpring(useTransform(my, [-0.5, 0.5], [12, -12]), { stiffness: 60, damping: 18 })
+  // Compositor-only: the glow travels by transform, in fractions of the stage
+  // measured in the same normalised units the pointer already reports, so a
+  // pointer frame never triggers layout.
   const glowSX = useSpring(mx, { stiffness: 50, damping: 18 })
   const glowSY = useSpring(my, { stiffness: 50, damping: 18 })
-  const glowLeft = useTransform(glowSX, (v) => `${(v + 0.5) * 100}%`)
-  const glowTop = useTransform(glowSY, (v) => `${(v + 0.5) * 100}%`)
+  const glowX = useTransform(glowSX, (v) => `${(v + 0.5) * 100}%`)
+  const glowY = useTransform(glowSY, (v) => `${(v + 0.5) * 100}%`)
+  // The still's slow drift is only for the moments the video is not carrying
+  // the motion: it stops the instant the loop is playing (two animated
+  // full-stage layers were measured as a second, redundant cost).
+  const [loopReady, setLoopReady] = useState(false)
   const onMove = (e: React.MouseEvent<HTMLElement>) => {
     if (reduce) return
     const r = e.currentTarget.getBoundingClientRect()
@@ -611,7 +618,7 @@ function HeroCinema({
           alt=""
           decoding="async"
           fetchPriority="high"
-          className={`absolute inset-0 h-full w-full object-cover opacity-90${reduce ? '' : ' hero-still-drift'}`}
+          className={`absolute inset-0 h-full w-full object-cover opacity-90${reduce || loopReady ? '' : ' hero-still-drift'}`}
         />
         {drift && (
           <video
@@ -622,8 +629,11 @@ function HeroCinema({
             playsInline
             preload="metadata"
             poster="/art/hero-veins-1280.webp"
+            disablePictureInPicture
+            disableRemotePlayback
             onCanPlay={(e) => {
               e.currentTarget.dataset.ready = 'true'
+              setLoopReady(true)
             }}
           >
             <source src="/art/hero-loop-veins.webm" type="video/webm" />
@@ -641,11 +651,12 @@ function HeroCinema({
         }}
       />
       {/* a warm glow that follows the pointer across the stage */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ left: glowLeft, top: glowTop, background: 'radial-gradient(closest-side, rgba(212,152,47,.22), transparent 70%)' }}
-      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute left-0 top-0 h-[28rem] w-[28rem] rounded-full will-change-transform"
+          style={{ x: glowX, y: glowY, translateX: '-50%', translateY: '-50%', background: 'radial-gradient(closest-side, rgba(212,152,47,.22), transparent 70%)' }}
+        />
+      </div>
       {/* drifting aurora */}
       <motion.div
         aria-hidden
