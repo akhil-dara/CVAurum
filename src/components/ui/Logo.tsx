@@ -1,20 +1,32 @@
 import { Link } from 'react-router-dom'
 
+/** The CVAurum mark: an ink capital A whose corner folds over like a page,
+ *  the fold catching gold. The ink is `currentColor`, so the same mark reads
+ *  white on the dark landing hero and near-black on light chrome; the gold
+ *  fold is constant. Sized by the parent via `className`. */
+export function LogoMark({ className = 'h-7 w-7' }: { className?: string }) {
+  return (
+    <svg viewBox="518.3 522.4 1010 1010" className={className} aria-hidden focusable="false">
+      <defs>
+        <linearGradient id="cvaLogoGold" gradientUnits="userSpaceOnUse" x1="716.863" y1="737.752" x2="833.237" y2="1262.5">
+		<stop offset="0" stopOpacity="1" stopColor="rgb(185,144,70)"/>
+		<stop offset="1" stopOpacity="1" stopColor="rgb(255,255,219)"/>
+	</linearGradient>
+      </defs>
+        <path fill="currentColor" d="M 869.7 640.3 C 905.4 639.5 943.2 640.0 979.0 640.0 L 1168.0 640.1 L 1371.6 1138.2 L 1448.6 1326.9 L 1471.8 1383.9 C 1475.6 1392.9 1481.7 1405.9 1484.5 1414.8 C 1381.8 1414.2 1279.2 1414.2 1176.6 1414.8 L 1059.5 1117.3 C 1048.4 1089.6 1037.8 1060.5 1026.3 1033.1 C 1025.2 1029.2 1022.5 1023.4 1020.9 1019.5 C 1007.4 985.8 995.5 951.0 980.5 917.8 C 979.4 913.5 973.9 900.8 972.1 896.3 L 954.0 851.5 C 947.8 836.1 931.5 791.4 924.7 778.9 L 924.0 779.5 C 923.9 782.8 927.9 790.0 929.6 793.7 L 929.0 794.6 C 922.1 793.1 918.9 788.4 913.2 784.8 C 885.3 767.1 867.2 739.6 840.1 721.0 C 842.0 716.2 843.8 713.5 842.7 709.1 C 851.2 687.3 862.3 661.9 869.7 640.3 z"/>
+        <path fill="#8a5a12" d="M 842.7 709.1 C 851.2 687.3 862.3 661.9 869.7 640.3 C 874.5 651.0 879.2 662.9 883.3 673.9 C 896.4 709.0 911.8 743.8 924.7 778.9 L 924.0 779.5 C 923.9 782.8 927.9 790.0 929.6 793.7 L 929.0 794.6 C 922.1 793.1 918.9 788.4 913.2 784.8 C 885.3 767.1 867.2 739.6 840.1 721.0 C 842.0 716.2 843.8 713.5 842.7 709.1 z"/>
+        <path fill="url(#cvaLogoGold)" d="M 842.7 709.1 C 843.8 713.5 842.0 716.2 840.1 721.0 C 867.2 739.6 885.3 767.1 913.2 784.8 C 918.9 788.4 922.1 793.1 929.0 794.6 L 929.6 793.7 C 927.9 790.0 923.9 782.8 924.0 779.5 L 924.7 778.9 C 931.5 791.4 947.8 836.1 954.0 851.5 L 972.1 896.3 C 973.9 900.8 979.4 913.5 980.5 917.8 C 995.5 951.0 1007.4 985.8 1020.9 1019.5 C 1022.5 1023.4 1025.2 1029.2 1026.3 1033.1 L 1023.4 1038.9 C 989.2 1124.9 954.2 1210.6 918.4 1296.0 C 902.5 1333.9 885.5 1378.4 868.4 1414.7 C 766.3 1415.3 664.3 1415.2 562.2 1414.4 C 573.1 1379.7 586.3 1349.5 600.6 1316.1 C 602.1 1306.9 614.2 1278.8 618.5 1268.1 C 632.2 1233.3 646.3 1198.7 660.7 1164.2 C 662.0 1159.4 667.8 1145.6 669.8 1140.5 C 677.0 1121.7 684.5 1103.0 692.4 1084.4 C 699.6 1067.2 706.7 1047.1 714.4 1030.6 C 714.7 1026.7 727.9 997.4 730.6 991.2 C 736.4 985.3 739.8 966.6 745.4 959.7 C 753.0 966.3 778.9 971.5 786.8 981.0 C 793.7 989.3 801.7 989.8 809.0 996.7 L 810.7 996.4 C 810.7 994.7 759.4 936.4 759.7 924.4 C 759.8 918.4 770.2 902.5 770.4 893.8 C 771.5 889.3 784.4 858.2 786.7 853.7 L 819.1 770.9 C 826.4 750.6 834.8 729.2 842.7 709.1 z"/>
+        <path fill="currentColor" d="M 1008.5 1059.0 C 1013.0 1054.1 1017.8 1045.3 1023.4 1038.9 C 989.2 1124.9 954.2 1210.6 918.4 1296.0 C 902.5 1333.9 885.5 1378.4 868.4 1414.7 C 766.3 1415.3 664.3 1415.2 562.2 1414.4 C 573.1 1379.7 586.3 1349.5 600.6 1316.1 C 603.0 1313.4 619.9 1284.1 624.5 1277.2 C 641.5 1251.4 662.8 1228.7 687.4 1210.0 C 693.8 1205.2 701.6 1201.1 707.6 1196.5 L 709.0 1195.4 C 759.7 1168.1 787.4 1160.2 844.1 1155.3 C 859.1 1154.0 876.6 1151.9 890.8 1146.7 C 915.1 1139.3 961.0 1114.9 977.2 1095.7 C 985.4 1089.8 1003.9 1067.8 1008.5 1059.0 z"/>
+        <path fill="#ffffff" d="M 890.8 1146.7 L 889.4 1146.0 C 890.0 1144.7 906.0 1140.1 909.1 1137.3 C 910.6 1109.3 876.0 1086.1 861.5 1065.5 C 855.9 1057.6 851.1 1049.8 846.5 1041.2 C 845.5 1040.9 844.4 1040.5 843.4 1040.2 L 842.4 1038.0 C 844.8 1027.0 838.4 1027.7 840.5 1022.3 C 852.0 1019.2 899.4 1067.2 911.6 1074.0 C 928.3 1083.3 946.0 1096.1 962.5 1105.2 C 965.6 1104.3 972.9 1097.4 975.8 1094.8 L 977.2 1095.7 C 961.0 1114.9 915.1 1139.3 890.8 1146.7 z"/>
+        <path fill="#ffffff" d="M 819.0 1007.0 C 820.6 1007.2 827.1 1008.6 828.0 1008.5 C 833.6 1007.9 835.7 1009.8 832.5 1016.5 C 823.6 1010.2 813.3 1013.9 819.0 1007.0 z"/>
+    </svg>
+  )
+}
+
 export function Logo({ to = '/app', compact = false }: { to?: string; compact?: boolean }) {
   return (
     <Link to={to} className="flex items-center gap-2" aria-label="CVAurum home">
-      <span
-        className="relative inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-[9px] shadow-soft"
-        style={{ background: 'linear-gradient(140deg,#8a5a12 0%,#d4982f 45%,#f7d774 100%)' }}
-      >
-        {/* subtle top highlight for a metallic feel */}
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={{ background: 'linear-gradient(180deg,rgba(255,255,255,.35),transparent)' }} />
-        {/* "A" monogram for Aurum */}
-        <svg viewBox="0 0 24 24" className="relative h-[18px] w-[18px]" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6.5 18 12 6l5.5 12" />
-          <path d="M8.7 13.6h6.6" />
-        </svg>
-      </span>
+      <LogoMark className="h-7 w-7 shrink-0" />
       {!compact && (
         <span className="text-base font-semibold tracking-tight">
           CV<span style={{ color: 'var(--brand-gold)' }}>Aurum</span>
