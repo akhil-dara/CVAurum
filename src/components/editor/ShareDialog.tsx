@@ -67,7 +67,7 @@ export function ShareDialog({ doc }: { doc: ResumeDocument }) {
 
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
       <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-border bg-surface shadow-float">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
           <div className="flex items-center gap-2 text-base font-semibold"><Lock className="h-4 w-4 text-primary" /> Share an encrypted link</div>

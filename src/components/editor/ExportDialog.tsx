@@ -52,7 +52,7 @@ export function ExportDialog({ fmt, doc, onClose }: { fmt: ExportFormat; doc: Re
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !busy && onClose()} />
+      <div className="absolute inset-0 bg-black/60" onClick={() => !busy && onClose()} />
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-float">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-base font-semibold">{meta.label}</h2>

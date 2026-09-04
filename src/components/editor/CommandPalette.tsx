@@ -234,7 +234,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
   if (!open) return null
   return createPortal(
     <div className="fixed inset-0 z-[85]" role="dialog" aria-modal="true" aria-label="Command palette">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
+      <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
       <div className="absolute left-1/2 top-[12vh] w-[min(38rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-surface shadow-float">
         <div className="flex items-center gap-2 border-b border-border px-4">
           <Command className="h-4 w-4 shrink-0 text-muted-foreground" />

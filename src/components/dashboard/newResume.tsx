@@ -110,7 +110,7 @@ export function useResumeActions() {
 export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onClose }: { onBlank: () => void; onExample: () => void; onImport: () => void; onImportPdf?: () => void; onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-float">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Create a resume</h2>
@@ -173,8 +173,12 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
     [],
   )
   return createPortal(
+    // The scrim is a flat colour, never a backdrop filter. Blurring the whole
+    // page behind a dialog is re-computed every frame while it is open, and
+    // over this page it measured 50ms a frame (15fps); a deeper scrim reads
+    // the same and composites once.
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Pick a starting example</h2>

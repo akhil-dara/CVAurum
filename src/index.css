@@ -285,6 +285,15 @@
   .hero-still-drift { animation: none; }
 }
 
+/* Under a dialog the stage is behind a translucent, blurred backdrop: a
+   headline still shimmering and a card sheen still sweeping read as the page
+   flickering, and both are repainted every frame for nobody. The React gate
+   stops the framer animations; these two are CSS, so they stop here. */
+.hero-covered .hero-shimmer,
+.hero-covered .hero-sheen::before {
+  animation-play-state: paused;
+}
+
 .hero-sheen {
   position: absolute;
   inset: 0;

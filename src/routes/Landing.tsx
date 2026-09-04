@@ -197,6 +197,7 @@ export function Landing() {
           onCreate={() => setChooser(true)}
           onSample={() => setSampleOpen(true)}
           onImportPdf={() => pdfRef.current?.click()}
+          covered={chooser || sampleOpen}
         />
 
         {/* how it works */}
@@ -541,10 +542,16 @@ function HeroCinema({
   onCreate,
   onSample,
   onImportPdf,
+  covered,
 }: {
   onCreate: () => void
   onSample: () => void
   onImportPdf: () => void
+  /** A dialog is over the stage. Its backdrop is translucent, so a loop
+   *  still playing underneath shimmers through the blur and reads as the
+   *  page flickering - and it competes for frames with the four resume
+   *  previews the dialog is busy rendering. */
+  covered: boolean
 }) {
   const reduce = useReducedMotion()
   // The aurora kept drifting long after the reader scrolled past it - three
@@ -552,7 +559,8 @@ function HeroCinema({
   // longer showed them. They run only while the hero is actually on screen.
   const heroRef = useRef<HTMLElement | null>(null)
   const heroInView = useInView(heroRef, { amount: 0.05 })
-  const drift = !reduce && heroInView
+  const onScreen = !reduce && heroInView
+  const drift = onScreen && !covered
   // The morph reel: identical sample content flowing through contrasting
   // designs — the template engine demonstrating itself.
   const morph = useMemo(
@@ -570,12 +578,12 @@ function HeroCinema({
     // FOREVER - scrolled past, tab hidden, it kept spending a frame budget
     // nobody was watching. It ticks only while the hero is on screen and the
     // tab is visible.
-    if (reduce || !heroInView) return
+    if (reduce || !heroInView || covered) return
     const t = setInterval(() => {
       if (!document.hidden) setTi((i) => (i + 1) % morph.length)
     }, 3400)
     return () => clearInterval(t)
-  }, [reduce, morph.length, heroInView])
+  }, [reduce, morph.length, heroInView, covered])
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [7, -7]), { stiffness: 110, damping: 16 })
@@ -596,6 +604,21 @@ function HeroCinema({
   // the motion: it stops the instant the loop is playing (two animated
   // full-stage layers were measured as a second, redundant cost).
   const [loopReady, setLoopReady] = useState(false)
+  // Paused, not unmounted: closing the dialog resumes the loop where it
+  // stood instead of re-fetching and re-decoding it. A hidden tab counts as
+  // covered - a background tab decoding video is pure waste.
+  const loopRef = useRef<HTMLVideoElement | null>(null)
+  useEffect(() => {
+    const v = loopRef.current
+    if (!v) return
+    const sync = () => {
+      if (covered || document.hidden) v.pause()
+      else void v.play().catch(() => {})
+    }
+    sync()
+    document.addEventListener('visibilitychange', sync)
+    return () => document.removeEventListener('visibilitychange', sync)
+  }, [covered])
   const onMove = (e: React.MouseEvent<HTMLElement>) => {
     if (reduce) return
     const r = e.currentTarget.getBoundingClientRect()
@@ -604,7 +627,12 @@ function HeroCinema({
   }
 
   return (
-    <section ref={heroRef} id="hero-stage" className="relative overflow-hidden bg-[#0a0c12] text-white" onMouseMove={onMove}>
+    <section
+      ref={heroRef}
+      id="hero-stage"
+      className={`relative overflow-hidden bg-[#0a0c12] text-white${covered ? ' hero-covered' : ''}`}
+      onMouseMove={onMove}
+    >
       {/* Backdrop art: black paper threaded with gold. A still for everyone;
           for viewers who allow motion, a slow loop of the same scene fades in
           over it (a palindrome, so it never pops at the seam) and the whole
@@ -617,11 +645,11 @@ function HeroCinema({
           sizes="100vw"
           alt=""
           decoding="async"
-          fetchPriority="high"
           className={`absolute inset-0 h-full w-full object-cover opacity-90${reduce || loopReady ? '' : ' hero-still-drift'}`}
         />
-        {drift && (
+        {onScreen && (
           <video
+            ref={loopRef}
             className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-[1400ms] data-[ready=true]:opacity-90"
             autoPlay
             muted
