@@ -45,6 +45,7 @@ function lazyRoute<T extends { default: ComponentType<unknown> }>(factory: () =>
 
 // Heavy routes are code-split so the homepage loads instantly.
 const Dashboard = lazyRoute(() => import('@/routes/Dashboard').then((m) => ({ default: m.Dashboard })))
+const TemplatesPage = lazyRoute(() => import('@/routes/Templates').then((m) => ({ default: m.Templates })))
 const EditorRoute = lazyRoute(() => import('@/routes/EditorRoute').then((m) => ({ default: m.EditorRoute })))
 const Tracker = lazyRoute(() => import('@/routes/Tracker').then((m) => ({ default: m.Tracker })))
 const PrintPage = lazyRoute(() => import('@/routes/PrintPage').then((m) => ({ default: m.PrintPage })))
@@ -120,6 +121,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { path: '/', element: <Landing /> },
+      { path: '/templates', element: s(<TemplatesPage />) },
       { path: '/app', element: s(<Dashboard />) },
       { path: '/resume/:id', element: s(<EditorRoute />) },
       { path: '/tracker', element: s(<Tracker />) },

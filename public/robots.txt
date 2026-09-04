@@ -1,7 +1,8 @@
 # robots.txt — https://cvaurum.com
-# CVAurum is a 100% client-side static SPA. Only the marketing landing page ("/")
-# carries indexable value; the app/editor/tracker/print routes are private,
-# data-free shells that render from the user's browser storage — keep them out.
+# CVAurum is a 100% client-side static SPA. Only the public pages - the marketing
+# landing page ("/") and the template gallery ("/templates") - carry indexable
+# value; the app/editor/tracker/print routes are private, data-free shells that
+# render from the user's browser storage - keep them out.
 
 User-agent: *
 Allow: /

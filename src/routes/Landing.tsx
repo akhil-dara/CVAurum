@@ -156,9 +156,9 @@ export function Landing() {
             <a href="#how" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               How it works
             </a>
-            <a href="#templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <Link to="/templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Templates
-            </a>
+            </Link>
             <a href="#compare" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Compare
             </a>
@@ -271,8 +271,8 @@ export function Landing() {
                 Click any design to start editing — switch anytime, your content stays.
               </p>
             </div>
-            <Link className="btn-ghost btn-sm hidden sm:inline-flex" to="/app">
-              See all <ArrowRight className="h-4 w-4" />
+            <Link className="btn-ghost btn-sm hidden sm:inline-flex" to="/templates">
+              See all 52 <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6" data-nosnippet>
@@ -464,6 +464,9 @@ export function Landing() {
             <Logo compact to="/" /> · Built for everyone job hunting.
           </span>
           <span className="inline-flex items-center gap-3">
+            <Link className="transition hover:text-foreground" to="/templates">
+              Templates
+            </Link>
             <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
               GitHub
             </a>
