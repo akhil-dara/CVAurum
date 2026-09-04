@@ -461,7 +461,10 @@
 
 /* ===================================================== Compact */
 .tpl-compact .rm-bullets {
-  gap: 1.5px;
+  /* Tighter than the shared bullet gap, as a fraction of it rather than a
+     fixed 1.5px, so the bullet spacing setting still moves it. 0.58 of the
+     0.2em default is 1.5px at the default base size. */
+  gap: calc(var(--rm-bullet-gap, 0.2em) * 0.58);
 }
 .tpl-compact .rm-section-title {
   font-size: calc(var(--rm-fs) * 0.95);

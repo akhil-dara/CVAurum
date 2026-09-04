@@ -18,9 +18,19 @@ import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
+import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 import type { MetaEditFn } from './Editable'
 
-type ToggleField = 'showBullets' | 'showDates' | 'showLocation' | 'showSummary' | 'showKeywords' | 'showBadges'
+type ToggleField =
+  | 'showBullets'
+  | 'showDates'
+  | 'showDuration'
+  | 'showLocation'
+  | 'showSummary'
+  | 'showKeywords'
+  | 'showBadges'
+/** Toggles that stay OFF until asked for; every other show* row is on until hidden. */
+const OPT_IN = new Set<ToggleField>(['showBadges', 'showDuration'])
 
 /** The visual-style fields the painter copies (NOT the show* content toggles). */
 const STYLE_FIELDS = [
@@ -344,6 +354,8 @@ const HAS_DATES = new Set([
   'publications',
   'custom',
 ])
+/** Sections whose dates are ranges, so a time span can be counted. */
+const HAS_DURATION = new Set(['work', 'education', 'projects', 'volunteer'])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 const HAS_SUMMARY = new Set(['work'])
 
@@ -442,8 +454,7 @@ export function SectionGear({
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = m.layout.sectionSettings[sectionKey] ?? {}
-      // showBadges is opt-IN (off by default); the rest are opt-OUT (shown by default).
-      const shown = field === 'showBadges' ? cur.showBadges === true : cur[field] !== false
+      const shown = OPT_IN.has(field) ? cur[field] === true : cur[field] !== false
       m.layout.sectionSettings[sectionKey] = { ...cur, [field]: shown ? false : true }
     })
 
@@ -482,16 +493,11 @@ export function SectionGear({
   // "Start on new page" pin (2026-08-17 spec section 1): a section-level
   // forced page break, resolved identically by the export and the preview
   // (metadata.page.breaks). Auto-fit ON means "one page, let the engine
-  // decide", so pinning is only offered with it off.
+  // decide", so pinning is only offered with it off. One entry's own pin
+  // lives on its hover cluster and its panel card (pageBreakPins.ts).
   const autoFitOn = doc.metadata.page.autoFit
-  const pinned = doc.metadata.page.breaks.some((b) => b.section === sectionKey && !b.itemId)
-  const togglePin = () =>
-    editMeta((m) => {
-      const cur = m.page.breaks
-      const idx = cur.findIndex((b) => b.section === sectionKey && !b.itemId)
-      if (idx >= 0) cur.splice(idx, 1)
-      else cur.push({ section: sectionKey })
-    })
+  const pinned = hasPagePin(doc.metadata.page.breaks, sectionKey)
+  const togglePin = () => editMeta((m) => togglePagePin(m.page.breaks, sectionKey))
 
   const move = () =>
     editMeta((m) => {
@@ -563,6 +569,8 @@ export function SectionGear({
   const rows: { label: string; field: ToggleField }[] = []
   if (HAS_BULLETS.has(base)) rows.push({ label: 'Bullet points', field: 'showBullets' })
   if (HAS_DATES.has(base)) rows.push({ label: 'Dates', field: 'showDates' })
+  // A span rides on the dates, so the row goes with them.
+  if (HAS_DURATION.has(base) && opts.showDates !== false) rows.push({ label: 'Time spans', field: 'showDuration' })
   if (HAS_LOCATION.has(base)) rows.push({ label: 'Location', field: 'showLocation' })
   if (HAS_SUMMARY.has(base)) rows.push({ label: 'Role summary', field: 'showSummary' })
   if (HAS_KEYWORDS.has(base)) rows.push({ label: 'Tech tags', field: 'showKeywords' })
@@ -704,7 +712,7 @@ export function SectionGear({
                       <ToggleRow
                         key={r.field}
                         label={r.label}
-                        on={r.field === 'showBadges' ? opts.showBadges === true : opts[r.field] !== false}
+                        on={OPT_IN.has(r.field) ? opts[r.field] === true : opts[r.field] !== false}
                         onClick={() => toggle(r.field)}
                       />
                     ))}

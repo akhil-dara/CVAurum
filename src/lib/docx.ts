@@ -26,9 +26,19 @@ import {
   type ParagraphChild,
 } from 'docx'
 import type { ResumeDocument } from '@/types/document'
+import type { Metadata } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { sanitizeHtml } from '@/lib/sanitize'
-import { downloadBlob, formatDate, formatDateRange, htmlToText, resumeFilename, safeHref } from '@/lib/utils'
+import {
+  currentYearMonth,
+  downloadBlob,
+  formatDate,
+  formatDateRange,
+  htmlToText,
+  resumeFilename,
+  safeHref,
+  sectionDateOptions,
+} from '@/lib/utils'
 import { prettyUrl, cleanEmail, linkWords } from '@/templates/_shared/atoms'
 
 /* ----------------------------------------------------------------- helpers */
@@ -36,14 +46,103 @@ import { prettyUrl, cleanEmail, linkWords } from '@/templates/_shared/atoms'
 const TWIP = {
   a4: { w: 11906, h: 16838 },
   letter: { w: 12240, h: 15840 },
-  margin: 1080, // 0.75 inch
 }
-const BASE_SIZE = { name: 46, headline: 24, section: 21, title: 21, body: 20, sub: 18, date: 18 }
-// Per-export font sizes (half-points). Reassigned at the top of every export so
-// the .docx can shrink by the same one-page fit the live preview/PDF uses —
-// otherwise a resume the PDF squeezes onto one page spills onto a 2nd Word page.
-// Safe as module state: exports run one at a time and build synchronously.
-let SIZE = BASE_SIZE
+const TWIPS_PER_MM = 1440 / 25.4
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+
+/** Run sizes in half-points, one per role a line can play. */
+export interface DocxSizes {
+  name: number
+  headline: number
+  section: number
+  title: number
+  body: number
+  sub: number
+  date: number
+}
+
+/** What the page's own settings become in Word's units. */
+export interface DocxMetrics {
+  /** page margin in twips (page.margin is millimetres) */
+  margin: number
+  /** paragraph line spacing, in 240ths of a single line */
+  line: number
+  sizes: DocxSizes
+  /** the run printed between two inline contacts */
+  separator: string
+  /** how far a bullet paragraph is set in, in twips (typography.bulletIndent is em) */
+  bulletIndent: number
+  /** space after a bullet paragraph, in twips (typography.bulletGap is em) */
+  bulletGap: number
+}
+
+// Word's single spacing already spans the font's own line box - about 1.22em
+// for the usual body faces - while the canvas line-height is a bare multiple
+// of the type size. Dividing that out keeps the Word leading where the page
+// has it: the export's long-standing 252 is exactly 240 * 1.28 / 1.22.
+const WORD_LINE_EM = 1.22
+
+// The glyph the canvas draws between inline contacts (Artboard.tsx useVars),
+// padded the way the page spaces it. 'none' is spacing alone, never a bullet.
+const CONTACT_SEPARATOR: Record<string, string> = {
+  none: '    ',
+  dot: '   ·   ',
+  pipe: '   |   ',
+  slash: '   /   ',
+  dash: '   –   ',
+}
+
+// Half-point sizes from the base size, with the ratios the canvas applies: the
+// name at fs * (1.55 + headingScale * 0.62), section titles at 1.06, entry
+// titles at 1.05, sub-lines and contacts at 0.95, dates at 0.92 (Artboard.tsx
+// useVars and artboard.css).
+function sizesFor(fontSizePt: number, headingScale: number): DocxSizes {
+  const hp = (ratio: number) => Math.round(fontSizePt * ratio * 2)
+  return {
+    name: hp(1.55 + clamp(headingScale, 1, 2.6) * 0.62),
+    headline: hp(1.15),
+    section: hp(1.06),
+    title: hp(1.05),
+    body: hp(1),
+    sub: hp(0.95),
+    date: hp(0.92),
+  }
+}
+
+/**
+ * The document's page margin, base size, line height and contact separator in
+ * Word's units. The export used to hard-code 0.75in margins, a 10pt scale,
+ * 1.05 leading and a bullet between contacts, so a resume set 20mm wide at
+ * 11pt with pipes between its details came out of Word looking like a
+ * different document.
+ *
+ * `fitScale` is the live one-page fit. It scales type only, clamped to the
+ * same floor the on-screen fit uses (never unreadable), so the .docx lands on
+ * the same page count as the PDF - otherwise a resume the PDF squeezes onto
+ * one page spills onto a second Word page.
+ */
+export function docxMetrics(metadata: Metadata, fitScale = 1): DocxMetrics {
+  const scale = clamp(fitScale || 1, 0.66, 1.15)
+  const t = metadata.typography
+  // An em on the page is the scaled base size, so the bullet geometry
+  // follows the fit the way the type does. 20 twips to the point.
+  const em = t.fontSize * scale * 20
+  return {
+    margin: Math.round(metadata.page.margin * TWIPS_PER_MM),
+    line: Math.round((240 * t.lineHeight) / WORD_LINE_EM),
+    sizes: sizesFor(t.fontSize * scale, t.headingScale),
+    separator: CONTACT_SEPARATOR[metadata.layout.contactSeparator ?? 'none'] ?? CONTACT_SEPARATOR.none,
+    bulletIndent: Math.round(t.bulletIndent * em),
+    bulletGap: Math.round(t.bulletGap * em),
+  }
+}
+
+// Per-export font sizes (half-points). Reassigned at the top of every export
+// from the document's own base size and one-page fit. Safe as module state:
+// exports run one at a time and build synchronously.
+let SIZE: DocxSizes = sizesFor(9.6, 1.5)
+// Per-export bullet geometry (twips), reassigned the same way.
+let BULLET = { indent: 202, gap: 38 }
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 
@@ -203,10 +302,22 @@ const sub = (s: string, C: Ctx) =>
   })
 const para = (runs: ParagraphChild[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
 const summaryParas = (html: string, C: Ctx) => richToBlocks(html, C.body).map(para)
+// The page hangs an outside marker in the list's indent and sets the text at
+// the indent; Word gets the same distance as a hanging indent. With no marker
+// the text still sits at the indent, as it does on the page.
 const bulletPara = (html: string, C: Ctx) =>
   C.bullet === 'none'
-    ? new Paragraph({ indent: { left: 180 }, spacing: { after: 16 }, children: richToRuns(html, C.body) })
-    : new Paragraph({ bullet: { level: 0 }, spacing: { after: 16 }, children: richToRuns(html, C.body) })
+    ? new Paragraph({
+        indent: { left: BULLET.indent },
+        spacing: { after: BULLET.gap },
+        children: richToRuns(html, C.body),
+      })
+    : new Paragraph({
+        bullet: { level: 0 },
+        indent: { left: BULLET.indent, hanging: BULLET.indent },
+        spacing: { after: BULLET.gap },
+        children: richToRuns(html, C.body),
+      })
 const bulletsOf = (items: string[], C: Ctx) =>
   items.filter((h) => htmlToText(h).length > 0).map((h) => bulletPara(h, C))
 
@@ -252,16 +363,21 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
   const out: Paragraph[] = []
   const b = doc.content.basics
   const meter = C.prof === 'dots' || C.prof === 'bars' || C.prof === 'stars'
+  // Today, once for the whole file, so every open-ended range counts to the
+  // same month the page counted to.
+  const now = currentYearMonth()
 
   for (const key of keys) {
     const label = sectionLabel(key, doc)
+    // The section's own time-span switch; undefined prints the bare range.
+    const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], now)
     if (key === 'summary') {
       if (!has(b.summary)) continue
       out.push(heading(label, C), ...summaryParas(b.summary!, C))
     } else if (key === 'work') {
       out.push(heading(label, C))
       for (const w of content.work) {
-        out.push(titleDate(w.position || w.name || 'Role', formatDateRange(w.startDate, w.endDate), C, width, {}, w.url))
+        out.push(titleDate(w.position || w.name || 'Role', formatDateRange(w.startDate, w.endDate, dates), C, width, {}, w.url))
         const s = [w.name && w.position ? w.name : '', w.location].filter(Boolean).join('  ·  ')
         if (s) out.push(sub(s, C))
         if (has(w.summary)) out.push(...summaryParas(w.summary!, C))
@@ -270,7 +386,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'education') {
       out.push(heading(label, C))
       for (const e of content.education) {
-        out.push(titleDate(e.institution || 'Institution', formatDateRange(e.startDate, e.endDate), C, width, {}, e.url))
+        out.push(titleDate(e.institution || 'Institution', formatDateRange(e.startDate, e.endDate, dates), C, width, {}, e.url))
         const line = [[e.studyType, e.area].filter(Boolean).join(', '), e.score].filter(Boolean).join('  ·  ')
         if (line) out.push(sub(line, C))
         if (e.courses?.length)
@@ -285,7 +401,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'projects') {
       out.push(heading(label, C))
       for (const p of content.projects) {
-        out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate), C, width, {}, p.url))
+        out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate, dates), C, width, {}, p.url))
         if (p.url)
           out.push(
             new Paragraph({
@@ -386,7 +502,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'volunteer') {
       out.push(heading(label, C))
       for (const v of content.volunteer) {
-        out.push(titleDate(v.position || v.organization || 'Role', formatDateRange(v.startDate, v.endDate), C, width, {}, v.url))
+        out.push(titleDate(v.position || v.organization || 'Role', formatDateRange(v.startDate, v.endDate, dates), C, width, {}, v.url))
         if (v.position && v.organization) out.push(sub(v.organization, C))
         if (has(v.summary)) out.push(...summaryParas(v.summary, C))
         out.push(...bulletsOf(v.highlights ?? [], C))
@@ -430,7 +546,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
   return out
 }
 
-function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
+function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[] {
   const b = doc.content.basics
   const out: Paragraph[] = [
     new Paragraph({
@@ -467,12 +583,15 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
     else if (handle || p.network) contacts.push({ words: handle || p.network, url: p.url })
   }
   const shown = contacts.filter((c) => c.words)
+  // What sits between two contacts is the author's choice, printed with the
+  // glyph the page draws. A bullet used to be hard-coded here whatever the
+  // canvas showed.
   if (shown.length)
     out.push(
       new Paragraph({
         spacing: { after: 100 },
         children: shown.flatMap((c, i) => [
-          ...(i > 0 ? [new TextRun({ text: '   •   ', color: C.muted, size: SIZE.sub })] : []),
+          ...(i > 0 ? [new TextRun({ text: separator, color: C.muted, size: SIZE.sub })] : []),
           c.url && LINKS_LIVE && safeHref(c.url)
             ? linkRun(c.url, c.words, C)
             : new TextRun({ text: c.words, color: C.muted, size: SIZE.sub }),
@@ -484,16 +603,14 @@ function buildHeader(doc: ResumeDocument, C: Ctx): Paragraph[] {
 
 /* --------------------------------------------------------- the export itself */
 
-export async function exportDocumentDocx(doc: ResumeDocument, filename?: string, fitScale = 1) {
+/** The Word document itself, before packing - built from the document's own
+ *  metrics (docxMetrics) so a test can open it and read them back. */
+export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   const { metadata } = doc
   LINKS_LIVE = metadata.links?.clickable !== false
-  // Apply the live one-page fit so the Word doc lands on the same page count as
-  // the PDF. Clamp to the same floor the on-screen fit uses (never unreadable).
-  const scale = Math.min(1.15, Math.max(0.66, fitScale || 1))
-  SIZE =
-    scale === 1
-      ? BASE_SIZE
-      : (Object.fromEntries(Object.entries(BASE_SIZE).map(([k, v]) => [k, Math.round(v * scale)])) as typeof BASE_SIZE)
+  const metrics = docxMetrics(metadata, fitScale)
+  SIZE = metrics.sizes
+  BULLET = { indent: metrics.bulletIndent, gap: metrics.bulletGap }
   const primary = toHex(metadata.theme.primary, '2563EB')
   const text = toHex(metadata.theme.text, '1A1A1A')
   const muted = toHex(metadata.theme.muted, '5B6472')
@@ -506,7 +623,7 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
 
   const page = metadata.page.format === 'Letter' ? TWIP.letter : TWIP.a4
   const order = resolveOrder(doc)
-  const contentW = page.w - TWIP.margin * 2
+  const contentW = page.w - metrics.margin * 2
 
   const mainCtx: Ctx = { accent: primary, body: text, muted, headFont, upper, prof, bullet: bulletStyle }
 
@@ -530,18 +647,19 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
   const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
   const body: (Paragraph | Table)[] = [
     ...(photo ? [photo] : []),
-    ...buildHeader(doc, mainCtx),
+    ...buildHeader(doc, mainCtx, metrics.separator),
     ...buildSections([...order.main, ...order.aside], doc, mainCtx, contentW),
   ]
 
-  const document = new Document({
+  const { margin, line } = metrics
+  return new Document({
     creator: 'CVAurum',
     title: doc.title,
     description: 'Resume exported from CVAurum',
     background: { color: background },
     styles: {
       default: {
-        document: { run: { font: bodyFont, size: SIZE.body, color: text }, paragraph: { spacing: { line: 252 } } },
+        document: { run: { font: bodyFont, size: SIZE.body, color: text }, paragraph: { spacing: { line } } },
       },
     },
     sections: [
@@ -549,14 +667,16 @@ export async function exportDocumentDocx(doc: ResumeDocument, filename?: string,
         properties: {
           page: {
             size: { width: page.w, height: page.h },
-            margin: { top: TWIP.margin, right: TWIP.margin, bottom: TWIP.margin, left: TWIP.margin },
+            margin: { top: margin, right: margin, bottom: margin, left: margin },
           },
         },
         children: body,
       },
     ],
   })
+}
 
-  const blob = await Packer.toBlob(document)
+export async function exportDocumentDocx(doc: ResumeDocument, filename?: string, fitScale = 1) {
+  const blob = await Packer.toBlob(buildDocx(doc, fitScale))
   downloadBlob(blob, filename || resumeFilename(doc.content.basics.name, doc.title, 'docx'))
 }

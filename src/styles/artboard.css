@@ -1037,10 +1037,13 @@
 /* bullets */
 .rm-bullets {
   margin: 0.18em 0 0;
-  padding-left: 1.05em;
+  /* The indent is the room the outside marker hangs in; the gap is the air
+     between two bullets. Both are typography settings (bulletIndent and
+     bulletGap, em of the base size) emitted by useVars. */
+  padding-left: var(--rm-bullet-indent, 1.05em);
   display: flex;
   flex-direction: column;
-  gap: 0.2em;
+  gap: var(--rm-bullet-gap, 0.2em);
 }
 .rm-bullets li {
   position: relative;
@@ -1481,7 +1484,9 @@
 }
 .mode-preview .rm-bullet-addrow {
   list-style: none;
-  margin: 0 0 0 -1.05em; /* let the flex gap own spacing — no doubled gap above "+ bullet" */
+  /* Back out the list's own indent so the row sits on the text edge; let the
+     flex gap own spacing - no doubled gap above "+ bullet". */
+  margin: 0 0 0 calc(-1 * var(--rm-bullet-indent, 1.05em));
 }
 .mode-preview .rm-add-btn {
   font-size: 0.82em;

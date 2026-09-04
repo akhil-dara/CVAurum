@@ -29,3 +29,15 @@ describe('applyTemplateToMetadata keeps the link settings', () => {
     expect(next.links).toEqual(cur.links)
   })
 })
+
+describe('applyTemplateToMetadata keeps the bullet geometry', () => {
+  // The indent and the gap are the author's, like the marker style: a
+  // template switch adopts the new fonts and sizes but must not put a
+  // hand-set bullet indent back on the default.
+  it('carries bulletIndent and bulletGap across a switch', () => {
+    const cur = MetadataSchema.parse({ template: 'modern', typography: { bulletIndent: 1.6, bulletGap: 0.45 } })
+    const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
+    expect(next.typography.bulletIndent).toBe(1.6)
+    expect(next.typography.bulletGap).toBe(0.45)
+  })
+})

@@ -15,7 +15,7 @@
  */
 import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
-import { formatDate, formatDateRange, htmlToText } from '@/lib/utils'
+import { currentYearMonth, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
@@ -51,6 +51,9 @@ function entryHead(title?: string, org?: string, date?: string, loc?: string): s
 function sectionText(key: string, doc: ResumeDocument): string[] {
   const c = doc.content
   const label = sectionLabel(key, doc)
+  // The section's own time-span switch, read against today the way the page
+  // and the Word file read it; undefined prints the bare range.
+  const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], currentYearMonth())
   const out: string[] = []
   const push = (lines: string[]) => {
     if (lines.length) out.push(...heading(label), ...lines)
@@ -65,7 +68,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'work':
       push(
         c.work.flatMap((w) => [
-          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate), w.location),
+          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location),
           ...(htmlToText(w.summary) ? [htmlToText(w.summary)] : []),
           ...w.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -78,7 +81,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
           ...entryHead(
             [e.studyType, e.area].filter(Boolean).join(', '),
             e.institution,
-            formatDateRange(e.startDate, e.endDate),
+            formatDateRange(e.startDate, e.endDate, dates),
             e.location,
           ),
           ...(e.score ? [e.score] : []),
@@ -91,7 +94,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'projects':
       push(
         c.projects.flatMap((p) => [
-          ...entryHead(p.name, prettyUrl(p.url, doc.metadata.links?.display), formatDateRange(p.startDate, p.endDate)),
+          ...entryHead(p.name, prettyUrl(p.url, doc.metadata.links?.display), formatDateRange(p.startDate, p.endDate, dates)),
           ...(htmlToText(p.description) ? [htmlToText(p.description)] : []),
           // The further named links, in the place the page prints them. They
           // were in the PDF and nowhere else, so a reader pasting the text lost
@@ -143,7 +146,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'volunteer':
       push(
         c.volunteer.flatMap((v) => [
-          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate)),
+          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates)),
           ...(htmlToText(v.summary) ? [htmlToText(v.summary)] : []),
           ...v.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',

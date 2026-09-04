@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export function Slider({
@@ -17,13 +18,48 @@ export function Slider({
   step?: number
   unit?: string
   onChange: (v: number) => void
+  /** Readout formatter; the typed box shows the bare number and borrows
+   *  whatever this appends after the digits as its unit. */
   format?: (v: number) => string
 }) {
+  // The typed box owns its text while it has focus: a half-typed "1" on the
+  // way to 12 must not snap to the minimum mid-keystroke. A value already in
+  // range applies as it is typed; anything else is clamped when focus leaves.
+  const [draft, setDraft] = useState<string | null>(null)
+  const commit = (raw: string, clamp: boolean) => {
+    const v = parseFloat(raw)
+    if (!Number.isFinite(v)) return
+    if (v >= min && v <= max) onChange(v)
+    else if (clamp) onChange(Math.min(max, Math.max(min, v)))
+  }
+  const suffix = unit || (format ? format(value).replace(/^[-+\d.,]+/, '') : '')
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between gap-2">
         <label className="text-xs font-medium text-muted-foreground">{label}</label>
-        <span className="text-xs tabular-nums text-foreground">{format ? format(value) : `${value}${unit}`}</span>
+        <span className="flex items-center gap-1 text-xs tabular-nums text-foreground">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={draft ?? String(Number(value.toFixed(4)))}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              commit(e.target.value, false)
+            }}
+            onBlur={() => {
+              if (draft !== null) commit(draft, true)
+              setDraft(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+            }}
+            aria-label={label}
+            className="h-6 w-16 rounded border border-input bg-surface px-1.5 text-right text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          {suffix && <span className="text-muted-foreground">{suffix}</span>}
+        </span>
       </div>
       <input
         type="range"

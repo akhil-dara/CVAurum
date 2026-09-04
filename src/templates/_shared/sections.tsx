@@ -10,7 +10,8 @@ import { createPortal } from 'react-dom'
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
-import { formatDateRange, formatDate, htmlToText, safeHref, uid } from '@/lib/utils'
+import { currentYearMonth, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
+import type { DateRangeOptions } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
@@ -74,6 +75,8 @@ const anyText = (...vals: Array<string | string[] | undefined>) =>
 export type SecOpts = {
   showBullets?: boolean
   showDates?: boolean
+  /** End each date range with its length, "(2 yrs 3 mos)". Opt-in. */
+  showDuration?: boolean
   showLocation?: boolean
   showSummary?: boolean
   bulletStyle?: string
@@ -106,12 +109,15 @@ function rangeDate(
   start: string,
   end: string,
   applyStart: Apply,
-  applyEnd: Apply
+  applyEnd: Apply,
+  dates?: DateRangeOptions
 ): ReactNode {
   if (!visible) return undefined
-  if (!edit) return formatDateRange(start, end) || undefined
-  return <CanvasDate edit={edit} range start={start} end={end} applyStart={applyStart} applyEnd={applyEnd} />
+  if (!edit) return formatDateRange(start, end, dates) || undefined
+  return <CanvasDate edit={edit} range start={start} end={end} applyStart={applyStart} applyEnd={applyEnd} dateOpts={dates} />
 }
+/** The time span a section asked for, read against this render's today. */
+const spanOpts = (opts?: SecOpts) => sectionDateOptions(opts, currentYearMonth())
 /** A single date that's click-to-edit on the canvas. */
 function singleDate(edit: EditFn | undefined, visible: boolean, date: string, applyDate: Apply): ReactNode {
   if (!visible) return undefined
@@ -998,7 +1004,8 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                 },
                 (c, v) => {
                   c.work[i].endDate = v
-                }
+                },
+                spanOpts(opts)
               )}
             />
             <div className="rm-item-sub">
@@ -1151,7 +1158,8 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 },
                 (c, v) => {
                   c.education[i].endDate = v
-                }
+                },
+                spanOpts(opts)
               )}
             />
             <div className="rm-item-sub">
@@ -1281,7 +1289,8 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 },
                 (c, v) => {
                   c.projects[i].endDate = v
-                }
+                },
+                spanOpts(opts)
               )}
             />
             {/* The link line shows only when there IS a link. It used to be an
@@ -2192,7 +2201,8 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 },
                 (c, val) => {
                   c.volunteer[i].endDate = val
-                }
+                },
+                spanOpts(opts)
               )}
             />
             {edit || v.organization ? (

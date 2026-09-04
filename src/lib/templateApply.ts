@@ -57,6 +57,8 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       ...cur.typography,
       ...defaults.typography,
       bulletStyle: cur.typography.bulletStyle,
+      bulletIndent: cur.typography.bulletIndent,
+      bulletGap: cur.typography.bulletGap,
       proficiency: cur.typography.proficiency,
     },
     layout: {

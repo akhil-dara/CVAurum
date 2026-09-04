@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeContent } from '@/types/document'
 import { formatDate, formatDateRange, isSingleDate } from '@/lib/utils'
+import type { DateRangeOptions } from '@/lib/utils'
 import type { EditFn } from './Editable'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -98,6 +99,7 @@ export function CanvasDate({
   end,
   applyStart,
   applyEnd,
+  dateOpts,
 }: {
   edit: EditFn
   range?: boolean
@@ -105,6 +107,9 @@ export function CanvasDate({
   end?: string
   applyStart: (c: ResumeContent, v: string) => void
   applyEnd?: (c: ResumeContent, v: string) => void
+  /** How the range reads here - the section's time span, when it asked for
+   *  one - so the label while editing is the text the print render sets. */
+  dateOpts?: DateRangeOptions
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -122,7 +127,7 @@ export function CanvasDate({
   // A range with NO dates at all must invite ("Add dates"), not claim "Present"
   // (formatDateRange treats an empty end as Present, which is wrong when the
   // start is empty too — that's a brand-new, untouched entry).
-  const label = range ? (start.trim() || (end || '').trim() ? formatDateRange(start, end) : 'Add dates') : formatDate(start) || 'Add date'
+  const label = range ? (start.trim() || (end || '').trim() ? formatDateRange(start, end, dateOpts) : 'Add dates') : formatDate(start) || 'Add date'
 
   const openAt = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()

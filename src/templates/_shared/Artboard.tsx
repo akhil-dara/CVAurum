@@ -123,6 +123,9 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-photo-margin':
         layout.photoAlign === 'left' ? '0 auto 0 0' : layout.photoAlign === 'right' ? '0 0 0 auto' : '0 auto',
       '--rm-bullet-type': BULLET_TYPE[t.bulletStyle] ?? 'disc',
+      // Both in em so they ride the base size and the one-page fit with it.
+      '--rm-bullet-indent': `${t.bulletIndent}em`,
+      '--rm-bullet-gap': `${t.bulletGap}em`,
     } as CSSProperties
   }, [theme, t, layout, page, fitScale])
 }

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Slider, Toggle, Segmented, ColorField, FieldGroup } from '../fields/Controls'
 import { FontSelect } from '../fields/FontSelect'
 import { HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
+import { DESIGN_RANGES } from '@/lib/designRanges'
 
 const BULLET_OPTIONS = [
   ['disc', '●'],
@@ -151,9 +152,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider
           label="Font size"
           value={m.typography.fontSize}
-          min={8}
-          max={14}
-          step={0.25}
+          {...DESIGN_RANGES.fontSize}
           unit="pt"
           onChange={(v) =>
             update((md) => {
@@ -164,9 +163,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider
           label="Line height"
           value={m.typography.lineHeight}
-          min={1}
-          max={2}
-          step={0.02}
+          {...DESIGN_RANGES.lineHeight}
           onChange={(v) =>
             update((md) => {
               md.typography.lineHeight = v
@@ -177,9 +174,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider
           label="Letter spacing"
           value={m.typography.letterSpacing}
-          min={-0.02}
-          max={0.1}
-          step={0.005}
+          {...DESIGN_RANGES.letterSpacing}
           onChange={(v) =>
             update((md) => {
               md.typography.letterSpacing = v
@@ -190,9 +185,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider
           label="Name size"
           value={m.typography.headingScale}
-          min={1}
-          max={2.4}
-          step={0.05}
+          {...DESIGN_RANGES.headingScale}
           onChange={(v) =>
             update((md) => {
               md.typography.headingScale = v
@@ -233,6 +226,35 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               </button>
             ))}
           </div>
+        </div>
+        <div>
+          <div className="grid grid-cols-2 gap-3">
+            <Slider
+              label="Bullet indent"
+              value={m.typography.bulletIndent}
+              {...DESIGN_RANGES.bulletIndent}
+              onChange={(v) =>
+                update((md) => {
+                  md.typography.bulletIndent = v
+                })
+              }
+              format={(v) => `${v.toFixed(2)}em`}
+            />
+            <Slider
+              label="Bullet spacing"
+              value={m.typography.bulletGap}
+              {...DESIGN_RANGES.bulletGap}
+              onChange={(v) =>
+                update((md) => {
+                  md.typography.bulletGap = v
+                })
+              }
+              format={(v) => `${v.toFixed(2)}em`}
+            />
+          </div>
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            How far bullets sit in, and the air between them.
+          </p>
         </div>
         <div>
           <label className="label">Skill &amp; language level</label>
@@ -335,25 +357,23 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             </div>
             <Slider
               label="Sidebar width"
-              value={m.layout.sidebarWidth}
-              min={0.24}
-              max={0.44}
-              step={0.01}
+              value={Math.round(m.layout.sidebarWidth * 100)}
+              min={Math.round(DESIGN_RANGES.sidebarWidth.min * 100)}
+              max={Math.round(DESIGN_RANGES.sidebarWidth.max * 100)}
+              step={1}
+              unit="%"
               onChange={(v) =>
                 update((md) => {
-                  md.layout.sidebarWidth = v
+                  md.layout.sidebarWidth = v / 100
                 })
               }
-              format={(v) => `${Math.round(v * 100)}%`}
             />
           </>
         )}
         <Slider
           label="Section spacing"
           value={m.layout.sectionGap}
-          min={4}
-          max={30}
-          step={1}
+          {...DESIGN_RANGES.sectionGap}
           unit="pt"
           onChange={(v) =>
             update((md) => {
@@ -364,9 +384,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider
           label="Item spacing"
           value={m.layout.itemGap}
-          min={2}
-          max={20}
-          step={1}
+          {...DESIGN_RANGES.itemGap}
           unit="pt"
           onChange={(v) =>
             update((md) => {
@@ -383,6 +401,27 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
+        <div>
+          <label className="label">Between contacts</label>
+          <Segmented
+            value={m.layout.contactSeparator ?? 'none'}
+            options={[
+              { value: 'none', label: 'Space' },
+              { value: 'dot', label: '·' },
+              { value: 'pipe', label: '|' },
+              { value: 'slash', label: '/' },
+              { value: 'dash', label: '–' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.contactSeparator = v
+              })
+            }
+          />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            What sits between inline contacts — on the page, in the PDF and in the Word file.
+          </p>
+        </div>
         <div>
           <label className="label">Section icons</label>
           <Segmented
@@ -429,7 +468,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
-        {m.layout.showPhoto && (
+        {(m.layout.showPhoto || m.layout.monogram) && (
           <>
             <div>
               <label className="label">Photo shape</label>
@@ -439,6 +478,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   { value: 'circle', label: 'Circle' },
                   { value: 'rounded', label: 'Rounded' },
                   { value: 'square', label: 'Square' },
+                  { value: 'diamond', label: 'Diamond' },
                 ]}
                 onChange={(v) =>
                   update((md) => {
@@ -446,6 +486,9 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
                   })
                 }
               />
+              <p className="-mt-0 text-[11px] text-muted-foreground">
+                Shape of the photo or monogram badge. Diamond turns the badge; a photo keeps square corners.
+              </p>
             </div>
             <div>
               <label className="label">Photo size</label>
@@ -502,9 +545,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Slider
           label="Margins"
           value={m.page.margin}
-          min={6}
-          max={30}
-          step={1}
+          {...DESIGN_RANGES.margin}
           unit="mm"
           onChange={(v) =>
             update((md) => {

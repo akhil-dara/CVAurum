@@ -87,3 +87,55 @@ describe('atsSectionOrder', () => {
     expect(atsSectionOrder(['work'], ['skills'], false)).toEqual(['work'])
   })
 })
+
+describe('resumeToAtsText prints a time span when the section asks for one', () => {
+  // The span is real text the shared date formatter appends, so the words a
+  // parser reads are the words on the page - and they are absent, not blank,
+  // for every section that never asked. Closed ranges only: an open one
+  // would read the calendar and the assertion would age.
+  const docWith = (sectionSettings: Record<string, unknown> = {}): ResumeDocument =>
+    ({
+      id: 'res-1',
+      title: 'T',
+      createdAt: 0,
+      updatedAt: 0,
+      content: {
+        basics: { name: 'Alex Morgan', profiles: [], location: {} },
+        work: [{ id: 'w1', name: 'Acme', position: 'Engineer', startDate: '2019-01', endDate: '2021-03', highlights: [] }],
+        education: [
+          {
+            id: 'e1',
+            institution: 'State University',
+            studyType: 'BSc',
+            area: 'Computer Science',
+            startDate: '2015-09',
+            endDate: '2019-06',
+            courses: [],
+          },
+        ],
+        projects: [],
+        skills: [],
+        languages: [],
+        certificates: [],
+        awards: [],
+        publications: [],
+        volunteer: [],
+        interests: [],
+        references: [],
+        custom: [],
+      },
+      metadata: MetadataSchema.parse({ layout: { main: ['work', 'education'], sectionSettings } }),
+    }) as unknown as ResumeDocument
+
+  it('appends the span to that section and leaves the others alone', () => {
+    const text = resumeToAtsText(docWith({ work: { showDuration: true } }))
+    expect(text).toContain('Jan 2019 — Mar 2021 (2 yrs 3 mos)')
+    expect(text).toContain('Sep 2015 — Jun 2019\n')
+    expect(text).not.toContain('(3 yrs 10 mos)')
+  })
+
+  it('prints no span by default, and none when the switch is off', () => {
+    expect(resumeToAtsText(docWith())).not.toContain('(')
+    expect(resumeToAtsText(docWith({ work: { showDuration: false } }))).not.toContain('(')
+  })
+})

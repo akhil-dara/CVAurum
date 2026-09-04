@@ -35,9 +35,11 @@
  */
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
+import { GripVertical, ArrowUp, ArrowDown, ArrowDownToLine } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import { moveSectionTo, moveEntry, sectionLabel } from '@/lib/sections'
+import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
+import { cn } from '@/lib/utils'
 
 const MOUSE_ACTIVATE_PX = 5
 const TOUCH_HOLD_MS = 220
@@ -90,6 +92,22 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
   const drag = useRef<DragSession | null>(null)
   const latestSlot = useRef<Slot | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  // "Start on new page" for the hovered entry: page.breaks takes an itemId
+  // (2026-08-17 spec) and the resolver already honours it; this is the
+  // canvas control that writes one. Same helper as the section style sheet
+  // and the entry card in the panel (the phone's way in), and like the
+  // section pin it is only offered while auto-fit is off - with it on the
+  // engine owns pagination and a pin would be a dead control.
+  const autoFitOn = useResumeStore((s) => s.doc?.metadata.page.autoFit ?? true)
+  const hoverPinned = useResumeStore((s) =>
+    hover && s.doc ? hasPagePin(s.doc.metadata.page.breaks, hover.sectionKey, hover.id) : false
+  )
+  const toggleHoveredPin = () => {
+    if (!hover) return
+    const { sectionKey, id } = hover
+    useResumeStore.getState().updateMetadata((m) => togglePagePin(m.page.breaks, sectionKey, id))
+  }
 
   useEffect(() => {
     const root = () => rootRef.current?.querySelector<HTMLElement>('.rm-root') ?? null
@@ -484,7 +502,7 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           // hovered again - the cluster kept itself alive by being pointed
           // at. Above the top edge it can only cover the previous entry's
           // tail, whose controls are not revealed - they need THEIR hover.
-          style={{ top: hover.top - 30, left: hover.right - 96 }}
+          style={{ top: hover.top - 30, left: hover.right - (autoFitOn ? 96 : 124) }}
           data-canvas-entry-cluster
         >
           <button
@@ -517,6 +535,18 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           >
             <ArrowDown className="h-3.5 w-3.5" />
           </button>
+          {!autoFitOn && (
+            <button
+              type="button"
+              className={cn(clusterBtn, hoverPinned && 'border-primary text-primary')}
+              onClick={toggleHoveredPin}
+              aria-pressed={hoverPinned}
+              aria-label={hoverPinned ? 'Unpin page break' : 'Start this entry on a new page'}
+              title={hoverPinned ? 'Starts on a new page — click to unpin' : 'Start on new page'}
+            >
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
       {dragging && slot && (

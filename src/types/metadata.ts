@@ -80,6 +80,10 @@ export const TypographySchema = z.object({
   uppercaseHeadings: z.boolean().default(true),
   /** bullet marker style for highlight lists */
   bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'none']).default('disc'),
+  /** how far a highlight list is set in from the text edge, in em of the base size */
+  bulletIndent: z.number().min(0.5).max(2.5).default(1.05),
+  /** vertical space between two bullets, in em of the base size */
+  bulletGap: z.number().min(0).max(1).default(0.2),
   /** how skill/language proficiency ratings render (dots/bars/stars meter, plain text, or hidden) */
   proficiency: z.enum(['dots', 'bars', 'stars', 'text', 'none']).default('dots'),
 })
@@ -107,6 +111,10 @@ export const LayoutSchema = z.object({
       z.object({
         showBullets: z.boolean().optional(),
         showDates: z.boolean().optional(),
+        /** Append the length of each date range in parentheses ("2 yrs 3 mos").
+         *  Opt-in. Real text the shared date formatter adds, so the page, the
+         *  Word file and the ATS text all print the same words. */
+        showDuration: z.boolean().optional(),
         showLocation: z.boolean().optional(),
         showSummary: z.boolean().optional(),
         showKeywords: z.boolean().optional(),

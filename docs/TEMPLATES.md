@@ -127,6 +127,8 @@ interface TemplateConfig {
       letterSpacing: number;     // em, e.g. 0 or 0.01
       headingScale: number;      // multiplier applied to heading sizes
       uppercaseHeadings: boolean;// UPPERCASE section titles
+      bulletIndent: number;      // em, how far highlight lists sit in (default 1.05)
+      bulletGap: number;         // em, space between two bullets (default 0.2)
     };
     layout: {
       columns: 1 | 2;            // single or two-column
@@ -138,7 +140,7 @@ interface TemplateConfig {
       sectionIconStyle: 'folio' | 'chip' | 'plain' | 'filled' | 'circle' | 'outline' | 'none'; // section badge (folio = folded-corner paper chip)
       sectionIconSize: 's' | 'm' | 'l'; // section badge size
       showPhoto: boolean;        // render a photo if one is present
-      photoShape: 'circle' | 'rounded' | 'square';
+      photoShape: 'circle' | 'rounded' | 'square' | 'diamond';
     };
   };
 }
@@ -181,11 +183,13 @@ These map directly onto the `--rm-*` color variables (see the
 | `fontFamily` | Body font → `--rm-font-body` |
 | `headingFamily` | Section/heading font → `--rm-font-heading` |
 | `nameFamily` | The name at the top → `--rm-font-name` |
-| `fontSize` | Base body size (px) → `--rm-fs` |
-| `lineHeight` | Line-height multiplier → `--rm-lh` |
+| `fontSize` | Base body size (px) → `--rm-fs`; the Word export scales every run size from it with the same ratios |
+| `lineHeight` | Line-height multiplier → `--rm-lh`; the Word export's line spacing follows it |
 | `letterSpacing` | Letter spacing (em) |
 | `headingScale` | Multiplier applied to heading sizes |
 | `uppercaseHeadings` | UPPERCASE section titles |
+| `bulletIndent` | How far highlight lists sit in (em) → `--rm-bullet-indent`; the Word export's bullet indent follows it |
+| `bulletGap` | Space between two bullets (em) → `--rm-bullet-gap`; the Word export's spacing after a bullet follows it |
 
 > Fonts must be one of the 40+ self-served Google Fonts in the
 > [fonts registry](../src/data). If you reference a font that isn't registered, it simply
@@ -201,10 +205,12 @@ These map directly onto the `--rm-*` color variables (see the
 | `sectionGap` | Gap between sections (px) → `--rm-section-gap` |
 | `itemGap` | Gap between items within a section (px) → `--rm-item-gap` |
 | `icons` | Show contact/section icons |
+| `contactSeparator` | What sits between inline contacts: `'none'` (spacing only), `'dot'`, `'pipe'`, `'slash'`, `'dash'` → `--rm-contact-sep`; the Word export prints the same glyph |
 | `sectionIconStyle` | Section badge: `'folio'` (default, a folded-corner paper chip), `'chip'`, `'plain'`, `'filled'`, `'circle'`, `'outline'`, `'none'`. The author's choice; kept across template switches |
 | `sectionIconSize` | Section badge size, `'s'` / `'m'` / `'l'` (also kept across switches) |
 | `showPhoto` | Render the photo if one is present in the resume data |
-| `photoShape` | `'circle'`, `'rounded'`, or `'square'` |
+| `photoShape` | `'circle'`, `'rounded'`, `'square'`, or `'diamond'` (a turned monogram badge; a photo keeps square corners) |
+| `sectionSettings[key].showDuration` | Per section, opt-in: end each date range with its length in parentheses (`"2 yrs 3 mos"`, counted in whole months, so both dates need a month). Plain text, so the Word export and the ATS text print the same words |
 
 ---
 
@@ -297,6 +303,8 @@ your template.
 | `--rm-font-name` | `typography.nameFamily` | Name font family |
 | `--rm-section-gap` | `layout.sectionGap` | Vertical gap between sections |
 | `--rm-item-gap` | `layout.itemGap` | Vertical gap between items |
+| `--rm-bullet-indent` | `typography.bulletIndent` | Indent of highlight lists (the room the marker hangs in) |
+| `--rm-bullet-gap` | `typography.bulletGap` | Vertical gap between bullets |
 | `--rm-pad` | layout padding | Page/inner padding |
 
 Example of reading them:

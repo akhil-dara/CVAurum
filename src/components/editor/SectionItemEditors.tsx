@@ -10,6 +10,8 @@ import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labele
 import { LogoPicker } from './fields/LogoPicker'
 import { RichTextLazy as RichTextEditor } from './fields/RichTextLazy'
 import { BulletsEditor } from './fields/BulletsEditor'
+import { Toggle } from './fields/Controls'
+import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type AnyItem = Record<string, any>
@@ -170,6 +172,7 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
                 {open && (
                   <div className="space-y-3 border-t border-border p-3">
                     <ItemFields sectionKey={sectionKey} item={it} patch={(fn) => patchById(id, fn)} />
+                    <PageBreakRow sectionKey={sectionKey} itemId={id} />
                   </div>
                 )}
               </div>
@@ -297,6 +300,37 @@ function BadgeRow({
         </span>
       </div>
     </Labeled>
+  )
+}
+
+/**
+ * Panel twin of the canvas entry cluster's "Start on new page" pin. A phone
+ * has no editable canvas, so the pin has to be reachable from the entry's
+ * own card as well; both write the same {section, itemId} into page.breaks
+ * through the same helper, and both stand down while auto-fit owns the
+ * pagination, exactly as the section style sheet does.
+ */
+function PageBreakRow({ sectionKey, itemId }: { sectionKey: string; itemId: string }) {
+  const autoFitOn = useResumeStore((s) => s.doc?.metadata.page.autoFit ?? true)
+  const pinned = useResumeStore((s) => (s.doc ? hasPagePin(s.doc.metadata.page.breaks, sectionKey, itemId) : false))
+  const updateMetadata = useResumeStore((s) => s.updateMetadata)
+  return (
+    <div className="border-t border-border pt-3">
+      {autoFitOn ? (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-foreground">Start on new page</span>
+          <span className="text-right text-[11px] leading-tight text-muted-foreground">
+            Turn off “Fit to one page” (Design) to pin page breaks.
+          </span>
+        </div>
+      ) : (
+        <Toggle
+          label="Start on new page"
+          checked={pinned}
+          onChange={() => updateMetadata((m) => togglePagePin(m.page.breaks, sectionKey, itemId))}
+        />
+      )}
+    </div>
   )
 }
 

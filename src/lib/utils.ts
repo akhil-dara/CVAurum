@@ -83,6 +83,17 @@ export function htmlEscape(s: string): string {
     .replace(/>/g, '&gt;')
 }
 
+/** Options the date formatters share. `month` picks the month spelling;
+ *  `duration` appends the length of a range in parentheses, read against
+ *  `now` (the caller's own "YYYY-MM") when the range is open-ended and worded
+ *  in `language` (a BCP-47 tag; anything unknown falls back to English). */
+export type DateRangeOptions = {
+  month?: 'short' | 'long'
+  duration?: boolean
+  now?: string
+  language?: string
+}
+
 /** Format an ISO-ish date string for display. Accepts "2021", "2021-05", "2021-05-01". */
 export function formatDate(value?: string, opts: { month?: 'short' | 'long' } = {}): string {
   if (!value) return ''
@@ -100,8 +111,8 @@ export function formatDate(value?: string, opts: { month?: 'short' | 'long' } = 
   return `${months[monthIdx]} ${y}`
 }
 
-/** "Jan 2021 — Present" style range. */
-export function formatDateRange(start?: string, end?: string, opts?: { month?: 'short' | 'long' }): string {
+/** "Jan 2021 - Present" style range (an em dash on the page), ending "(2 yrs 3 mos)" when asked. */
+export function formatDateRange(start?: string, end?: string, opts?: DateRangeOptions): string {
   const s = formatDate(start, opts)
   const e = end ? formatDate(end, opts) : 'Present'
   if (!s && !e) return ''
@@ -112,7 +123,87 @@ export function formatDateRange(start?: string, end?: string, opts?: { month?: '
   // start/end fields means it stays valid JSON Resume and flows through the
   // canvas, the ATS text view, and the Word export unchanged.
   if (isSingleDate(start, end)) return s
-  return `${s} — ${e}`
+  // The span is part of this one string on purpose: every renderer prints
+  // the string as it is, so none can show a span the others lack.
+  const span = opts?.duration ? formatDuration(start, end, opts) : ''
+  return span ? `${s} — ${e} (${span})` : `${s} — ${e}`
+}
+
+/** The words a time span is counted in, per language: one year, several
+ *  years, one month, several months. Abbreviated where a resume in that
+ *  language abbreviates; English stands in for any tag not listed. */
+const DURATION_WORDS: Record<string, [yr: string, yrs: string, mo: string, mos: string]> = {
+  en: ['yr', 'yrs', 'mo', 'mos'],
+  de: ['J.', 'J.', 'Mon.', 'Mon.'],
+  fr: ['an', 'ans', 'mois', 'mois'],
+  es: ['año', 'años', 'mes', 'meses'],
+  pt: ['ano', 'anos', 'mês', 'meses'],
+  it: ['anno', 'anni', 'mese', 'mesi'],
+  nl: ['jr', 'jr', 'mnd', 'mnd'],
+  sv: ['år', 'år', 'mån', 'mån'],
+  pl: ['rok', 'l.', 'mies.', 'mies.'],
+  tr: ['yıl', 'yıl', 'ay', 'ay'],
+  hi: ['वर्ष', 'वर्ष', 'माह', 'माह'],
+  ja: ['年', '年', 'か月', 'か月'],
+}
+
+/** The table key for a BCP-47 tag: its language part when listed, else en. */
+function durationLanguage(tag?: string): string {
+  const lang = (tag || 'en').trim().toLowerCase().split('-')[0]
+  return Object.prototype.hasOwnProperty.call(DURATION_WORDS, lang) ? lang : 'en'
+}
+
+/** "YYYY-MM" for a date: the form an open-ended range is read against. The
+ *  callers snapshot today with this and pass it in, so the formatter itself
+ *  never reads the clock and one document formats the same everywhere. */
+export function currentYearMonth(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Absolute month (year * 12 + month) of a "YYYY-MM" or "YYYY-MM-DD" string;
+ *  null for a bare year, free text or nothing. A span needs a month at both
+ *  ends - guessing one would print a length the author never stated. */
+function monthIndex(value?: string): number | null {
+  const m = (value || '').trim().match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/)
+  if (!m) return null
+  const month = parseInt(m[2], 10)
+  if (month < 1 || month > 12) return null
+  return parseInt(m[1], 10) * 12 + (month - 1)
+}
+
+/**
+ * The length of a date range in words: "2 yrs 3 mos", "1 yr", "4 mos". Whole
+ * months, both ends counted (January to March is three months). An empty or
+ * "Present" end reads as `opts.now`; with no `now` there is no answer. Returns
+ * '' whenever the span cannot be counted honestly: a bare year on either end,
+ * free text, or an end before the start.
+ */
+export function formatDuration(start?: string, end?: string, opts: { now?: string; language?: string } = {}): string {
+  const a = monthIndex(start)
+  const endValue = (end || '').trim()
+  const open = !endValue || /^present$/i.test(endValue)
+  const b = open ? monthIndex(opts.now) : monthIndex(endValue)
+  if (a == null || b == null || b < a) return ''
+  const months = b - a + 1
+  const years = Math.floor(months / 12)
+  const rest = months % 12
+  const [yr, yrs, mo, mos] = DURATION_WORDS[durationLanguage(opts.language)]
+  const parts: string[] = []
+  if (years) parts.push(`${years} ${years === 1 ? yr : yrs}`)
+  if (rest) parts.push(`${rest} ${rest === 1 ? mo : mos}`)
+  return parts.join(' ')
+}
+
+/** The range options one section's settings ask for, carrying the caller's
+ *  today so the formatter stays clock-free. Undefined when the section never
+ *  opted in, so the plain range prints exactly as it always has. */
+export function sectionDateOptions(
+  settings: { showDuration?: boolean } | undefined,
+  now: string,
+  language?: string
+): DateRangeOptions | undefined {
+  if (!settings?.showDuration) return undefined
+  return language ? { duration: true, now, language } : { duration: true, now }
 }
 
 /** True when a start/end pair represents one single date rather than a range. */

@@ -46,6 +46,19 @@ describe('exported settings survive a round trip', () => {
     expect(back.metadata.typography.fontSize).toBe(11)
   })
 
+  it('keeps a page pin on one entry, and the diamond photo shape', () => {
+    // An entry pin carries the item's own id beside the section key; both
+    // halves must come back or the break lands before the whole section.
+    const m = MetadataSchema.parse({
+      page: { autoFit: false, breaks: [{ section: 'work' }, { section: 'work', itemId: 'w2' }] },
+      layout: { photoShape: 'diamond' },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.page.autoFit).toBe(false)
+    expect(back.metadata.page.breaks).toEqual([{ section: 'work' }, { section: 'work', itemId: 'w2' }])
+    expect(back.metadata.layout.photoShape).toBe('diamond')
+  })
+
   it('keeps the folio icon style, the icon size and the link style', () => {
     const m = MetadataSchema.parse({
       layout: { sectionIconStyle: 'folio', sectionIconSize: 'l' },
@@ -121,5 +134,46 @@ describe('every exporter shows a URL the way the author asked', () => {
     expect(resumeToAtsText(doc('full'))).toContain('https://alexmorgan.dev/')
     expect(resumeToAtsText(doc('pretty'))).toContain('alexmorgan.dev')
     expect(resumeToAtsText(doc('pretty'))).not.toContain('https://alexmorgan.dev')
+  })
+})
+
+describe('bullet indent and bullet spacing survive a round trip', () => {
+  // Two more typography numbers: how far a highlight list is set in from
+  // the text edge and how much air sits between two bullets. A file saved
+  // before they existed carries neither and must land on the geometry the
+  // page has always drawn (1.05em in, 0.2em apart).
+  it('keeps both values', () => {
+    const m = MetadataSchema.parse({ typography: { bulletIndent: 1.4, bulletGap: 0.35 } })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.typography.bulletIndent).toBe(1.4)
+    expect(back.metadata.typography.bulletGap).toBe(0.35)
+  })
+
+  it('an older file lands on the geometry the page always drew', () => {
+    const raw = toJsonResume(docWith(MetadataSchema.parse({}))) as unknown as {
+      meta: { cvaurum: { typography: Record<string, unknown> } }
+    }
+    delete raw.meta.cvaurum.typography.bulletIndent
+    delete raw.meta.cvaurum.typography.bulletGap
+    const fresh = fromJsonResume(raw as never)
+    expect(fresh.metadata.typography.bulletIndent).toBe(1.05)
+    expect(fresh.metadata.typography.bulletGap).toBe(0.2)
+  })
+})
+
+describe('a per-section time span switch survives a round trip', () => {
+  it('keeps the flag beside the section\'s other settings', () => {
+    const m = MetadataSchema.parse({
+      layout: { sectionSettings: { work: { showDuration: true, showLocation: false } } },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.layout.sectionSettings.work.showDuration).toBe(true)
+    expect(back.metadata.layout.sectionSettings.work.showLocation).toBe(false)
+  })
+
+  it('an older file has no span switched on anywhere', () => {
+    const older = { layout: { sectionSettings: { work: { showDates: true } } } }
+    const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse(older))))
+    expect(back.metadata.layout.sectionSettings.work.showDuration).toBeUndefined()
   })
 })

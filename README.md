@@ -63,7 +63,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 - **52 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Marquee, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono, and Opal — each with folio or icon-chip section headings in three sizes and a refined type scale.
 - Most templates are **ATS-safe** and flagged with a shield so you know which ones parse cleanly.
-- **Full typography control:** separate body / heading / name fonts (**45 bundled, self-hosted fonts** — no CDN), font size, line-height, letter-spacing, accent colors, spacing, and margins.
+- **Full typography control:** separate body / heading / name fonts (**45 bundled, self-hosted fonts** — no CDN), font size, line-height, letter-spacing, bullet indent and bullet spacing, accent colors, spacing, and margins — every slider spans the document's full range and has a typed value box beside it.
 - **Layout freedom:** two-column ↔ single-column, **A4 or US-Letter** page size, light / dark / system theme.
 
 ### 📝 Editing Experience
@@ -83,6 +83,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Editing on a phone** — the canvas is a desktop surface, so on a phone the form panel _is_ the editor: contact icons, links, section heading links, keyword reordering, and the whole per-section style sheet (heading style, skills layout, badge size and shape, bullets) open from the panel, with no horizontal scrolling. The first-run tour says so too — it teaches the phone flow on a phone rather than telling you to hover things a finger cannot.
 - **Per-entry logos and credential badges** — add a small company / institution logo beside any experience, education, or volunteering entry, and an **issuer badge beside any certification** (the AWS cube, Google's G) the way credential-heavy resumes print them: badge in its own gutter, name and issuer sharing one clean text edge, a short **Verify** ending the line. All with a friendly cropper and per-section size & shape controls, added straight from the canvas or the panel.
 - **Per-section bullet & meter styles** — pick the bullet marker (disc, circle, square, dash, arrow, check, diamond, none) and the skills/languages proficiency meter (dots, bars, stars, text, none) per section.
+- **Time spans on date ranges** — a per-section switch ends each range with its length ("2 yrs 3 mos"), as plain text the PDF, the Word file and the ATS view all print alike.
 - **Drag-and-drop section reordering** (dnd-kit), show/hide sections, custom sections, and section renaming.
 - **Visual "Add a section" gallery** — each section is shown as a **live preview rendered in your actual template**, so you see exactly how it will look before adding it.
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Shift+Z` (powered by zundo).
@@ -104,7 +105,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 - **Import an existing PDF résumé** — drop in a PDF and CVAurum reconstructs it into editable, structured sections (contact, experience, education, skills…) **entirely in your browser — nothing is uploaded.** Text-based PDFs work best; scanned / image-only PDFs are read with **on-device OCR** (self-hosted [Tesseract](https://github.com/naptha/tesseract.js), no cloud). Always give the result a quick review.
 - **One-click PDF export** from CVAurum's own in-browser vector engine — **selectable, ATS-exact text** (not a rasterized image), verified pixel-faithful to the preview on every template, ~50 KB files, automatic print fallback. Links are exported as **real clickable regions**, not just underlined words.
-- **Word (.docx) export** — a clean, single-column, **ATS-friendly** Word document with real bullet lists, preserved bold, and your template's accent color and fonts. Generated entirely in your browser; nothing is uploaded.
+- **Word (.docx) export** — a clean, single-column, **ATS-friendly** Word document with real bullet lists, preserved bold, and your template's accent color and fonts; it also follows your page margins, type size, line height and the separator between contacts. Generated entirely in your browser; nothing is uploaded.
 - **Import & export JSON Resume files** — built on the [JSON Resume schema](https://jsonresume.org/schema) so your data round-trips with the wider ecosystem.
 
 ### 🔐 Secure Sharing
@@ -216,7 +217,7 @@ Conformance is enforced across single-page, two-column, image-heavy and multi-pa
 
 **Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date and a declared document language, in an XMP metadata packet (PDF 2.0 retires the legacy info dictionary, so XMP is the single source of truth). Readers show _your name_ in the title bar instead of the filename — and no library name appears anywhere in the file.
 
-**Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have.
+**Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have. Pin any section — or any single entry — to start on a new page, from its canvas controls or from its card in the panel.
 
 > **💡 Note:** if PDF generation ever fails in your browser, CVAurum automatically falls back to the classic print dialog so you can always export. In that dialog, set **Margins** to **None** and enable **Background graphics**.
 
