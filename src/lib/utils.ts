@@ -1,6 +1,7 @@
 ﻿import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { customAlphabet } from 'nanoid'
+import type { Dates } from '@/types/metadata'
 
 /** Tailwind-aware className combiner. */
 export function cn(...inputs: ClassValue[]) {
@@ -83,50 +84,138 @@ export function htmlEscape(s: string): string {
     .replace(/>/g, '&gt;')
 }
 
-/** Options the date formatters share. `month` picks the month spelling;
- *  `duration` appends the length of a range in parentheses, read against
- *  `now` (the caller's own "YYYY-MM") when the range is open-ended and worded
- *  in `language` (a BCP-47 tag; anything unknown falls back to English). */
-export type DateRangeOptions = {
-  month?: 'short' | 'long'
+/** How every date reads: the document's own `dates` block, each part
+ *  optional so a caller with none gets what the page always printed. */
+export type DateOptions = Partial<Dates>
+
+/** Options the date formatters share: the document's date settings, plus
+ *  `duration`, which appends the length of a range in parentheses, read
+ *  against `now` (the caller's own "YYYY-MM") when the range is open-ended
+ *  and worded in the same `language` as the month names. */
+export type DateRangeOptions = DateOptions & {
   duration?: boolean
   now?: string
-  language?: string
+}
+
+const DEFAULT_PRESENT = 'Present'
+
+/** The word an open-ended range ends with: the author's, or Present when
+ *  they left it blank - a range that ends in nothing reads as a mistake. */
+const presentWord = (opts: DateOptions): string => (opts.present || '').trim() || DEFAULT_PRESENT
+
+/** The glyph between the two ends of a range, spaced the way the page sets it. */
+const RANGE_SEPARATORS: Record<NonNullable<Dates['separator']>, string> = {
+  emdash: ' — ',
+  endash: ' – ',
+  hyphen: ' - ',
+  to: ' to ',
+}
+
+/** English month names stay a fixed table rather than a locale lookup, so
+ *  the default output is the same bytes on every machine and every engine. */
+const MONTHS_EN: Record<'short' | 'long', string[]> = {
+  short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  long: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+}
+
+/** The canonical tag the runtime can format in, else 'en'. An unknown tag
+ *  would otherwise fall back to whatever locale the machine runs in, and one
+ *  document would print different month names on different computers. */
+function formatLanguage(tag?: string): string {
+  const t = (tag || '').trim()
+  if (!t) return 'en'
+  try {
+    const known = Intl.DateTimeFormat.supportedLocalesOf([t])
+    return known.length ? known[0] : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+/** The first of a month as a UTC date, the year taken literally (a Date
+ *  built from two-digit years lands in the 1900s). */
+function utcMonth(year: number, monthIdx: number): Date {
+  const d = new Date(Date.UTC(2000, monthIdx, 1))
+  d.setUTCFullYear(year)
+  return d
+}
+
+/** Formatter options for a month name, or a month and year, in one
+ *  language. Latin digits whatever the locale's own, so a year stays the
+ *  four characters a parser matches; UTC so no time zone shifts the month. */
+const intlOptions = (month: 'short' | 'long', withYear: boolean): Intl.DateTimeFormatOptions =>
+  withYear ? { month, year: 'numeric', timeZone: 'UTC', numberingSystem: 'latn' } : { month, timeZone: 'UTC' }
+
+/* The canvas formats every date on each keystroke and building a formatter
+ * is the slow part, so one is kept per language and style. */
+const monthYearFormats = new Map<string, Intl.DateTimeFormat>()
+function monthYearFormat(language: string, month: 'short' | 'long'): Intl.DateTimeFormat {
+  const key = `${language}|${month}`
+  let f = monthYearFormats.get(key)
+  if (!f) {
+    f = new Intl.DateTimeFormat(language, intlOptions(month, true))
+    monthYearFormats.set(key, f)
+  }
+  return f
+}
+
+const monthNameLists = new Map<string, string[]>()
+/** The twelve month names in a language, short by default: the one list
+ *  every date picker offers, so it names the months the page prints. */
+export function monthNames(language?: string, month: 'short' | 'long' = 'short'): string[] {
+  const lang = formatLanguage(language)
+  if (lang === 'en') return MONTHS_EN[month]
+  const key = `${lang}|${month}`
+  let names = monthNameLists.get(key)
+  if (!names) {
+    const f = new Intl.DateTimeFormat(lang, intlOptions(month, false))
+    names = Array.from({ length: 12 }, (_, i) => f.format(utcMonth(2000, i)))
+    monthNameLists.set(key, names)
+  }
+  return names
 }
 
 /** Format an ISO-ish date string for display. Accepts "2021", "2021-05", "2021-05-01". */
-export function formatDate(value?: string, opts: { month?: 'short' | 'long' } = {}): string {
+export function formatDate(value?: string, opts: DateOptions = {}): string {
   if (!value) return ''
   const trimmed = value.trim()
-  if (/^present$/i.test(trimmed)) return 'Present'
-  // Already human text → pass through
+  if (/^present$/i.test(trimmed)) return presentWord(opts)
+  // Already human text -> pass through
   if (!/^\d{4}(-\d{1,2}){0,2}$/.test(trimmed)) return trimmed
   const [y, m] = trimmed.split('-')
   if (!m) return y
+  const style = opts.month ?? 'short'
+  if (style === 'none') return y
   const monthIdx = Math.max(0, Math.min(11, parseInt(m, 10) - 1))
-  const months =
-    opts.month === 'long'
-      ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${months[monthIdx]} ${y}`
+  if (style === 'numeric') return `${String(monthIdx + 1).padStart(2, '0')}/${y}`
+  const lang = formatLanguage(opts.language)
+  if (lang === 'en') return `${MONTHS_EN[style][monthIdx]} ${y}`
+  // The locale's own order of month and year (a Japanese date leads with
+  // the year), never a fixed English one.
+  return monthYearFormat(lang, style).format(utcMonth(parseInt(y, 10), monthIdx))
 }
 
-/** "Jan 2021 - Present" style range (an em dash on the page), ending "(2 yrs 3 mos)" when asked. */
-export function formatDateRange(start?: string, end?: string, opts?: DateRangeOptions): string {
+/** "Jan 2021 - Present" style range (a spaced em dash unless the document
+ *  chose otherwise), ending "(2 yrs 3 mos)" when asked. */
+export function formatDateRange(start?: string, end?: string, opts: DateRangeOptions = {}): string {
   const s = formatDate(start, opts)
-  const e = end ? formatDate(end, opts) : 'Present'
+  const e = end ? formatDate(end, opts) : presentWord(opts)
   if (!s && !e) return ''
   if (!s) return e
   if (!e) return s
   // A SINGLE-date entry (a one-year course, a one-off engagement) is stored as
-  // start === end — render it once, never as "2024 — 2024". Keeping it in the
+  // start === end - render it once, never as "2024 - 2024". Keeping it in the
   // start/end fields means it stays valid JSON Resume and flows through the
   // canvas, the ATS text view, and the Word export unchanged.
   if (isSingleDate(start, end)) return s
   // The span is part of this one string on purpose: every renderer prints
   // the string as it is, so none can show a span the others lack.
-  const span = opts?.duration ? formatDuration(start, end, opts) : ''
-  return span ? `${s} — ${e} (${span})` : `${s} — ${e}`
+  const span = opts.duration ? formatDuration(start, end, opts) : ''
+  // With no month shown, a range inside one year is that year, once; the
+  // span still counts the months the data holds.
+  if (s === e) return span ? `${s} (${span})` : s
+  const sep = RANGE_SEPARATORS[opts.separator ?? 'emdash'] ?? RANGE_SEPARATORS.emdash
+  return span ? `${s}${sep}${e} (${span})` : `${s}${sep}${e}`
 }
 
 /** The words a time span is counted in, per language: one year, several
@@ -194,16 +283,18 @@ export function formatDuration(start?: string, end?: string, opts: { now?: strin
   return parts.join(' ')
 }
 
-/** The range options one section's settings ask for, carrying the caller's
- *  today so the formatter stays clock-free. Undefined when the section never
- *  opted in, so the plain range prints exactly as it always has. */
+/** The range options one section's settings ask for: the document's own
+ *  date settings (`dates`), plus the span request with the caller's today
+ *  when the section opted in, so the formatter stays clock-free. With no
+ *  document settings and no span, undefined: the plain range prints exactly
+ *  as it always has. */
 export function sectionDateOptions(
   settings: { showDuration?: boolean } | undefined,
   now: string,
-  language?: string
+  dates?: DateOptions
 ): DateRangeOptions | undefined {
-  if (!settings?.showDuration) return undefined
-  return language ? { duration: true, now, language } : { duration: true, now }
+  if (!settings?.showDuration) return dates
+  return { ...dates, duration: true, now }
 }
 
 /** True when a start/end pair represents one single date rather than a range. */

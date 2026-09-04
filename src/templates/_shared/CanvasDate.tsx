@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeContent } from '@/types/document'
-import { formatDate, formatDateRange, isSingleDate } from '@/lib/utils'
+import { formatDate, formatDateRange, isSingleDate, monthNames } from '@/lib/utils'
 import type { DateRangeOptions } from '@/lib/utils'
 import type { EditFn } from './Editable'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const NOW_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 75 }, (_, i) => NOW_YEAR + 2 - i)
 
@@ -58,8 +57,19 @@ export function nextRangeEnd(start: string, now: Date = new Date()): string {
   return String(Math.max(parseInt(y, 10) + 1, nowY))
 }
 
-/** Two dropdowns (month + year) that read/write a "YYYY-MM" / "YYYY" string. */
-function MonthYear({ value, onChange, present }: { value: string; onChange: (v: string) => void; present?: boolean }) {
+/** Two dropdowns (month + year) that read/write a "YYYY-MM" / "YYYY" string.
+ *  `months` is the shared month list in the document's language. */
+function MonthYear({
+  value,
+  onChange,
+  present,
+  months,
+}: {
+  value: string
+  onChange: (v: string) => void
+  present?: boolean
+  months: string[]
+}) {
   const { y, m } = parseYM(value)
   const set = (year: string, month: string) => {
     if (!year) return onChange('')
@@ -69,7 +79,7 @@ function MonthYear({ value, onChange, present }: { value: string; onChange: (v: 
     <div className="flex gap-1.5">
       <select className="h-8 flex-1 rounded-md border border-input bg-surface px-1.5 text-sm disabled:opacity-50" value={present ? '' : m} disabled={present} onChange={(e) => set(y, e.target.value)}>
         <option value="">Month</option>
-        {MONTHS.map((name, i) => (
+        {months.map((name, i) => (
           <option key={name} value={String(i + 1)}>
             {name}
           </option>
@@ -107,12 +117,15 @@ export function CanvasDate({
   end?: string
   applyStart: (c: ResumeContent, v: string) => void
   applyEnd?: (c: ResumeContent, v: string) => void
-  /** How the range reads here - the section's time span, when it asked for
-   *  one - so the label while editing is the text the print render sets. */
+  /** How the date reads here - the document's month style, separator,
+   *  present word and language, plus the section's time span when it asked
+   *  for one - so the label while editing is the text the print render sets. */
   dateOpts?: DateRangeOptions
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
+  // The picker names months the way the page prints them.
+  const months = monthNames(dateOpts?.language)
   const present = !!range && !(end || '').trim()
   // A single date (one year / one month) is stored as end === start, so it
   // renders once everywhere and stays valid JSON Resume.
@@ -127,7 +140,7 @@ export function CanvasDate({
   // A range with NO dates at all must invite ("Add dates"), not claim "Present"
   // (formatDateRange treats an empty end as Present, which is wrong when the
   // start is empty too — that's a brand-new, untouched entry).
-  const label = range ? (start.trim() || (end || '').trim() ? formatDateRange(start, end, dateOpts) : 'Add dates') : formatDate(start) || 'Add date'
+  const label = range ? (start.trim() || (end || '').trim() ? formatDateRange(start, end, dateOpts) : 'Add dates') : formatDate(start, dateOpts) || 'Add date'
 
   const openAt = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -150,6 +163,7 @@ export function CanvasDate({
               </div>
               <MonthYear
                 value={start}
+                months={months}
                 onChange={(v) =>
                   edit((c) => {
                     applyStart(c, v)
@@ -180,7 +194,7 @@ export function CanvasDate({
                           Present
                         </label>
                       </div>
-                      <MonthYear value={end || ''} present={present} onChange={(v) => edit((c) => applyEnd(c, v))} />
+                      <MonthYear value={end || ''} months={months} present={present} onChange={(v) => edit((c) => applyEnd(c, v))} />
                       {endBeforeStart && (
                         <p className="mt-1.5 text-[11px] font-medium text-danger">End date is before the start date.</p>
                       )}

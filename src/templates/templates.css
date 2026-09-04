@@ -7,7 +7,7 @@
 /* ===================================================== Modern */
 .tpl-modern .rm-section-title {
   letter-spacing: 0.07em;
-  border-bottom-width: 2px;
+  border-bottom-width: var(--rm-heading-rule, 2px);
 }
 .tpl-modern .rm-headline {
   font-weight: 600;
@@ -23,15 +23,19 @@
   letter-spacing: 0.1em;
   text-align: center;
   border-bottom: none;
-  border-top: 1px solid currentColor;
-  border-bottom: 1px solid currentColor;
+  border-top: var(--rm-heading-rule, 1px) solid currentColor;
+  border-bottom: var(--rm-heading-rule, 1px) solid currentColor;
   padding: 3px 0;
 }
-.tpl-classic .rm-section-title::after {
+/* Classic rules its heading above and below instead of running a rule on
+   after it, so neither the running rule nor the twin a centred heading
+   would get (artboard.css, heading alignment) is drawn here. */
+.tpl-classic .rm-section-title::after,
+.tpl-classic .rm-section-title::before {
   display: none;
 }
 .tpl-classic .rm-headline {
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-style: italic;
   font-weight: 400;
 }
@@ -49,15 +53,15 @@
   --aurum-gold: #c0902f;
 }
 .tpl-aurum .rm-name {
-  font-weight: 600;
+  font-weight: var(--rm-name-weight, 600);
   letter-spacing: 0.004em;
 }
 .tpl-aurum .rm-headline {
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  font-size: calc(var(--rm-fs) * 0.82);
+  font-size: calc(var(--rm-fs) * 0.82 * var(--rm-headline-mul, 1));
   margin-top: 0.25em;
 }
 /* Gold hairline closing the header block. */
@@ -67,17 +71,17 @@
 }
 .tpl-aurum .rm-contact a,
 .tpl-aurum .rm-contact span {
-  color: var(--rm-text);
+  color: var(--rm-contact-color, var(--rm-text));
 }
 /* Section label: tracked caps over a short gold underline marker. */
 .tpl-aurum .rm-section-title {
   border-bottom: none;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.16em;
-  font-size: calc(var(--rm-fs) * 0.92);
+  font-size: calc(var(--rm-fs) * 0.92 * var(--rm-section-title-mul, 1));
   position: relative;
   padding-bottom: 0.42em;
-  margin-bottom: 0.6em;
+  margin-bottom: calc(0.6em * var(--rm-heading-gap, 1));
 }
 .tpl-aurum .rm-section-title::after {
   content: '';
@@ -87,6 +91,12 @@
   width: 1.9em;
   height: 2px;
   background: var(--aurum-gold);
+}
+/* Centred (artboard.css, heading alignment): text-align moves the words but
+   not an absolute box, so the marker slides to the middle by half its own
+   width. A plain left offset the export places from computed style. */
+.tpl-aurum .rm-section.sec-align-center .rm-section-title::after {
+  left: calc(50% - 0.95em);
 }
 .tpl-aurum .rm-item-title {
   font-weight: 700;
@@ -102,28 +112,28 @@
 
 /* ===================================================== Vector (Jake's-Resume lineage) */
 .tpl-vector .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: 0.01em;
 }
 .tpl-vector .rm-headline {
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-weight: 400;
   font-style: italic;
 }
 .tpl-vector .rm-contact + .rm-contact::before {
   content: '|';
   margin-right: 0.5em;
-  color: var(--rm-muted);
+  color: var(--rm-contact-color, var(--rm-muted));
 }
 /* Small-caps section label over a full-width rule — the signature Jake's look. */
 .tpl-vector .rm-section-title {
   font-variant: small-caps;
   text-transform: none;
   letter-spacing: 0.03em;
-  font-weight: 700;
-  border-bottom: 1px solid currentColor;
+  font-weight: var(--rm-heading-weight, 700);
+  border-bottom: var(--rm-heading-rule, 1px) solid currentColor;
   padding-bottom: 0.12em;
-  margin-bottom: 0.42em;
+  margin-bottom: calc(0.42em * var(--rm-heading-gap, 1));
 }
 /* Entry: bold title, italic org + right-aligned italic location. */
 .tpl-vector .rm-item-title {
@@ -150,25 +160,25 @@
 .tpl-aurum-editorial .rm-name {
   font-variant: small-caps;
   letter-spacing: 0.06em;
-  font-weight: 600;
-  color: var(--aurum-gold);
+  font-weight: var(--rm-name-weight, 600);
+  color: var(--rm-name-color, var(--aurum-gold));
 }
 .tpl-aurum-editorial .rm-headline {
   font-family: var(--rm-font-body);
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: calc(var(--rm-fs) * 0.8);
-  color: var(--rm-muted);
+  font-size: calc(var(--rm-fs) * 0.8 * var(--rm-headline-mul, 1));
+  color: var(--rm-headline-color, var(--rm-muted));
   margin-top: 0.3em;
 }
 .tpl-aurum-editorial .rm-section-title {
   font-variant: small-caps;
   text-transform: none;
   letter-spacing: 0.05em;
-  font-weight: 600;
-  border-bottom: 1px solid var(--aurum-gold);
+  font-weight: var(--rm-heading-weight, 600);
+  border-bottom: var(--rm-heading-rule, 1px) solid var(--aurum-gold);
   padding-bottom: 0.16em;
-  margin-bottom: 0.5em;
+  margin-bottom: calc(0.5em * var(--rm-heading-gap, 1));
 }
 .tpl-aurum-editorial .rm-item-title {
   font-weight: 700;
@@ -179,18 +189,18 @@
   --aurum-gold: #c0902f;
 }
 .tpl-swiss-aurum .rm-name {
-  font-weight: 800;
+  font-weight: var(--rm-name-weight, 800);
   letter-spacing: -0.02em;
 }
 .tpl-swiss-aurum .rm-headline {
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
   font-weight: 500;
 }
 .tpl-swiss-aurum .rm-section-title {
   border-bottom: none;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.18em;
-  font-size: calc(var(--rm-fs) * 0.82);
+  font-size: calc(var(--rm-fs) * 0.82 * var(--rm-section-title-mul, 1));
   display: flex;
   align-items: center;
   gap: 0.55em;
@@ -214,26 +224,26 @@
 
 /* ===================================================== Harvard (classic recruiter format) */
 .tpl-harvard .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: 0.04em;
 }
 .tpl-harvard .rm-headline {
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-style: italic;
   font-weight: 400;
 }
 .tpl-harvard .rm-contact + .rm-contact::before {
   content: '•';
   margin-right: 0.5em;
-  color: var(--rm-muted);
+  color: var(--rm-contact-color, var(--rm-muted));
 }
 .tpl-harvard .rm-section-title {
   text-align: left;
   letter-spacing: 0.08em;
-  font-weight: 700;
-  border-bottom: 1.5px solid currentColor;
+  font-weight: var(--rm-heading-weight, 700);
+  border-bottom: var(--rm-heading-rule, 1.5px) solid currentColor;
   padding-bottom: 0.12em;
-  margin-bottom: 0.4em;
+  margin-bottom: calc(0.4em * var(--rm-heading-gap, 1));
 }
 .tpl-harvard .rm-item-title {
   font-weight: 700;
@@ -247,18 +257,18 @@
   --atelier-gold: #9a7b16;
 }
 .tpl-atelier .rm-name {
-  font-weight: 500;
+  font-weight: var(--rm-name-weight, 500);
   letter-spacing: -0.01em;
-  color: var(--rm-text);
+  color: var(--rm-name-color, var(--rm-text));
 }
 /* Gold monospace tagline under the name. */
 .tpl-atelier .rm-headline {
   font-family: var(--rm-font-heading);
   text-transform: uppercase;
   letter-spacing: 0.26em;
-  font-size: calc(var(--rm-fs) * 0.78);
+  font-size: calc(var(--rm-fs) * 0.78 * var(--rm-headline-mul, 1));
   font-weight: 500;
-  color: var(--atelier-gold);
+  color: var(--rm-headline-color, var(--atelier-gold));
   margin-top: 0.5em;
 }
 /* Hairline header closed by a short gold accent tick. */
@@ -279,8 +289,8 @@
 /* Gutter section labels: gold mono caps (sec-side puts them right-aligned). */
 .tpl-atelier .rm-section-title {
   letter-spacing: 0.16em;
-  font-weight: 500;
-  font-size: calc(var(--rm-fs) * 0.82);
+  font-weight: var(--rm-heading-weight, 500);
+  font-size: calc(var(--rm-fs) * 0.82 * var(--rm-section-title-mul, 1));
 }
 .tpl-atelier .rm-item-title {
   font-weight: 700;
@@ -289,25 +299,25 @@
 
 /* ===================================================== Garamond (SheetsResume-style classic) */
 .tpl-garamond .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: 0.01em;
 }
 .tpl-garamond .rm-headline {
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-style: italic;
   font-weight: 400;
 }
 .tpl-garamond .rm-contact + .rm-contact::before {
   content: '•';
   margin-right: 0.5em;
-  color: var(--rm-muted);
+  color: var(--rm-contact-color, var(--rm-muted));
 }
 .tpl-garamond .rm-section-title {
   letter-spacing: 0.12em;
-  font-weight: 700;
-  border-bottom: 1px solid currentColor;
+  font-weight: var(--rm-heading-weight, 700);
+  border-bottom: var(--rm-heading-rule, 1px) solid currentColor;
   padding-bottom: 0.1em;
-  margin-bottom: 0.4em;
+  margin-bottom: calc(0.4em * var(--rm-heading-gap, 1));
 }
 .tpl-garamond .rm-item-title {
   font-weight: 700;
@@ -315,18 +325,18 @@
 
 /* ===================================================== Cambridge (RenderCV-style) */
 .tpl-cambridge .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: 0.01em;
 }
 .tpl-cambridge .rm-headline {
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-weight: 400;
 }
 /* Bullet-separated, centered contact line (no icons) — RenderCV's connections row. */
 .tpl-cambridge .rm-contact + .rm-contact::before {
   content: '•';
   margin-right: 0.5em;
-  color: var(--rm-muted);
+  color: var(--rm-contact-color, var(--rm-muted));
 }
 /* Signature heading: bold title followed by a rule running to the right edge. */
 .tpl-cambridge .rm-section-title {
@@ -335,14 +345,21 @@
   gap: 0.55em;
   border-bottom: none;
   text-transform: none;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.01em;
-  margin-bottom: 0.45em;
+  margin-bottom: calc(0.45em * var(--rm-heading-gap, 1));
 }
 .tpl-cambridge .rm-section-title::after {
   content: '';
   flex: 1 1 auto;
-  height: 1.4px;
+  height: var(--rm-heading-rule, 1.4px);
+  background: currentColor;
+}
+/* Centred, the words sit between two rules (artboard.css, heading alignment). */
+.tpl-cambridge .rm-section.sec-align-center .rm-section-title::before {
+  content: '';
+  flex: 1 1 auto;
+  height: var(--rm-heading-rule, 1.4px);
   background: currentColor;
 }
 /* Entry: position bold, company regular; location pushed to the right edge. */
@@ -361,33 +378,33 @@
 
 /* ===================================================== Minimal */
 .tpl-minimal .rm-name {
-  font-weight: 600;
+  font-weight: var(--rm-name-weight, 600);
   letter-spacing: -0.02em;
 }
 .tpl-minimal .rm-section-title {
-  color: var(--rm-muted);
-  font-weight: 600;
-  font-size: calc(var(--rm-fs) * 0.82);
+  color: var(--rm-heading-color, var(--rm-muted));
+  font-weight: var(--rm-heading-weight, 600);
+  font-size: calc(var(--rm-fs) * 0.82 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.2em;
 }
 .tpl-minimal .rm-headline {
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
   font-weight: 400;
 }
 
 /* ===================================================== Executive */
 .tpl-executive .rm-name {
   letter-spacing: 0;
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
 }
 .tpl-executive .rm-section-title {
   letter-spacing: 0.12em;
-  border-bottom-width: 1px;
+  border-bottom-width: var(--rm-heading-rule, 1px);
 }
 .tpl-executive .rm-headline {
   font-style: italic;
   font-weight: 400;
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
 }
 
 /* ===================================================== Timeline */
@@ -454,9 +471,9 @@
   border-left: 1px solid color-mix(in srgb, var(--rm-muted) 25%, transparent);
 }
 .tpl-aside .rm-section-title {
-  font-size: calc(var(--rm-fs) * 0.86);
+  font-size: calc(var(--rm-fs) * 0.86 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.16em;
-  color: var(--rm-primary);
+  color: var(--rm-heading-color, var(--rm-primary));
 }
 
 /* ===================================================== Compact */
@@ -467,7 +484,7 @@
   gap: calc(var(--rm-bullet-gap, 0.2em) * 0.58);
 }
 .tpl-compact .rm-section-title {
-  font-size: calc(var(--rm-fs) * 0.95);
+  font-size: calc(var(--rm-fs) * 0.95 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.08em;
 }
 .tpl-compact .rm-header {
@@ -476,21 +493,21 @@
 
 /* ===================================================== Elegant */
 .tpl-elegant .rm-name {
-  font-weight: 600;
+  font-weight: var(--rm-name-weight, 600);
   letter-spacing: 0.04em;
 }
 .tpl-elegant .rm-headline {
   text-transform: uppercase;
   letter-spacing: 0.28em;
-  font-size: calc(var(--rm-fs) * 0.92);
-  color: var(--rm-muted);
+  font-size: calc(var(--rm-fs) * 0.92 * var(--rm-headline-mul, 1));
+  color: var(--rm-headline-color, var(--rm-muted));
 }
 .tpl-elegant .rm-section-title {
   text-align: center;
   letter-spacing: 0.26em;
-  font-weight: 600;
-  font-size: calc(var(--rm-fs) * 0.92);
-  color: var(--rm-primary);
+  font-weight: var(--rm-heading-weight, 600);
+  font-size: calc(var(--rm-fs) * 0.92 * var(--rm-section-title-mul, 1));
+  color: var(--rm-heading-color, var(--rm-primary));
 }
 .tpl-elegant .rm-header-centered::after {
   content: '';
@@ -503,12 +520,12 @@
 
 /* ===================================================== Contemporary (gutter) */
 .tpl-contemporary .rm-section-title {
-  color: var(--rm-primary);
-  font-size: calc(var(--rm-fs) * 0.9);
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-size: calc(var(--rm-fs) * 0.9 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
 .tpl-contemporary .rm-name {
-  color: var(--rm-primary);
+  color: var(--rm-name-color, var(--rm-primary));
 }
 
 /* ===================================================== Polished (banner) */
@@ -567,10 +584,10 @@
   font-variant: small-caps;
   text-transform: none;
   letter-spacing: 0.08em;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
 }
 .tpl-ivy .rm-headline {
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-style: italic;
   font-weight: 400;
 }
@@ -587,10 +604,10 @@
 }
 .tpl-onyx .rm-section-title {
   letter-spacing: 0.16em;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
 }
 .tpl-onyx .rm-headline {
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
   font-weight: 500;
 }
 
@@ -608,12 +625,12 @@
   font-variant: small-caps;
   text-transform: none;
   letter-spacing: 0.06em;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
 }
 .tpl-academic .rm-headline {
   font-style: italic;
   font-weight: 400;
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
 }
 .tpl-academic .rm-contact + .rm-contact::before {
   content: '·';
@@ -626,8 +643,8 @@
   border-left: 1px solid color-mix(in srgb, var(--rm-primary) 20%, transparent);
 }
 .tpl-verdant .rm-section-title {
-  color: var(--rm-primary);
-  font-size: calc(var(--rm-fs) * 0.86);
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-size: calc(var(--rm-fs) * 0.86 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
 .tpl-verdant .rm-col-aside .rm-chip {
@@ -637,21 +654,21 @@
 
 /* ===================================================== Sienna (warm serif) */
 .tpl-sienna .rm-name {
-  font-weight: 600;
+  font-weight: var(--rm-name-weight, 600);
   letter-spacing: 0.02em;
 }
 .tpl-sienna .rm-headline {
   text-transform: uppercase;
   letter-spacing: 0.26em;
-  font-size: calc(var(--rm-fs) * 0.9);
-  color: var(--rm-muted);
+  font-size: calc(var(--rm-fs) * 0.9 * var(--rm-headline-mul, 1));
+  color: var(--rm-headline-color, var(--rm-muted));
 }
 .tpl-sienna .rm-section-title {
   text-align: center;
   letter-spacing: 0.2em;
-  font-weight: 600;
-  font-size: calc(var(--rm-fs) * 0.9);
-  color: var(--rm-primary);
+  font-weight: var(--rm-heading-weight, 600);
+  font-size: calc(var(--rm-fs) * 0.9 * var(--rm-section-title-mul, 1));
+  color: var(--rm-heading-color, var(--rm-primary));
 }
 .tpl-sienna .rm-header-centered::after {
   content: '';
@@ -665,18 +682,18 @@
 /* ===================================================== Newton (academic serif) */
 .tpl-newton .rm-name {
   letter-spacing: 0.06em;
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
 }
 .tpl-newton .rm-section-title {
   font-variant: small-caps;
   text-transform: none;
   letter-spacing: 0.1em;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
   border-color: var(--rm-text);
 }
 .tpl-newton .rm-headline {
   font-style: italic;
-  color: var(--rm-text);
+  color: var(--rm-headline-color, var(--rm-text));
   font-weight: 400;
 }
 .tpl-newton .rm-header-centered {
@@ -697,13 +714,13 @@
 }
 .tpl-deedy .rm-headline {
   font-weight: 700;
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
 }
 .tpl-deedy .rm-section-title {
   border-bottom: none;
   letter-spacing: 0.16em;
-  color: var(--rm-primary);
-  font-weight: 800;
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-weight: var(--rm-heading-weight, 800);
 }
 .tpl-deedy .rm-col-aside .rm-section-title {
   color: inherit;
@@ -714,27 +731,27 @@
 
 /* ===================================================== Slate (gutter teal) */
 .tpl-slate .rm-section-title {
-  color: var(--rm-primary);
-  font-size: calc(var(--rm-fs) * 0.92);
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-size: calc(var(--rm-fs) * 0.92 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
 .tpl-slate .rm-name {
-  color: var(--rm-text);
+  color: var(--rm-name-color, var(--rm-text));
   letter-spacing: -0.01em;
 }
 
 /* ===================================================== Mercury (navy executive) */
 .tpl-mercury .rm-section-title {
   letter-spacing: 0.1em;
-  border-bottom-width: 1px;
+  border-bottom-width: var(--rm-heading-rule, 1px);
 }
 .tpl-mercury .rm-headline {
   font-style: italic;
   font-weight: 400;
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
 }
 .tpl-mercury .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: 0;
 }
 
@@ -748,8 +765,8 @@
   border: 3px solid color-mix(in srgb, var(--rm-primary) 25%, #fff);
 }
 .tpl-halcyon .rm-section-title {
-  color: var(--rm-primary);
-  font-size: calc(var(--rm-fs) * 0.88);
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-size: calc(var(--rm-fs) * 0.88 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
 .tpl-halcyon .rm-chip {
@@ -770,7 +787,7 @@
   border: 1px solid color-mix(in srgb, var(--rm-text) 18%, transparent);
 }
 .tpl-graphite .rm-headline {
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
   font-weight: 600;
 }
 
@@ -808,19 +825,19 @@
 /* ===================================================== Mono (stark minimal) */
 .tpl-mono .rm-name {
   letter-spacing: -0.02em;
-  font-weight: 800;
+  font-weight: var(--rm-name-weight, 800);
 }
 .tpl-mono .rm-header-standard {
   border-bottom: 2.5px solid var(--rm-text);
   padding-bottom: 0.55em;
 }
 .tpl-mono .rm-section-title {
-  font-size: calc(var(--rm-fs) * 0.84);
+  font-size: calc(var(--rm-fs) * 0.84 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.22em;
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
 }
 .tpl-mono .rm-headline {
-  color: var(--rm-muted);
+  color: var(--rm-headline-color, var(--rm-muted));
   font-weight: 500;
 }
 
@@ -831,8 +848,8 @@
   border: 3px solid color-mix(in srgb, var(--rm-primary) 30%, #fff);
 }
 .tpl-opal .rm-section-title {
-  color: var(--rm-primary);
-  font-size: calc(var(--rm-fs) * 0.88);
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-size: calc(var(--rm-fs) * 0.88 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
 .tpl-opal .rm-chip {
@@ -841,18 +858,18 @@
 
 /* ===================================================== Clarity (structured pro) */
 .tpl-clarity .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: -0.02em;
 }
 .tpl-clarity .rm-headline {
   font-weight: 600;
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
 }
 /* heavy, confident section rule */
 .tpl-clarity .rm-section-title {
-  font-weight: 700;
+  font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.05em;
-  border-bottom: 2px solid color-mix(in srgb, var(--rm-text) 78%, transparent);
+  border-bottom: var(--rm-heading-rule, 2px) solid color-mix(in srgb, var(--rm-text) 78%, transparent);
   padding-bottom: 0.28em;
 }
 /* white right rail with a hairline divider instead of a colored slab */
@@ -922,11 +939,11 @@
 
 /* ===================================================== Obsidian (dark luxury cards) */
 .tpl-obsidian .rm-name {
-  font-weight: 800;
+  font-weight: var(--rm-name-weight, 800);
   letter-spacing: -0.02em;
 }
 .tpl-obsidian .rm-headline {
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -936,9 +953,9 @@
 }
 /* tiny tracked gold labels instead of big headings */
 .tpl-obsidian .rm-section-title {
-  color: var(--rm-primary);
-  font-size: calc(var(--rm-fs) * 0.82);
-  font-weight: 700;
+  color: var(--rm-heading-color, var(--rm-primary));
+  font-size: calc(var(--rm-fs) * 0.82 * var(--rm-section-title-mul, 1));
+  font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.22em;
 }
 /* every entry is a tactile card on the layered black */
@@ -976,20 +993,21 @@
 
 /* ===================================================== Onyx Noir (dark full-page) */
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: -0.02em;
-  color: var(--rm-text);
+  color: var(--rm-name-color, var(--rm-text));
 }
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-headline {
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
   font-weight: 600;
 }
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section-title {
-  color: var(--rm-text);
-  font-weight: 700;
+  color: var(--rm-heading-color, var(--rm-text));
+  font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.12em;
 }
-:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section-title::after {
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section-title::after,
+:is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section.sec-align-center .rm-section-title::before {
   background: var(--rm-primary);
   opacity: 0.6;
 }
@@ -1021,7 +1039,7 @@
 .tpl-cascade .rm-name,
 .tpl-sapphire .rm-name,
 .tpl-garnet .rm-name {
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   letter-spacing: -0.015em;
 }
 .tpl-cascade .rm-col-aside .rm-chip,
@@ -1056,7 +1074,7 @@
 }
 
 .rm-root .rm-section.sec-ov-underline .rm-section-title {
-  border-bottom: 1.5px solid color-mix(in srgb, currentColor 60%, transparent);
+  border-bottom: var(--rm-heading-rule, 1.5px) solid color-mix(in srgb, currentColor 60%, transparent);
   padding-bottom: 0.25em;
 }
 .rm-root .rm-section.sec-ov-rule-after .rm-section-title {
@@ -1065,7 +1083,7 @@
 .rm-root .rm-section.sec-ov-rule-after .rm-section-title::after {
   content: '';
   flex: 1;
-  height: 1.5px;
+  height: var(--rm-heading-rule, 1.5px);
   background: currentColor;
   opacity: 0.32;
 }
@@ -1098,7 +1116,7 @@
 }
 /* badge: the accent diamond chip beside the heading (MPR signature) */
 .rm-root .rm-section.sec-ov-badge .rm-section-title {
-  border-bottom: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-bottom: var(--rm-heading-rule, 1.5px) solid color-mix(in srgb, currentColor 30%, transparent);
   padding-bottom: 0.28em;
 }
 .rm-root .rm-section.sec-ov-badge .rm-section-icon {
@@ -1136,7 +1154,7 @@
   left: 0;
   right: 0;
   top: 50%;
-  height: 1.2px;
+  height: var(--rm-heading-rule, 1.2px);
   background: currentColor;
   opacity: 0.38;
 }

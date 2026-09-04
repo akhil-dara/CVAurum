@@ -35,6 +35,7 @@ const OPT_IN = new Set<ToggleField>(['showBadges', 'showDuration'])
 /** The visual-style fields the painter copies (NOT the show* content toggles). */
 const STYLE_FIELDS = [
   'headingStyle',
+  'headingAlign',
   'skillsStyle',
   'chipSize',
   'entryLayout',
@@ -56,6 +57,13 @@ const HEADING_STYLES: { label: string; value: string }[] = [
   { label: 'Lead', value: 'lead-rule' },
   { label: 'Badge', value: 'badge' },
   { label: 'Plain', value: 'plain' },
+]
+
+/** Per-section heading alignment ('' = the template's own). */
+const HEADING_ALIGNS: { label: string; value: string; title: string }[] = [
+  { label: 'Auto', value: '', title: "The template's own alignment" },
+  { label: 'Left', value: 'left', title: 'Flush left' },
+  { label: 'Center', value: 'center', title: 'Centred over the section' },
 ]
 
 /** Education score placements ('' = inline, the classic look). */
@@ -462,6 +470,7 @@ export function SectionGear({
   const setStyle = (
     field:
       | 'headingStyle'
+      | 'headingAlign'
       | 'skillsStyle'
       | 'chipSize'
       | 'entryLayout'
@@ -829,6 +838,21 @@ export function SectionGear({
                         kind={`h:${s.value}`}
                         on={(opts.headingStyle ?? '') === s.value}
                         onClick={() => setStyle('headingStyle', s.value || undefined)}
+                      />
+                    ))}
+                  </div>
+                </Group>
+
+                {/* Heading alignment - where THIS section's heading sits */}
+                <Group label="Heading align">
+                  <div className="grid grid-cols-3 gap-1">
+                    {HEADING_ALIGNS.map((a) => (
+                      <ChipBtn
+                        key={a.value || 'auto'}
+                        label={a.label}
+                        title={a.title}
+                        on={(opts.headingAlign ?? '') === a.value}
+                        onClick={() => setStyle('headingAlign', a.value || undefined)}
                       />
                     ))}
                   </div>

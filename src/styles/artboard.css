@@ -54,8 +54,17 @@
 .rm-root p {
   margin: 0;
 }
+/* Element colours (elementColors.ts): the name, the headline, the section
+   titles, the contact line and links each read their own --rm-*-color
+   variable FIRST, falling back to what the page always drew, and a template's
+   own rule for the element repeats the same chain over its own colour. The
+   variable is set on .rm-root only when the author chose a colour, so an
+   unset one changes nothing anywhere, and a set one is a plain computed
+   colour the PDF painter reads back. Links: named links, inline links and a
+   project's URL line take it; an entry title or a section heading that
+   happens to be linked keeps the title's own colour (rm-title-link). */
 .rm-root a {
-  color: inherit;
+  color: var(--rm-link-color, inherit);
   text-decoration: none;
 }
 
@@ -148,10 +157,10 @@
 .rm-name {
   font-family: var(--rm-font-name);
   font-size: var(--rm-name-size, calc(var(--rm-fs) * 2.4));
-  font-weight: 700;
+  font-weight: var(--rm-name-weight, 700);
   line-height: 1.05;
   margin: 0 0 0.2em;
-  color: var(--rm-text);
+  color: var(--rm-name-color, var(--rm-text));
   letter-spacing: -0.01em;
   /* Optical alignment: a large, heavy name carries more left side-bearing than
      the lighter headline / contacts / section titles beneath it, so flush boxes
@@ -165,9 +174,9 @@
   text-indent: 0;
 }
 .rm-headline {
-  font-size: calc(var(--rm-fs) * 1.15);
+  font-size: calc(var(--rm-fs) * 1.15 * var(--rm-headline-mul, 1));
   font-weight: 500;
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
   margin-bottom: 0.55em;
   line-height: 1.2;
 }
@@ -175,8 +184,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.3em 1.1em;
-  font-size: calc(var(--rm-fs) * 0.95);
-  color: var(--rm-muted);
+  font-size: calc(var(--rm-fs) * 0.95 * var(--rm-contact-mul, 1));
+  color: var(--rm-contact-color, var(--rm-muted));
+}
+/* A linked contact is a contact first: the whole line keeps one colour
+   whether or not a link colour is set, or an email and a website would sit
+   in one colour beside a location in another. Same specificity as .rm-root a
+   above; later wins. */
+.rm-contacts a {
+  color: inherit;
 }
 .rm-contact {
   display: inline-flex;
@@ -537,15 +553,38 @@
 .rm-section-title {
   font-family: var(--rm-font-heading);
   font-size: var(--rm-section-title-size, calc(var(--rm-fs) * 1.05));
-  font-weight: 700;
-  color: var(--rm-primary);
-  margin: 0 0 0.6em;
+  font-weight: var(--rm-heading-weight, 700);
+  color: var(--rm-heading-color, var(--rm-primary));
+  /* The air under the title rides the document's heading-gap multiplier and
+     the rule takes the chosen width (2026-09-04); every template's own
+     margin and rule read the same two variables, so one slider moves them
+     all and an unset width leaves each template's rule as it was. */
+  margin: 0 0 calc(0.6em * var(--rm-heading-gap, 1));
   padding-bottom: 0.2em;
-  border-bottom: 1.5px solid currentColor;
+  border-bottom: var(--rm-heading-rule, 1.5px) solid currentColor;
   letter-spacing: 0.04em;
 }
 .rm-uppercase .rm-section-title {
   text-transform: uppercase;
+}
+/* The author's explicit heading case. Three root classes whose rules outrank
+   any template's own (.tpl-x .rm-section-title is two classes deep, these are
+   three), so a choice made in the panel wins over the small caps six
+   templates draw and the lowercase one draws. Small caps go through the
+   longhand the painter reads (font-variant-caps), which also cancels a
+   template's shorthand small caps when the author chose upper or as typed.
+   Unset, the legacy flag and the template decide exactly as before. */
+.rm-root.rm-case-upper .rm-section-title {
+  text-transform: uppercase;
+  font-variant-caps: normal;
+}
+.rm-root.rm-case-smallcaps .rm-section-title {
+  text-transform: none;
+  font-variant-caps: small-caps;
+}
+.rm-root.rm-case-none .rm-section-title {
+  text-transform: none;
+  font-variant-caps: normal;
 }
 /* Section-title icon chip (premium look). Inline so centered/serif headings keep working. */
 .rm-section-icon {
@@ -997,7 +1036,7 @@
 /* Project / item link line — a visible, clickable URL (shows in print & PDF). */
 .rm-item-link {
   font-size: calc(var(--rm-fs) * 0.92);
-  color: var(--rm-primary);
+  color: var(--rm-link-color, var(--rm-primary));
   margin-bottom: 0.22em;
   word-break: break-word;
 }
@@ -1029,7 +1068,7 @@
   padding-left: 1.1em;
 }
 .rm-rich a {
-  color: var(--rm-primary);
+  color: var(--rm-link-color, var(--rm-primary));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1316,14 +1355,14 @@
   align-items: center;
 }
 .rm-root .rm-header-banner .rm-name {
-  color: #fff;
+  color: var(--rm-name-color, #fff);
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.18); /* keeps the name crisp on mid-tone banners */
 }
 .rm-root .rm-header-banner .rm-headline {
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--rm-headline-color, rgba(255, 255, 255, 0.94));
 }
 .rm-root .rm-header-banner .rm-contacts {
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--rm-contact-color, rgba(255, 255, 255, 0.88));
 }
 .rm-header-banner .rm-contact a {
   color: inherit;
@@ -1364,8 +1403,8 @@
 }
 .rm-headline-inline {
   font-weight: 400;
-  color: var(--rm-muted);
-  font-size: 0.6em;
+  color: var(--rm-headline-color, var(--rm-muted));
+  font-size: calc(0.6em * var(--rm-headline-mul, 1));
 }
 
 /* ============================================ section heading styles */
@@ -1378,7 +1417,7 @@
 .sec-rule-after .rm-section-title::after {
   content: '';
   flex: 1;
-  height: 1.5px;
+  height: var(--rm-heading-rule, 1.5px);
   background: currentColor;
   opacity: 0.35;
 }
@@ -1441,6 +1480,68 @@
 }
 @media (max-width: 0px) {
   /* placeholder to keep grid override print-safe */
+}
+
+/* ============================================ section heading alignment
+   Per section (sectionSettings.headingAlign, 2026-09-04): a scoped class on
+   the section whose rules outrank any template's own text-align (one sets
+   left, three centre). Block headings centre their text; flex headings
+   centre their items. A centred heading's icon chip sits inline beside the
+   text rather than hanging in the gutter, or it would float at the far left
+   edge of a line whose words are in the middle. Every piece is a real box
+   or a pseudo box the export paints: no gradient, no transform. */
+.rm-root .rm-section.sec-align-center .rm-section-title {
+  text-align: center;
+  justify-content: center;
+}
+.rm-root .rm-section.sec-align-left .rm-section-title {
+  text-align: left;
+  justify-content: flex-start;
+}
+.rm-root.rm-icons .rm-section.sec-align-center .rm-section-icon {
+  /* relative, not static: the folio chip's glyph and fold are absolutely
+     positioned inside it, and a static chip hands them to the heading as
+     their containing block (the glyph landed on the words). With right/top
+     reset and no transform, relative places the chip exactly as static. */
+  position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
+  margin: 0 0.5em 0 0;
+  vertical-align: -0.42em;
+}
+/* A rule that runs on after the title (the rule-after template style and
+   its per-section twin) gets a matching rule before it, so the words sit
+   between two rules rather than pushed left by one. Each twin copies the
+   weight and tint of the rule it faces. */
+.rm-root.sec-rule-after .rm-section.sec-align-center:not([class*='sec-ov-']) .rm-section-title::before {
+  content: '';
+  flex: 1;
+  height: var(--rm-heading-rule, 1.5px);
+  background: currentColor;
+  opacity: 0.35;
+}
+.rm-root .rm-section.sec-align-center.sec-ov-rule-after .rm-section-title::before {
+  content: '';
+  flex: 1;
+  height: var(--rm-heading-rule, 1.5px);
+  background: currentColor;
+  opacity: 0.32;
+}
+/* A filled title is a shrink-to-fit box, so centring it means centring the
+   box: auto margins on a fit-content block, or on the per-section twin's
+   flex row. */
+.rm-root.sec-boxed .rm-section.sec-align-center:not([class*='sec-ov-']) .rm-section-title {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+.rm-root .rm-section.sec-align-center.sec-ov-boxed .rm-section-title {
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Inline bullet add/remove (editable preview only) */
@@ -2242,8 +2343,9 @@
    keeps the heading's own colour and weight: a resume where every linked role
    turns blue reads as a web page. The link is invisible until the author turns
    underlines on, or until the reader hovers it on screen; it is clickable in
-   the export either way. */
-.rm-title-link {
+   the export either way. Two classes deep so it outranks `.rm-root a`, which
+   carries the author's link colour: a linked title is a title first. */
+.rm-root .rm-title-link {
   color: inherit;
   text-decoration: none;
 }
@@ -2431,7 +2533,7 @@
    already governs every anchor on the page, so these follow the document's
    own setting instead of inventing a second one. */
 .rm-named-link {
-  color: inherit;
+  color: var(--rm-link-color, inherit);
 }
 /* On the canvas these words ARE the link editor - clicking one opens the card
    that names it and points it somewhere. Only the cursor and a dotted hint say
@@ -2498,7 +2600,7 @@
   background: var(--rm-primary);
 }
 .links-tag .rm-verify-link {
-  color: var(--rm-muted);
+  color: var(--rm-link-color, var(--rm-muted));
 }
 /* The project's URL LINE is an address, not a word: .rm-item-link breaks it
    inside its column on purpose, and a nowrap tag would undo that and run a

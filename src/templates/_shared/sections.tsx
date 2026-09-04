@@ -11,7 +11,7 @@ import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { currentYearMonth, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
-import type { DateRangeOptions } from '@/lib/utils'
+import type { DateOptions, DateRangeOptions } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
@@ -98,6 +98,9 @@ export type SecOpts = {
    *  reaches an entry row - the link card says whether the result will be
    *  clickable, and it should not say so when the author turned that off. */
   linksClickable?: boolean
+  /** Document-level too: how every date reads (month style, separator,
+   *  present word, language), handed to the shared formatter. */
+  dates?: DateOptions
 }
 const show = (v?: boolean) => v !== false
 
@@ -116,13 +119,20 @@ function rangeDate(
   if (!edit) return formatDateRange(start, end, dates) || undefined
   return <CanvasDate edit={edit} range start={start} end={end} applyStart={applyStart} applyEnd={applyEnd} dateOpts={dates} />
 }
-/** The time span a section asked for, read against this render's today. */
-const spanOpts = (opts?: SecOpts) => sectionDateOptions(opts, currentYearMonth())
+/** The document's date settings, plus the time span a section asked for,
+ *  read against this render's today. */
+const spanOpts = (opts?: SecOpts) => sectionDateOptions(opts, currentYearMonth(), opts?.dates)
 /** A single date that's click-to-edit on the canvas. */
-function singleDate(edit: EditFn | undefined, visible: boolean, date: string, applyDate: Apply): ReactNode {
+function singleDate(
+  edit: EditFn | undefined,
+  visible: boolean,
+  date: string,
+  applyDate: Apply,
+  dates?: DateOptions
+): ReactNode {
   if (!visible) return undefined
-  if (!edit) return date ? formatDate(date) : undefined
-  return <CanvasDate edit={edit} start={date} applyStart={applyDate} />
+  if (!edit) return date ? formatDate(date, dates) : undefined
+  return <CanvasDate edit={edit} start={date} applyStart={applyDate} dateOpts={dates} />
 }
 
 type ProfStyle = 'dots' | 'bars' | 'stars' | 'text' | 'none'
@@ -1804,7 +1814,9 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                     placeholder="Certificate"
                   />
                 ) : safeHref(cert.url) && !(cert.urlLabel || '').trim() ? (
-                  <a href={safeHref(cert.url)}>{cert.name}</a>
+                  <a className="rm-title-link" href={safeHref(cert.url)}>
+                    {cert.name}
+                  </a>
                 ) : (
                   cert.name
                 )}
@@ -1840,9 +1852,15 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
               ) : null}
               {edit || cert.date ? (
                 <span className="rm-item-date">
-                  {singleDate(edit, true, cert.date, (c, v) => {
-                    c.certificates[i].date = v
-                  })}
+                  {singleDate(
+                    edit,
+                    true,
+                    cert.date,
+                    (c, v) => {
+                      c.certificates[i].date = v
+                    },
+                    opts?.dates
+                  )}
                 </span>
               ) : null}
             </div>
@@ -1956,7 +1974,9 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                     placeholder="Award"
                   />
                 ) : safeHref(a.url) && !(a.urlLabel || '').trim() ? (
-                  <a href={safeHref(a.url)}>{a.title}</a>
+                  <a className="rm-title-link" href={safeHref(a.url)}>
+                    {a.title}
+                  </a>
                 ) : (
                   a.title
                 )}
@@ -1992,9 +2012,15 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
               ) : null}
 {edit || a.date ? (
                 <span className="rm-item-date">
-                  {singleDate(edit, true, a.date, (c, v) => {
-                    c.awards[i].date = v
-                  })}
+                  {singleDate(
+                    edit,
+                    true,
+                    a.date,
+                    (c, v) => {
+                      c.awards[i].date = v
+                    },
+                    opts?.dates
+                  )}
                 </span>
               ) : null}
             </div>
@@ -2093,7 +2119,7 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
   )
 }
 
-function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
+function Publications({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   return (
     <>
       {doc.content.publications.map((p, i) => {
@@ -2112,16 +2138,24 @@ function Publications({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
                     placeholder="Title"
                   />
                 ) : safeHref(p.url) ? (
-                  <a href={safeHref(p.url)}>{p.name}</a>
+                  <a className="rm-title-link" href={safeHref(p.url)}>
+                    {p.name}
+                  </a>
                 ) : (
                   p.name
                 )}
               </span>
               {edit || p.releaseDate ? (
                 <span className="rm-item-date">
-                  {singleDate(edit, true, p.releaseDate, (c, v) => {
-                    c.publications[i].releaseDate = v
-                  })}
+                  {singleDate(
+                    edit,
+                    true,
+                    p.releaseDate,
+                    (c, v) => {
+                      c.publications[i].releaseDate = v
+                    },
+                    opts?.dates
+                  )}
                 </span>
               ) : null}
             </div>
@@ -2418,9 +2452,15 @@ function Custom({
                   placeholder="Title"
                 />
               }
-              date={singleDate(edit, show(opts?.showDates), it.date ?? '', (c, v) => {
-                c.custom[secIndex].items[i].date = v
-              })}
+              date={singleDate(
+                edit,
+                show(opts?.showDates),
+                it.date ?? '',
+                (c, v) => {
+                  c.custom[secIndex].items[i].date = v
+                },
+                opts?.dates
+              )}
             />
             {edit || it.subtitle || it.location ? (
               <div className="rm-item-sub">
@@ -2566,7 +2606,7 @@ function sectionRenderer(
     case 'awards':
       return <Awards doc={doc} edit={edit} opts={opts} />
     case 'publications':
-      return <Publications doc={doc} edit={edit} />
+      return <Publications doc={doc} edit={edit} opts={opts} />
     case 'volunteer':
       return <Volunteer doc={doc} edit={edit} opts={opts} />
     case 'interests':
@@ -2604,7 +2644,12 @@ export function SectionBody({
           else delete ss[key]
         })
     : undefined
-  const opts: SecOpts = { ...(saved ?? {}), setBadge, linksClickable: doc.metadata.links?.clickable !== false }
+  const opts: SecOpts = {
+    ...(saved ?? {}),
+    setBadge,
+    linksClickable: doc.metadata.links?.clickable !== false,
+    dates: doc.metadata.dates,
+  }
   const body = sectionRenderer(sectionKey, doc, config, edit, opts)
   // Summary is a single field (always editable); every other section is a list,
   // so offer an inline "+ Add" affordance on the canvas (edit mode only).

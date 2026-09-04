@@ -1,10 +1,14 @@
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { cn } from '@/lib/utils'
-import { Slider, Toggle, Segmented, ColorField, FieldGroup } from '../fields/Controls'
+import { Slider, Toggle, Segmented, Select, ColorField, FieldGroup } from '../fields/Controls'
+import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
 import { HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 import { DESIGN_RANGES } from '@/lib/designRanges'
+import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
+import type { ElementColorKey } from '@/lib/elementColors'
+import { getTemplate } from '@/templates/registry'
 
 const BULLET_OPTIONS = [
   ['disc', '●'],
@@ -16,6 +20,36 @@ const BULLET_OPTIONS = [
   ['diamond', '◆'],
   ['none', '∅'],
 ] as const
+
+/** Button labels for the named weights the panel offers. */
+const WEIGHT_LABELS = { bold: 'Bold', regular: 'Regular', light: 'Light' } as const
+
+/** The languages month names and time-span words are offered in. Any other
+ *  BCP-47 tag still works when set by hand; the select then shows it as is. */
+const DATE_LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'de', label: 'German' },
+  { value: 'fr', label: 'French' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'it', label: 'Italian' },
+  { value: 'nl', label: 'Dutch' },
+  { value: 'sv', label: 'Swedish' },
+  { value: 'pl', label: 'Polish' },
+  { value: 'tr', label: 'Turkish' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'ja', label: 'Japanese' },
+]
+
+/** The five element colours, each with the theme colour the base stylesheet
+ *  derives it from while it is unset (a template may derive differently). */
+const ELEMENT_COLOR_ROWS: { key: ElementColorKey; label: string; from: 'primary' | 'text' | 'muted' }[] = [
+  { key: 'name', label: 'Name', from: 'text' },
+  { key: 'headline', label: 'Headline', from: 'primary' },
+  { key: 'headings', label: 'Section titles', from: 'primary' },
+  { key: 'contacts', label: 'Contacts', from: 'muted' },
+  { key: 'links', label: 'Links', from: 'text' },
+]
 
 const PALETTES: { name: string; color: string }[] = [
   { name: 'Indigo', color: '#2563eb' },
@@ -119,6 +153,32 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         )}
       </FieldGroup>
 
+      <FieldGroup title="Element colors">
+        {ELEMENT_COLOR_ROWS.map((r) => (
+          <ColorField
+            key={r.key}
+            label={r.label}
+            value={m.theme[r.key]}
+            fallback={m.theme[r.from]}
+            onChange={(v) =>
+              update((md) => {
+                // An emptied box is Auto again, not a colour of nothing.
+                if (v) md.theme[r.key] = v
+                else delete md.theme[r.key]
+              })
+            }
+            onClear={() =>
+              update((md) => {
+                delete md.theme[r.key]
+              })
+            }
+          />
+        ))}
+        <p className="-mt-1 text-[11px] text-muted-foreground">
+          Auto follows the template. A sidebar keeps its own text colour; a linked title keeps the title&apos;s.
+        </p>
+      </FieldGroup>
+
       <FieldGroup title="Typography">
         <FontSelect
           label="Body font"
@@ -193,15 +253,136 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           }
           format={(v) => `${v.toFixed(2)}×`}
         />
-        <Toggle
-          label="Uppercase headings"
-          checked={m.typography.uppercaseHeadings}
+        <Slider
+          label="Section title size"
+          value={m.typography.sectionTitleScale}
+          {...DESIGN_RANGES.sectionTitleScale}
           onChange={(v) =>
             update((md) => {
-              md.typography.uppercaseHeadings = v
+              md.typography.sectionTitleScale = v
             })
           }
+          format={(v) => `${v.toFixed(2)}×`}
         />
+        <div>
+          <div className="grid grid-cols-2 gap-3">
+            <Slider
+              label="Headline size"
+              value={m.typography.headlineScale}
+              {...DESIGN_RANGES.headlineScale}
+              onChange={(v) =>
+                update((md) => {
+                  md.typography.headlineScale = v
+                })
+              }
+              format={(v) => `${v.toFixed(2)}×`}
+            />
+            <Slider
+              label="Contact size"
+              value={m.typography.contactScale}
+              {...DESIGN_RANGES.contactScale}
+              onChange={(v) =>
+                update((md) => {
+                  md.typography.contactScale = v
+                })
+              }
+              format={(v) => `${v.toFixed(2)}×`}
+            />
+          </div>
+          <p className="-mt-1 text-[11px] text-muted-foreground">Each as a multiple of the body size.</p>
+        </div>
+        <div>
+          <label className="label">Heading case</label>
+          <Segmented
+            value={m.typography.headingCase ?? 'auto'}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'upper', label: 'Upper' },
+              { value: 'smallcaps', label: 'Small caps' },
+              { value: 'none', label: 'As typed' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                // Auto hands the case back to the template: no explicit
+                // choice, and the legacy flag on the template's own default.
+                if (v === 'auto') {
+                  delete md.typography.headingCase
+                  md.typography.uppercaseHeadings = getTemplate(md.template).defaults.typography.uppercaseHeadings
+                } else {
+                  md.typography.headingCase = v
+                  md.typography.uppercaseHeadings = v === 'upper'
+                }
+              })
+            }
+          />
+          <p className="-mt-1 text-[11px] text-muted-foreground">Auto follows the template.</p>
+        </div>
+        <div>
+          <label className="label">Name weight</label>
+          <Segmented
+            value={m.typography.nameWeight ?? 'auto'}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              // Only weights a bundled face can draw; see OFFERED_WEIGHTS.
+              ...OFFERED_WEIGHTS.map((w) => ({ value: w, label: WEIGHT_LABELS[w] })),
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                if (v === 'auto') delete md.typography.nameWeight
+                else md.typography.nameWeight = v
+              })
+            }
+          />
+        </div>
+        <div>
+          <label className="label">Heading weight</label>
+          <Segmented
+            value={m.typography.headingWeight ?? 'auto'}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'bold', label: 'Bold' },
+              { value: 'regular', label: 'Regular' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                if (v === 'auto') delete md.typography.headingWeight
+                else md.typography.headingWeight = v
+              })
+            }
+          />
+          <p className="-mt-1 text-[11px] text-muted-foreground">Auto keeps the template's own weights.</p>
+        </div>
+        <Slider
+          label="Heading spacing"
+          value={m.typography.headingGap}
+          {...DESIGN_RANGES.headingGap}
+          onChange={(v) =>
+            update((md) => {
+              md.typography.headingGap = v
+            })
+          }
+          format={(v) => `${v.toFixed(2)}×`}
+        />
+        <div>
+          <label className="label">Heading rule</label>
+          <Segmented
+            value={m.typography.headingRuleWidth ? String(m.typography.headingRuleWidth) : 'auto'}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: '1', label: 'Thin' },
+              { value: '2', label: 'Thick' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                if (v === 'auto') delete md.typography.headingRuleWidth
+                else md.typography.headingRuleWidth = v === '2' ? 2 : 1
+              })
+            }
+          />
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            The air under a section title, and the weight of its rule. Auto keeps the template's rule.
+          </p>
+        </div>
         <div>
           <label className="label">Bullet style</label>
           <div className="grid grid-cols-4 gap-1.5">
@@ -277,6 +458,70 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             How the 0–5 rating on skills &amp; languages is shown.
           </p>
         </div>
+      </FieldGroup>
+
+      <FieldGroup title="Dates">
+        <div>
+          <label className="label">Month</label>
+          <Segmented
+            value={m.dates?.month ?? 'short'}
+            options={[
+              { value: 'short', label: 'Jan' },
+              { value: 'long', label: 'January' },
+              { value: 'numeric', label: '01' },
+              { value: 'none', label: 'Year' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.dates.month = v
+              })
+            }
+          />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            How every date reads — on the page, in the PDF, in the Word file and in the ATS text.
+          </p>
+        </div>
+        <div>
+          <label className="label">Between dates</label>
+          <Segmented
+            value={m.dates?.separator ?? 'emdash'}
+            options={[
+              { value: 'emdash', label: '—' },
+              { value: 'endash', label: '–' },
+              { value: 'hyphen', label: '-' },
+              { value: 'to', label: 'to' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.dates.separator = v
+              })
+            }
+          />
+        </div>
+        <TextField
+          label="Word for current roles"
+          value={m.dates?.present ?? 'Present'}
+          placeholder="Present"
+          hint="Ends an open range: Present, Current, Now, or a word in your language."
+          onChange={(v) =>
+            update((md) => {
+              md.dates.present = v
+            })
+          }
+        />
+        <Select
+          label="Language"
+          value={m.dates?.language ?? 'en'}
+          options={DATE_LANGUAGES}
+          onChange={(v) =>
+            update((md) => {
+              md.dates.language = v
+            })
+          }
+        />
+        <p className="-mt-1 text-[11px] text-muted-foreground">
+          Month names and time-span words; the PDF declares this language too.
+        </p>
       </FieldGroup>
 
       <FieldGroup title="Layout">

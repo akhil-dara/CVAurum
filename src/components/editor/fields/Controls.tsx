@@ -120,20 +120,79 @@ export function Segmented<T extends string>({
   )
 }
 
-export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+/** A labelled native select for a list too long for a Segmented row. A
+ *  stored value the list does not know is shown as its own option rather
+ *  than silently snapping to the first one. */
+export function Select<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (v: T) => void
+}) {
+  const known = options.some((o) => o.value === value)
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <select className="input" value={value} onChange={(e) => onChange(e.target.value as T)} aria-label={label}>
+        {!known && <option value={value}>{value}</option>}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+export function ColorField({
+  label,
+  value,
+  fallback,
+  onChange,
+  onClear,
+}: {
+  label: string
+  value: string | undefined
+  /** What the page draws while nothing is set: the swatch shows it and the
+   *  box reads Auto. */
+  fallback?: string
+  onChange: (v: string) => void
+  /** Puts the colour back on Auto (unset). The button shows only while a
+   *  value is set, so a field that is always set never grows one. */
+  onClear?: () => void
+}) {
+  const shown = value || fallback || ''
   return (
     <div className="flex items-center justify-between gap-2">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-1.5">
+        {onClear && value ? (
+          <button
+            type="button"
+            onClick={onClear}
+            title="Back to Auto"
+            className="h-7 rounded border border-input bg-surface px-1.5 text-[11px] text-muted-foreground transition hover:text-foreground"
+          >
+            Auto
+          </button>
+        ) : null}
         <input
-          value={value}
+          value={value ?? ''}
+          placeholder={onClear ? 'Auto' : undefined}
           onChange={(e) => onChange(e.target.value)}
+          aria-label={`${label} hex`}
           className="h-7 w-20 rounded border border-input bg-surface px-2 text-xs tabular-nums"
         />
-        <label className="relative h-7 w-7 overflow-hidden rounded border border-input" style={{ background: value }}>
+        <label className="relative h-7 w-7 overflow-hidden rounded border border-input" style={{ background: shown }}>
           <input
             type="color"
-            value={normalizeHex(value)}
+            value={normalizeHex(shown)}
             onChange={(e) => onChange(e.target.value)}
             className="absolute inset-0 cursor-pointer opacity-0"
             aria-label={label}

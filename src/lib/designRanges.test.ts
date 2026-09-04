@@ -24,6 +24,10 @@ describe('design panel ranges match the schema', () => {
     expect(DESIGN_RANGES.headingScale).toMatchObject(bounds(t.headingScale))
     expect(DESIGN_RANGES.bulletIndent).toMatchObject(bounds(t.bulletIndent))
     expect(DESIGN_RANGES.bulletGap).toMatchObject(bounds(t.bulletGap))
+    expect(DESIGN_RANGES.sectionTitleScale).toMatchObject(bounds(t.sectionTitleScale))
+    expect(DESIGN_RANGES.headlineScale).toMatchObject(bounds(t.headlineScale))
+    expect(DESIGN_RANGES.contactScale).toMatchObject(bounds(t.contactScale))
+    expect(DESIGN_RANGES.headingGap).toMatchObject(bounds(t.headingGap))
   })
 
   it('layout and page', () => {

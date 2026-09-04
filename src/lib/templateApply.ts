@@ -49,7 +49,17 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   return defaultMetadata({
     template: defaults.template,
     page: cur.page,
-    theme: { ...cur.theme, ...defaults.theme },
+    theme: {
+      ...cur.theme,
+      ...defaults.theme,
+      // A colour the author set on one element is theirs across a switch;
+      // one the template ships applies only where nothing was decided.
+      name: cur.theme.name ?? defaults.theme.name,
+      headline: cur.theme.headline ?? defaults.theme.headline,
+      headings: cur.theme.headings ?? defaults.theme.headings,
+      contacts: cur.theme.contacts ?? defaults.theme.contacts,
+      links: cur.theme.links ?? defaults.theme.links,
+    },
     // Adopt the template's typographic identity (fonts, sizes, spacing, case) but
     // keep the user's cross-cutting style choices so a switch never silently
     // resets them.
@@ -60,6 +70,19 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       bulletIndent: cur.typography.bulletIndent,
       bulletGap: cur.typography.bulletGap,
       proficiency: cur.typography.proficiency,
+      // How far the section titles, the headline and the contacts sit from
+      // the body, the heading case and the two weights are the author's too;
+      // an undecided case or weight stays undecided.
+      sectionTitleScale: cur.typography.sectionTitleScale,
+      headlineScale: cur.typography.headlineScale,
+      contactScale: cur.typography.contactScale,
+      headingCase: cur.typography.headingCase,
+      nameWeight: cur.typography.nameWeight,
+      headingWeight: cur.typography.headingWeight,
+      // The air under a heading and the weight of its rule stay too; an
+      // undecided rule width stays undecided.
+      headingGap: cur.typography.headingGap,
+      headingRuleWidth: cur.typography.headingRuleWidth,
     },
     layout: {
       ...cur.layout,
@@ -88,5 +111,8 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
     // clickable switch, underlining and the tag style all used to reset on
     // every switch because the rebuild had no slot for them.
     links: cur.links,
+    // So is how dates read: the month style, the separator, the present
+    // word and the language belong to the document, not to its look.
+    dates: cur.dates,
   })
 }

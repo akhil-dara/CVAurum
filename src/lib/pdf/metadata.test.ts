@@ -71,6 +71,15 @@ describe('buildDocInfo', () => {
   it('declares a document language for assistive technology', () => {
     expect(buildDocInfo(doc(), NOW).language).toBe('en-US')
   })
+
+  it('takes the language from the document\'s date settings', () => {
+    // A resume whose dates read in German is a German document; the plain
+    // 'en' every document starts on keeps the en-US the export always declared.
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'de' } } }), NOW).language).toBe('de')
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'fr-CA' } } }), NOW).language).toBe('fr-CA')
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'en' } } }), NOW).language).toBe('en-US')
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: '  ' } } }), NOW).language).toBe('en-US')
+  })
 })
 
 describe('buildXmpPacket', () => {
@@ -161,6 +170,11 @@ describe('applyPdfMetadata (real pdf-lib document)', () => {
     const { pdf } = await build()
     expect(String(pdf.catalog.get(PDFName.of('Lang')))).toBe('(en-US)')
     expect(String(pdf.catalog.lookup(PDFName.of('ViewerPreferences')))).toContain('/DisplayDocTitle true')
+  })
+
+  it('writes the language the document chose into /Lang', async () => {
+    const { pdf } = await build({ metadata: { page: {}, dates: { language: 'de' } } })
+    expect(String(pdf.catalog.get(PDFName.of('Lang')))).toBe('(de)')
   })
 
   it('attaches the XMP as a proper /Metadata stream on the catalog', async () => {

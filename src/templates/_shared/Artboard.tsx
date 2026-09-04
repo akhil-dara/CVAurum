@@ -10,6 +10,8 @@ import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
+import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
+import { elementColorVars } from '@/lib/elementColors'
 import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail } from './atoms'
@@ -17,6 +19,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
+import { sectionOverrideClasses } from './sectionClasses'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
 
@@ -91,7 +94,7 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-lh': String(t.lineHeight),
       '--rm-ls': `${t.letterSpacing}em`,
       '--rm-name-size': `${nameSize.toFixed(2)}px`,
-      '--rm-section-title-size': `${(fs * 1.06).toFixed(2)}px`,
+      '--rm-section-title-size': `${(fs * t.sectionTitleScale).toFixed(2)}px`,
       '--rm-section-gap': `${(layout.sectionGap * PT_TO_PX * fitScale).toFixed(2)}px`,
       '--rm-item-gap': `${(layout.itemGap * PT_TO_PX * fitScale).toFixed(2)}px`,
       /* One slider, two rhythms. The item gap is sized so two multi-line
@@ -126,6 +129,14 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       // Both in em so they ride the base size and the one-page fit with it.
       '--rm-bullet-indent': `${t.bulletIndent}em`,
       '--rm-bullet-gap': `${t.bulletGap}em`,
+      // The headline and contact scales, the two weights, and the multiplier
+      // a template's own section-title ratio rides on (typeStyle.ts).
+      ...typeScaleVars(t),
+      // The air under a section title and, when chosen, the width of its rule.
+      ...headingVars(t),
+      // The five element colours, each present only when set, so the
+      // stylesheet's fallback chains decide the rest (elementColors.ts).
+      ...elementColorVars(theme),
     } as CSSProperties
   }, [theme, t, layout, page, fitScale])
 }
@@ -672,16 +683,7 @@ function Section({
   // Per-section style overrides (user picks in the section gear) — scoped classes
   // that beat the template's root-level sec-*/skl-* defaults.
   const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
-  const cls = [
-    'rm-section',
-    ss?.headingStyle ? `sec-ov-${ss.headingStyle}` : '',
-    ss?.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '',
-    ss?.chipSize ? `chip-${ss.chipSize}` : '',
-    ss?.entryLayout ? `lay-ov-${ss.entryLayout}` : '',
-    ss?.scoreStyle ? `score-ov-${ss.scoreStyle}` : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+  const cls = ['rm-section', ...sectionOverrideClasses(ss)].join(' ')
   // Per-section vars (bullet marker, logo/badge size) cascade from the section
   // element, so overrides scope themselves without any extra CSS.
   const BADGE_SIZE: Record<string, string> = { s: '1.3em', m: '1.65em', l: '2.3em' }
@@ -783,7 +785,7 @@ export function SectionPreview({
     'rm-section-preview',
     config.class,
     'rm-single',
-    t.uppercaseHeadings ? 'rm-uppercase' : '',
+    headingCaseClasses(t),
     hasIcons ? 'rm-icons' : '',
     `sec-${config.section}`,
     `skl-${config.skills}`,
@@ -836,7 +838,7 @@ export function Artboard({
     'rm-root',
     config.class,
     twoCol ? '' : 'rm-single',
-    doc.metadata.typography.uppercaseHeadings ? 'rm-uppercase' : '',
+    headingCaseClasses(doc.metadata.typography),
     hasIcons ? 'rm-icons' : '',
     `hdr-${config.header}`,
     `sec-${config.section}`,

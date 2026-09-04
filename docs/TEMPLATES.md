@@ -117,6 +117,11 @@ interface TemplateConfig {
       background: string;    // page background
       sidebar: string;       // sidebar background (two-column templates)
       sidebarText: string;   // text color inside the sidebar
+      name?: string;         // unset: derived (the body text, or the template's own)
+      headline?: string;     // unset: derived (the accent, or the template's own)
+      headings?: string;     // unset: derived (the accent, or the template's own)
+      contacts?: string;     // unset: derived (the muted colour, or the template's own)
+      links?: string;        // unset: links take the colour of the text around them
     };
     typography: {
       fontFamily: string;        // body font, e.g. 'Inter'
@@ -127,8 +132,16 @@ interface TemplateConfig {
       letterSpacing: number;     // em, e.g. 0 or 0.01
       headingScale: number;      // multiplier applied to heading sizes
       uppercaseHeadings: boolean;// UPPERCASE section titles
+      sectionTitleScale: number; // section titles as a multiple of the body size (default 1.06)
+      headlineScale: number;     // the headline as a multiple of the body size (default 1.15)
+      contactScale: number;      // the contact line as a multiple of the body size (default 0.95)
+      headingCase?: 'upper' | 'smallcaps' | 'none'; // unset: uppercaseHeadings decides
+      nameWeight?: 'bold' | 'regular' | 'light';    // unset: the template's own weight
+      headingWeight?: 'bold' | 'regular';           // unset: the template's own weight
       bulletIndent: number;      // em, how far highlight lists sit in (default 1.05)
       bulletGap: number;         // em, space between two bullets (default 0.2)
+      headingGap: number;        // multiplier on the air under a section title (default 1)
+      headingRuleWidth?: 1 | 2;  // px, the rule under a section title; unset: the template's own
     };
     layout: {
       columns: 1 | 2;            // single or two-column
@@ -175,6 +188,16 @@ These map directly onto the `--rm-*` color variables (see the
 | `background` | Page background → `--rm-bg` |
 | `sidebar` | Sidebar background (two-column) → `--rm-sidebar-bg` |
 | `sidebarText` | Sidebar text color → `--rm-sidebar-text` |
+| `name` | The name's own colour → `--rm-name-color`, set only when chosen |
+| `headline` | The headline's own colour → `--rm-headline-color`, set only when chosen |
+| `headings` | Section titles' own colour → `--rm-heading-color`, set only when chosen |
+| `contacts` | The contact line's own colour → `--rm-contact-color`, set only when chosen |
+| `links` | Link colour (named, inline and URL-line links) → `--rm-link-color`, set only when chosen |
+
+Any rule of yours that colours one of these elements must read its variable first, with your
+own colour as the fallback (`color: var(--rm-headline-color, var(--rm-muted))`), or the
+editor's per-element colour never reaches your template; a test audits both stylesheets for
+this.
 
 ### `defaults.typography`
 
@@ -188,8 +211,16 @@ These map directly onto the `--rm-*` color variables (see the
 | `letterSpacing` | Letter spacing (em) |
 | `headingScale` | Multiplier applied to heading sizes |
 | `uppercaseHeadings` | UPPERCASE section titles |
+| `sectionTitleScale` | Section titles as a multiple of the body size (default 1.06) → `--rm-section-title-size`, and `--rm-section-title-mul` for a template's own ratio; the Word export's heading size follows it |
+| `headlineScale` | The headline as a multiple of the body size (default 1.15) → `--rm-headline-mul`; the Word export follows it |
+| `contactScale` | The contact line as a multiple of the body size (default 0.95) → `--rm-contact-mul`; the Word export follows it |
+| `headingCase` | `'upper'`, `'smallcaps'` or `'none'` (as typed) for section titles; unset, `uppercaseHeadings` decides (on is upper, off leaves the template's own case). Small caps are decoration: the PDF text layer and the Word run keep the words as typed |
+| `nameWeight` | `'bold'`, `'regular'` or `'light'` → `--rm-name-weight`; unset keeps the template's own. Word prints bold or not. The panel offers only bold and regular: `'light'` needs a face lighter than 400, and none is bundled, so it draws as regular everywhere |
+| `headingWeight` | `'bold'` or `'regular'` for section titles → `--rm-heading-weight`; unset keeps the template's own. Word prints bold or not |
 | `bulletIndent` | How far highlight lists sit in (em) → `--rm-bullet-indent`; the Word export's bullet indent follows it |
 | `bulletGap` | Space between two bullets (em) → `--rm-bullet-gap`; the Word export's spacing after a bullet follows it |
+| `headingGap` | Air under a section title as a multiple of the template's own (default 1, range 0.5-2) → `--rm-heading-gap`; the Word export's spacing after a heading follows it |
+| `headingRuleWidth` | `1` or `2` (px) for the rule under a section title → `--rm-heading-rule`; unset keeps the template's own. The Word export's heading border follows it |
 
 > Fonts must be one of the 40+ self-served Google Fonts in the
 > [fonts registry](../src/data). If you reference a font that isn't registered, it simply
@@ -211,6 +242,20 @@ These map directly onto the `--rm-*` color variables (see the
 | `showPhoto` | Render the photo if one is present in the resume data |
 | `photoShape` | `'circle'`, `'rounded'`, `'square'`, or `'diamond'` (a turned monogram badge; a photo keeps square corners) |
 | `sectionSettings[key].showDuration` | Per section, opt-in: end each date range with its length in parentheses (`"2 yrs 3 mos"`, counted in whole months, so both dates need a month). Plain text, so the Word export and the ATS text print the same words |
+| `sectionSettings[key].headingAlign` | Per section: `'left'` or `'center'` for the heading → `sec-align-*` on the section; unset keeps the template's own. A centred rule-after heading sits between two rules; the Word export centres the paragraph |
+
+### `dates` (the document's, not a template default)
+
+How every date on the page reads. Like `links`, the block belongs to the author and survives a template
+switch; one shared formatter reads it, so the canvas, the Word export and the ATS text print each date
+the same way.
+
+| Key | Drives |
+| --- | --- |
+| `month` | How the month is spelled: `'short'` (`Jan 2021`, the default), `'long'` (`January 2021`), `'numeric'` (`01/2021`) or `'none'` (`2021`) |
+| `separator` | What sits between the two ends of a range: `'emdash'` (default), `'endash'`, `'hyphen'` or `'to'` |
+| `present` | The word an open-ended range ends with (default `Present`) |
+| `language` | BCP-47 tag for month names and time-span words (default `en`); the PDF declares it as its document language |
 
 ---
 
@@ -305,6 +350,19 @@ your template.
 | `--rm-item-gap` | `layout.itemGap` | Vertical gap between items |
 | `--rm-bullet-indent` | `typography.bulletIndent` | Indent of highlight lists (the room the marker hangs in) |
 | `--rm-bullet-gap` | `typography.bulletGap` | Vertical gap between bullets |
+| `--rm-section-title-size` | `typography.sectionTitleScale` | Section title size (body size times the scale) |
+| `--rm-section-title-mul` | `typography.sectionTitleScale` | The scale over its stock 1.06, multiplied into a template's own title ratio |
+| `--rm-headline-mul` | `typography.headlineScale` | The scale over its stock 1.15, multiplied into the headline size |
+| `--rm-contact-mul` | `typography.contactScale` | The scale over its stock 0.95, multiplied into the contact line size |
+| `--rm-name-weight` | `typography.nameWeight` | Name weight, set only when chosen |
+| `--rm-heading-weight` | `typography.headingWeight` | Section title weight, set only when chosen |
+| `--rm-heading-gap` | `typography.headingGap` | Multiplier on the air under a section title; read it as `calc(<yours> * var(--rm-heading-gap, 1))` |
+| `--rm-heading-rule` | `typography.headingRuleWidth` | Width of the rule under a section title, set only when chosen; read it as `var(--rm-heading-rule, <yours>)` |
+| `--rm-name-color` | `theme.name` | The name's colour, set only when chosen; read it as `var(--rm-name-color, <yours>)` |
+| `--rm-headline-color` | `theme.headline` | The headline's colour, set only when chosen |
+| `--rm-heading-color` | `theme.headings` | Section titles' colour, set only when chosen (sidebar titles keep the sidebar text) |
+| `--rm-contact-color` | `theme.contacts` | The contact line's colour, set only when chosen; linked contacts follow it |
+| `--rm-link-color` | `theme.links` | Link colour, set only when chosen; titles and headings keep their own even when linked |
 | `--rm-pad` | layout padding | Page/inner padding |
 
 Example of reading them:

@@ -59,6 +59,18 @@ export const ThemeSchema = z.object({
   sidebar: z.string().default('#0f172a'),
   /** text color on the sidebar */
   sidebarText: z.string().default('#e2e8f0'),
+  /** One colour each for the elements the theme colours used to decide
+   *  together. Unset, each is derived exactly as before: the name from the
+   *  body text, the headline and the section titles from the accent, the
+   *  contact line from the muted colour, links from the text around them.
+   *  A template's own derivation (a muted headline, a gold name) stands until
+   *  a colour is set here; every stylesheet rule reads the colour through the
+   *  same fallback chain (elementColors.ts). */
+  name: z.string().optional(),
+  headline: z.string().optional(),
+  headings: z.string().optional(),
+  contacts: z.string().optional(),
+  links: z.string().optional(),
 })
 
 export const TypographySchema = z.object({
@@ -76,8 +88,25 @@ export const TypographySchema = z.object({
   letterSpacing: z.number().min(-0.05).max(0.2).default(0),
   /** heading size scale relative to body */
   headingScale: z.number().min(1).max(2.4).default(1.5),
+  /** section title size as a multiple of the body size (1.06 is what the page always drew) */
+  sectionTitleScale: z.number().min(0.8).max(1.6).default(1.06),
+  /** headline size as a multiple of the body size */
+  headlineScale: z.number().min(0.7).max(1.8).default(1.15),
+  /** contact line size as a multiple of the body size */
+  contactScale: z.number().min(0.7).max(1.3).default(0.95),
   /** uppercase section headings */
   uppercaseHeadings: z.boolean().default(true),
+  /** How section titles are cased. Unset, the uppercase flag decides: on is
+   *  'upper'; off decides nothing and the template's own case stands. */
+  headingCase: z.enum(['upper', 'smallcaps', 'none']).optional(),
+  /** weight of the name; unset keeps the template's own */
+  nameWeight: z.enum(['bold', 'regular', 'light']).optional(),
+  /** weight of section titles; unset keeps the template's own */
+  headingWeight: z.enum(['bold', 'regular']).optional(),
+  /** air between a section title and its body, as a multiple of the gap the template draws (1 is what the page always drew) */
+  headingGap: z.number().min(0.5).max(2).default(1),
+  /** width of the rule under a section title, in px; unset keeps the template's own */
+  headingRuleWidth: z.union([z.literal(1), z.literal(2)]).optional(),
   /** bullet marker style for highlight lists */
   bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'none']).default('disc'),
   /** how far a highlight list is set in from the text edge, in em of the base size */
@@ -146,6 +175,9 @@ export const LayoutSchema = z.object({
          *  page could be linked; a heading could not, so a portfolio or a
          *  publication list had nowhere to point. */
         url: z.string().optional(),
+        /** Where the section's heading sits across its column; unset keeps
+         *  the template's own (three templates centre theirs). */
+        headingAlign: z.enum(['left', 'center']).optional(),
       })
     )
     .default({}),
@@ -216,6 +248,24 @@ export const LinksSchema = z.object({
   style: z.enum(['plain', 'tag']).default('tag'),
 })
 
+/**
+ * How every date on the page reads. One block for the whole document, read
+ * by the shared date formatter, so the canvas, the Word file and the ATS
+ * text spell a date the same way. Each default is what the page always
+ * printed - a short English month, a spaced em dash, the word Present - so
+ * a document saved before the block existed reads exactly as it did.
+ */
+export const DatesSchema = z.object({
+  /** how the month is spelled: Jan 2021, January 2021, 01/2021, or the year alone */
+  month: z.enum(['short', 'long', 'numeric', 'none']).default('short'),
+  /** what sits between the two ends of a range */
+  separator: z.enum(['endash', 'emdash', 'to', 'hyphen']).default('emdash'),
+  /** the word an open-ended range ends with */
+  present: z.string().default('Present'),
+  /** BCP-47 tag for month names and time-span words; the PDF declares it as its language too */
+  language: z.string().default('en'),
+})
+
 export const MetadataSchema = z.object({
   template: z.string().default('modern'),
   page: PageSchema.default({}),
@@ -223,6 +273,7 @@ export const MetadataSchema = z.object({
   typography: TypographySchema.default({}),
   layout: LayoutSchema.default({}),
   links: LinksSchema.default({}),
+  dates: DatesSchema.default({}),
 })
 
 export type Page = z.infer<typeof PageSchema>
@@ -230,6 +281,7 @@ export type Theme = z.infer<typeof ThemeSchema>
 export type Typography = z.infer<typeof TypographySchema>
 export type Layout = z.infer<typeof LayoutSchema>
 export type Links = z.infer<typeof LinksSchema>
+export type Dates = z.infer<typeof DatesSchema>
 export type Metadata = z.infer<typeof MetadataSchema>
 
 /** Page pixel dimensions at 96dpi (CSS px). 1mm = 96/25.4 px. */

@@ -51,6 +51,14 @@ export interface DocInfo {
 
 const clean = (s?: string): string => (s ?? '').replace(/\s+/g, ' ').trim()
 
+/** The language the file declares: the tag the document's dates read in.
+ *  A resume whose months are German is a German document. The bare 'en'
+ *  every document starts on keeps the en-US the export has always declared. */
+function documentLanguage(doc: ResumeDocument): string {
+  const tag = clean(doc.metadata?.dates?.language)
+  return tag && tag.toLowerCase() !== 'en' ? tag : DEFAULT_LANGUAGE
+}
+
 /** Info-dictionary + XMP values for a document, as a pure function. */
 export function buildDocInfo(doc: ResumeDocument, now: Date = new Date()): DocInfo {
   const basics = doc.content?.basics ?? ({} as ResumeDocument['content']['basics'])
@@ -84,7 +92,7 @@ export function buildDocInfo(doc: ResumeDocument, now: Date = new Date()): DocIn
       producer: PDF_PRODUCER,
       created: now,
       modified: now,
-      language: DEFAULT_LANGUAGE,
+      language: documentLanguage(doc),
     }
   }
   return finish()

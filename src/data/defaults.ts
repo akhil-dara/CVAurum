@@ -32,6 +32,7 @@ export interface MetadataOverrides {
   typography?: Partial<Metadata['typography']>
   layout?: Partial<Metadata['layout']>
   links?: Partial<Metadata['links']>
+  dates?: Partial<Metadata['dates']>
 }
 
 export function defaultMetadata(overrides: MetadataOverrides = {}): Metadata {
@@ -48,6 +49,7 @@ export function defaultMetadata(overrides: MetadataOverrides = {}): Metadata {
     typography: { ...base.typography, ...overrides.typography },
     layout: { ...base.layout, ...overrides.layout },
     links: { ...base.links, ...overrides.links },
+    dates: { ...base.dates, ...overrides.dates },
   })
 }
 

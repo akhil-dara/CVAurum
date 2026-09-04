@@ -161,6 +161,32 @@ describe('bullet indent and bullet spacing survive a round trip', () => {
   })
 })
 
+describe('the date settings survive a round trip', () => {
+  // One block for how every date on the page reads: month style, separator,
+  // present word and language. A file saved before it existed carries none
+  // of it and must print dates exactly as it always did.
+  it('keeps all four values', () => {
+    const m = MetadataSchema.parse({ dates: { month: 'numeric', separator: 'hyphen', present: 'Now', language: 'de' } })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.dates).toEqual({ month: 'numeric', separator: 'hyphen', present: 'Now', language: 'de' })
+  })
+
+  it('an older file lands on the dates the page always printed', () => {
+    const raw = toJsonResume(docWith(MetadataSchema.parse({}))) as unknown as {
+      meta: { cvaurum: Record<string, unknown> }
+    }
+    delete raw.meta.cvaurum.dates
+    const fresh = fromJsonResume(raw as never)
+    expect(fresh.metadata.dates).toEqual({ month: 'short', separator: 'emdash', present: 'Present', language: 'en' })
+  })
+
+  it('a partial block fills in the rest', () => {
+    const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse({ dates: { month: 'long' } }))))
+    expect(back.metadata.dates.month).toBe('long')
+    expect(back.metadata.dates.separator).toBe('emdash')
+  })
+})
+
 describe('a per-section time span switch survives a round trip', () => {
   it('keeps the flag beside the section\'s other settings', () => {
     const m = MetadataSchema.parse({
@@ -175,5 +201,103 @@ describe('a per-section time span switch survives a round trip', () => {
     const older = { layout: { sectionSettings: { work: { showDates: true } } } }
     const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse(older))))
     expect(back.metadata.layout.sectionSettings.work.showDuration).toBeUndefined()
+  })
+})
+
+describe('the element colours survive a round trip', () => {
+  // Five optional theme colours - the name, the headline, the section titles,
+  // the contact line and the links - each drawn from the theme colours when
+  // unset. A file saved before they existed carries none of them and must
+  // decide none of them: an unset colour is derived, not a default.
+  it('keeps all five', () => {
+    const chosen = { name: '#112233', headline: '#445566', headings: '#778899', contacts: '#aabbcc', links: '#0a0b0c' }
+    const m = MetadataSchema.parse({ theme: chosen })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.theme).toMatchObject(chosen)
+    expect(back.metadata.theme.primary).toBe('#2563eb')
+  })
+
+  it('an older file decides none of them', () => {
+    const raw = toJsonResume(docWith(MetadataSchema.parse({ theme: { primary: '#0f766e' } }))) as unknown as {
+      meta: { cvaurum: { theme: Record<string, unknown> } }
+    }
+    for (const k of ['name', 'headline', 'headings', 'contacts', 'links']) delete raw.meta.cvaurum.theme[k]
+    const fresh = fromJsonResume(raw as never)
+    expect(fresh.metadata.theme.primary).toBe('#0f766e')
+    for (const k of ['name', 'headline', 'headings', 'contacts', 'links'] as const)
+      expect(fresh.metadata.theme[k]).toBeUndefined()
+  })
+})
+
+describe('the type scale, heading case and weights survive a round trip', () => {
+  // Three more typography numbers (section titles, headline and contacts as
+  // multiples of the body size) and three choices (heading case, name weight,
+  // heading weight). A file saved before they existed carries none of them
+  // and must land on the sizes the page always drew, with no case or weight
+  // decided - an undecided choice is the template's own, not a default.
+  it('keeps all six values', () => {
+    const m = MetadataSchema.parse({
+      typography: {
+        sectionTitleScale: 1.3,
+        headlineScale: 1.0,
+        contactScale: 0.85,
+        headingCase: 'smallcaps',
+        nameWeight: 'light',
+        headingWeight: 'regular',
+      },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.typography).toMatchObject({
+      sectionTitleScale: 1.3,
+      headlineScale: 1.0,
+      contactScale: 0.85,
+      headingCase: 'smallcaps',
+      nameWeight: 'light',
+      headingWeight: 'regular',
+    })
+  })
+
+  it('an older file lands on the sizes the page always drew, deciding nothing else', () => {
+    const raw = toJsonResume(docWith(MetadataSchema.parse({}))) as unknown as {
+      meta: { cvaurum: { typography: Record<string, unknown> } }
+    }
+    for (const k of ['sectionTitleScale', 'headlineScale', 'contactScale', 'headingCase', 'nameWeight', 'headingWeight'])
+      delete raw.meta.cvaurum.typography[k]
+    const fresh = fromJsonResume(raw as never)
+    expect(fresh.metadata.typography.sectionTitleScale).toBe(1.06)
+    expect(fresh.metadata.typography.headlineScale).toBe(1.15)
+    expect(fresh.metadata.typography.contactScale).toBe(0.95)
+    expect(fresh.metadata.typography.headingCase).toBeUndefined()
+    expect(fresh.metadata.typography.nameWeight).toBeUndefined()
+    expect(fresh.metadata.typography.headingWeight).toBeUndefined()
+  })
+})
+
+describe('heading alignment, heading spacing and the rule width survive a round trip', () => {
+  // A per-section alignment, a document-wide multiplier for the air under a
+  // heading, and a chosen rule width. A file saved before they existed
+  // carries none of them and must draw the heading exactly as it always did:
+  // the template's own alignment, the stock gap, the template's own rule.
+  it('keeps all three values', () => {
+    const m = MetadataSchema.parse({
+      typography: { headingGap: 1.6, headingRuleWidth: 2 },
+      layout: { sectionSettings: { work: { headingAlign: 'center' } } },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.typography.headingGap).toBe(1.6)
+    expect(back.metadata.typography.headingRuleWidth).toBe(2)
+    expect(back.metadata.layout.sectionSettings.work.headingAlign).toBe('center')
+  })
+
+  it('an older file lands on the stock gap and decides no alignment or rule', () => {
+    const raw = toJsonResume(docWith(MetadataSchema.parse({}))) as unknown as {
+      meta: { cvaurum: { typography: Record<string, unknown> } }
+    }
+    delete raw.meta.cvaurum.typography.headingGap
+    delete raw.meta.cvaurum.typography.headingRuleWidth
+    const fresh = fromJsonResume(raw as never)
+    expect(fresh.metadata.typography.headingGap).toBe(1)
+    expect(fresh.metadata.typography.headingRuleWidth).toBeUndefined()
+    expect(fresh.metadata.layout.sectionSettings.work?.headingAlign).toBeUndefined()
   })
 })

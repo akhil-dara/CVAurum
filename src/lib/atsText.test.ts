@@ -139,3 +139,57 @@ describe('resumeToAtsText prints a time span when the section asks for one', () 
     expect(resumeToAtsText(docWith({ work: { showDuration: false } }))).not.toContain('(')
   })
 })
+
+describe('resumeToAtsText prints dates the way the document formats them', () => {
+  // The month style, the separator, the present word and the language are
+  // one setting the shared formatter reads, so the text a parser sees is the
+  // text on the page. Ranges are closed and open (no span), so nothing here
+  // reads the calendar.
+  const docWith = (dates: Record<string, unknown> = {}): ResumeDocument =>
+    ({
+      id: 'res-1',
+      title: 'T',
+      createdAt: 0,
+      updatedAt: 0,
+      content: {
+        basics: { name: 'Alex Morgan', profiles: [], location: {} },
+        work: [
+          { id: 'w1', name: 'Acme', position: 'Engineer', startDate: '2019-01', endDate: '2021-03', highlights: [] },
+          { id: 'w2', name: 'Beta', position: 'Lead', startDate: '2021-04', endDate: '', highlights: [] },
+        ],
+        education: [],
+        projects: [],
+        skills: [],
+        languages: [],
+        certificates: [{ id: 'c1', name: 'Cloud Architect', issuer: 'Vendor', date: '2024-09' }],
+        awards: [],
+        publications: [],
+        volunteer: [],
+        interests: [],
+        references: [],
+        custom: [],
+      },
+      metadata: MetadataSchema.parse({ layout: { main: ['work', 'certificates'] }, dates }),
+    }) as unknown as ResumeDocument
+
+  it('reads as it always did when the document never chose', () => {
+    const text = resumeToAtsText(docWith())
+    expect(text).toContain('Jan 2019 — Mar 2021')
+    expect(text).toContain('Apr 2021 — Present')
+    expect(text).toContain('Sep 2024')
+  })
+
+  it('follows the month style, the separator and the present word', () => {
+    const text = resumeToAtsText(docWith({ month: 'long', separator: 'to', present: 'Current' }))
+    expect(text).toContain('January 2019 to March 2021')
+    expect(text).toContain('April 2021 to Current')
+    expect(text).toContain('September 2024')
+    expect(text).not.toContain('Present')
+  })
+
+  it('follows the language, single dates included', () => {
+    const text = resumeToAtsText(docWith({ month: 'long', language: 'de', separator: 'endash' }))
+    expect(text).toContain('Januar 2019 – März 2021')
+    expect(text).toContain('September 2024')
+  })
+})

@@ -26,7 +26,7 @@ import {
   type ParagraphChild,
 } from 'docx'
 import type { ResumeDocument } from '@/types/document'
-import type { Metadata } from '@/types/metadata'
+import type { Metadata, Typography } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { sanitizeHtml } from '@/lib/sanitize'
 import {
@@ -40,6 +40,7 @@ import {
   sectionDateOptions,
 } from '@/lib/utils'
 import { prettyUrl, cleanEmail, linkWords } from '@/templates/_shared/atoms'
+import { headingCase, STOCK_SCALE, type HeadingCase } from '@/lib/typeStyle'
 
 /* ----------------------------------------------------------------- helpers */
 
@@ -58,6 +59,7 @@ export interface DocxSizes {
   title: number
   body: number
   sub: number
+  contact: number
   date: number
 }
 
@@ -74,6 +76,10 @@ export interface DocxMetrics {
   bulletIndent: number
   /** space after a bullet paragraph, in twips (typography.bulletGap is em) */
   bulletGap: number
+  /** space after a section heading, in twips (typography.headingGap multiplies the 80 the export always left) */
+  headingGap: number
+  /** the rule under a section heading, in eighths of a point (a pixel is six; unset keeps the six it always drew) */
+  headingRule: number
 }
 
 // Word's single spacing already spans the font's own line box - about 1.22em
@@ -81,6 +87,12 @@ export interface DocxMetrics {
 // of the type size. Dividing that out keeps the Word leading where the page
 // has it: the export's long-standing 252 is exactly 240 * 1.28 / 1.22.
 const WORD_LINE_EM = 1.22
+
+// The 80 twips this export always left under a section heading, and the
+// border unit of the format: eighths of a point, so a CSS pixel (0.75pt)
+// is six of them.
+const HEADING_AFTER = 80
+const RULE_PER_PX = 6
 
 // The glyph the canvas draws between inline contacts (Artboard.tsx useVars),
 // padded the way the page spaces it. 'none' is spacing alone, never a bullet.
@@ -93,18 +105,21 @@ const CONTACT_SEPARATOR: Record<string, string> = {
 }
 
 // Half-point sizes from the base size, with the ratios the canvas applies: the
-// name at fs * (1.55 + headingScale * 0.62), section titles at 1.06, entry
-// titles at 1.05, sub-lines and contacts at 0.95, dates at 0.92 (Artboard.tsx
-// useVars and artboard.css).
-function sizesFor(fontSizePt: number, headingScale: number): DocxSizes {
+// name at fs * (1.55 + headingScale * 0.62), section titles, the headline and
+// the contacts at their own scales (1.06, 1.15 and 0.95 stock), entry titles
+// at 1.05, sub-lines at 0.95, dates at 0.92 (Artboard.tsx useVars and
+// artboard.css).
+type ScaleTypography = Pick<Typography, 'headingScale' | 'sectionTitleScale' | 'headlineScale' | 'contactScale'>
+function sizesFor(fontSizePt: number, t: ScaleTypography): DocxSizes {
   const hp = (ratio: number) => Math.round(fontSizePt * ratio * 2)
   return {
-    name: hp(1.55 + clamp(headingScale, 1, 2.6) * 0.62),
-    headline: hp(1.15),
-    section: hp(1.06),
+    name: hp(1.55 + clamp(t.headingScale, 1, 2.6) * 0.62),
+    headline: hp(t.headlineScale),
+    section: hp(t.sectionTitleScale),
     title: hp(1.05),
     body: hp(1),
     sub: hp(0.95),
+    contact: hp(t.contactScale),
     date: hp(0.92),
   }
 }
@@ -130,19 +145,29 @@ export function docxMetrics(metadata: Metadata, fitScale = 1): DocxMetrics {
   return {
     margin: Math.round(metadata.page.margin * TWIPS_PER_MM),
     line: Math.round((240 * t.lineHeight) / WORD_LINE_EM),
-    sizes: sizesFor(t.fontSize * scale, t.headingScale),
+    sizes: sizesFor(t.fontSize * scale, t),
     separator: CONTACT_SEPARATOR[metadata.layout.contactSeparator ?? 'none'] ?? CONTACT_SEPARATOR.none,
     bulletIndent: Math.round(t.bulletIndent * em),
     bulletGap: Math.round(t.bulletGap * em),
+    headingGap: Math.round(HEADING_AFTER * t.headingGap),
+    headingRule: (t.headingRuleWidth ?? 1) * RULE_PER_PX,
   }
 }
 
 // Per-export font sizes (half-points). Reassigned at the top of every export
 // from the document's own base size and one-page fit. Safe as module state:
 // exports run one at a time and build synchronously.
-let SIZE: DocxSizes = sizesFor(9.6, 1.5)
+let SIZE: DocxSizes = sizesFor(9.6, {
+  headingScale: 1.5,
+  sectionTitleScale: STOCK_SCALE.sectionTitle,
+  headlineScale: STOCK_SCALE.headline,
+  contactScale: STOCK_SCALE.contact,
+})
 // Per-export bullet geometry (twips), reassigned the same way.
 let BULLET = { indent: 202, gap: 38 }
+// Per-export heading rhythm - the space after a heading (twips) and the
+// width of its rule (eighths of a point) - reassigned the same way.
+let HEADING = { after: HEADING_AFTER, rule: RULE_PER_PX }
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 
@@ -152,9 +177,23 @@ interface Ctx {
   body: string // item text
   muted: string // sub-lines, dates
   headFont: string
-  upper: boolean
+  /** how section titles are cased; unset prints them as typed */
+  headingCase: HeadingCase | undefined
+  /** the name and the section titles in bold (the export's stock weight) */
+  nameBold: boolean
+  headingBold: boolean
   prof: string // proficiency meter style
   bullet: string // bullet marker style
+  /** The five element colours: each the author's own, or the colour this
+   *  export always printed that element in (elementColors.ts). */
+  name: string
+  headline: string
+  heading: string // section titles and their rule
+  contact: string
+  link: string
+  /** A linked contact stays on the contact line's colour when one is set,
+   *  as it does on the page; otherwise the accent, never the link colour. */
+  contactLink: string
 }
 
 function toHex(c: string | undefined, fallback: string): string {
@@ -174,6 +213,10 @@ function toHex(c: string | undefined, fallback: string): string {
  *  are skipped, ink unchanged - and the Word file ignored it, so choosing
  *  "not clickable" produced a dead-text PDF and a fully live .docx. */
 let LINKS_LIVE = true
+/** The author's link colour for links inside rich text, set per export like
+ *  LINKS_LIVE; unset, an inline link keeps the colour of the text around it,
+ *  as this export always printed it. */
+let LINK_COLOR: string | undefined
 
 function inlineRuns(node: Node, color: string, bold = false, italics = false, size: number = SIZE.body): ParagraphChild[] {
   const runs: ParagraphChild[] = []
@@ -194,7 +237,7 @@ function inlineRuns(node: Node, color: string, bold = false, italics = false, si
     // used to flatten to its words alone, so the Word copy lost the address.
     if (tag === 'a') {
       const href = LINKS_LIVE ? safeHref(el.getAttribute('href') || '') : undefined
-      const inner = inlineRuns(el, color, bold, italics, size)
+      const inner = inlineRuns(el, LINK_COLOR ?? color, bold, italics, size)
       if (href && inner.length) {
         runs.push(new ExternalHyperlink({ children: inner, link: href }))
         return
@@ -243,15 +286,24 @@ function meterRuns(rating: number, style: string, filled: string, empty: string)
 
 /* ------------------------------------------------------- paragraph builders */
 
-const heading = (label: string, C: Ctx) =>
+const heading = (label: string, C: Ctx, align?: 'left' | 'center') =>
   new Paragraph({
-    spacing: { before: 200, after: 80 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.accent, space: 3 } },
+    // A centred section centres its heading, as the page does; the air under
+    // it and the weight of its rule are the document's (HEADING).
+    ...(align === 'center' ? { alignment: AlignmentType.CENTER } : {}),
+    spacing: { before: 200, after: HEADING.after },
+    // The rule under a title is drawn in the title's colour, as the page's
+    // currentColor border is.
+    border: { bottom: { style: BorderStyle.SINGLE, size: HEADING.rule, color: C.heading, space: 3 } },
     children: [
+      // Case is decoration, never text: upper rewrites the run the way the
+      // page's text-transform does, small caps is a run property Word draws
+      // itself, and the words stay as typed for any reader of the file.
       new TextRun({
-        text: C.upper ? label.toUpperCase() : label,
-        bold: true,
-        color: C.accent,
+        text: C.headingCase === 'upper' ? label.toUpperCase() : label,
+        ...(C.headingBold ? { bold: true } : {}),
+        ...(C.headingCase === 'smallcaps' ? { smallCaps: true } : {}),
+        color: C.heading,
         size: SIZE.section,
         font: C.headFont,
       }),
@@ -280,8 +332,14 @@ const titleDate = (title: string, date: string | undefined, C: Ctx, width: numbe
  * as myportfolio.com/work, and a project's further links and a credential's
  * Verify were not there at all.
  */
-const linkRun = (url: string | undefined, words: string, C: Ctx, size: number = SIZE.sub): ParagraphChild => {
-  const run = new TextRun({ text: words, color: C.accent, size, underline: {} })
+const linkRun = (
+  url: string | undefined,
+  words: string,
+  C: Ctx,
+  size: number = SIZE.sub,
+  color: string = C.link
+): ParagraphChild => {
+  const run = new TextRun({ text: words, color, size, underline: {} })
   // With links off the words keep their look and lose only the liveness -
   // the same deal the PDF gives them.
   const href = LINKS_LIVE ? safeHref(url) : undefined
@@ -369,13 +427,14 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
 
   for (const key of keys) {
     const label = sectionLabel(key, doc)
-    // The section's own time-span switch; undefined prints the bare range.
-    const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], now)
+    // How the document's dates read, plus the section's own time-span switch.
+    const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], now, doc.metadata.dates)
+    const align = doc.metadata.layout.sectionSettings?.[key]?.headingAlign
     if (key === 'summary') {
       if (!has(b.summary)) continue
-      out.push(heading(label, C), ...summaryParas(b.summary!, C))
+      out.push(heading(label, C, align), ...summaryParas(b.summary!, C))
     } else if (key === 'work') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const w of content.work) {
         out.push(titleDate(w.position || w.name || 'Role', formatDateRange(w.startDate, w.endDate, dates), C, width, {}, w.url))
         const s = [w.name && w.position ? w.name : '', w.location].filter(Boolean).join('  ·  ')
@@ -384,7 +443,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         out.push(...bulletsOf(w.highlights ?? [], C))
       }
     } else if (key === 'education') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const e of content.education) {
         out.push(titleDate(e.institution || 'Institution', formatDateRange(e.startDate, e.endDate, dates), C, width, {}, e.url))
         const line = [[e.studyType, e.area].filter(Boolean).join(', '), e.score].filter(Boolean).join('  ·  ')
@@ -399,7 +458,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         if (has(e.summary)) out.push(...summaryParas(e.summary!, C))
       }
     } else if (key === 'projects') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const p of content.projects) {
         out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate, dates), C, width, {}, p.url))
         if (p.url)
@@ -436,7 +495,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
           )
       }
     } else if (key === 'skills') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const g of content.skills) {
         const hasKw = !!g.keywords?.length
         if (!hasKw && typeof g.rating === 'number' && meter) {
@@ -458,7 +517,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         }
       }
     } else if (key === 'languages') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const l of content.languages) {
         if (typeof l.rating === 'number' && meter) {
           out.push(
@@ -481,26 +540,26 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         }
       }
     } else if (key === 'certificates') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const c of content.certificates) {
-        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date), C, width, {}, (c.urlLabel || '').trim() ? undefined : c.url))
+        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date, dates), C, width, {}, (c.urlLabel || '').trim() ? undefined : c.url))
         out.push(...verifyPara(c.url, c.urlLabel, C))
       }
     } else if (key === 'awards') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const a of content.awards) {
-        out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date), C, width, {}, (a.urlLabel || '').trim() ? undefined : a.url))
+        out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date, dates), C, width, {}, (a.urlLabel || '').trim() ? undefined : a.url))
         out.push(...verifyPara(a.url, a.urlLabel, C))
         if (has(a.summary)) out.push(...summaryParas(a.summary, C))
       }
     } else if (key === 'publications') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const p of content.publications) {
-        out.push(titleDate([p.name, p.publisher].filter(Boolean).join('  —  '), formatDate(p.releaseDate), C, width, {}, p.url))
+        out.push(titleDate([p.name, p.publisher].filter(Boolean).join('  —  '), formatDate(p.releaseDate, dates), C, width, {}, p.url))
         if (has(p.summary)) out.push(...summaryParas(p.summary, C))
       }
     } else if (key === 'volunteer') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const v of content.volunteer) {
         out.push(titleDate(v.position || v.organization || 'Role', formatDateRange(v.startDate, v.endDate, dates), C, width, {}, v.url))
         if (v.position && v.organization) out.push(sub(v.organization, C))
@@ -508,7 +567,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         out.push(...bulletsOf(v.highlights ?? [], C))
       }
     } else if (key === 'interests') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const it of content.interests) {
         const kids: ParagraphChild[] = [
           new TextRun({ text: it.name || '', bold: true, color: C.body, size: SIZE.body }),
@@ -518,7 +577,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         out.push(new Paragraph({ spacing: { after: 28 }, children: kids }))
       }
     } else if (key === 'references') {
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const r of content.references) {
         if (r.name)
           out.push(
@@ -533,9 +592,9 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       const id = key.slice('custom-'.length)
       const section = content.custom.find((c) => c.id === id)
       if (!section || !section.items.length) continue
-      out.push(heading(label, C))
+      out.push(heading(label, C, align))
       for (const it of section.items) {
-        out.push(titleDate(it.name || '', formatDate(it.date), C, width, {}, it.url))
+        out.push(titleDate(it.name || '', formatDate(it.date, dates), C, width, {}, it.url))
         const s = [it.subtitle, it.location].filter(Boolean).join('  ·  ')
         if (s) out.push(sub(s, C))
         if (has(it.summary)) out.push(...summaryParas(it.summary, C))
@@ -552,7 +611,13 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[
     new Paragraph({
       spacing: { after: 20 },
       children: [
-        new TextRun({ text: b.name || 'Your Name', bold: true, color: C.accent, size: SIZE.name, font: C.headFont }),
+        new TextRun({
+          text: b.name || 'Your Name',
+          ...(C.nameBold ? { bold: true } : {}),
+          color: C.name,
+          size: SIZE.name,
+          font: C.headFont,
+        }),
       ],
     }),
   ]
@@ -560,7 +625,7 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[
     out.push(
       new Paragraph({
         spacing: { after: 40 },
-        children: [new TextRun({ text: b.label, color: C.accent, size: SIZE.headline, font: C.headFont })],
+        children: [new TextRun({ text: b.label, color: C.headline, size: SIZE.headline, font: C.headFont })],
       })
     )
   // Each contact carries its own destination, so the reader can click the word
@@ -591,10 +656,10 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[
       new Paragraph({
         spacing: { after: 100 },
         children: shown.flatMap((c, i) => [
-          ...(i > 0 ? [new TextRun({ text: separator, color: C.muted, size: SIZE.sub })] : []),
+          ...(i > 0 ? [new TextRun({ text: separator, color: C.contact, size: SIZE.contact })] : []),
           c.url && LINKS_LIVE && safeHref(c.url)
-            ? linkRun(c.url, c.words, C)
-            : new TextRun({ text: c.words, color: C.muted, size: SIZE.sub }),
+            ? linkRun(c.url, c.words, C, SIZE.contact, C.contactLink)
+            : new TextRun({ text: c.words, color: C.contact, size: SIZE.contact }),
         ]),
       })
     )
@@ -611,21 +676,55 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   const metrics = docxMetrics(metadata, fitScale)
   SIZE = metrics.sizes
   BULLET = { indent: metrics.bulletIndent, gap: metrics.bulletGap }
+  HEADING = { after: metrics.headingGap, rule: metrics.headingRule }
   const primary = toHex(metadata.theme.primary, '2563EB')
   const text = toHex(metadata.theme.text, '1A1A1A')
   const muted = toHex(metadata.theme.muted, '5B6472')
   const background = toHex(metadata.theme.background, 'FFFFFF')
+  // Each element's own colour, falling back to the colour this export always
+  // printed it in: the name, the headline, the section titles and the links
+  // in the accent, the contacts in the muted colour. A linked contact is a
+  // contact first, as on the page (`.rm-contacts a { color: inherit }`): it
+  // takes the contact colour when one is set and is never moved by the link
+  // colour, so with links set and contacts unset it stays in the accent.
+  const { theme } = metadata
+  const link = toHex(theme.links, primary)
+  const elementColors = {
+    name: toHex(theme.name, primary),
+    headline: toHex(theme.headline, primary),
+    heading: toHex(theme.headings, primary),
+    contact: toHex(theme.contacts, muted),
+    link,
+    contactLink: toHex(theme.contacts, primary),
+  }
+  // Rich-text links keep the surrounding colour unless the author chose one.
+  LINK_COLOR = theme.links ? link : undefined
   const bodyFont = metadata.typography.fontFamily || 'Calibri'
   const headFont = metadata.typography.headingFamily || bodyFont
-  const upper = metadata.typography.uppercaseHeadings
-  const prof = metadata.typography.proficiency
-  const bulletStyle = metadata.typography.bulletStyle
+  const t = metadata.typography
+  const prof = t.proficiency
+  const bulletStyle = t.bulletStyle
+  // The same answer the canvas draws from (typeStyle.ts). A weight the
+  // author never chose keeps the bold this export always printed.
+  const nameBold = (t.nameWeight ?? 'bold') === 'bold'
+  const headingBold = (t.headingWeight ?? 'bold') === 'bold'
 
   const page = metadata.page.format === 'Letter' ? TWIP.letter : TWIP.a4
   const order = resolveOrder(doc)
   const contentW = page.w - metrics.margin * 2
 
-  const mainCtx: Ctx = { accent: primary, body: text, muted, headFont, upper, prof, bullet: bulletStyle }
+  const mainCtx: Ctx = {
+    accent: primary,
+    body: text,
+    muted,
+    headFont,
+    headingCase: headingCase(t),
+    nameBold,
+    headingBold,
+    prof,
+    bullet: bulletStyle,
+    ...elementColors,
+  }
 
   // ALWAYS a single column, whatever the template's on-screen layout
   // (2026-08-23). The Word export used to mirror a two-column template with a

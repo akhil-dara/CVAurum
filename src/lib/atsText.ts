@@ -51,9 +51,9 @@ function entryHead(title?: string, org?: string, date?: string, loc?: string): s
 function sectionText(key: string, doc: ResumeDocument): string[] {
   const c = doc.content
   const label = sectionLabel(key, doc)
-  // The section's own time-span switch, read against today the way the page
-  // and the Word file read it; undefined prints the bare range.
-  const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], currentYearMonth())
+  // How the document's dates read, plus the section's own time-span switch
+  // read against today the way the page and the Word file read it.
+  const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], currentYearMonth(), doc.metadata.dates)
   const out: string[] = []
   const push = (lines: string[]) => {
     if (lines.length) out.push(...heading(label), ...lines)
@@ -120,7 +120,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
       push(
         c.certificates
           .filter((x) => x.name)
-          .map((x) => line(x.name, verified(x.issuer, x.url, x.urlLabel), formatDate(x.date))),
+          .map((x) => line(x.name, verified(x.issuer, x.url, x.urlLabel), formatDate(x.date, dates))),
       )
       break
     case 'awards':
@@ -128,7 +128,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         c.awards
           .filter((a) => a.title)
           .flatMap((a) => [
-            line(a.title, verified(a.awarder, a.url, a.urlLabel), formatDate(a.date)),
+            line(a.title, verified(a.awarder, a.url, a.urlLabel), formatDate(a.date, dates)),
             ...(htmlToText(a.summary) ? [htmlToText(a.summary)] : []),
           ]),
       )
@@ -138,7 +138,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         c.publications
           .filter((p) => p.name)
           .flatMap((p) => [
-            line(p.name, p.publisher, formatDate(p.releaseDate)),
+            line(p.name, p.publisher, formatDate(p.releaseDate, dates)),
             ...(htmlToText(p.summary) ? [htmlToText(p.summary)] : []),
           ]),
       )
@@ -168,7 +168,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         if (cs) {
           push(
             cs.items.flatMap((it) => [
-              ...entryHead(it.name, it.subtitle, formatDate(it.date), it.location),
+              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location),
               ...(htmlToText(it.summary) ? [htmlToText(it.summary)] : []),
               ...(it.highlights ?? []).map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
               '',
