@@ -18,6 +18,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { CanvasDate } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
+import { entryOrderOf } from './sectionClasses'
 import { keywordChunks } from '@/lib/keywordChunks'
 
 /**
@@ -87,6 +88,9 @@ export type SecOpts = {
   entryLayout?: string
   showBadges?: boolean
   scoreStyle?: string
+  /** Which field leads an entry and which is bold (entryOrderOf reads them). */
+  entryOrder?: string
+  entryEmphasis?: string
   /** entry logo / letter-badge size and shape (the section's own overrides) */
   badgeSize?: string
   badgeShape?: string
@@ -103,6 +107,10 @@ export type SecOpts = {
   dates?: DateOptions
 }
 const show = (v?: boolean) => v !== false
+/** The section leads its entries with the organisation rather than the
+ *  title: the two fields swap slots, and both stay editable where they land.
+ *  Which one is bold is the stylesheet's (sec-emph-sub on the section). */
+const leadsWithOrg = (opts?: SecOpts) => entryOrderOf(opts).lead === 'org'
 
 type Apply = (c: ResumeDocument['content'], v: string) => void
 /** A date range that's click-to-edit on the canvas (and plain text in print). */
@@ -975,6 +983,29 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
     <>
       {doc.content.work.map((w, i) => {
         if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
+        const orgFirst = leadsWithOrg(opts)
+        const position = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={w.position}
+            apply={(c, v) => {
+              c.work[i].position = v
+            }}
+            className={className}
+            placeholder="Job title — e.g. Product Manager"
+          />
+        )
+        const company = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={w.name}
+            apply={(c, v) => {
+              c.work[i].name = v
+            }}
+            className={className}
+            placeholder="Company — e.g. Acme Corp"
+          />
+        )
         return (
           <article
             className={`rm-item rm-keep${markClass(w.logo, entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`}
@@ -994,16 +1025,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               setLogo={(c, v) => {
                 c.work[i].logo = v
               }}
-              title={
-                <Ed
-                  edit={edit}
-                  value={w.position}
-                  apply={(c, v) => {
-                    c.work[i].position = v
-                  }}
-                  placeholder="Job title — e.g. Product Manager"
-                />
-              }
+              title={orgFirst ? company() : position()}
               date={rangeDate(
                 edit,
                 show(opts?.showDates),
@@ -1019,15 +1041,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               )}
             />
             <div className="rm-item-sub">
-              <Ed
-                edit={edit}
-                value={w.name}
-                apply={(c, v) => {
-                  c.work[i].name = v
-                }}
-                className="rm-item-org"
-                placeholder="Company — e.g. Acme Corp"
-              />
+              {orgFirst ? position('rm-item-org') : company('rm-item-org')}
               {show(opts?.showLocation) && (edit || w.location) ? (
                 <Ed
                   edit={edit}
@@ -1110,7 +1124,44 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
     <>
       {doc.content.education.map((e, i) => {
         if (!edit && !anyText(e.institution, e.area, e.studyType)) return null
-        const title = [e.studyType, e.area].filter(Boolean).join(', ') || e.institution
+        const degree = [e.studyType, e.area].filter(Boolean).join(', ')
+        const title = degree || e.institution
+        const orgFirst = leadsWithOrg(opts)
+        // Degree + field are BOTH on the canvas (they both print) -
+        // hiding studyType here broke WYSIWYG and invited retyping
+        // the degree into the field box.
+        const degreeFields = edit ? (
+          <>
+            <Ed
+              edit={edit}
+              value={e.studyType}
+              apply={(c, v) => {
+                c.education[i].studyType = v
+              }}
+              placeholder="Degree — e.g. B.S."
+            />
+            <span aria-hidden>{', '}</span>
+            <Ed
+              edit={edit}
+              value={e.area}
+              apply={(c, v) => {
+                c.education[i].area = v
+              }}
+              placeholder="Field — e.g. Computer Science"
+            />
+          </>
+        ) : null
+        const school = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={e.institution}
+            apply={(c, v) => {
+              c.education[i].institution = v
+            }}
+            className={className}
+            placeholder="School — e.g. State University"
+          />
+        )
         return (
           <article
             className={`rm-item rm-keep${markClass(e.logo, entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`}
@@ -1130,34 +1181,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               setLogo={(c, v) => {
                 c.education[i].logo = v
               }}
-              title={
-                edit ? (
-                  // Degree + field are BOTH on the canvas (they both print) —
-                  // hiding studyType here broke WYSIWYG and invited retyping
-                  // the degree into the field box.
-                  <>
-                    <Ed
-                      edit={edit}
-                      value={e.studyType}
-                      apply={(c, v) => {
-                        c.education[i].studyType = v
-                      }}
-                      placeholder="Degree — e.g. B.S."
-                    />
-                    <span aria-hidden>{', '}</span>
-                    <Ed
-                      edit={edit}
-                      value={e.area}
-                      apply={(c, v) => {
-                        c.education[i].area = v
-                      }}
-                      placeholder="Field — e.g. Computer Science"
-                    />
-                  </>
-                ) : (
-                  title
-                )
-              }
+              title={orgFirst ? school() : edit ? degreeFields : title}
               date={rangeDate(
                 edit,
                 show(opts?.showDates),
@@ -1173,15 +1197,13 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               )}
             />
             <div className="rm-item-sub">
-              <Ed
-                edit={edit}
-                value={e.institution}
-                apply={(c, v) => {
-                  c.education[i].institution = v
-                }}
-                className="rm-item-org"
-                placeholder="School — e.g. State University"
-              />
+              {orgFirst ? (
+                // The degree pair under a leading school. Wrapped so the
+                // sub-line's org slot is one element, as it is for a company.
+                edit || degree ? <span className="rm-item-org">{edit ? degreeFields : degree}</span> : null
+              ) : (
+                school('rm-item-org')
+              )}
               {show(opts?.showLocation) && (edit || e.location) ? (
                 <Ed
                   edit={edit}
@@ -2196,6 +2218,29 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
     <>
       {doc.content.volunteer.map((v, i) => {
         if (!edit && !anyText(v.position, v.organization, v.summary, v.highlights)) return null
+        const orgFirst = leadsWithOrg(opts)
+        const role = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={v.position}
+            apply={(c, val) => {
+              c.volunteer[i].position = val
+            }}
+            className={className}
+            placeholder="Role"
+          />
+        )
+        const org = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={v.organization}
+            apply={(c, val) => {
+              c.volunteer[i].organization = val
+            }}
+            className={className}
+            placeholder="Organization"
+          />
+        )
         return (
           <article
             className={`rm-item rm-keep${markClass(v.logo, entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined)}`}
@@ -2215,16 +2260,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               setLogo={(c, val) => {
                 c.volunteer[i].logo = val
               }}
-              title={
-                <Ed
-                  edit={edit}
-                  value={v.position}
-                  apply={(c, val) => {
-                    c.volunteer[i].position = val
-                  }}
-                  placeholder="Role"
-                />
-              }
+              title={orgFirst ? org() : role()}
               date={rangeDate(
                 edit,
                 show(opts?.showDates),
@@ -2239,18 +2275,8 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 spanOpts(opts)
               )}
             />
-            {edit || v.organization ? (
-              <div className="rm-item-sub">
-                <Ed
-                  edit={edit}
-                  value={v.organization}
-                  apply={(c, val) => {
-                    c.volunteer[i].organization = val
-                  }}
-                  className="rm-item-org"
-                  placeholder="Organization"
-                />
-              </div>
+            {edit || (orgFirst ? v.position : v.organization) ? (
+              <div className="rm-item-sub">{orgFirst ? role('rm-item-org') : org('rm-item-org')}</div>
             ) : null}
             {has(v.summary) || edit ? (
               <Ed
@@ -2429,6 +2455,30 @@ function Custom({
     <>
       {sec.items.map((it, i) => {
         if (!edit && !anyText(it.name, it.subtitle, it.summary, it.highlights)) return null
+        // A custom entry's subtitle stands in for the organisation.
+        const orgFirst = leadsWithOrg(opts)
+        const name = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={it.name}
+            apply={(c, v) => {
+              c.custom[secIndex].items[i].name = v
+            }}
+            className={className}
+            placeholder="Title"
+          />
+        )
+        const subtitle = (className?: string) => (
+          <Ed
+            edit={edit}
+            value={it.subtitle ?? ''}
+            apply={(c, v) => {
+              c.custom[secIndex].items[i].subtitle = v
+            }}
+            className={className}
+            placeholder="Subtitle"
+          />
+        )
         return (
           <article className="rm-item rm-keep" key={it.id} data-item-id={it.id}>
             <ItemHead
@@ -2442,16 +2492,7 @@ function Custom({
               }}
               linkLabel={it.name || it.subtitle}
               edit={edit}
-              title={
-                <Ed
-                  edit={edit}
-                  value={it.name}
-                  apply={(c, v) => {
-                    c.custom[secIndex].items[i].name = v
-                  }}
-                  placeholder="Title"
-                />
-              }
+              title={orgFirst ? subtitle() : name()}
               date={singleDate(
                 edit,
                 show(opts?.showDates),
@@ -2462,17 +2503,9 @@ function Custom({
                 opts?.dates
               )}
             />
-            {edit || it.subtitle || it.location ? (
+            {edit || (orgFirst ? it.name : it.subtitle) || it.location ? (
               <div className="rm-item-sub">
-                <Ed
-                  edit={edit}
-                  value={it.subtitle ?? ''}
-                  apply={(c, v) => {
-                    c.custom[secIndex].items[i].subtitle = v
-                  }}
-                  className="rm-item-org"
-                  placeholder="Subtitle"
-                />
+                {orgFirst ? name('rm-item-org') : subtitle('rm-item-org')}
                 {show(opts?.showLocation) && (edit || it.location) ? (
                   <Ed
                     edit={edit}

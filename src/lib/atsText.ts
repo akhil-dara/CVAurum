@@ -17,6 +17,7 @@ import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { currentYearMonth, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
+import { entryOrderOf } from '@/templates/_shared/sectionClasses'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
 
@@ -38,10 +39,13 @@ function heading(label: string): string[] {
   return ['', label, '='.repeat(Math.max(6, Math.min(label.length, 28)))]
 }
 
-function entryHead(title?: string, org?: string, date?: string, loc?: string): string[] {
+/** An entry's two head lines in the order the page prints them - the section
+ *  says whether the organisation leads - then its date and location line. */
+function entryHead(title?: string, org?: string, date?: string, loc?: string, orgFirst = false): string[] {
   const out: string[] = []
-  if (title) out.push(title)
-  if (org) out.push(org)
+  const [first, second] = orgFirst ? [org, title] : [title, org]
+  if (first) out.push(first)
+  if (second) out.push(second)
   const meta = line(date, loc)
   if (meta) out.push(meta)
   return out
@@ -51,9 +55,13 @@ function entryHead(title?: string, org?: string, date?: string, loc?: string): s
 function sectionText(key: string, doc: ResumeDocument): string[] {
   const c = doc.content
   const label = sectionLabel(key, doc)
+  const settings = doc.metadata.layout.sectionSettings?.[key]
   // How the document's dates read, plus the section's own time-span switch
   // read against today the way the page and the Word file read it.
-  const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], currentYearMonth(), doc.metadata.dates)
+  const dates = sectionDateOptions(settings, currentYearMonth(), doc.metadata.dates)
+  // Whether the organisation leads each entry here, as it does on the page.
+  // Which line is bold is ink, not words, and never reaches this text.
+  const orgFirst = entryOrderOf(settings).lead === 'org'
   const out: string[] = []
   const push = (lines: string[]) => {
     if (lines.length) out.push(...heading(label), ...lines)
@@ -68,7 +76,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'work':
       push(
         c.work.flatMap((w) => [
-          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location),
+          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location, orgFirst),
           ...(htmlToText(w.summary) ? [htmlToText(w.summary)] : []),
           ...w.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -83,6 +91,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
             e.institution,
             formatDateRange(e.startDate, e.endDate, dates),
             e.location,
+            orgFirst,
           ),
           ...(e.score ? [e.score] : []),
           ...(htmlToText(e.summary) ? [htmlToText(e.summary)] : []),
@@ -146,7 +155,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'volunteer':
       push(
         c.volunteer.flatMap((v) => [
-          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates)),
+          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates), undefined, orgFirst),
           ...(htmlToText(v.summary) ? [htmlToText(v.summary)] : []),
           ...v.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -168,7 +177,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         if (cs) {
           push(
             cs.items.flatMap((it) => [
-              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location),
+              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location, orgFirst),
               ...(htmlToText(it.summary) ? [htmlToText(it.summary)] : []),
               ...(it.highlights ?? []).map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
               '',

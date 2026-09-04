@@ -103,7 +103,8 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       itemGap: defaults.layout.itemGap,
       main,
       aside,
-      // preserve user choices:
+      // preserve user choices (sectionSettings - every per-section choice,
+      // the entry order and emphasis included - rides the spread above):
       hidden: cur.layout.hidden,
       headings: cur.layout.headings,
     },

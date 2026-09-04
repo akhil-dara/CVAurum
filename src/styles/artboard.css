@@ -1008,6 +1008,18 @@
   font-weight: 600;
   color: var(--rm-text);
 }
+/* Entry emphasis (sectionSettings.entryEmphasis): the section stresses its
+   sub-line instead of its head line - the company under a leading title, or
+   the title under a leading company. Only the weights swap; each line keeps
+   its size, colour and slant. Anchored on .rm-root so it beats a template's
+   own weight for either line, like the other sec-* overrides; the export
+   paints computed weight, so the PDF follows. */
+.rm-root .rm-section.sec-emph-sub .rm-item-title {
+  font-weight: 400;
+}
+.rm-root .rm-section.sec-emph-sub .rm-item-org {
+  font-weight: 700;
+}
 .rm-item-sub {
   display: flex;
   flex-wrap: wrap;

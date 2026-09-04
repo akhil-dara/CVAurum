@@ -301,3 +301,31 @@ describe('heading alignment, heading spacing and the rule width survive a round 
     expect(fresh.metadata.layout.sectionSettings.work?.headingAlign).toBeUndefined()
   })
 })
+
+describe('the entry order and emphasis survive a round trip', () => {
+  // Per section: which field leads an entry (the title or the organisation)
+  // and which is bold. A file saved before they existed decides neither, and
+  // an undecided pair is the page as it always was.
+  it('keeps both, per section', () => {
+    const m = MetadataSchema.parse({
+      layout: {
+        sectionSettings: {
+          work: { entryOrder: 'org-first', entryEmphasis: 'org' },
+          education: { entryEmphasis: 'org' },
+        },
+      },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.layout.sectionSettings.work.entryOrder).toBe('org-first')
+    expect(back.metadata.layout.sectionSettings.work.entryEmphasis).toBe('org')
+    expect(back.metadata.layout.sectionSettings.education.entryOrder).toBeUndefined()
+    expect(back.metadata.layout.sectionSettings.education.entryEmphasis).toBe('org')
+  })
+
+  it('an older file decides neither', () => {
+    const older = { layout: { sectionSettings: { work: { showDates: true } } } }
+    const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse(older))))
+    expect(back.metadata.layout.sectionSettings.work.entryOrder).toBeUndefined()
+    expect(back.metadata.layout.sectionSettings.work.entryEmphasis).toBeUndefined()
+  })
+})

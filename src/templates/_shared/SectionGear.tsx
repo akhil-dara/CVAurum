@@ -19,6 +19,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
+import { HAS_ENTRY_ORG, STYLE_FIELDS, paintStyle, sectionBase } from './sectionClasses'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -32,19 +33,12 @@ type ToggleField =
 /** Toggles that stay OFF until asked for; every other show* row is on until hidden. */
 const OPT_IN = new Set<ToggleField>(['showBadges', 'showDuration'])
 
-/** The visual-style fields the painter copies (NOT the show* content toggles). */
-const STYLE_FIELDS = [
-  'headingStyle',
-  'headingAlign',
-  'skillsStyle',
-  'chipSize',
-  'entryLayout',
-  'scoreStyle',
-  'bulletStyle',
-  'meterStyle',
-  'badgeSize',
-  'badgeShape',
-] as const
+/** An entry's two head fields. The section says which leads and which is
+ *  bold; unset is the title on both rows, the page as it always was. */
+const ENTRY_FIELDS: { label: string; value: 'title' | 'org'; title: string }[] = [
+  { label: 'Title', value: 'title', title: 'The position or degree' },
+  { label: 'Organisation', value: 'org', title: 'The company, school or organisation (a custom entry: its subtitle)' },
+]
 
 /** Per-section heading treatments ('' = the template's own default). */
 const HEADING_STYLES: { label: string; value: string }[] = [
@@ -366,6 +360,10 @@ const HAS_DATES = new Set([
 const HAS_DURATION = new Set(['work', 'education', 'projects', 'volunteer'])
 const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 const HAS_SUMMARY = new Set(['work'])
+/** Entries with a title AND an organisation line, so either can lead. The
+ *  style painter keys on the same set, so a painted order never lands on a
+ *  section whose gear could not clear it. */
+const HAS_ORG = HAS_ENTRY_ORG
 
 /** Per-section bullet markers (glyph chips — the marker itself is the preview). */
 const BULLET_CHOICES: { v: string; label: string; title: string }[] = [
@@ -426,7 +424,7 @@ export function SectionGear({
   usePopoverA11y(open, () => setOpen(false), panelRef)
 
   const layout = doc.metadata.layout
-  const base = sectionKey.startsWith('custom-') ? 'custom' : sectionKey
+  const base = sectionBase(sectionKey)
   const opts = layout.sectionSettings?.[sectionKey] ?? {}
   const twoCol = layout.columns === 2
   const inAside = layout.aside.includes(sectionKey)
@@ -474,6 +472,8 @@ export function SectionGear({
       | 'skillsStyle'
       | 'chipSize'
       | 'entryLayout'
+      | 'entryOrder'
+      | 'entryEmphasis'
       | 'scoreStyle'
       | 'bulletStyle'
       | 'meterStyle'
@@ -530,8 +530,9 @@ export function SectionGear({
   const moveStep = (dir: -1 | 1) => editMeta((m) => moveSection(m.layout, sectionKey, dir))
 
   // Style painter: copy this section's visual style, then paint it onto another
-  // section (or all of them) — like Figma's paint-format. Only the visual-style
-  // fields travel; each section keeps its own content-visibility toggles.
+  // section (or all of them). Only the visual-style fields travel; each
+  // section keeps its own content-visibility toggles, and the entry order
+  // stays on sections that have an organisation line (paintStyle).
   const copiedStyle = useEditorStore((s) => s.copiedStyle)
   const setCopiedStyle = useEditorStore((s) => s.setCopiedStyle)
   const copyStyle = () => {
@@ -542,13 +543,7 @@ export function SectionGear({
     }
     setCopiedStyle(picked)
   }
-  const applyStyleTo = (m: Metadata, key: string) => {
-    if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
-    const cur = { ...(m.layout.sectionSettings[key] ?? {}) } as Record<string, unknown>
-    for (const f of STYLE_FIELDS) delete cur[f] // clear then apply, so Auto (unset) paints too
-    Object.assign(cur, copiedStyle ?? {})
-    m.layout.sectionSettings[key] = cur
-  }
+  const applyStyleTo = (m: Metadata, key: string) => paintStyle(m, key, copiedStyle ?? {})
   const pasteStyle = () => editMeta((m) => applyStyleTo(m, sectionKey))
   const paintAll = () =>
     editMeta((m) => {
@@ -902,6 +897,40 @@ export function SectionGear({
                       ))}
                     </div>
                   </Group>
+                )}
+
+                {/* Entry order and emphasis - which field leads each entry
+                    and which is bold. Two independent choices; the default
+                    (title on both) is unset, so a painted Auto lands on it. */}
+                {HAS_ORG.has(base) && (
+                  <>
+                    <Group label="Lead with">
+                      <div className="grid grid-cols-2 gap-1">
+                        {ENTRY_FIELDS.map((f) => (
+                          <ChipBtn
+                            key={f.value}
+                            label={f.value === 'org' && base === 'custom' ? 'Subtitle' : f.label}
+                            title={f.title}
+                            on={(opts.entryOrder === 'org-first' ? 'org' : 'title') === f.value}
+                            onClick={() => setStyle('entryOrder', f.value === 'org' ? 'org-first' : undefined)}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                    <Group label="Bold">
+                      <div className="grid grid-cols-2 gap-1">
+                        {ENTRY_FIELDS.map((f) => (
+                          <ChipBtn
+                            key={f.value}
+                            label={f.value === 'org' && base === 'custom' ? 'Subtitle' : f.label}
+                            title={f.title}
+                            on={(opts.entryEmphasis ?? 'title') === f.value}
+                            onClick={() => setStyle('entryEmphasis', f.value === 'org' ? 'org' : undefined)}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                  </>
                 )}
 
                 {/* Score placement — education only */}

@@ -243,6 +243,8 @@ this.
 | `photoShape` | `'circle'`, `'rounded'`, `'square'`, or `'diamond'` (a turned monogram badge; a photo keeps square corners) |
 | `sectionSettings[key].showDuration` | Per section, opt-in: end each date range with its length in parentheses (`"2 yrs 3 mos"`, counted in whole months, so both dates need a month). Plain text, so the Word export and the ATS text print the same words |
 | `sectionSettings[key].headingAlign` | Per section: `'left'` or `'center'` for the heading → `sec-align-*` on the section; unset keeps the template's own. A centred rule-after heading sits between two rules; the Word export centres the paragraph |
+| `sectionSettings[key].entryOrder` | Per section (work, education, volunteer, custom): `'title-first'` (default) or `'org-first'` — which field takes an entry's head line beside the date (the position or degree, or the company, institution or subtitle); the other takes the sub-line, and both stay editable. The Word export and the ATS text list the two in the same order |
+| `sectionSettings[key].entryEmphasis` | Per section: `'title'` (default) or `'org'` — which of the two is bold. When it is not the leading field, `sec-emph-sub` on the section swaps the weights of the head and sub-lines (nothing else changes); the Word export bolds the same run |
 
 ### `dates` (the document's, not a template default)
 

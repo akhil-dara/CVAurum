@@ -178,6 +178,12 @@ export const LayoutSchema = z.object({
         /** Where the section's heading sits across its column; unset keeps
          *  the template's own (three templates centre theirs). */
         headingAlign: z.enum(['left', 'center']).optional(),
+        /** Which field leads an entry: the title (position, degree) or the
+         *  organisation (company, institution; a custom entry's subtitle).
+         *  Unset leads with the title, as the page always did. */
+        entryOrder: z.enum(['title-first', 'org-first']).optional(),
+        /** Which of the two is bold. Unset is the title, whichever leads. */
+        entryEmphasis: z.enum(['title', 'org']).optional(),
       })
     )
     .default({}),

@@ -193,3 +193,66 @@ describe('resumeToAtsText prints dates the way the document formats them', () =>
     expect(text).toContain('September 2024')
   })
 })
+
+describe('resumeToAtsText leads each entry with the field the section leads with', () => {
+  // The page can put the organisation above the title in a section; the text
+  // a parser reads must list the two lines in the same order. Emphasis is
+  // ink, not words: which line is bold changes nothing here.
+  const docWith = (sectionSettings: Record<string, unknown> = {}): ResumeDocument =>
+    ({
+      id: 'res-1',
+      title: 'T',
+      createdAt: 0,
+      updatedAt: 0,
+      content: {
+        basics: { name: 'Alex Morgan', profiles: [], location: {} },
+        work: [
+          { id: 'w1', name: 'Acme', position: 'Engineer', startDate: '2019-01', endDate: '2021-03', location: 'Austin', highlights: [] },
+        ],
+        education: [
+          { id: 'e1', institution: 'State University', studyType: 'BSc', area: 'Computer Science', startDate: '2015', endDate: '2019', courses: [] },
+        ],
+        projects: [],
+        skills: [],
+        languages: [],
+        certificates: [],
+        awards: [],
+        publications: [],
+        volunteer: [{ id: 'v1', organization: 'Food Bank', position: 'Driver', startDate: '2020', endDate: '2021', highlights: [] }],
+        interests: [],
+        references: [],
+        custom: [{ id: 'x1', name: 'Talks', items: [{ id: 'i1', name: 'Keynote', subtitle: 'DevConf', date: '2022', location: 'Berlin', highlights: [] }] }],
+      },
+      metadata: MetadataSchema.parse({ layout: { main: ['work', 'education', 'volunteer', 'custom-x1'], sectionSettings } }),
+    }) as unknown as ResumeDocument
+
+  it('title first by default: position, then company; degree, then school', () => {
+    const text = resumeToAtsText(docWith())
+    expect(text).toContain('Engineer\nAcme\nJan 2019 — Mar 2021  ·  Austin')
+    expect(text).toContain('BSc, Computer Science\nState University\n2015 — 2019')
+    expect(text).toContain('Driver\nFood Bank\n2020 — 2021')
+    expect(text).toContain('Keynote\nDevConf\n2022  ·  Berlin')
+  })
+
+  it('organisation first swaps the two lines in that section, and in no other', () => {
+    const text = resumeToAtsText(docWith({ work: { entryOrder: 'org-first' }, custom: { entryOrder: 'org-first' } }))
+    expect(text).toContain('Acme\nEngineer\nJan 2019 — Mar 2021  ·  Austin')
+    expect(text).toContain('BSc, Computer Science\nState University\n')
+    expect(text).toContain('Driver\nFood Bank\n')
+    // A custom section's settings are keyed by its own key, not by 'custom'.
+    expect(text).toContain('Keynote\nDevConf\n')
+    const each = resumeToAtsText(
+      docWith({ education: { entryOrder: 'org-first' }, volunteer: { entryOrder: 'org-first' }, 'custom-x1': { entryOrder: 'org-first' } }),
+    )
+    expect(each).toContain('State University\nBSc, Computer Science\n2015 — 2019')
+    expect(each).toContain('Food Bank\nDriver\n2020 — 2021')
+    expect(each).toContain('DevConf\nKeynote\n2022  ·  Berlin')
+  })
+
+  it('is byte-identical whichever line is bold', () => {
+    const stock = resumeToAtsText(docWith())
+    expect(resumeToAtsText(docWith({ work: { entryEmphasis: 'org' }, education: { entryEmphasis: 'org' } }))).toBe(stock)
+    const swapped = resumeToAtsText(docWith({ work: { entryOrder: 'org-first' } }))
+    expect(resumeToAtsText(docWith({ work: { entryOrder: 'org-first', entryEmphasis: 'org' } }))).toBe(swapped)
+  })
+})

@@ -123,3 +123,25 @@ describe('applyTemplateToMetadata keeps the heading spacing and rule width', () 
     expect(applyTemplateToMetadata(cur, defaultsFor('aurum', 1)).typography.headingRuleWidth).toBeUndefined()
   })
 })
+
+describe('applyTemplateToMetadata keeps the entry order and emphasis', () => {
+  // Which field leads an entry and which is bold are per-section choices of
+  // the author, carried with the rest of the section settings: a switch
+  // adopts the template's look and leaves them where they were.
+  it('carries both across a switch, per section', () => {
+    const cur = MetadataSchema.parse({
+      template: 'modern',
+      layout: { sectionSettings: { work: { entryOrder: 'org-first', entryEmphasis: 'org' }, education: { entryEmphasis: 'org' } } },
+    })
+    const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
+    expect(next.layout.sectionSettings.work).toEqual({ entryOrder: 'org-first', entryEmphasis: 'org' })
+    expect(next.layout.sectionSettings.education).toEqual({ entryEmphasis: 'org' })
+  })
+
+  it('an undecided pair stays undecided', () => {
+    const cur = MetadataSchema.parse({ template: 'modern', layout: { sectionSettings: { work: { showDates: false } } } })
+    const next = applyTemplateToMetadata(cur, defaultsFor('aurum', 1))
+    expect(next.layout.sectionSettings.work.entryOrder).toBeUndefined()
+    expect(next.layout.sectionSettings.work.entryEmphasis).toBeUndefined()
+  })
+})

@@ -29,6 +29,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata, Typography } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { entryOrderOf } from '@/templates/_shared/sectionClasses'
 import {
   currentYearMonth,
   downloadBlob,
@@ -309,8 +310,19 @@ const heading = (label: string, C: Ctx, align?: 'left' | 'center') =>
       }),
     ],
   })
-const titleDate = (title: string, date: string | undefined, C: Ctx, width: number, opts: IParagraphOptions = {}, url?: string) => {
-  const titleRun = new TextRun({ text: title, bold: true, color: C.body, size: SIZE.title })
+// The lead line of an entry, bold unless the section stresses the line
+// under it instead (entryEmphasis): then this one prints plain and the
+// sub-line takes the bold, as the page swaps the two weights.
+const titleDate = (
+  title: string,
+  date: string | undefined,
+  C: Ctx,
+  width: number,
+  opts: IParagraphOptions = {},
+  url?: string,
+  bold = true
+) => {
+  const titleRun = new TextRun({ text: title, ...(bold ? { bold: true } : {}), color: C.body, size: SIZE.title })
   // A linked title is a hyperlink here for the same reason it is one in the
   // PDF: the page made its own title the link, so the Word copy does too.
   const href = url && LINKS_LIVE ? safeHref(url) : undefined
@@ -353,10 +365,10 @@ const verifyPara = (url: string | undefined, urlLabel: string | undefined, C: Ct
   return [new Paragraph({ spacing: { after: 16 }, children: [linkRun(url, words, C)] })]
 }
 
-const sub = (s: string, C: Ctx) =>
+const sub = (s: string, C: Ctx, bold = false) =>
   new Paragraph({
     spacing: { after: 16 },
-    children: [new TextRun({ text: s, italics: true, color: C.muted, size: SIZE.sub })],
+    children: [new TextRun({ text: s, italics: true, ...(bold ? { bold: true } : {}), color: C.muted, size: SIZE.sub })],
   })
 const para = (runs: ParagraphChild[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
 const summaryParas = (html: string, C: Ctx) => richToBlocks(html, C.body).map(para)
@@ -428,26 +440,39 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
   for (const key of keys) {
     const label = sectionLabel(key, doc)
     // How the document's dates read, plus the section's own time-span switch.
-    const dates = sectionDateOptions(doc.metadata.layout.sectionSettings?.[key], now, doc.metadata.dates)
-    const align = doc.metadata.layout.sectionSettings?.[key]?.headingAlign
+    const settings = doc.metadata.layout.sectionSettings?.[key]
+    const dates = sectionDateOptions(settings, now, doc.metadata.dates)
+    const align = settings?.headingAlign
+    // Which field leads each entry and which is bold, as on the page: the
+    // lead takes the date line, the other the sub-line under it. The lead
+    // falls back to the other field so a half-filled entry still has a
+    // title, and the sub-line never repeats it.
+    const order = entryOrderOf(settings)
+    const orgFirst = order.lead === 'org'
+    const leadBold = order.lead === order.bold
     if (key === 'summary') {
       if (!has(b.summary)) continue
       out.push(heading(label, C, align), ...summaryParas(b.summary!, C))
     } else if (key === 'work') {
       out.push(heading(label, C, align))
       for (const w of content.work) {
-        out.push(titleDate(w.position || w.name || 'Role', formatDateRange(w.startDate, w.endDate, dates), C, width, {}, w.url))
-        const s = [w.name && w.position ? w.name : '', w.location].filter(Boolean).join('  ·  ')
-        if (s) out.push(sub(s, C))
+        const [lead, under] = orgFirst ? [w.name, w.position] : [w.position, w.name]
+        out.push(titleDate(lead || under || 'Role', formatDateRange(w.startDate, w.endDate, dates), C, width, {}, w.url, leadBold))
+        const s = [lead && under ? under : '', w.location].filter(Boolean).join('  ·  ')
+        if (s) out.push(sub(s, C, !leadBold))
         if (has(w.summary)) out.push(...summaryParas(w.summary!, C))
         out.push(...bulletsOf(w.highlights ?? [], C))
       }
     } else if (key === 'education') {
       out.push(heading(label, C, align))
       for (const e of content.education) {
-        out.push(titleDate(e.institution || 'Institution', formatDateRange(e.startDate, e.endDate, dates), C, width, {}, e.url))
-        const line = [[e.studyType, e.area].filter(Boolean).join(', '), e.score].filter(Boolean).join('  ·  ')
-        if (line) out.push(sub(line, C))
+        // The degree leads by default, as it does on the page (this export
+        // used to lead with the institution whatever the page showed).
+        const degree = [e.studyType, e.area].filter(Boolean).join(', ')
+        const [lead, under] = orgFirst ? [e.institution, degree] : [degree, e.institution]
+        out.push(titleDate(lead || under || 'Institution', formatDateRange(e.startDate, e.endDate, dates), C, width, {}, e.url, leadBold))
+        const line = [lead && under ? under : '', e.score].filter(Boolean).join('  ·  ')
+        if (line) out.push(sub(line, C, !leadBold))
         if (e.courses?.length)
           out.push(
             new Paragraph({
@@ -561,8 +586,9 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'volunteer') {
       out.push(heading(label, C, align))
       for (const v of content.volunteer) {
-        out.push(titleDate(v.position || v.organization || 'Role', formatDateRange(v.startDate, v.endDate, dates), C, width, {}, v.url))
-        if (v.position && v.organization) out.push(sub(v.organization, C))
+        const [lead, under] = orgFirst ? [v.organization, v.position] : [v.position, v.organization]
+        out.push(titleDate(lead || under || 'Role', formatDateRange(v.startDate, v.endDate, dates), C, width, {}, v.url, leadBold))
+        if (lead && under) out.push(sub(under, C, !leadBold))
         if (has(v.summary)) out.push(...summaryParas(v.summary, C))
         out.push(...bulletsOf(v.highlights ?? [], C))
       }
@@ -594,9 +620,12 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       if (!section || !section.items.length) continue
       out.push(heading(label, C, align))
       for (const it of section.items) {
-        out.push(titleDate(it.name || '', formatDate(it.date, dates), C, width, {}, it.url))
-        const s = [it.subtitle, it.location].filter(Boolean).join('  ·  ')
-        if (s) out.push(sub(s, C))
+        // The subtitle stands in for the organisation; neither falls back to
+        // the other, as neither does on the page.
+        const [lead, under] = orgFirst ? [it.subtitle, it.name] : [it.name, it.subtitle]
+        out.push(titleDate(lead || '', formatDate(it.date, dates), C, width, {}, it.url, leadBold))
+        const s = [under, it.location].filter(Boolean).join('  ·  ')
+        if (s) out.push(sub(s, C, !leadBold))
         if (has(it.summary)) out.push(...summaryParas(it.summary, C))
         out.push(...bulletsOf(it.highlights ?? [], C))
       }

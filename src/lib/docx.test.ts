@@ -13,6 +13,7 @@ import JSZip from 'jszip'
 import { buildDocx, docxMetrics } from './docx'
 import { defaultMetadata } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
+import type { Metadata } from '@/types/metadata'
 import type { MetadataOverrides } from '@/data/defaults'
 
 // The sanitizer wraps a DOM purifier that needs a window, and this suite runs
@@ -437,5 +438,64 @@ describe('the Word export aligns and spaces headings the way the page does', () 
     expect(ruleSize(heading((await unpack(docWith())).body))).toBe(6)
     expect(ruleSize(heading((await unpack(docWith({ typography: { headingRuleWidth: 2 } }))).body))).toBe(12)
     expect(ruleSize(heading((await unpack(docWith({ typography: { headingRuleWidth: 1 } }))).body))).toBe(6)
+  })
+})
+
+describe('the Word export leads and stresses each entry the way the section does', () => {
+  // The lead line is the paragraph with the right-tab date; the other field
+  // is the sub-line under it. Which of the two is bold follows the section's
+  // emphasis - a FIELD, not a slot - so the title stays bold under a leading
+  // company until the section stresses the company instead.
+  const runOf = (xml: string, text: string) => xml.split('<w:r>').slice(1).find((r) => r.includes(`>${text}</w:t>`)) ?? ''
+  // Only the lead line carries the right tab stop for its date.
+  const dated = (xml: string, text: string) => paraOf(xml, text).includes('<w:tabs>')
+  const withEntries = (sectionSettings: Metadata['layout']['sectionSettings'] = {}) => {
+    const doc = docWith({ layout: { main: ['work', 'education', 'volunteer', 'custom-x1'], sectionSettings } })
+    doc.content.work[0].endDate = '2023-02'
+    doc.content.education = [
+      { id: 'e1', institution: 'State University', studyType: 'BSc', area: 'Computer Science', startDate: '2015', endDate: '2019', courses: [] },
+    ] as never
+    doc.content.volunteer = [{ id: 'v1', organization: 'Food Bank', position: 'Driver', startDate: '2020', endDate: '2021', highlights: [] }] as never
+    doc.content.custom = [{ id: 'x1', name: 'Talks', items: [{ id: 'i1', name: 'Keynote', subtitle: 'DevConf', date: '2022', highlights: [] }] }] as never
+    return doc
+  }
+
+  it('by default the title leads, bold, and the organisation sits under it', async () => {
+    const { body } = await unpack(withEntries())
+    expect(dated(body, 'Designer')).toBe(true)
+    expect(runOf(body, 'Designer')).toContain('<w:b/>')
+    expect(runOf(body, 'Acme')).not.toContain('<w:b/>')
+    expect(dated(body, 'BSc, Computer Science')).toBe(true)
+    expect(runOf(body, 'BSc, Computer Science')).toContain('<w:b/>')
+    expect(runOf(body, 'State University')).not.toContain('<w:b/>')
+    expect(dated(body, 'Driver')).toBe(true)
+    expect(dated(body, 'Keynote')).toBe(true)
+  })
+
+  it('organisation first puts the company on the date line and the position under it', async () => {
+    const all = { entryOrder: 'org-first' } as const
+    const { body } = await unpack(withEntries({ work: all, education: all, volunteer: all, 'custom-x1': all }))
+    expect(dated(body, 'Acme')).toBe(true)
+    expect(dated(body, 'Designer')).toBe(false)
+    expect(dated(body, 'State University')).toBe(true)
+    expect(dated(body, 'BSc, Computer Science')).toBe(false)
+    expect(dated(body, 'Food Bank')).toBe(true)
+    expect(dated(body, 'Driver')).toBe(false)
+    expect(dated(body, 'DevConf')).toBe(true)
+    expect(dated(body, 'Keynote')).toBe(false)
+    // The bold stays on the title by default, now in the sub-line.
+    expect(runOf(body, 'Acme')).not.toContain('<w:b/>')
+    expect(runOf(body, 'Designer')).toContain('<w:b/>')
+  })
+
+  it('the bold follows the emphasis, not the slot', async () => {
+    const under = await unpack(withEntries({ work: { entryEmphasis: 'org' } }))
+    expect(dated(under.body, 'Designer')).toBe(true)
+    expect(runOf(under.body, 'Designer')).not.toContain('<w:b/>')
+    expect(runOf(under.body, 'Acme')).toContain('<w:b/>')
+    const lead = await unpack(withEntries({ work: { entryOrder: 'org-first', entryEmphasis: 'org' } }))
+    expect(dated(lead.body, 'Acme')).toBe(true)
+    expect(runOf(lead.body, 'Acme')).toContain('<w:b/>')
+    expect(runOf(lead.body, 'Designer')).not.toContain('<w:b/>')
   })
 })
