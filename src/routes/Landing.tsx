@@ -26,6 +26,7 @@ import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
+import { HoverZoom } from '@/components/preview/HoverZoom'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
@@ -276,20 +277,25 @@ export function Landing() {
           </div>
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6" data-nosnippet>
             {showcase.map(({ id, doc }) => (
-              <button
-                key={id}
-                onClick={() => create(true, id)}
-                className="group block overflow-hidden rounded-xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:shadow-card"
-                title={`Use the ${getTemplate(id).name} template`}
-              >
-                <div className="aspect-[210/297] overflow-hidden">
-                  <PreviewThumb doc={doc} width={210} />
-                </div>
-                <div className="flex items-center justify-between border-t border-border px-2.5 py-1.5">
-                  <span className="text-xs font-medium text-slate-800">{getTemplate(id).name}</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                </div>
-              </button>
+              // A card this size can be recognised but not read. Dwelling on
+              // one floats a large render beside it, the same way the example
+              // picker and the editor's gallery do - it was the only one of
+              // the three showing thumbnails with no way to see the design.
+              <HoverZoom key={id} doc={doc} label={getTemplate(id).name}>
+                <button
+                  onClick={() => create(true, id)}
+                  className="group block w-full overflow-hidden rounded-xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:shadow-card"
+                  title={`Use the ${getTemplate(id).name} template`}
+                >
+                  <div className="aspect-[210/297] overflow-hidden">
+                    <PreviewThumb doc={doc} width={210} />
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border px-2.5 py-1.5">
+                    <span className="text-xs font-medium text-slate-800">{getTemplate(id).name}</span>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                  </div>
+                </button>
+              </HoverZoom>
             ))}
           </div>
         </section>
