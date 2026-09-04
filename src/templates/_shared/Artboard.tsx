@@ -19,7 +19,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
-import { sectionOverrideClasses } from './sectionClasses'
+import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
 
@@ -683,7 +683,12 @@ function Section({
   // Per-section style overrides (user picks in the section gear) — scoped classes
   // that beat the template's root-level sec-*/skl-* defaults.
   const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
-  const cls = ['rm-section', ...sectionOverrideClasses(ss)].join(' ')
+  // A section whose entries must not be torn across a page break says so on
+  // the element itself: the paginator reads the policy off the rendered page
+  // (walk.ts), so the export and the preview overlay can never disagree about
+  // it, and the browser's own print path avoids the same splits.
+  const keepEntries = keepEntriesOn(doc.metadata.page, ss)
+  const cls = ['rm-section', ...sectionOverrideClasses(ss), ...(keepEntries ? ['rm-keep-entries'] : [])].join(' ')
   // Per-section vars (bullet marker, logo/badge size) cascade from the section
   // element, so overrides scope themselves without any extra CSS.
   const BADGE_SIZE: Record<string, string> = { s: '1.3em', m: '1.65em', l: '2.3em' }

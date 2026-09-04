@@ -145,3 +145,47 @@ describe('applyTemplateToMetadata keeps the entry order and emphasis', () => {
     expect(next.layout.sectionSettings.work.entryEmphasis).toBeUndefined()
   })
 })
+
+describe('applyTemplateToMetadata keeps the location placement and the date side', () => {
+  // Both are per-section choices of the author, carried with the rest of the
+  // section settings: a switch adopts the template's look and leaves them.
+  it('carries both across a switch, per section', () => {
+    const cur = MetadataSchema.parse({
+      template: 'modern',
+      layout: { sectionSettings: { work: { locationPlacement: 'with-date', dateAlign: 'left' }, education: { dateAlign: 'left' } } },
+    })
+    const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
+    expect(next.layout.sectionSettings.work).toEqual({ locationPlacement: 'with-date', dateAlign: 'left' })
+    expect(next.layout.sectionSettings.education).toEqual({ dateAlign: 'left' })
+  })
+
+  it('an undecided pair stays undecided', () => {
+    const cur = MetadataSchema.parse({ template: 'modern', layout: { sectionSettings: { work: { showDates: false } } } })
+    const next = applyTemplateToMetadata(cur, defaultsFor('aurum', 1))
+    expect(next.layout.sectionSettings.work.locationPlacement).toBeUndefined()
+    expect(next.layout.sectionSettings.work.dateAlign).toBeUndefined()
+  })
+})
+
+describe('applyTemplateToMetadata keeps the whole-entry page-break policy', () => {
+  // How the document breaks pages is the author's, not the template's: the
+  // page block rides across whole, and the per-section override rides with
+  // the rest of the section settings.
+  it('carries the document switch and the per-section override across a switch', () => {
+    const cur = MetadataSchema.parse({
+      template: 'modern',
+      page: { keepEntriesWhole: true },
+      layout: { sectionSettings: { work: { keepTogether: false }, education: { keepTogether: true } } },
+    })
+    const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
+    expect(next.page.keepEntriesWhole).toBe(true)
+    expect(next.layout.sectionSettings.work.keepTogether).toBe(false)
+    expect(next.layout.sectionSettings.education.keepTogether).toBe(true)
+  })
+
+  it('a document that never decided still breaks pages as it always did', () => {
+    const cur = MetadataSchema.parse({ template: 'modern' })
+    const next = applyTemplateToMetadata(cur, defaultsFor('aurum', 1))
+    expect(next.page.keepEntriesWhole).toBe(false)
+  })
+})

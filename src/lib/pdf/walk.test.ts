@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
+import { paginate } from './paginate'
 import {
   absolutizeLeadingMoveto,
   expandArcFlags,
@@ -2065,6 +2066,105 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
       { kind: 'entry-gap', topPx: 20, bottomPx: 30 },
       { kind: 'line', topPx: 30, bottomPx: 55 },
     ])
+  })
+
+  /* --------------------------------- keep entries whole (page-break policy) */
+
+  /** A section with two entries of three blocks each. `keep` puts the class
+   *  the renderer stamps when the author asks for whole entries on it. */
+  function twoEntrySection(keep: boolean) {
+    const head1 = elm(['rm-item-head'], { top: 30, bottom: 50, left: 0, right: 300 })
+    const l1a = txt('Entry one, first line', { top: 55, bottom: 75, left: 0, right: 300 })
+    const l1b = txt('Entry one, second line', { top: 80, bottom: 100, left: 0, right: 300 })
+    const entry1 = elm(['rm-item'], { top: 30, bottom: 100, left: 0, right: 300 }, [head1, l1a, l1b])
+
+    const head2 = elm(['rm-item-head'], { top: 300, bottom: 320, left: 0, right: 300 })
+    const l2a = txt('Entry two, first line', { top: 330, bottom: 350, left: 0, right: 300 })
+    const l2b = txt('Entry two, second line', { top: 360, bottom: 380, left: 0, right: 300 })
+    const l2c = txt('Entry two, third line', { top: 390, bottom: 410, left: 0, right: 300 })
+    const l2d = txt('Entry two, fourth line', { top: 420, bottom: 440, left: 0, right: 300 })
+    const entry2 = elm(['rm-item'], { top: 300, bottom: 440, left: 0, right: 300 }, [head2, l2a, l2b, l2c, l2d])
+
+    const title = elm(['rm-section-title'], { top: 0, bottom: 20, left: 0, right: 200 })
+    const body = elm(['rm-section-body'], { top: 30, bottom: 440, left: 0, right: 300 }, [entry1, entry2])
+    const section = elm(keep ? ['rm-section', 'rm-keep-entries'] : ['rm-section'], { top: 0, bottom: 440, left: 0, right: 300 }, [
+      title,
+      body,
+    ])
+    return elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+  }
+
+  const PAGE = { usable: 400, paper: 500 }
+
+  it('bans every cut inside an entry of a keep-flagged section, and none of the gaps between entries', () => {
+    install()
+    const blocks = extractPageBlocks(twoEntrySection(true) as unknown as HTMLElement, PAGE.usable)
+
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 0, bottomPx: 20, keepWithNext: true }, // section title
+      { kind: 'entry-gap', topPx: 20, bottomPx: 30 },
+      { kind: 'line', topPx: 30, bottomPx: 50, keepWithNext: true }, // entry 1 head
+      { kind: 'line', topPx: 55, bottomPx: 75, keepWithNext: true }, // held: mid-entry
+      { kind: 'line', topPx: 80, bottomPx: 100 }, // entry 1's last block - the gap after it stays legal
+      { kind: 'entry-gap', topPx: 100, bottomPx: 300 },
+      { kind: 'line', topPx: 300, bottomPx: 320, keepWithNext: true }, // entry 2 head
+      { kind: 'line', topPx: 330, bottomPx: 350, keepWithNext: true },
+      { kind: 'line', topPx: 360, bottomPx: 380, keepWithNext: true },
+      { kind: 'line', topPx: 390, bottomPx: 410, keepWithNext: true },
+      { kind: 'line', topPx: 420, bottomPx: 440 },
+    ])
+  })
+
+  it('leaves an unflagged section breakable inside its entries, exactly as before', () => {
+    install()
+    const blocks = extractPageBlocks(twoEntrySection(false) as unknown as HTMLElement, PAGE.usable)
+    expect(blocks.map((b) => b.keepWithNext === true)).toEqual([
+      true, // section title
+      false,
+      true, // entry 1 head (a body line follows it)
+      false,
+      false,
+      false,
+      true, // entry 2 head
+      false,
+      false,
+      false,
+      false,
+    ])
+  })
+
+  it('paginates a keep-flagged section at the gap between its entries, and an unflagged one through the entry', () => {
+    install()
+    const page = {
+      contentHeightPx: 440,
+      usablePageHeightPx: PAGE.usable,
+      firstPageUsablePageHeightPx: PAGE.usable,
+      maxPageHeightPx: PAGE.paper,
+    }
+    const kept = paginate({ blocks: extractPageBlocks(twoEntrySection(true) as unknown as HTMLElement, PAGE.usable), ...page })
+    // The whole of entry 2 moves to page 2 rather than being torn in half.
+    expect(kept.cutsPx).toEqual([200])
+    expect(kept.pageCount).toBe(2)
+
+    const split = paginate({ blocks: extractPageBlocks(twoEntrySection(false) as unknown as HTMLElement, PAGE.usable), ...page })
+    // Without the policy the page fills to its boundary, through the entry.
+    expect(split.cutsPx).toEqual([385])
+  })
+
+  it('leaves an entry too tall to fit a page alone breakable, flagged or not', () => {
+    install()
+    // One entry spanning 300px against a 400px page: past the ceiling, so
+    // holding it would stand it in front of a break it can never clear.
+    const head = elm(['rm-item-head'], { top: 0, bottom: 20, left: 0, right: 300 })
+    const a = txt('First', { top: 30, bottom: 150, left: 0, right: 300 })
+    const b = txt('Second', { top: 160, bottom: 300, left: 0, right: 300 })
+    const entry = elm(['rm-item'], { top: 0, bottom: 300, left: 0, right: 300 }, [head, a, b])
+    const body = elm(['rm-section-body'], { top: 0, bottom: 300, left: 0, right: 300 }, [entry])
+    const section = elm(['rm-section', 'rm-keep-entries'], { top: 0, bottom: 300, left: 0, right: 300 }, [body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement, PAGE.usable)
+    expect(blocks.map((b2) => b2.keepWithNext === true)).toEqual([true, false, false])
   })
 })
 

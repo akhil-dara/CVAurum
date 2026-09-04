@@ -49,6 +49,16 @@
   page-break-inside: avoid;
 }
 
+/* Whole entries, when the author asked for them: the PDF engine reads the
+   same class off the section (walk.ts), so the browser's own print path
+   splits an entry no more readily than the export does. */
+.rm-keep-entries .rm-item,
+.rm-keep-entries .rm-skill-group,
+.rm-keep-entries .rm-mini {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /* Standalone print page (screen view before the dialog opens). */
 .print-stage {
   background: hsl(220 18% 90%);

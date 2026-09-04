@@ -398,7 +398,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           try {
             const pad = findMainColumnPaddingPx(printRoot)
             return paginate({
-              blocks: extractPageBlocks(printRoot),
+              blocks: extractPageBlocks(printRoot, computeUsablePageHeightPx(pageH, pad)),
               contentHeightPx: printRoot.getBoundingClientRect().height,
               usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
               firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
@@ -510,7 +510,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         return
       }
       try {
-        const combinedBlocks = extractPageBlocks(printRoot)
+        // The page height goes in because the keep rules are bounded by it
+        // (walk.ts / sectionKeep.ts): without it this overlay would draw cuts
+        // inside sections and entries the export holds whole.
+        const combinedBlocks = extractPageBlocks(printRoot, usablePageHeightPx)
         const result = paginate({
           blocks: combinedBlocks,
           contentHeightPx,

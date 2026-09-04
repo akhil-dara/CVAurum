@@ -810,6 +810,19 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <p className="-mt-1 text-[11px] text-muted-foreground">
           Auto-shrinks type &amp; spacing so a near-full resume fits one page.
         </p>
+        <Toggle
+          label="Keep entries whole"
+          checked={m.page.keepEntriesWhole}
+          onChange={(v) =>
+            update((md) => {
+              md.page.keepEntriesWhole = v
+            })
+          }
+        />
+        <p className="-mt-1 text-[11px] text-muted-foreground">
+          Moves a whole entry to the next page instead of breaking one across it; any section can decide for itself in
+          its Style sheet.
+        </p>
       </FieldGroup>
 
       <FieldGroup title="Links">

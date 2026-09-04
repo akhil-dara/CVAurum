@@ -29,7 +29,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata, Typography } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { sanitizeHtml } from '@/lib/sanitize'
-import { entryOrderOf } from '@/templates/_shared/sectionClasses'
+import { entryMetaOf, entryOrderOf, keepEntriesOn, LOCATION_DATE_SEPARATOR } from '@/templates/_shared/sectionClasses'
 import {
   currentYearMonth,
   downloadBlob,
@@ -169,6 +169,37 @@ let BULLET = { indent: 202, gap: 38 }
 // Per-export heading rhythm - the space after a heading (twips) and the
 // width of its rule (eighths of a point) - reassigned the same way.
 let HEADING = { after: HEADING_AFTER, rule: RULE_PER_PX }
+// Whether the section being built puts the date ahead of the title
+// (sectionSettings.dateAlign). Reassigned at the top of every section, like
+// the sizes above: every entry builder feeds the one titleDate, so the
+// alternative is an eighth positional argument on all of them.
+let DATE_LEFT = false
+// The column a left-placed date hands the title, in twips, measured from the
+// widest date the section prints and reassigned with DATE_LEFT. A fixed
+// column was an inch wide whatever the date said: a long month name or a
+// bigger base size ran past the single tab stop, Word fell back to its own
+// default grid, and the titles of one section landed at different offsets
+// down the page.
+const DATE_COL_MIN = 1500
+const DATE_COL_MAX = 4320
+// The air between the date and the title it hands the line to.
+const DATE_COL_GAP = 140
+let DATE_COL = DATE_COL_MIN
+
+/**
+ * How wide a column the longest of these strings needs, in twips. Word does
+ * its own measuring and this export cannot ask it, so estimate the way type
+ * behaves: a proportional face averages about half its point size per
+ * character. The date prints at SIZE.date half-points, so a string of n
+ * characters wants n * (SIZE.date / 2) * 0.5 * 20 twips - that is n * SIZE.date
+ * * 5 - plus the gap. Floored so a short date still clears the title and
+ * capped so a long one cannot eat the page.
+ */
+function dateColumnFor(strings: Array<string | undefined>): number {
+  const longest = strings.reduce((n, s) => Math.max(n, (s || '').length), 0)
+  const need = Math.round(longest * SIZE.date * 5) + DATE_COL_GAP
+  return Math.min(DATE_COL_MAX, Math.max(DATE_COL_MIN, need))
+}
 
 const has = (s?: string) => !!s && htmlToText(s).length > 0
 
@@ -326,11 +357,23 @@ const titleDate = (
   // A linked title is a hyperlink here for the same reason it is one in the
   // PDF: the page made its own title the link, so the Word copy does too.
   const href = url && LINKS_LIVE ? safeHref(url) : undefined
-  const kids: ParagraphChild[] = [href ? new ExternalHyperlink({ children: [titleRun], link: href }) : titleRun]
-  if (date) kids.push(new TextRun({ text: `\t${date}`, color: C.muted, size: SIZE.date }))
+  const titleChild: ParagraphChild = href ? new ExternalHyperlink({ children: [titleRun], link: href }) : titleRun
+  // The date takes the side the section gives it (dateAlign): the right edge
+  // on a right tab, as this export always set it, or its own column ahead of
+  // the title on a left one, which is where the page puts it.
+  const dateFirst = DATE_LEFT && !!date
+  const kids: ParagraphChild[] = dateFirst
+    ? [new TextRun({ text: `${date}\t`, color: C.muted, size: SIZE.date }), titleChild]
+    : [titleChild, ...(date ? [new TextRun({ text: `\t${date}`, color: C.muted, size: SIZE.date })] : [])]
   return new Paragraph({
     spacing: { before: 110, after: 8 },
-    tabStops: date ? [{ type: TabStopType.RIGHT, position: width }] : undefined,
+    tabStops: date
+      ? [dateFirst ? { type: TabStopType.LEFT, position: DATE_COL } : { type: TabStopType.RIGHT, position: width }]
+      : undefined,
+    // A hanging indent the width of the column, so a title that wraps keeps
+    // its second line in the title column instead of falling back under the
+    // date - which is what the page's flex row does with it.
+    ...(dateFirst ? { indent: { left: DATE_COL, hanging: DATE_COL } } : {}),
     children: kids,
     ...opts,
   })
@@ -365,9 +408,27 @@ const verifyPara = (url: string | undefined, urlLabel: string | undefined, C: Ct
   return [new Paragraph({ spacing: { after: 16 }, children: [linkRun(url, words, C)] })]
 }
 
-const sub = (s: string, C: Ctx, bold = false) =>
+/**
+ * What "keep entries whole" (page.keepEntriesWhole, or a section's own
+ * keepTogether) can say in Word.
+ *
+ * Word holds paragraphs together one link at a time - keepNext binds a
+ * paragraph to the one BELOW it, and there is no "hold this group" - so a
+ * whole entry could only be held by flagging every paragraph in it, and the
+ * flag on its last line would bind it to the NEXT entry and chain a section
+ * into one unbreakable block. So the flag goes where the split shows: an
+ * entry's head lines hold the body under them, and a page break can never
+ * leave a title, or a title and its sub-line, alone at the foot of a page.
+ * keepLines comes with it, so a head line that wraps is not split either.
+ * The page's own engine holds the whole entry (walk.ts).
+ */
+const KEEP_HEAD: IParagraphOptions = { keepNext: true, keepLines: true }
+const keepHead = (on: boolean): IParagraphOptions => (on ? KEEP_HEAD : {})
+
+const sub = (s: string, C: Ctx, bold = false, keep = false) =>
   new Paragraph({
     spacing: { after: 16 },
+    ...keepHead(keep),
     children: [new TextRun({ text: s, italics: true, ...(bold ? { bold: true } : {}), color: C.muted, size: SIZE.sub })],
   })
 const para = (runs: ParagraphChild[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
@@ -450,6 +511,47 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     const order = entryOrderOf(settings)
     const orgFirst = order.lead === 'org'
     const leadBold = order.lead === order.bold
+    // Whether this section's entries must not be torn across a page break -
+    // the document's switch until the section decides for itself, the same
+    // answer the page reads (KEEP_HEAD says what Word can do with it).
+    const keepEntries = keepEntriesOn(doc.metadata.page, settings)
+    // Where the location prints and which side the date sits on. With the
+    // two sharing the head row the location leads the tabbed string, exactly
+    // as it leads the date slot on the page, and it leaves the sub-line.
+    const meta = entryMetaOf(settings)
+    DATE_LEFT = meta.dateLeft
+    const placed = (loc: string | undefined, date: string) =>
+      meta.locWithDate && loc ? [loc, date].filter(Boolean).join(LOCATION_DATE_SEPARATOR) : date
+    /** The location, when the section leaves it on the sub-line. */
+    const onSub = (loc: string | undefined) => (meta.locWithDate ? '' : loc || '')
+    /** Every string this section hands the tab, gathered before the first
+     *  paragraph is built so one column serves the whole section: a title
+     *  lands at the same offset whether its own date reads "2022" or
+     *  "September 2019 - December 2021". */
+    const tabbedDates = (): string[] => {
+      const range = (a?: string, b?: string) => formatDateRange(a, b, dates)
+      switch (key) {
+        case 'work':
+          return content.work.map((w) => placed(w.location, range(w.startDate, w.endDate)))
+        case 'education':
+          return content.education.map((e) => placed(e.location, range(e.startDate, e.endDate)))
+        case 'projects':
+          return content.projects.map((p) => range(p.startDate, p.endDate))
+        case 'volunteer':
+          return content.volunteer.map((v) => range(v.startDate, v.endDate))
+        case 'certificates':
+          return content.certificates.map((c) => formatDate(c.date, dates))
+        case 'awards':
+          return content.awards.map((a) => formatDate(a.date, dates))
+        case 'publications':
+          return content.publications.map((p) => formatDate(p.releaseDate, dates))
+        default:
+          return (content.custom.find((c) => `custom-${c.id}` === key)?.items ?? []).map((it) =>
+            placed(it.location, formatDate(it.date, dates))
+          )
+      }
+    }
+    DATE_COL = meta.dateLeft ? dateColumnFor(tabbedDates()) : DATE_COL_MIN
     if (key === 'summary') {
       if (!has(b.summary)) continue
       out.push(heading(label, C, align), ...summaryParas(b.summary!, C))
@@ -457,11 +559,11 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       out.push(heading(label, C, align))
       for (const w of content.work) {
         const [lead, under] = orgFirst ? [w.name, w.position] : [w.position, w.name]
-        out.push(titleDate(lead || under || 'Role', formatDateRange(w.startDate, w.endDate, dates), C, width, {}, w.url, leadBold))
-        const s = [lead && under ? under : '', w.location].filter(Boolean).join('  ·  ')
-        if (s) out.push(sub(s, C, !leadBold))
-        if (has(w.summary)) out.push(...summaryParas(w.summary!, C))
-        out.push(...bulletsOf(w.highlights ?? [], C))
+        const s = [lead && under ? under : '', onSub(w.location)].filter(Boolean).join('  ·  ')
+        const body = [...(has(w.summary) ? summaryParas(w.summary!, C) : []), ...bulletsOf(w.highlights ?? [], C)]
+        out.push(titleDate(lead || under || 'Role', placed(w.location, formatDateRange(w.startDate, w.endDate, dates)), C, width, keepHead(keepEntries && (!!s || body.length > 0)), w.url, leadBold))
+        if (s) out.push(sub(s, C, !leadBold, keepEntries && body.length > 0))
+        out.push(...body)
       }
     } else if (key === 'education') {
       out.push(heading(label, C, align))
@@ -470,22 +572,33 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         // used to lead with the institution whatever the page showed).
         const degree = [e.studyType, e.area].filter(Boolean).join(', ')
         const [lead, under] = orgFirst ? [e.institution, degree] : [degree, e.institution]
-        out.push(titleDate(lead || under || 'Institution', formatDateRange(e.startDate, e.endDate, dates), C, width, {}, e.url, leadBold))
-        const line = [lead && under ? under : '', e.score].filter(Boolean).join('  ·  ')
-        if (line) out.push(sub(line, C, !leadBold))
+        // The location joins the sub-line here as it does on the page; this
+        // export used to print it in neither slot.
+        const line = [lead && under ? under : '', onSub(e.location), e.score].filter(Boolean).join('  ·  ')
+        const body: Paragraph[] = []
         if (e.courses?.length)
-          out.push(
+          body.push(
             new Paragraph({
               spacing: { after: 24 },
               children: [new TextRun({ text: e.courses.join('  ·  '), color: C.muted, size: SIZE.sub })],
             })
           )
-        if (has(e.summary)) out.push(...summaryParas(e.summary!, C))
+        if (has(e.summary)) body.push(...summaryParas(e.summary!, C))
+        out.push(titleDate(lead || under || 'Institution', placed(e.location, formatDateRange(e.startDate, e.endDate, dates)), C, width, keepHead(keepEntries && (!!line || body.length > 0)), e.url, leadBold))
+        if (line) out.push(sub(line, C, !leadBold, keepEntries && body.length > 0))
+        out.push(...body)
       }
     } else if (key === 'projects') {
       out.push(heading(label, C, align))
       for (const p of content.projects) {
-        out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate, dates), C, width, {}, p.url))
+        // Anything at all under the title is body enough to hold it to.
+        const hasBody =
+          !!p.url ||
+          has(p.description) ||
+          (p.links ?? []).some((l) => (l.url || '').trim() || (l.label || '').trim()) ||
+          (p.highlights ?? []).some((h) => htmlToText(h).length > 0) ||
+          !!p.keywords?.length
+        out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate, dates), C, width, keepHead(keepEntries && hasBody), p.url))
         if (p.url)
           out.push(
             new Paragraph({
@@ -567,30 +680,33 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     } else if (key === 'certificates') {
       out.push(heading(label, C, align))
       for (const c of content.certificates) {
-        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date, dates), C, width, {}, (c.urlLabel || '').trim() ? undefined : c.url))
-        out.push(...verifyPara(c.url, c.urlLabel, C))
+        const verify = verifyPara(c.url, c.urlLabel, C)
+        out.push(titleDate([c.name, c.issuer].filter(Boolean).join('  —  '), formatDate(c.date, dates), C, width, keepHead(keepEntries && verify.length > 0), (c.urlLabel || '').trim() ? undefined : c.url))
+        out.push(...verify)
       }
     } else if (key === 'awards') {
       out.push(heading(label, C, align))
       for (const a of content.awards) {
-        out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date, dates), C, width, {}, (a.urlLabel || '').trim() ? undefined : a.url))
-        out.push(...verifyPara(a.url, a.urlLabel, C))
-        if (has(a.summary)) out.push(...summaryParas(a.summary, C))
+        const body = [...verifyPara(a.url, a.urlLabel, C), ...(has(a.summary) ? summaryParas(a.summary, C) : [])]
+        out.push(titleDate([a.title, a.awarder].filter(Boolean).join('  —  '), formatDate(a.date, dates), C, width, keepHead(keepEntries && body.length > 0), (a.urlLabel || '').trim() ? undefined : a.url))
+        out.push(...body)
       }
     } else if (key === 'publications') {
       out.push(heading(label, C, align))
       for (const p of content.publications) {
-        out.push(titleDate([p.name, p.publisher].filter(Boolean).join('  —  '), formatDate(p.releaseDate, dates), C, width, {}, p.url))
-        if (has(p.summary)) out.push(...summaryParas(p.summary, C))
+        const body = has(p.summary) ? summaryParas(p.summary, C) : []
+        out.push(titleDate([p.name, p.publisher].filter(Boolean).join('  —  '), formatDate(p.releaseDate, dates), C, width, keepHead(keepEntries && body.length > 0), p.url))
+        out.push(...body)
       }
     } else if (key === 'volunteer') {
       out.push(heading(label, C, align))
       for (const v of content.volunteer) {
         const [lead, under] = orgFirst ? [v.organization, v.position] : [v.position, v.organization]
-        out.push(titleDate(lead || under || 'Role', formatDateRange(v.startDate, v.endDate, dates), C, width, {}, v.url, leadBold))
-        if (lead && under) out.push(sub(under, C, !leadBold))
-        if (has(v.summary)) out.push(...summaryParas(v.summary, C))
-        out.push(...bulletsOf(v.highlights ?? [], C))
+        const body = [...(has(v.summary) ? summaryParas(v.summary, C) : []), ...bulletsOf(v.highlights ?? [], C)]
+        const subLine = lead && under ? under : ''
+        out.push(titleDate(lead || under || 'Role', formatDateRange(v.startDate, v.endDate, dates), C, width, keepHead(keepEntries && (!!subLine || body.length > 0)), v.url, leadBold))
+        if (subLine) out.push(sub(subLine, C, !leadBold, keepEntries && body.length > 0))
+        out.push(...body)
       }
     } else if (key === 'interests') {
       out.push(heading(label, C, align))
@@ -609,6 +725,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
           out.push(
             new Paragraph({
               spacing: { after: 4 },
+              ...keepHead(keepEntries && !!r.reference),
               children: [new TextRun({ text: r.name, bold: true, color: C.body, size: SIZE.body })],
             })
           )
@@ -623,11 +740,11 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
         // The subtitle stands in for the organisation; neither falls back to
         // the other, as neither does on the page.
         const [lead, under] = orgFirst ? [it.subtitle, it.name] : [it.name, it.subtitle]
-        out.push(titleDate(lead || '', formatDate(it.date, dates), C, width, {}, it.url, leadBold))
-        const s = [under, it.location].filter(Boolean).join('  ·  ')
-        if (s) out.push(sub(s, C, !leadBold))
-        if (has(it.summary)) out.push(...summaryParas(it.summary, C))
-        out.push(...bulletsOf(it.highlights ?? [], C))
+        const s = [under, onSub(it.location)].filter(Boolean).join('  ·  ')
+        const body = [...(has(it.summary) ? summaryParas(it.summary, C) : []), ...bulletsOf(it.highlights ?? [], C)]
+        out.push(titleDate(lead || '', placed(it.location, formatDate(it.date, dates)), C, width, keepHead(keepEntries && (!!s || body.length > 0)), it.url, leadBold))
+        if (s) out.push(sub(s, C, !leadBold, keepEntries && body.length > 0))
+        out.push(...body)
       }
     }
   }
@@ -706,6 +823,9 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   SIZE = metrics.sizes
   BULLET = { indent: metrics.bulletIndent, gap: metrics.bulletGap }
   HEADING = { after: metrics.headingGap, rule: metrics.headingRule }
+  // Sections set this as they are built; the header is built first and has
+  // no entries, so it starts from the side the page always used.
+  DATE_LEFT = false
   const primary = toHex(metadata.theme.primary, '2563EB')
   const text = toHex(metadata.theme.text, '1A1A1A')
   const muted = toHex(metadata.theme.muted, '5B6472')

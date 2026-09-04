@@ -256,3 +256,53 @@ describe('resumeToAtsText leads each entry with the field the section leads with
     expect(resumeToAtsText(docWith({ work: { entryOrder: 'org-first', entryEmphasis: 'org' } }))).toBe(swapped)
   })
 })
+
+describe('resumeToAtsText follows the section on the meta line', () => {
+  // Which edge the date sits on is placement, and the text an ATS reads has
+  // no columns to place anything in, so it reads the same either way. Which
+  // of the two fields comes FIRST is not placement - the page and the Word
+  // file both lead with the location once it joins the date - so the text
+  // leads with it too, and the three surfaces name the pair in one order.
+  const docWith = (sectionSettings: Record<string, unknown> = {}): ResumeDocument =>
+    ({
+      id: 'res-1',
+      title: 'T',
+      createdAt: 0,
+      updatedAt: 0,
+      content: {
+        basics: { name: 'Alex Morgan', profiles: [], location: {} },
+        work: [
+          { id: 'w1', name: 'Acme', position: 'Engineer', startDate: '2019-01', endDate: '2021-03', location: 'Austin', highlights: [] },
+        ],
+        education: [
+          { id: 'e1', institution: 'State University', studyType: 'BSc', area: 'Computer Science', location: 'Boston', startDate: '2015', endDate: '2019', courses: [] },
+        ],
+        projects: [],
+        skills: [],
+        languages: [],
+        certificates: [],
+        awards: [],
+        publications: [],
+        volunteer: [],
+        interests: [],
+        references: [],
+        custom: [{ id: 'x1', name: 'Talks', items: [{ id: 'i1', name: 'Keynote', subtitle: 'DevConf', date: '2022', location: 'Berlin', highlights: [] }] }],
+      },
+      metadata: MetadataSchema.parse({ layout: { main: ['work', 'education', 'custom-x1'], sectionSettings } }),
+    }) as unknown as ResumeDocument
+
+  it('is byte-identical with the date moved to the left of the title', () => {
+    const stock = resumeToAtsText(docWith())
+    const moved = { dateAlign: 'left' }
+    expect(resumeToAtsText(docWith({ work: moved, education: moved, 'custom-x1': moved }))).toBe(stock)
+  })
+
+  it('prints the date and then the location while the location is on the sub-line', () => {
+    expect(resumeToAtsText(docWith())).toContain('Engineer\nAcme\nJan 2019 — Mar 2021  ·  Austin')
+  })
+
+  it('leads with the location once the section prints it beside the date', () => {
+    const text = resumeToAtsText(docWith({ work: { locationPlacement: 'with-date' } }))
+    expect(text).toContain('Engineer\nAcme\nAustin  ·  Jan 2019 — Mar 2021')
+  })
+})

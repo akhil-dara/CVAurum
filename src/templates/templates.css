@@ -147,7 +147,9 @@
   align-items: baseline;
   gap: 0.5em;
 }
-.tpl-vector .rm-item-loc {
+/* Scoped to the sub-line: a section can move the location into the date
+   slot, where this template's push-right and italic do not belong. */
+.tpl-vector .rm-item-sub .rm-item-loc {
   margin-left: auto;
   font-style: italic;
   white-space: nowrap;
@@ -370,7 +372,8 @@
   align-items: baseline;
   gap: 0.5em;
 }
-.tpl-cambridge .rm-item-loc {
+/* Scoped to the sub-line, as .tpl-vector's twin above is. */
+.tpl-cambridge .rm-item-sub .rm-item-loc {
   margin-left: auto;
   font-style: italic;
   white-space: nowrap;

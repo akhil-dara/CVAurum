@@ -44,6 +44,11 @@ export const PageSchema = z.object({
   autoFit: z.boolean().default(true),
   /** user-pinned page breaks — only meaningful with autoFit off */
   breaks: z.array(PageBreakPinSchema).default([]),
+  /** Never let a page break fall inside one entry: the whole entry moves to
+   *  the next page instead. Off is the page as it always broke. A section can
+   *  decide for itself (sectionSettings[key].keepTogether); an entry taller
+   *  than a page has no break that clears it and is left alone. */
+  keepEntriesWhole: z.boolean().default(false),
 })
 
 export const ThemeSchema = z.object({
@@ -184,6 +189,18 @@ export const LayoutSchema = z.object({
         entryOrder: z.enum(['title-first', 'org-first']).optional(),
         /** Which of the two is bold. Unset is the title, whichever leads. */
         entryEmphasis: z.enum(['title', 'org']).optional(),
+        /** Where an entry's location prints: on the sub-line under the title
+         *  with the rest of the entry's detail, or beside the date on the
+         *  head row. Unset is the sub-line, as the page always drew it. */
+        locationPlacement: z.enum(['subline', 'with-date']).optional(),
+        /** Which edge of the head row the date sits on. Unset is the right,
+         *  as the page always drew it. */
+        dateAlign: z.enum(['right', 'left']).optional(),
+        /** Whether a page break may fall inside one of this section's
+         *  entries. Unset follows the document (page.keepEntriesWhole), so a
+         *  section can hold its entries whole while the rest of the page
+         *  breaks freely, or break freely while the rest holds. */
+        keepTogether: z.boolean().optional(),
       })
     )
     .default({}),

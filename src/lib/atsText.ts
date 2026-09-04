@@ -17,7 +17,7 @@ import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { currentYearMonth, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
-import { entryOrderOf } from '@/templates/_shared/sectionClasses'
+import { entryMetaOf, entryOrderOf } from '@/templates/_shared/sectionClasses'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
 
@@ -40,13 +40,23 @@ function heading(label: string): string[] {
 }
 
 /** An entry's two head lines in the order the page prints them - the section
- *  says whether the organisation leads - then its date and location line. */
-function entryHead(title?: string, org?: string, date?: string, loc?: string, orgFirst = false): string[] {
+ *  says whether the organisation leads - then its date and location line.
+ *  The pair is named in the order the page and the Word file name it: the
+ *  location leads once the section prints it beside the date, and follows
+ *  the date while it sits on the sub-line under the title. */
+function entryHead(
+  title?: string,
+  org?: string,
+  date?: string,
+  loc?: string,
+  orgFirst = false,
+  locWithDate = false
+): string[] {
   const out: string[] = []
   const [first, second] = orgFirst ? [org, title] : [title, org]
   if (first) out.push(first)
   if (second) out.push(second)
-  const meta = line(date, loc)
+  const meta = locWithDate ? line(loc, date) : line(date, loc)
   if (meta) out.push(meta)
   return out
 }
@@ -62,6 +72,11 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
   // Whether the organisation leads each entry here, as it does on the page.
   // Which line is bold is ink, not words, and never reaches this text.
   const orgFirst = entryOrderOf(settings).lead === 'org'
+  // Whether the location shares the head row with the date, as it does on
+  // the page and in the Word file: then it leads the pair here too. Which
+  // edge the date sits on is ink - a text file has no columns - so dateAlign
+  // never reaches these lines.
+  const locWithDate = entryMetaOf(settings).locWithDate
   const out: string[] = []
   const push = (lines: string[]) => {
     if (lines.length) out.push(...heading(label), ...lines)
@@ -76,7 +91,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'work':
       push(
         c.work.flatMap((w) => [
-          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location, orgFirst),
+          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location, orgFirst, locWithDate),
           ...(htmlToText(w.summary) ? [htmlToText(w.summary)] : []),
           ...w.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -92,6 +107,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
             formatDateRange(e.startDate, e.endDate, dates),
             e.location,
             orgFirst,
+            locWithDate,
           ),
           ...(e.score ? [e.score] : []),
           ...(htmlToText(e.summary) ? [htmlToText(e.summary)] : []),
@@ -155,7 +171,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'volunteer':
       push(
         c.volunteer.flatMap((v) => [
-          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates), undefined, orgFirst),
+          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates), undefined, orgFirst, locWithDate),
           ...(htmlToText(v.summary) ? [htmlToText(v.summary)] : []),
           ...v.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -177,7 +193,7 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         if (cs) {
           push(
             cs.items.flatMap((it) => [
-              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location, orgFirst),
+              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location, orgFirst, locWithDate),
               ...(htmlToText(it.summary) ? [htmlToText(it.summary)] : []),
               ...(it.highlights ?? []).map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
               '',

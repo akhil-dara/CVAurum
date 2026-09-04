@@ -499,3 +499,158 @@ describe('the Word export leads and stresses each entry the way the section does
     expect(runOf(lead.body, 'Designer')).not.toContain('<w:b/>')
   })
 })
+
+describe('the Word export places the location and the date the way the section does', () => {
+  // Where the location prints and which side the date sits on are the
+  // section's, and the Word file follows: with-date joins the two into the
+  // one string the tab carries, and a left date leads its paragraph on a
+  // left tab stop instead of trailing it on a right one.
+  // The first run's words, without the tab the export writes beside them.
+  const firstText = (p: string) => /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/.exec(p)?.[1].replace(/\t/g, '')
+  const tabKind = (p: string) => /<w:tab w:val="(\w+)"/.exec(p)?.[1]
+  const withPlaces = (sectionSettings: Metadata['layout']['sectionSettings'] = {}, rest: MetadataOverrides = {}) => {
+    const doc = docWith({ ...rest, layout: { main: ['work', 'education', 'custom-x1'], sectionSettings } })
+    doc.content.work[0].endDate = '2023-02'
+    doc.content.work[0].location = 'Austin, TX'
+    doc.content.education = [
+      {
+        id: 'e1',
+        institution: 'State University',
+        studyType: 'BSc',
+        area: 'Computer Science',
+        location: 'Boston, MA',
+        startDate: '2015',
+        endDate: '2019',
+        courses: [],
+      },
+    ] as never
+    doc.content.custom = [
+      { id: 'x1', name: 'Talks', items: [{ id: 'i1', name: 'Keynote', subtitle: 'DevConf', date: '2022', location: 'Berlin', highlights: [] }] },
+    ] as never
+    return doc
+  }
+
+  it('by default the location sits on the sub-line under the title', async () => {
+    const all = texts((await unpack(withPlaces())).body).join('|')
+    expect(all).toContain('Acme  ·  Austin, TX')
+    expect(all).toContain('State University  ·  Boston, MA')
+    expect(all).toContain('DevConf  ·  Berlin')
+  })
+
+  it('with-date joins the location and the date on the tab, and clears the sub-line', async () => {
+    const on = { locationPlacement: 'with-date' } as const
+    const all = texts((await unpack(withPlaces({ work: on, education: on, 'custom-x1': on }))).body).join('|')
+    expect(all).toContain('Austin, TX | Mar 2021 — Feb 2023')
+    expect(all).toContain('Boston, MA | 2015 — 2019')
+    expect(all).toContain('Berlin | 2022')
+    expect(all).not.toContain('Acme  ·  Austin, TX')
+    expect(all).not.toContain('State University  ·  Boston, MA')
+    expect(all).not.toContain('DevConf  ·  Berlin')
+  })
+
+  it('a left date leads its paragraph on a left tab stop', async () => {
+    const { body } = await unpack(withPlaces({ work: { dateAlign: 'left' } }))
+    const p = paraOf(body, 'Designer')
+    expect(firstText(p)).toBe('Mar 2021 — Feb 2023')
+    expect(tabKind(p)).toBe('left')
+  })
+
+  it('the stock right date still trails its title on a right tab stop', async () => {
+    const p = paraOf((await unpack(withPlaces())).body, 'Designer')
+    expect(firstText(p)).toBe('Designer')
+    expect(tabKind(p)).toBe('right')
+  })
+
+  // A column narrower than the date it holds is no column at all: Word runs
+  // past the single stop to its own default grid, and the titles of a section
+  // land at different offsets down the page. A conservative lower bound on
+  // the width a run needs: a proportional face averages about half its point
+  // size per character, and the date prints at SIZE.date half-points, so
+  // len * (size / 2) * 0.5 * 20 twips === len * size * 5.
+  const needs = (text: string, halfPoints: number) => text.length * halfPoints * 5
+  const tabPos = (p: string) => Number(/<w:tab w:val="left" w:pos="(\d+)"/.exec(p)?.[1])
+  const indent = (p: string) => {
+    const a = /<w:ind ([^>]*)\/>/.exec(p)?.[1] ?? ''
+    const n = (k: string) => Number(new RegExp(`w:${k}="(\\d+)"`).exec(a)?.[1])
+    return { left: n('left'), hanging: n('hanging') }
+  }
+
+  it('widens the left date column to hold a long date, and hangs the title beside it', async () => {
+    const doc = withPlaces({ work: { dateAlign: 'left' } }, { dates: { month: 'long' } })
+    const p = paraOf((await unpack(doc)).body, 'Designer')
+    const date = firstText(p) ?? ''
+    expect(date).toBe('March 2021 — February 2023')
+    const pos = tabPos(p)
+    expect(pos).toBeGreaterThan(needs(date, docxMetrics(doc.metadata).sizes.date))
+    // The wrapped second line of a title stays in the title column instead of
+    // falling back under the date.
+    expect(indent(p)).toEqual({ left: pos, hanging: pos })
+  })
+
+  it('keeps a short date on a narrower column than a long one', async () => {
+    const short = paraOf((await unpack(withPlaces({ work: { dateAlign: 'left' } }))).body, 'Designer')
+    const long = paraOf(
+      (await unpack(withPlaces({ work: { dateAlign: 'left' } }, { dates: { month: 'long' } }))).body,
+      'Designer'
+    )
+    expect(tabPos(short)).toBeGreaterThan(needs(firstText(short) ?? '', docxMetrics(defaultMetadata()).sizes.date))
+    expect(tabPos(long)).toBeGreaterThan(tabPos(short))
+  })
+})
+
+describe('the Word export holds an entry to its own body when entries are kept whole', () => {
+  // Word chains one paragraph to the next; it has no "keep this group
+  // together". So the policy maps to the seam that shows: an entry's head
+  // line holds the line under it, and a page break can never leave a title
+  // alone at the foot of a page. See the note in docx.ts.
+  const keepNext = (p: string) => p.includes('<w:keepNext/>')
+  const entryDoc = (metadata: MetadataOverrides) => {
+    const doc = docWith(metadata)
+    doc.content.work[0].highlights = ['Shipped the thing']
+    return doc
+  }
+  // A bullet's text is read through a DOM element and there is none here, so
+  // the same text-only stand-in the indent suite above uses stands in.
+  const originalDocument = globalThis.document
+  beforeEach(() => {
+    globalThis.document = {
+      createElement: () => ({
+        childNodes: [] as { nodeType: number; textContent: string }[],
+        set innerHTML(html: string) {
+          this.childNodes = [{ nodeType: 3, textContent: html }]
+        },
+        get textContent() {
+          return this.childNodes.map((n) => n.textContent).join('')
+        },
+      }),
+    } as unknown as Document
+  })
+  afterEach(() => {
+    globalThis.document = originalDocument
+  })
+
+  it('holds the head line, and does not hold the bullet under it (that would glue the next entry on)', async () => {
+    const { body } = await unpack(entryDoc({ page: { keepEntriesWhole: true } }))
+    expect(keepNext(paraOf(body, 'Designer'))).toBe(true)
+    expect(keepNext(paraOf(body, 'Acme'))).toBe(true)
+    expect(keepNext(paraOf(body, 'Shipped the thing'))).toBe(false)
+  })
+
+  it('holds nothing while the document breaks pages as it always did', async () => {
+    const { body } = await unpack(entryDoc({}))
+    expect(keepNext(paraOf(body, 'Designer'))).toBe(false)
+    expect(keepNext(paraOf(body, 'Acme'))).toBe(false)
+  })
+
+  it('lets one section opt out of a document that keeps its entries whole', async () => {
+    const { body } = await unpack(
+      entryDoc({ page: { keepEntriesWhole: true }, layout: { sectionSettings: { work: { keepTogether: false } } } })
+    )
+    expect(keepNext(paraOf(body, 'Designer'))).toBe(false)
+  })
+
+  it('lets one section opt in on a document that does not', async () => {
+    const { body } = await unpack(entryDoc({ layout: { sectionSettings: { work: { keepTogether: true } } } }))
+    expect(keepNext(paraOf(body, 'Designer'))).toBe(true)
+  })
+})

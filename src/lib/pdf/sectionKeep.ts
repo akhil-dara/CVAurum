@@ -1,5 +1,6 @@
 /**
- * Keep a SHORT main-column section on one page (2026-08-25).
+ * Keep a SHORT main-column section on one page (2026-08-25), and - when the
+ * author asks for it - keep each ENTRY on one page too (`keepEntryWhole`).
  *
  * A section split by a page break has no heading on its continuation, so
  * everything after the break reads under whatever heading came before it.
@@ -42,6 +43,45 @@ import type { PageBlock } from './paginate'
  * has rejected, or content that fits.
  */
 export const KEEP_WHOLE_MAX_FRACTION = 0.4
+
+/**
+ * How tall ONE ENTRY may be, as a fraction of a page, and still be held
+ * together when the author asks for whole entries (page.keepEntriesWhole, or
+ * one section's keepTogether).
+ *
+ * Higher than the section ceiling above, and for a different reason: this rule
+ * is opt-in, so the cost of the gap it can leave is one the author chose,
+ * while the section rule applies to every document unasked. The ceiling is
+ * still there because a request cannot be granted past the paper: an entry
+ * taller than the page it must fit has no cut that clears it, and flagging one
+ * would stand it in front of a break it can never take and strand whole pages.
+ * Such an entry breaks normally, exactly as it does today.
+ */
+export const KEEP_ENTRY_MAX_FRACTION = 0.6
+
+/**
+ * Returns ONE entry's blocks with `keepWithNext` set on every block but its
+ * last, so no cut can land inside the entry while the gap that follows it
+ * stays the best break available. Entries hold no gap blocks - a gap lives
+ * BETWEEN two entries, never inside one (walk.ts) - so every block here is
+ * ink and the last one is the entry's own end.
+ *
+ * The input is never mutated; the same array is returned when the entry is too
+ * tall, too short to hold a cut, or there is no page height to measure it
+ * against.
+ */
+export function keepEntryWhole(
+  blocks: PageBlock[],
+  usablePageHeightPx: number,
+  maxFraction = KEEP_ENTRY_MAX_FRACTION
+): PageBlock[] {
+  if (!(usablePageHeightPx > 0) || blocks.length < 2) return blocks
+  const height = blocks[blocks.length - 1].bottomPx - blocks[0].topPx
+  if (height > usablePageHeightPx * maxFraction) return blocks
+  const last = blocks.length - 1
+  if (blocks.every((b, i) => i === last || b.keepWithNext === true)) return blocks
+  return blocks.map((b, i) => (i === last || b.keepWithNext === true ? b : { ...b, keepWithNext: true }))
+}
 
 /**
  * Returns `blocks` with `keepWithNext` set inside every main-column section

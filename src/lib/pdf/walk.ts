@@ -7,7 +7,7 @@ import { collectLinkOps } from './links'
 import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
-import { keepShortSectionsWhole } from './sectionKeep'
+import { keepShortSectionsWhole, keepEntryWhole } from './sectionKeep'
 
 /**
  * `background: linear-gradient(<angle>deg, <c1>, <c2>)` sets `background-
@@ -1266,6 +1266,14 @@ function tagPageChromeOps(ops: DrawOp[], contentHeightPx: number): void {
  * where a cut candidate exists only where EVERY column is clear at that y
  * (spec 1: "both columns cut at the same y").
  *
+ * KEEPING ENTRIES WHOLE: a section the renderer marks `.rm-keep-entries`
+ * (the author asked for it, document-wide or for that section alone) has
+ * `keepWithNext` set on every block of each entry but its last, so no cut can
+ * land inside an entry while the gap that follows one stays the best break
+ * there is. `usablePageHeightPx` is what bounds the rule - an entry taller
+ * than a fraction of the page is left breakable (sectionKeep.ts) - so a
+ * caller that omits it gets today's breaks whatever the DOM says.
+ *
  * Single-column docs (no `.rm-col-aside` present) skip `combineColumns`
  * entirely rather than routing a single column through it — same walk,
  * same result, byte-identical to task 2's own output (see the task-2b
@@ -1279,7 +1287,7 @@ export function extractPageBlocks(root: HTMLElement, usablePageHeightPx?: number
   const aside = findByClass(root, ['rm-col-aside'])[0]
 
   if (!aside) {
-    const blocks = extractBlocksFromScope(root, rootTop)
+    const blocks = extractBlocksFromScope(root, rootTop, usablePageHeightPx ?? 0)
     if (import.meta.env.DEV) sanityCheckPageBlocks(blocks)
     return blocks
   }
@@ -1288,8 +1296,13 @@ export function extractPageBlocks(root: HTMLElement, usablePageHeightPx?: number
   // Only the MAIN column is held together. A sidebar section split by a break
   // is rejoined in the reading order (readingOrder.ts); a main-column one
   // cannot be, so not splitting it is the only remedy - see sectionKeep.ts.
-  const mainBlocks = keepShortSectionsWhole(extractBlocksFromScope(main, rootTop), usablePageHeightPx ?? 0)
-  const asideBlocks = extractBlocksFromScope(aside, rootTop)
+  // Whole ENTRIES are held in BOTH columns: that rule is the author's own
+  // request, and a sidebar entry torn in half reads no better than a main one.
+  const mainBlocks = keepShortSectionsWhole(
+    extractBlocksFromScope(main, rootTop, usablePageHeightPx ?? 0),
+    usablePageHeightPx ?? 0
+  )
+  const asideBlocks = extractBlocksFromScope(aside, rootTop, usablePageHeightPx ?? 0)
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     // Diagnosis only: a stranded heading needs the PRE-combine blocks to tell
     // a flag that combineColumns lost from one that was never set. Guarded on
@@ -1332,6 +1345,8 @@ export function extractMainColumnBlocks(root: HTMLElement): PageBlock[] | null {
   const aside = findByClass(root, ['rm-col-aside'])[0]
   if (!aside) return null
   const main = findByClass(root, ['rm-col-main'])[0] ?? root
+  // No page height, so no keep flags: this list exists to ATTRIBUTE a cut to
+  // a section, and the flags change no block's kind or extent.
   return extractBlocksFromScope(main, rootTop)
 }
 
@@ -1340,13 +1355,13 @@ export function extractMainColumnBlocks(root: HTMLElement): PageBlock[] | null {
  *  block measuring the real empty span between consecutive sections — the
  *  body `extractPageBlocks` used to run directly against `root` before task
  *  2b, unchanged for the single-column (no-aside) case. */
-function extractBlocksFromScope(scope: Element, rootTop: number): PageBlock[] {
+function extractBlocksFromScope(scope: Element, rootTop: number, usablePageHeightPx = 0): PageBlock[] {
   const sections = findByClass(scope, ['rm-section'])
 
   const blocks: PageBlock[] = []
   let prevEnd: PageBlock | null = null
   for (const section of sections) {
-    const sectionBlocks = extractSectionBlocks(section, rootTop)
+    const sectionBlocks = extractSectionBlocks(section, rootTop, usablePageHeightPx)
     if (!sectionBlocks.length) continue
     if (prevEnd) {
       blocks.push({ kind: 'section-gap', topPx: prevEnd.bottomPx, bottomPx: sectionBlocks[0].topPx })
@@ -1427,6 +1442,9 @@ const PLAIN_ROW_CLASSES = ['rm-item-sub']
  *  uses `rm-skill-group`, Languages/Certificates/Awards/Publications/
  *  Interests/References use `rm-mini`). Entries never nest. */
 const ENTRY_CLASSES = ['rm-item', 'rm-skill-group', 'rm-mini']
+/** Stamped on a section whose entries must not be torn across a page break
+ *  (the author's own choice - see `extractSectionBlocks`). */
+const KEEP_ENTRIES_CLASSES = ['rm-keep-entries']
 
 function hasAnyClass(el: Element, classes: string[]): boolean {
   const cl = (el as HTMLElement).classList
@@ -1880,9 +1898,14 @@ export function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
  *  BEFORE a gap) has a gap candidate to reject there too. Each `collectInk`
  *  call's own output is coalesced (see `coalesceSameLineBlocks`) before it's
  *  ever appended to the section-wide `blocks` list. */
-function extractSectionBlocks(section: Element, rootTop: number): PageBlock[] {
+function extractSectionBlocks(section: Element, rootTop: number, usablePageHeightPx = 0): PageBlock[] {
   const blocks: PageBlock[] = []
   let prevEnd: PageBlock | null = null
+  // The renderer stamps this class on a section whose entries the author
+  // wants whole (Artboard.tsx, from page.keepEntriesWhole and the section's
+  // own keepTogether), so the export and the live preview read one policy off
+  // the same DOM instead of each deriving it from metadata on its own.
+  const keepEntries = hasAnyClass(section, KEEP_ENTRIES_CLASSES)
 
   const titles = findByClass(section, ['rm-section-title'])
   if (titles.length) {
@@ -1897,7 +1920,8 @@ function extractSectionBlocks(section: Element, rootTop: number): PageBlock[] {
   for (const entry of entries) {
     const rawEntryBlocks: PageBlock[] = []
     collectInk(entry, rootTop, rawEntryBlocks)
-    const entryBlocks = dropTrailingTitleKeepWithNext(coalesceSameLineBlocks(rawEntryBlocks))
+    const collapsed = dropTrailingTitleKeepWithNext(coalesceSameLineBlocks(rawEntryBlocks))
+    const entryBlocks = keepEntries ? keepEntryWhole(collapsed, usablePageHeightPx) : collapsed
     if (!entryBlocks.length) continue
     if (prevEnd) {
       blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: entryBlocks[0].topPx })

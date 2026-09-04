@@ -85,6 +85,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **Per-section bullet & meter styles** — pick the bullet marker (disc, circle, square, dash, arrow, check, diamond, none) and the skills/languages proficiency meter (dots, bars, stars, text, none) per section.
 - **Time spans on date ranges** — a per-section switch ends each range with its length ("2 yrs 3 mos"), as plain text the PDF, the Word file and the ATS view all print alike.
 - **Entry order and emphasis** — per section, lead each entry with the title or with the organisation, and choose which of the two is bold, with both fields still editable on the canvas; the PDF, the Word file and the ATS view keep the same order.
+- **Location and date placement** — per section, print each entry's location beside its date instead of under the title, and put the date at the right edge or in a column of its own ahead of it; the Word file joins the same pair and the ATS text reads unchanged.
 - **Date format and language** — choose how every date reads (short or long month, numeric, or the year alone), what sits between the two ends of a range, the word for a current role, and the language of month names and time spans; the PDF declares that language, and the Word file and the ATS view print the same dates.
 - **Drag-and-drop section reordering** (dnd-kit), show/hide sections, custom sections, and section renaming.
 - **Visual "Add a section" gallery** — each section is shown as a **live preview rendered in your actual template**, so you see exactly how it will look before adding it.
@@ -219,7 +220,7 @@ Conformance is enforced across single-page, two-column, image-heavy and multi-pa
 
 **Your PDF carries proper document properties**, not a toolchain fingerprint: title, author, subject, keywords, creation date and a declared document language, in an XMP metadata packet (PDF 2.0 retires the legacy info dictionary, so XMP is the single source of truth). Readers show _your name_ in the title bar instead of the filename — and no library name appears anywhere in the file.
 
-**Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have. Pin any section — or any single entry — to start on a new page, from its canvas controls or from its card in the panel.
+**Multi-page resumes export natively with clean page breaks** — the engine breaks pages at section or entry boundaries (never mid-line), and the editor preview shows the exact page count and boundaries the exported PDF will have. Pin any section — or any single entry — to start on a new page, from its canvas controls or from its card in the panel. Turn on **Keep entries whole** (Design → Page, or one section at a time in its Style sheet) and a break never lands inside a job or a degree: the whole entry moves to the next page instead.
 
 > **💡 Note:** if PDF generation ever fails in your browser, CVAurum automatically falls back to the classic print dialog so you can always export. In that dialog, set **Margins** to **None** and enable **Background graphics**.
 

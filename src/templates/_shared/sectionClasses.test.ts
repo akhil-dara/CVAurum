@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { entryOrderOf, paintStyle, sectionOverrideClasses } from './sectionClasses'
+import { entryMetaOf, entryOrderOf, keepEntriesOn, paintStyle, sectionOverrideClasses } from './sectionClasses'
 import { defaultMetadata } from '@/data/defaults'
 
 /**
@@ -30,6 +30,24 @@ describe('sectionOverrideClasses', () => {
       'score-ov-pill',
       'sec-align-center',
     ])
+  })
+})
+
+describe('keepEntriesOn', () => {
+  // Whether a page break may fall inside an entry. The document decides
+  // until the section says otherwise - in either direction.
+  it('breaks pages as it always did when neither has decided', () => {
+    expect(keepEntriesOn({ keepEntriesWhole: false }, undefined)).toBe(false)
+    expect(keepEntriesOn(undefined, undefined)).toBe(false)
+  })
+
+  it('follows the document when the section has not decided', () => {
+    expect(keepEntriesOn({ keepEntriesWhole: true }, {})).toBe(true)
+  })
+
+  it('lets one section opt in on a page that breaks freely, and out of one that does not', () => {
+    expect(keepEntriesOn({ keepEntriesWhole: false }, { keepTogether: true })).toBe(true)
+    expect(keepEntriesOn({ keepEntriesWhole: true }, { keepTogether: false })).toBe(false)
   })
 })
 
@@ -70,6 +88,78 @@ describe('entry emphasis reaches the section element as one class', () => {
   })
 })
 
+describe('entryMetaOf', () => {
+  // Where an entry's location and date sit. Unset is the page as it always
+  // was: the location on the sub-line under the title, the date at the right
+  // edge of the head row. The two are independent.
+  it('a section that decided nothing keeps the location under the title and the date right', () => {
+    expect(entryMetaOf(undefined)).toEqual({ locWithDate: false, dateLeft: false })
+    expect(entryMetaOf({})).toEqual({ locWithDate: false, dateLeft: false })
+    expect(entryMetaOf({ locationPlacement: 'subline', dateAlign: 'right' })).toEqual({
+      locWithDate: false,
+      dateLeft: false,
+    })
+  })
+
+  it('either choice can be made without the other', () => {
+    expect(entryMetaOf({ locationPlacement: 'with-date' })).toEqual({ locWithDate: true, dateLeft: false })
+    expect(entryMetaOf({ dateAlign: 'left' })).toEqual({ locWithDate: false, dateLeft: true })
+    expect(entryMetaOf({ locationPlacement: 'with-date', dateAlign: 'left' })).toEqual({
+      locWithDate: true,
+      dateLeft: true,
+    })
+  })
+})
+
+describe('the date side reaches the section element as one class', () => {
+  // Which edge the date sits on is ink, so it travels as a class. Where the
+  // location prints is a different element in a different slot, so it
+  // travels in the markup and adds no class at all.
+  it('either side is a class the stylesheet keys on', () => {
+    expect(sectionOverrideClasses({ dateAlign: 'left' })).toEqual(['sec-date-left'])
+    expect(sectionOverrideClasses({ dateAlign: 'right' })).toEqual(['sec-date-right'])
+  })
+
+  it('sits last, after the emphasis class', () => {
+    expect(sectionOverrideClasses({ entryEmphasis: 'org', dateAlign: 'left' })).toEqual([
+      'sec-emph-sub',
+      'sec-date-left',
+    ])
+  })
+
+  it('the location placement adds nothing', () => {
+    expect(sectionOverrideClasses({ locationPlacement: 'with-date' })).toEqual([])
+  })
+})
+
+describe('the left date column is drawn with the box model the export can paint', () => {
+  // A date moved to the left of the head row must be a flex order change on
+  // a laid-out box, never a transform or an absolute overlay: the export
+  // paints each element where the browser lays it out and reads its computed
+  // style, so those two would land on the canvas and nowhere else.
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  const css = fs.readFileSync(path.join(here, '../../styles/artboard.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const rules: { selector: string; body: string }[] = []
+  const re = /([^{}]+)\{([^{}]*)\}/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(css))) rules.push({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] })
+  const dateRules = rules.filter((r) => r.selector.includes('sec-date-left'))
+
+  it('moves the date with order, and does not move it with a transform', () => {
+    expect(dateRules.length).toBeGreaterThan(0)
+    const all = dateRules.map((r) => r.body).join(';')
+    expect(all).toMatch(/(?:^|;|\s)order\s*:/)
+    expect(all).not.toMatch(/transform|position\s*:\s*absolute|gradient/)
+  })
+
+  it('beats the stock rule that pushes the date to the right edge', () => {
+    // .rm-col-main .rm-item-head > .rm-item-date sets margin-left: auto;
+    // the override has to unset it or the date stays pinned right.
+    const date = dateRules.find((r) => r.selector.includes('.rm-item-date'))
+    expect(date?.body).toMatch(/margin-left\s*:\s*0/)
+  })
+})
+
 describe('the style painter keeps entry order to sections that have an organisation line', () => {
   // The painter copies every visual-style field onto its target. A section
   // whose entries have no organisation line (projects, awards, skills) has
@@ -94,6 +184,15 @@ describe('the style painter keeps entry order to sections that have an organisat
     for (const key of ['work', 'education', 'volunteer', 'custom-1a2b']) {
       expect(withStyle(key, { entryEmphasis: 'org' })).toEqual({ entryEmphasis: 'org' })
       expect(withStyle(key, { entryOrder: 'org-first' })).toEqual({ entryOrder: 'org-first' })
+    }
+  })
+
+  it('the location placement and the date side are style, so they are painted onto any section', () => {
+    for (const key of ['work', 'education', 'projects', 'custom-1a2b']) {
+      expect(withStyle(key, { locationPlacement: 'with-date', dateAlign: 'left' })).toEqual({
+        locationPlacement: 'with-date',
+        dateAlign: 'left',
+      })
     }
   })
 

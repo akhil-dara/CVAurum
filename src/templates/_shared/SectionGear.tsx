@@ -19,7 +19,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
-import { HAS_ENTRY_ORG, STYLE_FIELDS, paintStyle, sectionBase } from './sectionClasses'
+import { HAS_ENTRY_ORG, STYLE_FIELDS, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -38,6 +38,18 @@ const OPT_IN = new Set<ToggleField>(['showBadges', 'showDuration'])
 const ENTRY_FIELDS: { label: string; value: 'title' | 'org'; title: string }[] = [
   { label: 'Title', value: 'title', title: 'The position or degree' },
   { label: 'Organisation', value: 'org', title: 'The company, school or organisation (a custom entry: its subtitle)' },
+]
+
+/** Where an entry's location prints ('' = the sub-line, the classic look). */
+const LOCATION_PLACEMENTS: { label: string; value: string; title: string }[] = [
+  { label: 'Sub-line', value: '', title: 'Under the title, with the rest of the entry detail' },
+  { label: 'With date', value: 'with-date', title: 'Beside the date, on the title row' },
+]
+
+/** Which edge of the title row the date sits on ('' = the right, as always). */
+const DATE_ALIGNS: { label: string; value: string; title: string }[] = [
+  { label: 'Right', value: '', title: 'At the right edge of the title row' },
+  { label: 'Left', value: 'left', title: 'Ahead of the title, in a column of its own' },
 ]
 
 /** Per-section heading treatments ('' = the template's own default). */
@@ -474,6 +486,8 @@ export function SectionGear({
       | 'entryLayout'
       | 'entryOrder'
       | 'entryEmphasis'
+      | 'locationPlacement'
+      | 'dateAlign'
       | 'scoreStyle'
       | 'bulletStyle'
       | 'meterStyle'
@@ -507,6 +521,18 @@ export function SectionGear({
   const autoFitOn = doc.metadata.page.autoFit
   const pinned = hasPagePin(doc.metadata.page.breaks, sectionKey)
   const togglePin = () => editMeta((m) => togglePagePin(m.page.breaks, sectionKey))
+
+  // Whether a page break may fall inside one of this section's entries. The
+  // document's own switch (Design panel) decides until this row does, and it
+  // decides in both directions - a section can hold its entries whole on a
+  // page that breaks freely, or break freely on one that holds.
+  const keepEntries = keepEntriesOn(doc.metadata.page, opts)
+  const toggleKeepEntries = () =>
+    editMeta((m) => {
+      if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
+      const cur = m.layout.sectionSettings[sectionKey] ?? {}
+      m.layout.sectionSettings[sectionKey] = { ...cur, keepTogether: !keepEntries }
+    })
 
   const move = () =>
     editMeta((m) => {
@@ -734,6 +760,10 @@ export function SectionGear({
                   ) : (
                     <ToggleRow label="Start on new page" on={pinned} onClick={togglePin} />
                   )}
+                  <ToggleRow label="Keep entries together" on={keepEntries} onClick={toggleKeepEntries} />
+                  <p className="px-2 py-1 text-[11px] leading-snug text-muted-foreground">
+                    Moves a whole entry to the next page instead of breaking one across it.
+                  </p>
                 </Group>
 
                 {/* Bullet marker — per-section override of the global bullet style */}
@@ -931,6 +961,41 @@ export function SectionGear({
                       </div>
                     </Group>
                   </>
+                )}
+
+                {/* Where the location prints, and which edge the date sits
+                    on. Both are per-entry placement, so they sit together
+                    under the order rows; each is only offered while the
+                    section actually shows the field. */}
+                {HAS_LOCATION.has(base) && opts.showLocation !== false && (
+                  <Group label="Location">
+                    <div className="grid grid-cols-2 gap-1">
+                      {LOCATION_PLACEMENTS.map((p) => (
+                        <ChipBtn
+                          key={p.value || 'subline'}
+                          label={p.label}
+                          title={p.title}
+                          on={(opts.locationPlacement === 'with-date' ? 'with-date' : '') === p.value}
+                          onClick={() => setStyle('locationPlacement', p.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                  </Group>
+                )}
+                {HAS_DATES.has(base) && opts.showDates !== false && (
+                  <Group label="Date side">
+                    <div className="grid grid-cols-2 gap-1">
+                      {DATE_ALIGNS.map((d) => (
+                        <ChipBtn
+                          key={d.value || 'right'}
+                          label={d.label}
+                          title={d.title}
+                          on={(opts.dateAlign === 'left' ? 'left' : '') === d.value}
+                          onClick={() => setStyle('dateAlign', d.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                  </Group>
                 )}
 
                 {/* Score placement — education only */}

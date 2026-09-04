@@ -26,6 +26,8 @@ export const STYLE_FIELDS = [
   'entryLayout',
   'entryOrder',
   'entryEmphasis',
+  'locationPlacement',
+  'dateAlign',
   'scoreStyle',
   'bulletStyle',
   'meterStyle',
@@ -68,6 +70,43 @@ export function entryOrderOf(
   }
 }
 
+/** What sits between an entry's location and its date when the two share the
+ *  head row. One glyph, spaced, and real text everywhere: the page, the PDF
+ *  text layer and the Word file all print it, so nothing runs the two
+ *  together for a reader that only gets the text. */
+export const LOCATION_DATE_SEPARATOR = ' | '
+
+/**
+ * Where an entry's location and date sit. Unset is the page as it always
+ * was: the location on the sub-line under the title, the date at the right
+ * edge of the head row. The two are independent - a left date can still have
+ * the location under the title. Read by the canvas and the Word export
+ * alike, so the two place the pair the same way.
+ */
+export function entryMetaOf(
+  ss: { locationPlacement?: string; dateAlign?: string } | undefined
+): { locWithDate: boolean; dateLeft: boolean } {
+  return {
+    locWithDate: ss?.locationPlacement === 'with-date',
+    dateLeft: ss?.dateAlign === 'left',
+  }
+}
+
+/**
+ * Whether a page break may fall inside one of this section's entries. The
+ * document decides (page.keepEntriesWhole) until the section decides for
+ * itself, so a section can hold its entries whole while the rest of the page
+ * breaks freely, and can break freely while the rest holds. Read by the
+ * renderer (which stamps the class the paginator looks for) and by the Word
+ * export, so the page and the file break on one answer.
+ */
+export function keepEntriesOn(
+  page: { keepEntriesWhole?: boolean } | undefined,
+  ss: { keepTogether?: boolean } | undefined
+): boolean {
+  return ss?.keepTogether ?? page?.keepEntriesWhole === true
+}
+
 /** True when the bold line is the sub-line. The renderer puts the leading
  *  field in the head slot and the other under it, so this is the one thing
  *  the stylesheet needs to know. */
@@ -92,5 +131,8 @@ export function sectionOverrideClasses(ss: SectionSettings | undefined): string[
     ss.scoreStyle ? `score-ov-${ss.scoreStyle}` : '',
     ss.headingAlign ? `sec-align-${ss.headingAlign}` : '',
     entryEmphasisOnSub(ss) ? 'sec-emph-sub' : '',
+    // Which edge the date sits on is ink, so it travels as a class. Where
+    // the location prints is a different slot in the markup, so it does not.
+    ss.dateAlign ? `sec-date-${ss.dateAlign}` : '',
   ].filter(Boolean)
 }

@@ -1037,6 +1037,38 @@
   margin-left: auto;
   padding-left: 1em;
 }
+/* Location beside the date (sectionSettings.locationPlacement): the pair
+   shares the head row's right-hand slot as one unbreakable run - "Austin, TX
+   | Jan 2019 – Mar 2021" - so the TITLE takes the wrapping, exactly as it
+   does when the date sits there alone. The separator is a real text span,
+   not a pseudo-element or a border, so the export paints it and the text
+   layer keeps it. */
+.rm-item-meta > .rm-meta-sep {
+  padding: 0 0.15em;
+}
+/* Date on the left (sectionSettings.dateAlign): the date leads the head row
+   in a column of its own and the title follows it. The DOM order is
+   untouched - the title still comes first in the text layer, so the copied
+   text, the tagged PDF and the ATS view read as they always did - only the
+   flex order changes, which the export honours because it paints every
+   element where the browser laid it out. A mark keeps the outer edge. */
+.rm-root .rm-section.sec-date-left .rm-item-head > .rm-item-logo,
+.rm-root .rm-section.sec-date-left .rm-item-head > .rm-item-badge,
+.rm-root .rm-section.sec-date-left .rm-item-head > .rm-logo-btn {
+  order: -2;
+}
+.rm-root .rm-section.sec-date-left .rm-item-head > .rm-item-date {
+  order: -1;
+  margin-left: 0;
+  padding-left: 0;
+  padding-right: 1em;
+  text-align: left;
+}
+/* A shared column so the titles line up down the section. Main column only:
+   a sidebar is too narrow to give six ems away. */
+.rm-root .rm-col-main .rm-section.sec-date-left .rm-item-head > .rm-item-date {
+  min-width: 6.4em;
+}
 /* Education score (GPA/CGPA): placement is the USER'S choice per section —
    inline by default; 'right' / 'pill' variants live in templates.css. */
 .rm-item-sub .rm-item-score {

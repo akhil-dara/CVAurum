@@ -18,7 +18,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { CanvasDate } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
-import { entryOrderOf } from './sectionClasses'
+import { entryMetaOf, entryOrderOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
 import { keywordChunks } from '@/lib/keywordChunks'
 
 /**
@@ -91,6 +91,10 @@ export type SecOpts = {
   /** Which field leads an entry and which is bold (entryOrderOf reads them). */
   entryOrder?: string
   entryEmphasis?: string
+  /** Where the location prints and which edge the date sits on
+   *  (entryMetaOf reads them). */
+  locationPlacement?: string
+  dateAlign?: string
   /** entry logo / letter-badge size and shape (the section's own overrides) */
   badgeSize?: string
   badgeShape?: string
@@ -111,6 +115,10 @@ const show = (v?: boolean) => v !== false
  *  title: the two fields swap slots, and both stay editable where they land.
  *  Which one is bold is the stylesheet's (sec-emph-sub on the section). */
 const leadsWithOrg = (opts?: SecOpts) => entryOrderOf(opts).lead === 'org'
+/** The section puts an entry's location beside its date instead of on the
+ *  sub-line under the title. The field changes slot and stays editable
+ *  where it lands; which edge the date itself sits on is the stylesheet's. */
+const locBesideDate = (opts?: SecOpts) => entryMetaOf(opts).locWithDate
 
 type Apply = (c: ResumeDocument['content'], v: string) => void
 /** A date range that's click-to-edit on the canvas (and plain text in print). */
@@ -505,6 +513,7 @@ function CanvasLogo({
 function ItemHead({
   title,
   date,
+  loc,
   badge,
   logo,
   edit,
@@ -517,6 +526,9 @@ function ItemHead({
 }: {
   title: ReactNode
   date?: ReactNode
+  /** The entry's location, when the section puts it beside the date rather
+   *  than on the sub-line under the title. Editable where it lands. */
+  loc?: ReactNode
   badge?: string
   logo?: string
   edit?: EditFn
@@ -577,7 +589,23 @@ function ItemHead({
           />
         ) : null}
       </div>
-      {date ? <div className="rm-item-date">{date}</div> : null}
+      {/* The head row's right-hand slot. With the section placing the
+          location here it leads the date, and the glyph between them is real
+          text - marking it decoration would drop it from the exported text
+          layer and run "Austin, TX" straight into "Jan 2019". */}
+      {loc ? (
+        <div className="rm-item-date rm-item-meta">
+          {loc}
+          {date ? (
+            <>
+              <span className="rm-meta-sep">{LOCATION_DATE_SEPARATOR}</span>
+              {date}
+            </>
+          ) : null}
+        </div>
+      ) : date ? (
+        <div className="rm-item-date">{date}</div>
+      ) : null}
     </div>
   )
 }
@@ -984,6 +1012,19 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
       {doc.content.work.map((w, i) => {
         if (!edit && !anyText(w.position, w.name, w.summary, w.highlights)) return null
         const orgFirst = leadsWithOrg(opts)
+        const withDate = locBesideDate(opts)
+        const place =
+          show(opts?.showLocation) && (edit || w.location) ? (
+            <Ed
+              edit={edit}
+              value={w.location}
+              apply={(c, v) => {
+                c.work[i].location = v
+              }}
+              className="rm-item-loc"
+              placeholder="Location"
+            />
+          ) : null
         const position = (className?: string) => (
           <Ed
             edit={edit}
@@ -1026,6 +1067,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                 c.work[i].logo = v
               }}
               title={orgFirst ? company() : position()}
+              loc={withDate ? place : undefined}
               date={rangeDate(
                 edit,
                 show(opts?.showDates),
@@ -1042,17 +1084,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
             />
             <div className="rm-item-sub">
               {orgFirst ? position('rm-item-org') : company('rm-item-org')}
-              {show(opts?.showLocation) && (edit || w.location) ? (
-                <Ed
-                  edit={edit}
-                  value={w.location}
-                  apply={(c, v) => {
-                    c.work[i].location = v
-                  }}
-                  className="rm-item-loc"
-                  placeholder="Location"
-                />
-              ) : null}
+              {withDate ? null : place}
             </div>
             {show(opts?.showSummary) && (has(w.summary) || edit) ? (
               <div className="rm-item-summary">
@@ -1127,6 +1159,19 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         const degree = [e.studyType, e.area].filter(Boolean).join(', ')
         const title = degree || e.institution
         const orgFirst = leadsWithOrg(opts)
+        const withDate = locBesideDate(opts)
+        const place =
+          show(opts?.showLocation) && (edit || e.location) ? (
+            <Ed
+              edit={edit}
+              value={e.location}
+              apply={(c, v) => {
+                c.education[i].location = v
+              }}
+              className="rm-item-loc"
+              placeholder="Location"
+            />
+          ) : null
         // Degree + field are BOTH on the canvas (they both print) -
         // hiding studyType here broke WYSIWYG and invited retyping
         // the degree into the field box.
@@ -1182,6 +1227,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.education[i].logo = v
               }}
               title={orgFirst ? school() : edit ? degreeFields : title}
+              loc={withDate ? place : undefined}
               date={rangeDate(
                 edit,
                 show(opts?.showDates),
@@ -1204,17 +1250,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               ) : (
                 school('rm-item-org')
               )}
-              {show(opts?.showLocation) && (edit || e.location) ? (
-                <Ed
-                  edit={edit}
-                  value={e.location}
-                  apply={(c, v) => {
-                    c.education[i].location = v
-                  }}
-                  className="rm-item-loc"
-                  placeholder="Location"
-                />
-              ) : null}
+              {withDate ? null : place}
               {edit || e.score ? (
                 <Ed
                   edit={edit}
@@ -2457,6 +2493,19 @@ function Custom({
         if (!edit && !anyText(it.name, it.subtitle, it.summary, it.highlights)) return null
         // A custom entry's subtitle stands in for the organisation.
         const orgFirst = leadsWithOrg(opts)
+        const withDate = locBesideDate(opts)
+        const place =
+          show(opts?.showLocation) && (edit || it.location) ? (
+            <Ed
+              edit={edit}
+              value={it.location ?? ''}
+              apply={(c, v) => {
+                c.custom[secIndex].items[i].location = v
+              }}
+              className="rm-item-loc"
+              placeholder="Location"
+            />
+          ) : null
         const name = (className?: string) => (
           <Ed
             edit={edit}
@@ -2493,6 +2542,7 @@ function Custom({
               linkLabel={it.name || it.subtitle}
               edit={edit}
               title={orgFirst ? subtitle() : name()}
+              loc={withDate ? place : undefined}
               date={singleDate(
                 edit,
                 show(opts?.showDates),
@@ -2503,20 +2553,10 @@ function Custom({
                 opts?.dates
               )}
             />
-            {edit || (orgFirst ? it.name : it.subtitle) || it.location ? (
+            {edit || (orgFirst ? it.name : it.subtitle) || (!withDate && it.location) ? (
               <div className="rm-item-sub">
                 {orgFirst ? name('rm-item-org') : subtitle('rm-item-org')}
-                {show(opts?.showLocation) && (edit || it.location) ? (
-                  <Ed
-                    edit={edit}
-                    value={it.location ?? ''}
-                    apply={(c, v) => {
-                      c.custom[secIndex].items[i].location = v
-                    }}
-                    className="rm-item-loc"
-                    placeholder="Location"
-                  />
-                ) : null}
+                {withDate ? null : place}
               </div>
             ) : null}
             {has(it.summary) ? (

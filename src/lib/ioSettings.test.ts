@@ -329,3 +329,53 @@ describe('the entry order and emphasis survive a round trip', () => {
     expect(back.metadata.layout.sectionSettings.work.entryEmphasis).toBeUndefined()
   })
 })
+
+describe('the location placement and the date side survive a round trip', () => {
+  // Per section: whether an entry's location prints beside its date and
+  // which edge the date sits on. A file saved before they existed decides
+  // neither, and an undecided pair is the page as it always was.
+  it('keeps both, per section', () => {
+    const m = MetadataSchema.parse({
+      layout: {
+        sectionSettings: {
+          work: { locationPlacement: 'with-date', dateAlign: 'left' },
+          education: { dateAlign: 'right' },
+        },
+      },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.layout.sectionSettings.work.locationPlacement).toBe('with-date')
+    expect(back.metadata.layout.sectionSettings.work.dateAlign).toBe('left')
+    expect(back.metadata.layout.sectionSettings.education.locationPlacement).toBeUndefined()
+    expect(back.metadata.layout.sectionSettings.education.dateAlign).toBe('right')
+  })
+
+  it('an older file decides neither', () => {
+    const older = { layout: { sectionSettings: { work: { showLocation: true } } } }
+    const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse(older))))
+    expect(back.metadata.layout.sectionSettings.work.locationPlacement).toBeUndefined()
+    expect(back.metadata.layout.sectionSettings.work.dateAlign).toBeUndefined()
+  })
+})
+
+describe('the whole-entry page-break policy survives a round trip', () => {
+  // One switch for the document and one per section. A file saved before
+  // they existed keeps neither, which is the page as it always broke.
+  it('keeps the document switch and the per-section override', () => {
+    const m = MetadataSchema.parse({
+      page: { keepEntriesWhole: true },
+      layout: { sectionSettings: { work: { keepTogether: true }, education: { keepTogether: false } } },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.page.keepEntriesWhole).toBe(true)
+    expect(back.metadata.layout.sectionSettings.work.keepTogether).toBe(true)
+    expect(back.metadata.layout.sectionSettings.education.keepTogether).toBe(false)
+  })
+
+  it('an older file breaks pages exactly as it did', () => {
+    const older = { layout: { sectionSettings: { work: { showLocation: true } } } }
+    const back = fromJsonResume(toJsonResume(docWith(MetadataSchema.parse(older))))
+    expect(back.metadata.page.keepEntriesWhole).toBe(false)
+    expect(back.metadata.layout.sectionSettings.work.keepTogether).toBeUndefined()
+  })
+})
