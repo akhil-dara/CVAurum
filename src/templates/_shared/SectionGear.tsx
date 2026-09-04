@@ -19,7 +19,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
-import { HAS_ENTRY_ORG, STYLE_FIELDS, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
+import { HAS_DATES, HAS_ENTRY_ORG, HAS_LOCATION, STYLE_FIELDS, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -37,7 +37,7 @@ const OPT_IN = new Set<ToggleField>(['showBadges', 'showDuration'])
  *  bold; unset is the title on both rows, the page as it always was. */
 const ENTRY_FIELDS: { label: string; value: 'title' | 'org'; title: string }[] = [
   { label: 'Title', value: 'title', title: 'The position or degree' },
-  { label: 'Organisation', value: 'org', title: 'The company, school or organisation (a custom entry: its subtitle)' },
+  { label: 'Organization', value: 'org', title: 'The company, school or organization (a custom entry: its subtitle)' },
 ]
 
 /** Where an entry's location prints ('' = the sub-line, the classic look). */
@@ -50,6 +50,14 @@ const LOCATION_PLACEMENTS: { label: string; value: string; title: string }[] = [
 const DATE_ALIGNS: { label: string; value: string; title: string }[] = [
   { label: 'Right', value: '', title: 'At the right edge of the title row' },
   { label: 'Left', value: 'left', title: 'Ahead of the title, in a column of its own' },
+]
+
+/** Whether a page break may fall inside one of this section's entries.
+ *  undefined = Auto, the document's own switch (page.keepEntriesWhole). */
+const KEEP_ENTRIES: { label: string; value?: boolean; title: string }[] = [
+  { label: 'Auto', value: undefined, title: 'Follow the document (Design panel)' },
+  { label: 'On', value: true, title: 'Move a whole entry to the next page rather than break it' },
+  { label: 'Off', value: false, title: 'Let a page break fall inside an entry' },
 ]
 
 /** Per-section heading treatments ('' = the template's own default). */
@@ -358,23 +366,13 @@ const NO_ENTRY_LAYOUT = new Set(['summary', 'skills', 'languages'])
 const NO_BADGES = new Set(['certificates', 'awards', 'publications', 'interests', 'references'])
 
 const HAS_BULLETS = new Set(['work', 'projects', 'volunteer', 'custom'])
-const HAS_DATES = new Set([
-  'work',
-  'education',
-  'projects',
-  'volunteer',
-  'certificates',
-  'awards',
-  'publications',
-  'custom',
-])
 /** Sections whose dates are ranges, so a time span can be counted. */
 const HAS_DURATION = new Set(['work', 'education', 'projects', 'volunteer'])
-const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 const HAS_SUMMARY = new Set(['work'])
-/** Entries with a title AND an organisation line, so either can lead. The
- *  style painter keys on the same set, so a painted order never lands on a
- *  section whose gear could not clear it. */
+/* Which entry fields a section prints - the date, the location, the
+ * organisation line - live beside the style painter, which keys on the same
+ * three sets, so a painted value never lands on a section whose gear could
+ * not clear it again. */
 const HAS_ORG = HAS_ENTRY_ORG
 
 /** Per-section bullet markers (glyph chips — the marker itself is the preview). */
@@ -492,14 +490,19 @@ export function SectionGear({
       | 'bulletStyle'
       | 'meterStyle'
       | 'badgeSize'
-      | 'badgeShape',
-    value?: string
+      | 'badgeShape'
+      | 'keepTogether',
+    value?: string | boolean
   ) =>
     editMeta((m) => {
       if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
       const cur = { ...(m.layout.sectionSettings[sectionKey] ?? {}) }
-      if (value) (cur as Record<string, unknown>)[field] = value
-      else delete (cur as Record<string, unknown>)[field]
+      // Auto is the ABSENCE of the field, so the section follows whatever
+      // decides for it - the template, or the document. An unset value (and
+      // the empty string the chip rows carry for Auto) removes the key; a
+      // false is a choice of its own and is written like any other.
+      if (value === undefined || value === '') delete (cur as Record<string, unknown>)[field]
+      else (cur as Record<string, unknown>)[field] = value
       m.layout.sectionSettings[sectionKey] = cur
     })
 
@@ -525,14 +528,13 @@ export function SectionGear({
   // Whether a page break may fall inside one of this section's entries. The
   // document's own switch (Design panel) decides until this row does, and it
   // decides in both directions - a section can hold its entries whole on a
-  // page that breaks freely, or break freely on one that holds.
-  const keepEntries = keepEntriesOn(doc.metadata.page, opts)
-  const toggleKeepEntries = () =>
-    editMeta((m) => {
-      if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
-      const cur = m.layout.sectionSettings[sectionKey] ?? {}
-      m.layout.sectionSettings[sectionKey] = { ...cur, keepTogether: !keepEntries }
-    })
+  // page that breaks freely, or break freely on one that holds. Three states,
+  // not two: a plain toggle always wrote a concrete answer, so the first
+  // click pinned the section for good and it could never follow the document
+  // again. Auto is the key's absence, written through the same setStyle path
+  // every other Auto uses; what it resolves to comes from the same helper the
+  // renderer and the Word export read, so the row cannot drift from the page.
+  const autoKeepsEntries = keepEntriesOn(doc.metadata.page, undefined)
 
   const move = () =>
     editMeta((m) => {
@@ -760,10 +762,33 @@ export function SectionGear({
                   ) : (
                     <ToggleRow label="Start on new page" on={pinned} onClick={togglePin} />
                   )}
-                  <ToggleRow label="Keep entries together" on={keepEntries} onClick={toggleKeepEntries} />
-                  <p className="px-2 py-1 text-[11px] leading-snug text-muted-foreground">
-                    Moves a whole entry to the next page instead of breaking one across it.
-                  </p>
+                  {/* Entry-scoped, so it is offered where there are entries.
+                      A summary is one block of prose: the row wrote a setting
+                      nothing about it reads. */}
+                  {base !== 'summary' && (
+                    <>
+                      <div className="px-1 pt-1">
+                        <div className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Keep entries together
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {KEEP_ENTRIES.map((k) => (
+                            <ChipBtn
+                              key={k.label}
+                              label={k.label}
+                              title={k.title}
+                              on={opts.keepTogether === k.value}
+                              onClick={() => setStyle('keepTogether', k.value)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="px-2 py-1 text-[11px] leading-snug text-muted-foreground">
+                        Moves a whole entry to the next page instead of breaking one across it. Auto follows the
+                        document, which is {autoKeepsEntries ? 'on' : 'off'} right now.
+                      </p>
+                    </>
+                  )}
                 </Group>
 
                 {/* Bullet marker — per-section override of the global bullet style */}

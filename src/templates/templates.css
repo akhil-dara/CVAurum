@@ -89,7 +89,10 @@
   left: 0;
   bottom: 0;
   width: 1.9em;
-  height: 2px;
+  /* The short gold bar IS this template's rule under the heading, so it
+     takes the width control like every other one; unset, it keeps the 2px
+     it always drew. */
+  height: var(--rm-heading-rule, 2px);
   background: var(--aurum-gold);
 }
 /* Centred (artboard.css, heading alignment): text-align moves the words but
@@ -1011,7 +1014,7 @@
 }
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section-title::after,
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-section.sec-align-center .rm-section-title::before {
-  background: var(--rm-primary);
+  background: var(--rm-heading-color, var(--rm-primary));
   opacity: 0.6;
 }
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-item-title {
@@ -1106,12 +1109,18 @@
 .rm-root .rm-section.sec-ov-lead-rule .rm-section-title {
   border-bottom: none;
 }
+/* The mark belongs to the heading, so it takes the heading's colour when
+   the author set one and the accent while they have not - the marks drawn
+   with currentColor follow for free, and one filled straight from the
+   accent would sit beside recoloured words in the old colour. */
 .rm-root .rm-section.sec-ov-lead-rule .rm-section-title::before {
   content: '';
   width: 1.5em;
-  height: 2.2px;
+  /* A rule, not a glyph: it follows the width control the same way the
+     rule-after and strike marks do, and keeps its own 2.2px unset. */
+  height: var(--rm-heading-rule, 2.2px);
   flex: none;
-  background: var(--rm-primary);
+  background: var(--rm-heading-color, var(--rm-primary));
   border-radius: 2px;
 }
 .rm-root .rm-section.sec-ov-plain .rm-section-title {
@@ -1143,7 +1152,7 @@
   width: 0.52em;
   height: 0.52em;
   flex: none;
-  background: var(--rm-primary);
+  background: var(--rm-heading-color, var(--rm-primary));
   transform: rotate(45deg);
 }
 /* strike: the title sits ON a full-width rule (MPR cbg2 signature) */

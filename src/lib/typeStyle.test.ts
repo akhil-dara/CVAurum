@@ -116,3 +116,108 @@ describe('headingVars', () => {
     expect(headingVars(typo({ headingRuleWidth: 1 }))['--rm-heading-rule']).toBe('1px')
   })
 })
+
+describe('every stylesheet rule that spaces or rules a section title reads its variable', () => {
+  // The two heading controls reach the page only through their variables:
+  // the air under a title through --rm-heading-gap, the hairline under it
+  // through --rm-heading-rule. A template's own rule is a class deeper than
+  // the base one and outranks it, so a heading margin or a rule width
+  // written as a plain length silently ignores the slider on that template
+  // alone - the kind of hole nobody notices until an author reports that a
+  // control does nothing. Both sheets are parsed here, the way the element
+  // colours are audited in elementColors.test.ts, and every such
+  // declaration must go through the variable.
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  const read = (rel: string) => fs.readFileSync(path.join(here, rel), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const sheets = { artboard: read('../styles/artboard.css'), templates: read('../templates/templates.css') }
+
+  interface Rule {
+    sheet: string
+    selector: string
+    decls: Array<{ prop: string; value: string }>
+    /** the title itself is the subject of some part of the selector */
+    onTitle: boolean
+    /** a ::before/::after the title draws is the subject of some part */
+    onMark: boolean
+  }
+
+  // The SUBJECT of a selector is its last compound. A rule ending in
+  // .rm-section-title styles the heading; one ending in .rm-section-icon
+  // styles the chip inside it, and the chip's own margins are the chip's
+  // business (artboard.css hangs it in the gutter by them).
+  const subject = (part: string) => part.trim().split(/\s*[\s>+~]\s*/).pop() ?? ''
+  const isTitle = (compound: string) => /\.rm-section-title(?![\w-])/.test(compound)
+  const isMark = (compound: string) => /::?(?:before|after)\b/.test(compound)
+
+  const rules: Rule[] = []
+  for (const [sheet, css] of Object.entries(sheets)) {
+    const re = /([^{}]+)\{([^{}]*)\}/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(css))) {
+      const selector = m[1].trim().replace(/\s+/g, ' ')
+      const subjects = selector.split(',').map(subject).filter(isTitle)
+      if (!subjects.length) continue
+      const decls = m[2]
+        .split(';')
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .map((d) => ({ prop: d.slice(0, d.indexOf(':')).trim(), value: d.slice(d.indexOf(':') + 1).trim() }))
+      rules.push({
+        sheet,
+        selector,
+        decls,
+        onTitle: subjects.some((s) => !isMark(s)),
+        onMark: subjects.some(isMark),
+      })
+    }
+  }
+
+  // A length of zero draws nothing, so there is nothing for a multiplier to
+  // scale and nothing for a width control to set: `border-bottom: none` and
+  // `margin: 0` are not opt-outs, they are the absence of the thing.
+  const ZERO = /^0(?:px|em|rem|%)?$/
+  const nothing = (value: string) => value === 'none' || value.split(/\s+/).every((v) => ZERO.test(v))
+  const offenders = (
+    take: (r: Rule, d: { prop: string; value: string }) => boolean,
+    ok: (value: string) => boolean
+  ) => {
+    const hits = rules.flatMap((r) => r.decls.filter((d) => take(r, d)).map((d) => ({ r, d })))
+    expect(hits.length).toBeGreaterThan(0)
+    return hits
+      .filter(({ d }) => !nothing(d.value) && !ok(d.value))
+      .map(({ r, d }) => `${r.sheet}: ${r.selector} => ${d.prop}: ${d.value}`)
+  }
+
+  it('the air under a heading rides --rm-heading-gap', () => {
+    // Only margins that can set the BOTTOM edge: a boxed heading centres
+    // itself with `margin-left/right: auto`, which is placement, not air.
+    expect(
+      offenders(
+        (r, d) => r.onTitle && /^margin(?:-bottom|-block|-block-end)?$/.test(d.prop),
+        (v) => v.includes('var(--rm-heading-gap')
+      )
+    ).toEqual([])
+  })
+
+  it('the rule under a heading rides --rm-heading-rule', () => {
+    expect(
+      offenders(
+        (r, d) => r.onTitle && /^border-(?:bottom|block-end)(?:-width)?$/.test(d.prop),
+        (v) => v.includes('var(--rm-heading-rule')
+      )
+    ).toEqual([])
+  })
+
+  it('so does a rule a heading draws as a pseudo box', () => {
+    // A mark measured in px is the same hairline the control sets, drawn as
+    // a box because it is short, tinted or offset. One measured in em is a
+    // GLYPH - the modernist tick, the badge diamond - which scales with the
+    // type it sits beside and has no business following a 1px/2px switch.
+    expect(
+      offenders(
+        (r, d) => r.onMark && d.prop === 'height' && /[\d.]px/.test(d.value),
+        (v) => v.includes('var(--rm-heading-rule')
+      )
+    ).toEqual([])
+  })
+})

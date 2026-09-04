@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DESIGN_RANGES } from './designRanges'
+import { DESIGN_RANGES, commitTyped } from './designRanges'
 import { PageSchema, TypographySchema, LayoutSchema } from '@/types/metadata'
 import type { ZodDefault, ZodNumber } from 'zod'
 
@@ -47,5 +47,39 @@ describe('design panel ranges match the schema', () => {
       expect(r.step).toBeGreaterThan(0)
       expect(r.max).toBeGreaterThan(r.min)
     }
+  })
+})
+
+/**
+ * What the typed box beside a slider commits. It commits once, when the value
+ * is finished - so the intermediate "1" of "1.5" and "2" of "25" never reach
+ * the document - and what it commits is always inside the range, or nothing.
+ */
+describe('a typed design value commits inside its range, or not at all', () => {
+  const { min, max } = DESIGN_RANGES.fontSize // 7..16
+
+  it('a value already in range lands as typed', () => {
+    expect(commitTyped('11', min, max)).toBe(11)
+    expect(commitTyped('9.6', min, max)).toBe(9.6)
+    expect(commitTyped(String(min), min, max)).toBe(min)
+    expect(commitTyped(String(max), min, max)).toBe(max)
+  })
+
+  it('a value outside the range is clamped to the nearest end', () => {
+    expect(commitTyped('40', min, max)).toBe(max)
+    expect(commitTyped('2', min, max)).toBe(min)
+    expect(commitTyped('-5', min, max)).toBe(min)
+  })
+
+  it('an empty box commits nothing, so the field keeps the value it had', () => {
+    expect(commitTyped('', min, max)).toBeNull()
+    expect(commitTyped('   ', min, max)).toBeNull()
+  })
+
+  it('text that is not a number commits nothing either', () => {
+    expect(commitTyped('abc', min, max)).toBeNull()
+    expect(commitTyped('.', min, max)).toBeNull()
+    expect(commitTyped('NaN', min, max)).toBeNull()
+    expect(commitTyped('Infinity', min, max)).toBeNull()
   })
 })

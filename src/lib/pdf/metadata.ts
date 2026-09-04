@@ -17,6 +17,7 @@
  */
 import { PDFDocument, PDFName } from 'pdf-lib'
 import type { ResumeDocument } from '@/types/document'
+import { canonicalLanguage } from '@/lib/utils'
 
 /** What the file says produced it. Never the PDF library's own name. */
 export const PDF_CREATOR = 'CVAurum'
@@ -53,10 +54,16 @@ const clean = (s?: string): string => (s ?? '').replace(/\s+/g, ' ').trim()
 
 /** The language the file declares: the tag the document's dates read in.
  *  A resume whose months are German is a German document. The bare 'en'
- *  every document starts on keeps the en-US the export has always declared. */
+ *  every document starts on keeps the en-US the export has always declared.
+ *
+ *  Through the same canonicalising the date formatter uses, so /Lang and the
+ *  XMP declare only a tag a reader can act on: a tag the runtime does not
+ *  know prints English months on the page, and would otherwise reach the
+ *  file verbatim and tell a screen reader to speak a language the document
+ *  is not in. */
 function documentLanguage(doc: ResumeDocument): string {
-  const tag = clean(doc.metadata?.dates?.language)
-  return tag && tag.toLowerCase() !== 'en' ? tag : DEFAULT_LANGUAGE
+  const tag = canonicalLanguage(clean(doc.metadata?.dates?.language))
+  return tag.toLowerCase() !== 'en' ? tag : DEFAULT_LANGUAGE
 }
 
 /** Info-dictionary + XMP values for a document, as a pure function. */

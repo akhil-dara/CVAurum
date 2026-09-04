@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, monthNames } from '@/lib/utils'
+import { useResumeStore } from '@/store/useResumeStore'
 
 export function Labeled({ label, hint, children, className }: { label?: string; hint?: string; children: ReactNode; className?: string }) {
   return (
@@ -128,7 +129,6 @@ export function TextAreaField({
 }
 
 /** Month-ish date. Accepts "YYYY-MM"/"YYYY"/free text; empty end = Present. */
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const NOW_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 75 }, (_, i) => NOW_YEAR + 2 - i)
 
@@ -156,6 +156,11 @@ export function DateField({
   singleWith?: string
 }) {
   const [pickMode, setPickMode] = useState(false)
+  // The panel's picker names months the way the page prints them, from the
+  // one shared list - the canvas picker reads the same document language,
+  // and a phone has only this field to edit a date with.
+  const language = useResumeStore((s) => s.doc?.metadata.dates?.language)
+  const months = monthNames(language)
   const single = singleWith != null && !!singleWith.trim() && singleWith.trim() === (value || '').trim()
   const present = !!allowPresent && !single && !pickMode && (!value.trim() || isPresent(value))
   const { y, m } = parseYM(value)
@@ -179,8 +184,8 @@ export function DateField({
           aria-label={`${label ?? 'Date'} month`}
         >
           <option value="">Month</option>
-          {MONTHS.map((name, i) => (
-            <option key={name} value={String(i + 1)}>
+          {months.map((name, i) => (
+            <option key={i} value={String(i + 1)}>
               {name}
             </option>
           ))}

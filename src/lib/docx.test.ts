@@ -252,7 +252,7 @@ describe('bullet indent and bullet spacing', () => {
 
   it('a bullet paragraph hangs its marker in the indent and takes the gap after', async () => {
     const doc = docWith({ typography: { fontSize: 11, bulletIndent: 1.5, bulletGap: 0.4 } })
-    doc.content.work[0].highlights = ['Shipped the thing']
+    doc.content.work[0].highlights = ['Shipped the thing', 'Then shipped the next thing']
     const { body } = await unpack(doc)
     const p = paraOf(body, 'Shipped the thing')
     expect(p).toContain('<w:numPr>')
@@ -263,13 +263,36 @@ describe('bullet indent and bullet spacing', () => {
 
   it('with no marker the text still sits at the indent, nothing hangs', async () => {
     const doc = docWith({ typography: { bulletStyle: 'none' } })
-    doc.content.work[0].highlights = ['Shipped the thing']
+    doc.content.work[0].highlights = ['Shipped the thing', 'Then shipped the next thing']
     const { body } = await unpack(doc)
     const p = paraOf(body, 'Shipped the thing')
     expect(p).not.toContain('<w:numPr>')
     expect(indAttr(p, 'left')).toBe(202)
     expect(indAttr(p, 'hanging')).toBeUndefined()
     expect(spacingAfter(p)).toBe(38)
+  })
+
+  // The gap is the air BETWEEN bullets - the canvas draws none after the last
+  // one - so giving it to every bullet padded the end of every list, and a
+  // roomy gap pushed the entry below it down by a distance the page never
+  // showed.
+  it('the gap falls between bullets; the last of a list takes the trailing value', async () => {
+    const doc = docWith({ typography: { fontSize: 11, bulletIndent: 1.5, bulletGap: 0.4 } })
+    doc.content.work[0].highlights = ['First thing', 'Second thing', 'Last thing']
+    const { body } = await unpack(doc)
+    expect(spacingAfter(paraOf(body, 'First thing'))).toBe(88)
+    expect(spacingAfter(paraOf(body, 'Second thing'))).toBe(88)
+    expect(spacingAfter(paraOf(body, 'Last thing'))).toBe(16)
+  })
+
+  it('a one-bullet list is all last bullet, and an empty one is skipped on the way', async () => {
+    const doc = docWith({ typography: { fontSize: 11, bulletIndent: 1.5, bulletGap: 0.4 } })
+    doc.content.work[0].highlights = ['Only thing']
+    expect(spacingAfter(paraOf((await unpack(doc)).body, 'Only thing'))).toBe(16)
+    // A blank highlight never prints, so it cannot be the one that gets the
+    // trailing value while a real bullet sits under it.
+    doc.content.work[0].highlights = ['Real thing', '']
+    expect(spacingAfter(paraOf((await unpack(doc)).body, 'Real thing'))).toBe(16)
   })
 })
 

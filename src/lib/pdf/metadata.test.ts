@@ -80,6 +80,17 @@ describe('buildDocInfo', () => {
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'en' } } }), NOW).language).toBe('en-US')
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: '  ' } } }), NOW).language).toBe('en-US')
   })
+
+  it('declares only a tag a reader can act on', () => {
+    // /Lang and the XMP go through the same canonicalising the date
+    // formatter does: a tag no runtime knows would otherwise be handed to a
+    // screen reader verbatim, which would either ignore it or read the
+    // document in the wrong voice. The canonical form of a known tag is
+    // declared as the runtime spells it.
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'not a tag!' } } }), NOW).language).toBe('en-US')
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'xx' } } }), NOW).language).toBe('en-US')
+    expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'de-de' } } }), NOW).language).toBe('de-DE')
+  })
 })
 
 describe('buildXmpPacket', () => {

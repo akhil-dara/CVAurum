@@ -78,6 +78,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.7.0",
     "autoprefixer": "^10.4.20",
+    "jszip": "^3.10.1",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.62.1",
     "pngjs": "^7.0.0",

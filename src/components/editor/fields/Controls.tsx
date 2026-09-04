@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { commitTyped } from '@/lib/designRanges'
 
 export function Slider({
   label,
@@ -22,15 +23,18 @@ export function Slider({
    *  whatever this appends after the digits as its unit. */
   format?: (v: number) => string
 }) {
-  // The typed box owns its text while it has focus: a half-typed "1" on the
-  // way to 12 must not snap to the minimum mid-keystroke. A value already in
-  // range applies as it is typed; anything else is clamped when focus leaves.
+  // The typed box owns its text while it has focus, and commits nothing until
+  // the value is finished: focus leaving, or Enter saying so. Committing per
+  // keystroke reflowed the whole document on the "1" of "1.5" and the "2" of
+  // "25" - every prefix of the number the author was typing was a document of
+  // its own. The slider beside it still applies live: dragging it IS the
+  // finished value at every step. (commitTyped clamps and rejects.)
   const [draft, setDraft] = useState<string | null>(null)
-  const commit = (raw: string, clamp: boolean) => {
-    const v = parseFloat(raw)
-    if (!Number.isFinite(v)) return
-    if (v >= min && v <= max) onChange(v)
-    else if (clamp) onChange(Math.min(max, Math.max(min, v)))
+  const commit = () => {
+    if (draft === null) return
+    const v = commitTyped(draft, min, max)
+    setDraft(null)
+    if (v !== null) onChange(v)
   }
   const suffix = unit || (format ? format(value).replace(/^[-+\d.,]+/, '') : '')
   return (
@@ -44,15 +48,11 @@ export function Slider({
             max={max}
             step={step}
             value={draft ?? String(Number(value.toFixed(4)))}
-            onChange={(e) => {
-              setDraft(e.target.value)
-              commit(e.target.value, false)
-            }}
-            onBlur={() => {
-              if (draft !== null) commit(draft, true)
-              setDraft(null)
-            }}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
             onKeyDown={(e) => {
+              // Enter commits through the blur handler, so there is one path
+              // in and out of the draft however the author finishes.
               if (e.key === 'Enter') e.currentTarget.blur()
             }}
             aria-label={label}

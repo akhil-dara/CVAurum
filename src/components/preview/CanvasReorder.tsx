@@ -433,11 +433,17 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
         return
       }
       const item = t.closest?.<HTMLElement>('[data-item-id]')
-      if (item && r?.contains(item)) {
+      const id = item?.dataset.itemId ?? ''
+      // An entry whose id is blank is not an entry this cluster can act on:
+      // the pin helpers read a falsy item id as "the SECTION's pin", so the
+      // pin button offered here would have silently toggled the whole
+      // section's page break, and the arrows have no entry to index. No id,
+      // no cluster - and so no pin button either.
+      if (item && id && r?.contains(item)) {
         const sectionEl = item.closest<HTMLElement>('[data-section]')
         const rect = item.getBoundingClientRect()
         setHover({
-          id: item.dataset.itemId ?? '',
+          id,
           sectionKey: sectionEl?.dataset.section ?? '',
           top: rect.top,
           right: rect.right,

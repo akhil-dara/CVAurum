@@ -95,6 +95,37 @@ describe('every stylesheet rule that colours an element reads its variable', () 
   )
 })
 
+describe('a mark drawn on a section title follows the heading colour', () => {
+  // The words of a heading read the heading colour, and every mark drawn
+  // with them - the rule after the title, the lead rule before it, the
+  // diamond a badge heading draws - belongs to the same heading. Most are
+  // painted with currentColor, which follows for free; one filled from the
+  // accent instead stays accent-coloured under a heading whose colour the
+  // author changed, and the mark and its words drift apart. A template's own
+  // brand token is its own business - this guards the shared accent alone.
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  const read = (rel: string) => fs.readFileSync(path.join(here, rel), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const sheets = { artboard: read('../styles/artboard.css'), templates: read('../templates/templates.css') }
+
+  it('no pseudo box under a section title is filled straight from the accent', () => {
+    const offenders: string[] = []
+    for (const [sheet, css] of Object.entries(sheets)) {
+      const re = /([^{}]+)\{([^{}]*)\}/g
+      let m: RegExpExecArray | null
+      while ((m = re.exec(css))) {
+        const selector = m[1].trim().replace(/\s+/g, ' ')
+        if (!/rm-section-title[^,]*::(before|after)/.test(selector)) continue
+        for (const decl of m[2].split(';')) {
+          if (!/var\(--rm-primary\)/.test(decl)) continue
+          if (/var\(--rm-heading-color\s*,/.test(decl)) continue
+          offenders.push(`${sheet}: ${selector} => ${decl.trim()}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+})
+
 describe('every anchor the shared sections render carries a class', () => {
   // `.rm-root a` paints the author's link colour, and the audit above reads
   // colours by selector - so an anchor with no class of its own is invisible

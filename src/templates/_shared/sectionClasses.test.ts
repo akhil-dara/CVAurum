@@ -158,14 +158,47 @@ describe('the left date column is drawn with the box model the export can paint'
     const date = dateRules.find((r) => r.selector.includes('.rm-item-date'))
     expect(date?.body).toMatch(/margin-left\s*:\s*0/)
   })
+
+  // A date never wraps, and a time span makes the string much longer, so the
+  // title beside it has to be the part that yields. A flex item refuses to
+  // shrink below its longest word until it is told it may: without that, the
+  // pair overflows the column it sits in. Both columns need the allowance -
+  // the sidebar is the narrow one, where a long span crowds soonest.
+  for (const col of ['rm-col-main', 'rm-col-aside']) {
+    it(`${col}: the title may shrink so a long date keeps its place`, () => {
+      const allowed = rules.some(
+        (r) =>
+          /(?:^|;|\s)min-width\s*:\s*0/.test(r.body) &&
+          r.selector.split(',').some((s) => s.includes(col) && /\.rm-item-head > \.rm-item-title/.test(s))
+      )
+      expect(allowed).toBe(true)
+    })
+  }
+
+  it('a centred heading leaves the icon chip the spacing its own rules set', () => {
+    // The centred rule brings the chip back inline from the gutter. Setting
+    // the margin shorthand there outranks every chip rule's own margin-right
+    // (the badge chip's tighter gap, the sidebar's smaller one), so it resets
+    // only the sides it has to and leaves the gap to them.
+    const centred = rules.find((r) => r.selector === '.rm-root.rm-icons .rm-section.sec-align-center .rm-section-icon')
+    expect(centred).toBeDefined()
+    expect(centred!.body).not.toMatch(/(?:^|;|\s)margin\s*:/)
+    expect(centred!.body).not.toMatch(/margin-right\s*:/)
+    // relative, never static: the folio chip's glyph and fold are absolutely
+    // positioned inside it and would otherwise land on the heading's words.
+    expect(centred!.body).toMatch(/position\s*:\s*relative/)
+  })
 })
 
-describe('the style painter keeps entry order to sections that have an organisation line', () => {
-  // The painter copies every visual-style field onto its target. A section
-  // whose entries have no organisation line (projects, awards, skills) has
-  // nothing to swap, and its own gear never offers the rows, so a painted
-  // entryOrder or entryEmphasis would strand it: nothing bold, no way back.
-  // Those two fields stay on the sections whose gear shows the rows.
+describe('the style painter keeps a field to the sections that print it', () => {
+  // The painter copies every visual-style field onto its target. A field
+  // that styles one of an entry's own - which line leads, where the location
+  // prints, which edge the date sits on - means nothing in a section that
+  // prints no such field: a section whose entries have no organisation line
+  // (projects, awards, skills) has nothing to swap and would be left with
+  // nothing bold. Its gear never offers the row either, so a painted value
+  // would strand it with no way back. Each field stays on the sections whose
+  // gear shows its row.
   const withStyle = (key: string, copied: Record<string, string>) => {
     const m = defaultMetadata()
     paintStyle(m, key, copied)
@@ -187,13 +220,30 @@ describe('the style painter keeps entry order to sections that have an organisat
     }
   })
 
-  it('the location placement and the date side are style, so they are painted onto any section', () => {
-    for (const key of ['work', 'education', 'projects', 'custom-1a2b']) {
+  it('a section whose entries have no location keeps no location placement', () => {
+    // Same trap as the entry order: the gear offers the row only where the
+    // entries have a location, so a painted placement would sit in a section
+    // that can neither use it nor clear it.
+    for (const key of ['projects', 'certificates', 'awards', 'publications', 'skills']) {
+      expect(withStyle(key, { locationPlacement: 'with-date', headingStyle: 'bar' })).toEqual({ headingStyle: 'bar' })
+    }
+  })
+
+  it('a section whose entries have no dates keeps no date side', () => {
+    for (const key of ['skills', 'languages', 'interests', 'references']) {
+      expect(withStyle(key, { dateAlign: 'left', headingStyle: 'bar' })).toEqual({ headingStyle: 'bar' })
+    }
+  })
+
+  it('the sections that print a location and a date take both', () => {
+    for (const key of ['work', 'education', 'custom-1a2b']) {
       expect(withStyle(key, { locationPlacement: 'with-date', dateAlign: 'left' })).toEqual({
         locationPlacement: 'with-date',
         dateAlign: 'left',
       })
     }
+    // Dates without a location line: the side is painted, the placement is not.
+    expect(withStyle('projects', { locationPlacement: 'with-date', dateAlign: 'left' })).toEqual({ dateAlign: 'left' })
   })
 
   it("an Auto style clears the target's own style fields but keeps its content toggles", () => {

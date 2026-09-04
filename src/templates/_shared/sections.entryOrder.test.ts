@@ -51,6 +51,18 @@ const render = (sectionKey: string, sectionSettings: Record<string, unknown> = {
     createElement(SectionBody, { sectionKey, doc: docWith(sectionSettings), config: {} as TemplateConfig, edit }),
   )
 
+/** The same render with the one education entry patched first. The fixture is
+ *  built fresh on every call, so a blanked field stays local to its test. */
+const renderEducation = (
+  sectionSettings: Record<string, unknown>,
+  patch: Record<string, string>,
+  edit?: () => void
+) => {
+  const doc = docWith(sectionSettings)
+  Object.assign(doc.content.education[0], patch)
+  return renderToStaticMarkup(createElement(SectionBody, { sectionKey: 'education', doc, config: {} as TemplateConfig, edit }))
+}
+
 /** The markup from the start of the slot's element on, wide enough to hold
  *  its field (on the canvas the slot class shares its attribute with the
  *  editable's own, and the placeholder can sit before it). */
@@ -95,6 +107,38 @@ describe('an entry leads with the field the section leads with', () => {
 
   it('emphasis alone moves nothing: the weights are the stylesheet\'s, keyed on the section', () => {
     expect(render('work', { work: { entryEmphasis: 'org' } })).toBe(render('work'))
+  })
+})
+
+/**
+ * The head line always has something in it. Title-first already fell back to
+ * the institution when the degree was blank; organisation-first printed an
+ * empty head with the degree stranded on the sub-line under it.
+ */
+describe('a leading field that is blank falls back to the other one', () => {
+  const orgFirst = { education: { entryOrder: 'org-first' } }
+
+  it('no school: the degree heads the entry and the sub-line goes with it', () => {
+    const html = renderEducation(orgFirst, { institution: '' })
+    expect(html).toContain('<div class="rm-item-title">BSc, Computer Science</div>')
+    expect(html).not.toContain('<div class="rm-item-title"></div>')
+    // The degree is the head line now, so printing it again underneath would
+    // say the same words twice.
+    expect(html).not.toContain('rm-item-org')
+  })
+
+  it('a school is still the head, with the degree under it', () => {
+    const html = renderEducation(orgFirst, {})
+    expect(html).toContain('<div class="rm-item-title">State University</div>')
+    expect(html).toContain('<span class="rm-item-org">BSc, Computer Science</span>')
+  })
+
+  it('on the canvas both fields keep their own slot, blank or not', () => {
+    const html = renderEducation(orgFirst, { institution: '' }, () => {})
+    expect(slot(html, 'rm-item-title')).toContain('data-placeholder="School')
+    const sub = slot(html, 'rm-item-org')
+    expect(sub).toContain('data-placeholder="Degree')
+    expect(sub).toContain('data-placeholder="Field')
   })
 })
 

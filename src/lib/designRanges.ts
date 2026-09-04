@@ -34,3 +34,20 @@ export const DESIGN_RANGES = {
   sidebarWidth: range(LayoutSchema.shape.sidebarWidth, 0.01),
   margin: range(PageSchema.shape.margin, 1),
 } as const
+
+/**
+ * What a typed design box commits when the author leaves it.
+ *
+ * The box owns its text while it is being typed in: committing every
+ * keystroke meant "1" on the way to "1.5" and "2" on the way to "25" each
+ * landed on the document and reflowed the whole canvas, so a two-character
+ * value was three documents. Nothing is committed until focus leaves (or
+ * Enter says the value is finished), and then the number lands inside the
+ * range. Text that is not a number at all - an empty box, a stray letter -
+ * commits nothing, so the field keeps the value it had.
+ */
+export function commitTyped(raw: string, min: number, max: number): number | null {
+  const v = parseFloat(raw)
+  if (!Number.isFinite(v)) return null
+  return Math.min(max, Math.max(min, v))
+}

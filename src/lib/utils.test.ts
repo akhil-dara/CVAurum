@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { currentYearMonth, formatDate, formatDateRange, formatDuration, monthNames, sectionDateOptions } from './utils'
+import {
+  canonicalLanguage,
+  currentYearMonth,
+  DATE_LANGUAGE_OPTIONS,
+  formatDate,
+  formatDateRange,
+  formatDuration,
+  monthNames,
+  sectionDateOptions,
+} from './utils'
 
 /**
  * Time spans on date ranges (opt-in, per section). The length of a range is
@@ -180,9 +189,63 @@ describe('monthNames', () => {
   })
 
   it('speaks the language asked for and falls back to English', () => {
-    expect(monthNames('de')[2]).toBe('Mär')
+    expect(monthNames('de')[2]).toBe('März')
     expect(monthNames('fr', 'long')[0]).toBe('janvier')
     expect(monthNames('xx')).toEqual(monthNames('en'))
+  })
+
+  it('names a month the way a date prints it, not the standalone way', () => {
+    // A locale can spell a month one way on its own and another beside a
+    // year: German's standalone March is "Mar" while a date reads "Marz".
+    // A picker offering one while the page prints the other is one document
+    // spelling the same month two ways, so the list comes from the formatter
+    // that prints the dates.
+    for (const language of ['de', 'fr', 'pl', 'sv']) {
+      for (const month of ['short', 'long'] as const) {
+        expect(formatDate('2021-03', { month, language })).toBe(`${monthNames(language, month)[2]} 2021`)
+      }
+    }
+  })
+})
+
+describe('canonicalLanguage', () => {
+  // The tag every date reads in: the canonical form the runtime can format,
+  // or English. An unknown tag would otherwise fall back to whatever locale
+  // the machine runs in, and one document would print different month names
+  // on different computers - or, in the PDF, declare a language no reader
+  // can act on.
+  it('canonicalises a tag the runtime can format and falls back to English', () => {
+    expect(canonicalLanguage()).toBe('en')
+    expect(canonicalLanguage('   ')).toBe('en')
+    expect(canonicalLanguage('en')).toBe('en')
+    expect(canonicalLanguage('de-de')).toBe('de-DE')
+    expect(canonicalLanguage('fr-CA')).toBe('fr-CA')
+    expect(canonicalLanguage('xx')).toBe('en')
+    expect(canonicalLanguage('not a tag!')).toBe('en')
+  })
+
+  it('answers a repeated tag the same way, from the memo', () => {
+    expect(canonicalLanguage('de-de')).toBe(canonicalLanguage('de-de'))
+    expect(canonicalLanguage('not a tag!')).toBe(canonicalLanguage('not a tag!'))
+  })
+})
+
+describe('the languages the date block offers', () => {
+  // One table holds both halves of a language: the name the panel shows and
+  // the words a time span is counted in. Two lists would let the panel offer
+  // a language whose spans silently print in English.
+  it('offers English first and a name for every language', () => {
+    expect(DATE_LANGUAGE_OPTIONS[0]).toEqual({ value: 'en', label: 'English' })
+    expect(DATE_LANGUAGE_OPTIONS.every((o) => !!o.label && !!o.value)).toBe(true)
+  })
+
+  it('counts a span in its own words for every language offered', () => {
+    const english = formatDuration('2019-01', '2021-03')
+    for (const { value } of DATE_LANGUAGE_OPTIONS) {
+      const span = formatDuration('2019-01', '2021-03', { language: value })
+      expect(span).not.toBe('')
+      if (value !== 'en') expect(span).not.toBe(english)
+    }
   })
 })
 
@@ -196,5 +259,11 @@ describe('sectionDateOptions carries the document\'s date settings', () => {
 
   it('adds the span request beside them when the section asks', () => {
     expect(sectionDateOptions({ showDuration: true }, '2024-08', dates)).toEqual({ ...dates, duration: true, now: '2024-08' })
+  })
+
+  it('carries the language, so the span reads in the document\'s own words', () => {
+    // The whole string in one language: the month names and the span alike.
+    const opts = sectionDateOptions({ showDuration: true }, '2024-08', dates)
+    expect(formatDateRange('2019-01', '2021-03', opts)).toBe('Januar 2019 to März 2021 (2 J. 3 Mon.)')
   })
 })

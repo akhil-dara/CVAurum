@@ -1,6 +1,6 @@
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
-import { cn } from '@/lib/utils'
+import { cn, DATE_LANGUAGE_OPTIONS } from '@/lib/utils'
 import { Slider, Toggle, Segmented, Select, ColorField, FieldGroup } from '../fields/Controls'
 import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
@@ -23,23 +23,6 @@ const BULLET_OPTIONS = [
 
 /** Button labels for the named weights the panel offers. */
 const WEIGHT_LABELS = { bold: 'Bold', regular: 'Regular', light: 'Light' } as const
-
-/** The languages month names and time-span words are offered in. Any other
- *  BCP-47 tag still works when set by hand; the select then shows it as is. */
-const DATE_LANGUAGES = [
-  { value: 'en', label: 'English' },
-  { value: 'de', label: 'German' },
-  { value: 'fr', label: 'French' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'pt', label: 'Portuguese' },
-  { value: 'it', label: 'Italian' },
-  { value: 'nl', label: 'Dutch' },
-  { value: 'sv', label: 'Swedish' },
-  { value: 'pl', label: 'Polish' },
-  { value: 'tr', label: 'Turkish' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'ja', label: 'Japanese' },
-]
 
 /** The five element colours, each with the theme colour the base stylesheet
  *  derives it from while it is unset (a template may derive differently). */
@@ -512,7 +495,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <Select
           label="Language"
           value={m.dates?.language ?? 'en'}
-          options={DATE_LANGUAGES}
+          options={DATE_LANGUAGE_OPTIONS}
           onChange={(v) =>
             update((md) => {
               md.dates.language = v

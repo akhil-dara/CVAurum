@@ -18,6 +18,8 @@ template gallery — **without writing a single line of React**.
   - [`defaults.theme`](#defaultstheme)
   - [`defaults.typography`](#defaultstypography)
   - [`defaults.layout`](#defaultslayout)
+  - [`dates`](#dates-the-documents-not-a-template-default)
+  - [`page`](#page-the-documents-not-a-template-default)
 - [Semantic markup: the `.rm-*` classes](#semantic-markup-the-rm--classes)
 - [Styling hooks: the `--rm-*` CSS variables](#styling-hooks-the---rm--css-variables)
 - [Worked example: building the "Aurora" template](#worked-example-building-the-aurora-template)
@@ -127,7 +129,7 @@ interface TemplateConfig {
       fontFamily: string;        // body font, e.g. 'Inter'
       headingFamily: string;     // section/heading font
       nameFamily: string;        // the name at the top of the resume
-      fontSize: number;          // base body size in px
+      fontSize: number;          // base body size in pt (the canvas converts to px)
       lineHeight: number;        // unitless multiplier, e.g. 1.4
       letterSpacing: number;     // em, e.g. 0 or 0.01
       headingScale: number;      // multiplier applied to heading sizes
@@ -147,8 +149,8 @@ interface TemplateConfig {
       columns: 1 | 2;            // single or two-column
       sidebar: 'left' | 'right'; // which side the aside sits on (two-column)
       sidebarWidth: number;      // sidebar width as a fraction, e.g. 0.34
-      sectionGap: number;        // vertical gap between sections (px)
-      itemGap: number;           // vertical gap between items (px)
+      sectionGap: number;        // vertical gap between sections (pt)
+      itemGap: number;           // vertical gap between items (pt)
       icons: boolean;            // show contact/section icons
       sectionIconStyle: 'folio' | 'chip' | 'plain' | 'filled' | 'circle' | 'outline' | 'none'; // section badge (folio = folded-corner paper chip)
       sectionIconSize: 's' | 'm' | 'l'; // section badge size
@@ -206,7 +208,7 @@ this.
 | `fontFamily` | Body font → `--rm-font-body` |
 | `headingFamily` | Section/heading font → `--rm-font-heading` |
 | `nameFamily` | The name at the top → `--rm-font-name` |
-| `fontSize` | Base body size (px) → `--rm-fs`; the Word export scales every run size from it with the same ratios |
+| `fontSize` | Base body size **in points** — the unit the schema, the PDF and the Word file all measure it in → `--rm-fs`, which the canvas emits in px (pt × 96/72, times the one-page fit). Every other size on the page is a ratio of it, and the Word export scales every run from this one number — the name, the headline, section titles, entry titles, sub-lines, dates, bullets — with the same ratios the canvas uses, so one slider moves the whole document in all three outputs |
 | `lineHeight` | Line-height multiplier → `--rm-lh`; the Word export's line spacing follows it |
 | `letterSpacing` | Letter spacing (em) |
 | `headingScale` | Multiplier applied to heading sizes |
@@ -233,8 +235,8 @@ this.
 | `columns` | `1` = single column, `2` = main + sidebar |
 | `sidebar` | `'left'` or `'right'` — which side the aside sits on (two-column only) |
 | `sidebarWidth` | Sidebar width as a fraction of the page (e.g. `0.34`) |
-| `sectionGap` | Gap between sections (px) → `--rm-section-gap` |
-| `itemGap` | Gap between items within a section (px) → `--rm-item-gap` |
+| `sectionGap` | Gap between sections (pt, converted to px like the base size) → `--rm-section-gap` |
+| `itemGap` | Gap between items within a section (pt, converted the same way) → `--rm-item-gap`; one-line minis (a language, an interest) take a derived fraction of it through `--rm-item-gap-mini` |
 | `icons` | Show contact/section icons |
 | `contactSeparator` | What sits between inline contacts: `'none'` (spacing only), `'dot'`, `'pipe'`, `'slash'`, `'dash'` → `--rm-contact-sep`; the Word export prints the same glyph |
 | `sectionIconStyle` | Section badge: `'folio'` (default, a folded-corner paper chip), `'chip'`, `'plain'`, `'filled'`, `'circle'`, `'outline'`, `'none'`. The author's choice; kept across template switches |
@@ -261,6 +263,15 @@ the same way.
 | `separator` | What sits between the two ends of a range: `'emdash'` (default), `'endash'`, `'hyphen'` or `'to'` |
 | `present` | The word an open-ended range ends with (default `Present`) |
 | `language` | BCP-47 tag for month names and time-span words (default `en`); the PDF declares it as its document language |
+
+### `page` (the document's, not a template default)
+
+Where the paper decides. The block belongs to the author, survives a template switch, and one of its
+keys reaches your CSS as a class you can style around.
+
+| Key | Drives |
+| --- | --- |
+| `keepEntriesWhole` | Whether a page break may fall inside one entry. Default off — the page breaks as it always did. On, every section carries `rm-keep-entries` and no cut lands inside an entry: the whole entry moves to the next page and the gap between two entries becomes the break. A request cannot be granted past the paper, so an entry taller than 60% of the usable page has no cut that clears it and breaks normally. A section can decide for itself with `sectionSettings[key].keepTogether`, which overrides this either way and leaves it as the document's answer where the section has none. The preview overlay reads the same class off the same DOM as the export, so its page boundaries are the PDF's; the Word file holds each entry's head lines to the body under them |
 
 ---
 

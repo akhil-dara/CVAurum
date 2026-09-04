@@ -15,9 +15,10 @@ import { SectionBody } from './sections'
 /**
  * A section can print an entry's location beside its date instead of under
  * its title. The location LEAVES the sub-line and lands in the date slot,
- * separated by one glyph the reader sees and the text layer treats as
- * decoration - and it stays editable where it lands, whichever field the
- * section leads its entries with. The page is rendered to a string here:
+ * separated by one glyph that is real text, not decoration, so a reader that
+ * gets only the text still sees a field boundary there - and it stays
+ * editable where it lands, whichever field the section leads its entries
+ * with. The page is rendered to a string here:
  * this markup is what the export paints, so the slot each field lands in is
  * the whole of the feature on the page.
  */

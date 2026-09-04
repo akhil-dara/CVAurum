@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { paginate } from './paginate'
+import { paginate, type PageBlock } from './paginate'
 import {
   absolutizeLeadingMoveto,
   expandArcFlags,
@@ -2165,6 +2165,146 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
 
     const blocks = extractPageBlocks(root as unknown as HTMLElement, PAGE.usable)
     expect(blocks.map((b2) => b2.keepWithNext === true)).toEqual([true, false, false])
+  })
+
+  /* ------------------------------ short sections whole (the page height) */
+
+  /** A two-column document: one main section short enough to hold together
+   *  (or, unstretched, too tall to), a second main section well past the
+   *  ceiling, and a sidebar section as short as the first.
+   *
+   *  The page height reaches the short-section rule through the MAIN column
+   *  alone (sectionKeep.ts: a sidebar section torn by a break is rejoined in
+   *  the reading order, a main-column one cannot be), so this needs two real
+   *  columns. The sidebar sits in the gap between the two main sections,
+   *  where the main column has no ink of its own: combineColumns then shows
+   *  each column's own answer rather than an interleaving of both - its
+   *  merge arithmetic where columns overlap is pinned in paginate.test.ts. */
+  function twoColumnDoc(shortSection: boolean) {
+    const entry = (name: string, top: number, left: number, right: number) => {
+      const line = txt(name, { top, bottom: top + 20, left, right })
+      return elm(['rm-item'], { top, bottom: top + 20, left, right }, [line])
+    }
+    // 80px tall against a 400px page: inside the 40% ceiling. Unstretched,
+    // the same two entries span 260px and put the section past it.
+    const lastTop = shortSection ? 60 : 240
+    const titleA = elm(['rm-section-title'], { top: 0, bottom: 20, left: 0, right: 200 })
+    const bodyA = elm(['rm-section-body'], { top: 30, bottom: lastTop + 20, left: 0, right: 300 }, [
+      entry('First entry', 30, 0, 300),
+      entry('Second entry', lastTop, 0, 300),
+    ])
+    const sectionA = elm(['rm-section'], { top: 0, bottom: lastTop + 20, left: 0, right: 300 }, [titleA, bodyA])
+
+    // A second main section, 300px and so past the ceiling either way: one
+    // run of the same list that the rule must always leave alone.
+    const titleB = elm(['rm-section-title'], { top: 400, bottom: 420, left: 0, right: 200 })
+    const bodyB = elm(['rm-section-body'], { top: 430, bottom: 700, left: 0, right: 300 }, [
+      entry('Third entry', 430, 0, 300),
+      entry('Fourth entry', 680, 0, 300),
+    ])
+    const sectionB = elm(['rm-section'], { top: 400, bottom: 700, left: 0, right: 300 }, [titleB, bodyB])
+    const main = elm(['rm-col-main'], { top: 0, bottom: 700, left: 0, right: 500 }, [sectionA, sectionB])
+
+    const titleC = elm(['rm-section-title'], { top: 300, bottom: 320, left: 520, right: 700 })
+    const bodyC = elm(['rm-section-body'], { top: 330, bottom: 380, left: 520, right: 700 }, [
+      entry('Sidebar entry', 330, 520, 700),
+      entry('Sidebar tail', 360, 520, 700),
+    ])
+    const sectionC = elm(['rm-section'], { top: 300, bottom: 380, left: 520, right: 700 }, [titleC, bodyC])
+    const aside = elm(['rm-col-aside'], { top: 300, bottom: 380, left: 520, right: 700 }, [sectionC])
+
+    return elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [main, aside])
+  }
+
+  /** Every block's own extent, which the page height must never change -
+   *  the rule sets flags on the list, it does not rebuild it. */
+  const geometry = (blocks: PageBlock[]) => blocks.map((b) => `${b.kind} ${b.topPx}-${b.bottomPx}`)
+  const flags = (blocks: PageBlock[]) => blocks.map((b) => b.keepWithNext === true)
+
+  it('holds a short main-column section together, but only once a page height comes in', () => {
+    install()
+    // The preview used to call this with the root alone; it now passes the
+    // usable page height, which is what switches the short-section rule on
+    // here (ResumePreview.tsx / render.tsx both measure and pass it).
+    const measured = extractPageBlocks(twoColumnDoc(true) as unknown as HTMLElement, PAGE.usable)
+    const unmeasured = extractPageBlocks(twoColumnDoc(true) as unknown as HTMLElement)
+
+    expect(geometry(measured)).toEqual(geometry(unmeasured))
+    expect(geometry(measured)).toEqual([
+      'line 0-20', // section A's title
+      'entry-gap 20-30',
+      'line 30-50', // A's first entry
+      'entry-gap 50-60',
+      'line 60-80', // A's last entry
+      'section-gap 80-300',
+      'line 300-320', // the sidebar section's title
+      'entry-gap 320-330',
+      'line 330-350',
+      'entry-gap 350-360',
+      'line 360-380',
+      'section-gap 380-400',
+      'line 400-420', // section B's title
+      'entry-gap 420-430',
+      'line 430-450',
+      'entry-gap 450-680',
+      'line 680-700',
+    ])
+
+    // A section title always keeps its first entry; the rest of the
+    // difference is the height's doing. The gaps inside the held section
+    // carry the ban in the main column's own list, but only ink contributes
+    // a flag to the combined one (paginate.ts, combineColumns), so it
+    // surfaces on the line the cut would otherwise fall after.
+    expect(flags(unmeasured)).toEqual([
+      true, // section A's title
+      false,
+      false, // A's first entry - a cut may fall after it
+      false,
+      false,
+      false,
+      true, // the sidebar title
+      false,
+      false,
+      false,
+      false,
+      false,
+      true, // section B's title
+      false,
+      false,
+      false,
+      false,
+    ])
+    expect(flags(measured)).toEqual([
+      true,
+      false,
+      true, // held: no cut inside the short section A
+      false,
+      false, // its last block still ends the run - the gap after it is legal
+      false,
+      true,
+      false,
+      false, // the sidebar's section is just as short and is NOT held: only
+      false, //   the main column cannot rejoin a section a break tore in two
+      false,
+      false,
+      true, // section B is past the ceiling, height or not
+      false,
+      false,
+      false,
+      false,
+    ])
+  })
+
+  it('leaves a main-column section past the ceiling breakable, height or not', () => {
+    install()
+    // The same section stretched to 260px against a 400px page: over the
+    // 40% ceiling, so the height buys it nothing and the list is the one
+    // the unmeasured call already returns.
+    const stretched = twoColumnDoc(false) as unknown as HTMLElement
+    const measured = flags(extractPageBlocks(stretched, PAGE.usable))
+    expect(measured).toEqual(flags(extractPageBlocks(stretched)))
+    // The three section titles keep their own flag; nothing else is held.
+    expect(measured.filter(Boolean).length).toBe(3)
   })
 })
 

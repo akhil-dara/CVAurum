@@ -436,21 +436,31 @@ const summaryParas = (html: string, C: Ctx) => richToBlocks(html, C.body).map(pa
 // The page hangs an outside marker in the list's indent and sets the text at
 // the indent; Word gets the same distance as a hanging indent. With no marker
 // the text still sits at the indent, as it does on the page.
-const bulletPara = (html: string, C: Ctx) =>
-  C.bullet === 'none'
+// The bullet gap sits BETWEEN bullets, as it does on the page: the list's own
+// air, not air after the list. Given to every bullet it also spaced the LAST
+// one, so a list set with a roomy gap pushed the next entry down by that much
+// again - a distance nothing on the canvas showed. The last bullet of a list
+// takes the small trailing value a bullet always took instead.
+const BULLET_TRAILING = 16
+const bulletPara = (html: string, C: Ctx, last: boolean) => {
+  const after = last ? BULLET_TRAILING : BULLET.gap
+  return C.bullet === 'none'
     ? new Paragraph({
         indent: { left: BULLET.indent },
-        spacing: { after: BULLET.gap },
+        spacing: { after },
         children: richToRuns(html, C.body),
       })
     : new Paragraph({
         bullet: { level: 0 },
         indent: { left: BULLET.indent, hanging: BULLET.indent },
-        spacing: { after: BULLET.gap },
+        spacing: { after },
         children: richToRuns(html, C.body),
       })
-const bulletsOf = (items: string[], C: Ctx) =>
-  items.filter((h) => htmlToText(h).length > 0).map((h) => bulletPara(h, C))
+}
+const bulletsOf = (items: string[], C: Ctx) => {
+  const shown = items.filter((h) => htmlToText(h).length > 0)
+  return shown.map((h, i) => bulletPara(h, C, i === shown.length - 1))
+}
 
 /* ------------------------------------------------------------------ photo */
 

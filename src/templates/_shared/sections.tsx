@@ -1159,6 +1159,14 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         const degree = [e.studyType, e.area].filter(Boolean).join(', ')
         const title = degree || e.institution
         const orgFirst = leadsWithOrg(opts)
+        // Organisation first, in print, with no school typed: the head line
+        // would be empty while the degree sat in the sub-line under it. The
+        // head falls back to the degree, exactly as the title-first head
+        // already falls back to the institution, and the sub-line is then
+        // dropped so the degree is not printed twice. Edit mode keeps both
+        // fields where they land - each shows its own placeholder there, so
+        // there is no empty line to fall back from.
+        const headIsDegree = orgFirst && !edit && !e.institution && !!degree
         const withDate = locBesideDate(opts)
         const place =
           show(opts?.showLocation) && (edit || e.location) ? (
@@ -1226,7 +1234,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               setLogo={(c, v) => {
                 c.education[i].logo = v
               }}
-              title={orgFirst ? school() : edit ? degreeFields : title}
+              title={orgFirst ? (headIsDegree ? degree : school()) : edit ? degreeFields : title}
               loc={withDate ? place : undefined}
               date={rangeDate(
                 edit,
@@ -1246,7 +1254,10 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               {orgFirst ? (
                 // The degree pair under a leading school. Wrapped so the
                 // sub-line's org slot is one element, as it is for a company.
-                edit || degree ? <span className="rm-item-org">{edit ? degreeFields : degree}</span> : null
+                // Nothing here once the head line has taken the degree.
+                !headIsDegree && (edit || degree) ? (
+                  <span className="rm-item-org">{edit ? degreeFields : degree}</span>
+                ) : null
               ) : (
                 school('rm-item-org')
               )}

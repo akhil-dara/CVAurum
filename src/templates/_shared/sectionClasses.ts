@@ -12,9 +12,29 @@ export function sectionBase(key: string): string {
   return key.startsWith('custom-') ? 'custom' : key
 }
 
+/* Which entry fields a section prints at all. The gear shows a field's rows
+ * for these sections alone, and the style painter drops a painted value that
+ * lands anywhere else - a section whose gear never shows the row could not
+ * clear it again. One place for both readers, so the two cannot disagree. */
+
 /** Sections whose entries have a title AND an organisation line, so either
- *  can lead or be bold. The gear shows the two rows for these alone. */
+ *  can lead or be bold. */
 export const HAS_ENTRY_ORG = new Set(['work', 'education', 'volunteer', 'custom'])
+
+/** Sections whose entries carry a date, so it can take a side of the row. */
+export const HAS_DATES = new Set([
+  'work',
+  'education',
+  'projects',
+  'volunteer',
+  'certificates',
+  'awards',
+  'publications',
+  'custom',
+])
+
+/** Sections whose entries carry a location, so it can move beside the date. */
+export const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 
 /** The visual-style fields the style painter copies (NOT the show* content
  *  toggles). */
@@ -35,22 +55,34 @@ export const STYLE_FIELDS = [
   'badgeShape',
 ] as const
 
+/** A painted field that only means something where the section prints the
+ *  entry field it styles: the set of sections that do, per field. */
+const PAINT_NEEDS: [field: string, sections: Set<string>][] = [
+  ['entryOrder', HAS_ENTRY_ORG],
+  ['entryEmphasis', HAS_ENTRY_ORG],
+  ['locationPlacement', HAS_LOCATION],
+  ['dateAlign', HAS_DATES],
+]
+
 /**
  * Paint a copied style onto one section: its own style fields are cleared
  * first, so a copied Auto (unset) lands too, and its content toggles stay.
- * The entry order and emphasis only land on a section whose entries have an
- * organisation line; painted onto one without (projects, awards, skills)
- * they would leave nothing bold, and that section's gear, which never shows
- * the two rows, could not clear them again.
+ * The fields that style an entry field only land on a section that prints
+ * that field. The entry order and emphasis painted onto a section with no
+ * organisation line (projects, awards, skills) would leave nothing bold; a
+ * location placement painted where no location prints, and a date side
+ * where no date does, would sit in the settings doing nothing. In every
+ * case that section's gear never shows the row, so nothing could clear the
+ * value again.
  */
 export function paintStyle(m: Metadata, key: string, copied: Record<string, string>): void {
   if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
   const cur = { ...(m.layout.sectionSettings[key] ?? {}) } as Record<string, unknown>
   for (const f of STYLE_FIELDS) delete cur[f]
   Object.assign(cur, copied)
-  if (!HAS_ENTRY_ORG.has(sectionBase(key))) {
-    delete cur.entryOrder
-    delete cur.entryEmphasis
+  const base = sectionBase(key)
+  for (const [field, sections] of PAINT_NEEDS) {
+    if (!sections.has(base)) delete cur[field]
   }
   m.layout.sectionSettings[key] = cur
 }

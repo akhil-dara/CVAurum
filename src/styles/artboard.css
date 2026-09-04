@@ -976,7 +976,10 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  /* Named because a reserved date column has to hold open exactly this much
+     air on a row that prints no date at all (sec-date-left, below). */
+  --rm-head-gap: 12px;
+  gap: var(--rm-head-gap);
 }
 /* Title and date share the row: the TITLE wraps and the date keeps its place
    at the top right, which is what every other builder does and what the author
@@ -990,9 +993,17 @@
    person, and people read these too.
 
    min-width: 0 is what expresses it - without it a flex item refuses to
-   shrink below its content, which is precisely what pushed the date away. */
+   shrink below its content, which is precisely what pushed the date away.
+
+   The sidebar needs the same allowance, and needs it sooner: a date never
+   wraps, a time span makes that unbroken string half as long again
+   ("Mar 2021 - Feb 2023 (2 yrs)"), and the aside is the narrow column. With
+   the title held at its content width there, the pair had no way to fit and
+   crowded the band instead of letting the title take the wrapping. */
 .rm-col-main .rm-item-head > .rm-item-title,
-.rm-col-main .rm-item-head > .rm-mini-title {
+.rm-col-main .rm-item-head > .rm-mini-title,
+.rm-col-aside .rm-item-head > .rm-item-title,
+.rm-col-aside .rm-item-head > .rm-mini-title {
   min-width: 0;
 }
 .rm-col-main .rm-item-head > .rm-item-date {
@@ -1039,7 +1050,7 @@
 }
 /* Location beside the date (sectionSettings.locationPlacement): the pair
    shares the head row's right-hand slot as one unbreakable run - "Austin, TX
-   | Jan 2019 – Mar 2021" - so the TITLE takes the wrapping, exactly as it
+   | Jan 2019 - Mar 2021" - so the TITLE takes the wrapping, exactly as it
    does when the date sits there alone. The separator is a real text span,
    not a pseudo-element or a border, so the export paints it and the text
    layer keeps it. */
@@ -1064,10 +1075,50 @@
   padding-right: 1em;
   text-align: left;
 }
+/* The title takes the row's slack, so it follows the date instead of being
+   pushed to the far edge by the row's space-between - which is what the
+   date's own margin-left:auto does for it in the default, date-right
+   layout. */
+.rm-root .rm-section.sec-date-left .rm-item-head > .rm-item-title,
+.rm-root .rm-section.sec-date-left .rm-item-head > .rm-mini-title {
+  margin-right: auto;
+}
 /* A shared column so the titles line up down the section. Main column only:
-   a sidebar is too narrow to give six ems away. */
+   a sidebar is too narrow to give six ems away.
+
+   The column is held open by the ROW, not by the date. An entry with no date
+   renders no .rm-item-date element at all, so a width reserved on that
+   element alone left such a row's title back at the margin while every one of
+   its neighbours was indented. The row's left padding reserves the column
+   whether or not a date prints, and a date that does print is pulled back
+   into it - so a dated row is laid out exactly as it was. The mark is
+   positioned against the row's PADDING box, which the padding does not move,
+   so it still keeps the outer edge.
+
+   The column is a length built from --rm-fs, not an em, because an em inside
+   a custom property is resolved where the value is USED, not where it is
+   declared - and the two users are different sizes. The row reserves it and
+   the date pulls it back, so an em would push by the ROW's type and pull by
+   the DATE's, leaving the difference as a permanent inset. The 0.92 is the
+   date's own scale, above: the column was always measured in the date's
+   type, and it still is. */
+.rm-root .rm-col-main .rm-section.sec-date-left .rm-item-head {
+  --rm-date-col: calc(var(--rm-fs) * 0.92 * 9.6);
+  padding-left: calc(var(--rm-date-col) + var(--rm-head-gap));
+}
+/* The column is a FIXED width, not a floor. A floor lines up the short
+   dates and lets a long one grow and shove its own title right, so the
+   titles stagger down the page - which is the one thing a date column is
+   for. At this width a full range ("Mar 2021 - Present") sits on one line;
+   a longer one, spelled out or carrying a time span, wraps inside the
+   column instead of stealing room from the title, so every title in the
+   section starts on the same x whatever its date says. */
 .rm-root .rm-col-main .rm-section.sec-date-left .rm-item-head > .rm-item-date {
-  min-width: 6.4em;
+  width: var(--rm-date-col);
+  min-width: var(--rm-date-col);
+  flex: 0 0 var(--rm-date-col);
+  white-space: normal;
+  margin-left: calc(-1 * (var(--rm-date-col) + var(--rm-head-gap)));
 }
 /* Education score (GPA/CGPA): placement is the USER'S choice per section —
    inline by default; 'right' / 'pill' variants live in templates.css. */
@@ -1551,7 +1602,13 @@
   right: auto;
   top: auto;
   transform: none;
-  margin: 0 0.5em 0 0;
+  /* The three sides the gutter rules hang the chip by, and NOT margin-right:
+     the shorthand set here outranks every chip rule's own gap (the badge
+     chip's tighter one, the sidebar's smaller one), so a centred heading
+     spaced them all alike. The gap belongs to whichever chip is drawn. */
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
   vertical-align: -0.42em;
 }
 /* A rule that runs on after the title (the rule-after template style and
