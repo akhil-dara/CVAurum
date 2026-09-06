@@ -5,8 +5,10 @@ export interface Stat { value: string; label: string }
 
 /** A count followed by one of the nouns a reader recognises as a headline
  *  figure. One word may sit between them, so "3.2k project stars" and
- *  "12k monthly downloads" both read as the number and the noun. */
-const HEADLINE = /(\d[\d.,]*\s*[kKmM]?\+?)\s*(?:\w+\s+)?(stars|users|downloads|customers)/i
+ *  "12k monthly downloads" both read as the number and the noun. The
+ *  thousands suffix must be a word on its own, so the "k" of "key" and the
+ *  "m" of "monthly" are never read as part of the figure. */
+const HEADLINE = /(\d[\d.,]*(?:\s*[kKmM]\b)?\+?)\s*(?:\w+\s+)?(stars|users|downloads|customers)/i
 
 function months(ym: string): number | null {
   const m = /^(\d{4})(?:-(\d{2}))?/.exec(ym || '')

@@ -37,4 +37,9 @@ describe('deriveStats', () => {
     c.projects = [{ ...c.projects[0], description: '', highlights: ['<strong>12k</strong> monthly downloads'] }]
     expect(deriveStats(c, '2026-09').at(-1)).toEqual({ value: '12k', label: 'downloads' })
   })
+  it('never borrows a thousands suffix from the word after the number', () => {
+    const c = createDocument({ sample: true }).content
+    c.projects = [{ ...c.projects[0], description: '', highlights: ['Serves 30 key customers'] }]
+    expect(deriveStats(c, '2026-09').at(-1)).toEqual({ value: '30', label: 'customers' })
+  })
 })
