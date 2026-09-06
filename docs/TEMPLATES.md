@@ -172,7 +172,7 @@ interface TemplateConfig {
 | Field | Type | Purpose |
 | --- | --- | --- |
 | `id` | `string` | Stable, unique identifier. Used in saved resumes — **never reuse or rename** an existing `id`. |
-| `name` | `string` | Human-readable name shown in the gallery. |
+| `name` | `string` | Human-readable name shown in the gallery. Must be unique too — a card shows nothing but this, so two templates sharing a name are two cards a reader cannot tell apart. Unlike `id`, it is free to change: rename the card, keep the `id`. |
 | `description` | `string` | One-line pitch shown under the name. |
 | `tags` | `string[]` | Searchable/filterable labels (e.g. `'compact'`, `'creative'`, `'sidebar'`). The gallery derives its chips from them, so a new tag gets a chip for free; `'signature'` marks the [Signature collection](#the-signature-collection). |
 | `atsSafe` | `boolean` | When `true`, the gallery shows the ATS-safe shield. Only set this if your design keeps a single readable text flow (see [Rules](#rules-and-gotchas)). |

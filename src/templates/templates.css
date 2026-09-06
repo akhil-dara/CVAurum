@@ -534,7 +534,7 @@
   color: var(--rm-name-color, var(--rm-primary));
 }
 
-/* ===================================================== Polished (banner) */
+/* ============================== Amethyst (banner, id kept as 'polished') */
 .tpl-polished .rm-header-banner {
   border-radius: 0 0 14px 14px;
 }

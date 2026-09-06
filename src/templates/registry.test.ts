@@ -1,6 +1,24 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { getTemplate } from './registry'
+import { getTemplate, TEMPLATES } from './registry'
+
+/**
+ * The id is what a saved document stores, so two entries sharing one would send
+ * an author to the wrong design; the name is all a card in the gallery shows,
+ * so two entries sharing one leave a reader with no way to tell them apart.
+ * Names are compared case-insensitively - 'Nova' and 'NOVA' read as one name.
+ */
+describe('the registry', () => {
+  const repeated = (values: string[]) => [...new Set(values.filter((v, i) => values.indexOf(v) !== i))]
+
+  it('gives every template an id of its own', () => {
+    expect(repeated(TEMPLATES.map((t) => t.id))).toEqual([])
+  })
+
+  it('gives every template a display name of its own', () => {
+    expect(repeated(TEMPLATES.map((t) => t.name.toLowerCase()))).toEqual([])
+  })
+})
 
 /**
  * The Signature collection: every one of its templates is a single column,

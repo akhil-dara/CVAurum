@@ -605,9 +605,11 @@ export const TEMPLATES: TemplateConfig[] = [
     ),
   },
   {
+    // The id is what saved documents store, so it stays 'polished' for good;
+    // the card was renamed off 'Marquee' when the Signature poster took it.
     id: 'polished',
-    name: 'Marquee',
-    description: 'A full-width color banner sets a bold, confident tone.',
+    name: 'Amethyst',
+    description: 'A full-width violet banner with rounded lower corners, and skills in matching pills. Bold and confident.',
     tags: ['single-column', 'creative', 'modern'],
     atsSafe: true,
     class: 'tpl-polished',
