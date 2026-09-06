@@ -1826,16 +1826,39 @@
 }
 /* One row per group: the label, then the list. */
 .rm-footer-row {
+  /* The group NAME sits on its own line above its keywords, not beside
+     them. A PDF importer recovers a group by finding a short plain line
+     with a keyword list under it - that is how every other template's
+     skills survive a round trip. With the name and the list sharing one
+     line there is nothing to tell them apart, and re-importing a resume
+     whose skills sat in the strip came back as a single unnamed group
+     holding one keyword instead of twelve. */
   display: flex;
-  gap: 1em;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 0.1em;
 }
 .rm-footer .rm-footer-row,
 .rm-footer .rm-footer-row:last-child {
   margin-bottom: 0;
 }
+/* Languages: one per line, for the same reason the skill groups stack.
+   Both on a single line came back from a round trip as one language - the
+   importer reads a language per line, and a middot between two of them is
+   not a line break. The strip stays compact: two short lines. */
+.rm-footer-row.rm-mini .rm-footer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+.rm-footer-row.rm-mini .rm-kw-sep {
+  display: none;
+}
+.rm-footer-row.rm-mini .rm-footer-lang {
+  display: block;
+}
+
 .rm-footer-label {
-  width: 9em;
+  width: auto;
   flex: none;
   font-weight: 700;
   color: inherit;
