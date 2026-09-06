@@ -2775,8 +2775,23 @@
    permanently, so an ordinary read of the page is not covered in controls. */
 .rm-item-move {
   position: absolute;
-  top: 0;
-  right: 1.7em;
+  /* ABOVE the row, not on it. These used to sit at top: 0, which is exactly
+     where a right-aligned date is: measured, the pair covered 738 square px
+     of the date on one template and 1320 on another, so hovering an entry to
+     click into its date put the arrows under the pointer and the click MOVED
+     the entry instead of editing the date - a change the author then had to
+     undo (reported live, 2026-09-06). There is no page margin to the right to
+     move into, so they lift clear of the first line instead, tucked far
+     enough down to still read as belonging to the row. Still absolutely
+     positioned, so a revealed cluster costs the row no width and the canvas
+     goes on measuring exactly what prints. */
+  top: auto;
+  bottom: 100%;
+  /* Clear of the hover cluster that is portalled to the row's top-right
+     (add, remove, page pin): lifted straight up, these landed underneath it,
+     and a click meant for "move up" reached the section's hide button. */
+  right: 8.5em;
+  z-index: 7;
   display: none;
   gap: 0.05em;
   /* These sit OVER the row they reorder, and a narrow sidebar leaves a skill
