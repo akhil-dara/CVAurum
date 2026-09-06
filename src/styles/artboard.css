@@ -1598,6 +1598,16 @@
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--rm-headline-color, var(--rm-primary));
+  /* Air enough to be a LINE, not only to look like one. A PDF stores no
+     lines: text extraction infers them from how far the next run's baseline
+     dropped, and a drop under half the previous run's type size reads as the
+     same line - so under a name set at 2.2x the name size, a role line
+     tucked straight beneath it came back joined to the name's last word.
+     The name's own 0.15em bottom margin cannot carry this: adjacent block
+     siblings collapse their margins, so the gap is the LARGER of the two,
+     and 0.15em of the big name is barely half of what the drop has to be.
+     In em, so it opens in proportion when the document's type grows. */
+  margin-top: 1.5em;
   margin-bottom: 0;
 }
 .rm-header-display .rm-dateline {
