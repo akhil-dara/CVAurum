@@ -1606,8 +1606,11 @@
      The name's own 0.15em bottom margin cannot carry this: adjacent block
      siblings collapse their margins, so the gap is the LARGER of the two,
      and 0.15em of the big name is barely half of what the drop has to be.
-     In em, so it opens in proportion when the document's type grows. */
-  margin-top: 1.5em;
+     Sized off the NAME, because the name is what sets the threshold: the
+     name and the headline are moved by two different sliders, so an em of
+     the headline would shrink while the threshold held, or hold while the
+     threshold grew. */
+  margin-top: calc(var(--rm-name-size) * 0.8);
   margin-bottom: 0;
 }
 .rm-header-display .rm-dateline {
