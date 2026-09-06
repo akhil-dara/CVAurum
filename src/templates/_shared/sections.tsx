@@ -186,11 +186,11 @@ function Ring({
   return (
     <div className="rm-ring" data-item-id={id}>
       <svg className="rm-ring-track" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <path d={ringPath(size / 2, size / 2, r, 0, 359.999)} />
+        <path d={ringPath(size / 2, size / 2, r, 0, 360)} />
       </svg>
       {pct > 0 ? (
         <svg className="rm-ring-arc" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-          <path d={ringPath(size / 2, size / 2, r, 0, (pct / 100) * 359.999)} />
+          <path d={ringPath(size / 2, size / 2, r, 0, (pct / 100) * 360)} />
         </svg>
       ) : null}
       <Deco className="rm-ring-value">{pct}</Deco>

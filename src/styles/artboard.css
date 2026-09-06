@@ -2384,7 +2384,10 @@
   align-items: center;
   gap: 0.25em;
 }
-.rm-ring svg {
+/* Only the two ring svgs: the move and delete controls a ring hosts carry
+   their own icon svgs, and those keep their stroke and their place. */
+.rm-ring > .rm-ring-track,
+.rm-ring > .rm-ring-arc {
   position: absolute;
   top: 0;
   left: 0;

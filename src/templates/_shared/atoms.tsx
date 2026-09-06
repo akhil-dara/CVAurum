@@ -106,7 +106,13 @@ const round2 = (n: number) => Math.round(n * 100) / 100 || 0
  *  swept clockwise from angle a0 to a1 measured from twelve o'clock, as one
  *  path (outer arc, line in, inner arc back, close). One path means the svg
  *  holding it carries a single fill, which is all the painter reads from an
- *  svg root. An empty or backwards sweep is no path at all. */
+ *  svg root. An empty or backwards sweep is no path at all.
+ *
+ *  A full turn is a special case: an arc whose two endpoints coincide is
+ *  dropped by every renderer (the SVG spec says so, browsers and the
+ *  painter's arc conversion both do it), so a sweep of 360 or more is drawn
+ *  as two half arcs per radius - the same two-arc circle convention the
+ *  walker uses for a <circle>. */
 export function ringPath(cx: number, cy: number, r: number, a0: number, a1: number): string {
   const sweep = a1 - a0
   if (!(sweep > 0)) return ''
@@ -115,8 +121,15 @@ export function ringPath(cx: number, cy: number, r: number, a0: number, a1: numb
   const rad = (deg: number) => ((deg - 90) * Math.PI) / 180
   const at = (angle: number, radius: number) =>
     `${round2(cx + radius * Math.cos(angle))} ${round2(cy + radius * Math.sin(angle))}`
-  const large = sweep > 180 ? 1 : 0
   const from = rad(a0)
+  if (sweep >= 360) {
+    const half = rad(a0 + 180)
+    return (
+      `M ${at(from, outer)} A ${outer} ${outer} 0 1 1 ${at(half, outer)} A ${outer} ${outer} 0 1 1 ${at(from, outer)}` +
+      ` L ${at(from, inner)} A ${inner} ${inner} 0 1 0 ${at(half, inner)} A ${inner} ${inner} 0 1 0 ${at(from, inner)} Z`
+    )
+  }
+  const large = sweep > 180 ? 1 : 0
   const to = rad(a1)
   return `M ${at(from, outer)} A ${outer} ${outer} 0 ${large} 1 ${at(to, outer)} L ${at(to, inner)} A ${inner} ${inner} 0 ${large} 0 ${at(from, inner)} Z`
 }
