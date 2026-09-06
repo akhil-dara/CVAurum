@@ -20,7 +20,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
-import { HAS_DATES, HAS_ENTRY_ORG, HAS_LOCATION, STYLE_FIELDS, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
+import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LOCATION, STYLE_FIELDS, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -104,6 +104,15 @@ const SKILL_STYLES: { label: string; value: string }[] = [
   { label: 'Stacked', value: 'stacked' },
   { label: 'Grid', value: 'grid' },
   { label: 'Rings', value: 'rings' },
+]
+
+/** How an entry's own keyword tags look ('' = the template's own chip).
+ *  The three share their names, and their looks, with the skills styles. */
+const TAG_STYLES: { label: string; value: string }[] = [
+  { label: 'Auto', value: '' },
+  { label: 'Pills', value: 'chips' },
+  { label: 'Tags', value: 'tags' },
+  { label: 'Inline', value: 'inline' },
 ]
 
 /** Entry-flow layouts ('' = the template's own default). */
@@ -407,7 +416,6 @@ const METER_CHOICES: { v: string; label: string; title: string }[] = [
   { v: 'none', label: 'None', title: 'Hide proficiency' },
 ]
 const HAS_METER = new Set(['skills', 'languages'])
-const HAS_KEYWORDS = new Set(['projects'])
 
 const POP_W = 308 // popover width (px) — must match w-[308px] below
 
@@ -492,6 +500,7 @@ export function SectionGear({
       | 'headingStyle'
       | 'headingAlign'
       | 'skillsStyle'
+      | 'tagStyle'
       | 'chipSize'
       | 'entryLayout'
       | 'entryOrder'
@@ -1069,6 +1078,42 @@ export function SectionGear({
                     In the footer strip this section prints as one line per group. Move it to the main flow to choose a
                     style or a meter.
                   </p>
+                )}
+
+                {/* Entry tags - the sections whose entries carry keywords of
+                    their own (projects). The skills pickers were gated to the
+                    skills section, so these tags could only be shown or
+                    hidden; the same three looks, and the same size chips, now
+                    reach them. Offered only while the tags are shown, as the
+                    bullet row is. */}
+                {HAS_KEYWORDS.has(base) && opts.showKeywords !== false && (
+                  <>
+                    <Group label="Tags as">
+                      <div className="grid grid-cols-4 gap-1">
+                        {TAG_STYLES.map((s) => (
+                          <StyleChip
+                            key={s.value || 'auto'}
+                            label={s.label}
+                            kind={`s:${s.value}`}
+                            on={(opts.tagStyle ?? '') === s.value}
+                            onClick={() => setStyle('tagStyle', s.value || undefined)}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                    <Group label="Tag size">
+                      <div className="grid grid-cols-3 gap-1">
+                        {CHIP_SIZES.map((z) => (
+                          <ChipBtn
+                            key={z.value || 'auto'}
+                            label={z.label}
+                            on={(opts.chipSize ?? '') === z.value}
+                            onClick={() => setStyle('chipSize', z.value || undefined)}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                  </>
                 )}
 
                 {/* Skills display - only for the skills section, outside the strip */}

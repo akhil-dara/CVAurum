@@ -36,12 +36,19 @@ export const HAS_DATES = new Set([
 /** Sections whose entries carry a location, so it can move beside the date. */
 export const HAS_LOCATION = new Set(['work', 'education', 'custom'])
 
+/** Sections whose entries carry keyword tags of their own, so the tags can be
+ *  shown, hidden and styled. Only ProjectSchema has 'keywords' today; this set
+ *  is the single source of that fact - the gear's rows and the painter both
+ *  read it, so neither can offer a tag style the other drops. */
+export const HAS_KEYWORDS = new Set(['projects'])
+
 /** The visual-style fields the style painter copies (NOT the show* content
  *  toggles). */
 export const STYLE_FIELDS = [
   'headingStyle',
   'headingAlign',
   'skillsStyle',
+  'tagStyle',
   'chipSize',
   'entryLayout',
   'entryOrder',
@@ -62,6 +69,7 @@ const PAINT_NEEDS: [field: string, sections: Set<string>][] = [
   ['entryEmphasis', HAS_ENTRY_ORG],
   ['locationPlacement', HAS_LOCATION],
   ['dateAlign', HAS_DATES],
+  ['tagStyle', HAS_KEYWORDS],
 ]
 
 /**
@@ -70,10 +78,10 @@ const PAINT_NEEDS: [field: string, sections: Set<string>][] = [
  * The fields that style an entry field only land on a section that prints
  * that field. The entry order and emphasis painted onto a section with no
  * organisation line (projects, awards, skills) would leave nothing bold; a
- * location placement painted where no location prints, and a date side
- * where no date does, would sit in the settings doing nothing. In every
- * case that section's gear never shows the row, so nothing could clear the
- * value again.
+ * location placement painted where no location prints, a date side where no
+ * date does, and a tag look where the entries carry no keywords, would sit in
+ * the settings doing nothing. In every case that section's gear never shows
+ * the row, so nothing could clear the value again.
  */
 export function paintStyle(m: Metadata, key: string, copied: Record<string, string>): void {
   if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
@@ -166,5 +174,8 @@ export function sectionOverrideClasses(ss: SectionSettings | undefined): string[
     // Which edge the date sits on is ink, so it travels as a class. Where
     // the location prints is a different slot in the markup, so it does not.
     ss.dateAlign ? `sec-date-${ss.dateAlign}` : '',
+    // tagStyle adds nothing here: a section can hold both skill chips and
+    // entry tags, so the tag look rides on the tag container itself
+    // (rm-tags-*) and cannot reach the section's other chips by mistake.
   ].filter(Boolean)
 }

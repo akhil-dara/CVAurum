@@ -183,6 +183,11 @@ export const LayoutSchema = z.object({
         // 'stacked' puts the group name on its own line with the keyword
         // list beneath it, rather than running the list on after the name.
         skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid', 'stacked', 'mosaic', 'rings']).optional(),
+        /** How an entry's own keyword tags look, for the sections whose
+         *  entries carry keywords (projects). The skills pickers only ever
+         *  reached the skills section, so a project's tech tags had no style
+         *  at all. Unset keeps the chips the template draws. */
+        tagStyle: z.enum(['chips', 'tags', 'inline']).optional(),
         /** how the section's entries are laid out (overrides the template's flow) */
         entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided', 'ledger']).optional(),
         /** how the education score (GPA) is placed: inline (default), pushed right, or a pill */

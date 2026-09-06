@@ -1256,6 +1256,39 @@
   --rm-chip-lh: 1.35;
 }
 
+/* Entry tags (a project's tech tags) wear the look their own section picked.
+   The skills pickers only ever reached the skills section, so these tags had
+   a show/hide row and no style at all. Unset adds no class and the template's
+   own chip stands; the three looks match the skills styles of the same names.
+   Anchored on .rm-root .rm-section so they beat a template's own .rm-chip
+   rule, which this sheet is loaded before. No look fixes a size of its own:
+   every size here comes from the pill-size vars above, so "Tag size" reaches
+   a tag exactly as "Pill size" reaches a skill chip. The editing surface
+   takes the same class as the printed one, so the canvas never shows a list
+   the export will not. */
+.rm-root .rm-section .rm-chips.rm-tags-chips :is(.rm-chip, .rm-chip-edit) {
+  background: color-mix(in srgb, var(--rm-primary) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rm-primary) 26%, transparent);
+  border-radius: 9999px;
+  color: inherit;
+  font-weight: 500;
+}
+.rm-root .rm-section .rm-chips.rm-tags-tags :is(.rm-chip, .rm-chip-edit) {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--rm-muted) 55%, transparent);
+  border-radius: 0;
+  padding-left: calc(var(--rm-chip-pad-x, 0.45em) * 0.28);
+  padding-right: calc(var(--rm-chip-pad-x, 0.45em) * 0.28);
+  font-weight: 600;
+}
+/* Inline is running text - no chip boxes at all, on the page or under the
+   editing carets - so the size that would have sized a pill sizes the run
+   instead, and "Tag size" still means something in this look. */
+.rm-root .rm-section :is(.rm-skill-inline, .rm-inline-edit).rm-tags-inline {
+  font-size: calc(var(--rm-fs) * var(--rm-chip-fs, 0.88));
+}
+
 /* level meters (skills/languages). .rm-level-fill is a <span> — a
    non-replaced INLINE box — sitting inside .rm-level-track, which is not a
    flex container. Per CSS, a plain inline box silently ignores both its own

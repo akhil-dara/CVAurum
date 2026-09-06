@@ -134,14 +134,14 @@ export function ringPath(cx: number, cy: number, r: number, a0: number, a1: numb
   return `M ${at(from, outer)} A ${outer} ${outer} 0 ${large} 1 ${at(to, outer)} L ${at(to, inner)} A ${inner} ${inner} 0 ${large} 0 ${at(from, inner)} Z`
 }
 
-export function Chips({ items }: { items: string[] }) {
+export function Chips({ items, className = '' }: { items: string[]; className?: string }) {
   // A keyword that is only whitespace is not a keyword. Blanks are pruned when
   // a chip loses focus, but one that never lost focus - or arrived from an
   // import - reached the page as an EMPTY PILL, and printed as one too.
   const real = (items ?? []).filter((k) => (k || '').trim().length > 0)
   if (!real.length) return null
   return (
-    <div className="rm-chips">
+    <div className={`rm-chips${className ? ` ${className}` : ''}`}>
       {real.map((k, i) => (
         <span key={i} className="rm-chip">
           {/* A chip too wide for a narrow sidebar has to wrap inside itself,

@@ -85,6 +85,8 @@ export type SecOpts = {
   showKeywords?: boolean
   headingStyle?: string
   skillsStyle?: string
+  /** How an entry's own keyword tags look (projects). */
+  tagStyle?: string
   entryLayout?: string
   showBadges?: boolean
   scoreStyle?: string
@@ -751,6 +753,7 @@ function EditableChips({
   placeholder = 'Skill',
   variant = 'chips',
   lead = '',
+  className = '',
   onMove,
   listId,
   onAdopt,
@@ -770,6 +773,11 @@ function EditableChips({
   /** Text before the first keyword in the inline variant (the ": " after a
    *  group name), so editing does not change the punctuation. */
   lead?: string
+  /** Extra class on the list container, in every one of its three shapes -
+   *  the view chips, the view running text, and the editing surface. Carries
+   *  the section's chosen tag look (rm-tags-*), so the canvas, the print
+   *  sheet and the PDF (which paints computed styles) agree. */
+  className?: string
   /** Move the keyword at `from` to `to`. Absent means this list cannot be
    *  reordered, and no affordance is shown for it. */
   onMove?: (from: number, to: number) => void
@@ -802,12 +810,12 @@ function EditableChips({
     const visible = items.filter((k) => (k || '').trim().length > 0)
     if (!visible.length) return null
     return variant === 'inline' ? (
-      <span className="rm-skill-inline">
+      <span className={`rm-skill-inline${className ? ` ${className}` : ''}`}>
         {lead}
         <KeywordList items={visible} sep=" · " />
       </span>
     ) : (
-      <Chips items={visible} />
+      <Chips items={visible} className={className} />
     )
   }
 
@@ -908,7 +916,7 @@ function EditableChips({
   if (variant === 'inline') {
     return (
       <span
-        className="rm-skill-inline rm-inline-edit"
+        className={`rm-skill-inline rm-inline-edit${className ? ` ${className}` : ''}`}
         ref={wrapRef as unknown as React.Ref<HTMLSpanElement>}
         onBlur={onWrapBlur}
       >
@@ -968,7 +976,7 @@ function EditableChips({
     )
   }
   return (
-    <div className="rm-chips rm-chips-edit" ref={wrapRef} onBlur={onWrapBlur}>
+    <div className={`rm-chips rm-chips-edit${className ? ` ${className}` : ''}`} ref={wrapRef} onBlur={onWrapBlur}>
       {items.map((k, ki) => (
         <span key={ki} className="rm-chip rm-chip-edit" draggable={grabbed === ki} {...dragProps(ki)}>
           {handle(ki, k)}
@@ -1340,6 +1348,11 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
 }
 
 function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
+  // How this section's entry tags look. Unset adds no class, so the chips the
+  // template draws stand; 'inline' runs them together as text through the
+  // very code path the inline skills use.
+  const tagClass = opts?.tagStyle ? `rm-tags-${opts.tagStyle}` : ''
+  const tagVariant = opts?.tagStyle === 'inline' ? 'inline' : 'chips'
   return (
     <>
       {doc.content.projects.map((p, i) => {
@@ -1642,9 +1655,14 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                   }
                   addLabel="+ tag"
                   placeholder="Tech"
+                  variant={tagVariant}
+                  className={tagClass}
                 />
               ) : p.keywords?.length ? (
-                <Chips items={p.keywords} />
+                // The same component with no edit function: its view form IS
+                // the inline list the skills already print, so the running
+                // text is written once and read the same way in both places.
+                <EditableChips items={p.keywords} variant={tagVariant} className={tagClass} />
               ) : null
             ) : null}
             <ItemMove edit={edit} sectionKey="projects" id={p.id} label={ADD_LABEL.projects} />
