@@ -855,3 +855,66 @@ describe('the Word export prints a course still under way', () => {
     expect(all).not.toContain('Expected')
   })
 })
+
+/**
+ * Justified prose (typography.align) in the Word file. Justification is a
+ * PROSE setting: the summary, an entry's summary, a project's description and
+ * the bullets take it, and nothing else does. A heading, an entry's lead line
+ * and a date row keep the alignment they always had - justifying a two-word
+ * heading would stretch it across the whole measure.
+ */
+describe('the Word export justifies the prose the page justifies', () => {
+  const proseDoc = (over: MetadataOverrides = {}) => {
+    const doc = docWith({ layout: { main: ['summary', 'work', 'projects'] }, ...over })
+    doc.content.basics.summary = 'A summary of the work.'
+    doc.content.work[0].summary = 'What the role covered.'
+    doc.content.work[0].highlights = ['Shipped the thing']
+    doc.content.projects = [
+      { id: 'p1', name: 'Atlas', description: 'A description of the project.', highlights: [], keywords: [] },
+    ] as never
+    return doc
+  }
+  const jc = (p: string) => p.match(/<w:jc w:val="([a-z]+)"\/>/)?.[1]
+  // Prose is read through a DOM element and there is none here, so the same
+  // text-only stand-in the bullet suite uses stands in again; `children` is
+  // empty, so a block of prose is the one paragraph it reads as.
+  const originalDocument = globalThis.document
+  beforeEach(() => {
+    globalThis.document = {
+      createElement: () => ({
+        children: [] as Element[],
+        childNodes: [] as { nodeType: number; textContent: string }[],
+        set innerHTML(html: string) {
+          this.childNodes = [{ nodeType: 3, textContent: html }]
+        },
+        get textContent() {
+          return this.childNodes.map((n) => n.textContent).join('')
+        },
+      }),
+    } as unknown as Document
+  })
+  afterEach(() => {
+    globalThis.document = originalDocument
+  })
+
+  it('justifies the summary, an entry summary, a project description and the bullets', async () => {
+    const { body } = await unpack(proseDoc({ typography: { align: 'justify' } }))
+    expect(jc(paraOf(body, 'A summary of the work.'))).toBe('both')
+    expect(jc(paraOf(body, 'What the role covered.'))).toBe('both')
+    expect(jc(paraOf(body, 'A description of the project.'))).toBe('both')
+    expect(jc(paraOf(body, 'Shipped the thing'))).toBe('both')
+  })
+
+  it('leaves the headings and the entry lead lines alone', async () => {
+    const { body } = await unpack(proseDoc({ typography: { align: 'justify' } }))
+    expect(paraOf(body, 'EXPERIENCE')).not.toContain('<w:jc ')
+    expect(paraOf(body, 'Designer')).not.toContain('<w:jc ')
+    expect(paraOf(body, 'Acme')).not.toContain('<w:jc ')
+  })
+
+  it('ragged right is what a document that never chose still prints', async () => {
+    const { body } = await unpack(proseDoc())
+    expect(paraOf(body, 'A summary of the work.')).not.toContain('<w:jc ')
+    expect(paraOf(body, 'Shipped the thing')).not.toContain('<w:jc ')
+  })
+})

@@ -73,6 +73,23 @@ describe('fitOnePageScale', () => {
     expect(await fitOnePageScale(400, measure)).toBe(MIN_FIT === 0.66 ? MIN_FIT : await fitOnePageScale(400, measure))
   })
 
+  /* Justified prose (typography.align) packs slightly more text per line, so
+   * a page that overflowed ragged can fit at full size. The fitter needs no
+   * new move for that: it asks `measure` for a height and believes it, and
+   * the measure is the real print DOM, which already carries the alignment
+   * (justify.test.tsx pins that). Both directions of the SAME document are
+   * asserted here, so a future 'estimate the height instead' shortcut would
+   * have to break one of them. */
+  it('shrinks or not on the measured height alone, so a justified fit costs no scale', async () => {
+    const ragged = linear(412) // overflows a 400px page by a hair
+    const s = await fitOnePageScale(400, ragged.measure)
+    expect(s).toBeLessThan(1)
+    expect(412 * s).toBeLessThanOrEqual(400)
+    // The same content set to both edges: it fits, so the type never shrinks.
+    const justified = linear(396)
+    expect(await fitOnePageScale(400, justified.measure)).toBeGreaterThanOrEqual(1)
+  })
+
   it('leaves the DOM measured at the scale it returns', async () => {
     const { measure, seen } = linear(1000)
     const s = await fitOnePageScale(400, measure)

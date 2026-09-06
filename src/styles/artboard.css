@@ -1192,6 +1192,29 @@
   color: var(--rm-bullet-color, var(--rm-primary));
 }
 
+/* ---- how the running text is set (typography.align) ----
+   PROSE only, and only in the MAIN column: a summary, an entry's summary, a
+   project description, a bullet. A heading, a name, a date, a chip or a
+   skills list is never justified - and neither is anything in the sidebar,
+   because justifying a narrow measure opens rivers of white space between
+   the words, which reads worse than a ragged edge. text-align inherits, so
+   the paragraphs inside a rich block follow their container; they are named
+   anyway, because a template may set their alignment itself.
+
+   text-wrap: pretty keeps the LAST line from being a single short word,
+   which is the one place a justified block looks broken. Automatic
+   hyphenation is deliberately NOT turned on with it: the hyphen a browser
+   inserts at a wrap is not a character of the text node, and the PDF paints
+   each run from that node's own range (pdf/text.ts), so the canvas would
+   show a hyphen the exported page does not. */
+.rm-col-main .rm-item-summary,
+.rm-col-main .rm-bullets li,
+.rm-col-main .rm-rich,
+.rm-col-main .rm-rich p {
+  text-align: var(--rm-align, left);
+  text-wrap: pretty;
+}
+
 /* skills */
 .rm-skill-group {
   margin-bottom: 0.45em;

@@ -139,6 +139,10 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
         layout.photoAlign === 'left' ? 'flex-start' : layout.photoAlign === 'right' ? 'flex-end' : 'center',
       '--rm-photo-margin':
         layout.photoAlign === 'left' ? '0 auto 0 0' : layout.photoAlign === 'right' ? '0 0 0 auto' : '0 auto',
+      // How the running text is set (typography.align). One variable for the
+      // whole document; artboard.css decides which elements are allowed to
+      // read it, and none of them is a heading or a sidebar line.
+      '--rm-align': t.align === 'justify' ? 'justify' : 'left',
       '--rm-bullet-type': BULLET_TYPE[t.bulletStyle] ?? 'disc',
       // Both in em so they ride the base size and the one-page fit with it.
       '--rm-bullet-indent': `${t.bulletIndent}em`,

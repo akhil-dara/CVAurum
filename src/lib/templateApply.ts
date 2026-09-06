@@ -80,6 +80,9 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       bulletIndent: cur.typography.bulletIndent,
       bulletGap: cur.typography.bulletGap,
       proficiency: cur.typography.proficiency,
+      // How the prose is set is the author's call about their own words, not
+      // part of a template's identity, so it survives a switch.
+      align: cur.typography.align,
       // How far the section titles, the headline and the contacts sit from
       // the body, the heading case and the two weights are the author's too;
       // an undecided case or weight stays undecided.

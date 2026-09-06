@@ -447,3 +447,23 @@ describe('signature primitives', () => {
     expect(back.metadata.theme.footer).toBe('#222222')
   })
 })
+
+/**
+ * Justified prose (typography.align). The choice is document-wide, so it has
+ * to survive the export the same way every other typography setting does -
+ * and a document written before the field existed must still come back
+ * ragged-right rather than on a parse failure that resets everything.
+ */
+describe('the prose alignment', () => {
+  it('defaults to ragged right, and a document saved without it still reads', () => {
+    expect(MetadataSchema.parse({}).typography.align).toBe('left')
+    const older = MetadataSchema.parse({ typography: { fontSize: 11, lineHeight: 1.4 } })
+    expect(older.typography.align).toBe('left')
+    expect(older.typography.fontSize).toBe(11)
+  })
+
+  it('carries the justified choice through the JSON export and back', () => {
+    const m = MetadataSchema.parse({ typography: { align: 'justify' } })
+    expect(fromJsonResume(toJsonResume(docWith(m))).metadata.typography.align).toBe('justify')
+  })
+})

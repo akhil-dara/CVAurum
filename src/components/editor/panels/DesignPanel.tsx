@@ -275,6 +275,25 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           <p className="-mt-1 text-[11px] text-muted-foreground">Each as a multiple of the body size.</p>
         </div>
         <div>
+          <label className="label">Align</label>
+          <Segmented
+            value={m.typography.align ?? 'left'}
+            options={[
+              { value: 'left', label: 'Ragged' },
+              { value: 'justify', label: 'Justified' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.typography.align = v
+              })
+            }
+          />
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            Justified squares off the right edge of summaries and bullets. Headings, dates and the sidebar keep their
+            own edge.
+          </p>
+        </div>
+        <div>
           <label className="label">Heading case</label>
           <Segmented
             value={m.typography.headingCase ?? 'auto'}

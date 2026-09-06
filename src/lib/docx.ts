@@ -256,6 +256,14 @@ let LINKS_LIVE = true
  *  LINKS_LIVE; unset, an inline link keeps the colour of the text around it,
  *  as this export always printed it. */
 let LINK_COLOR: string | undefined
+/** Whether the PROSE of this export is set to both edges (typography.align),
+ *  set per export like LINKS_LIVE. Only running text takes it, the same four
+ *  places the page justifies: the summary, an entry's summary, a project
+ *  description and the bullets. Headings and lead lines keep their own. */
+let JUSTIFY = false
+/** The alignment a prose paragraph carries, or nothing at all - so a document
+ *  that never chose writes exactly the paragraph properties it always did. */
+const proseAlign = (): IParagraphOptions => (JUSTIFY ? { alignment: AlignmentType.BOTH } : {})
 
 function inlineRuns(node: Node, color: string, bold = false, italics = false, size: number = SIZE.body): ParagraphChild[] {
   const runs: ParagraphChild[] = []
@@ -438,7 +446,7 @@ const sub = (s: string, C: Ctx, bold = false, keep = false) =>
     ...keepHead(keep),
     children: [new TextRun({ text: s, italics: true, ...(bold ? { bold: true } : {}), color: C.muted, size: SIZE.sub })],
   })
-const para = (runs: ParagraphChild[]) => new Paragraph({ spacing: { after: 36 }, children: runs })
+const para = (runs: ParagraphChild[]) => new Paragraph({ spacing: { after: 36 }, ...proseAlign(), children: runs })
 const summaryParas = (html: string, C: Ctx) => richToBlocks(html, C.body).map(para)
 // The page hangs an outside marker in the list's indent and sets the text at
 // the indent; Word gets the same distance as a hanging indent. With no marker
@@ -455,12 +463,14 @@ const bulletPara = (html: string, C: Ctx, last: boolean) => {
     ? new Paragraph({
         indent: { left: BULLET.indent },
         spacing: { after },
+        ...proseAlign(),
         children: richToRuns(html, C.body),
       })
     : new Paragraph({
         bullet: { level: 0 },
         indent: { left: BULLET.indent, hanging: BULLET.indent },
         spacing: { after },
+        ...proseAlign(),
         children: richToRuns(html, C.body),
       })
 }
@@ -630,7 +640,11 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
           )
         if (has(p.description))
           out.push(
-            new Paragraph({ spacing: { after: 16 }, children: richToRuns(p.description, C.muted, SIZE.sub) })
+            new Paragraph({
+              spacing: { after: 16 },
+              ...proseAlign(),
+              children: richToRuns(p.description, C.muted, SIZE.sub),
+            })
           )
         {
           const named = (p.links ?? []).filter((l) => (l.url || '').trim() || (l.label || '').trim())
@@ -966,6 +980,7 @@ function buildFooter(keys: string[], doc: ResumeDocument, C: Ctx, width: number)
 export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   const { metadata } = doc
   LINKS_LIVE = metadata.links?.clickable !== false
+  JUSTIFY = metadata.typography.align === 'justify'
   const metrics = docxMetrics(metadata, fitScale)
   SIZE = metrics.sizes
   BULLET = { indent: metrics.bulletIndent, gap: metrics.bulletGap }

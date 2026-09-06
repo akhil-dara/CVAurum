@@ -107,6 +107,13 @@ export const TypographySchema = z.object({
   headlineScale: z.number().min(0.7).max(1.8).default(1.15),
   /** contact line size as a multiple of the body size */
   contactScale: z.number().min(0.7).max(1.3).default(0.95),
+  /** How the PROSE of the page is set: ragged right, as it always was, or
+   *  justified to both edges. Justification only ever reaches running text in
+   *  the main column - a summary, an entry's summary, a project description,
+   *  a bullet. A heading, a name, a date, a chip or anything in the narrow
+   *  sidebar stays as it was: justifying a short measure opens rivers of
+   *  white space between the words, which reads worse than a ragged edge. */
+  align: z.enum(['left', 'justify']).default('left'),
   /** uppercase section headings */
   uppercaseHeadings: z.boolean().default(true),
   /** How section titles are cased. Unset, the uppercase flag decides: on is
