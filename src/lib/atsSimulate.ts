@@ -81,11 +81,12 @@ const STANDARD = new Set(['work', 'education', 'skills', 'projects', 'summary', 
 function collectSignals(doc: ResumeDocument): Signals {
   const c = doc.content
   const layout = doc.metadata.layout
-  const { main, aside } = resolveOrder(doc)
+  const { main, aside, footer } = resolveOrder(doc)
   const twoColumn = layout.columns === 2 && aside.length > 0
   const sidebarLabels = aside.map((k) => sectionLabel(k, doc)).join(', ')
 
-  const allKeys = [...main, ...aside]
+  // The footer strip is read last, but it is read: its headings count too.
+  const allKeys = [...main, ...aside, ...footer]
   const customHeadingKeys = allKeys.filter((k) => k.startsWith('custom-'))
   // Standard sections the user renamed to a non-standard label (a field-mapping
   // parser keys off the heading text, so a rename can hide the section).

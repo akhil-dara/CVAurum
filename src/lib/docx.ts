@@ -901,12 +901,13 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   // promises ("a clean, single-column, ATS-friendly Word document"). Sidebar
   // sections keep their content and simply follow the main column, rendered in
   // the MAIN colour context — sidebar text colours are chosen to sit on a dark
-  // band and would be unreadable on white paper.
+  // band and would be unreadable on white paper. The footer strip follows both,
+  // as the ATS text reads it.
   const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
   const body: (Paragraph | Table)[] = [
     ...(photo ? [photo] : []),
     ...buildHeader(doc, mainCtx, metrics.separator),
-    ...buildSections([...order.main, ...order.aside], doc, mainCtx, contentW),
+    ...buildSections([...order.main, ...order.aside, ...order.footer], doc, mainCtx, contentW),
   ]
 
   const { margin, line } = metrics

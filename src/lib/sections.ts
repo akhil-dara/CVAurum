@@ -307,12 +307,13 @@ export function sectionHasContent(key: string, content: ResumeContent): boolean 
  * Compute the final ordered section keys for each column, honoring hidden flags
  * and content presence, and folding aside → main for single-column layouts.
  * Any content-bearing section missing from the configured order is appended so
- * data is never silently dropped.
+ * data is never silently dropped. Sections in the footer strip come back
+ * in their own list, read last, and leave the main flow and the sidebar.
  */
 export function resolveOrder(
   doc: ResumeDocument,
   opts?: { includeEmpty?: boolean }
-): { main: string[]; aside: string[] } {
+): { main: string[]; aside: string[]; footer: string[] } {
   const { layout } = doc.metadata
   const { content } = doc
   const hidden = new Set(layout.hidden)
@@ -325,8 +326,14 @@ export function resolveOrder(
 
   let main = layout.main.filter(keep)
   let aside = twoCol ? layout.aside.filter(keep) : []
+  // The strip is read last whatever the column count, and a key placed there
+  // is the strip's alone: a body that still lists it never repeats it.
+  const footer = layout.footer.filter(keep)
+  const footerSet = new Set(layout.footer)
+  main = main.filter((k) => !footerSet.has(k))
+  aside = aside.filter((k) => !footerSet.has(k))
 
-  const present = new Set([...main, ...aside, ...layout.hidden])
+  const present = new Set([...main, ...aside, ...layout.footer, ...layout.hidden])
   for (const k of allSectionKeys(content)) {
     if (!present.has(k) && sectionHasContent(k, content)) main.push(k)
   }
@@ -335,5 +342,5 @@ export function resolveOrder(
     main = [...main]
     aside = []
   }
-  return { main, aside }
+  return { main, aside, footer }
 }

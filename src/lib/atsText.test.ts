@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { atsSectionOrder, resumeToAtsText } from './atsText'
 import { MetadataSchema } from '@/types/metadata'
 import type { ResumeDocument } from '@/types/document'
+import { createDocument } from '@/data/defaults'
+import { resolveOrder } from '@/lib/sections'
 
 describe('resumeToAtsText ignores purely visual link and icon choices', () => {
   // The tag shape of a named link and the folio chip on a heading are ink,
@@ -304,5 +306,52 @@ describe('resumeToAtsText follows the section on the meta line', () => {
   it('leads with the location once the section prints it beside the date', () => {
     const text = resumeToAtsText(docWith({ work: { locationPlacement: 'with-date' } }))
     expect(text).toContain('Engineer\nAcme\nAustin  ·  Jan 2019 — Mar 2021')
+  })
+})
+
+describe('atsSectionOrder reads the footer strip last', () => {
+  // The strip sits at the foot of the last page, so it is read after the
+  // main column and after the sidebar - and after the main column alone in a
+  // single-column resume, where the sidebar is folded away.
+  it('follows the sidebar in a two-column resume', () => {
+    expect(atsSectionOrder(['work'], ['skills'], true, ['languages'])).toEqual(['work', 'skills', 'languages'])
+  })
+
+  it('follows the main column in a single-column resume', () => {
+    expect(atsSectionOrder(['work'], ['skills'], false, ['languages'])).toEqual(['work', 'languages'])
+  })
+
+  it('reads as before when no strip is given', () => {
+    expect(atsSectionOrder(['work'], ['skills'], true)).toEqual(['work', 'skills'])
+  })
+})
+
+describe('resumeToAtsText reads the footer strip last', () => {
+  // A section moved to the footer strip leaves the main flow and the sidebar
+  // and is read after both, in the order the strip lists it: the text a
+  // parser reads follows the layout, footer last, and no section is dropped.
+  const at = (text: string, label: string) => text.lastIndexOf(`\n${label}\n=`)
+
+  it('lists footer sections last, after the sidebar', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.footer = ['skills', 'languages']
+    doc.metadata.layout.main = doc.metadata.layout.main.filter((k) => k !== 'skills' && k !== 'languages')
+    const { main, footer } = resolveOrder(doc)
+    expect(footer).toEqual(['skills', 'languages'])
+    expect(main).not.toContain('skills')
+    expect(main).not.toContain('languages')
+    const text = resumeToAtsText(doc)
+    expect(at(text, 'Education')).toBeGreaterThan(-1)
+    expect(at(text, 'Skills')).toBeGreaterThan(at(text, 'Education'))
+    expect(at(text, 'Languages')).toBeGreaterThan(at(text, 'Skills'))
+  })
+
+  it('reads a footer key once, last, even when the body lists it first', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.footer = ['skills']
+    doc.metadata.layout.main = ['skills', ...doc.metadata.layout.main.filter((k) => k !== 'skills')]
+    const text = resumeToAtsText(doc)
+    expect(text.indexOf('\nSkills\n=')).toBe(text.lastIndexOf('\nSkills\n='))
+    expect(at(text, 'Skills')).toBeGreaterThan(at(text, 'Education'))
   })
 })

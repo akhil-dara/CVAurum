@@ -677,3 +677,19 @@ describe('the Word export holds an entry to its own body when entries are kept w
     expect(keepNext(paraOf(body, 'Designer'))).toBe(true)
   })
 })
+
+describe('the Word export reads the footer strip last', () => {
+  // The Word file is the linear copy: a section moved to the footer strip
+  // follows the main column and the sidebar, as the ATS text reads it, even
+  // when the body lists it first - and it keeps its words.
+  it('prints a footer section after the body', async () => {
+    const doc = docWith({ layout: { main: ['skills', 'work'], footer: ['skills'] } })
+    doc.content.skills = [{ id: 's1', name: 'Tools', level: '', keywords: ['Figma'] }]
+    const { body } = await unpack(doc)
+    const runs = texts(body)
+    const at = (re: RegExp) => runs.findIndex((t) => re.test(t))
+    expect(at(/^experience$/i)).toBeGreaterThan(-1)
+    expect(at(/^skills$/i)).toBeGreaterThan(at(/^experience$/i))
+    expect(runs.some((t) => t.includes('Figma'))).toBe(true)
+  })
+})

@@ -212,15 +212,16 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
  *
  * The main column always comes first in a two-column export - which side the
  * sidebar is drawn on changes nothing, because the exporter reorders the text
- * layer rather than following the DOM.
+ * layer rather than following the DOM. The footer strip is read last of all,
+ * after the sidebar - or after the main column alone when there is none.
  */
-export function atsSectionOrder(main: string[], aside: string[], twoCol: boolean): string[] {
-  return twoCol ? [...main, ...aside] : main
+export function atsSectionOrder(main: string[], aside: string[], twoCol: boolean, footer: string[] = []): string[] {
+  return [...(twoCol ? [...main, ...aside] : main), ...footer]
 }
 
 export function resumeToAtsText(doc: ResumeDocument): string {
   const b = doc.content.basics
-  const { main, aside } = resolveOrder(doc)
+  const { main, aside, footer } = resolveOrder(doc)
   const twoCol = doc.metadata.layout.columns === 2 && aside.length > 0
 
   const head: string[] = []
@@ -242,7 +243,7 @@ export function resumeToAtsText(doc: ResumeDocument): string {
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
   if (loc) head.push(loc)
 
-  const order = atsSectionOrder(main, aside, twoCol)
+  const order = atsSectionOrder(main, aside, twoCol, footer)
   const body = order.flatMap((key) => sectionText(key, doc))
 
   return [...head, ...body].join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
