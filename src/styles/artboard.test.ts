@@ -73,3 +73,67 @@ describe('the display header keeps the role line off the name', () => {
     }
   })
 })
+
+/**
+ * The gutter and the entry layouts both want the entry's left padding, and
+ * they are in two different sheets: templates.css is imported second
+ * (TemplateRenderer.tsx), so a TIE there beats this one. Nothing in either
+ * sheet uses a cascade layer, so the only thing that settles it is
+ * specificity - which is why these rules carry the section and its body.
+ */
+describe('the meta gutter takes back the entry padding that would move its cells', () => {
+  const templates = fs
+    .readFileSync(path.join(here, '../templates/templates.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+  const parse = (sheet: string) =>
+    [...sheet.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .map((m) => ({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] }))
+      .flatMap((r) => r.selector.split(',').map((selector) => ({ selector: selector.trim(), body: r.body })))
+  // Class-level weight: every `.name`, every `[attr]` and every simple
+  // pseudo-class counts one, including the ones inside :not(), which is all
+  // these selectors are built from.
+  const weight = (selector: string) => (selector.match(/[.[]|:(?!not\b)[a-z-]+/g) ?? []).length
+  // The classes on the LAST compound - what the rule actually styles.
+  const subjectClasses = (selector: string) =>
+    (subject(selector).match(/\.[\w-]+/g) ?? []).map((c) => c.slice(1)).sort()
+  const isEntry = (selector: string) => /^\.rm-item(?:\.[\w-]+)*$/.test(subject(selector))
+  const padsEntries = (sheet: string) =>
+    parse(sheet).filter((r) => isEntry(r.selector) && declared(r.body, 'padding-left').length > 0)
+
+  const resets = padsEntries(css).filter(
+    (r) => r.selector.includes('.meta-gutter') && declared(r.body, 'padding-left').every((v) => parseFloat(v) === 0)
+  )
+
+  it('resets the entry padding for every entry, marked or not', () => {
+    const subjects = resets.map((r) => subjectClasses(r.selector).join('.'))
+    expect(subjects).toContain('rm-item')
+    expect(subjects).toContain('rm-has-mark.rm-item')
+  })
+
+  it('outranks every entry layout that pads an entry', () => {
+    const layouts = padsEntries(templates)
+    expect(layouts.length).toBeGreaterThan(0)
+    for (const layout of layouts) {
+      const target = subjectClasses(layout.selector)
+      // A reset only settles this rule if it matches the same entries.
+      const covering = resets.filter((r) => subjectClasses(r.selector).every((c) => target.includes(c)))
+      const best = Math.max(0, ...covering.map((r) => weight(r.selector)))
+      expect(best, `${layout.selector} is not outranked by the gutter's reset`).toBeGreaterThan(weight(layout.selector))
+    }
+  })
+
+  it('moves the timeline rail and its dots into the content column', () => {
+    // Both are drawn against the section body's left edge, which under a
+    // gutter is the GUTTER's left edge - the rail would run down the tint
+    // and every dot would land in it.
+    const moved = parse(css).filter(
+      (r) => r.selector.includes('.meta-gutter') && r.selector.includes('lay-ov-timeline') && r.selector.includes('::before')
+    )
+    expect(moved.length).toBe(2)
+    for (const rule of moved) {
+      const left = declared(rule.body, 'left')
+      expect(left.length).toBe(1)
+      expect(left[0]).toContain('var(--rm-meta-w)')
+    }
+  })
+})

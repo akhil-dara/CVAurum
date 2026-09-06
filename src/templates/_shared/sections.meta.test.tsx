@@ -109,6 +109,23 @@ describe('meta column', () => {
     expect(html).toContain('Mar 2021')
   })
 
+  // A section can switch its dates off. The gutter's year is that same date
+  // said again, in ink - so a hidden date must not come back as a numeral
+  // three times the body size beside every entry, where no parser, Word file
+  // or ATS text can account for it.
+  it('gutter: a section with its dates switched off gets no decorative year', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.metaColumn = 'gutter'
+    doc.metadata.layout.sectionSettings = { work: { showDates: false } }
+    const html = renderToStaticMarkup(<SectionBody sectionKey="work" doc={doc} config={getTemplate('aurum')} />)
+    expect(html).not.toContain('rm-year')
+    expect(html).not.toContain('to now')
+    expect(html).not.toContain('Mar 2021')
+    // The section beside it kept its dates, so it keeps its gutter.
+    const edu = renderToStaticMarkup(<SectionBody sectionKey="education" doc={doc} config={getTemplate('aurum')} />)
+    expect(edu).toContain('rm-year')
+  })
+
   it('the page says which column it opened, and says nothing when it opened none', () => {
     const doc = createDocument({ sample: true })
     doc.metadata.layout.metaColumn = 'gutter'

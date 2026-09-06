@@ -3360,20 +3360,57 @@
 }
 
 /* An entry that hangs a logo or a letter badge pads its whole left edge for
-   it. Beside a meta column that inset is the CONTENT cells' alone: left on
-   the entry it would push the gutter itself in and out as marks came and
-   went, and the mark would hang in the gutter, which the column is not for.
-   It moves to the cells as a MARGIN, not padding: the head's padding is
-   already spoken for by a section that reserves a left date column there,
-   and the mark hangs off the head's border box either way, so it lands on
-   the content column's own left edge exactly as it always has. */
-.rm-root.meta-gutter .rm-col-main .rm-item.rm-has-mark,
-.rm-root.meta-margin .rm-col-main .rm-item.rm-has-mark {
+   it, and the timeline and cards entry layouts pad it too. Beside a GUTTER
+   that inset is the CONTENT cells' alone. Padding sits on the grid
+   container, so left on the entry it moves the entry's own cell: a section
+   whose entries carry marks - or one laid out as a timeline - would line its
+   tint blocks and its rail up further in than every other section, and the
+   gutter would come out ragged down the page. The mark's inset moves to the
+   cells as a MARGIN, not padding: the head's padding is already spoken for
+   by a section that reserves a left date column there, and the mark hangs
+   off the head's border box either way, so it lands on the content column's
+   own left edge exactly as it always has.
+
+   The reset names the section and its body so it outranks the entry
+   layouts' own rules. Neither sheet uses a cascade layer and templates.css
+   is imported second, so a tie there would lose; artboard.test.ts holds the
+   two apart.
+
+   The MARGIN needs none of this: its cell is the entry's SECOND column,
+   anchored to the entry's right edge, which no left padding moves. Zeroing
+   the padding there would only drop the timeline's rail and the cards'
+   inset onto the text. */
+.rm-root.meta-gutter .rm-col-main .rm-section .rm-section-body > .rm-item,
+.rm-root.meta-gutter .rm-col-main .rm-section .rm-section-body > .rm-item.rm-has-mark {
   padding-left: 0;
 }
-.rm-root.meta-gutter .rm-col-main .rm-item.rm-has-mark > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del),
-.rm-root.meta-margin .rm-col-main .rm-item.rm-has-mark > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del) {
+.rm-root.meta-gutter
+  .rm-col-main
+  .rm-section
+  .rm-section-body
+  > .rm-item.rm-has-mark
+  > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del) {
   margin-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
+}
+/* The gutter's rail is the content column's left edge, and with the padding
+   gone every entry starts there - which is the look the column is for. The
+   timeline is the one layout that DRAWS in the content column: its rail and
+   its dots hang off the section body's and the entry's left edge, which is
+   now the gutter's, so both move across and its text gets its clearance
+   back as a margin. */
+.rm-root.meta-gutter .rm-col-main .rm-section.lay-ov-timeline .rm-section-body::before {
+  left: calc(var(--rm-meta-w) + 0.25em - 1px);
+}
+.rm-root.meta-gutter .rm-col-main .rm-section.lay-ov-timeline .rm-section-body > .rm-item::before {
+  left: var(--rm-meta-w);
+}
+.rm-root.meta-gutter
+  .rm-col-main
+  .rm-section.lay-ov-timeline
+  .rm-section-body
+  > .rm-item:not(.rm-has-mark)
+  > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del) {
+  margin-left: 1.25em;
 }
 
 /* A section that reserves a date column at the head's left edge has nothing

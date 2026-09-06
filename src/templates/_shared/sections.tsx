@@ -650,8 +650,12 @@ function ItemHead({
   // The cell is a SIBLING of the head row rather than something inside it:
   // the stylesheet makes the entry itself the two-cell grid, so the cell has
   // to be the entry's own child to land in the meta column.
+  // The gutter's year is the entry's own date said again, in ink. A section
+  // that switched its dates OFF hid that fact, and the gutter must not print
+  // it back: it is decoration, so no parser, Word file or ATS text could
+  // account for it. Same flag the date itself answers.
   const cell =
-    column === 'gutter' && meta ? (
+    column === 'gutter' && meta && show(opts?.showDates) ? (
       <GutterCell meta={meta} />
     ) : inMargin ? (
       <div className="rm-meta-cell">
