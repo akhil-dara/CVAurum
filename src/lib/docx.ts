@@ -650,8 +650,25 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       }
     } else if (key === 'skills') {
       out.push(heading(label, C, align))
+      // Rings on the page are "Label - 92%" lines here, and first, as the
+      // rings come first. A ringed category still lists its keywords below;
+      // a ringed skill that is only a name and a level is its ring line.
+      const rings = settings?.skillsStyle === 'rings'
+      if (rings)
+        for (const g of content.skills) {
+          if (typeof g.rating !== 'number') continue
+          const pct = Math.round((g.rating / 5) * 100)
+          out.push(
+            new Paragraph({
+              spacing: { after: 30 },
+              children: [new TextRun({ text: `${g.name} - ${pct}%`, bold: true, color: C.body, size: SIZE.body })],
+            })
+          )
+        }
       for (const g of content.skills) {
         const hasKw = !!g.keywords?.length
+        const ringed = rings && typeof g.rating === 'number'
+        if (ringed && !hasKw) continue
         if (!hasKw && typeof g.rating === 'number' && meter) {
           out.push(
             new Paragraph({

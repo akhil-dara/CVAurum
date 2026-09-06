@@ -13,7 +13,7 @@ import type { TemplateConfig } from '@/types/template'
 import { currentYearMonth, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
 import type { DateOptions, DateRangeOptions } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
-import { Chips, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords } from './atoms'
+import { Chips, Deco, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords, ringPath } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { CanvasDate } from './CanvasDate'
@@ -159,6 +159,45 @@ function Proficiency({ rating, style }: { rating?: number; style: ProfStyle }) {
   if (style === 'stars') return <Stars value={rating} />
   if (style === 'bars') return <LevelBar value={rating} />
   return <Dots value={rating} />
+}
+
+/** A 0-5 level as the whole number a ring shows in its centre. */
+function ringPct(rating: number): number {
+  return Math.round((rating / 5) * 100)
+}
+
+/** A ring meter. The track and the arc are sibling svgs with one fill each,
+ *  set by CSS on the svg root, which is where the painter reads a fill. The
+ *  number in the middle is decoration a parser never sees; the label under
+ *  it is the skill's real name. A level of zero draws the track alone. */
+function Ring({
+  pct,
+  label,
+  id,
+  children,
+}: {
+  pct: number
+  label: ReactNode
+  id?: string
+  children?: ReactNode
+}) {
+  const r = 24
+  const size = 60
+  return (
+    <div className="rm-ring" data-item-id={id}>
+      <svg className="rm-ring-track" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <path d={ringPath(size / 2, size / 2, r, 0, 359.999)} />
+      </svg>
+      {pct > 0 ? (
+        <svg className="rm-ring-arc" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+          <path d={ringPath(size / 2, size / 2, r, 0, (pct / 100) * 359.999)} />
+        </svg>
+      ) : null}
+      <Deco className="rm-ring-value">{pct}</Deco>
+      {label}
+      {children}
+    </div>
+  )
 }
 
 function Bullets({
@@ -1637,10 +1676,58 @@ function Skills({
   const style = override ? (override === 'inline' || override === 'stacked' ? override : 'chips') : config.skills
   const prof = (opts?.meterStyle ?? doc.metadata.typography.proficiency) as ProfStyle
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
+  // Rings: every group with a level gets a ring, and the rings come first. A
+  // group that is only a name and a level lives in its ring; a category that
+  // also lists keywords keeps its chips below, with the ring as its meter, so
+  // nothing the author typed goes missing.
+  const rings = override === 'rings'
+  const ringed = rings ? doc.content.skills.filter((s) => typeof s.rating === 'number') : []
   return (
     <>
+      {ringed.length ? (
+        <div className="rm-rings">
+          {ringed.map((s) => {
+            const i = doc.content.skills.indexOf(s)
+            const alone = !(s.keywords && s.keywords.length > 0)
+            return (
+              <Ring
+                key={s.id}
+                id={alone ? s.id : undefined}
+                pct={ringPct(s.rating!)}
+                label={
+                  alone ? (
+                    <Ed
+                      edit={edit}
+                      value={s.name}
+                      apply={(c, v) => {
+                        c.skills[i].name = v
+                      }}
+                      className="rm-ring-label"
+                      placeholder="Skill"
+                      chunk
+                    />
+                  ) : (
+                    // The name is edited where the keywords are; the ring
+                    // follows it.
+                    <span className="rm-ring-label">{s.name}</span>
+                  )
+                }
+              >
+                {alone ? (
+                  <>
+                    <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
+                    <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
+                  </>
+                ) : null}
+              </Ring>
+            )
+          })}
+        </div>
+      ) : null}
       {doc.content.skills.map((s, i) => {
         const hasKeywords = s.keywords && s.keywords.length > 0
+        const ringHere = rings && typeof s.rating === 'number'
+        if (ringHere && !hasKeywords) return null
         if (!hasKeywords && typeof s.rating === 'number' && meter) {
           return (
             <div className="rm-skill-group" key={s.id} data-item-id={s.id}>
@@ -1667,7 +1754,8 @@ function Skills({
         // A group can carry BOTH a rating and keywords (the common case: user
         // sets a level in the side panel on a chip group). Meter still applies —
         // it just gets the keywords rendered below it instead of standing alone.
-        const showMeter = meter && typeof s.rating === 'number'
+        // Under rings the ring above is that meter.
+        const showMeter = meter && typeof s.rating === 'number' && !ringHere
         const nameEl =
           s.name || edit ? (
             <Ed

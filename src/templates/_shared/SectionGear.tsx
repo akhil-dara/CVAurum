@@ -102,6 +102,7 @@ const SKILL_STYLES: { label: string; value: string }[] = [
   { label: 'Inline', value: 'inline' },
   { label: 'Stacked', value: 'stacked' },
   { label: 'Grid', value: 'grid' },
+  { label: 'Rings', value: 'rings' },
 ]
 
 /** Entry-flow layouts ('' = the template's own default). */
@@ -198,6 +199,13 @@ function Mini({ kind }: { kind: string }) {
         <span className="flex w-8 gap-[3px]">
           <span className="h-[8px] w-3.5 rounded-full border border-primary/60 bg-primary/15" />
           <span className="h-[8px] w-3 rounded-full border border-primary/60 bg-primary/15" />
+        </span>
+      )
+    case 's:rings':
+      return (
+        <span className="flex w-8 items-center justify-center gap-[4px]">
+          <span className="h-[11px] w-[11px] rounded-full border-[2px] border-primary/75 border-r-foreground/20" />
+          <span className="h-[11px] w-[11px] rounded-full border-[2px] border-primary/75 border-b-foreground/20 border-r-foreground/20" />
         </span>
       )
     case 's:tags':
@@ -1044,16 +1052,29 @@ export function SectionGear({
                 {sectionKey === 'skills' && (
                   <Group label="Skills as">
                     <div className="grid grid-cols-3 gap-1">
-                      {SKILL_STYLES.map((s) => (
-                        <StyleChip
-                          key={s.value || 'auto'}
-                          label={s.label}
-                          kind={`s:${s.value}`}
-                          on={(opts.skillsStyle ?? '') === s.value}
-                          onClick={() => setStyle('skillsStyle', s.value || undefined)}
-                        />
-                      ))}
+                      {SKILL_STYLES.map((s) => {
+                        // A ring measures a level. With no skill rated there
+                        // is nothing for one to draw, so the chip says why
+                        // instead of doing nothing when tapped.
+                        const noLevel = s.value === 'rings' && !doc.content.skills.some((g) => typeof g.rating === 'number')
+                        return (
+                          <StyleChip
+                            key={s.value || 'auto'}
+                            label={s.label}
+                            kind={`s:${s.value}`}
+                            on={(opts.skillsStyle ?? '') === s.value}
+                            onClick={() => setStyle('skillsStyle', s.value || undefined)}
+                            disabled={noLevel}
+                            reason={noLevel ? 'Rings need a skill with a level' : undefined}
+                          />
+                        )
+                      })}
                     </div>
+                    {!doc.content.skills.some((g) => typeof g.rating === 'number') && (
+                      <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+                        Rings need a level on at least one skill.
+                      </p>
+                    )}
                     {/* Only the pill-shaped styles have a pill to size. */}
                     {['chips', 'tags', ''].includes(opts.skillsStyle ?? '') && (
                       <div className="mt-1.5">
@@ -1185,16 +1206,32 @@ function ChipBtn({ label, title, on, onClick }: { label: string; title?: string;
 }
 
 /** A style option: a small visual mock of the style + its name underneath. */
-function StyleChip({ label, kind, on, onClick }: { label: string; kind: string; on: boolean; onClick: () => void }) {
+function StyleChip({
+  label,
+  kind,
+  on,
+  onClick,
+  disabled,
+  reason,
+}: {
+  label: string
+  kind: string
+  on: boolean
+  onClick: () => void
+  /** A style the section cannot take right now; `reason` says why in a line. */
+  disabled?: boolean
+  reason?: string
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      title={label}
+      title={disabled && reason ? reason : label}
       aria-pressed={on}
+      disabled={disabled}
       className={`flex min-w-0 flex-col items-center gap-1 rounded-lg border p-1.5 transition ${
         on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'
-      }`}
+      }${disabled ? ' cursor-not-allowed opacity-45 hover:border-border' : ''}`}
     >
       <span className="flex h-5 w-full items-center justify-center">
         <Mini kind={kind} />

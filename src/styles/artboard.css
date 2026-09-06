@@ -2089,6 +2089,7 @@
 .mode-preview .rm-item:hover .rm-item-del,
 .mode-preview .rm-mini:hover .rm-item-del,
 .mode-preview .rm-skill-group:hover .rm-item-del,
+.mode-preview .rm-ring:hover .rm-item-del,
 .rm-item-del:focus-visible {
   opacity: 1;
   pointer-events: auto;
@@ -2358,6 +2359,61 @@
   display: block;
   margin-top: 0.12em;
 }
+
+/* Skills as rings. Each ring is two sibling svgs - the track and the arc -
+   because the painter reads one fill per svg root, and the fill is set here
+   on the svg element, which is where it looks. No stroke, or the text colour
+   would leak in as an outline round every arc. The number in the middle is
+   decoration (aria-hidden, outlines only in the PDF); the label beneath it is
+   the skill's real name. Sizes are in px on purpose: a ring is a fixed mark,
+   not type, and the arc must land where the level says at any type size. */
+.rm-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9em 0.7em;
+  margin-bottom: 0.45em;
+}
+.rm-rings:last-child {
+  margin-bottom: 0;
+}
+.rm-ring {
+  position: relative;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+}
+.rm-ring svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 60px;
+  stroke: none;
+  stroke-width: 0;
+}
+.rm-ring-track {
+  fill: var(--rm-line);
+}
+.rm-ring-arc {
+  fill: var(--rm-primary);
+}
+.rm-ring-value {
+  position: relative;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  font-weight: 800;
+  font-size: calc(var(--rm-fs) * 1.05);
+  color: var(--rm-text);
+}
+.rm-ring-label {
+  font-size: calc(var(--rm-fs) * 0.85);
+  text-align: center;
+  line-height: 1.2;
+  color: var(--rm-text);
+}
 /* Inline keyword editing on the canvas. The keywords render exactly as they
    print - running text with the same separator - and the affordances sit on
    top rather than replacing the markup with pills, which is what made the
@@ -2605,6 +2661,8 @@
 .mode-preview .rm-item:focus-within > .rm-item-move,
 .mode-preview .rm-skill-group:hover > .rm-item-move,
 .mode-preview .rm-skill-group:focus-within > .rm-item-move,
+.mode-preview .rm-ring:hover > .rm-item-move,
+.mode-preview .rm-ring:focus-within > .rm-item-move,
 .mode-preview .rm-mini:hover > .rm-item-move,
 .mode-preview .rm-mini:focus-within > .rm-item-move {
   display: inline-flex;

@@ -743,3 +743,27 @@ describe('the Word export composes the header the way the page does', () => {
     expect(texts(body).some((t) => /^(years|companies|skills)$/.test(t))).toBe(false)
   })
 })
+
+describe('the Word export writes a ring as a line', () => {
+  // A ring on the page is a level in a circle. Word gets the same fact as
+  // text - "Label - 92%", one line per ringed skill, and first, as the rings
+  // come first. A ringed category still lists its keywords below it, and a
+  // skill with no level keeps its keywords as it always did.
+  it('rings: rated skills become label - percent lines, the rest stay as they were', async () => {
+    const doc = docWith({ layout: { main: ['skills'], sectionSettings: { skills: { skillsStyle: 'rings' } } } })
+    doc.content.skills = [
+      { id: 's1', name: 'Tools', level: '', keywords: ['Docker'] },
+      { id: 's2', name: 'Frontend', level: '', keywords: ['React'], rating: 4 },
+      { id: 's3', name: 'TypeScript', level: '', keywords: [], rating: 4.6 },
+    ]
+    const { body } = await unpack(doc)
+    const runs = texts(body)
+    expect(runs).toContain('Frontend - 80%')
+    expect(runs).toContain('TypeScript - 92%')
+    expect(runs.some((t) => t.includes('Docker'))).toBe(true)
+    expect(runs.some((t) => t.includes('React'))).toBe(true)
+    expect(runs.indexOf('TypeScript - 92%')).toBeLessThan(runs.findIndex((t) => t.includes('Docker')))
+    // The leaf skill prints once, as its ring line; no meter glyphs join it.
+    expect(runs.filter((t) => t.startsWith('TypeScript')).length).toBe(1)
+  })
+})
