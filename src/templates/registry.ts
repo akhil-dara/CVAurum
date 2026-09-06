@@ -1002,6 +1002,12 @@ export const TEMPLATES: TemplateConfig[] = [
 
 export const TEMPLATE_MAP: Record<string, TemplateConfig> = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]))
 
+/** How many designs the collection holds. Copy that quotes the number reads
+ *  it from here, so the page can never claim a count the registry does not
+ *  have; the static tags in index.html cannot import it and are guarded by a
+ *  test instead. */
+export const TEMPLATE_COUNT = TEMPLATES.length
+
 export function getTemplate(id?: string): TemplateConfig {
   return (id && TEMPLATE_MAP[id]) || TEMPLATE_MAP.modern
 }

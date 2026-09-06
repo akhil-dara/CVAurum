@@ -24,7 +24,7 @@ import {
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
-import { getTemplate } from '@/templates/registry'
+import { TEMPLATE_COUNT, getTemplate } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { Logo } from '@/components/ui/Logo'
@@ -59,7 +59,7 @@ const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
   },
   {
     capability: 'Templates',
-    cvaurum: '52 designer templates, restylable section by section',
+    cvaurum: `${TEMPLATE_COUNT} designer templates, restylable section by section`,
     others: 'A few basic layouts, polish behind a paywall',
   },
   {
@@ -215,7 +215,7 @@ export function Landing() {
                 n={1}
                 icon={<LayoutGrid className="h-5 w-5" />}
                 title="Pick a template"
-                body="Choose from 52 recruiter-ready designs. Switch anytime — your content carries over."
+                body={`Choose from ${TEMPLATE_COUNT} recruiter-ready designs. Switch anytime — your content carries over.`}
               />
               <Step
                 n={2}
@@ -272,7 +272,7 @@ export function Landing() {
               </p>
             </div>
             <Link className="btn-ghost btn-sm hidden sm:inline-flex" to="/templates">
-              See all 52 <ArrowRight className="h-4 w-4" />
+              See all {TEMPLATE_COUNT} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6" data-nosnippet>
@@ -746,7 +746,7 @@ function HeroCinema({
             .
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/65">
-            52 designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a
+            {TEMPLATE_COUNT} designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a
             built-in ATS check with a parser&apos;s-eye view, PDF import with on-device OCR, exports whose links still
             click — and not a single byte of your career story sent to any server.
           </p>
@@ -875,7 +875,7 @@ function HeroCinema({
               transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
             >
               <div className="font-semibold" style={{ color: '#f7d774' }}>
-                52 designs, one resume
+                {TEMPLATE_COUNT} designs, one resume
               </div>
               <div className="mt-0.5 text-white/60">restyle section by section</div>
             </motion.div>
