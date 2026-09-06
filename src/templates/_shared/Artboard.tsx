@@ -763,6 +763,7 @@ function Section({
   edit,
   editMeta,
   compact,
+  index,
 }: {
   sectionKey: string
   doc: ResumeDocument
@@ -771,6 +772,9 @@ function Section({
   editMeta?: MetaEditFn
   /** The footer strip's row form (sections.tsx SectionBody). */
   compact?: boolean
+  /** The section's place among the body's sections, for a running number;
+   *  the strip, the sidebar and the gallery card pass none. */
+  index?: number
 }) {
   // 'none' drops the badge here rather than hiding it in CSS, so it leaves
   // the accessibility tree and the tagged PDF too, not just the page.
@@ -804,11 +808,17 @@ function Section({
           ...(ss?.badgeShape ? { '--rm-badge-radius': BADGE_RADIUS[ss.badgeShape] } : {}),
         } as CSSProperties)
       : undefined
+  // A running number opens the heading of every section in the body, counted
+  // in page order. It is decorative text (the Deco atom): the painter draws
+  // it as outlines with no text layer, and Word and the ATS text never see
+  // it, so a parser reads the heading's own words alone.
+  const number = doc.metadata.layout.sectionNumbers && index !== undefined ? String(index + 1).padStart(2, '0') : null
   return (
     <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
       <h2 className="rm-section-title">
         {showIcon ? <SectionIcon sectionKey={sectionKey} style={iconStyle} /> : null}
+        {number ? <Deco className="rm-section-number">{number}</Deco> : null}
         {/* A linked heading points where the author says, and the exporter
             turns any anchor into a clickable region, so it is live in the PDF
             exactly like a linked entry title. */}
@@ -1019,8 +1029,8 @@ export function Artboard({
         {twoCol && doc.metadata.layout.sidebar === 'left' ? AsideCol : null}
         <main className="rm-col-main">
           <Header doc={doc} config={config} edit={edit} editMeta={editMeta} />
-          {main.map((key) => (
-            <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
+          {main.map((key, i) => (
+            <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} index={i} />
           ))}
           {onAddSection ? (
             <button type="button" className="rm-add-section no-print" onClick={onAddSection} title="Add a section">

@@ -20,16 +20,16 @@ function defs(
   layout: Partial<Metadata['layout']>
 ): Defaults {
   const twoCol = layout.columns === 2
+  // A section the template seats in its footer strip is the strip's alone:
+  // the body order never lists it as well.
+  const inFooter = new Set(layout.footer ?? [])
+  const main = (layout.main ?? (twoCol ? DEFAULT_TWO_COL_MAIN : DEFAULT_MAIN_ORDER)).filter((k) => !inFooter.has(k))
+  const aside = (layout.aside ?? (twoCol ? DEFAULT_ASIDE_ORDER : [])).filter((k) => !inFooter.has(k))
   return {
     template,
     theme: { ...BASE.theme, ...theme },
     typography: { ...BASE.typography, ...typo },
-    layout: {
-      ...BASE.layout,
-      main: twoCol ? DEFAULT_TWO_COL_MAIN : DEFAULT_MAIN_ORDER,
-      aside: twoCol ? DEFAULT_ASIDE_ORDER : [],
-      ...layout,
-    },
+    layout: { ...BASE.layout, ...layout, main, aside },
   }
 }
 
@@ -939,6 +939,61 @@ export const TEMPLATES: TemplateConfig[] = [
       { primary: '#7c3aed', text: '#27272a', muted: '#71717a', sidebar: '#f5f3ff', sidebarText: '#4c1d95' },
       { fontFamily: 'Work Sans', headingFamily: 'Work Sans', fontSize: 9.5, headingScale: 1.45, uppercaseHeadings: true },
       { columns: 2, sidebar: 'left', sidebarWidth: 0.33, showPhoto: true, photoShape: 'circle', photoSize: 'm' }
+    ),
+  },
+  // ---- The Signature collection: one column, one structural primitive each ----
+  {
+    id: 'broadsheet',
+    name: 'Broadsheet',
+    description: 'A front page: the name set huge in a display serif across the whole width, a byline of contacts between double rules, and numbered running heads down one clean column.',
+    tags: ['signature', 'single-column', 'classic', 'premium'],
+    atsSafe: true,
+    class: 'tpl-broadsheet',
+    header: 'display',
+    section: 'rule-after',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'broadsheet',
+      { primary: '#c8102e', text: '#14110f', muted: '#5e5852', background: '#fbf8f2' },
+      { fontFamily: 'Source Serif 4', headingFamily: 'Archivo', nameFamily: 'Abril Fatface', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.1, uppercaseHeadings: true },
+      { columns: 1, sectionNumbers: true, showPhoto: false }
+    ),
+  },
+  {
+    id: 'marquee',
+    name: 'Marquee',
+    description: 'A poster: the name fills an orange block in tall condensed capitals, the body runs in one column beneath, and skills and languages live in a dark strip along the foot of the page.',
+    tags: ['signature', 'single-column', 'creative', 'premium'],
+    atsSafe: true,
+    class: 'tpl-marquee',
+    header: 'block',
+    section: 'rule-after',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'marquee',
+      { primary: '#ff5a1f', text: '#111111', muted: '#6f6459', background: '#fff8f0', footer: '#111111' },
+      { fontFamily: 'Work Sans', headingFamily: 'Bebas Neue', nameFamily: 'Bebas Neue', fontSize: 10, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.9, uppercaseHeadings: true },
+      { columns: 1, sectionNumbers: true, footer: ['skills', 'languages'], showPhoto: false }
+    ),
+  },
+  {
+    id: 'atlas',
+    name: 'Atlas',
+    description: 'A dashboard: a navy-to-teal band carries the name, a row of numbers the app reads from your content sits beneath it, and skills with a level become rings.',
+    tags: ['signature', 'single-column', 'modern', 'technical', 'premium'],
+    atsSafe: true,
+    class: 'tpl-atlas',
+    header: 'band',
+    section: 'bar',
+    skills: 'chips',
+    sectionIcons: false,
+    defaults: defs(
+      'atlas',
+      { primary: '#0b1f3a', gradientTo: '#0e7c86', text: '#122033', muted: '#5d6b7c', background: '#ffffff', headings: '#0b1f3a' },
+      { fontFamily: 'Karla', headingFamily: 'Montserrat', nameFamily: 'Montserrat', fontSize: 10, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.1, uppercaseHeadings: true },
+      { columns: 1, stats: true, showPhoto: false, sectionSettings: { skills: { skillsStyle: 'rings' } } }
     ),
   },
 ]

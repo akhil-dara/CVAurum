@@ -233,3 +233,45 @@ describe('applyTemplateToMetadata keeps the signature layout choices', () => {
     expect(next.layout.aside).not.toContain('skills')
   })
 })
+
+describe("a template's own structure lights up where the author chose none", () => {
+  // The strip, the stats band, the running numbers and a per-section style a
+  // template ships are what make a Signature template itself; picking one
+  // must show them. An author's own choice still beats the template's, the
+  // way the art band and the photo already work.
+  it('seeds the footer strip from the template and keeps its keys out of the body', () => {
+    const cur = createDocument({ sample: true }).metadata
+    expect(cur.layout.main).toContain('skills')
+    const next = applyTemplateToMetadata(cur, getTemplate('marquee').defaults)
+    expect(next.layout.footer).toEqual(['skills', 'languages'])
+    expect(next.layout.main).not.toContain('skills')
+    expect(next.layout.main).not.toContain('languages')
+  })
+
+  it('turns on the stats band and the running numbers the template ships', () => {
+    const cur = MetadataSchema.parse({ template: 'modern' })
+    expect(applyTemplateToMetadata(cur, getTemplate('atlas').defaults).layout.stats).toBe(true)
+    expect(applyTemplateToMetadata(cur, getTemplate('broadsheet').defaults).layout.sectionNumbers).toBe(true)
+  })
+
+  it('applies a per-section style the template ships only where the author set none', () => {
+    const cur = MetadataSchema.parse({ template: 'modern' })
+    const fresh = applyTemplateToMetadata(cur, getTemplate('atlas').defaults)
+    expect(fresh.layout.sectionSettings?.skills?.skillsStyle).toBe('rings')
+    const chosen = MetadataSchema.parse({
+      template: 'modern',
+      layout: { sectionSettings: { skills: { skillsStyle: 'chips', headingAlign: 'center' } } },
+    })
+    const kept = applyTemplateToMetadata(chosen, getTemplate('atlas').defaults)
+    expect(kept.layout.sectionSettings?.skills?.skillsStyle).toBe('chips')
+    expect(kept.layout.sectionSettings?.skills?.headingAlign).toBe('center')
+  })
+
+  it("an author's own strip beats the template's", () => {
+    const cur = createDocument({ sample: true }).metadata
+    cur.layout.footer = ['languages']
+    const next = applyTemplateToMetadata(cur, getTemplate('marquee').defaults)
+    expect(next.layout.footer).toEqual(['languages'])
+    expect(next.layout.main).toContain('skills')
+  })
+})

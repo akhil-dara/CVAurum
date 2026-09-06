@@ -22,6 +22,7 @@ template gallery — **without writing a single line of React**.
   - [`page`](#page-the-documents-not-a-template-default)
 - [Semantic markup: the `.rm-*` classes](#semantic-markup-the-rm--classes)
 - [Styling hooks: the `--rm-*` CSS variables](#styling-hooks-the---rm--css-variables)
+- [The Signature collection](#the-signature-collection)
 - [Worked example: building the "Aurora" template](#worked-example-building-the-aurora-template)
   - [Step 1 — Register the config](#step-1--register-the-config)
   - [Step 2 — Add a scoped CSS block](#step-2--add-a-scoped-css-block)
@@ -102,11 +103,11 @@ interface TemplateConfig {
   id: string;            // stable unique key, e.g. 'aurora'
   name: string;          // display name in the gallery, e.g. 'Aurora'
   description: string;   // one-line description shown in the picker
-  tags: string[];        // free-form labels, e.g. ['two-column', 'modern']
+  tags: string[];        // labels the gallery filters on, e.g. ['two-column', 'modern']; 'signature' marks the collection
   atsSafe: boolean;      // true => shows the ATS-safe shield in the gallery
   class: string;         // scoped CSS root class, e.g. 'tpl-aurora'
 
-  header: 'standard' | 'centered' | 'banner' | 'split' | 'compact';
+  header: 'standard' | 'centered' | 'banner' | 'split' | 'compact' | 'display' | 'block' | 'band';
   section: 'underline' | 'rule-after' | 'bar' | 'plain' | 'boxed' | 'side';
   skills: 'inline' | 'chips' | 'bars' | 'dots' | 'grouped-chips';
   languageMeter: boolean;
@@ -124,6 +125,8 @@ interface TemplateConfig {
       headings?: string;     // unset: derived (the accent, or the template's own)
       contacts?: string;     // unset: derived (the muted colour, or the template's own)
       links?: string;        // unset: links take the colour of the text around them
+      gradientTo?: string;   // the band header's second stop; unset: derived from the accent
+      footer?: string;       // the footer strip's ground; unset: the text colour
     };
     typography: {
       fontFamily: string;        // body font, e.g. 'Inter'
@@ -156,6 +159,9 @@ interface TemplateConfig {
       sectionIconSize: 's' | 'm' | 'l'; // section badge size
       showPhoto: boolean;        // render a photo if one is present
       photoShape: 'circle' | 'rounded' | 'square' | 'diamond';
+      footer: string[];          // section keys that render in the strip at the foot of the page
+      stats: boolean;            // a row of numbers derived from the content under the header
+      sectionNumbers: boolean;   // a running number opens every section heading in the body
     };
   };
 }
@@ -168,10 +174,10 @@ interface TemplateConfig {
 | `id` | `string` | Stable, unique identifier. Used in saved resumes — **never reuse or rename** an existing `id`. |
 | `name` | `string` | Human-readable name shown in the gallery. |
 | `description` | `string` | One-line pitch shown under the name. |
-| `tags` | `string[]` | Searchable/filterable labels (e.g. `'compact'`, `'creative'`, `'sidebar'`). |
+| `tags` | `string[]` | Searchable/filterable labels (e.g. `'compact'`, `'creative'`, `'sidebar'`). The gallery derives its chips from them, so a new tag gets a chip for free; `'signature'` marks the [Signature collection](#the-signature-collection). |
 | `atsSafe` | `boolean` | When `true`, the gallery shows the ATS-safe shield. Only set this if your design keeps a single readable text flow (see [Rules](#rules-and-gotchas)). |
 | `class` | `string` | The CSS root class applied to `.rm-root`. By convention, prefix with `tpl-` (e.g. `tpl-aurora`). Every rule in `templates.css` for your template is scoped under this class. |
-| `header` | enum | Header layout. One of `standard`, `centered`, `banner`, `split`, `compact`. |
+| `header` | enum | Header layout. One of `standard`, `centered`, `banner`, `split`, `compact`, `display` (the name set huge across the width, contacts as a byline between rules), `block` (the name fills a colour block in tall capitals) or `band` (a two-stop gradient band carries the name, with a slot for the stats row). The author can recompose any header from the canvas (`layout.headerStyle`), so the root carries `hdr-<style>` for whichever is drawn. |
 | `section` | enum | Section-title treatment. One of `underline`, `rule-after`, `bar`, `plain`, `boxed`, `side`. |
 | `skills` | enum | Skills rendering. One of `inline`, `chips`, `bars`, `dots`, `grouped-chips`. |
 | `languageMeter` | `boolean` | Show a proficiency meter on the languages section. |
@@ -195,6 +201,9 @@ These map directly onto the `--rm-*` color variables (see the
 | `headings` | Section titles' own colour → `--rm-heading-color`, set only when chosen |
 | `contacts` | The contact line's own colour → `--rm-contact-color`, set only when chosen |
 | `links` | Link colour (named, inline and URL-line links) → `--rm-link-color`, set only when chosen |
+| `gradientTo` | The second stop of the `band` header's gradient → `--rm-gradient-to`; unset, a lighter tint of the accent. A template may read it elsewhere too (Atlas colours its dates and ring arcs with it) |
+| `footer` | The footer strip's ground → `--rm-footer-bg`; unset, the text colour. The strip's text is whichever of white and the text colour reads on it (`--rm-on-footer`) |
+| `artBand` | `'none'` (default), `'navy-gold'`, `'terracotta'`, `'cobalt'` or `'emerald'`: an image band behind the header. Accepted by the schema now; drawn by a later batch |
 
 Any rule of yours that colours one of these elements must read its variable first, with your
 own colour as the fallback (`color: var(--rm-headline-color, var(--rm-muted))`), or the
@@ -243,6 +252,12 @@ this.
 | `sectionIconSize` | Section badge size, `'s'` / `'m'` / `'l'` (also kept across switches) |
 | `showPhoto` | Render the photo if one is present in the resume data |
 | `photoShape` | `'circle'`, `'rounded'`, `'square'`, or `'diamond'` (a turned monogram badge; a photo keeps square corners) |
+| `headerStyle` | The author's own header composition, any of the `header` values above; unset draws the template's. Kept across template switches |
+| `footer` | Section keys that leave the body and render in a full-width strip at the foot of the last page, in a compact row form (one line per skill group, one for the languages). The order resolver reads the strip last, so the ATS text and the Word file list those sections last too. A template that ships a strip seats its sections there where the author has moved none; an author's own strip stays across a switch |
+| `stats` | `true` draws a row of up to four numbers derived from the content (years of experience, companies, skills, a headline number from a project) under the header - in the `band` header's own slot, or directly under any other header. Decorative text: outlines in the PDF, absent from Word and the ATS text. Stays once chosen; a template that ships it turns it on |
+| `sectionNumbers` | `true` opens every section heading in the body with a running two-digit number (`01`, `02`, ...) counted in page order; the strip and the sidebar are never numbered. Decorative text, like the stats. Stays once chosen; a template that ships it turns it on |
+| `metaColumn`, `headingPlacement`, `sectionFrame` | The remaining structural axes (`none` / `gutter` / `margin`; `above` / `side`; `none` / `tile`). Accepted by the schema and kept across switches now; drawn by a later batch |
+| `sectionSettings[key].skillsStyle` | Per section: how a skills section draws its items. `'chips'`, `'tags'`, `'inline'`, `'grid'`, `'stacked'`, or `'rings'` - a ring per skill with a level (two single-fill svgs, the level as decorative text in the centre, the label as real text beneath; skills without a level follow as chips). `'mosaic'` is accepted and drawn by a later batch. A template may ship one (Atlas ships rings) and it applies where the author set none for that section |
 | `sectionSettings[key].showDuration` | Per section, opt-in: end each date range with its length in parentheses (`"2 yrs 3 mos"`, counted in whole months, so both dates need a month). Plain text, so the Word export and the ATS text print the same words |
 | `sectionSettings[key].headingAlign` | Per section: `'left'` or `'center'` for the heading → `sec-align-*` on the section; unset keeps the template's own. A centred rule-after heading sits between two rules; the Word export centres the paragraph |
 | `sectionSettings[key].entryOrder` | Per section (work, education, volunteer, custom): `'title-first'` (default) or `'org-first'` — which field takes an entry's head line beside the date (the position or degree, or the company, institution or subtitle); the other takes the sub-line, and both stay editable. The Word export and the ATS text list the two in the same order |
@@ -290,6 +305,12 @@ guarantees them, so style against them freely.
 | `.rm-contacts` | The contact row/list (email, phone, links, location). |
 | `.rm-section` | One section wrapper (Experience, Education, …). |
 | `.rm-section-title` | The section heading text. |
+| `.rm-section-number` | The running number ahead of the heading's words, with `layout.sectionNumbers`. Carries `.rm-deco`. |
+| `.rm-deco` | Decorative text, marked `aria-hidden` and `data-deco="1"`: a section number, a stat, a ring's level. The painter draws it as outlines with no text layer, and Word and the ATS text never carry it. Style it; never put a word a reader needs in it. |
+| `.rm-stats` / `.rm-stat` / `.rm-stat-value` / `.rm-stat-label` | The stats row and its tiles, with `layout.stats`. |
+| `.rm-rings` / `.rm-ring` / `.rm-ring-track` / `.rm-ring-arc` | The rings skills style: the row, one ring, its track circle and its arc, each svg with one fill. |
+| `.rm-footer` / `.rm-footer-row` / `.rm-footer-label` | The footer strip after the columns, a row per group, and the row's label. The root carries `rm-has-footer` when a strip is drawn. |
+| `.rm-header-display` / `.rm-header-block` / `.rm-header-band` | The header element under the three Signature compositions (the root also carries `hdr-display`, `hdr-block`, `hdr-band`). |
 | `.rm-section-icon` | The heading's badge. The root carries `sicon-<style>` and, for S/L, `sicon-size-s` / `sicon-size-l`; the folio style adds `.rm-folio-ink` / `.rm-folio-tint` / `.rm-folio-paper` glyph svgs and two `.rm-folio-fold` svgs inside. |
 | `.rm-section-body` | The section's content container. |
 | `.rm-item` | A single entry within a section (a job, a degree, …). |
@@ -379,6 +400,9 @@ your template.
 | `--rm-heading-color` | `theme.headings` | Section titles' colour, set only when chosen (sidebar titles keep the sidebar text) |
 | `--rm-contact-color` | `theme.contacts` | The contact line's colour, set only when chosen; linked contacts follow it |
 | `--rm-link-color` | `theme.links` | Link colour, set only when chosen; titles and headings keep their own even when linked |
+| `--rm-gradient-to` | `theme.gradientTo` | The band header's second stop; a lighter tint of the accent when unset |
+| `--rm-on-primary` | derived | The text colour that reads on the accent (the block and band headers set their text in it) |
+| `--rm-footer-bg` / `--rm-on-footer` | `theme.footer` | The footer strip's ground (set only when chosen; the stylesheet falls back to the text colour) and the text colour that reads on it |
 | `--rm-pad` | layout padding | Page/inner padding |
 
 Example of reading them:
@@ -390,6 +414,30 @@ Example of reading them:
   border-bottom: 2px solid var(--rm-primary);
 }
 ```
+
+---
+
+## The Signature collection
+
+The Signature templates (tag `signature`) are each built on one structural primitive of
+the shared engine, and every one keeps to one column: a parser sorts text by height, and
+anything at the same height in two columns is read as one interleaved line, so the
+invention lives in the masthead, the strip and the numerals, none of which ever shares a
+line with content. Every word a reader needs is real text in DOM order; everything else
+(a running number, a stat, a ring's level) is decorative text that never reaches the PDF
+text layer, the Word file or the ATS text.
+
+| Template | Built on |
+| --- | --- |
+| `broadsheet` | The `display` header and `sectionNumbers` |
+| `marquee` | The `block` header and a `footer` strip for skills and languages |
+| `atlas` | The `band` header with `gradientTo`, `stats`, and `skillsStyle: 'rings'` on the skills section |
+
+Each primitive is a layout or theme field, so any template can carry it: an author can
+number the sections of Clarity, or move Broadsheet's languages into a strip, from the
+canvas or the Design panel. A Signature template's own structure lights up when it is
+picked and the author has decided nothing on that axis; the author's own choice stays
+across a switch.
 
 ---
 

@@ -36,6 +36,7 @@ export type TemplateTag =
   | 'compact'
   | 'elegant'
   | 'premium'
+  | 'signature' // the Signature collection: one column, one structural primitive each
 
 /** How the name/contact header is laid out. */
 export type HeaderVariant =
@@ -44,6 +45,9 @@ export type HeaderVariant =
   | 'banner' // colored full-width band behind the header
   | 'split' // name left / contacts right, divider rule
   | 'compact' // single line name + inline contacts
+  | 'display' // the name set huge across the width, contacts as a byline between rules
+  | 'block' // the name fills a colour block in tall capitals
+  | 'band' // a two-stop gradient band carries the name, with a slot for the stats
 
 /** Section heading treatment. */
 export type SectionStyle =

@@ -39,10 +39,16 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
     aside = []
   }
 
+  // The footer strip: the author's own once they have moved a section there,
+  // else the one the template ships (Marquee seats skills and languages in
+  // its strip), the way the art band and the photo light up only where
+  // nothing was decided.
+  const footer = cur.layout.footer.length ? cur.layout.footer : defaults.layout.footer
+
   // Dedupe so no section can ever appear in both columns (guards against drift
-  // over a long chain of template switches). A section the user moved to the
-  // footer strip stays there, so a re-seeded body never lists it again.
-  const seen = new Set<string>(cur.layout.footer)
+  // over a long chain of template switches). A section in the footer strip is
+  // the strip's alone, so a re-seeded body never lists it again.
+  const seen = new Set<string>(footer)
   const dedupe = (arr: string[]) => arr.filter((k) => (seen.has(k) ? false : (seen.add(k), true)))
   main = dedupe(main)
   aside = dedupe(aside)
@@ -115,9 +121,12 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       metaColumn: cur.layout.metaColumn,
       headingPlacement: cur.layout.headingPlacement,
       sectionFrame: cur.layout.sectionFrame,
-      footer: cur.layout.footer,
-      stats: cur.layout.stats,
-      sectionNumbers: cur.layout.sectionNumbers,
+      footer,
+      // The stats band and the running numbers stay once chosen; a template
+      // that ships them turns them on where the author had them off.
+      stats: cur.layout.stats || defaults.layout.stats,
+      sectionNumbers: cur.layout.sectionNumbers || defaults.layout.sectionNumbers,
+      sectionSettings: seedSectionSettings(defaults.layout.sectionSettings, cur.layout.sectionSettings),
       headings: cur.layout.headings,
     },
     // Link settings are the author's, not the template's: display, the
@@ -128,4 +137,19 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
     // word and the language belong to the document, not to its look.
     dates: cur.dates,
   })
+}
+
+type SectionSettings = NonNullable<Metadata['layout']['sectionSettings']>
+
+/**
+ * The per-section styles a template ships (Atlas draws its skills as rings),
+ * under the author's own: a setting the author chose for a section stays,
+ * one they left open takes the template's. A template that ships none
+ * leaves the author's untouched.
+ */
+function seedSectionSettings(tpl: SectionSettings | undefined, cur: SectionSettings | undefined): SectionSettings | undefined {
+  if (!tpl || Object.keys(tpl).length === 0) return cur
+  const out: SectionSettings = { ...(cur ?? {}) }
+  for (const [key, bag] of Object.entries(tpl)) out[key] = { ...bag, ...(out[key] ?? {}) }
+  return out
 }

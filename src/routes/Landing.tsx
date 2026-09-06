@@ -43,7 +43,7 @@ const goldText = {
 const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** Templates shown live (with sample content) in the showcase strip. */
-const SHOWCASE = ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnacle']
+const SHOWCASE = ['clarity', 'obsidian', 'sapphire', 'crest', 'broadsheet', 'atlas']
 
 /** Honest head-to-head: what CVAurum does vs. what most resume builders do. */
 const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
@@ -574,7 +574,7 @@ function HeroCinema({
   // designs — the template engine demonstrating itself.
   const morph = useMemo(
     () =>
-      ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnacle'].map((id) => {
+      ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnacle', 'marquee'].map((id) => {
         const d = createDocument({ sample: true })
         d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
         return { id, name: getTemplate(id).name, doc: d }

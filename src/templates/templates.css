@@ -1056,6 +1056,63 @@
   color: inherit;
 }
 
+/* ===================================================== Broadsheet (front page)
+   The name as a masthead in a display serif, contacts as a byline, and
+   numbered running heads in a grotesque down one column. The numeral is
+   decorative text (rm-deco): outlines in the PDF, absent from Word. */
+.tpl-broadsheet .rm-header-display .rm-name {
+  font-weight: var(--rm-name-weight, 400);
+}
+.tpl-broadsheet .rm-section-title {
+  font-family: var(--rm-font-heading);
+  letter-spacing: 0.14em;
+  border-bottom: var(--rm-heading-rule, 2px) solid var(--rm-text);
+  padding-bottom: 0.2em;
+}
+.tpl-broadsheet .rm-section-number {
+  color: var(--rm-primary);
+  margin-right: 0.6em;
+}
+.tpl-broadsheet .rm-item-org {
+  font-style: italic;
+  color: var(--rm-primary);
+}
+
+/* ===================================================== Marquee (poster)
+   The name fills an orange block in tall condensed capitals; skills and
+   languages live in a dark strip along the foot of the page. */
+.rm-root.tpl-marquee .rm-header-block .rm-name {
+  letter-spacing: 0.01em;
+}
+.tpl-marquee .rm-section-title {
+  font-family: var(--rm-font-heading);
+  letter-spacing: 0.04em;
+  border-bottom: var(--rm-heading-rule, 2px) solid var(--rm-text);
+}
+.tpl-marquee .rm-section-number {
+  color: var(--rm-primary);
+  margin-right: 0.4em;
+}
+.tpl-marquee .rm-footer-label {
+  font-family: var(--rm-font-heading);
+  letter-spacing: 0.06em;
+  color: var(--rm-primary);
+}
+
+/* ===================================================== Atlas (dashboard)
+   A navy-to-teal band carries the name and the stats; the teal stop marks
+   the bar beside each heading, the dates and the ring arcs. */
+.tpl-atlas.sec-bar .rm-section-title {
+  border-left-color: var(--rm-gradient-to);
+}
+.tpl-atlas .rm-item-date {
+  color: var(--rm-gradient-to);
+  font-weight: 600;
+}
+.tpl-atlas .rm-ring > .rm-ring-arc {
+  fill: var(--rm-gradient-to);
+}
+
 /* =====================================================================
    PER-SECTION STYLE OVERRIDES (user-picked in the canvas section gear).
    Scoped .sec-ov-* / .skl-ov-* classes on one .rm-section — they must beat
