@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { commitTyped } from '@/lib/designRanges'
 
@@ -36,6 +36,23 @@ export function Slider({
     setDraft(null)
     if (v !== null) onChange(v)
   }
+  // The spinner arrows step the value without ever blurring the box, and
+  // React's onChange is really the `input` event, which only fills the draft
+  // - so a click on an arrow moved the number and changed nothing. The
+  // NATIVE `change` event is the one that separates the two gestures: a
+  // number input fires it the moment a step lands, and for typing only when
+  // focus leaves. Committing there makes an arrow apply at once, which is
+  // what an arrow is for, while a half-typed number still waits.
+  const commitRef = useRef(commit)
+  commitRef.current = commit
+  const boxRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    const onNativeChange = () => commitRef.current()
+    el.addEventListener('change', onNativeChange)
+    return () => el.removeEventListener('change', onNativeChange)
+  }, [])
   const suffix = unit || (format ? format(value).replace(/^[-+\d.,]+/, '') : '')
   return (
     <div>
@@ -43,6 +60,7 @@ export function Slider({
         <label className="text-xs font-medium text-muted-foreground">{label}</label>
         <span className="flex items-center gap-1 text-xs tabular-nums text-foreground">
           <input
+            ref={boxRef}
             type="number"
             min={min}
             max={max}

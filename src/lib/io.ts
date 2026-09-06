@@ -23,6 +23,7 @@ import {
   CustomSectionSchema,
 } from '@/types/resume'
 import { MetadataSchema } from '@/types/metadata'
+import { seedSectionOrder } from '@/lib/sections'
 import { RETIRED_AVATARS } from './storage'
 import { defaultMetadata, ensureIds } from '@/data/defaults'
 import { downscaleDataUrl } from '@/lib/image'
@@ -105,7 +106,11 @@ export function fromJsonResume(raw: unknown): ResumeDocument {
   const rmRaw = meta.cvaurum as Record<string, unknown> | undefined
   // safeParse so one out-of-range visual setting can't reject the whole resume.
   const parsedMeta = rmRaw ? MetadataSchema.safeParse(rmRaw) : null
-  const metadata = parsedMeta && parsedMeta.success ? parsedMeta.data : defaultMetadata()
+  const parsed = parsedMeta && parsedMeta.success ? parsedMeta.data : defaultMetadata()
+  // A file can arrive with no section order at all (plain JSON Resume, or an
+  // empty settings object): give it one, or the editor's section list stands
+  // empty while the page shows those sections anyway.
+  const metadata = seedSectionOrder(parsed, content)
   const title =
     (rmRaw?.title as string) ||
     (content.basics.name ? `${content.basics.name}'s Resume` : 'Imported Resume')

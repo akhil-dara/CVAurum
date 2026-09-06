@@ -3078,3 +3078,29 @@
 .rm-deco {
   user-select: none;
 }
+
+/* Chip handles float ABOVE the word, not on it.
+ *
+ * Both were absolutely positioned inside the chip and vertically centred, so
+ * they lay over the text: measured on a real resume, the cross covered 12px
+ * of the word's tail and a click at the end of the word - the most ordinary
+ * edit there is, placing the cursor after the last letter - reached the
+ * delete button instead of the text (reported live, 2026-09-06). On a short
+ * word like "Go" the two handles covered nearly the whole chip.
+ *
+ * They now sit just above the chip's corners, tucked far enough down to read
+ * as attached to it. Still absolutely positioned, so a revealed handle costs
+ * the chip no width and the canvas still measures exactly what prints, which
+ * is why they were put inside the chip in the first place. */
+.mode-preview .rm-chip-del {
+  top: auto;
+  bottom: calc(100% - 0.34em);
+  right: -0.25em;
+  transform: none;
+}
+.rm-kw-grip {
+  top: auto;
+  bottom: calc(100% - 0.34em);
+  left: -0.25em;
+  transform: none;
+}

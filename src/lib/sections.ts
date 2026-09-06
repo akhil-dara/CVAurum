@@ -3,6 +3,8 @@
  * body-section list, default labels, content-presence checks, and the logic that
  * resolves the final ordered main/aside columns for a document.
  */
+import type { Metadata } from '@/types/metadata'
+import { DEFAULT_ASIDE_ORDER, DEFAULT_MAIN_ORDER, DEFAULT_TWO_COL_MAIN } from '@/data/defaults'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { htmlToText, uid } from '@/lib/utils'
 
@@ -332,6 +334,38 @@ export function sectionHasContent(key: string, content: ResumeContent): boolean 
  * data is never silently dropped. Sections in the footer strip come back
  * in their own list, read last, and leave the main flow and the sidebar.
  */
+/**
+ * Give a document's layout an explicit section order.
+ *
+ * An imported file often carries none: JSON Resume has no notion of one, and
+ * a file whose settings object is empty parses to the schema's own defaults,
+ * where `main` is []. The canvas still drew such a document, because
+ * `resolveOrder` appends anything with content, but the editor's section list
+ * reads the layout itself and so came up EMPTY - nothing to reorder, move or
+ * rename, on a resume that plainly had sections.
+ *
+ * Seeds the usual order when nothing is placed anywhere, then appends every
+ * content-bearing section the layout has not placed, so the panel and the
+ * page agree. A section the author hid stays hidden.
+ */
+export function seedSectionOrder(metadata: Metadata, content: ResumeContent): Metadata {
+  const layout = metadata.layout
+  const twoCol = layout.columns === 2
+  const placed = new Set([...layout.main, ...layout.aside, ...(layout.footer ?? []), ...layout.hidden])
+  if (placed.size === 0) {
+    layout.main = twoCol ? [...DEFAULT_TWO_COL_MAIN] : [...DEFAULT_MAIN_ORDER]
+    if (twoCol) layout.aside = [...DEFAULT_ASIDE_ORDER]
+    for (const k of [...layout.main, ...layout.aside]) placed.add(k)
+  }
+  for (const key of allSectionKeys(content)) {
+    if (!placed.has(key) && sectionHasContent(key, content)) {
+      layout.main.push(key)
+      placed.add(key)
+    }
+  }
+  return metadata
+}
+
 export function resolveOrder(
   doc: ResumeDocument,
   opts?: { includeEmpty?: boolean }
