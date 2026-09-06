@@ -805,6 +805,17 @@ function EditableChips({
     pendingFocus.current = null
   })
 
+  // Reordering. A chip is draggable only while its HANDLE is held: the keyword
+  // itself is contentEditable, and a permanently draggable chip turns an
+  // ordinary attempt to select a word into a drag of the whole chip.
+  //
+  // Declared with the other hooks, ABOVE the read-only early return below.
+  // It used to sit after it, so this component ran six hooks while editing
+  // and five while not: switching the canvas into exact-preview threw
+  // "Rendered fewer hooks than expected" and took the whole editor route
+  // down with it, losing the open document.
+  const dragFrom = useRef<number | null>(null)
+
   const onWrapBlur = (e: FocusEvent<HTMLDivElement>) => {
     if (!onPruneEmpty || deleting.current) return
     const next = e.relatedTarget as Node | null
@@ -827,10 +838,6 @@ function EditableChips({
 
   const stop = (e: { preventDefault: () => void }) => e.preventDefault()
 
-  // Reordering. A chip is draggable only while its HANDLE is held: the keyword
-  // itself is contentEditable, and a permanently draggable chip turns an
-  // ordinary attempt to select a word into a drag of the whole chip.
-  const dragFrom = useRef<number | null>(null)
   /**
    * Commit whatever is being edited BEFORE the list order changes.
    *
