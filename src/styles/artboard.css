@@ -2737,3 +2737,12 @@
 .links-tag .rm-col-aside .rm-verify-link {
   color: inherit;
 }
+
+/* ---- decorative text ---- */
+/* Text a reader sees and a parser never does (the Deco atom): a year
+   numeral, a stat, a ring number, a running section number. The painter
+   draws it as outlines with no text layer, and a drag across the page must
+   not pick it up either, so a copy of the page reads like its export. */
+.rm-deco {
+  user-select: none;
+}

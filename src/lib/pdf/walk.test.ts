@@ -2490,3 +2490,246 @@ describe('buildDrawList - sibling <svg> pieces (folio section chip, 2026-09-04)'
     expect(svgOps[1].xPx).toBe(20)
   })
 })
+
+describe('buildDrawList - decorative text (signature collection, task 2)', () => {
+  // A harness of its own: the ones above never let the walker reach a TEXT
+  // node, and this contract is about what a text node becomes. Elements
+  // carry parentElement, closest and getAttribute (isAriaHidden,
+  // roleForElement and the column lookup all climb the tree), and a text
+  // node is a real nodeType-3 child with its own rect, handed back by a
+  // document.createRange stub the way extractPageBlocks' harness does it.
+  const originalDocument = globalThis.document
+  const originalGetComputedStyle = globalThis.getComputedStyle
+  const originalConsoleWarn = console.warn
+  const g = globalThis as unknown as { Node?: unknown; NodeFilter?: unknown; HTMLImageElement?: unknown }
+  const originalNode = g.Node
+  const originalNodeFilter = g.NodeFilter
+  const originalHTMLImageElement = g.HTMLImageElement
+
+  afterEach(() => {
+    globalThis.document = originalDocument
+    globalThis.getComputedStyle = originalGetComputedStyle
+    console.warn = originalConsoleWarn
+    g.Node = originalNode
+    g.NodeFilter = originalNodeFilter
+    g.HTMLImageElement = originalHTMLImageElement
+  })
+
+  interface FakeRect {
+    left: number
+    top: number
+    width: number
+    height: number
+    right: number
+    bottom: number
+  }
+  interface FakeText {
+    nodeType: number
+    data: string
+    rect: FakeRect
+    parentElement: FakeEl | null
+    parentNode: FakeEl | null
+    previousSibling: null
+    nextSibling: null
+  }
+  interface FakeEl {
+    nodeType: number
+    tagName: string
+    classList: { contains: (c: string) => boolean }
+    childNodes: Array<FakeEl | FakeText>
+    parentElement: FakeEl | null
+    parentNode: FakeEl | null
+    previousSibling: null
+    nextSibling: null
+    lastElementChild: FakeEl | null
+    ownerSVGElement: FakeEl | null
+    getBoundingClientRect: () => FakeRect
+    getAttribute: (name: string) => string | null
+    closest: (sel: string) => FakeEl | null
+    querySelectorAll: (sel: string) => FakeEl[]
+    querySelector: (sel: string) => FakeEl | null
+    contains: (n: FakeEl | FakeText) => boolean
+    cs: Record<string, string>
+  }
+
+  const BASE_CS: Record<string, string> = {
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    backgroundImage: 'none',
+    borderTopWidth: '0px',
+    borderTopStyle: 'none',
+    borderTopColor: 'rgba(0,0,0,0)',
+    borderRightWidth: '0px',
+    borderRightStyle: 'none',
+    borderRightColor: 'rgba(0,0,0,0)',
+    borderBottomWidth: '0px',
+    borderBottomStyle: 'none',
+    borderBottomColor: 'rgba(0,0,0,0)',
+    borderLeftWidth: '0px',
+    borderLeftStyle: 'none',
+    borderLeftColor: 'rgba(0,0,0,0)',
+    borderTopLeftRadius: '0px',
+    borderTopRightRadius: '0px',
+    borderBottomRightRadius: '0px',
+    borderBottomLeftRadius: '0px',
+    opacity: '1',
+    display: 'block',
+    visibility: 'visible',
+    content: 'none',
+    position: 'static',
+    color: 'rgb(0, 0, 0)',
+    fill: 'rgb(0, 0, 0)',
+    stroke: 'none',
+    strokeWidth: '0px',
+    fontSize: '10px',
+    fontStyle: 'normal',
+    fontWeight: '400',
+    fontFamily: 'Arial',
+    fontVariantCaps: 'normal',
+    letterSpacing: 'normal',
+    whiteSpace: 'normal',
+    textTransform: 'none',
+    textDecorationLine: 'none',
+  }
+
+  function makeCs(overrides: Record<string, string>): CSSStyleDeclaration {
+    const merged: Record<string, string> = { ...BASE_CS, ...overrides }
+    return {
+      ...merged,
+      getPropertyValue: (name: string) => merged[name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] ?? '',
+    } as unknown as CSSStyleDeclaration
+  }
+
+  function box(left: number, top: number, width: number, height: number): FakeRect {
+    return { left, top, width, height, right: left + width, bottom: top + height }
+  }
+
+  function txt(data: string, rect: FakeRect): FakeText {
+    return { nodeType: 3, data, rect, parentElement: null, parentNode: null, previousSibling: null, nextSibling: null }
+  }
+
+  function elm(
+    tagName: string,
+    classes: string[],
+    rect: FakeRect,
+    children: Array<FakeEl | FakeText> = [],
+    attrs: Record<string, string> = {},
+    csOverrides: Record<string, string> = {}
+  ): FakeEl {
+    const classSet = new Set(classes)
+    const elements = children.filter((c): c is FakeEl => c.nodeType === 1)
+    const el: FakeEl = {
+      nodeType: 1,
+      tagName,
+      classList: { contains: (c) => classSet.has(c) },
+      childNodes: children,
+      parentElement: null,
+      parentNode: null,
+      previousSibling: null,
+      nextSibling: null,
+      lastElementChild: elements.length ? elements[elements.length - 1] : null,
+      ownerSVGElement: null,
+      getBoundingClientRect: () => rect,
+      getAttribute: (name) => (name in attrs ? attrs[name] : null),
+      // Only class selectors are ever asked for on this path.
+      closest: (sel) => {
+        const cls = sel.slice(1)
+        for (let cur: FakeEl | null = el; cur; cur = cur.parentElement) if (cur.classList.contains(cls)) return cur
+        return null
+      },
+      // No anchors and no inline svg in these trees.
+      querySelectorAll: () => [],
+      querySelector: () => null,
+      contains: (n) => n === el || children.some((c) => c === n || (c.nodeType === 1 && (c as FakeEl).contains(n))),
+      cs: { ...BASE_CS, ...csOverrides },
+    }
+    for (const c of children) {
+      c.parentElement = el
+      c.parentNode = el
+    }
+    return el
+  }
+
+  function fakeCreateTreeWalker(root: FakeEl, acceptNode: (n: FakeEl | FakeText) => number) {
+    const ACCEPT = 1
+    const seq: Array<FakeEl | FakeText> = []
+    const visit = (node: FakeEl) => {
+      for (const child of node.childNodes) {
+        if (acceptNode(child) === ACCEPT) {
+          seq.push(child)
+          if (child.nodeType === 1) visit(child as FakeEl)
+        }
+      }
+    }
+    visit(root)
+    let idx = -1
+    const walker = {
+      currentNode: root as unknown as Node,
+      nextNode: () => {
+        idx++
+        if (idx >= seq.length) return null
+        walker.currentNode = seq[idx] as unknown as Node
+        return walker.currentNode
+      },
+    }
+    return walker
+  }
+
+  function install() {
+    g.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 }
+    g.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 }
+    g.HTMLImageElement = class {}
+    // There is no document.body here, so the baseline probe falls back to
+    // the canvas ascent and says so on console.warn; that is not the subject.
+    console.warn = () => {}
+    const canvasCtx = {
+      font: '',
+      measureText: () => ({ width: 6, fontBoundingBoxAscent: 9, actualBoundingBoxAscent: 9 }),
+    }
+    globalThis.document = {
+      createTreeWalker: (root: unknown, _whatToShow: number, filter: { acceptNode: (n: unknown) => number }) =>
+        fakeCreateTreeWalker(root as FakeEl, filter.acceptNode as (n: FakeEl | FakeText) => number),
+      createElement: () => ({ getContext: () => canvasCtx }),
+      // One line per text node: every offset query returns the node's own
+      // rect, so the wrap detection never sees a top jump.
+      createRange: () => {
+        let node: FakeText | null = null
+        return {
+          setStart: (n: unknown) => {
+            node = n as FakeText
+          },
+          setEnd: () => {},
+          selectNodeContents: (n: unknown) => {
+            node = n as FakeText
+          },
+          getBoundingClientRect: () => node!.rect,
+          getClientRects: () => [node!.rect],
+        }
+      },
+    } as unknown as Document
+    globalThis.getComputedStyle = ((el: unknown, pseudo?: string) =>
+      pseudo ? makeCs({ content: 'none' }) : makeCs((el as FakeEl).cs)) as unknown as typeof getComputedStyle
+  }
+
+  it('paints a decorative span as an artifact with no extractable text', () => {
+    install()
+    // The Deco atom's own markup: aria-hidden on an rm-deco span. The year
+    // numeral is decoration; the title on the next line is content.
+    const year = txt('2021', box(20, 100, 30, 14))
+    const deco = elm('SPAN', ['rm-deco'], box(20, 100, 30, 14), [year], { 'aria-hidden': 'true' }, { display: 'inline' })
+    const title = txt('Senior Engineer', box(20, 120, 120, 14))
+    const real = elm('SPAN', [], box(20, 120, 120, 14), [title], {}, { display: 'inline' })
+    const section = elm('DIV', ['rm-section'], box(20, 100, 300, 40), [deco, real])
+    const root = elm('DIV', ['rm-root'], box(0, 0, 800, 1000), [section])
+
+    const ops = buildDrawList(root as unknown as HTMLElement).filter((o) => o.kind === 'text') as Extract<
+      DrawOp,
+      { kind: 'text' }
+    >[]
+    const decoOp = ops.find((o) => o.run.text === '2021')
+    const realOp = ops.find((o) => o.run.text === 'Senior Engineer')
+    expect(decoOp?.run.isDecorative).toBe(true)
+    expect(decoOp?.role).toBe('Artifact')
+    expect(realOp?.run.isDecorative).toBe(false)
+    expect(realOp?.role).toBe('P')
+  })
+})

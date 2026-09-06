@@ -1,5 +1,5 @@
 /** Small shared building blocks used by section renderers across all templates. */
-import { Fragment, memo } from 'react'
+import { Fragment, memo, type ReactNode } from 'react'
 import {
   Mail,
   Phone,
@@ -75,6 +75,27 @@ export function LevelBar({ value = 0, max = 5 }: { value?: number; max?: number 
     <span className="rm-level-track" aria-hidden>
       <span className="rm-level-fill" style={{ width: `${pct}%` }} />
     </span>
+  )
+}
+
+/** Text a reader sees but a parser must not: year numerals, stats, ring
+ *  numbers, running section numbers. aria-hidden makes the painter draw it
+ *  as outlines with no text layer, and the Word and ATS builders never emit
+ *  it because they read the document, not the page. data-deco says the same
+ *  to anything that reads the markup instead. */
+export function Deco({
+  children,
+  className,
+  as: Tag = 'span',
+}: {
+  children: ReactNode
+  className?: string
+  as?: 'span' | 'div'
+}) {
+  return (
+    <Tag aria-hidden="true" className={className ? `rm-deco ${className}` : 'rm-deco'} data-deco="1">
+      {children}
+    </Tag>
   )
 }
 
