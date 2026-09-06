@@ -4,7 +4,7 @@
  * surfaces can never diverge on how an order mutation behaves.
  */
 import { describe, it, expect } from 'vitest'
-import { moveSection, moveSectionTo, moveEntry } from './sections'
+import { moveSection, moveSectionTo, moveEntry, nextSectionPlace } from './sections'
 import type { Metadata } from '@/types/metadata'
 import type { ResumeContent } from '@/types/document'
 
@@ -111,5 +111,68 @@ describe('moveEntry', () => {
     moveEntry(c, 'work', 'nope', 0)
     moveEntry(c, 'awards', 'a', 0)
     expect(c.work.map((w) => w.id)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+/**
+ * The footer strip is a third place a section can live. A key moved there
+ * leaves the main flow and the sidebar in the same move; moved out, it goes
+ * to the end of the main flow. The move menu cycles the places: main ->
+ * sidebar -> footer -> main on a two-column template, main -> footer -> main
+ * on a single column.
+ */
+const layoutWithFooter = (main: string[], aside: string[] = [], footer: string[] = [], columns: 1 | 2 = 2): Layout =>
+  ({ columns, main, aside, footer, hidden: [], sidebarWidth: 0.32 }) as unknown as Layout
+
+describe('moveSectionTo (footer strip)', () => {
+  it('moves a section into the footer and out of every other place', () => {
+    const l = layoutWithFooter(['summary', 'skills'], ['skills', 'languages'])
+    moveSectionTo(l, 'skills', 'footer', 0)
+    expect(l.footer).toEqual(['skills'])
+    expect(l.main).toEqual(['summary'])
+    expect(l.aside).toEqual(['languages'])
+  })
+
+  it('moves a footer section back into a column, leaving the strip', () => {
+    const l = layoutWithFooter(['summary'], [], ['skills', 'languages'])
+    moveSectionTo(l, 'skills', 'main', 99)
+    expect(l.footer).toEqual(['languages'])
+    expect(l.main).toEqual(['summary', 'skills'])
+  })
+
+  it('tolerates a layout with no footer list at all', () => {
+    const l = layout(['summary', 'skills'])
+    moveSectionTo(l, 'skills', 'footer', 0)
+    expect(l.footer).toEqual(['skills'])
+    expect(l.main).toEqual(['summary'])
+  })
+})
+
+describe('moveSection (within the footer strip)', () => {
+  it('steps a footer section within the strip', () => {
+    const l = layoutWithFooter(['summary'], [], ['skills', 'languages'])
+    moveSection(l, 'languages', -1)
+    expect(l.footer).toEqual(['languages', 'skills'])
+    expect(l.main).toEqual(['summary'])
+  })
+})
+
+describe('nextSectionPlace (the move menu cycle)', () => {
+  it('cycles main -> aside -> footer -> main on a two-column template', () => {
+    const l = layoutWithFooter(['summary'], ['skills'], ['languages'])
+    expect(nextSectionPlace(l, 'summary', true)).toBe('aside')
+    expect(nextSectionPlace(l, 'skills', true)).toBe('footer')
+    expect(nextSectionPlace(l, 'languages', true)).toBe('main')
+  })
+
+  it('cycles main -> footer -> main on a single column', () => {
+    const l = layoutWithFooter(['summary'], [], ['languages'], 1)
+    expect(nextSectionPlace(l, 'summary', false)).toBe('footer')
+    expect(nextSectionPlace(l, 'languages', false)).toBe('main')
+  })
+
+  it('a section in no list is treated as main', () => {
+    const l = layoutWithFooter(['summary'], [], [], 1)
+    expect(nextSectionPlace(l, 'projects', false)).toBe('footer')
   })
 })

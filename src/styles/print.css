@@ -59,6 +59,14 @@
   page-break-inside: avoid;
 }
 
+/* The footer strip is one block: the PDF engine reads the same class off
+   the wrapper (walk.ts), so the browser's own print path never tears the
+   strip across two pages either. */
+.rm-keep-whole {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /* Standalone print page (screen view before the dialog opens). */
 .print-stage {
   background: hsl(220 18% 90%);

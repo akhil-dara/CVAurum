@@ -767,3 +767,45 @@ describe('the Word export writes a ring as a line', () => {
     expect(runs.filter((t) => t.startsWith('TypeScript')).length).toBe(1)
   })
 })
+
+describe('the Word export shades the footer strip', () => {
+  // The strip on the page is a coloured band at the foot with its text
+  // computed for contrast. Word draws it as one shaded cell after the last
+  // section, filled with the theme's footer colour (the text colour when
+  // none is set), its words in whichever of white and the text colour reads
+  // on that fill, one paragraph per skill group.
+  const runOf = (xml: string, text: string) => xml.split('<w:r>').slice(1).find((r) => r.includes(`>${text}</w:t>`)) ?? ''
+  const runColor = (xml: string, text: string) => runOf(xml, text).match(/<w:color w:val="([0-9A-F]{6})"/)?.[1]
+  const tables = (xml: string) => xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? []
+
+  it('one cell in the footer colour, after the body, with the groups as lines in white', async () => {
+    const doc = docWith({ layout: { main: ['work'], footer: ['skills'] }, theme: { footer: '#0f766e' } })
+    doc.content.skills = [
+      { id: 's1', name: 'Frontend', level: '', keywords: ['React', 'Vite'] },
+      { id: 's2', name: 'Data', level: '', keywords: ['SQL'] },
+    ]
+    const { body } = await unpack(doc)
+    const cell = tables(body).find((t) => t.includes('Frontend')) ?? ''
+    expect(cell).toMatch(/<w:shd [^>]*w:fill="0F766E"/)
+    expect(cell).toContain('>Frontend:  </w:t>')
+    expect(cell).toContain('>Data:  </w:t>')
+    expect(runColor(cell, 'Frontend:  ')).toBe('FFFFFF')
+    expect(runColor(cell, 'SQL')).toBe('FFFFFF')
+    // The strip reads after the body's last section.
+    expect(body.indexOf('<w:tbl>')).toBeGreaterThan(body.indexOf('EXPERIENCE'))
+  })
+
+  it('falls back to the text colour for the fill when the theme sets none', async () => {
+    const doc = docWith({ layout: { main: ['work'], footer: ['languages'] }, theme: { text: '#1a1a1a' } })
+    doc.content.languages = [{ id: 'l1', language: 'English', fluency: 'Native' }]
+    const { body } = await unpack(doc)
+    const cell = tables(body).find((t) => t.includes('English')) ?? ''
+    expect(cell).toMatch(/<w:shd [^>]*w:fill="1A1A1A"/)
+    expect(runColor(cell, 'English')).toBe('FFFFFF')
+  })
+
+  it('draws no strip at all when the footer is empty', async () => {
+    const { body } = await unpack(docWith({ layout: { main: ['work'] } }))
+    expect(tables(body)).toEqual([])
+  })
+})

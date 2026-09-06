@@ -1656,17 +1656,88 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
   )
 }
 
+/**
+ * The footer strip's row form of the skills: one line per group, the name as
+ * a label and the keywords as a running list. No chips, no meters, whatever
+ * the section's own skills style says - the strip is compact by definition.
+ * On the canvas the label and the list are edited in place, and each row
+ * keeps the entry controls a skill group has anywhere else.
+ */
+function SkillsCompact({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
+  return (
+    <>
+      {doc.content.skills.map((s, i) => {
+        const hasKeywords = !!s.keywords?.length
+        if (!edit && !anyText(s.name) && !hasKeywords) return null
+        return (
+          <div className="rm-footer-row rm-skill-group" key={s.id} data-item-id={s.id}>
+            {s.name || edit ? (
+              <Ed
+                edit={edit}
+                value={s.name}
+                apply={(c, v) => {
+                  c.skills[i].name = v
+                }}
+                className="rm-footer-label"
+                placeholder="Category"
+                chunk
+              />
+            ) : null}
+            {edit ? (
+              <span className="rm-footer-list">
+                <EditableChips
+                  variant="inline"
+                  items={s.keywords ?? []}
+                  edit={edit}
+                  setItem={(c, ki, v) => {
+                    ;(c.skills[i].keywords ??= [])[ki] = v
+                  }}
+                  onAdd={() =>
+                    edit((c) => {
+                      ;(c.skills[i].keywords ??= []).push('')
+                    })
+                  }
+                  onRemove={(ki) =>
+                    edit((c) => {
+                      c.skills[i].keywords?.splice(ki, 1)
+                    })
+                  }
+                  onPruneEmpty={() =>
+                    edit((c) => {
+                      c.skills[i].keywords = (c.skills[i].keywords ?? []).filter((k) => (k || '').trim().length > 0)
+                    })
+                  }
+                />
+              </span>
+            ) : hasKeywords ? (
+              <span className="rm-footer-list">
+                <KeywordList items={s.keywords!} sep=" · " />
+              </span>
+            ) : null}
+            <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
+            <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
 function Skills({
   doc,
   config,
   edit,
   opts,
+  compact,
 }: {
   doc: ResumeDocument
   config: TemplateConfig
   edit?: EditFn
   opts?: SecOpts
+  compact?: boolean
 }) {
+  // In the footer strip only the row form renders.
+  if (compact) return <SkillsCompact doc={doc} edit={edit} />
   // The user's per-section display choice wins over the template's default.
   // tags/grid reuse the chips markup (distinct keyword elements) restyled by CSS.
   const override = opts?.skillsStyle
@@ -1851,18 +1922,74 @@ function Skills({
   )
 }
 
+/**
+ * The footer strip's row form of the languages: one line, each language
+ * with its fluency in brackets, the rows joined by the same separator a
+ * keyword list uses. No meters here; the strip is a line of text. On the
+ * canvas each name and fluency is edited in place; adding and removing a
+ * language is the section's own "+ Add" row and the side panel.
+ */
+function LanguagesCompact({ doc, edit, prof }: { doc: ResumeDocument; edit?: EditFn; prof: ProfStyle }) {
+  const shown = doc.content.languages.filter((l) => edit || anyText(l.language))
+  if (!shown.length) return null
+  return (
+    <div className="rm-footer-row rm-mini">
+      <span className="rm-footer-list">
+        {shown.map((l, n) => {
+          const i = doc.content.languages.indexOf(l)
+          const fluency = prof !== 'none' && (edit || l.fluency)
+          return (
+            <Fragment key={l.id}>
+              {n > 0 ? <span className="rm-kw-sep"> · </span> : null}
+              <span className="rm-footer-lang">
+                <Ed
+                  edit={edit}
+                  value={l.language}
+                  apply={(c, v) => {
+                    c.languages[i].language = v
+                  }}
+                  className="rm-footer-lang-name"
+                  placeholder="Language"
+                />
+                {fluency ? (
+                  <span className="rm-footer-lang-sub">
+                    {' ('}
+                    <Ed
+                      edit={edit}
+                      value={l.fluency}
+                      apply={(c, v) => {
+                        c.languages[i].fluency = v
+                      }}
+                      placeholder="Fluency"
+                    />
+                    {')'}
+                  </span>
+                ) : null}
+              </span>
+            </Fragment>
+          )
+        })}
+      </span>
+    </div>
+  )
+}
+
 function Languages({
   doc,
   edit,
   opts,
+  compact,
 }: {
   doc: ResumeDocument
   config: TemplateConfig
   edit?: EditFn
   opts?: SecOpts
+  compact?: boolean
 }) {
   const prof = (opts?.meterStyle ?? doc.metadata.typography.proficiency) as ProfStyle
   const meter = prof === 'dots' || prof === 'bars' || prof === 'stars'
+  // In the footer strip only the row form renders.
+  if (compact) return <LanguagesCompact doc={doc} edit={edit} prof={prof} />
   return (
     <>
       {doc.content.languages.map((l, i) => {
@@ -2758,7 +2885,8 @@ function sectionRenderer(
   doc: ResumeDocument,
   config: TemplateConfig,
   edit?: EditFn,
-  opts?: SecOpts
+  opts?: SecOpts,
+  compact?: boolean
 ): ReactNode {
   switch (sectionKey) {
     case 'summary':
@@ -2770,9 +2898,9 @@ function sectionRenderer(
     case 'projects':
       return <Projects doc={doc} edit={edit} opts={opts} />
     case 'skills':
-      return <Skills doc={doc} config={config} edit={edit} opts={opts} />
+      return <Skills doc={doc} config={config} edit={edit} opts={opts} compact={compact} />
     case 'languages':
-      return <Languages doc={doc} config={config} edit={edit} opts={opts} />
+      return <Languages doc={doc} config={config} edit={edit} opts={opts} compact={compact} />
     case 'certificates':
       return <Certificates doc={doc} edit={edit} opts={opts} />
     case 'awards':
@@ -2791,19 +2919,23 @@ function sectionRenderer(
   }
 }
 
-/** Render the body of any section by key. */
+/** Render the body of any section by key. `compact` is the footer strip's
+ *  row form: skills and languages print one line per group; every other
+ *  section renders as it does anywhere, inside the strip. */
 export function SectionBody({
   sectionKey,
   doc,
   config,
   edit,
   editMeta,
+  compact,
 }: {
   sectionKey: string
   doc: ResumeDocument
   config: TemplateConfig
   edit?: EditFn
   editMeta?: MetaEditFn
+  compact?: boolean
 }) {
   const saved = doc.metadata.layout.sectionSettings?.[sectionKey]
   // An empty value clears the override so the template's own choice returns -
@@ -2822,7 +2954,7 @@ export function SectionBody({
     linksClickable: doc.metadata.links?.clickable !== false,
     dates: doc.metadata.dates,
   }
-  const body = sectionRenderer(sectionKey, doc, config, edit, opts)
+  const body = sectionRenderer(sectionKey, doc, config, edit, opts, compact)
   // Summary is a single field (always editable); every other section is a list,
   // so offer an inline "+ Add" affordance on the canvas (edit mode only).
   const canAdd = !!edit && sectionKey !== 'summary'

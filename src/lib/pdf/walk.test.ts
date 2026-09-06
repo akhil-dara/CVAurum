@@ -2306,6 +2306,62 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     // The three section titles keep their own flag; nothing else is held.
     expect(measured.filter(Boolean).length).toBe(3)
   })
+
+  it('holds a keep-whole wrapper (the footer strip) together, whatever its height', () => {
+    install()
+    // A body section, then the strip: two sections inside one `.rm-keep-whole`
+    // wrapper. A cut may fall in the gap BEFORE the strip and nowhere inside
+    // it, so every block of the strip but its last is held to the next.
+    const bodyText = txt('A line of the body', { top: 130, bottom: 145, left: 0, right: 250 })
+    const bodyEntry = elm(['rm-item'], { top: 130, bottom: 145, left: 0, right: 250 }, [bodyText])
+    const bodyTitle = elm(['rm-section-title'], { top: 100, bottom: 120, left: 0, right: 200 })
+    const bodySection = elm(['rm-section'], { top: 100, bottom: 145, left: 0, right: 300 }, [bodyTitle, bodyEntry])
+    const main = elm(['rm-col-main'], { top: 0, bottom: 160, left: 0, right: 800 }, [bodySection])
+
+    const row1 = elm(['rm-mini'], { top: 230, bottom: 245, left: 0, right: 300 }, [
+      txt('Frontend: React', { top: 230, bottom: 245, left: 0, right: 200 }),
+    ])
+    const row2 = elm(['rm-mini'], { top: 250, bottom: 265, left: 0, right: 300 }, [
+      txt('Data: SQL', { top: 250, bottom: 265, left: 0, right: 200 }),
+    ])
+    const title1 = elm(['rm-section-title'], { top: 200, bottom: 220, left: 0, right: 200 })
+    const section1 = elm(['rm-section'], { top: 200, bottom: 265, left: 0, right: 300 }, [title1, row1, row2])
+    const row3 = elm(['rm-mini'], { top: 310, bottom: 325, left: 0, right: 300 }, [
+      txt('English Native', { top: 310, bottom: 325, left: 0, right: 200 }),
+    ])
+    const title2 = elm(['rm-section-title'], { top: 280, bottom: 300, left: 0, right: 200 })
+    const section2 = elm(['rm-section'], { top: 280, bottom: 325, left: 0, right: 300 }, [title2, row3])
+    const strip = elm(['rm-footer', 'rm-keep-whole'], { top: 190, bottom: 340, left: 0, right: 800 }, [
+      section1,
+      section2,
+    ])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [main, strip])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+    const held = blocks.map((b) => b.keepWithNext === true)
+    expect(blocks.map((b) => b.kind)).toEqual([
+      'line', // the body's title
+      'entry-gap',
+      'line', // the body's one line: NOT held, so the gap after it is legal
+      'section-gap', // the gap before the strip
+      'line', // the strip: its first title
+      'entry-gap',
+      'line', // row 1
+      'entry-gap',
+      'line', // row 2
+      'section-gap', // inside the strip
+      'line', // the strip's second title
+      'entry-gap',
+      'line', // the last row: ends the run
+    ])
+    expect(held).toEqual([true, false, false, false, true, true, true, true, true, true, true, true, false])
+    // The same page, without the wrapper class: the strip breaks like any
+    // other pair of sections.
+    const loose = elm(['rm-footer'], { top: 190, bottom: 340, left: 0, right: 800 }, [section1, section2])
+    const looseRoot = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [main, loose])
+    const looseHeld = extractPageBlocks(looseRoot as unknown as HTMLElement).map((b) => b.keepWithNext === true)
+    expect(looseHeld).toEqual([true, false, false, false, true, false, false, false, false, false, true, false, false])
+  })
 })
 
 describe('buildDrawList - sibling <svg> pieces (folio section chip, 2026-09-04)', () => {

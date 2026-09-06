@@ -11,6 +11,7 @@ import { Eye,
   Copy,
   ClipboardPaste,
   Paintbrush,
+  PanelBottom,
   X,
 } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
@@ -446,6 +447,9 @@ export function SectionGear({
   const opts = layout.sectionSettings?.[sectionKey] ?? {}
   const twoCol = layout.columns === 2
   const inAside = layout.aside.includes(sectionKey)
+  // In the footer strip only the compact row form renders: no chips, no
+  // meters, so the rows that choose them are replaced by a line saying so.
+  const inFooter = layout.footer.includes(sectionKey)
   // Meter style only ever does anything for a skill group that has a rating
   // (sections.tsx Skills() now meters ANY rated group, keywords or not) — flag
   // it here so the popover can say so instead of silently doing nothing when
@@ -549,6 +553,13 @@ export function SectionGear({
       const to: 'main' | 'aside' = m.layout.main.includes(sectionKey) ? 'aside' : 'main'
       moveSectionTo(m.layout, sectionKey, to, m.layout[to].length)
     })
+  // Into the footer strip, or out of it to the end of the main flow. One
+  // move, through the same helper, so the key leaves every other place.
+  const moveFooter = () =>
+    editMeta((m) => {
+      const to: 'main' | 'footer' = m.layout.footer.includes(sectionKey) ? 'main' : 'footer'
+      moveSectionTo(m.layout, sectionKey, to, m.layout[to].length)
+    })
 
   // Inline reordering (2026-08-17 inline-reorder spec): arrows move one step
   // within this section's column via the same shared helper every control
@@ -559,7 +570,9 @@ export function SectionGear({
     ? layout.main
     : layout.aside.includes(sectionKey)
       ? layout.aside
-      : null
+      : layout.footer.includes(sectionKey)
+        ? layout.footer
+        : null
   const colIdx = colArr ? colArr.indexOf(sectionKey) : -1
   const atTop = colArr ? colIdx === 0 : false
   const atBottom = colArr ? colIdx === colArr.length - 1 : true
@@ -583,7 +596,7 @@ export function SectionGear({
   const pasteStyle = () => editMeta((m) => applyStyleTo(m, sectionKey))
   const paintAll = () =>
     editMeta((m) => {
-      for (const key of [...m.layout.main, ...m.layout.aside]) applyStyleTo(m, key)
+      for (const key of [...m.layout.main, ...m.layout.aside, ...m.layout.footer]) applyStyleTo(m, key)
     })
 
   const openPopover = (e: React.MouseEvent) => {
@@ -674,7 +687,7 @@ export function SectionGear({
           <ArrowDown />
         </button>
         )}
-        {twoCol && (
+        {twoCol && !inFooter && (
           <button
             type="button"
             className="rm-section-hide rm-section-move"
@@ -816,8 +829,9 @@ export function SectionGear({
                   </Group>
                 )}
 
-                {/* Proficiency meter — skills & languages only */}
-                {HAS_METER.has(base) && (
+                {/* Proficiency meter - skills and languages only, and never in
+                    the footer strip, which draws no meter */}
+                {HAS_METER.has(base) && !inFooter && (
                   <Group label="Meter style">
                     <div className="grid grid-cols-3 gap-1">
                       {METER_CHOICES.map((b) => (
@@ -1048,8 +1062,17 @@ export function SectionGear({
                   </Group>
                 )}
 
-                {/* Skills display — only for the skills section */}
-                {sectionKey === 'skills' && (
+                {/* In the footer strip only the row form renders, so the
+                    rows that choose a style say so rather than doing nothing. */}
+                {HAS_METER.has(base) && inFooter && (
+                  <p className="px-2 pb-2 pt-1 text-[11px] leading-snug text-muted-foreground">
+                    In the footer strip this section prints as one line per group. Move it to the main flow to choose a
+                    style or a meter.
+                  </p>
+                )}
+
+                {/* Skills display - only for the skills section, outside the strip */}
+                {sectionKey === 'skills' && !inFooter && (
                   <Group label="Skills as">
                     <div className="grid grid-cols-3 gap-1">
                       {SKILL_STYLES.map((s) => {
@@ -1139,7 +1162,7 @@ export function SectionGear({
                   )}
                 </div>
                 <div className="my-1.5 h-px bg-border" />
-                {twoCol && (
+                {twoCol && !inFooter && (
                   <button
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                     onClick={() => {
@@ -1150,6 +1173,18 @@ export function SectionGear({
                     <ArrowLeftRight className="h-4 w-4" /> Move to {inAside ? 'main column' : 'sidebar'}
                   </button>
                 )}
+                {/* The footer strip: in from anywhere, out to the end of the
+                    main flow. The panel's twin of this sheet shows the same
+                    row, so a phone reaches it too. */}
+                <button
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                  onClick={() => {
+                    moveFooter()
+                    setOpen(false)
+                  }}
+                >
+                  <PanelBottom className="h-4 w-4" /> {inFooter ? 'Move to main' : 'Move to footer'}
+                </button>
                 <button
                   className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm ${isHidden ? 'text-foreground hover:bg-muted' : 'text-danger hover:bg-danger/10'}`}
                   onClick={() => {

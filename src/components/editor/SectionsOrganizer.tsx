@@ -9,6 +9,7 @@ import { ChevronUp,
   Trash2,
   MoreHorizontal,
   ArrowLeftRight,
+  PanelBottom,
   Check,
   type LucideIcon,
 } from 'lucide-react'
@@ -16,7 +17,16 @@ import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { SectionGear } from '@/templates/_shared/SectionGear'
 import { uid, cn } from '@/lib/utils'
-import { BODY_SECTION_KEYS, DEFAULT_LABELS, customKey, sectionLabel } from '@/lib/sections'
+import {
+  BODY_SECTION_KEYS,
+  DEFAULT_LABELS,
+  customKey,
+  moveSection,
+  moveSectionTo,
+  nextSectionPlace,
+  sectionLabel,
+  type SectionPlace,
+} from '@/lib/sections'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { SectionBoard } from './SectionBoard'
 import { SectionItemsEditor } from './SectionItemEditors'
@@ -60,10 +70,11 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   const layout = doc.metadata.layout
   const twoCol = layout.columns === 2
 
-  const setColumns = (main: string[], aside: string[]) =>
+  const setColumns = (main: string[], aside: string[], footer: string[]) =>
     updateMetadata((m) => {
       m.layout.main = main
       m.layout.aside = aside
+      m.layout.footer = footer
     })
   const toggleHidden = (key: string) =>
     updateMetadata((m) => {
@@ -71,13 +82,14 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
       set.has(key) ? set.delete(key) : set.add(key)
       m.layout.hidden = [...set]
     })
+  // The move menu cycles the places a section can live: main, sidebar,
+  // footer strip and back on two columns; main, footer strip and back on
+  // one. The same helper the canvas gear and its drag use, so a move here
+  // takes the key out of every other place in the same step.
   const moveColumn = (key: string) =>
     updateMetadata((m) => {
-      const inMain = m.layout.main.includes(key)
-      const from = inMain ? 'main' : 'aside'
-      const to = inMain ? 'aside' : 'main'
-      m.layout[from] = m.layout[from].filter((k) => k !== key)
-      m.layout[to] = [...m.layout[to], key]
+      const to = nextSectionPlace(m.layout, key, m.layout.columns === 2)
+      moveSectionTo(m.layout, key, to, m.layout[to].length)
     })
   const removeSection = (key: string) => {
     if (key.startsWith('custom-')) {
@@ -113,7 +125,9 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   }
   const addStandard = (key: string) => {
     updateMetadata((m) => {
-      if (!m.layout.main.includes(key) && !m.layout.aside.includes(key)) m.layout.main.push(key)
+      // A section the footer strip already holds stays there.
+      if (!m.layout.main.includes(key) && !m.layout.aside.includes(key) && !m.layout.footer.includes(key))
+        m.layout.main.push(key)
       m.layout.hidden = m.layout.hidden.filter((k) => k !== key)
     })
     setExpanded(key)
@@ -132,21 +146,14 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   // Buttons as well as drag - the grip is unusable on a phone, where the
   // browser claims the gesture for scrolling, and this panel is the ONLY
   // place a phone can reorder sections at all.
-  const shiftSection = (key: string, dir: -1 | 1) =>
-    updateMetadata((m) => {
-      const col = m.layout.main.includes(key) ? m.layout.main : m.layout.aside
-      const i = col.indexOf(key)
-      const j = i + dir
-      if (i < 0 || j < 0 || j >= col.length) return
-      ;[col[i], col[j]] = [col[j], col[i]]
-    })
+  const shiftSection = (key: string, dir: -1 | 1) => updateMetadata((m) => moveSection(m.layout, key, dir))
 
   const renderCard = (key: string, handle: { attributes: Record<string, unknown>; listeners: Record<string, unknown> | undefined }) => (
     <SectionCard
       doc={doc}
       sectionKey={key}
       handle={handle}
-      twoCol={twoCol}
+      movePlace={nextSectionPlace(layout, key, twoCol)}
       hidden={layout.hidden.includes(key)}
       open={expanded === key}
       onToggle={() => setExpanded((e) => (e === key ? null : key))}
@@ -158,20 +165,25 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
     />
   )
 
-  const available = BODY_SECTION_KEYS.filter((k) => !layout.main.includes(k) && !layout.aside.includes(k))
+  const available = BODY_SECTION_KEYS.filter(
+    (k) => !layout.main.includes(k) && !layout.aside.includes(k) && !layout.footer.includes(k)
+  )
 
   return (
     <div className="space-y-4">
       <SectionBoard
         main={layout.main}
         aside={layout.aside}
+        footer={layout.footer}
         twoCol={twoCol}
         onChange={setColumns}
         renderCard={renderCard}
       />
-      {twoCol && (
-        <p className="text-[11px] text-muted-foreground/80">Drag a section across columns to move it between the main flow and the sidebar.</p>
-      )}
+      <p className="text-[11px] text-muted-foreground/80">
+        {twoCol
+          ? 'Drag a section across the zones to move it between the main flow, the sidebar and the footer strip.'
+          : 'Drag a section into the footer strip to print it as a compact band at the foot of the page.'}
+      </p>
 
       <button className="btn-outline btn-sm w-full border-dashed" onClick={() => setAddOpen(true)}>
         <Plus className="h-4 w-4" /> Add section
@@ -193,15 +205,23 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
 function strip(layout: ResumeDocument['metadata']['layout'], key: string) {
   layout.main = layout.main.filter((k) => k !== key)
   layout.aside = layout.aside.filter((k) => k !== key)
+  layout.footer = layout.footer.filter((k) => k !== key)
   layout.hidden = layout.hidden.filter((k) => k !== key)
   delete layout.headings[key]
+}
+
+/** The move menu's row for the place a section goes next. */
+const MOVE_ROWS: Record<SectionPlace, { label: string; Icon: LucideIcon }> = {
+  main: { label: 'Move to main', Icon: ArrowLeftRight },
+  aside: { label: 'Move to sidebar', Icon: ArrowLeftRight },
+  footer: { label: 'Move to footer', Icon: PanelBottom },
 }
 
 function SectionCard({
   doc,
   sectionKey,
   handle,
-  twoCol,
+  movePlace,
   hidden,
   open,
   onToggle,
@@ -214,7 +234,8 @@ function SectionCard({
   doc: ResumeDocument
   sectionKey: string
   handle: { attributes: Record<string, unknown>; listeners: Record<string, unknown> | undefined }
-  twoCol: boolean
+  /** Where the move row takes this section (nextSectionPlace). */
+  movePlace: SectionPlace
   hidden: boolean
   open: boolean
   onToggle: () => void
@@ -232,6 +253,7 @@ function SectionCard({
   const label = sectionLabel(sectionKey, doc)
   const count = countItems(doc, sectionKey)
   const isCustom = sectionKey.startsWith('custom-')
+  const moveRow = MOVE_ROWS[movePlace]
 
   return (
     <div className={cn('rounded-lg border bg-surface', hidden ? 'border-dashed border-border opacity-60' : 'border-border', open && 'shadow-soft')}>
@@ -298,11 +320,11 @@ function SectionCard({
                   <button className="btn-ghost w-full justify-start" onClick={() => { onShift(1); setMenu(false) }}>
                     <ChevronDown className="h-4 w-4" /> Move down
                   </button>
-                  {twoCol && (
-                    <button className="btn-ghost w-full justify-start" onClick={() => { onMove(); setMenu(false) }}>
-                      <ArrowLeftRight className="h-4 w-4" /> Switch column
-                    </button>
-                  )}
+                  {/* The phone's way between the main flow, the sidebar and
+                      the footer strip: the grip is unusable there. */}
+                  <button className="btn-ghost w-full justify-start" onClick={() => { onMove(); setMenu(false) }}>
+                    <moveRow.Icon className="h-4 w-4" /> {moveRow.label}
+                  </button>
                   <button className="btn-ghost w-full justify-start text-danger hover:bg-danger/10" onClick={() => { onRemove(); setMenu(false) }}>
                     <Trash2 className="h-4 w-4" /> {isCustom ? 'Delete' : 'Remove'}
                   </button>

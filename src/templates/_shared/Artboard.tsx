@@ -7,7 +7,7 @@ import { useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } 
 import type { ResumeDocument } from '@/types/document'
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
-import { MM_TO_PX } from '@/types/metadata'
+import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
@@ -114,6 +114,14 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       // derived from the accent alone (elementColors.ts).
       '--rm-gradient-to': theme.gradientTo || lighten(theme.primary, 0.18),
       '--rm-on-primary': readableOn(theme.primary, theme.text),
+      // The footer strip: its ground is the theme's footer colour when one
+      // is set (the stylesheet falls back to the text colour), and its text
+      // whichever of white and the text colour reads on that ground.
+      ...(theme.footer ? { '--rm-footer-bg': theme.footer } : {}),
+      '--rm-on-footer': readableOn(theme.footer || theme.text, theme.text),
+      // The sheet's own height, so a one-page document can seat the strip
+      // at its foot (artboard.css .rm-has-footer).
+      '--rm-page-h': `${PAGE_DIMENSIONS[page.format === 'Letter' ? 'Letter' : 'A4'].h.toFixed(2)}px`,
       '--rm-bg': theme.background,
       '--rm-sidebar-bg': theme.sidebar,
       '--rm-sidebar-text': theme.sidebarText,
@@ -754,12 +762,15 @@ function Section({
   config,
   edit,
   editMeta,
+  compact,
 }: {
   sectionKey: string
   doc: ResumeDocument
   config: TemplateConfig
   edit?: EditFn
   editMeta?: MetaEditFn
+  /** The footer strip's row form (sections.tsx SectionBody). */
+  compact?: boolean
 }) {
   // 'none' drops the badge here rather than hiding it in CSS, so it leaves
   // the accessibility tree and the tagged PDF too, not just the page.
@@ -772,8 +783,15 @@ function Section({
   // the element itself: the paginator reads the policy off the rendered page
   // (walk.ts), so the export and the preview overlay can never disagree about
   // it, and the browser's own print path avoids the same splits.
-  const keepEntries = keepEntriesOn(doc.metadata.page, ss)
-  const cls = ['rm-section', ...sectionOverrideClasses(ss), ...(keepEntries ? ['rm-keep-entries'] : [])].join(' ')
+  // A section in the footer strip holds its rows whole whatever the document
+  // says: the strip is one block of the page.
+  const keepEntries = compact || keepEntriesOn(doc.metadata.page, ss)
+  const cls = [
+    'rm-section',
+    ...sectionOverrideClasses(ss),
+    ...(keepEntries ? ['rm-keep-entries'] : []),
+    ...(compact ? ['rm-section-compact'] : []),
+  ].join(' ')
   // Per-section vars (bullet marker, logo/badge size) cascade from the section
   // element, so overrides scope themselves without any extra CSS.
   const BADGE_SIZE: Record<string, string> = { s: '1.3em', m: '1.65em', l: '2.3em' }
@@ -841,7 +859,14 @@ function Section({
         ) : null}
       </h2>
       <div className="rm-section-body">
-        <SectionBody sectionKey={sectionKey} doc={doc} config={config} edit={edit} editMeta={editMeta} />
+        <SectionBody
+          sectionKey={sectionKey}
+          doc={doc}
+          config={config}
+          edit={edit}
+          editMeta={editMeta}
+          compact={compact}
+        />
       </div>
     </section>
   )
@@ -913,7 +938,7 @@ export function Artboard({
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
   // with their inline "Add item" affordance; print/thumbnail show content only.
   const editing = !!edit
-  const { main, aside } = useMemo(() => resolveOrder(doc, { includeEmpty: editing }), [doc, editing])
+  const { main, aside, footer } = useMemo(() => resolveOrder(doc, { includeEmpty: editing }), [doc, editing])
   const twoCol = doc.metadata.layout.columns === 2 && aside.length > 0
   const t = doc.metadata.typography
 
@@ -938,6 +963,8 @@ export function Artboard({
     `skl-${config.skills}`,
     `mode-${mode}`,
     `side-${doc.metadata.layout.sidebar}`,
+    // The page seats a footer strip at its foot (artboard.css).
+    footer.length ? 'rm-has-footer' : '',
     ...iconAndLinkClasses(doc),
     // Editing-time signal only: the canvas grays its link marks when the
     // export will not make them clickable, so the state is visible without
@@ -958,6 +985,19 @@ export function Artboard({
         <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
       ))}
     </aside>
+  ) : null
+
+  // The footer strip: the sections the author moved to layout.footer, after
+  // the columns in a full-width band, in the compact row form. It is one
+  // block to the paginator (rm-keep-whole, walk.ts) and to the browser's own
+  // print path (print.css), so it moves whole to a new page rather than
+  // tearing, and its rows never split (rm-keep-entries).
+  const FooterStrip = footer.length ? (
+    <footer className="rm-footer rm-keep-entries rm-keep-whole">
+      {footer.map((key) => (
+        <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} compact />
+      ))}
+    </footer>
   ) : null
 
   // After every render, in BOTH trees this component serves - the on-screen
@@ -990,6 +1030,7 @@ export function Artboard({
         </main>
         {twoCol && doc.metadata.layout.sidebar === 'right' ? AsideCol : null}
       </div>
+      {FooterStrip}
     </div>
   )
 }

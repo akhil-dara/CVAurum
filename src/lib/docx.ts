@@ -911,6 +911,48 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string, width: numb
   ]
 }
 
+/* ------------------------------------------------------------ footer strip */
+
+/**
+ * The footer strip: the sections the author moved to layout.footer, after
+ * the body in one cell shaded with the theme's footer colour (the text
+ * colour when none is set), its words in whichever of white and the text
+ * colour reads on that ground - the same answer the page computes for its
+ * strip (Artboard.tsx useVars). The skills and languages builders already
+ * print one paragraph per group, which is the strip's row form; the titles
+ * keep their own colour, as on the page. Nothing at all when the strip is
+ * empty, so a document without one packs exactly as it always did.
+ */
+function buildFooter(keys: string[], doc: ResumeDocument, C: Ctx, width: number): Table[] {
+  if (!keys.length) return []
+  const { theme } = doc.metadata
+  const fill = toHex(theme.footer, C.body)
+  const on = toHex(readableOn(theme.footer || theme.text, theme.text), 'FFFFFF')
+  // The cell's own inner margins come off the width the tab stops read.
+  const inner = width - 480
+  const paras = buildSections(keys, doc, { ...C, body: on, muted: on }, inner)
+  if (!paras.length) return []
+  return [
+    new Table({
+      width: { size: width, type: WidthType.DXA },
+      columnWidths: [width],
+      borders: NO_BORDERS,
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: width, type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, color: 'auto', fill },
+              margins: { top: 200, bottom: 220, left: 240, right: 240 },
+              children: paras,
+            }),
+          ],
+        }),
+      ],
+    }),
+  ]
+}
+
 /* --------------------------------------------------------- the export itself */
 
 /** The Word document itself, before packing - built from the document's own
@@ -991,12 +1033,13 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   // sections keep their content and simply follow the main column, rendered in
   // the MAIN colour context — sidebar text colours are chosen to sit on a dark
   // band and would be unreadable on white paper. The footer strip follows both,
-  // as the ATS text reads it.
+  // as the ATS text reads it, in its own shaded cell (buildFooter).
   const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
   const body: (Paragraph | Table)[] = [
     ...(photo ? [photo] : []),
     ...buildHeader(doc, mainCtx, metrics.separator, contentW),
-    ...buildSections([...order.main, ...order.aside, ...order.footer], doc, mainCtx, contentW),
+    ...buildSections([...order.main, ...order.aside], doc, mainCtx, contentW),
+    ...buildFooter(order.footer, doc, mainCtx, contentW),
   ]
 
   const { margin, line } = metrics

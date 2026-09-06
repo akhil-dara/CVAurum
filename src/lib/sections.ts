@@ -134,15 +134,22 @@ export function removeItem(content: ResumeContent, sectionKey: string, id: strin
  * on where the user triggered it. All three mutate in place — call them
  * inside a store recipe. */
 
-type LayoutCols = { main: string[]; aside: string[] }
+/** The three places a section can live: the main flow, the sidebar and the
+ *  footer strip. The strip is optional here so a layout written before it
+ *  existed still moves. */
+type LayoutCols = { main: string[]; aside: string[]; footer?: string[] }
+
+/** Where a section lives. */
+export type SectionPlace = 'main' | 'aside' | 'footer'
 
 /** Move a section one step within its own column. Clamped no-op at the
- *  edges. A key in neither array (a content-bearing section resolveOrder
+ *  edges. A key in no array (a content-bearing section resolveOrder
  *  appends implicitly) is adopted into `main` first, then moved. */
 export function moveSection(layout: LayoutCols, key: string, dir: -1 | 1): void {
   let col: string[] | undefined
   if (layout.main.includes(key)) col = layout.main
   else if (layout.aside.includes(key)) col = layout.aside
+  else if (layout.footer?.includes(key)) col = layout.footer
   else {
     layout.main.push(key)
     col = layout.main
@@ -155,12 +162,27 @@ export function moveSection(layout: LayoutCols, key: string, dir: -1 | 1): void 
 }
 
 /** Place a section at an exact index in a column (same column = reorder,
- *  other column = membership change + insert). Index is clamped. */
-export function moveSectionTo(layout: LayoutCols, key: string, col: 'main' | 'aside', index: number): void {
+ *  other column = membership change + insert). Index is clamped. A key is
+ *  one place's alone: moving it into the footer strip takes it out of the
+ *  main flow and the sidebar in the same move, and moving it out of the
+ *  strip leaves the strip. */
+export function moveSectionTo(layout: LayoutCols, key: string, col: SectionPlace, index: number): void {
   layout.main = layout.main.filter((k) => k !== key)
   layout.aside = layout.aside.filter((k) => k !== key)
-  const target = layout[col]
+  const footer = (layout.footer ?? []).filter((k) => k !== key)
+  layout.footer = footer
+  const target = col === 'main' ? layout.main : col === 'aside' ? layout.aside : footer
   target.splice(Math.max(0, Math.min(index, target.length)), 0, key)
+}
+
+/** The place the move menu offers next. The places cycle: main, sidebar,
+ *  footer strip and back on a two-column template; main, footer strip and
+ *  back on a single column, which has no sidebar to offer. A key in no list
+ *  sits at the end of the main flow, so it moves as a main section does. */
+export function nextSectionPlace(layout: LayoutCols, key: string, twoCol: boolean): SectionPlace {
+  if (layout.footer?.includes(key)) return 'main'
+  if (layout.aside.includes(key)) return 'footer'
+  return twoCol ? 'aside' : 'footer'
 }
 
 /** Move an entry (by id) to an exact index within its section's items array

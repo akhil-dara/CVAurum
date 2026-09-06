@@ -1696,6 +1696,83 @@
   color: var(--rm-muted);
 }
 
+/* ---- the footer strip ----
+   The sections the author moved to layout.footer, after the columns in a
+   full-width band, one line per group (Artboard.tsx FooterStrip). The root
+   becomes a column and the body takes the slack, so on a one-page document
+   the strip sits at the foot: the floor is the sheet's own height less the
+   bottom page margin, which is where the paginator's budget ends
+   (metrics.ts), so the strip's ink stays inside the margin and only its
+   colour runs to the page edge, through the negative margin below. A
+   longer document already stands taller than that floor, so there the
+   strip simply follows the content - whole, never torn (walk.ts reads
+   rm-keep-whole off the wrapper; print.css says the same to the browser). */
+.rm-root.rm-has-footer {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(var(--rm-page-h, 1122.52px) - var(--rm-pad));
+}
+.rm-has-footer > .rm-body {
+  flex: 1 0 auto;
+}
+/* The air above the strip is the strip's own, not a whole page margin. */
+.rm-has-footer > .rm-body > .rm-col-main,
+.rm-has-footer > .rm-body > .rm-col-aside {
+  padding-bottom: 1.2em;
+}
+.rm-footer {
+  margin: 0 0 calc(-1 * var(--rm-pad));
+  padding: 1em var(--rm-pad) var(--rm-pad);
+  background: var(--rm-footer-bg, var(--rm-text));
+  color: var(--rm-on-footer, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.rm-footer .rm-section {
+  margin-bottom: 0;
+}
+/* The strip's titles take the accent, whatever the template draws its
+   titles in: the strip's ground is dark by default and a template's title
+   colour was chosen for paper. An element colour the author set still wins. */
+.rm-root .rm-footer .rm-section-title {
+  color: var(--rm-heading-color, var(--rm-primary));
+}
+.rm-footer .rm-section-body {
+  gap: 0.15em;
+}
+/* One row per group: the label, then the list. */
+.rm-footer-row {
+  display: flex;
+  gap: 1em;
+  align-items: baseline;
+}
+.rm-footer .rm-footer-row,
+.rm-footer .rm-footer-row:last-child {
+  margin-bottom: 0;
+}
+.rm-footer-label {
+  width: 9em;
+  flex: none;
+  font-weight: 700;
+  color: inherit;
+}
+.rm-footer-list {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The list keeps the strip's own text colour: the muted running-text
+   colour a skills line takes elsewhere was chosen for paper too. */
+.rm-footer .rm-skill-inline {
+  color: inherit;
+}
+.rm-footer-lang-name {
+  font-weight: 700;
+}
+.rm-footer-lang-sub {
+  opacity: 0.82;
+}
+
 /* ============================================ section heading styles */
 .sec-rule-after .rm-section-title {
   border-bottom: none;
