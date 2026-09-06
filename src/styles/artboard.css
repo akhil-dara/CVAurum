@@ -1201,18 +1201,22 @@
    the paragraphs inside a rich block follow their container; they are named
    anyway, because a template may set their alignment itself.
 
-   text-wrap: pretty keeps the LAST line from being a single short word,
-   which is the one place a justified block looks broken. Automatic
-   hyphenation is deliberately NOT turned on with it: the hyphen a browser
-   inserts at a wrap is not a character of the text node, and the PDF paints
-   each run from that node's own range (pdf/text.ts), so the canvas would
-   show a hyphen the exported page does not. */
+   The wrapping rides the same choice, through its own variable. Balancing
+   the last line keeps it from being a single short word, which is the one
+   place a justified block looks broken - but it re-optimises where every
+   line breaks, which moves a paragraph's height and so the scale the
+   one-page fit lands on. A document that never asked to be justified keeps
+   the wrapping it already had. Automatic hyphenation is deliberately NOT
+   turned on with either: the hyphen a browser inserts at a wrap is not a
+   character of the text node, and the PDF paints each run from that node's
+   own range (pdf/text.ts), so the canvas would show a hyphen the exported
+   page does not. */
 .rm-col-main .rm-item-summary,
 .rm-col-main .rm-bullets li,
 .rm-col-main .rm-rich,
 .rm-col-main .rm-rich p {
   text-align: var(--rm-align, left);
-  text-wrap: pretty;
+  text-wrap: var(--rm-wrap, wrap);
 }
 
 /* skills */

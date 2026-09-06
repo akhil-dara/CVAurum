@@ -143,6 +143,11 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       // whole document; artboard.css decides which elements are allowed to
       // read it, and none of them is a heading or a sidebar line.
       '--rm-align': t.align === 'justify' ? 'justify' : 'left',
+      // Balancing the last line re-optimises where EVERY line of a paragraph
+      // breaks, so it moves the height the one-page fitter measures. It rides
+      // the same choice as the alignment: a document that never asked to be
+      // justified wraps exactly where it always wrapped.
+      '--rm-wrap': t.align === 'justify' ? 'pretty' : 'wrap',
       '--rm-bullet-type': BULLET_TYPE[t.bulletStyle] ?? 'disc',
       // Both in em so they ride the base size and the one-page fit with it.
       '--rm-bullet-indent': `${t.bulletIndent}em`,

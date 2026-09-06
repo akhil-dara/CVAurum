@@ -695,6 +695,45 @@ function safeWidthPt(font: PDFFont, text: string, sizePt: number, fallbackPt: nu
   }
 }
 
+/** How far past its natural width a measured run has to be before the extra
+ *  width is read as JUSTIFICATION - the browser widening the inter-word
+ *  spaces - and not as the fraction of a percent our embedded fonts drift
+ *  from the ones the browser rendered. The upper bound is the same sanity
+ *  guard the 90-110 scaling band is: nothing legitimately justified needs
+ *  half again its own width, so a rect that claims it is a mismeasure. */
+const JUSTIFY_SLACK_MIN_FRACTION = 0.02
+const JUSTIFY_SLACK_MAX_FRACTION = 0.3
+
+/** Splits a justified run into one piece per word - each carrying its own
+ *  trailing space, so the gap that follows lands BETWEEN two words - and
+ *  works out the gap that spreads the pieces across the measured width.
+ *  Returns null when the run is not a justified one, or when there is no
+ *  gap to put the extra width into. */
+function justifiedPieces(
+  font: PDFFont,
+  text: string,
+  sizePt: number,
+  naturalPt: number,
+  domWidthPt: number
+): { texts: string[]; widthsPt: number[]; gapPt: number } | null {
+  if (naturalPt <= 0 || domWidthPt <= 0) return null
+  const slackPt = domWidthPt - naturalPt
+  if (slackPt <= JUSTIFY_SLACK_MIN_FRACTION * naturalPt) return null
+  if (slackPt > JUSTIFY_SLACK_MAX_FRACTION * naturalPt) return null
+  const texts: string[] = []
+  let start = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== ' ') continue
+    texts.push(text.slice(start, i + 1))
+    start = i + 1
+  }
+  if (start < text.length) texts.push(text.slice(start))
+  if (texts.length < 2) return null
+  const widthsPt = texts.map((piece) => safeWidthPt(font, piece, sizePt, 0))
+  const gapPt = (domWidthPt - widthsPt.reduce((sum, w) => sum + w, 0)) / (texts.length - 1)
+  return gapPt > 0 ? { texts, widthsPt, gapPt } : null
+}
+
 export async function paintOps(
   page: PDFPage,
   ops: DrawOp[],
@@ -801,6 +840,10 @@ export async function paintOps(
       // as the denominator against the visible tracked width.
       const embeddedWidthPt = safeWidthPt(font, run.text, sizePt, pxToPt(run.widthPx || 0))
       let tzPct = 100
+      // What the run advances the pen by BEFORE Tz. The embedded (untracked)
+      // metric everywhere except a justified line, whose pieces are spread
+      // out to the width the browser measured (see the else branch below).
+      let advanceWidthPt = embeddedWidthPt
 
       // Small-caps runs take the tracked (two-layer) path even at zero
       // letter-spacing: their VISIBLE glyphs are uppercase at two different
@@ -830,21 +873,48 @@ export async function paintOps(
         // bogus widthPx (e.g. a stale/mismeasured rect) ever visibly
         // squashing or stretching a run; widthPx === 0 (unmeasured — see
         // types.ts) leaves tzPct at 100, i.e. no scaling.
-        if (run.widthPx > 0 && embeddedWidthPt > 0) {
-          tzPct = Math.min(110, Math.max(90, (100 * pxToPt(run.widthPx)) / embeddedWidthPt))
+        //
+        // A JUSTIFIED line arrives here as one run whose widthPx is the
+        // WIDENED line width: the browser shared the extra width out over
+        // the inter-word spaces. Stretching the run to that width would take
+        // it out of the LETTERS instead, so a justified paragraph would draw
+        // at a visibly different letter width line by line - and past the
+        // clamp it would stop short of the right margin where the canvas is
+        // flush. So the pieces are drawn at the font's own metric and the
+        // slack is put back between the words, where the browser put it.
+        // PDF word spacing (Tw) would be the short way to say that and is
+        // not usable: it applies only to a ONE-byte code 32, and our fonts
+        // embed as composite (two-byte codes), so a reader that follows that
+        // rule - the one built into the common browser among them - ignores
+        // it and draws every justified line short.
+        const domWidthPt = run.widthPx > 0 ? pxToPt(run.widthPx) : 0
+        const spread = justifiedPieces(font, run.text, sizePt, embeddedWidthPt, domWidthPt)
+        if (spread) {
+          advanceWidthPt = domWidthPt
+        } else if (domWidthPt > 0 && embeddedWidthPt > 0) {
+          tzPct = Math.min(110, Math.max(90, (100 * domWidthPt) / embeddedWidthPt))
         }
         if (tzPct !== 100) {
           page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(tzPct)]))
         }
         try {
-          page.drawText(run.text, {
-            x: xPt,
-            y: flipY(pxToPt(run.baselinePx), pageHeightPt),
+          const yPt = flipY(pxToPt(run.baselinePx), pageHeightPt)
+          const style = {
+            y: yPt,
             size: sizePt,
             font,
             color: rgb(run.color.r, run.color.g, run.color.b),
             opacity: run.color.a,
-          })
+          }
+          if (spread) {
+            let pieceXPt = xPt
+            for (let i = 0; i < spread.texts.length; i++) {
+              page.drawText(spread.texts[i], { ...style, x: pieceXPt })
+              pieceXPt += spread.widthsPt[i] + spread.gapPt
+            }
+          } else {
+            page.drawText(run.text, { ...style, x: xPt })
+          }
         } catch (e) {
           // The visible twin of the invisible layer above, and it shapes the
           // run the same way - so it fails the same way on a script fontkit's
@@ -875,7 +945,7 @@ export async function paintOps(
       // em: the underline sits just below the baseline, the strike near the
       // middle of the x-height.
       if (run.underline || run.lineThrough) {
-        const widthPt = embeddedWidthPt * (tzPct / 100)
+        const widthPt = advanceWidthPt * (tzPct / 100)
         if (widthPt > 0) {
           const thickness = Math.max(0.4, sizePt * 0.055)
           const baseYPt = flipY(pxToPt(run.baselinePx), pageHeightPt)
@@ -898,7 +968,7 @@ export async function paintOps(
       const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
       prevRealEnd = {
         baselinePx: run.baselinePx,
-        endXPt: xPt + embeddedWidthPt * (tzPct / 100),
+        endXPt: xPt + advanceWidthPt * (tzPct / 100),
         chainStartXPt: nextChainStartXPt,
       }
       if (mark) tagSink?.end(page, mark)

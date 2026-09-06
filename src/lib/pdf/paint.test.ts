@@ -695,11 +695,81 @@ describe('paintOps — Tz horizontal scaling for exact DOM-width runs (task 12)'
     ])
     expect(tzValues(narrowStream)).toEqual([90, 100])
 
-    const widePx = (embeddedWidthPt * 1.5) / pxToPt(1) // implies 150% -> clamps to 110
+    // A run wider than its metric is only stretched when there is no gap to
+    // put the extra width into (see the justified-line suite below), so the
+    // upper half of the band is read off a single word.
+    const word = 'Engineering'
+    const wordWidthPt = await trueWidthPt(word, sizePx)
+    const widePx = (wordWidthPt * 1.5) / pxToPt(1) // implies 150% -> clamps to 110
     const wideStream = await renderContentStream([
-      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: widePx }) },
+      { kind: 'text', run: baseRun({ text: word, xPx: 0, baselinePx: 20, sizePx, widthPx: widePx }) },
     ])
     expect(tzValues(wideStream)).toEqual([110, 100])
+  })
+})
+
+describe('paintOps — a justified line puts its extra width in the spaces', () => {
+  // A justified line reaches the painter as ONE run whose widthPx is the
+  // WIDENED line width: the browser shared the extra width out over the
+  // inter-word spaces. Stretching the whole run to that width would take it
+  // out of the LETTERS instead, so a justified paragraph would draw at a
+  // visibly different letter width line by line (and, past the 110 clamp,
+  // stop short of the right margin). The slack belongs where the browser
+  // put it - between the words.
+  const sizePx = 12
+  const text = 'Senior Software Engineer'
+
+  it('draws one piece per word at its natural width, with the slack shared out over the gaps', async () => {
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+    const domWidthPt = embeddedWidthPt * 1.12 // past the old clamp, so it used to draw short
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: domWidthPt / pxToPt(1) }) },
+    ])
+
+    // Nothing is stretched, so there is no Tz to clamp at 110.
+    expect(tzValues(stream).length).toBe(0)
+    expect(stream.match(/\bTj\b/g)?.length).toBe(3)
+
+    const widths = await Promise.all(['Senior ', 'Software ', 'Engineer'].map((p) => trueWidthPt(p, sizePx)))
+    const gapPt = (domWidthPt - widths[0] - widths[1] - widths[2]) / 2
+    expect(gapPt).toBeGreaterThan(0)
+    const xs = tmXPositions(stream)
+    expect(xs.length).toBe(3)
+    expect(xs[0]).toBeCloseTo(0, 6)
+    expect(xs[1]).toBeCloseTo(widths[0] + gapPt, 6)
+    expect(xs[2]).toBeCloseTo(widths[0] + gapPt + widths[1] + gapPt, 6)
+  })
+
+  it('the line ends exactly at its DOM width, so the next run on it snaps flush', async () => {
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+    const domWidthPt = embeddedWidthPt * 1.12
+    const domWidthPx = domWidthPt / pxToPt(1)
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: domWidthPx }) },
+      { kind: 'text', run: baseRun({ text: 'X', xPx: domWidthPx, baselinePx: 20, sizePx }) },
+    ])
+    const xs = tmXPositions(stream)
+    expect(xs[xs.length - 1]).toBeCloseTo(domWidthPt, 6)
+  })
+
+  it('a ragged line - no slack to share - is drawn exactly as it always was', async () => {
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+    const domWidthPt = embeddedWidthPt * 0.98
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: domWidthPt / pxToPt(1) }) },
+    ])
+    expect(stream.match(/\bTj\b/g)?.length).toBe(1)
+    expect(tzValues(stream)[0]).toBeCloseTo(98, 0)
+  })
+
+  it('a slack too small to be justification (under 2%) is left to the metric correction', async () => {
+    const embeddedWidthPt = await trueWidthPt(text, sizePx)
+    const domWidthPt = embeddedWidthPt * 1.01
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text, xPx: 0, baselinePx: 20, sizePx, widthPx: domWidthPt / pxToPt(1) }) },
+    ])
+    expect(stream.match(/\bTj\b/g)?.length).toBe(1)
+    expect(tzValues(stream)[0]).toBeCloseTo(101, 0)
   })
 })
 

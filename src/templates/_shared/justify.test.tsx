@@ -44,6 +44,16 @@ describe('the alignment reaches the tree the fitter measures', () => {
     expect(printHtml()).toContain('--rm-align:left')
     expect(printHtml()).not.toContain('--rm-align:justify')
   })
+
+  // The last-line balancing that keeps a justified block from ending on a
+  // single short word re-optimises where every line breaks, which moves the
+  // height the fitter reads. It rides the same choice, so a document that
+  // never asked for justification wraps exactly where it always wrapped.
+  it('the last-line balancing rides the same choice, and only that choice', () => {
+    expect(printHtml('justify')).toContain('--rm-wrap:pretty')
+    expect(printHtml()).toContain('--rm-wrap:wrap')
+    expect(printHtml()).not.toContain('--rm-wrap:pretty')
+  })
 })
 
 /**
