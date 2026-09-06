@@ -11,10 +11,11 @@ import { MM_TO_PX } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
-import { elementColorVars } from '@/lib/elementColors'
+import { elementColorVars, lighten, readableOn } from '@/lib/elementColors'
+import { deriveStats } from '@/lib/stats'
 import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
-import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail } from './atoms'
+import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
@@ -108,6 +109,11 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-text': theme.text,
       '--rm-muted': theme.muted,
       '--rm-primary': theme.primary,
+      // The band header's second gradient stop, and the colour a block or
+      // band header sets its text in: the author's own when chosen, else
+      // derived from the accent alone (elementColors.ts).
+      '--rm-gradient-to': theme.gradientTo || lighten(theme.primary, 0.18),
+      '--rm-on-primary': readableOn(theme.primary, theme.text),
       '--rm-bg': theme.background,
       '--rm-sidebar-bg': theme.sidebar,
       '--rm-sidebar-text': theme.sidebarText,
@@ -517,6 +523,25 @@ function HeaderVisual({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaE
   return doc.metadata.layout.monogram ? <Monogram doc={doc} editMeta={editMeta} /> : null
 }
 
+/** The stats band: up to four figures derived from the content (stats.ts),
+ *  each decorative text - ink for a reader, nothing for a parser. The band
+ *  header has a slot for it under the gradient; any other header carries it
+ *  at its foot. */
+function StatsBand({ doc }: { doc: ResumeDocument }) {
+  const stats = deriveStats(doc.content)
+  if (!stats.length) return null
+  return (
+    <div className="rm-stats">
+      {stats.map((s) => (
+        <div className="rm-stat" key={s.label}>
+          <Deco className="rm-stat-value">{s.value}</Deco>
+          <Deco className="rm-stat-label">{s.label}</Deco>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Header({
   doc,
   config,
@@ -581,8 +606,68 @@ function Header({
     </div>
   )
 
-  if (variant === 'centered') {
+  // The stats band, where the author asked for it: in the band's own slot
+  // under the gradient, at the foot of any other header.
+  const stats = doc.metadata.layout.stats ? <StatsBand doc={doc} /> : null
+  const withStats = (head: ReactNode) =>
+    stats ? (
+      <>
+        {head}
+        {stats}
+      </>
+    ) : (
+      head
+    )
+
+  if (variant === 'display') {
     return (
+      <header className="rm-header rm-header-display">
+        {Gear}
+        {HeaderPhoto}
+        <div className="rm-header-main">
+          {nameEl}
+          {headlineEl}
+        </div>
+        <div className="rm-dateline">{ContactsEl}</div>
+        {stats}
+      </header>
+    )
+  }
+
+  if (variant === 'block') {
+    return (
+      <header className="rm-header rm-header-block">
+        {Gear}
+        <div className="rm-header-main">{nameEl}</div>
+        <div className="rm-header-side">
+          {headlineEl}
+          {ContactsEl}
+        </div>
+        {HeaderPhoto}
+        {stats}
+      </header>
+    )
+  }
+
+  if (variant === 'band') {
+    return (
+      <>
+        <header className="rm-header rm-header-band">
+          {Gear}
+          <div className="rm-header-main">
+            {nameEl}
+            {headlineEl}
+          </div>
+          {ContactsEl}
+          {HeaderPhoto}
+        </header>
+        {stats}
+      </>
+    )
+  }
+
+  if (variant === 'centered') {
+    return withStats(
       <header className="rm-header rm-header-centered">
         {Gear}
         <div className="rm-header-main">
@@ -596,7 +681,7 @@ function Header({
   }
 
   if (variant === 'banner') {
-    return (
+    return withStats(
       <header className="rm-header rm-header-banner">
         {Gear}
         <div className="rm-header-main">
@@ -610,7 +695,7 @@ function Header({
   }
 
   if (variant === 'split') {
-    return (
+    return withStats(
       <header className="rm-header rm-header-split">
         {Gear}
         <div className="rm-header-lead">
@@ -623,7 +708,7 @@ function Header({
   }
 
   if (variant === 'compact') {
-    return (
+    return withStats(
       <header className="rm-header rm-header-compact">
         {Gear}
         {HeaderPhoto}
@@ -650,7 +735,7 @@ function Header({
   }
 
   // standard
-  return (
+  return withStats(
     <header className="rm-header rm-header-standard">
       {Gear}
       <div className="rm-header-main">
@@ -845,7 +930,10 @@ export function Artboard({
     twoCol ? '' : 'rm-single',
     headingCaseClasses(doc.metadata.typography),
     hasIcons ? 'rm-icons' : '',
-    `hdr-${config.header}`,
+    // The composition the page draws - the author's choice, else the
+    // template's - so a template rule for `.hdr-block` restyles a header the
+    // author recomposed as much as one the template chose.
+    `hdr-${doc.metadata.layout.headerStyle ?? config.header}`,
     `sec-${config.section}`,
     `skl-${config.skills}`,
     `mode-${mode}`,

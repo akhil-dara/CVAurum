@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ELEMENT_COLORS, elementColorVars } from './elementColors'
+import { ELEMENT_COLORS, elementColorVars, lighten, readableOn } from './elementColors'
 import { MetadataSchema } from '@/types/metadata'
 
 /**
@@ -152,5 +152,38 @@ describe('every anchor the shared sections render carries a class', () => {
     }
     expect(inMini.length).toBeGreaterThan(0)
     expect(inMini.filter((t) => !/className="[^"]*\brm-title-link\b/.test(t))).toEqual([])
+  })
+})
+
+describe('the colours a coloured header derives', () => {
+  // A block or band header sits its text on the accent, and a band's
+  // gradient runs from the accent to a lighter stop the author may never
+  // have chosen. Both come from the accent alone, so a template with only a
+  // primary colour still draws a readable block and a two-stop band.
+  it('lighten mixes a hex colour toward white by the amount', () => {
+    expect(lighten('#000000', 0.5)).toBe('#808080')
+    expect(lighten('#2563eb', 0)).toBe('#2563eb')
+    expect(lighten('#2563eb', 1)).toBe('#ffffff')
+    expect(lighten('#0f766e', 0.18)).toBe('#3a8f88')
+  })
+
+  it('lighten expands a short hex and leaves what it cannot read alone', () => {
+    expect(lighten('#fff', 0.3)).toBe('#ffffff')
+    expect(lighten('#08c', 0)).toBe('#0088cc')
+    expect(lighten('rebeccapurple', 0.3)).toBe('rebeccapurple')
+  })
+
+  it('readableOn picks white on a dark ground and the text colour on a light one', () => {
+    // The WCAG contrast ratio decides: white reads better on a navy or a
+    // mid blue, the dark text colour on a yellow.
+    expect(readableOn('#0f172a', '#1a1a1a')).toBe('#ffffff')
+    expect(readableOn('#2563eb', '#1a1a1a')).toBe('#ffffff')
+    expect(readableOn('#fde047', '#1a1a1a')).toBe('#1a1a1a')
+    expect(readableOn('#ffffff', '#334155')).toBe('#334155')
+  })
+
+  it('readableOn falls back to white when the ground cannot be read', () => {
+    expect(readableOn('not a colour', '#1a1a1a')).toBe('#ffffff')
+    expect(readableOn('#fde047')).toBe('#1a1a1a')
   })
 })

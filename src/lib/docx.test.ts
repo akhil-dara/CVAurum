@@ -693,3 +693,53 @@ describe('the Word export reads the footer strip last', () => {
     expect(runs.some((t) => t.includes('Figma'))).toBe(true)
   })
 })
+
+describe('the Word export composes the header the way the page does', () => {
+  // Three of the Signature compositions have a Word approximation: a display
+  // masthead centres the name at twice its size and rules the contact line
+  // above and below; a block and a band put the header in one shaded cell
+  // with the text in whichever of white and the text colour reads better on
+  // the accent. Word draws no gradient, so a band takes the accent alone.
+  const runOf = (xml: string, text: string) => xml.split('<w:r>').slice(1).find((r) => r.includes(`>${text}</w:t>`)) ?? ''
+  const runColor = (xml: string, text: string) => runOf(xml, text).match(/<w:color w:val="([0-9A-F]{6})"/)?.[1]
+  const table = (xml: string) => xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/)?.[0] ?? ''
+
+  it('display: a centred name at twice its size, and a contact line ruled above and below', async () => {
+    const { body } = await unpack(docWith({ layout: { headerStyle: 'display' } }))
+    expect(paraOf(body, 'Jordan Rivera')).toMatch(/<w:jc w:val="center"\/>/)
+    expect(runSize(body, 'Jordan Rivera')).toBe(96)
+    expect(paraOf(body, 'Product Designer')).toMatch(/<w:jc w:val="center"\/>/)
+    const contacts = paraOf(body, 'Lisbon')
+    expect(contacts).toMatch(/<w:top [^>]*w:val="single"/)
+    expect(contacts).toMatch(/<w:bottom [^>]*w:val="single"/)
+    expect(table(body)).toBe('')
+  })
+
+  it('block and band: one cell shaded in the accent, the header inside it in white', async () => {
+    for (const headerStyle of ['block', 'band'] as const) {
+      const { body } = await unpack(docWith({ layout: { headerStyle }, theme: { primary: '#0f766e', gradientTo: '#5eead4' } }))
+      const cell = table(body)
+      expect(cell).toMatch(/<w:shd [^>]*w:fill="0F766E"/)
+      expect(cell).not.toContain('5EEAD4')
+      for (const text of ['Jordan Rivera', 'Product Designer', 'Lisbon']) {
+        expect(cell).toContain(`>${text}</w:t>`)
+        expect(runColor(cell, text)).toBe('FFFFFF')
+      }
+      // The header still reads before the first section.
+      expect(body.indexOf('Jordan Rivera')).toBeLessThan(body.indexOf('EXPERIENCE'))
+    }
+  })
+
+  it('a light block takes the text colour, and a chosen element colour still wins', async () => {
+    const light = await unpack(docWith({ layout: { headerStyle: 'block' }, theme: { primary: '#fde047', text: '#1f2937' } }))
+    expect(runColor(table(light.body), 'Jordan Rivera')).toBe('1F2937')
+    const chosen = await unpack(docWith({ layout: { headerStyle: 'band' }, theme: { primary: '#0f766e', name: '#fbbf24' } }))
+    expect(runColor(table(chosen.body), 'Jordan Rivera')).toBe('FBBF24')
+    expect(runColor(table(chosen.body), 'Lisbon')).toBe('FFFFFF')
+  })
+
+  it('the stats band never reaches the file', async () => {
+    const { body } = await unpack(docWith({ layout: { headerStyle: 'band', stats: true } }))
+    expect(texts(body).some((t) => /^(years|companies|skills)$/.test(t))).toBe(false)
+  })
+})

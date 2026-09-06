@@ -25,6 +25,8 @@
   --rm-bg: #ffffff;
   --rm-sidebar-bg: #0f172a;
   --rm-sidebar-text: #e2e8f0;
+  /* The hairline a stats band draws around itself and between its figures. */
+  --rm-line: color-mix(in srgb, var(--rm-text) 14%, var(--rm-bg));
   /* Folio surfaces (2026-09-04): the paper-toned section chip and the tag
      drawn around a named link share one paper, one hairline and one pair of
      fold shades, all mixed from the document's own colours. */
@@ -1500,6 +1502,198 @@
   font-weight: 400;
   color: var(--rm-headline-color, var(--rm-muted));
   font-size: calc(0.6em * var(--rm-headline-mul, 1));
+}
+
+/* ============================================ signature header compositions */
+/* Three of the six compositions the Signature collection composes from
+   (2026-09-06): a display masthead, a colour block and a gradient band.
+   Structure only; a template colours them through the tokens. Every rule
+   that colours the name, the headline or the contact line reads the
+   element's own variable first (elementColors.ts), so an author's colour
+   still wins on a coloured block. On a block or band the text takes
+   --rm-on-primary: white or the text colour, whichever reads better on the
+   accent (Artboard.tsx useVars). */
+
+/* display: the name is the layout; a dateline of contacts between rules */
+.rm-header-display {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+  text-align: center;
+}
+.rm-header-display .rm-header-main {
+  width: 100%;
+}
+.rm-header-display .rm-name {
+  font-size: calc(var(--rm-name-size) * 2.2);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-indent: 0;
+  margin: 0 0 0.15em;
+  overflow-wrap: anywhere;
+}
+.rm-root .rm-header-display .rm-headline {
+  font-size: calc(var(--rm-fs) * 1.05 * var(--rm-headline-mul, 1));
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rm-headline-color, var(--rm-primary));
+  margin-bottom: 0;
+}
+.rm-header-display .rm-dateline {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  border-top: 3px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  padding: 0.45em 0;
+  margin-top: 0.6em;
+}
+.rm-header-display .rm-contacts {
+  justify-content: center;
+}
+.rm-header-display .rm-photo {
+  margin: 0 auto 10px;
+}
+.rm-header-display .rm-monogram {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* block: a full-bleed colour block holding a giant name; the role and the
+   contacts stack at the right beneath it. Wrapping flex rows rather than a
+   grid, so a header with no identity mark loses no width to an empty
+   column. */
+.rm-header-block {
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6em 1.5em;
+  background: var(--rm-primary);
+  color: var(--rm-on-primary, #fff);
+  margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
+  padding: var(--rm-pad) var(--rm-pad) 1.4em;
+}
+.rm-header-block .rm-header-main {
+  flex: 1 1 0;
+  min-width: 0;
+  order: 1;
+}
+.rm-header-block .rm-photo,
+.rm-header-block .rm-monogram,
+.rm-header-block .rm-visual-wrap {
+  order: 2;
+  align-self: flex-start;
+}
+.rm-header-block .rm-header-side {
+  order: 3;
+  flex: 0 0 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.rm-root .rm-header-block .rm-name {
+  font-size: calc(var(--rm-name-size) * 3.2);
+  line-height: 0.86;
+  margin: 0;
+  text-indent: 0;
+  overflow-wrap: anywhere;
+  color: var(--rm-name-color, var(--rm-on-primary, #fff));
+}
+.rm-root .rm-header-block .rm-headline {
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 0.35em;
+  color: var(--rm-headline-color, var(--rm-on-primary, #fff));
+}
+.rm-root .rm-header-block .rm-contacts {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2em;
+  color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+}
+.rm-header-block .rm-contact a {
+  color: inherit;
+}
+
+/* band: a full-bleed two-stop gradient from the accent to --rm-gradient-to
+   (the author's, else a lighter hue of the accent), with the stats band
+   overlapping its foot when there is one */
+.rm-header-band {
+  align-items: flex-end;
+  gap: 1.5em;
+  background: linear-gradient(100deg, var(--rm-primary), var(--rm-gradient-to, var(--rm-primary)));
+  color: var(--rm-on-primary, #fff);
+  margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
+  padding: var(--rm-pad) var(--rm-pad) 1.6em;
+}
+.rm-header-band:has(+ .rm-stats) {
+  padding-bottom: 2.6em;
+  margin-bottom: 0;
+}
+.rm-root .rm-header-band .rm-name {
+  text-indent: 0;
+  color: var(--rm-name-color, var(--rm-on-primary, #fff));
+}
+.rm-root .rm-header-band .rm-headline {
+  margin-bottom: 0;
+  color: var(--rm-headline-color, var(--rm-on-primary, #fff));
+}
+.rm-root .rm-header-band .rm-contacts {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2em;
+  text-align: right;
+  color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+}
+.rm-header-band .rm-contact a {
+  color: inherit;
+}
+
+/* the stats band (stats.ts): up to four figures a reader takes in at a
+   glance, each decorative text - ink only, never in a parser's text */
+.rm-stats {
+  display: flex;
+  border: 1px solid var(--rm-line);
+  border-radius: 10px;
+  background: var(--rm-bg);
+  margin-bottom: var(--rm-section-gap);
+}
+/* inside a header with no slot of its own it takes the header's full width */
+.rm-header .rm-stats {
+  width: 100%;
+  flex: 0 0 100%;
+  order: 4;
+  margin: 0.8em 0 0;
+}
+.rm-header-band + .rm-stats {
+  margin-top: -1.2em;
+}
+.rm-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  padding: 0.7em 0;
+  border-right: 1px solid var(--rm-line);
+}
+.rm-stat:last-child {
+  border-right: 0;
+}
+.rm-stat-value {
+  font-family: var(--rm-font-name);
+  font-weight: 800;
+  font-size: calc(var(--rm-fs) * 2.4);
+  line-height: 1;
+  color: var(--rm-primary);
+}
+.rm-stat-label {
+  font-size: calc(var(--rm-fs) * 0.85);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rm-muted);
 }
 
 /* ============================================ section heading styles */

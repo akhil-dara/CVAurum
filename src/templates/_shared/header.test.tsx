@@ -1,0 +1,90 @@
+import { describe, it, expect, vi } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { createDocument } from '@/data/defaults'
+
+// The sanitizer wraps a DOM purifier that needs a window, and this suite runs
+// under the plain node environment. Nothing asserted here is rich text, so
+// handing the string back is what the real sanitizer would do with it.
+vi.mock('@/lib/sanitize', () => ({ sanitizeHtml: (html: string) => html }))
+// The rich-text atom keeps hyphenated compounds whole through a DOM template
+// element. The header holds no rich text, so the summary's markup passes
+// through untouched here; everything else in the module stays real.
+vi.mock('@/lib/pdf/hyphens', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/pdf/hyphens')>()),
+  noBreakCompoundsHtml: (html: string) => html,
+}))
+
+import { TemplateRenderer } from '@/templates/TemplateRenderer'
+import { HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
+
+/**
+ * The header compositions a Signature template composes from: a display
+ * masthead, a colour block and a gradient band. Each is one branch of the
+ * shared header, so the page is rendered to a string and the markup itself
+ * is asserted - one name, one role, one contact line, the root class that
+ * lets a template restyle the RESOLVED composition, and the stats band only
+ * where the author asked for it.
+ */
+describe('header compositions', () => {
+  it('display, block and band render name, role and contacts once, with stats only when asked', () => {
+    for (const v of ['display', 'block', 'band'] as const) {
+      const doc = createDocument({ sample: true })
+      doc.metadata.layout.headerStyle = v
+      doc.metadata.layout.stats = v === 'band'
+      const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+      expect(html.match(/class="rm-name"/g)?.length).toBe(1)
+      expect(html.match(/class="rm-headline"/g)?.length).toBe(1)
+      expect(html.match(/class="rm-contacts/g)?.length).toBe(1)
+      expect(html).toContain(`rm-header-${v}`)
+      expect(html).toContain(`hdr-${v}`)
+      expect(html.includes('rm-stats')).toBe(v === 'band')
+    }
+  })
+
+  it('the stats band is decorative text, in the header when the composition has no slot for it', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.headerStyle = 'display'
+    doc.metadata.layout.stats = true
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? ''
+    expect(header).toContain('rm-stats')
+    // Every figure and its label is marked for the painter and the parsers.
+    const stats = html.match(/class="rm-deco rm-stat-(?:value|label)"/g)?.length ?? 0
+    expect(stats).toBeGreaterThan(0)
+    expect(html.match(/aria-hidden="true" class="rm-deco rm-stat-/g)?.length).toBe(stats)
+  })
+
+  it('the root class follows the composition the page actually draws', () => {
+    // A template whose own header is a banner, restyled by the author to a
+    // block: the root class names the block, so a template rule written for
+    // `.hdr-block` reaches the author's choice too.
+    const doc = createDocument({ sample: true, metadata: { template: 'polished' } })
+    doc.metadata.layout.headerStyle = 'block'
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(html).toContain('hdr-block')
+    expect(html).not.toContain('hdr-banner')
+    const auto = createDocument({ sample: true, metadata: { template: 'polished' } })
+    expect(renderToStaticMarkup(<TemplateRenderer doc={auto} mode="print" />)).toContain('hdr-banner')
+  })
+})
+
+/**
+ * The picker draws a miniature of each composition beside its name, on the
+ * canvas gear and in the Design panel alike (headerStyles.tsx). A
+ * composition the list offers but the miniature does not know falls to a
+ * dashed placeholder, which is what "Auto" means and what no named
+ * composition should ever show.
+ */
+describe('header composition mocks', () => {
+  it('every named composition draws its own miniature, never the placeholder', () => {
+    const named = HEADER_STYLES.filter((h) => h.value)
+    expect(named.map((h) => h.value)).toEqual(
+      expect.arrayContaining(['standard', 'centered', 'split', 'banner', 'compact', 'display', 'block', 'band'])
+    )
+    for (const h of named) {
+      const html = renderToStaticMarkup(<HeaderMini kind={h.value} />)
+      expect(html, h.value).not.toContain('border-dashed')
+    }
+    expect(renderToStaticMarkup(<HeaderMini kind="" />)).toContain('border-dashed')
+  })
+})

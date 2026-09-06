@@ -19,9 +19,13 @@ import {
   ImageRun,
   Packer,
   Paragraph,
+  ShadingType,
   Table,
+  TableCell,
+  TableRow,
   TabStopType,
   TextRun,
+  WidthType,
   type IParagraphOptions,
   type ParagraphChild,
 } from 'docx'
@@ -41,6 +45,8 @@ import {
   sectionDateOptions,
 } from '@/lib/utils'
 import { prettyUrl, cleanEmail, linkWords } from '@/templates/_shared/atoms'
+import { getTemplate } from '@/templates/registry'
+import { readableOn } from '@/lib/elementColors'
 import { headingCase, STOCK_SCALE, type HeadingCase } from '@/lib/typeStyle'
 
 /* ----------------------------------------------------------------- helpers */
@@ -761,17 +767,50 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
   return out
 }
 
-function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[] {
+// A table that draws no line of its own: the shaded cell a block or band
+// header sits in is the colour, not a frame.
+const NO_LINE = { style: BorderStyle.NONE, size: 0, color: 'auto' }
+const NO_BORDERS = {
+  top: NO_LINE,
+  bottom: NO_LINE,
+  left: NO_LINE,
+  right: NO_LINE,
+  insideHorizontal: NO_LINE,
+  insideVertical: NO_LINE,
+}
+
+/** The header, composed the way the page composes it where Word can follow:
+ *  a display masthead centres the name at twice its size and rules the
+ *  contact line above and below; a block or a band puts the whole header in
+ *  one cell shaded with the accent (Word draws no gradient, so a band takes
+ *  the accent alone), its text in white or the text colour, whichever reads
+ *  better on the accent - unless the author coloured the element. The other
+ *  compositions print as this export always printed them. The stats band is
+ *  decorative and never reaches the file. */
+function buildHeader(doc: ResumeDocument, C: Ctx, separator: string, width: number): (Paragraph | Table)[] {
   const b = doc.content.basics
+  const { theme } = doc.metadata
+  // The composition the page draws: the author's choice, else the template's.
+  const variant = doc.metadata.layout.headerStyle ?? getTemplate(doc.metadata.template).header
+  const display = variant === 'display'
+  const filled = variant === 'block' || variant === 'band'
+  const on = filled ? toHex(readableOn(C.accent, C.body), 'FFFFFF') : undefined
+  const colorOf = (chosen: string | undefined, usual: string) => (on && !chosen ? on : usual)
+  const nameColor = colorOf(theme.name, C.name)
+  const headlineColor = colorOf(theme.headline, C.headline)
+  const contactColor = colorOf(theme.contacts, C.contact)
+  const contactLinkColor = colorOf(theme.contacts, C.contactLink)
+  const centred = display ? { alignment: AlignmentType.CENTER } : {}
   const out: Paragraph[] = [
     new Paragraph({
+      ...centred,
       spacing: { after: 20 },
       children: [
         new TextRun({
           text: b.name || 'Your Name',
           ...(C.nameBold ? { bold: true } : {}),
-          color: C.name,
-          size: SIZE.name,
+          color: nameColor,
+          size: display ? SIZE.name * 2 : SIZE.name,
           font: C.headFont,
         }),
       ],
@@ -780,8 +819,9 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[
   if (b.label)
     out.push(
       new Paragraph({
+        ...centred,
         spacing: { after: 40 },
-        children: [new TextRun({ text: b.label, color: C.headline, size: SIZE.headline, font: C.headFont })],
+        children: [new TextRun({ text: b.label, color: headlineColor, size: SIZE.headline, font: C.headFont })],
       })
     )
   // Each contact carries its own destination, so the reader can click the word
@@ -810,16 +850,48 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string): Paragraph[
   if (shown.length)
     out.push(
       new Paragraph({
+        ...centred,
         spacing: { after: 100 },
+        // The display masthead's dateline sits between a heavy rule above
+        // and a hairline below, both in the text colour, as on the page.
+        ...(display
+          ? {
+              border: {
+                top: { style: BorderStyle.SINGLE, size: 3 * RULE_PER_PX, color: C.body, space: 4 },
+                bottom: { style: BorderStyle.SINGLE, size: RULE_PER_PX, color: C.body, space: 4 },
+              },
+            }
+          : {}),
         children: shown.flatMap((c, i) => [
-          ...(i > 0 ? [new TextRun({ text: separator, color: C.contact, size: SIZE.contact })] : []),
+          ...(i > 0 ? [new TextRun({ text: separator, color: contactColor, size: SIZE.contact })] : []),
           c.url && LINKS_LIVE && safeHref(c.url)
-            ? linkRun(c.url, c.words, C, SIZE.contact, C.contactLink)
-            : new TextRun({ text: c.words, color: C.contact, size: SIZE.contact }),
+            ? linkRun(c.url, c.words, C, SIZE.contact, contactLinkColor)
+            : new TextRun({ text: c.words, color: contactColor, size: SIZE.contact }),
         ]),
       })
     )
-  return out
+  if (!filled) return out
+  // One cell the width of the text, shaded with the accent, holding the
+  // header's paragraphs; a little air inside so the text clears the edge.
+  return [
+    new Table({
+      width: { size: width, type: WidthType.DXA },
+      columnWidths: [width],
+      borders: NO_BORDERS,
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: width, type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, color: 'auto', fill: C.accent },
+              margins: { top: 240, bottom: 200, left: 240, right: 240 },
+              children: out,
+            }),
+          ],
+        }),
+      ],
+    }),
+  ]
 }
 
 /* --------------------------------------------------------- the export itself */
@@ -906,7 +978,7 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
   const body: (Paragraph | Table)[] = [
     ...(photo ? [photo] : []),
-    ...buildHeader(doc, mainCtx, metrics.separator),
+    ...buildHeader(doc, mainCtx, metrics.separator, contentW),
     ...buildSections([...order.main, ...order.aside, ...order.footer], doc, mainCtx, contentW),
   ]
 
