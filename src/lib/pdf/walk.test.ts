@@ -2362,6 +2362,75 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     const looseHeld = extractPageBlocks(looseRoot as unknown as HTMLElement).map((b) => b.keepWithNext === true)
     expect(looseHeld).toEqual([true, false, false, false, true, false, false, false, false, false, true, false, false])
   })
+
+  it('reaches the footer strip on a two-column page, after the combined columns, and holds it together', () => {
+    install()
+    // The same two columns the task-2b case combines (main and aside side by
+    // side, the merged list ending at y=55), then the strip AFTER the body,
+    // outside both columns: it sits nowhere the column walks look, so it is
+    // taken off the root once the columns are combined, joined to them by
+    // the real gap before it, and held together like the single-column case.
+    const asideLevel = elm(['rm-level'], { top: 30, bottom: 50, left: 0, right: 200 })
+    const asideEntry = elm(['rm-skill-group'], { top: 30, bottom: 50, left: 0, right: 200 }, [asideLevel])
+    const asideTitle = elm(['rm-section-title'], { top: 0, bottom: 20, left: 0, right: 200 })
+    const asideBody = elm(['rm-section-body'], { top: 30, bottom: 50, left: 0, right: 200 }, [asideEntry])
+    const asideSection = elm(['rm-section'], { top: 0, bottom: 50, left: 0, right: 200 }, [asideTitle, asideBody])
+    const aside = elm(['rm-col-aside'], { top: 0, bottom: 160, left: 0, right: 200 }, [asideSection])
+
+    const mainText = txt('Body text', { top: 40, bottom: 55, left: 210, right: 400 })
+    const mainEntry = elm(['rm-item'], { top: 40, bottom: 55, left: 210, right: 400 }, [mainText])
+    const mainTitle = elm(['rm-section-title'], { top: 0, bottom: 20, left: 210, right: 400 })
+    const mainBody = elm(['rm-section-body'], { top: 40, bottom: 55, left: 210, right: 400 }, [mainEntry])
+    const mainSection = elm(['rm-section'], { top: 0, bottom: 55, left: 210, right: 400 }, [mainTitle, mainBody])
+    const main = elm(['rm-col-main'], { top: 0, bottom: 160, left: 210, right: 400 }, [mainSection])
+    const body = elm(['rm-body'], { top: 0, bottom: 160, left: 0, right: 800 }, [aside, main])
+
+    const row1 = elm(['rm-mini'], { top: 230, bottom: 245, left: 0, right: 300 }, [
+      txt('Frontend: React', { top: 230, bottom: 245, left: 0, right: 200 }),
+    ])
+    const row2 = elm(['rm-mini'], { top: 250, bottom: 265, left: 0, right: 300 }, [
+      txt('Data: SQL', { top: 250, bottom: 265, left: 0, right: 200 }),
+    ])
+    const title1 = elm(['rm-section-title'], { top: 200, bottom: 220, left: 0, right: 200 })
+    const section1 = elm(['rm-section'], { top: 200, bottom: 265, left: 0, right: 300 }, [title1, row1, row2])
+    const row3 = elm(['rm-mini'], { top: 310, bottom: 325, left: 0, right: 300 }, [
+      txt('English Native', { top: 310, bottom: 325, left: 0, right: 200 }),
+    ])
+    const title2 = elm(['rm-section-title'], { top: 280, bottom: 300, left: 0, right: 200 })
+    const section2 = elm(['rm-section'], { top: 280, bottom: 325, left: 0, right: 300 }, [title2, row3])
+    const strip = elm(['rm-footer', 'rm-keep-whole'], { top: 190, bottom: 340, left: 0, right: 800 }, [
+      section1,
+      section2,
+    ])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [body, strip])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement, 900)
+    expect(blocks.map((b) => `${b.kind} ${b.topPx}-${b.bottomPx}`)).toEqual([
+      'line 0-20', // both titles, combined
+      'entry-gap 20-30',
+      'line 30-55', // the columns' merged ink
+      'section-gap 55-200', // the gap before the strip: the one legal cut
+      'line 200-220', // the strip's first title
+      'entry-gap 220-230',
+      'line 230-245',
+      'entry-gap 245-250',
+      'line 250-265',
+      'section-gap 265-280', // inside the strip
+      'line 280-300', // the strip's second title
+      'entry-gap 300-310',
+      'line 310-325', // the last row: ends the run
+    ])
+    expect(blocks.map((b) => b.keepWithNext === true)).toEqual([
+      true, false, false, false, true, true, true, true, true, true, true, true, false,
+    ])
+    // Without the strip the two-column list is exactly what it always was.
+    const bare = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [body])
+    expect(extractPageBlocks(bare as unknown as HTMLElement, 900).map((b) => `${b.kind} ${b.topPx}-${b.bottomPx}`)).toEqual([
+      'line 0-20',
+      'entry-gap 20-30',
+      'line 30-55',
+    ])
+  })
 })
 
 describe('buildDrawList - sibling <svg> pieces (folio section chip, 2026-09-04)', () => {

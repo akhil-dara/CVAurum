@@ -1313,6 +1313,22 @@ export function extractPageBlocks(root: HTMLElement, usablePageHeightPx?: number
     }
   }
   const combined = combineColumns([mainBlocks, asideBlocks])
+  // The footer strip sits AFTER the body, outside both columns, so neither
+  // column walk reaches it. It comes off the root once the columns are
+  // combined: its own blocks, held together (the strip is its own scope,
+  // so extractBlocksFromScope holds every section it finds), joined to the
+  // columns by the real gap before it - the one place a cut may fall
+  // between the body and the strip. Without it the page height counted
+  // the strip while the paginator could cut only inside the columns.
+  const strip = findByClass(root, KEEP_WHOLE_CLASSES)[0]
+  if (strip) {
+    const stripBlocks = extractBlocksFromScope(strip, rootTop, usablePageHeightPx ?? 0)
+    if (stripBlocks.length) {
+      const last = combined[combined.length - 1]
+      if (last) combined.push({ kind: 'section-gap', topPx: last.bottomPx, bottomPx: stripBlocks[0].topPx })
+      combined.push(...stripBlocks)
+    }
+  }
   if (import.meta.env.DEV) sanityCheckPageBlocks(combined)
   return combined
 }
@@ -1363,6 +1379,9 @@ function extractBlocksFromScope(scope: Element, rootTop: number, usablePageHeigh
   // gap before the strip and nowhere inside it. Height buys no exception:
   // a strip that does not fit the page's tail moves whole to the next page.
   const whole = new Set<Element>()
+  // The scope may BE the wrapper (the strip walked on its own, two-column
+  // pages): findByClass returns descendants only, so ask the scope itself.
+  if (hasAnyClass(scope, KEEP_WHOLE_CLASSES)) for (const s of sections) whole.add(s)
   for (const wrap of findByClass(scope, KEEP_WHOLE_CLASSES)) {
     for (const s of findByClass(wrap, ['rm-section'])) whole.add(s)
   }
@@ -1468,7 +1487,8 @@ const ENTRY_CLASSES = ['rm-item', 'rm-skill-group', 'rm-mini']
  *  (the author's own choice - see `extractSectionBlocks`). */
 const KEEP_ENTRIES_CLASSES = ['rm-keep-entries']
 /** Stamped on a wrapper whose sections are one block to the paginator: the
- *  footer strip, which never breaks across pages (`extractBlocksFromScope`). */
+ *  footer strip, which never breaks across pages (`extractBlocksFromScope`;
+ *  on a two-column page `extractPageBlocks` walks it after the columns). */
 const KEEP_WHOLE_CLASSES = ['rm-keep-whole']
 
 function hasAnyClass(el: Element, classes: string[]): boolean {
