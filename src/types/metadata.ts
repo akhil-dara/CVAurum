@@ -76,6 +76,14 @@ export const ThemeSchema = z.object({
   headings: z.string().optional(),
   contacts: z.string().optional(),
   links: z.string().optional(),
+  /** Second stop of the band header's gradient; unset derives a lighter hue. */
+  gradientTo: z.string().optional(),
+  /** Optional art behind the header, from the bundled set. */
+  artBand: z.enum(['none', 'navy-gold', 'terracotta', 'cobalt', 'emerald']).default('none'),
+  /** Tile fill under sectionFrame: tile; unset is white. */
+  tile: z.string().optional(),
+  /** Footer strip background; unset is the text colour. */
+  footer: z.string().optional(),
 })
 
 export const TypographySchema = z.object({
@@ -126,7 +134,19 @@ export const LayoutSchema = z.object({
   /** 1 = single column, 2 = main + sidebar */
   columns: z.union([z.literal(1), z.literal(2)]).default(1),
   /** header composition override (unset = the template's own header) */
-  headerStyle: z.enum(['standard', 'centered', 'split', 'banner', 'compact']).optional(),
+  headerStyle: z.enum(['standard', 'centered', 'split', 'banner', 'compact', 'display', 'block', 'cover', 'card', 'stepped', 'band']).optional(),
+  /** Where an entry's meta (date, place) sits: in the entry, in a tinted left
+   *  gutter with a decorative year numeral, or in a right margin column. */
+  metaColumn: z.enum(['none', 'gutter', 'margin']).default('none'),
+  /** Section titles above their content, or beside it in a left cell. */
+  headingPlacement: z.enum(['above', 'side']).default('above'),
+  /** Every section as a rounded tile on a tinted page. */
+  sectionFrame: z.enum(['none', 'tile']).default('none'),
+  /** A band of numbers derived from the content (years, companies, skills,
+   *  a headline number), painted as decoration only. */
+  stats: z.boolean().default(false),
+  /** Decorative running numbers before section titles (01, 02, ...). */
+  sectionNumbers: z.boolean().default(false),
   /** which side the sidebar sits on (only used when columns === 2) */
   sidebar: z.enum(['left', 'right']).default('left'),
   /** sidebar width as a fraction of content width (0.28 - 0.42) */
@@ -135,6 +155,9 @@ export const LayoutSchema = z.object({
   main: z.array(z.string()).default([]),
   /** ordered list of section keys in the SIDEBAR (columns === 2) */
   aside: z.array(z.string()).default([]),
+  /** Section keys rendered in a compact strip at the foot of the page,
+   *  after the main flow; the ATS text and the Word file list them last. */
+  footer: z.array(z.string()).default([]),
   /** hidden section keys */
   hidden: z.array(z.string()).default([]),
   /** custom heading label overrides keyed by section key */
@@ -159,9 +182,9 @@ export const LayoutSchema = z.object({
         /** how the skills section displays its keywords (skills section only) */
         // 'stacked' puts the group name on its own line with the keyword
         // list beneath it, rather than running the list on after the name.
-        skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid', 'stacked']).optional(),
+        skillsStyle: z.enum(['chips', 'tags', 'inline', 'grid', 'stacked', 'mosaic', 'rings']).optional(),
         /** how the section's entries are laid out (overrides the template's flow) */
-        entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided']).optional(),
+        entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided', 'ledger']).optional(),
         /** how the education score (GPA) is placed: inline (default), pushed right, or a pill */
         scoreStyle: z.enum(['inline', 'right', 'pill']).optional(),
         /** show a monogram badge (company/institution initial) beside each entry */

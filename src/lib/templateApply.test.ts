@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { applyTemplateToMetadata } from './templateApply'
 import { MetadataSchema } from '@/types/metadata'
 import type { TemplateDefaults } from '@/types/template'
+import { createDocument } from '@/data/defaults'
+import { getTemplate } from '@/templates/registry'
 
 /** A template's defaults, shaped exactly like a registry entry's. */
 const defaultsFor = (template: string, columns: 1 | 2): TemplateDefaults => {
@@ -187,5 +189,47 @@ describe('applyTemplateToMetadata keeps the whole-entry page-break policy', () =
     const cur = MetadataSchema.parse({ template: 'modern' })
     const next = applyTemplateToMetadata(cur, defaultsFor('aurum', 1))
     expect(next.page.keepEntriesWhole).toBe(false)
+  })
+})
+
+describe('applyTemplateToMetadata keeps the signature layout choices', () => {
+  // The structural axes the author chose stay when the template changes,
+  // like the column split and the header composition do.
+  it('keeps the signature layout choices across a template switch', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.metaColumn = 'margin'
+    doc.metadata.layout.headingPlacement = 'side'
+    doc.metadata.layout.sectionFrame = 'tile'
+    doc.metadata.layout.footer = ['languages']
+    doc.metadata.layout.stats = true
+    doc.metadata.layout.sectionNumbers = true
+    doc.metadata.theme.artBand = 'emerald'
+    const next = applyTemplateToMetadata(doc.metadata, getTemplate('clarity').defaults)
+    expect(next.layout.metaColumn).toBe('margin')
+    expect(next.layout.headingPlacement).toBe('side')
+    expect(next.layout.sectionFrame).toBe('tile')
+    expect(next.layout.footer).toEqual(['languages'])
+    expect(next.layout.stats).toBe(true)
+    expect(next.layout.sectionNumbers).toBe(true)
+    expect(next.theme.artBand).toBe('emerald')
+  })
+
+  it('lets a template that ships its own art band light it up when the author chose none', () => {
+    const cur = MetadataSchema.parse({ template: 'modern' })
+    const defaults = defaultsFor('folio-noir', 1)
+    defaults.theme.artBand = 'navy-gold'
+    const next = applyTemplateToMetadata(cur, defaults)
+    expect(next.theme.artBand).toBe('navy-gold')
+  })
+
+  it('never lists a footer section in the body again after a switch to two columns', () => {
+    const cur = MetadataSchema.parse({
+      template: 'modern',
+      layout: { main: ['summary', 'work', 'education'], footer: ['skills'] },
+    })
+    const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
+    expect(next.layout.footer).toEqual(['skills'])
+    expect(next.layout.main).not.toContain('skills')
+    expect(next.layout.aside).not.toContain('skills')
   })
 })

@@ -379,3 +379,55 @@ describe('the whole-entry page-break policy survives a round trip', () => {
     expect(back.metadata.layout.sectionSettings.work.keepTogether).toBeUndefined()
   })
 })
+
+describe('signature primitives', () => {
+  // Every structural axis of the Signature collection is a new enum value
+  // or an optional field, so a file saved before it existed parses to the
+  // page exactly as it always drew.
+  it('parses every new value and keeps old documents unchanged', () => {
+    const m = MetadataSchema.parse({
+      layout: {
+        headerStyle: 'band', metaColumn: 'gutter', headingPlacement: 'side', sectionFrame: 'tile',
+        footer: ['skills'], stats: true, sectionNumbers: true,
+        sectionSettings: { work: { entryLayout: 'ledger' }, skills: { skillsStyle: 'rings' } },
+      },
+      theme: { gradientTo: '#0e7c86', artBand: 'navy-gold', tile: '#ffffff', footer: '#111111' },
+    })
+    expect(m.layout.metaColumn).toBe('gutter')
+    expect(m.layout.footer).toEqual(['skills'])
+    expect(m.theme.artBand).toBe('navy-gold')
+    const old = MetadataSchema.parse({})
+    expect(old.layout.metaColumn).toBe('none')
+    expect(old.layout.headingPlacement).toBe('above')
+    expect(old.layout.sectionFrame).toBe('none')
+    expect(old.layout.footer).toEqual([])
+    expect(old.layout.stats).toBe(false)
+    expect(old.layout.sectionNumbers).toBe(false)
+    expect(old.theme.artBand).toBe('none')
+  })
+
+  it('carries every new field through the JSON export and back', () => {
+    const m = MetadataSchema.parse({
+      layout: {
+        headerStyle: 'display', metaColumn: 'margin', headingPlacement: 'side', sectionFrame: 'tile',
+        footer: ['languages'], stats: true, sectionNumbers: true,
+        sectionSettings: { work: { entryLayout: 'ledger' }, skills: { skillsStyle: 'mosaic' } },
+      },
+      theme: { gradientTo: '#0e7c86', artBand: 'cobalt', tile: '#fafafa', footer: '#222222' },
+    })
+    const back = fromJsonResume(toJsonResume(docWith(m)))
+    expect(back.metadata.layout.headerStyle).toBe('display')
+    expect(back.metadata.layout.metaColumn).toBe('margin')
+    expect(back.metadata.layout.headingPlacement).toBe('side')
+    expect(back.metadata.layout.sectionFrame).toBe('tile')
+    expect(back.metadata.layout.footer).toEqual(['languages'])
+    expect(back.metadata.layout.stats).toBe(true)
+    expect(back.metadata.layout.sectionNumbers).toBe(true)
+    expect(back.metadata.layout.sectionSettings.work.entryLayout).toBe('ledger')
+    expect(back.metadata.layout.sectionSettings.skills.skillsStyle).toBe('mosaic')
+    expect(back.metadata.theme.gradientTo).toBe('#0e7c86')
+    expect(back.metadata.theme.artBand).toBe('cobalt')
+    expect(back.metadata.theme.tile).toBe('#fafafa')
+    expect(back.metadata.theme.footer).toBe('#222222')
+  })
+})

@@ -40,8 +40,9 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   }
 
   // Dedupe so no section can ever appear in both columns (guards against drift
-  // over a long chain of template switches).
-  const seen = new Set<string>()
+  // over a long chain of template switches). A section the user moved to the
+  // footer strip stays there, so a re-seeded body never lists it again.
+  const seen = new Set<string>(cur.layout.footer)
   const dedupe = (arr: string[]) => arr.filter((k) => (seen.has(k) ? false : (seen.add(k), true)))
   main = dedupe(main)
   aside = dedupe(aside)
@@ -59,6 +60,9 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       headings: cur.theme.headings ?? defaults.theme.headings,
       contacts: cur.theme.contacts ?? defaults.theme.contacts,
       links: cur.theme.links ?? defaults.theme.links,
+      // The art band is the author's once chosen; a template that ships one
+      // lights it up only where nothing was decided, the way the photo does.
+      artBand: cur.theme.artBand !== 'none' ? cur.theme.artBand : defaults.theme.artBand,
     },
     // Adopt the template's typographic identity (fonts, sizes, spacing, case) but
     // keep the user's cross-cutting style choices so a switch never silently
@@ -106,6 +110,14 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // preserve user choices (sectionSettings - every per-section choice,
       // the entry order and emphasis included - rides the spread above):
       hidden: cur.layout.hidden,
+      // Structural choices the user made stay when the template changes,
+      // like the column split and the header composition do.
+      metaColumn: cur.layout.metaColumn,
+      headingPlacement: cur.layout.headingPlacement,
+      sectionFrame: cur.layout.sectionFrame,
+      footer: cur.layout.footer,
+      stats: cur.layout.stats,
+      sectionNumbers: cur.layout.sectionNumbers,
       headings: cur.layout.headings,
     },
     // Link settings are the author's, not the template's: display, the
