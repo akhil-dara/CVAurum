@@ -267,6 +267,76 @@ const DESIGNER: ResumeContent = persona({
   ],
 })
 
+/* ------------------------------------------------------------------- student */
+// The one persona still IN school. Everybody else here has finished, so a
+// student had no example to start from: this one leads with an unfinished
+// degree (the page states the finish as expected, never as done), keeps the
+// Class XII entry a fresher is always asked for, and lets coursework and
+// academic projects stand where a job history would be.
+const STUDENT: ResumeContent = persona({
+  basics: {
+    name: 'Ananya Rao',
+    label: 'Integrated M.Tech Student — Computer Science',
+    image: '',
+    email: 'ananya.rao@email.com',
+    phone: '+91 98490 41127',
+    url: 'https://ananyarao.dev',
+    // No summary: a resume with no work history reads better opening on the
+    // schooling itself, which is what the section order below does.
+    summary: '',
+    location: { city: 'Hyderabad', region: 'Telangana', countryCode: 'IN' },
+    profiles: [
+      { network: 'GitHub', username: 'ananyarao', url: 'https://github.com/ananyarao' },
+      { network: 'LinkedIn', username: 'ananyarao', url: 'https://linkedin.com/in/ananyarao' },
+    ],
+  },
+  education: [
+    {
+      // No level stored: a degree is what an entry has always shown, so this
+      // one also stands as proof that an untouched entry renders as before.
+      id: 'e1', institution: 'Deccan Institute of Technology', area: 'Computer Science', studyType: 'Integrated M.Tech',
+      status: 'pursuing', location: 'Hyderabad, India',
+      startDate: '2022-08', endDate: '2027-05', score: '8.9 CGPA', url: '', summary: '', logo: mark('DI', '#155e75'),
+      courses: ['Data Structures', 'Operating Systems', 'Databases', 'Computer Networks', 'Machine Learning'],
+    },
+    {
+      id: 'e2', institution: 'Vidya Junior College', area: 'MPC', studyType: 'Class XII, State Board',
+      level: 'intermediate', status: 'completed', location: 'Hyderabad, India',
+      startDate: '2020-06', endDate: '2022-05', score: '94.2%', url: '', summary: '', courses: [],
+    },
+  ],
+  projects: [
+    {
+      id: 'p1', name: 'Campus Lost & Found', description: 'A phone-first board where students post what they lost and what they found.', url: 'https://github.com/ananyarao/lost-found',
+      startDate: '2025-01', endDate: '2025-04',
+      highlights: [
+        'Used by <strong>1,800</strong> students in its first semester; 240 items reunited.',
+        'Matching runs on the device, so no photo ever leaves the phone.',
+      ],
+      keywords: ['React', 'TypeScript', 'IndexedDB'],
+    },
+    {
+      id: 'p2', name: 'Bus Timetable Bot', description: 'A class project that answers "when is the next bus" over chat.', url: 'https://github.com/ananyarao/bus-bot',
+      startDate: '2024-08', endDate: '2024-11',
+      highlights: ['Cut the reply from a 12-screen timetable to one line.', 'Placed second of 40 teams at the department showcase.'],
+      keywords: ['Python', 'Flask', 'PostgreSQL'],
+    },
+  ],
+  skills: [
+    { id: 's1', name: 'Languages', level: '', keywords: ['Python', 'Java', 'C', 'JavaScript', 'SQL'] },
+    { id: 's2', name: 'Web', level: '', keywords: ['React', 'Node.js', 'Flask', 'PostgreSQL'] },
+    { id: 's3', name: 'Coursework', level: '', keywords: ['Data Structures', 'DBMS', 'Operating Systems', 'Machine Learning'] },
+  ],
+  awards: [
+    { id: 'a1', title: 'Merit Scholarship — top 5% of the batch', date: '2024', awarder: 'Deccan Institute of Technology', summary: '' },
+  ],
+  languages: [
+    { id: 'l1', language: 'Telugu', fluency: 'Native', rating: 5 },
+    { id: 'l2', language: 'English', fluency: 'Fluent', rating: 5 },
+    { id: 'l3', language: 'Hindi', fluency: 'Professional', rating: 4 },
+  ],
+})
+
 /** Helper for tweak recipes. */
 const sec = (m: Metadata, key: string, over: Record<string, unknown>) => {
   if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
@@ -309,6 +379,18 @@ export const SAMPLES: SamplePersona[] = [
       sec(m, 'work', { showBadges: true })
       sec(m, 'education', { scoreStyle: 'pill' })
       sec(m, 'projects', { bulletStyle: 'dash' })
+    },
+  },
+  {
+    id: 'student',
+    name: 'Ananya Rao',
+    role: 'Student',
+    blurb: 'Still studying — an expected graduation, marks in a pill, and tagged project work.',
+    template: 'cambridge',
+    content: STUDENT,
+    tweaks: (m) => {
+      sec(m, 'education', { showBadges: true, scoreStyle: 'pill' })
+      sec(m, 'projects', { showKeywords: true, tagStyle: 'tags' })
     },
   },
   {

@@ -91,6 +91,16 @@ export const EducationSchema = z.object({
   score: z.string().optional().default(''),
   summary: z.string().optional().default(''),
   courses: z.array(z.string()).optional().default([]),
+  /** Whether the course has finished (CVAurum extension). Absent lets the end
+   *  date answer: a finish still ahead of today is a course under way, which
+   *  is what a student's resume needs - an end date of 2027 printed as though
+   *  the degree were already in hand. */
+  status: z.enum(['completed', 'pursuing']).optional(),
+  /** What kind of schooling this is (CVAurum extension). It decides what the
+   *  EDITOR calls studyType/area/score and what it suggests - a school entry
+   *  should not be asked for a degree - and nothing else: the stored fields
+   *  and every rendered string are the same either way. */
+  level: z.enum(['degree', 'diploma', 'intermediate', 'secondary', 'certificate']).optional(),
 })
 
 /** One named link. The label is what the reader sees, the url is where it

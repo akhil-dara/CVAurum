@@ -15,7 +15,7 @@
  */
 import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
-import { currentYearMonth, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
+import { currentYearMonth, entryDateOptions, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
 import { entryMetaOf, entryOrderOf } from '@/templates/_shared/sectionClasses'
 
@@ -68,7 +68,8 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
   const settings = doc.metadata.layout.sectionSettings?.[key]
   // How the document's dates read, plus the section's own time-span switch
   // read against today the way the page and the Word file read it.
-  const dates = sectionDateOptions(settings, currentYearMonth(), doc.metadata.dates)
+  const now = currentYearMonth()
+  const dates = sectionDateOptions(settings, now, doc.metadata.dates)
   // Whether the organisation leads each entry here, as it does on the page.
   // Which line is bold is ink, not words, and never reaches this text.
   const orgFirst = entryOrderOf(settings).lead === 'org'
@@ -104,7 +105,9 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
           ...entryHead(
             [e.studyType, e.area].filter(Boolean).join(', '),
             e.institution,
-            formatDateRange(e.startDate, e.endDate, dates),
+            // A course still under way names its finish as expected, here as
+            // on the page: the entry's own progress rides on the same options.
+            formatDateRange(e.startDate, e.endDate, entryDateOptions(dates, e.status, now)),
             e.location,
             orgFirst,
             locWithDate,

@@ -3,6 +3,8 @@ import {
   canonicalLanguage,
   currentYearMonth,
   DATE_LANGUAGE_OPTIONS,
+  dateProgress,
+  entryDateOptions,
   formatDate,
   formatDateRange,
   formatDuration,
@@ -265,5 +267,102 @@ describe('sectionDateOptions carries the document\'s date settings', () => {
     // The whole string in one language: the month names and the span alike.
     const opts = sectionDateOptions({ showDuration: true }, '2024-08', dates)
     expect(formatDateRange('2019-01', '2021-03', opts)).toBe('Januar 2019 to März 2021 (2 J. 3 Mon.)')
+  })
+})
+
+/**
+ * A course that has not finished yet. An end date still ahead of the caller's
+ * today used to print as though it had already happened - "Aug 2022 — May
+ * 2027" on a resume written in 2026 hands the reader a degree two years
+ * early. The words come from the document's own date settings and the today
+ * is handed in, exactly as a time span is, so nothing here reads the clock.
+ */
+describe('formatDateRange for studies still under way', () => {
+  const now = '2026-09'
+
+  it('marks an end still ahead of today as expected', () => {
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'auto', now })).toBe('Aug 2022 — Expected May 2027')
+    // The author's own answer needs no calendar.
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'pursuing', now })).toBe('Aug 2022 — Expected May 2027')
+    // A lone end (no start) is the whole date.
+    expect(formatDateRange('', '2027-05', { progress: 'auto', now })).toBe('Expected May 2027')
+    expect(formatDateRange('2027-05', '2027-05', { progress: 'auto', now })).toBe('Expected May 2027')
+  })
+
+  it('reads a course with no end as one word', () => {
+    expect(formatDateRange('2022-08', '', { progress: 'pursuing', now })).toBe('Pursuing')
+    expect(formatDateRange('2022-08', 'Present', { progress: 'pursuing', now })).toBe('Pursuing')
+    expect(formatDateRange('', '', { progress: 'pursuing', now })).toBe('Pursuing')
+  })
+
+  it('takes both words from the document', () => {
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'auto', now, expected: 'Expected graduation' })).toBe(
+      'Aug 2022 — Expected graduation May 2027'
+    )
+    expect(formatDateRange('2022-08', '', { progress: 'pursuing', now, pursuing: 'In progress' })).toBe('In progress')
+    // Blank settings fall back to the words the page has always had.
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'auto', now, expected: '  ' })).toBe(
+      'Aug 2022 — Expected May 2027'
+    )
+  })
+
+  it('keeps the rest of the document\'s date settings', () => {
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'auto', now, month: 'long', separator: 'hyphen' })).toBe(
+      'August 2022 - Expected May 2027'
+    )
+    // A bare year is ahead while the year it names has not been reached.
+    expect(formatDateRange('2023', '2027', { progress: 'auto', now })).toBe('2023 — Expected 2027')
+    // One year with no month shown is that year, once - still expected.
+    expect(formatDateRange('2027-01', '2027-09', { progress: 'auto', now, month: 'none' })).toBe('Expected 2027')
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'auto', now, duration: true })).toBe(
+      'Aug 2022 — Expected May 2027 (4 yrs 10 mos)'
+    )
+  })
+
+  it('leaves every other range exactly as it was', () => {
+    // A finished course, with today handed in and nothing claimed.
+    expect(formatDateRange('2019-09', '2023-05', { progress: 'auto', now })).toBe('Sep 2019 — May 2023')
+    // The author saying "completed" beats the calendar.
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'completed', now })).toBe('Aug 2022 — May 2027')
+    // No progress asked for at all: the string every other section prints.
+    expect(formatDateRange('2022-08', '2027-05', { now })).toBe('Aug 2022 — May 2027')
+    expect(formatDateRange('2019-01', '2021-03')).toBe('Jan 2019 — Mar 2021')
+    // An open end still reads Present unless the author said otherwise.
+    expect(formatDateRange('2022-08', '', { progress: 'auto', now })).toBe('Aug 2022 — Present')
+    expect(formatDateRange('2022-08', 'Present', { progress: 'completed', now })).toBe('Aug 2022 — Present')
+    expect(formatDateRange('2023-06', '', { duration: true, now: '2024-08' })).toBe('Jun 2023 — Present (1 yr 3 mos)')
+    // Free text at the end cannot be compared with a calendar.
+    expect(formatDateRange('2022-08', 'Summer 2027', { progress: 'auto', now })).toBe('Aug 2022 — Summer 2027')
+    // No today to read against, so nothing is ahead of it.
+    expect(formatDateRange('2022-08', '2027-05', { progress: 'auto' })).toBe('Aug 2022 — May 2027')
+  })
+})
+
+describe('dateProgress', () => {
+  it('takes the author\'s own answer first', () => {
+    expect(dateProgress('pursuing', '2019-05', '2026-09')).toBe('pursuing')
+    expect(dateProgress('completed', '2027-05', '2026-09')).toBe('completed')
+  })
+
+  it('reads the end date when nothing was said', () => {
+    expect(dateProgress(undefined, '2027-05', '2026-09')).toBe('pursuing')
+    expect(dateProgress(undefined, '2023-05', '2026-09')).toBe('completed')
+    expect(dateProgress(undefined, '', '2026-09')).toBe('completed')
+  })
+})
+
+describe('entryDateOptions', () => {
+  it('adds the entry\'s progress and today to the section\'s own options', () => {
+    const dates = { month: 'long' as const, present: 'Current' }
+    expect(entryDateOptions(dates, 'pursuing', '2026-09')).toEqual({ ...dates, progress: 'pursuing', now: '2026-09' })
+    // Nothing stored means the end date decides.
+    expect(entryDateOptions(dates, undefined, '2026-09')).toEqual({ ...dates, progress: 'auto', now: '2026-09' })
+    expect(entryDateOptions(undefined, 'completed', '2026-09')).toEqual({ progress: 'completed', now: '2026-09' })
+    // A section that asked for a time span keeps it.
+    expect(entryDateOptions({ duration: true, now: '2026-09' }, undefined, '2026-09')).toEqual({
+      duration: true,
+      progress: 'auto',
+      now: '2026-09',
+    })
   })
 })

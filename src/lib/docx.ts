@@ -37,6 +37,7 @@ import { entryMetaOf, entryOrderOf, keepEntriesOn, LOCATION_DATE_SEPARATOR } fro
 import {
   currentYearMonth,
   downloadBlob,
+  entryDateOptions,
   formatDate,
   formatDateRange,
   htmlToText,
@@ -544,13 +545,18 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
      *  paragraph is built so one column serves the whole section: a title
      *  lands at the same offset whether its own date reads "2022" or
      *  "September 2019 - December 2021". */
+    /** An education entry's dates: the section's options plus the entry's own
+     *  progress, so a course still under way names its finish as expected -
+     *  the same string the page prints, measured into the same column. */
+    const eduRange = (e: (typeof content.education)[number]) =>
+      formatDateRange(e.startDate, e.endDate, entryDateOptions(dates, e.status, now))
     const tabbedDates = (): string[] => {
       const range = (a?: string, b?: string) => formatDateRange(a, b, dates)
       switch (key) {
         case 'work':
           return content.work.map((w) => placed(w.location, range(w.startDate, w.endDate)))
         case 'education':
-          return content.education.map((e) => placed(e.location, range(e.startDate, e.endDate)))
+          return content.education.map((e) => placed(e.location, eduRange(e)))
         case 'projects':
           return content.projects.map((p) => range(p.startDate, p.endDate))
         case 'volunteer':
@@ -600,7 +606,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
             })
           )
         if (has(e.summary)) body.push(...summaryParas(e.summary!, C))
-        out.push(titleDate(lead || under || 'Institution', placed(e.location, formatDateRange(e.startDate, e.endDate, dates)), C, width, keepHead(keepEntries && (!!line || body.length > 0)), e.url, leadBold))
+        out.push(titleDate(lead || under || 'Institution', placed(e.location, eduRange(e)), C, width, keepHead(keepEntries && (!!line || body.length > 0)), e.url, leadBold))
         if (line) out.push(sub(line, C, !leadBold, keepEntries && body.length > 0))
         out.push(...body)
       }

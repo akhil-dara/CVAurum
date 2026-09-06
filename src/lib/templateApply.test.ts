@@ -35,12 +35,13 @@ describe('applyTemplateToMetadata keeps the link settings', () => {
 describe('applyTemplateToMetadata keeps the date settings', () => {
   // How dates read is the author's choice, like the link settings: a switch
   // adopts the template's look but must not put a hand-set month style,
-  // separator, present word or language back on the default.
+  // separator, present word, expected/pursuing word or language back on the
+  // default.
   it('carries the whole dates block across a switch', () => {
     const dates = { month: 'long', separator: 'to', present: 'Current', language: 'fr' } as const
     const cur = MetadataSchema.parse({ template: 'modern', dates })
     const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
-    expect(next.dates).toEqual(dates)
+    expect(next.dates).toEqual({ ...dates, expected: 'Expected', pursuing: 'Pursuing' })
   })
 })
 

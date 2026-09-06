@@ -3,14 +3,14 @@ import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import type { NamedLink } from '@/types/resume'
-import { cn, uid } from '@/lib/utils'
+import { cn, currentYearMonth, dateProgress, uid } from '@/lib/utils'
 import { newItem, removeItem, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
 import { LogoPicker } from './fields/LogoPicker'
 import { RichTextLazy as RichTextEditor } from './fields/RichTextLazy'
 import { BulletsEditor } from './fields/BulletsEditor'
-import { Toggle } from './fields/Controls'
+import { Segmented, Select, Toggle } from './fields/Controls'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -18,6 +18,31 @@ type AnyItem = Record<string, any>
 
 /** Common language fluency levels (CEFR-ish), offered as a dropdown. */
 const FLUENCY_LEVELS = ['Native', 'Fluent', 'Professional', 'Conversational', 'Intermediate', 'Basic']
+
+/**
+ * What a school calls the three fields an education entry already stores.
+ * The entry's `level` picks a set of NAMES and SUGGESTIONS - studyType, area
+ * and score are the same three stored fields whichever is chosen, so every
+ * template prints a school entry today with no template work and no export
+ * knows the difference. The editor asking a Class XII entry for a "Degree"
+ * and a "3.8 GPA" is what left school leavers with nowhere to type.
+ */
+const EDU_LEVELS = {
+  degree: { label: 'Degree', study: 'Degree', studyHint: 'B.S.', area: 'Field of study', areaHint: 'Computer Science', scoreHint: '3.8 GPA' },
+  diploma: { label: 'Diploma', study: 'Diploma', studyHint: 'Diploma in Mechanical Engineering', area: 'Field of study', areaHint: 'Mechanical Engineering', scoreHint: 'First class' },
+  intermediate: { label: 'Intermediate / +2', study: 'Class / Board', studyHint: 'Intermediate, MPC', area: 'Stream', areaHint: 'Science', scoreHint: '94.2%' },
+  secondary: { label: 'School (Class X)', study: 'Class / Board', studyHint: 'Class X, CBSE', area: 'Stream', areaHint: '', scoreHint: '9.4 CGPA' },
+  certificate: { label: 'Certificate', study: 'Certificate', studyHint: 'Certificate in Data Analytics', area: 'Subject', areaHint: 'Data Analytics', scoreHint: 'Passed' },
+} as const
+
+type EduLevel = keyof typeof EDU_LEVELS
+
+/** The names this entry's fields go by: its own level, else a degree's -
+ *  which is exactly what every entry stored before the field existed shows. */
+const eduLevel = (level?: string): (typeof EDU_LEVELS)[EduLevel] =>
+  EDU_LEVELS[(level as EduLevel) in EDU_LEVELS ? (level as EduLevel) : 'degree']
+
+const EDU_LEVEL_OPTIONS = (Object.keys(EDU_LEVELS) as EduLevel[]).map((value) => ({ value, label: EDU_LEVELS[value].label }))
 
 function itemTitle(sectionKey: string, it: AnyItem): string {
   switch (sectionKey) {
@@ -403,7 +428,13 @@ function ItemFields({
           <BulletsEditor label="Achievements" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
       )
-    case 'education':
+    case 'education': {
+      // What this entry's fields are called here, and how far along it is.
+      // The status row shows the state the page is printing - a finish still
+      // ahead reads as "In progress" before anything is stored - exactly as
+      // the date field's "Present" tick reflects an empty end date.
+      const names = eduLevel(item.level)
+      const status = dateProgress(item.status, item.endDate, currentYearMonth())
       return (
         <>
           <TextField
@@ -425,9 +456,22 @@ function ItemFields({
             placeholder="https://berkeley.edu"
           />
 
+          <Select
+            label="Level"
+            value={(item.level as EduLevel) ?? 'degree'}
+            options={EDU_LEVEL_OPTIONS}
+            onChange={(v) =>
+              patch((it) => {
+                // A degree is what an entry with no level already shows, so
+                // choosing it stores nothing: old documents and new ones that
+                // never touched this row stay the same bytes.
+                it.level = v === 'degree' ? undefined : v
+              })
+            }
+          />
           <Row>
-            <TextField label="Degree" value={item.studyType} onChange={set('studyType')} placeholder="B.S." />
-            <TextField label="Field of study" value={item.area} onChange={set('area')} placeholder="Computer Science" />
+            <TextField label={names.study} value={item.studyType} onChange={set('studyType')} placeholder={names.studyHint} />
+            <TextField label={names.area} value={item.area} onChange={set('area')} placeholder={names.areaHint} />
           </Row>
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
@@ -439,15 +483,33 @@ function ItemFields({
               singleWith={item.startDate}
             />
           </Row>
+          <Labeled
+            label="Status"
+            hint="In progress states the finish as expected — “Expected May 2027” — instead of printing a graduation that has not happened yet."
+          >
+            <Segmented
+              value={status}
+              options={[
+                { value: 'completed', label: 'Completed' },
+                { value: 'pursuing', label: 'In progress' },
+              ]}
+              onChange={(v) =>
+                patch((it) => {
+                  it.status = v
+                })
+              }
+            />
+          </Labeled>
           <Row>
             <TextField label="Location" value={item.location} onChange={set('location')} placeholder="Berkeley, CA" />
-            <TextField label="Grade / GPA" value={item.score} onChange={set('score')} placeholder="3.8 GPA" />
+            <TextField label="Grade / GPA" value={item.score} onChange={set('score')} placeholder={names.scoreHint} />
           </Row>
           <TagInput label="Relevant courses" value={item.courses ?? []} onChange={set('courses')} />
           <LogoPicker label="Institution logo" value={item.logo} onChange={set('logo')} />
           <BadgeRow sectionKey={sectionKey} item={item} patch={patch} />
         </>
       )
+    }
     case 'projects':
       return (
         <>

@@ -809,3 +809,49 @@ describe('the Word export shades the footer strip', () => {
     expect(tables(body)).toEqual([])
   })
 })
+
+/**
+ * A course that has not finished yet, in the Word file. The date string is
+ * the one the shared formatter returns, so a graduation the page states as
+ * expected reaches Word as the same characters - and the date column is
+ * measured from that same string, so the tab still lands.
+ */
+describe('the Word export prints a course still under way', () => {
+  const eduDoc = (over: Record<string, unknown> = {}) => {
+    const doc = docWith({ layout: { main: ['education'] } })
+    // The fixture's open-ended job would print its own "Present" beside the
+    // education entry these assertions read.
+    doc.content.work = []
+    doc.content.education = [
+      {
+        id: 'e1',
+        institution: 'Institute of Technology',
+        area: 'Computer Science',
+        studyType: 'Integrated M.Tech',
+        startDate: '2022-08',
+        endDate: '2027-05',
+        score: '8.9 CGPA',
+        courses: [],
+        ...over,
+      },
+    ] as never
+    return doc
+  }
+
+  it('names a finish that has not happened as expected', async () => {
+    const all = texts((await unpack(eduDoc({ status: 'pursuing' }))).body).join('')
+    expect(all).toContain('Expected May 2027')
+  })
+
+  it('reads a course with no finish date as one word', async () => {
+    const all = texts((await unpack(eduDoc({ status: 'pursuing', endDate: '' }))).body).join('')
+    expect(all).toContain('Pursuing')
+    expect(all).not.toContain('Present')
+  })
+
+  it('leaves a finished course exactly as it was', async () => {
+    const all = texts((await unpack(eduDoc({ startDate: '2019-09', endDate: '2023-05' }))).body).join('')
+    expect(all).toContain('Sep 2019 — May 2023')
+    expect(all).not.toContain('Expected')
+  })
+})

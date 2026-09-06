@@ -88,20 +88,36 @@ export function htmlEscape(s: string): string {
  *  optional so a caller with none gets what the page always printed. */
 export type DateOptions = Partial<Dates>
 
+/** How far along the entry a range belongs to is: the author's own answer,
+ *  or `auto` - they never said, so the end date decides. */
+export type DateProgress = 'completed' | 'pursuing' | 'auto'
+
 /** Options the date formatters share: the document's date settings, plus
  *  `duration`, which appends the length of a range in parentheses, read
  *  against `now` (the caller's own "YYYY-MM") when the range is open-ended
- *  and worded in the same `language` as the month names. */
+ *  and worded in the same `language` as the month names, and `progress`,
+ *  which says whether the entry has finished - a course still under way
+ *  names its finish as expected rather than as done, read against the same
+ *  `now`. */
 export type DateRangeOptions = DateOptions & {
   duration?: boolean
   now?: string
+  progress?: DateProgress
 }
 
 const DEFAULT_PRESENT = 'Present'
+const DEFAULT_EXPECTED = 'Expected'
+const DEFAULT_PURSUING = 'Pursuing'
 
 /** The word an open-ended range ends with: the author's, or Present when
  *  they left it blank - a range that ends in nothing reads as a mistake. */
 const presentWord = (opts: DateOptions): string => (opts.present || '').trim() || DEFAULT_PRESENT
+
+/** The word before a finish that has not happened yet: "Expected May 2027". */
+const expectedWord = (opts: DateOptions): string => (opts.expected || '').trim() || DEFAULT_EXPECTED
+
+/** The word a course with no finish date at all reads as, on its own. */
+const pursuingWord = (opts: DateOptions): string => (opts.pursuing || '').trim() || DEFAULT_PURSUING
 
 /** The glyph between the two ends of a range, spaced the way the page sets it. */
 const RANGE_SEPARATORS: Record<NonNullable<Dates['separator']>, string> = {
@@ -224,27 +240,90 @@ export function formatDate(value?: string, opts: DateOptions = {}): string {
   return monthYearFormat(lang, style).format(utcMonth(parseInt(y, 10), monthIdx))
 }
 
+/** A range with no real end: nothing typed, or the Present keyword. */
+const isOpenEnd = (end?: string): boolean => {
+  const v = (end || '').trim()
+  return !v || /^present$/i.test(v)
+}
+
+/**
+ * True when a date lands after `now` ("YYYY-MM"): the month when the date
+ * names one, else the year as a whole - a bare "2027" is still ahead while
+ * 2026 is running. Free text has no place on a calendar and is never ahead,
+ * and with no `now` handed in there is nothing to be ahead of.
+ */
+function endsAfter(end?: string, now?: string): boolean {
+  const n = monthIndex(now)
+  if (n == null) return false
+  const m = (end || '').trim().match(/^(\d{4})(?:-(\d{1,2}))?(?:-\d{1,2})?$/)
+  if (!m) return false
+  const year = parseInt(m[1], 10)
+  if (!m[2]) return year > Math.floor(n / 12)
+  const month = parseInt(m[2], 10)
+  if (month < 1 || month > 12) return false
+  return year * 12 + (month - 1) > n
+}
+
+/**
+ * Where an entry stands: what the author stored, else what its end date says
+ * against the caller's today. The editor's Status row reads this so the row
+ * shows the state the page is printing, exactly as the date field's "Present"
+ * tick reflects an empty end rather than a stored flag.
+ */
+export function dateProgress(status: string | undefined, end: string | undefined, now: string): 'completed' | 'pursuing' {
+  if (status === 'pursuing' || status === 'completed') return status
+  return endsAfter(end, now) ? 'pursuing' : 'completed'
+}
+
+/**
+ * The range options ONE entry asks for: the section's own options, plus how
+ * far along the entry is and the caller's today. Every renderer builds them
+ * this way, so the canvas, the PDF, the Word file and the ATS text print the
+ * one string the formatter returns.
+ */
+export function entryDateOptions(
+  opts: DateRangeOptions | undefined,
+  status: string | undefined,
+  now: string
+): DateRangeOptions {
+  const progress: DateProgress = status === 'pursuing' || status === 'completed' ? status : 'auto'
+  return { ...opts, progress, now }
+}
+
 /** "Jan 2021 - Present" style range (a spaced em dash unless the document
- *  chose otherwise), ending "(2 yrs 3 mos)" when asked. */
+ *  chose otherwise), ending "(2 yrs 3 mos)" when asked. A course still under
+ *  way names its finish as expected, or reads as one word when it has no
+ *  finish date at all. */
 export function formatDateRange(start?: string, end?: string, opts: DateRangeOptions = {}): string {
+  // Under way with nothing to end on: the whole range is the word, since
+  // "Present" would claim the course is over as much as a date would.
+  if (opts.progress === 'pursuing' && isOpenEnd(end)) return pursuingWord(opts)
   const s = formatDate(start, opts)
   const e = end ? formatDate(end, opts) : presentWord(opts)
+  // A finish that has not happened yet is stated as expected: either the
+  // author said the entry is under way, or they said nothing and the date
+  // itself is still ahead of the today handed in. `mark` is identity in
+  // every other case, so every range that printed before prints unchanged.
+  const expected =
+    !isOpenEnd(end) &&
+    (opts.progress === 'pursuing' || (opts.progress === 'auto' && endsAfter(end, opts.now)))
+  const mark = (v: string) => (expected && v ? `${expectedWord(opts)} ${v}` : v)
   if (!s && !e) return ''
-  if (!s) return e
+  if (!s) return mark(e)
   if (!e) return s
   // A SINGLE-date entry (a one-year course, a one-off engagement) is stored as
   // start === end - render it once, never as "2024 - 2024". Keeping it in the
   // start/end fields means it stays valid JSON Resume and flows through the
   // canvas, the ATS text view, and the Word export unchanged.
-  if (isSingleDate(start, end)) return s
+  if (isSingleDate(start, end)) return mark(s)
   // The span is part of this one string on purpose: every renderer prints
   // the string as it is, so none can show a span the others lack.
   const span = opts.duration ? formatDuration(start, end, opts) : ''
   // With no month shown, a range inside one year is that year, once; the
   // span still counts the months the data holds.
-  if (s === e) return span ? `${s} (${span})` : s
+  if (s === e) return span ? `${mark(s)} (${span})` : mark(s)
   const sep = RANGE_SEPARATORS[opts.separator ?? 'emdash'] ?? RANGE_SEPARATORS.emdash
-  return span ? `${s}${sep}${e} (${span})` : `${s}${sep}${e}`
+  return span ? `${s}${sep}${mark(e)} (${span})` : `${s}${sep}${mark(e)}`
 }
 
 /**

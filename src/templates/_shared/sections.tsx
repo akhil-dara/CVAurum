@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom'
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
-import { currentYearMonth, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
+import { currentYearMonth, entryDateOptions, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
 import type { DateOptions, DateRangeOptions } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Deco, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords, ringPath } from './atoms'
@@ -140,6 +140,12 @@ function rangeDate(
 /** The document's date settings, plus the time span a section asked for,
  *  read against this render's today. */
 const spanOpts = (opts?: SecOpts) => sectionDateOptions(opts, currentYearMonth(), opts?.dates)
+/** Those, plus how far along ONE entry is: a course still under way names
+ *  its finish as expected. The formatter is the shared one, so the string
+ *  the canvas shows is the string the PDF paints, the Word file writes and
+ *  the ATS text lists. */
+const progressOpts = (opts: SecOpts | undefined, status?: string) =>
+  entryDateOptions(spanOpts(opts), status, currentYearMonth())
 /** A single date that's click-to-edit on the canvas. */
 function singleDate(
   edit: EditFn | undefined,
@@ -1294,7 +1300,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 (c, v) => {
                   c.education[i].endDate = v
                 },
-                spanOpts(opts)
+                progressOpts(opts, e.status)
               )}
             />
             <div className="rm-item-sub">

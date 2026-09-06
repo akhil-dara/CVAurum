@@ -163,12 +163,21 @@ describe('bullet indent and bullet spacing survive a round trip', () => {
 
 describe('the date settings survive a round trip', () => {
   // One block for how every date on the page reads: month style, separator,
-  // present word and language. A file saved before it existed carries none
-  // of it and must print dates exactly as it always did.
-  it('keeps all four values', () => {
-    const m = MetadataSchema.parse({ dates: { month: 'numeric', separator: 'hyphen', present: 'Now', language: 'de' } })
+  // the word for an open range, the two words for a course still under way,
+  // and language. A file saved before it existed carries none of it and must
+  // print dates exactly as it always did.
+  it('keeps every value', () => {
+    const dates = {
+      month: 'numeric',
+      separator: 'hyphen',
+      present: 'Now',
+      expected: 'Due',
+      pursuing: 'Ongoing',
+      language: 'de',
+    } as const
+    const m = MetadataSchema.parse({ dates })
     const back = fromJsonResume(toJsonResume(docWith(m)))
-    expect(back.metadata.dates).toEqual({ month: 'numeric', separator: 'hyphen', present: 'Now', language: 'de' })
+    expect(back.metadata.dates).toEqual(dates)
   })
 
   it('an older file lands on the dates the page always printed', () => {
@@ -177,7 +186,14 @@ describe('the date settings survive a round trip', () => {
     }
     delete raw.meta.cvaurum.dates
     const fresh = fromJsonResume(raw as never)
-    expect(fresh.metadata.dates).toEqual({ month: 'short', separator: 'emdash', present: 'Present', language: 'en' })
+    expect(fresh.metadata.dates).toEqual({
+      month: 'short',
+      separator: 'emdash',
+      present: 'Present',
+      expected: 'Expected',
+      pursuing: 'Pursuing',
+      language: 'en',
+    })
   })
 
   it('a partial block fills in the rest', () => {

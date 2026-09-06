@@ -313,6 +313,10 @@ export const DatesSchema = z.object({
   separator: z.enum(['endash', 'emdash', 'to', 'hyphen']).default('emdash'),
   /** the word an open-ended range ends with */
   present: z.string().default('Present'),
+  /** the word before a finish that has not happened yet: "Expected May 2027" */
+  expected: z.string().default('Expected'),
+  /** the word a course still under way reads as when it names no finish */
+  pursuing: z.string().default('Pursuing'),
   /** BCP-47 tag for month names and time-span words; the PDF declares it as its language too */
   language: z.string().default('en'),
 })

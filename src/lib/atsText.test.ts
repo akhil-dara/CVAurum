@@ -355,3 +355,75 @@ describe('resumeToAtsText reads the footer strip last', () => {
     expect(at(text, 'Skills')).toBeGreaterThan(at(text, 'Education'))
   })
 })
+
+/**
+ * A course that has not finished yet reaches the text a parser reads. Every
+ * surface formats its dates with the one shared formatter, so a graduation
+ * the page states as expected cannot be missing here - and an entry stored
+ * before the field existed has to serialize exactly as it always did.
+ */
+describe('resumeToAtsText prints a course still under way', () => {
+  const eduDoc = (over: Record<string, unknown> = {}): ResumeDocument =>
+    ({
+      id: 'res-2',
+      title: 'T',
+      createdAt: 0,
+      updatedAt: 0,
+      content: {
+        basics: { name: 'Priya Nair', profiles: [], location: {} },
+        work: [],
+        education: [
+          {
+            id: 'e1',
+            institution: 'Institute of Technology',
+            area: 'Computer Science',
+            studyType: 'Integrated M.Tech',
+            location: 'Hyderabad, India',
+            startDate: '2022-08',
+            endDate: '2027-05',
+            score: '8.9 CGPA',
+            url: '',
+            summary: '',
+            courses: [],
+            ...over,
+          },
+        ],
+        projects: [],
+        skills: [],
+        languages: [],
+        certificates: [],
+        awards: [],
+        publications: [],
+        volunteer: [],
+        interests: [],
+        references: [],
+        custom: [],
+      },
+      metadata: MetadataSchema.parse({ layout: { main: ['education'] } }),
+    }) as unknown as ResumeDocument
+
+  it('names a finish that has not happened as expected', () => {
+    expect(resumeToAtsText(eduDoc({ status: 'pursuing' }))).toContain('Expected May 2027')
+  })
+
+  it('reads a course with no finish date as one word', () => {
+    const text = resumeToAtsText(eduDoc({ status: 'pursuing', endDate: '' }))
+    expect(text).toContain('Pursuing')
+    expect(text).not.toContain('Present')
+  })
+
+  it('leaves a finished course exactly as it was', () => {
+    const text = resumeToAtsText(eduDoc({ startDate: '2019-09', endDate: '2023-05' }))
+    expect(text).toContain('Sep 2019 — May 2023')
+    expect(text).not.toContain('Expected')
+  })
+
+  it('is byte-identical whatever the entry\'s level says', () => {
+    // The level names the fields in the editor and nowhere else: it must not
+    // reach a single character a parser reads.
+    const plain = resumeToAtsText(eduDoc({ startDate: '2019-09', endDate: '2023-05' }))
+    for (const level of ['degree', 'diploma', 'intermediate', 'secondary', 'certificate']) {
+      expect(resumeToAtsText(eduDoc({ startDate: '2019-09', endDate: '2023-05', level }))).toBe(plain)
+    }
+  })
+})

@@ -492,6 +492,28 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
+        <TextField
+          label="Word for an unfinished course"
+          value={m.dates?.expected ?? 'Expected'}
+          placeholder="Expected"
+          hint="Goes before a finish that has not happened yet: Expected May 2027."
+          onChange={(v) =>
+            update((md) => {
+              md.dates.expected = v
+            })
+          }
+        />
+        <TextField
+          label="Word for a course with no end date"
+          value={m.dates?.pursuing ?? 'Pursuing'}
+          placeholder="Pursuing"
+          hint="Stands in for the whole range: Pursuing, Ongoing, or a word in your language."
+          onChange={(v) =>
+            update((md) => {
+              md.dates.pursuing = v
+            })
+          }
+        />
         <Select
           label="Language"
           value={m.dates?.language ?? 'en'}

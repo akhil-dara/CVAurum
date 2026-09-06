@@ -157,8 +157,10 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
 
 /**
  * Persona picker for "Start with an example" — shows a few believable, varied
- * resumes (engineer, marketing, new grad) rendered live in a flattering
- * template, so first-run users of any background see themselves and get ideas.
+ * resumes (engineer, marketing, new grad, student, designer) rendered live in
+ * a flattering template, so first-run users of any background see themselves
+ * and get ideas. The student is the one still IN school: an expected
+ * graduation, school marks, and projects where a job history would be.
  */
 export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) => void; onClose: () => void }) {
   // Build a previewable doc per persona once (content + its flattering template).
@@ -187,7 +189,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
           </button>
         </div>
         <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
-        <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-2 lg:grid-cols-5">
           {docs.map(({ persona, doc }) => (
             <SampleCard key={persona.id} persona={persona} doc={doc} onPick={onPick} />
           ))}
@@ -207,7 +209,7 @@ function SampleCard({
   doc: ReturnType<typeof createDocument>
   onPick: (p: SamplePersona) => void
 }) {
-  // Four full resumes used to mount synchronously the moment the modal
+  // Every full resume here used to mount synchronously the moment the modal
   // opened. Each card now waits for its idle grant like every other
   // thumbnail; the aspect box holds the layout meanwhile.
   const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
