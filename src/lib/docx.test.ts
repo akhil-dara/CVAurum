@@ -584,6 +584,27 @@ describe('the Word export places the location and the date the way the section d
     expect(tabKind(p)).toBe('right')
   })
 
+  // A right margin column takes the date out of the head row and prints it at
+  // the page's right edge, so the Word file uses the right tab it has always
+  // had for that reading - even where the section itself asked for a left one.
+  it('a right margin column puts the date back on the right tab', async () => {
+    const doc = withPlaces({ work: { dateAlign: 'left' } })
+    doc.metadata.layout.metaColumn = 'margin'
+    const p = paraOf((await unpack(doc)).body, 'Designer')
+    expect(firstText(p)).toBe('Designer')
+    expect(tabKind(p)).toBe('right')
+  })
+
+  it('a left gutter leaves the Word file exactly as it was', async () => {
+    const doc = withPlaces({ work: { dateAlign: 'left' } })
+    doc.metadata.layout.metaColumn = 'gutter'
+    const p = paraOf((await unpack(doc)).body, 'Designer')
+    expect(firstText(p)).toBe('Mar 2021 — Feb 2023')
+    expect(tabKind(p)).toBe('left')
+    // The gutter's years are decoration, so none of them is written.
+    expect(texts((await unpack(doc)).body).join('|')).not.toContain('to now')
+  })
+
   // A column narrower than the date it holds is no column at all: Word runs
   // past the single stop to its own default grid, and the titles of a section
   // land at different offsets down the page. A conservative lower bound on

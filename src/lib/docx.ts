@@ -546,7 +546,12 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     // two sharing the head row the location leads the tabbed string, exactly
     // as it leads the date slot on the page, and it leaves the sub-line.
     const meta = entryMetaOf(settings)
-    DATE_LEFT = meta.dateLeft
+    // A right margin holds the date out at the page's right edge, so the
+    // Word file uses the right tab it has always had for it - the same
+    // reading - whatever side the section would otherwise have picked. A
+    // left gutter adds nothing here: its years are decoration, and the
+    // entry's own date line is already written.
+    DATE_LEFT = meta.dateLeft && doc.metadata.layout.metaColumn !== 'margin'
     const placed = (loc: string | undefined, date: string) =>
       meta.locWithDate && loc ? [loc, date].filter(Boolean).join(LOCATION_DATE_SEPARATOR) : date
     /** The location, when the section leaves it on the sub-line. */
@@ -583,7 +588,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
           )
       }
     }
-    DATE_COL = meta.dateLeft ? dateColumnFor(tabbedDates()) : DATE_COL_MIN
+    DATE_COL = DATE_LEFT ? dateColumnFor(tabbedDates()) : DATE_COL_MIN
     if (key === 'summary') {
       if (!has(b.summary)) continue
       out.push(heading(label, C, align), ...summaryParas(b.summary!, C))

@@ -772,6 +772,7 @@ function Section({
   edit,
   editMeta,
   compact,
+  noMeta,
   index,
 }: {
   sectionKey: string
@@ -781,6 +782,9 @@ function Section({
   editMeta?: MetaEditFn
   /** The footer strip's row form (sections.tsx SectionBody). */
   compact?: boolean
+  /** Outside the body's single flow - the sidebar, a gallery card - so no
+   *  meta column opens beside this section. */
+  noMeta?: boolean
   /** The section's place among the body's sections, for a running number;
    *  the strip, the sidebar and the gallery card pass none. */
   index?: number
@@ -885,6 +889,7 @@ function Section({
           edit={edit}
           editMeta={editMeta}
           compact={compact}
+          noMeta={noMeta}
         />
       </div>
     </section>
@@ -930,7 +935,7 @@ export function SectionPreview({
     .join(' ')
   return (
     <div className={cls} style={vars} data-template={config.id}>
-      <Section sectionKey={sectionKey} doc={doc} config={config} />
+      <Section sectionKey={sectionKey} doc={doc} config={config} noMeta />
     </div>
   )
 }
@@ -984,6 +989,12 @@ export function Artboard({
     `side-${doc.metadata.layout.sidebar}`,
     // The page seats a footer strip at its foot (artboard.css).
     footer.length ? 'rm-has-footer' : '',
+    // An entry's dates can have a column of their own: a gutter of
+    // decorative years on the left, or a margin holding the real date on
+    // the right. Absent unless asked for, so nothing existing shifts.
+    doc.metadata.layout.metaColumn && doc.metadata.layout.metaColumn !== 'none'
+      ? `meta-${doc.metadata.layout.metaColumn}`
+      : '',
     ...iconAndLinkClasses(doc),
     // Editing-time signal only: the canvas grays its link marks when the
     // export will not make them clickable, so the state is visible without
@@ -1001,7 +1012,7 @@ export function Artboard({
         <Monogram doc={doc} editMeta={editMeta} />
       ) : null}
       {aside.map((key) => (
-        <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} />
+        <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} noMeta />
       ))}
     </aside>
   ) : null

@@ -111,6 +111,10 @@ export type SecOpts = {
   /** Document-level too: how every date reads (month style, separator,
    *  present word, language), handed to the shared formatter. */
   dates?: DateOptions
+  /** Document-level: whether an entry hands its dates to a column of its
+   *  own - a gutter of decorative years on the left, or a margin holding
+   *  the real date on the right. 'none' anywhere it does not apply. */
+  metaColumn?: string
 }
 const show = (v?: boolean) => v !== false
 /** The section leads its entries with the organisation rather than the
@@ -121,6 +125,46 @@ const leadsWithOrg = (opts?: SecOpts) => entryOrderOf(opts).lead === 'org'
  *  sub-line under the title. The field changes slot and stays editable
  *  where it lands; which edge the date itself sits on is the stylesheet's. */
 const locBesideDate = (opts?: SecOpts) => entryMetaOf(opts).locWithDate
+/** Which column, if any, this section's entries hand their dates to. */
+const metaColumnOf = (opts?: SecOpts): 'none' | 'gutter' | 'margin' =>
+  opts?.metaColumn === 'gutter' || opts?.metaColumn === 'margin' ? opts.metaColumn : 'none'
+/** The four-digit year a stored date opens with ('2021-03' -> '2021'). */
+const yearOf = (d?: string) => /^\s*(\d{4})/.exec(d || '')?.[1] ?? ''
+/** The author's initials, at most two letters. */
+const initialsOf = (name?: string) =>
+  (name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || '')
+    .join('')
+
+/**
+ * What the gutter says about one entry: the year it starts, the year it ends
+ * (empty while it is still running), and the short word beneath the numeral.
+ * `word` names an entry that is not a plain span - 'project', 'graduated' -
+ * and an empty string asks for no word at all, which is what a one-dated
+ * entry wants.
+ */
+export type MetaSpan = { start?: string; end?: string; word?: string }
+
+/**
+ * The gutter's cell for one entry: a big year over a short word, both drawn
+ * as ink only (the Deco atom). The entry's real date line stays where it
+ * always was, in the content column, so the year is never the only copy of
+ * a fact - a parser reads the date and never sees this.
+ */
+function GutterCell({ meta }: { meta: MetaSpan }) {
+  const year = yearOf(meta.start)
+  if (!year) return null
+  const sub = meta.word ?? (meta.end ? `to ${yearOf(meta.end) || meta.end}` : 'to now')
+  return (
+    <div className="rm-meta-cell">
+      <Deco className="rm-year">{year}</Deco>
+      {sub ? <Deco className="rm-year-sub">{sub}</Deco> : null}
+    </div>
+  )
+}
 
 type Apply = (c: ResumeDocument['content'], v: string) => void
 /** A date range that's click-to-edit on the canvas (and plain text in print). */
@@ -561,6 +605,7 @@ function ItemHead({
   title,
   date,
   loc,
+  meta,
   badge,
   logo,
   edit,
@@ -576,6 +621,8 @@ function ItemHead({
   /** The entry's location, when the section puts it beside the date rather
    *  than on the sub-line under the title. Editable where it lands. */
   loc?: ReactNode
+  /** The entry's raw span, for a meta column that words its own years. */
+  meta?: MetaSpan
   badge?: string
   logo?: string
   edit?: EditFn
@@ -594,66 +641,87 @@ function ItemHead({
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
   const logoOk = logo && /^(data:image\/|blob:)/i.test(logo) ? logo : undefined
-  return (
-    <div className="rm-item-head">
-      {edit && setLogo ? (
-        <CanvasLogo
-          logo={logoOk}
-          badge={badge}
-          onChange={(v) => edit((c) => setLogo(c, v))}
-          size={opts?.badgeSize}
-          shape={opts?.badgeShape}
-          setBadge={opts?.setBadge}
-        />
-      ) : logoOk ? (
-        <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
-      ) : badge ? (
-        <span className="rm-item-badge" aria-hidden>
-          {badge}
-        </span>
-      ) : null}
-      {/* An entry with a link makes its own TITLE the link, so the author gets
-          a hyperlink whose display text is whatever they wrote - rather than a
-          bare URL printed underneath it. The exporter turns any anchor into a
-          clickable region, so this is live in the PDF too. On the canvas the
-          click is swallowed: the title is being edited, not followed. */}
-      <div className="rm-item-title">
-        {href ? (
-          <a className="rm-title-link" href={href} onClick={edit ? (e) => e.preventDefault() : undefined}>
-            {title}
-          </a>
-        ) : (
-          title
-        )}
-        {edit && setHref ? (
-          <LinkButton
-            href={href}
-            label={linkLabel || 'this entry'}
-            text={linkLabel}
-            clickable={opts?.linksClickable !== false}
-            extra={linkExtra}
-            onChange={(v) => edit((c) => setHref(c, v))}
-          />
-        ) : null}
+  const column = metaColumnOf(opts)
+  // The margin takes the entry's own date - and the location, where the
+  // section put it beside the date - out of the head row. It is the same
+  // reading one column further right, and it must print exactly once, so
+  // the head row prints neither when the margin has them.
+  const inMargin = column === 'margin' && !!(date || loc)
+  // The cell is a SIBLING of the head row rather than something inside it:
+  // the stylesheet makes the entry itself the two-cell grid, so the cell has
+  // to be the entry's own child to land in the meta column.
+  const cell =
+    column === 'gutter' && meta ? (
+      <GutterCell meta={meta} />
+    ) : inMargin ? (
+      <div className="rm-meta-cell">
+        {loc}
+        {date}
       </div>
-      {/* The head row's right-hand slot. With the section placing the
-          location here it leads the date, and the glyph between them is real
-          text - marking it decoration would drop it from the exported text
-          layer and run "Austin, TX" straight into "Jan 2019". */}
-      {loc ? (
-        <div className="rm-item-date rm-item-meta">
-          {loc}
-          {date ? (
-            <>
-              <span className="rm-meta-sep">{LOCATION_DATE_SEPARATOR}</span>
-              {date}
-            </>
+    ) : null
+  return (
+    <>
+      <div className="rm-item-head">
+        {edit && setLogo ? (
+          <CanvasLogo
+            logo={logoOk}
+            badge={badge}
+            onChange={(v) => edit((c) => setLogo(c, v))}
+            size={opts?.badgeSize}
+            shape={opts?.badgeShape}
+            setBadge={opts?.setBadge}
+          />
+        ) : logoOk ? (
+          <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
+        ) : badge ? (
+          <span className="rm-item-badge" aria-hidden>
+            {badge}
+          </span>
+        ) : null}
+        {/* An entry with a link makes its own TITLE the link, so the author gets
+            a hyperlink whose display text is whatever they wrote - rather than a
+            bare URL printed underneath it. The exporter turns any anchor into a
+            clickable region, so this is live in the PDF too. On the canvas the
+            click is swallowed: the title is being edited, not followed. */}
+        <div className="rm-item-title">
+          {href ? (
+            <a className="rm-title-link" href={href} onClick={edit ? (e) => e.preventDefault() : undefined}>
+              {title}
+            </a>
+          ) : (
+            title
+          )}
+          {edit && setHref ? (
+            <LinkButton
+              href={href}
+              label={linkLabel || 'this entry'}
+              text={linkLabel}
+              clickable={opts?.linksClickable !== false}
+              extra={linkExtra}
+              onChange={(v) => edit((c) => setHref(c, v))}
+            />
           ) : null}
         </div>
-      ) : date ? (
-        <div className="rm-item-date">{date}</div>
-      ) : null}
-    </div>
+        {/* The head row's right-hand slot. With the section placing the
+            location here it leads the date, and the glyph between them is real
+            text - marking it decoration would drop it from the exported text
+            layer and run "Austin, TX" straight into "Jan 2019". */}
+        {inMargin ? null : loc ? (
+          <div className="rm-item-date rm-item-meta">
+            {loc}
+            {date ? (
+              <>
+                <span className="rm-meta-sep">{LOCATION_DATE_SEPARATOR}</span>
+                {date}
+              </>
+            ) : null}
+          </div>
+        ) : date ? (
+          <div className="rm-item-date">{date}</div>
+        ) : null}
+      </div>
+      {cell}
+    </>
   )
 }
 
@@ -1049,20 +1117,33 @@ function EditableChips({
 
 /* --------------------------------------------------------------- renderers */
 
-function Summary({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
-  return (
+function Summary({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
+  const gutter = metaColumnOf(opts) === 'gutter'
+  const text = (
     <Ed
       edit={edit}
       value={doc.content.basics.summary ?? ''}
       rich
       multiline
       as="div"
-      className="rm-item"
+      className={gutter ? 'rm-summary-text' : 'rm-item'}
       apply={(c, v) => {
         c.basics.summary = v
       }}
       placeholder="2–3 lines: who you are, your specialty, one standout win — e.g. “Data analyst, 4 yrs — built dashboards that cut reporting time 60%.”"
     />
+  )
+  if (!gutter) return text
+  // The opening paragraph has no date to hand the gutter, and an empty cell
+  // beside the first thing on the page reads as a mistake. It gets the
+  // author's initials instead - ink only, like every year below it.
+  return (
+    <div className="rm-item">
+      <div className="rm-meta-cell">
+        <Deco className="rm-initials">{initialsOf(doc.content.basics.name)}</Deco>
+      </div>
+      {text}
+    </div>
   )
 }
 
@@ -1121,6 +1202,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                 c.work[i].url = val
               }}
               linkLabel={w.position || w.name}
+              meta={{ start: w.startDate, end: w.endDate }}
               logo={w.logo}
               edit={edit}
               setLogo={(c, v) => {
@@ -1289,6 +1371,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.education[i].url = val
               }}
               linkLabel={e.institution || e.area}
+              meta={{ start: e.startDate, end: e.endDate, word: 'graduated' }}
               logo={e.logo}
               edit={edit}
               setLogo={(c, v) => {
@@ -1384,6 +1467,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 c.projects[i].url = val
               }}
               linkLabel={p.name}
+              meta={{ start: p.startDate, end: p.endDate, word: 'project' }}
               linkExtra={
                 edit ? (
                   <button
@@ -2548,6 +2632,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.volunteer[i].url = val
               }}
               linkLabel={v.organization || v.position}
+              meta={{ start: v.startDate, end: v.endDate }}
               logo={v.logo}
               edit={edit}
               setLogo={(c, val) => {
@@ -2797,6 +2882,7 @@ function Custom({
                 c.custom[secIndex].items[i].url = val
               }}
               linkLabel={it.name || it.subtitle}
+              meta={{ start: it.date, word: '' }}
               edit={edit}
               title={orgFirst ? subtitle() : name()}
               loc={withDate ? place : undefined}
@@ -2921,7 +3007,7 @@ function sectionRenderer(
 ): ReactNode {
   switch (sectionKey) {
     case 'summary':
-      return <Summary doc={doc} edit={edit} />
+      return <Summary doc={doc} edit={edit} opts={opts} />
     case 'work':
       return <Work doc={doc} edit={edit} opts={opts} />
     case 'education':
@@ -2960,6 +3046,7 @@ export function SectionBody({
   edit,
   editMeta,
   compact,
+  noMeta,
 }: {
   sectionKey: string
   doc: ResumeDocument
@@ -2967,6 +3054,9 @@ export function SectionBody({
   edit?: EditFn
   editMeta?: MetaEditFn
   compact?: boolean
+  /** This section is not in the body's single flow (the sidebar, a gallery
+   *  card), so no meta column is opened beside it. */
+  noMeta?: boolean
 }) {
   const saved = doc.metadata.layout.sectionSettings?.[sectionKey]
   // An empty value clears the override so the template's own choice returns -
@@ -2984,6 +3074,12 @@ export function SectionBody({
     setBadge,
     linksClickable: doc.metadata.links?.clickable !== false,
     dates: doc.metadata.dates,
+    // The meta column is the body's alone: a footer row is one compact line
+    // and a sidebar is a column already, so neither has room for one beside
+    // it. The cell is never BUILT there rather than built and hidden - in
+    // the margin the cell holds the entry's only date, and hiding that would
+    // lose it.
+    metaColumn: compact || noMeta ? 'none' : doc.metadata.layout.metaColumn,
   }
   const body = sectionRenderer(sectionKey, doc, config, edit, opts, compact)
   // Summary is a single field (always editable); every other section is a list,

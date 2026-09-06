@@ -34,6 +34,49 @@ const ELEMENT_COLOR_ROWS: { key: ElementColorKey; label: string; from: 'primary'
   { key: 'links', label: 'Links', from: 'text' },
 ]
 
+/** Where an entry's dates go: nowhere in particular, a left gutter of big
+ *  years, or a right margin holding the date itself. */
+const META_COLUMNS: { label: string; value: 'none' | 'gutter' | 'margin' }[] = [
+  { label: 'None', value: 'none' },
+  { label: 'Gutter', value: 'gutter' },
+  { label: 'Margin', value: 'margin' },
+]
+
+/** Tiny visual mock of each meta column: a tinted left strip with a big
+ *  numeral, a thin right column, or neither. */
+function MetaMini({ kind }: { kind: string }) {
+  const bar = 'rounded-[1px] bg-slate-600'
+  const line = 'rounded-[1px] bg-slate-300'
+  const body = (
+    <span className="flex flex-1 flex-col gap-[3px]">
+      <span className={`h-[3px] w-2/3 ${bar}`} />
+      <span className={`h-[2px] w-full ${line}`} />
+      <span className={`h-[2px] w-5/6 ${line}`} />
+    </span>
+  )
+  if (kind === 'gutter')
+    return (
+      <span className="flex w-full items-start gap-[4px]">
+        <span className="flex w-1/3 flex-col items-end gap-[2px] rounded-[2px] bg-primary/15 p-[2px]">
+          <span className="h-[6px] w-full rounded-[1px] bg-primary/70" />
+          <span className="h-[2px] w-3/4 rounded-[1px] bg-primary/40" />
+        </span>
+        {body}
+      </span>
+    )
+  if (kind === 'margin')
+    return (
+      <span className="flex w-full items-start gap-[4px]">
+        {body}
+        <span className="flex w-1/4 flex-col gap-[2px] border-l border-slate-300 pl-[3px]">
+          <span className={`h-[2px] w-full ${line}`} />
+          <span className={`h-[2px] w-3/4 ${line}`} />
+        </span>
+      </span>
+    )
+  return <span className="flex w-full items-start gap-[4px]">{body}</span>
+}
+
 const PALETTES: { name: string; color: string }[] = [
   { name: 'Indigo', color: '#2563eb' },
   { name: 'Royal', color: '#1d4ed8' },
@@ -580,6 +623,39 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
             How your name &amp; contacts compose — on top of any template.
+          </p>
+        </div>
+        <div>
+          <label className="label">Meta column</label>
+          <div className="flex flex-wrap gap-1.5">
+            {META_COLUMNS.map((c) => {
+              const on = (m.layout.metaColumn ?? 'none') === c.value
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  title={c.label}
+                  onClick={() =>
+                    update((md) => {
+                      md.layout.metaColumn = c.value
+                    })
+                  }
+                  className={`flex w-[64px] flex-col items-center gap-1 rounded-lg border p-1.5 transition ${on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'}`}
+                >
+                  <span className="flex h-8 w-full items-center justify-center overflow-hidden rounded-[3px] border border-border/70 bg-white p-1">
+                    <MetaMini kind={c.value} />
+                  </span>
+                  <span
+                    className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    {c.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            Give your dates a column: big years down the left, or the date itself out in the right margin.
           </p>
         </div>
         <div>

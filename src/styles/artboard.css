@@ -3225,3 +3225,160 @@
   left: -0.25em;
   transform: none;
 }
+
+/* ------------------------------------------------ meta column (gutter, margin)
+ *
+ * An entry can hand its dates to a column of its own.
+ *
+ * `meta-gutter` opens a column on the LEFT holding a big year over a short
+ * word, both drawn as ink only, while the entry keeps its real, readable date
+ * line beside them. `meta-margin` opens a narrower column on the RIGHT holding
+ * the entry's own date and location, which leave the head row: the same
+ * reading as a right-aligned date, one column further out, printed once.
+ *
+ * The ENTRY is the grid, not the page. Turning the body into a grid would
+ * have needed `display: contents` on every section, which throws away the
+ * section box that a heading rule, a tile and the hover cluster are all drawn
+ * against. Each entry laying out its own two cells leaves every existing
+ * section style exactly where it was.
+ *
+ * The gutter's tint is the CELL's own background rather than a hard-stopped
+ * gradient down the page: the painter reads two-stop gradients only, so a
+ * banded one would show on the canvas and be missing from the PDF.
+ *
+ * Scoped to the main column. The strip and the sidebar build no cell at all
+ * (sections.tsx), because in the margin the cell holds the entry's ONLY date
+ * and hiding it in CSS would lose a fact.
+ */
+.rm-root.meta-gutter,
+.rm-root.meta-margin {
+  --rm-meta-w: 150px;
+  --rm-margin-w: 132px;
+}
+
+/* ---- the gutter ---- */
+.rm-root.meta-gutter .rm-col-main .rm-section-title {
+  margin-left: var(--rm-meta-w);
+}
+/* Whatever a section holds that is not an entry - keyword chips, a note, the
+   canvas's own add buttons - keeps to the content column too, so nothing
+   ever runs under the gutter. */
+.rm-root.meta-gutter .rm-col-main .rm-section-body > :not(.rm-item) {
+  margin-left: var(--rm-meta-w);
+}
+.rm-root.meta-gutter .rm-col-main .rm-item {
+  display: grid;
+  grid-template-columns: var(--rm-meta-w) minmax(0, 1fr);
+}
+.rm-root.meta-gutter .rm-col-main .rm-item > :not(.rm-meta-cell) {
+  grid-column: 2;
+}
+.rm-root.meta-gutter .rm-col-main .rm-meta-cell {
+  grid-column: 1;
+  /* Beside the WHOLE entry, however many lines it runs to. */
+  grid-row: 1 / span 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0.05em 1.2em 0.5em 0.4em;
+  position: relative;
+  background: var(--rm-gutter-bg, color-mix(in srgb, var(--rm-primary) 7%, var(--rm-bg)));
+  border-right: 2px solid var(--rm-primary);
+}
+/* A dot on the rail per entry, level with the entry's first line. */
+.rm-root.meta-gutter .rm-col-main .rm-meta-cell::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rm-primary);
+}
+.rm-root.meta-gutter .rm-year {
+  font-family: var(--rm-font-heading);
+  font-size: calc(var(--rm-fs) * 3.2);
+  font-weight: 700;
+  line-height: 0.9;
+  color: var(--rm-primary);
+}
+.rm-root.meta-gutter .rm-year-sub {
+  font-size: calc(var(--rm-fs) * 0.8);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-muted);
+}
+/* The opening paragraph has no date, so the gutter gives it the initials. */
+.rm-root.meta-gutter .rm-initials {
+  font-family: var(--rm-font-heading);
+  font-size: calc(var(--rm-fs) * 1.9);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--rm-primary);
+}
+
+/* ---- the margin ---- */
+.rm-root.meta-margin .rm-col-main .rm-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rm-margin-w);
+  column-gap: 1.2em;
+}
+.rm-root.meta-margin .rm-col-main .rm-item > :not(.rm-meta-cell) {
+  grid-column: 1;
+}
+.rm-root.meta-margin .rm-col-main .rm-meta-cell {
+  grid-column: 2;
+  grid-row: 1 / span 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  border-left: 1px solid var(--rm-line);
+  padding-left: 0.9em;
+  font-size: calc(var(--rm-fs) * 0.8);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rm-primary);
+  font-variant-numeric: tabular-nums;
+}
+/* The margin's own lines drop the styling they carried in the head row -
+   they are the margin's now, and it sets them. */
+.rm-root.meta-margin .rm-col-main .rm-meta-cell .rm-item-loc {
+  color: var(--rm-muted);
+}
+
+/* The canvas's hover controls keep the geometry they have with no meta
+   column at all. They are absolutely positioned, and a grid placement makes
+   the CELL the box they hang off - which would put the trash button straight
+   over the margin's date. Spanning both cells leaves them where they were. */
+.rm-root.meta-gutter .rm-col-main .rm-item > .rm-item-move,
+.rm-root.meta-gutter .rm-col-main .rm-item > .rm-item-del,
+.rm-root.meta-margin .rm-col-main .rm-item > .rm-item-move,
+.rm-root.meta-margin .rm-col-main .rm-item > .rm-item-del {
+  grid-column: 1 / -1;
+}
+
+/* An entry that hangs a logo or a letter badge pads its whole left edge for
+   it. Beside a meta column that inset is the CONTENT cells' alone: left on
+   the entry it would push the gutter itself in and out as marks came and
+   went, and the mark would hang in the gutter, which the column is not for.
+   It moves to the cells as a MARGIN, not padding: the head's padding is
+   already spoken for by a section that reserves a left date column there,
+   and the mark hangs off the head's border box either way, so it lands on
+   the content column's own left edge exactly as it always has. */
+.rm-root.meta-gutter .rm-col-main .rm-item.rm-has-mark,
+.rm-root.meta-margin .rm-col-main .rm-item.rm-has-mark {
+  padding-left: 0;
+}
+.rm-root.meta-gutter .rm-col-main .rm-item.rm-has-mark > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del),
+.rm-root.meta-margin .rm-col-main .rm-item.rm-has-mark > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del) {
+  margin-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
+}
+
+/* A section that reserves a date column at the head's left edge has nothing
+   to put in it once the margin has taken the date away, and the reservation
+   would inset every title in the section for a date that is no longer there. */
+.rm-root.meta-margin .rm-col-main .rm-section.sec-date-left .rm-item-head {
+  padding-left: 0;
+}
