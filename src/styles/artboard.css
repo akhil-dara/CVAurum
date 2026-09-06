@@ -1640,7 +1640,17 @@
 .rm-header-block {
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.6em 1.5em;
+  /* The row gap is sized off the NAME, not the body type, for the reason
+     spelled out on .rm-header-display's headline: extraction infers a line
+     break from how far the next run's baseline dropped, and a drop under
+     half the previous run's type size reads as the SAME line. This name is
+     set at 3.2x the name size, so the threshold is 1.6 name-sizes and the
+     gap has to clear it: a 0.6em gap of body type left the role line joined
+     to the name's last word - the exported text read
+     "Alex MorganSENIOR SOFTWARE ENGINEER" - and 0.8 name-sizes still only
+     just reached it. Measured at the default: an 86.7px name wants a drop
+     over 43px, and this gives about 69px. */
+  gap: calc(var(--rm-name-size) * 1.6) 1.5em;
   background: var(--rm-primary);
   color: var(--rm-on-primary, #fff);
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
