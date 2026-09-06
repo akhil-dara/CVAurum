@@ -88,3 +88,34 @@ describe('header composition mocks', () => {
     expect(renderToStaticMarkup(<HeaderMini kind="" />)).toContain('border-dashed')
   })
 })
+
+/**
+ * Side headings (P4): a section can put its title in a column of its own,
+ * beside the content rather than above it. The page names the placement so
+ * the sheet can lay it out, and the markup order is unchanged - title, then
+ * body - which is what the PDF's reading order and every parser follow.
+ */
+describe('side headings', () => {
+  it('names the placement on the page and titles every section before its body', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.headingPlacement = 'side'
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(html).toContain('heads-side')
+    // Sections never nest, so each chunk after a `<section ` opener is one
+    // section's own markup.
+    const sections = html.split('<section ').slice(1)
+    expect(sections.length).toBeGreaterThan(2)
+    for (const s of sections) {
+      const title = s.indexOf('class="rm-section-title"')
+      const body = s.indexOf('class="rm-section-body"')
+      expect(title).toBeGreaterThan(-1)
+      expect(body).toBeGreaterThan(title)
+    }
+  })
+
+  it('leaves a page that never asked for them alone', () => {
+    const doc = createDocument({ sample: true })
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(html).not.toContain('heads-side')
+  })
+})

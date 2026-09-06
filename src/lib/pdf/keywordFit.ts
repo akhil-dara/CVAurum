@@ -150,9 +150,21 @@ const SCALE_LADDER = [1, 0.95, 0.9, 0.85, 0.8, 0.76, MIN_HEADING_SCALE]
  * mistake, while shrinking the group keeps it uniform. Measured on pinnacle at
  * a 22% sidebar, "Cross-Functional Collaboration" had "Collaboration" broken
  * into "Collaborati" and "on", which matches nothing.
+ *
+ * A title placed BESIDE its content is in the same position as a sidebar one:
+ * its column is a fixed width, narrower than a long heading at a large type
+ * size ("Certifications" needs about 157px at 12pt), and a title set right
+ * against that column overflows to its LEFT, into the page margin. The
+ * objection to fitting a main-column heading does not reach it either - the
+ * rule under a side heading spans the title's column, not its words, so
+ * shrinking the type leaves the rule exactly where it was.
  */
-const FIT_CONTAINERS =
-  '.rm-col-aside .rm-section-title, .rm-col-aside .rm-skill-inline, .rm-col-aside .rm-chips'
+const FIT_CONTAINERS = [
+  '.rm-col-aside .rm-section-title',
+  '.rm-col-aside .rm-skill-inline',
+  '.rm-col-aside .rm-chips',
+  '.heads-side .rm-col-main .rm-section-title',
+].join(', ')
 
 export function fitHeadingWords(root: HTMLElement): void {
   const boxes = Array.from(root.querySelectorAll<HTMLElement>(FIT_CONTAINERS))

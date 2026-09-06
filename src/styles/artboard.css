@@ -3419,3 +3419,72 @@
 .rm-root.meta-margin .rm-col-main .rm-section.sec-date-left .rm-item-head {
   padding-left: 0;
 }
+
+/* ------------------------------------------------------------ side headings
+ *
+ * `heads-side` gives every body section's title a column of its own on the
+ * left, right-aligned against the content beside it, over a rule that spans
+ * the whole section.
+ *
+ * The title takes the grid's FIRST row and the body its SECOND, so the body
+ * starts below the title however tall the heading style draws it and however
+ * many lines its words wrap to. A PDF has no lines - a reader infers them
+ * from how far the next baseline dropped - so a title sitting level with the
+ * first line of its body would come back joined to it, and the resume could
+ * not be read back from its own export. One line of padding would have held
+ * only for a one-line title in the stock heading style.
+ *
+ * Scoped to the main column. A sidebar column is narrower than this title
+ * column, and the footer strip renders its sections as compact rows, so
+ * neither has room to seat a title beside its content.
+ */
+.rm-root.heads-side {
+  --rm-heads-w: 150px;
+}
+.rm-root.heads-side .rm-col-main .rm-section {
+  display: grid;
+  grid-template-columns: var(--rm-heads-w) minmax(0, 1fr);
+  column-gap: 1.4em;
+  row-gap: calc(0.35em * var(--rm-heading-gap, 1));
+  border-top: 1px solid var(--rm-line);
+  padding-top: 0.8em;
+}
+.rm-root.heads-side .rm-col-main .rm-section-title {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: right;
+  margin: 0;
+  /* Set against the right edge of a fixed column, a word too long for it
+     spills LEFT, into the page margin. The words are shrunk to fit first
+     (keywordFit.ts, as in the sidebar); this is the last resort for the one
+     that still does not fit, and only ever engages for that word. */
+  overflow-wrap: break-word;
+}
+.rm-root.heads-side .rm-col-main .rm-section-body {
+  grid-column: 2;
+  grid-row: 2;
+}
+/* The hanging badge hangs off the TITLE's box, which here is the whole title
+   column - so it would sit an inch clear of the right-aligned words it
+   belongs to. Inline it keeps them, exactly as it does under the heading
+   styles that own their own left treatment. */
+.rm-root.heads-side.rm-icons .rm-col-main .rm-section-icon {
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+  margin: 0 0.5em 0 0;
+  vertical-align: -0.42em;
+}
+/* ...and with nothing hanging in the main column's margin there is nothing
+   to reserve room for, so a small page margin keeps its own width and the
+   badge style stops moving the whole column (the same reservation the
+   gutter-label heading style gives back further up). */
+.rm-root.heads-side.rm-icons.rm-single .rm-col-main {
+  padding-left: var(--rm-pad);
+}
+/* Under a gutter the title is already inset by a column of its own; the
+   gutter's inset would push it a second time, out of the page. */
+.rm-root.heads-side.meta-gutter .rm-col-main .rm-section-title {
+  margin-left: 0;
+}

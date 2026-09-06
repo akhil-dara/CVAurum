@@ -77,6 +77,42 @@ function MetaMini({ kind }: { kind: string }) {
   return <span className="flex w-full items-start gap-[4px]">{body}</span>
 }
 
+/** Where a section's title sits: over its content, or in a column of its
+ *  own beside it. */
+const HEADING_PLACEMENTS: { label: string; value: 'above' | 'side' }[] = [
+  { label: 'Above', value: 'above' },
+  { label: 'Beside', value: 'side' },
+]
+
+/** Tiny visual mock of each heading placement: a full-width title over the
+ *  lines, or a short right-aligned title in a left column. */
+function HeadsMini({ kind }: { kind: string }) {
+  const bar = 'rounded-[1px] bg-primary/70'
+  const line = 'rounded-[1px] bg-slate-300'
+  const lines = (
+    <span className="flex flex-1 flex-col gap-[3px]">
+      <span className={`h-[2px] w-full ${line}`} />
+      <span className={`h-[2px] w-5/6 ${line}`} />
+      <span className={`h-[2px] w-2/3 ${line}`} />
+    </span>
+  )
+  if (kind === 'side')
+    return (
+      <span className="flex w-full items-start gap-[4px]">
+        <span className="flex w-1/3 justify-end">
+          <span className={`h-[3px] w-3/4 ${bar}`} />
+        </span>
+        {lines}
+      </span>
+    )
+  return (
+    <span className="flex w-full flex-col gap-[3px]">
+      <span className={`h-[3px] w-2/5 ${bar}`} />
+      {lines}
+    </span>
+  )
+}
+
 const PALETTES: { name: string; color: string }[] = [
   { name: 'Indigo', color: '#2563eb' },
   { name: 'Royal', color: '#1d4ed8' },
@@ -656,6 +692,39 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
             Give your dates a column: big years down the left, or the date itself out in the right margin.
+          </p>
+        </div>
+        <div>
+          <label className="label">Headings</label>
+          <div className="flex flex-wrap gap-1.5">
+            {HEADING_PLACEMENTS.map((h) => {
+              const on = (m.layout.headingPlacement ?? 'above') === h.value
+              return (
+                <button
+                  key={h.value}
+                  type="button"
+                  title={h.label}
+                  onClick={() =>
+                    update((md) => {
+                      md.layout.headingPlacement = h.value
+                    })
+                  }
+                  className={`flex w-[64px] flex-col items-center gap-1 rounded-lg border p-1.5 transition ${on ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border bg-surface hover:border-primary/50'}`}
+                >
+                  <span className="flex h-8 w-full items-center justify-center overflow-hidden rounded-[3px] border border-border/70 bg-white p-1">
+                    <HeadsMini kind={h.value} />
+                  </span>
+                  <span
+                    className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    {h.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            Beside the content, a section title keeps to a column of its own on the left.
           </p>
         </div>
         <div>

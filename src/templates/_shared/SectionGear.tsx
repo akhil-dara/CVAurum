@@ -458,6 +458,9 @@ export function SectionGear({
   // In the footer strip only the compact row form renders: no chips, no
   // meters, so the rows that choose them are replaced by a line saying so.
   const inFooter = layout.footer.includes(sectionKey)
+  // With the titles beside their content the heading takes a column of its
+  // own, right-aligned by definition, so the centre chip has nothing to do.
+  const headsSide = layout.headingPlacement === 'side' && !inFooter && !inAside
   // Meter style only ever does anything for a skill group that has a rating
   // (sections.tsx Skills() now meters ANY rated group, keywords or not) — flag
   // it here so the popover can say so instead of silently doing nothing when
@@ -927,16 +930,31 @@ export function SectionGear({
                 {/* Heading alignment - where THIS section's heading sits */}
                 <Group label="Heading align">
                   <div className="grid grid-cols-3 gap-1">
-                    {HEADING_ALIGNS.map((a) => (
-                      <ChipBtn
-                        key={a.value || 'auto'}
-                        label={a.label}
-                        title={a.title}
-                        on={(opts.headingAlign ?? '') === a.value}
-                        onClick={() => setStyle('headingAlign', a.value || undefined)}
-                      />
-                    ))}
+                    {HEADING_ALIGNS.map((a) => {
+                      // Beside the content the title has a narrow column of
+                      // its own, right-aligned against the text it belongs
+                      // to; centring it in there is not a look the page can
+                      // draw, so the chip says why instead of doing nothing
+                      // when tapped.
+                      const noCentre = a.value === 'center' && headsSide
+                      return (
+                        <ChipBtn
+                          key={a.value || 'auto'}
+                          label={a.label}
+                          title={a.title}
+                          on={(opts.headingAlign ?? '') === a.value}
+                          onClick={() => setStyle('headingAlign', a.value || undefined)}
+                          disabled={noCentre}
+                          reason={noCentre ? 'Beside the content, titles keep to the right edge' : undefined}
+                        />
+                      )
+                    })}
                   </div>
+                  {headsSide && (
+                    <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+                      Headings sit beside the content, so titles keep to the right edge of their own column.
+                    </p>
+                  )}
                 </Group>
 
                 {/* Section badge - style and size are document-wide, unlike
@@ -1267,18 +1285,35 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** A compact text/glyph option chip (bullet marker, meter, size, shape). */
-function ChipBtn({ label, title, on, onClick }: { label: string; title?: string; on: boolean; onClick: () => void }) {
+function ChipBtn({
+  label,
+  title,
+  on,
+  onClick,
+  disabled,
+  reason,
+}: {
+  label: string
+  title?: string
+  on: boolean
+  onClick: () => void
+  /** An option this section cannot take right now; `reason` says why in a
+   *  line, the way a style chip does. */
+  disabled?: boolean
+  reason?: string
+}) {
   return (
     <button
       type="button"
-      title={title || label}
+      title={disabled && reason ? reason : title || label}
       aria-pressed={on}
+      disabled={disabled}
       onClick={onClick}
       className={`min-w-0 truncate rounded-md border px-1 py-1.5 text-xs font-medium transition ${
         on
           ? 'border-primary bg-primary/10 text-primary'
           : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-      }`}
+      }${disabled ? ' cursor-not-allowed opacity-45 hover:border-border hover:text-muted-foreground' : ''}`}
     >
       {label}
     </button>

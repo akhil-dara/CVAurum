@@ -137,3 +137,56 @@ describe('the meta gutter takes back the entry padding that would move its cells
     }
   })
 })
+
+/**
+ * Side headings (P4): the title goes in a column of its own beside the
+ * content. A PDF has no lines - a reader infers them from baselines - so a
+ * title whose words sat level with the first line of the body would come
+ * back joined to it. The guarantee is structural rather than a measured
+ * gap: the title takes the grid's first row and the body the second, so
+ * however tall the heading style makes the title, and however many lines
+ * its words wrap to, the body starts below all of them.
+ */
+describe('a side heading keeps its own line', () => {
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] }))
+    .filter((r) => r.selector.includes('.heads-side'))
+  /** The rule that places `target` on the grid - the one that says which
+   *  row and column it takes. */
+  const placing = (target: RegExp) =>
+    rules.filter(
+      (r) => r.selector.split(',').map(subject).some((s) => target.test(s)) && declared(r.body, 'grid-row').length > 0
+    )
+
+  it('lays the section out as a column for the title and a column for the body', () => {
+    const section = rules.filter((r) => r.selector.split(',').map(subject).some((s) => /^\.rm-section$/.test(s)))
+    expect(section.length).toBe(1)
+    expect(declared(section[0].body, 'display')).toEqual(['grid'])
+    expect(declared(section[0].body, 'grid-template-columns').length).toBe(1)
+  })
+
+  it('gives the body a row below the title, not beside it', () => {
+    const title = placing(/^\.rm-section-title$/)
+    const body = placing(/^\.rm-section-body$/)
+    expect(title.length).toBe(1)
+    expect(body.length).toBe(1)
+    expect(declared(title[0].body, 'grid-row')).toEqual(['1'])
+    expect(declared(title[0].body, 'grid-column')).toEqual(['1'])
+    expect(declared(body[0].body, 'grid-row')).toEqual(['2'])
+    expect(declared(body[0].body, 'grid-column')).toEqual(['2'])
+  })
+
+  it('reaches the main column only, never the sidebar or the footer strip', () => {
+    // The strip renders its sections as compact rows and a sidebar column is
+    // narrower than the title column would be, so neither can hold a title
+    // beside its content. A rule that only declares the page's own custom
+    // properties moves nothing on its own and is left out.
+    const laying = rules.filter((r) => r.selector.split(',').map(subject).some((s) => !/^\.rm-root/.test(s)))
+    expect(laying.length).toBeGreaterThan(2)
+    for (const rule of laying) {
+      for (const selector of rule.selector.split(',')) {
+        expect(selector.trim(), selector).toContain('.rm-col-main')
+      }
+    }
+  })
+})

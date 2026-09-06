@@ -995,6 +995,10 @@ export function Artboard({
     doc.metadata.layout.metaColumn && doc.metadata.layout.metaColumn !== 'none'
       ? `meta-${doc.metadata.layout.metaColumn}`
       : '',
+    // A section can hand its title a column of its own on the left, beside
+    // the content instead of above it. Absent unless asked for, so a page
+    // that never chose it keeps the headings it has.
+    doc.metadata.layout.headingPlacement === 'side' ? 'heads-side' : '',
     ...iconAndLinkClasses(doc),
     // Editing-time signal only: the canvas grays its link marks when the
     // export will not make them clickable, so the state is visible without
