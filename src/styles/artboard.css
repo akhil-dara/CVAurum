@@ -1737,7 +1737,9 @@
 /* stepped: three full-width bands in graded shades of the accent - the name,
    the role, the details - each its own line of the page. --rm-step-2 and
    --rm-step-3 are the accent lightened 14% and 28% (Artboard.tsx useVars);
-   a template can name its own two shades instead. */
+   a template can name its own two shades instead - on THIS element, never on
+   the root, whose pair the renderer writes inline where no stylesheet rule
+   can outrank it. */
 .rm-header-stepped {
   flex-direction: column;
   align-items: stretch;

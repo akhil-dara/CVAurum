@@ -15,7 +15,7 @@
 
 ---
 
-CVAurum is a beautiful, privacy-first resume builder that runs entirely in your browser. Pick from 55 premium templates, edit right on the page, get instant ATS feedback, tailor your resume to a job description, **import an existing PDF résumé**, and export a crisp PDF or an ATS-friendly Word document — all without an account, a server, or a single byte of tracking. Install it as an app and it works fully offline. Your data lives in your browser's IndexedDB and never leaves your machine unless **you** send it somewhere.
+CVAurum is a beautiful, privacy-first resume builder that runs entirely in your browser. Pick from 58 premium templates, edit right on the page, get instant ATS feedback, tailor your resume to a job description, **import an existing PDF résumé**, and export a crisp PDF or an ATS-friendly Word document — all without an account, a server, or a single byte of tracking. Install it as an app and it works fully offline. Your data lives in your browser's IndexedDB and never leaves your machine unless **you** send it somewhere.
 
 ```bash
 npm install && npm run dev
@@ -29,7 +29,7 @@ That's the entire setup. No Docker, no Postgres, no Redis, no headless Chromium.
 
 A resume tool should be beautiful, private, and instant — without asking you to sign up, pay, or trust a server with your career history. CVAurum is built around four ideas:
 
-- **🎨 Design-first.** 55 hand-crafted templates with real typographic hierarchy, folio section badges (a folded-corner paper chip, with classic icon chips a click away), per-section style switching, and an auto-fit engine that keeps your resume looking sharp on a single page.
+- **🎨 Design-first.** 58 hand-crafted templates with real typographic hierarchy, folio section badges (a folded-corner paper chip, with classic icon chips a click away), per-section style switching, and an auto-fit engine that keeps your resume looking sharp on a single page.
 - **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked — and even sharing is an **AES-256 encrypted link** that never touches a server.
 - **⚡ Instant, keyboard-first.** One command to start. Edit directly on the resume, drive everything from a **⌘K command palette**, type `/` for quick inserts, and watch a live ATS score update as you type.
 - **📄 Archival-grade, accessible PDFs.** Every export is **PDF/A-2B** (archival) and **PDF/UA-1** (accessibility) conformant — tagged for screen readers and validated with the veraPDF reference validator on every release.
@@ -61,7 +61,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 ### 🎨 Templates & Design
 
-- **55 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Amethyst, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono, and Opal, plus the first of the Signature collection, Broadsheet, Marquee and Atlas, each on one structural primitive of the engine (a display masthead with numbered sections, a colour-block header with a footer strip, a gradient band with a stats row and skill rings) — each with folio or icon-chip section headings in three sizes and a refined type scale.
+- **58 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Amethyst, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono, and Opal, plus the Signature collection, Broadsheet, Marquee, Atlas, Chronicle, Folio Noir and Terrace, each on one structural primitive of the engine (a display masthead with numbered sections, a colour-block header with a footer strip, a gradient band with a stats row and skill rings, a rail of years down the left, art behind the name with the dates out in the right margin, and a stepped header over titles that sit beside their content) — each with folio or icon-chip section headings in three sizes and a refined type scale.
 - Most templates are **ATS-safe** and flagged with a shield so you know which ones parse cleanly.
 - **Full typography control:** separate body / heading / name fonts (**45 bundled, self-hosted fonts** — no CDN), font size, line-height, letter-spacing, separate size scales for section titles, the headline and the contact line, heading case (upper, small caps, or as typed) and name / heading weights, heading spacing and rule weight (with a per-section heading alignment), bullet indent and bullet spacing, accent colors plus an independent colour for the name, the headline, the section titles, the contact line and links (each Auto until set), spacing, and margins — every slider spans the document's full range and has a typed value box beside it.
 - **Layout freedom:** two-column ↔ single-column, **A4 or US-Letter** page size, light / dark / system theme.
@@ -141,7 +141,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 | ![Per-section styles](docs/screenshots/styles.png) | ![Encrypted sharing](docs/screenshots/share.png) |
 
 <p align="center">
-  <img src="docs/screenshots/templates.png" alt="55 recruiter-ready templates rendered live with your content" width="100%" />
+  <img src="docs/screenshots/templates.png" alt="58 recruiter-ready templates rendered live with your content" width="100%" />
 </p>
 
 ---
@@ -184,7 +184,7 @@ Open **http://localhost:5173** and start building. CVAurum makes **zero external
 
 ### Templates
 
-Choose from **55 templates** and switch between them at any time — your content stays put while the design changes. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
+Choose from **58 templates** and switch between them at any time — your content stays put while the design changes. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
 
 ### ATS Analysis & Job Tailoring
 
@@ -290,7 +290,7 @@ Planned and under consideration:
 - **Constraint-solver one-page auto-fit**, **style painter** (copy a section's look onto others), and **version history** with visual diff _(planned)_
 - **On-device semantic JD matching** (transformers.js, MiniLM) as an optional upgrade to keyword overlap _(planned)_
 
-✅ **Shipped:** 55 templates · per-section style switching · per-entry logos (editable right on the canvas) · recruiter skim heatmap · opt-in on-device semantic JD matching (MiniLM) · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · vector PDF & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
+✅ **Shipped:** 58 templates · per-section style switching · per-entry logos (editable right on the canvas) · recruiter skim heatmap · opt-in on-device semantic JD matching (MiniLM) · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · vector PDF & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
 
 Have an idea? Open an issue and let's talk.
 

@@ -48,6 +48,7 @@ export type HeaderVariant =
   | 'display' // the name set huge across the width, contacts as a byline between rules
   | 'block' // the name fills a colour block in tall capitals
   | 'band' // a two-stop gradient band carries the name, with a slot for the stats
+  | 'stepped' // three full-width bands in graded shades: name, role, contacts
 
 /** Section heading treatment. */
 export type SectionStyle =

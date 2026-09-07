@@ -998,6 +998,60 @@ export const TEMPLATES: TemplateConfig[] = [
       { columns: 1, stats: true, showPhoto: false, sectionSettings: { skills: { skillsStyle: 'rings' } } }
     ),
   },
+  {
+    id: 'chronicle',
+    name: 'Chronicle',
+    description: 'A ledger: every entry hands its opening year to a tinted rail down the left, set in tall condensed numerals, while the entry keeps its own real dates in one plain column beside them.',
+    tags: ['signature', 'single-column', 'modern', 'timeline', 'premium'],
+    atsSafe: true,
+    class: 'tpl-chronicle',
+    header: 'compact',
+    section: 'underline',
+    skills: 'chips',
+    sectionIcons: false,
+    defaults: defs(
+      'chronicle',
+      { primary: '#d9531e', text: '#1b1b1f', muted: '#6b6560', background: '#ffffff' },
+      { fontFamily: 'Figtree', headingFamily: 'Figtree', nameFamily: 'Figtree', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.05, uppercaseHeadings: true },
+      { columns: 1, metaColumn: 'gutter', showPhoto: false }
+    ),
+  },
+  {
+    id: 'folio-noir',
+    name: 'Folio Noir',
+    description: 'A gallery wall: gold on near-black, a band of art behind the name, a hairline running out of every heading, and the dates and places of each entry set in a narrow margin down the right.',
+    tags: ['signature', 'single-column', 'creative', 'elegant', 'premium'],
+    atsSafe: true,
+    class: 'tpl-folio-noir',
+    header: 'standard',
+    section: 'plain',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'folio-noir',
+      { primary: '#d3aa5a', text: '#ebe6dc', muted: '#9a948a', background: '#0f1117', artBand: 'navy-gold', headings: '#d3aa5a' },
+      { fontFamily: 'Spectral', headingFamily: 'Archivo', nameFamily: 'Cormorant Garamond', fontSize: 10, lineHeight: 1.5, letterSpacing: 0, headingScale: 0.95, uppercaseHeadings: true },
+      { columns: 1, metaColumn: 'margin', showPhoto: false }
+    ),
+  },
+  {
+    id: 'terrace',
+    name: 'Terrace',
+    description: 'Three steps of green carry the name, the role and the contacts across the top of the page, and beneath them every section title sits in a column of its own beside the words it labels.',
+    tags: ['signature', 'single-column', 'modern', 'elegant', 'premium'],
+    atsSafe: true,
+    class: 'tpl-terrace',
+    header: 'stepped',
+    section: 'plain',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'terrace',
+      { primary: '#123d2e', text: '#182420', muted: '#5f6b66', background: '#f7f6f1' },
+      { fontFamily: 'Lato', headingFamily: 'Chivo', nameFamily: 'Chivo', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.05, uppercaseHeadings: true },
+      { columns: 1, headingPlacement: 'side', showPhoto: false }
+    ),
+  },
 ]
 
 export const TEMPLATE_MAP: Record<string, TemplateConfig> = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]))

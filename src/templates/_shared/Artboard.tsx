@@ -117,7 +117,9 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-on-primary': readableOn(theme.primary, theme.text),
       // The stepped header's second and third bands: the accent lightened
       // 14% and 28%, so the three steps grade from the accent down. A
-      // template can name its own two shades instead (templates.css).
+      // template can name its own two shades instead, on the header element
+      // itself (templates.css): written here they are inline on the root,
+      // which no stylesheet rule can outrank.
       '--rm-step-2': lighten(theme.primary, 0.14),
       '--rm-step-3': lighten(theme.primary, 0.28),
       // The wash a header lays over its art band (theme.artBand): the page's

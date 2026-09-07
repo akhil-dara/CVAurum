@@ -107,7 +107,7 @@ interface TemplateConfig {
   atsSafe: boolean;      // true => shows the ATS-safe shield in the gallery
   class: string;         // scoped CSS root class, e.g. 'tpl-aurora'
 
-  header: 'standard' | 'centered' | 'banner' | 'split' | 'compact' | 'display' | 'block' | 'band';
+  header: 'standard' | 'centered' | 'banner' | 'split' | 'compact' | 'display' | 'block' | 'band' | 'stepped';
   section: 'underline' | 'rule-after' | 'bar' | 'plain' | 'boxed' | 'side';
   skills: 'inline' | 'chips' | 'bars' | 'dots' | 'grouped-chips';
   languageMeter: boolean;
@@ -256,7 +256,9 @@ this.
 | `footer` | Section keys that leave the body and render in a full-width strip at the foot of the last page, in a compact row form (one line per skill group, one for the languages). The order resolver reads the strip last, so the ATS text and the Word file list those sections last too. A template that ships a strip seats its sections there where the author has moved none; an author's own strip stays across a switch |
 | `stats` | `true` draws a row of up to four numbers derived from the content (years of experience, companies, skills, a headline number from a project) under the header - in the `band` header's own slot, or directly under any other header. Decorative text: outlines in the PDF, absent from Word and the ATS text. Stays once chosen; a template that ships it turns it on |
 | `sectionNumbers` | `true` opens every section heading in the body with a running two-digit number (`01`, `02`, ...) counted in page order; the strip and the sidebar are never numbered. Decorative text, like the stats. Stays once chosen; a template that ships it turns it on |
-| `metaColumn`, `headingPlacement`, `sectionFrame` | The remaining structural axes (`none` / `gutter` / `margin`; `above` / `side`; `none` / `tile`). Accepted by the schema and kept across switches now; drawn by a later batch |
+| `metaColumn` | `'gutter'` gives every entry a tinted column on the left holding its opening year over a short word, both decorative, while the entry keeps its own real date line; `'margin'` gives it a narrower column on the right holding the entry's real date and location, which leave the head row and print once. `'none'` (default) leaves every entry as it was. Kept across switches |
+| `headingPlacement` | `'side'` seats every body section's title in a column of its own on the left, right-aligned against the content and one line above it; `'above'` (default) leaves it over its content. Kept across switches |
+| `sectionFrame` | `none` (default) or `tile`. Accepted by the schema and kept across switches now; drawn by a later batch |
 | `sectionSettings[key].skillsStyle` | Per section: how a skills section draws its items. `'chips'`, `'tags'`, `'inline'`, `'grid'`, `'stacked'`, or `'rings'` - a ring per skill with a level (two single-fill svgs, the level as decorative text in the centre, the label as real text beneath; skills without a level follow as chips). `'mosaic'` is accepted and drawn by a later batch. A template may ship one (Atlas ships rings) and it applies where the author set none for that section |
 | `sectionSettings[key].showDuration` | Per section, opt-in: end each date range with its length in parentheses (`"2 yrs 3 mos"`, counted in whole months, so both dates need a month). Plain text, so the Word export and the ATS text print the same words |
 | `sectionSettings[key].headingAlign` | Per section: `'left'` or `'center'` for the heading → `sec-align-*` on the section; unset keeps the template's own. A centred rule-after heading sits between two rules; the Word export centres the paragraph |
@@ -311,8 +313,10 @@ guarantees them, so style against them freely.
 | `.rm-rings` / `.rm-ring` / `.rm-ring-track` / `.rm-ring-arc` | The rings skills style: the row, one ring, its track circle and its arc, each svg with one fill. |
 | `.rm-footer` / `.rm-footer-row` / `.rm-footer-label` | The footer strip after the columns, a row per group, and the row's label. The root carries `rm-has-footer` when a strip is drawn. |
 | `.rm-header-display` / `.rm-header-block` / `.rm-header-band` | The header element under three of the Signature compositions (the root also carries `hdr-display`, `hdr-block`, `hdr-band`). |
-| `.rm-header-stepped` / `.rm-step` / `.rm-step-name` / `.rm-step-role` / `.rm-step-contacts` | The stepped header and its three bands (`hdr-stepped` on the root). The second and third shades are `--rm-step-2` and `--rm-step-3`, the accent lightened 14% and 28% unless a template names its own. |
+| `.rm-header-stepped` / `.rm-step` / `.rm-step-name` / `.rm-step-role` / `.rm-step-contacts` | The stepped header and its three bands (`hdr-stepped` on the root). The second and third shades are `--rm-step-2` and `--rm-step-3`, the accent lightened 14% and 28% unless a template names its own — on `.rm-header-stepped` itself, never on the root, whose pair the renderer writes inline where no stylesheet rule can outrank it. The Word export shades its three paragraphs from the accent either way. |
 | `.rm-header-art` / `.rm-art-band` / `.rm-art-veil` | A header carrying art (`theme.artBand`): the class on the header, the image itself and the wash over it. Both are the header's first children, because the painter has no z-index - it paints in document order. |
+| `.rm-meta-cell` / `.rm-year` / `.rm-year-sub` / `.rm-initials` | The entry's own meta column, with `layout.metaColumn` (the root carries `meta-gutter` or `meta-margin`). In the gutter the cell holds a decorative year over a short word, and the opening paragraph's cell holds the initials instead; in the margin it holds the entry's real date and location. Its ground reads `--rm-gutter-bg`. |
+| `heads-side` | The root class with `layout.headingPlacement: 'side'`: every main-column section becomes a two-cell grid, the title in the first column and the body in the second row beneath it. Its width reads `--rm-heads-w`. |
 | `.rm-section-icon` | The heading's badge. The root carries `sicon-<style>` and, for S/L, `sicon-size-s` / `sicon-size-l`; the folio style adds `.rm-folio-ink` / `.rm-folio-tint` / `.rm-folio-paper` glyph svgs and two `.rm-folio-fold` svgs inside. |
 | `.rm-section-body` | The section's content container. |
 | `.rm-item` | A single entry within a section (a job, a degree, …). |
@@ -434,6 +438,9 @@ text layer, the Word file or the ATS text.
 | `broadsheet` | The `display` header and `sectionNumbers` |
 | `marquee` | The `block` header and a `footer` strip for skills and languages |
 | `atlas` | The `band` header with `gradientTo`, `stats`, and `skillsStyle: 'rings'` on the skills section |
+| `chronicle` | `metaColumn: 'gutter'` — a tinted rail of decorative years down the left |
+| `folio-noir` | `theme.artBand` behind the header and `metaColumn: 'margin'` on a dark page |
+| `terrace` | The `stepped` header and `headingPlacement: 'side'` |
 
 Each primitive is a layout or theme field, so any template can carry it: an author can
 number the sections of Clarity, or move Broadsheet's languages into a strip, from the

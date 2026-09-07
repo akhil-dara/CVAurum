@@ -1113,6 +1113,143 @@
   fill: var(--rm-gradient-to);
 }
 
+/* ===================================================== Chronicle (the rail)
+   A tinted rail down the left carries each entry's opening year in tall
+   condensed numerals. The numeral is decorative text (rm-deco): the PDF
+   draws it as outlines and Word never sees it, and the entry beside the
+   rail keeps its own real, readable date line. The rail's own rules live
+   in artboard.css under `.meta-gutter`; these give it Chronicle's colour
+   and its face. Anchored on .rm-root so they beat the structural rules,
+   which name the root class too. */
+.rm-root.tpl-chronicle .rm-body {
+  --rm-gutter-bg: #f3efe8;
+}
+.rm-root.tpl-chronicle .rm-year {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.rm-root.tpl-chronicle .rm-initials {
+  font-family: 'Bebas Neue', sans-serif;
+  font-weight: 400;
+}
+/* A heavy ink rule closes the masthead, the way a running head closes off
+   the front matter of a bound volume. */
+.tpl-chronicle .rm-header-compact {
+  border-bottom: 3px solid var(--rm-text);
+  padding-bottom: 0.7em;
+}
+/* The title's own underline gives way to a short accent bar after the words.
+   A flex ROW, not a bar beneath a block title: the painter resolves a static
+   pseudo against its host's own origin unless the host lays it out as a flex
+   item (pdf/walk.ts pseudoBox), so a bar the canvas drops below the words
+   would print across the top of them. A section whose gear picked a heading
+   style of its own drops the bar with the shared reset at the foot of this
+   file, so the two never stack. */
+.tpl-chronicle .rm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.tpl-chronicle .rm-section-title::after {
+  content: '';
+  flex: 0 0 28px;
+  width: 28px;
+  height: var(--rm-heading-rule, 2px);
+  background: var(--rm-heading-color, var(--rm-primary));
+}
+.tpl-chronicle .rm-item-org {
+  color: var(--rm-primary);
+  font-weight: 600;
+}
+
+/* ===================================================== Folio Noir (gallery wall)
+   Gold on near-black with a band of art behind the name. Every heading is a
+   word followed by a gold hairline running to the edge, and each entry's
+   dates and place sit in the margin down the right (artboard.css
+   `.meta-margin`), which rules itself off the text with --rm-line. */
+.tpl-folio-noir {
+  --rm-line: #2a2d38;
+}
+.tpl-folio-noir .rm-name {
+  font-weight: var(--rm-name-weight, 500);
+  letter-spacing: 0.01em;
+}
+.tpl-folio-noir .rm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  border-bottom: none;
+  padding-bottom: 0;
+  letter-spacing: 0.2em;
+}
+.tpl-folio-noir .rm-section-title::after {
+  content: '';
+  flex: 1 1 auto;
+  height: var(--rm-heading-rule, 1px);
+  background: currentColor;
+}
+/* Centred, the words sit between two hairlines. */
+.tpl-folio-noir .rm-section.sec-align-center .rm-section-title::before {
+  content: '';
+  flex: 1 1 auto;
+  height: var(--rm-heading-rule, 1px);
+  background: currentColor;
+}
+.tpl-folio-noir .rm-item-title {
+  font-weight: 600;
+}
+.tpl-folio-noir .rm-item-org {
+  color: var(--rm-primary);
+  font-style: italic;
+}
+.tpl-folio-noir .rm-chip {
+  background: #191c25;
+  border-color: #2a2d38;
+}
+.tpl-folio-noir .rm-bullets li::marker {
+  color: var(--rm-primary);
+}
+
+/* ===================================================== Terrace (three steps)
+   The stepped header grades down through three greens of its own instead of
+   the accent lightened twice, and the section titles take the middle green
+   so a heading beside its content reads as the same family as the steps
+   above it.
+
+   The two shades are named on the HEADER, not on the root: the renderer
+   writes the stock pair inline on the root (Artboard.tsx useVars) and an
+   inline declaration beats every stylesheet rule, so a root-level pair here
+   would never be read. On the header the declaration is the element's own
+   and wins over the value it would otherwise inherit. */
+.tpl-terrace .rm-header-stepped {
+  --rm-step-2: #1c5a44;
+  --rm-step-3: #2a7a5c;
+}
+.rm-root.tpl-terrace .rm-name {
+  font-weight: var(--rm-name-weight, 700);
+  letter-spacing: -0.01em;
+}
+.tpl-terrace .rm-section-title {
+  color: var(--rm-heading-color, #1c5a44);
+  letter-spacing: 0.16em;
+}
+.tpl-terrace .rm-item-title {
+  font-weight: 700;
+}
+.tpl-terrace .rm-item-org {
+  color: #1c5a44;
+}
+.tpl-terrace .rm-item-date {
+  color: var(--rm-muted);
+  font-variant-numeric: tabular-nums;
+}
+.tpl-terrace .rm-bullets li::marker {
+  color: var(--rm-primary);
+}
+
 /* =====================================================================
    PER-SECTION STYLE OVERRIDES (user-picked in the canvas section gear).
    Scoped .sec-ov-* / .skl-ov-* classes on one .rm-section — they must beat
