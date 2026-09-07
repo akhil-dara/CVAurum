@@ -189,4 +189,31 @@ describe('a side heading keeps its own line', () => {
       }
     }
   })
+
+  it('sets the title against the right edge as a block AND as a flex row', () => {
+    // The title is a flex container for a large share of documents: the
+    // rule-after heading style makes it one, and so does every section
+    // whose gear picked a heading style of its own. text-align does not
+    // position flex items, so on those the words sat at the LEFT edge of
+    // the title column - the far side from the content they label - and
+    // the popover's own note said the opposite of what the page drew.
+    const titles = rules.filter((r) => r.selector.split(',').map(subject).some((s) => /^\.rm-section-title$/.test(s)))
+    const aligning = titles.filter((r) => declared(r.body, 'text-align').length > 0)
+    expect(aligning.length).toBe(1)
+    expect(declared(aligning[0].body, 'text-align')).toEqual(['right'])
+    expect(declared(aligning[0].body, 'justify-content')).toEqual(['flex-end'])
+  })
+
+  it('stops a heading rule growing across the title column', () => {
+    // A heading style whose rule fills the space beside the words (the
+    // flex: 1 pseudo of rule-after and its per-section twin) would fill
+    // the whole title column, leaving the words where they started. The
+    // side-heading layout cannot express that rule, so it collapses it,
+    // the way the gutter-label layout drops the badge it cannot seat.
+    const pseudos = rules.filter((r) =>
+      r.selector.split(',').map(subject).some((s) => /^\.rm-section-title::(before|after)$/.test(s))
+    )
+    expect(pseudos.length).toBeGreaterThan(0)
+    for (const rule of pseudos) expect(declared(rule.body, 'flex')).toEqual(['0 0 auto'])
+  })
 })

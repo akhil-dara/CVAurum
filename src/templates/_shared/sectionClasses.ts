@@ -156,6 +156,21 @@ export function entryEmphasisOnSub(ss: { entryOrder?: string; entryEmphasis?: st
 }
 
 /**
+ * True when an alignment override cannot reach the page and the gear should
+ * say so instead of writing a setting nothing draws.
+ *
+ * Beside the content (layout.headingPlacement: 'side') the title has a
+ * narrow column of its own and is set against the content it labels. The
+ * side-heading rules are later in the sheet than both alignment overrides
+ * and carry the same weight, so neither left nor centre moves the words -
+ * the whole group is inert there, not just the centre chip. Auto is not an
+ * override at all, so it stays live as the way back.
+ */
+export function headingAlignLocked(align: string, headsSide: boolean): boolean {
+  return headsSide && align !== ''
+}
+
+/**
  * The per-section style overrides as scoped classes on the section element,
  * where the .rm-root-anchored rules in the stylesheets beat any template's
  * own. A setting the section never made adds no class, so the template's own

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { entryMetaOf, entryOrderOf, keepEntriesOn, paintStyle, sectionOverrideClasses } from './sectionClasses'
+import { entryMetaOf, entryOrderOf, headingAlignLocked, keepEntriesOn, paintStyle, sectionOverrideClasses } from './sectionClasses'
 import { defaultMetadata } from '@/data/defaults'
 
 /**
@@ -294,4 +294,28 @@ describe('a fixed-width marker under a section title follows a centred heading',
       expect(twin!.body).not.toMatch(/transform|gradient/)
     })
   }
+})
+
+/**
+ * Beside the content (layout.headingPlacement: 'side') the title has a narrow
+ * column of its own, set against the content it labels. Neither alignment
+ * override can move it there - the stylesheet's side-heading rules are later
+ * and outrank both - so both chips have to say so rather than light up and
+ * change nothing on the page.
+ */
+describe('headingAlignLocked', () => {
+  it('locks every alignment override while the titles sit beside the content', () => {
+    expect(headingAlignLocked('left', true)).toBe(true)
+    expect(headingAlignLocked('center', true)).toBe(true)
+  })
+
+  it('leaves Auto alone, which is the absence of an override', () => {
+    expect(headingAlignLocked('', true)).toBe(false)
+  })
+
+  it('locks nothing while the titles sit above their content', () => {
+    expect(headingAlignLocked('', false)).toBe(false)
+    expect(headingAlignLocked('left', false)).toBe(false)
+    expect(headingAlignLocked('center', false)).toBe(false)
+  })
 })

@@ -3453,12 +3453,28 @@
   grid-column: 1;
   grid-row: 1;
   text-align: right;
+  /* ...and the same edge for the styles that make the title a FLEX row -
+     the rule-after document style, and every section whose gear picked a
+     heading style of its own. text-align does not move a flex item, so on
+     those the words sat at the left edge of this column, the far side from
+     the content they label. Same weight as the centred override's own
+     justify-content and later in the sheet, so it wins where both apply. */
+  justify-content: flex-end;
   margin: 0;
   /* Set against the right edge of a fixed column, a word too long for it
      spills LEFT, into the page margin. The words are shrunk to fit first
      (keywordFit.ts, as in the sidebar); this is the last resort for the one
      that still does not fit, and only ever engages for that word. */
   overflow-wrap: break-word;
+}
+/* A heading rule that fills the space beside the words would fill this whole
+   column and leave the words where they were, so the layout collapses it -
+   the same giving-up that the gutter-label layout does with the badge it
+   cannot seat. One class more than the per-section override rules carry, so
+   it beats them from the sheet that loads first. */
+.rm-root.heads-side .rm-col-main .rm-section .rm-section-title::before,
+.rm-root.heads-side .rm-col-main .rm-section .rm-section-title::after {
+  flex: 0 0 auto;
 }
 .rm-root.heads-side .rm-col-main .rm-section-body {
   grid-column: 2;

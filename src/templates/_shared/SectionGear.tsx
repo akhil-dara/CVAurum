@@ -20,7 +20,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
-import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LOCATION, STYLE_FIELDS, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
+import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -459,7 +459,8 @@ export function SectionGear({
   // meters, so the rows that choose them are replaced by a line saying so.
   const inFooter = layout.footer.includes(sectionKey)
   // With the titles beside their content the heading takes a column of its
-  // own, right-aligned by definition, so the centre chip has nothing to do.
+  // own, set against that content by definition, so no alignment chip in the
+  // group has anything to do.
   const headsSide = layout.headingPlacement === 'side' && !inFooter && !inAside
   // Meter style only ever does anything for a skill group that has a rating
   // (sections.tsx Skills() now meters ANY rated group, keywords or not) — flag
@@ -932,11 +933,10 @@ export function SectionGear({
                   <div className="grid grid-cols-3 gap-1">
                     {HEADING_ALIGNS.map((a) => {
                       // Beside the content the title has a narrow column of
-                      // its own, right-aligned against the text it belongs
-                      // to; centring it in there is not a look the page can
-                      // draw, so the chip says why instead of doing nothing
-                      // when tapped.
-                      const noCentre = a.value === 'center' && headsSide
+                      // its own, set against the text it belongs to; neither
+                      // edge is a look the page can draw in there, so both
+                      // chips say why instead of doing nothing when tapped.
+                      const locked = headingAlignLocked(a.value, headsSide)
                       return (
                         <ChipBtn
                           key={a.value || 'auto'}
@@ -944,8 +944,8 @@ export function SectionGear({
                           title={a.title}
                           on={(opts.headingAlign ?? '') === a.value}
                           onClick={() => setStyle('headingAlign', a.value || undefined)}
-                          disabled={noCentre}
-                          reason={noCentre ? 'Beside the content, titles keep to the right edge' : undefined}
+                          disabled={locked}
+                          reason={locked ? 'Beside the content, titles keep to the right edge' : undefined}
                         />
                       )
                     })}
