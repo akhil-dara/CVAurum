@@ -17,8 +17,13 @@ function months(ym: string): number | null {
 
 /** Up to four numbers a reader takes in at a glance, derived from the
  *  content so they are never typed twice: years of experience, distinct
- *  employers, skills, and one headline number found in a project. Each is
- *  skipped when absent, so a thin resume shows a shorter band or none. */
+ *  employers, one headline number found in a project, and skills. Each is
+ *  skipped when absent, so a thin resume shows a shorter band or none.
+ *
+ *  The order is the order a reader should care about them. A count of the
+ *  keywords someone listed is the weakest fact in the band - it says how
+ *  long their skills list is, not what they did - so it goes last, behind
+ *  the years, the employers and any real figure the work itself carries. */
 export function deriveStats(content: ResumeDocument['content'], today: string = currentYearMonth()): Stat[] {
   const out: Stat[] = []
   const starts = content.work.map((w) => months(w.startDate)).filter((n): n is number => n !== null)
@@ -30,11 +35,11 @@ export function deriveStats(content: ResumeDocument['content'], today: string = 
   }
   const companies = new Set(content.work.map((w) => (w.name || '').trim().toLowerCase()).filter(Boolean)).size
   if (companies) out.push({ value: String(companies), label: 'companies' })
-  const skills = content.skills.reduce((n, s) => n + (s.keywords?.length || 0), 0)
-  if (skills) out.push({ value: String(skills), label: 'skills' })
   for (const p of content.projects) {
     const hit = [p.description, ...(p.highlights || [])].map((t) => HEADLINE.exec(htmlToText(t))).find(Boolean)
     if (hit) { out.push({ value: hit[1].replace(/\s+/g, ''), label: hit[2].toLowerCase() }); break }
   }
+  const skills = content.skills.reduce((n, s) => n + (s.keywords?.length || 0), 0)
+  if (skills) out.push({ value: String(skills), label: 'skills' })
   return out
 }

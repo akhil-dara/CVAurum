@@ -15,8 +15,8 @@ describe('deriveStats', () => {
     expect(deriveStats(c, '2026-09')).toEqual([
       { value: '8+', label: 'years' },
       { value: '2', label: 'companies' },
-      { value: '20', label: 'skills' },
       { value: '3.2k', label: 'stars' },
+      { value: '20', label: 'skills' },
     ])
   })
   it('yields nothing for an empty document', () => {
@@ -35,11 +35,11 @@ describe('deriveStats', () => {
   it('finds a headline number wrapped in rich-text markup', () => {
     const c = createDocument({ sample: true }).content
     c.projects = [{ ...c.projects[0], description: '', highlights: ['<strong>12k</strong> monthly downloads'] }]
-    expect(deriveStats(c, '2026-09').at(-1)).toEqual({ value: '12k', label: 'downloads' })
+    expect(deriveStats(c, '2026-09')[2]).toEqual({ value: '12k', label: 'downloads' })
   })
   it('never borrows a thousands suffix from the word after the number', () => {
     const c = createDocument({ sample: true }).content
     c.projects = [{ ...c.projects[0], description: '', highlights: ['Serves 30 key customers'] }]
-    expect(deriveStats(c, '2026-09').at(-1)).toEqual({ value: '30', label: 'customers' })
+    expect(deriveStats(c, '2026-09')[2]).toEqual({ value: '30', label: 'customers' })
   })
 })

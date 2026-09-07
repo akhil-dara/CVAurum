@@ -1110,6 +1110,27 @@
 /* ===================================================== Atlas (dashboard)
    A navy-to-teal band carries the name and the stats; the teal stop marks
    the bar beside each heading, the dates and the ring arcs. */
+/* The name is the largest thing on the page and the band is built around
+   it: at the size the header used to set it, a 26px name under a 170px
+   band read as a caption on a coloured rectangle. It keeps a floor of its
+   own so the one-page auto-fit can never shrink it back to a caption. */
+.rm-root.tpl-atlas .rm-header-band .rm-name {
+  font-size: max(34px, calc(var(--rm-fs) * 2.7));
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.1em;
+}
+/* The role reads as the name's second line, not as a contact that drifted
+   left: a size up from the body, tracked, in the same white. */
+.rm-root.tpl-atlas .rm-header-band .rm-headline {
+  font-size: max(13px, calc(var(--rm-fs) * 1.3));
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rm-root.tpl-atlas .rm-header-band .rm-contacts {
+  font-size: max(10px, calc(var(--rm-fs) * 0.98));
+}
 .tpl-atlas.sec-bar .rm-section-title {
   border-left-color: var(--rm-gradient-to);
 }

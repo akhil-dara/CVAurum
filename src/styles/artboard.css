@@ -19,6 +19,11 @@
   --rm-section-gap: 14px;
   --rm-item-gap: 8px;
   --rm-pad: 48px;
+  /* The even inset a full-bleed band keeps above and below its content, and
+     the depth a stats card sinks into the band it straddles - half the
+     card's own height (a card is ~5.2 body sizes tall). */
+  --rm-band-inset: 28px;
+  --rm-stat-overlap: calc(var(--rm-fs) * 2.6);
   --rm-text: #1a1a1a;
   --rm-muted: #5b6472;
   --rm-primary: #2563eb;
@@ -1733,16 +1738,27 @@
    (the author's, else a lighter hue of the accent), with the stats band
    overlapping its foot when there is one */
 .rm-header-band {
-  align-items: flex-end;
+  /* The band's height is its content's height plus an even inset above and
+     below it - NOT the page margin. Padded to the page margin and aligned to
+     its foot, the colour ran a long way above the first word and the name
+     read as something stuck to the band's bottom edge. */
+  align-items: center;
   gap: 1.5em;
   background: linear-gradient(100deg, var(--rm-primary), var(--rm-gradient-to, var(--rm-primary)));
   color: var(--rm-on-primary, #fff);
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
-  padding: var(--rm-pad) var(--rm-pad) 1.6em;
+  padding: var(--rm-band-inset) var(--rm-pad);
 }
+/* Stats straddling the foot: the card overlaps the band by half its own
+   height, so the band keeps that much coloured ground BELOW its last line
+   and the words are never covered. Both sides read the same overlap, so
+   the two can never drift apart. */
 .rm-header-band:has(+ .rm-stats) {
-  padding-bottom: 2.6em;
+  padding-bottom: calc(var(--rm-band-inset) + var(--rm-stat-overlap));
   margin-bottom: 0;
+}
+.rm-header-band + .rm-stats {
+  margin-top: calc(var(--rm-stat-overlap) * -1);
 }
 .rm-root .rm-header-band .rm-name {
   text-indent: 0;
@@ -1752,11 +1768,21 @@
   margin-bottom: 0;
   color: var(--rm-headline-color, var(--rm-on-primary, #fff));
 }
+/* Contacts sit BESIDE the name, not stacked into a tall right-hand column:
+   six of them in one column made the band twice as tall as the name needed
+   and left the top half empty. Three to a column, filling a second column
+   only when there are more than three, keeps the block the same height as
+   the name and the role together. Column-major, so the DOM order a parser
+   reads runs straight down each column. */
 .rm-root .rm-header-band .rm-contacts {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.2em;
-  text-align: right;
+  display: grid;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: end;
+  align-content: center;
+  gap: 0.3em 1.6em;
+  text-align: left;
   color: var(--rm-contact-color, var(--rm-on-primary, #fff));
 }
 .rm-header-band .rm-contact a {
@@ -1893,6 +1919,14 @@
   border-radius: 10px;
   background: var(--rm-bg);
   margin-bottom: var(--rm-section-gap);
+  /* The band it straddles is `position: relative` (it anchors the header
+     gear), which on the page lifts the whole header into the positioned
+     paint pass - above this static card, so the gradient covered the top
+     half of every figure. The PDF has no such pass: it paints in document
+     order, card over band, which is the composition we want. Making the
+     card positioned too puts it back on top on the page, later in tree
+     order, and the two now agree pixel for pixel. */
+  position: relative;
 }
 /* inside a header with no slot of its own it takes the header's full width */
 .rm-header .rm-stats {
@@ -1900,9 +1934,6 @@
   flex: 0 0 100%;
   order: 4;
   margin: 0.8em 0 0;
-}
-.rm-header-band + .rm-stats {
-  margin-top: -1.2em;
 }
 .rm-stat {
   flex: 1;
