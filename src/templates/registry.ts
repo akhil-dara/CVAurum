@@ -1030,7 +1030,7 @@ export const TEMPLATES: TemplateConfig[] = [
     defaults: defs(
       'folio-noir',
       { primary: '#d3aa5a', text: '#ebe6dc', muted: '#9a948a', background: '#0f1117', artBand: 'navy-gold', headings: '#d3aa5a' },
-      { fontFamily: 'Spectral', headingFamily: 'Archivo', nameFamily: 'Cormorant Garamond', fontSize: 10, lineHeight: 1.5, letterSpacing: 0, headingScale: 0.95, uppercaseHeadings: true },
+      { fontFamily: 'Spectral', headingFamily: 'Archivo', nameFamily: 'Cormorant Garamond', fontSize: 10, lineHeight: 1.5, letterSpacing: 0, headingScale: 1, uppercaseHeadings: true },
       { columns: 1, metaColumn: 'margin', showPhoto: false }
     ),
   },
