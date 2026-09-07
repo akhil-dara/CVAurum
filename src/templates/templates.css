@@ -1288,9 +1288,72 @@
    `.meta-margin`), which rules itself off the text with --rm-line. */
 .tpl-folio-noir {
   --rm-line: #2a2d38;
+  /* The height of the picture on the wall, measured against the name so the
+     two scale together. */
+  --rm-folio-art: calc(var(--rm-name-size) * 1.45);
+}
+
+/* The art is a picture HUNG ABOVE the words, not a ground printed behind
+   them. Behind them, the band's gold veins run straight through the contact
+   line - the one line a recruiter reads first - and no flat wash the painter
+   can draw (a translucent stop kills a gradient, paint.ts) darkens the veins
+   enough for the muted contact colour without also drowning the art. So the
+   band becomes a strip across the top of the header with a gold hairline
+   under it, and the name, the role and the contacts are set on the plain
+   near-black below, where every one of them clears 4.5:1.
+
+   The selector carries five classes because that is what artboard.css spends
+   on the padding it gives an art header (a `:not()` chain over four
+   compositions); templates.css is imported second (TemplateRenderer.tsx), so
+   a tie here wins. `display: block` lets the one child fill the column - as a
+   flex item it shrank to its longest line, and the contacts row is the thing
+   that has to run the full width. */
+.rm-root.tpl-folio-noir .rm-header.rm-header-art.rm-header-standard {
+  display: block;
+  padding: calc(var(--rm-folio-art) + 1.5em) 0 0;
+}
+/* No `object-position` here, however tempting a lower slice of the marble
+   looks: the browser honours it and the painter does not, so the canvas and
+   the PDF cropped two different slices of the same image (the multi-page
+   gate's band diff caught it). The centred crop is the one both agree on. */
+.tpl-folio-noir .rm-art-band {
+  bottom: auto;
+  height: var(--rm-folio-art);
+}
+/* The veil has no words to protect any more, so it does the other half of a
+   frame's job: the gold hairline that closes the picture off from the page,
+   at the same full strength as the hairline running out of every heading. */
+.tpl-folio-noir .rm-art-veil {
+  top: var(--rm-folio-art);
+  bottom: auto;
+  height: 1px;
+  background: var(--rm-primary);
 }
 .tpl-folio-noir .rm-name {
   font-weight: var(--rm-name-weight, 500);
+  letter-spacing: 0.015em;
+  margin-bottom: 0.16em;
+}
+/* The role is the wall label: tracked gold caps in the heading face, the
+   same voice as every section title below it. */
+.tpl-folio-noir .rm-headline {
+  font-family: var(--rm-font-heading);
+  font-size: calc(var(--rm-fs) * 0.82);
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rm-primary);
+  margin-bottom: 0.95em;
+}
+/* One muted row under it. The details are held apart by a wide gap alone -
+   a dot between each was tried and measured: six sample details plus five
+   dots came to within 9px of the 696px column, so the first slightly longer
+   address a real author typed would have wrapped one lone item onto a second
+   line. A gap this much wider than the word spaces inside an address groups
+   them just as clearly and leaves 30-odd px of room to spare. */
+.tpl-folio-noir .rm-contacts {
+  font-size: calc(var(--rm-fs) * 0.82);
+  gap: 0.3em 1.15em;
   letter-spacing: 0.01em;
 }
 .tpl-folio-noir .rm-section-title {

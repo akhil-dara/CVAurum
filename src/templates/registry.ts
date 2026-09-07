@@ -1030,8 +1030,13 @@ export const TEMPLATES: TemplateConfig[] = [
     defaults: defs(
       'folio-noir',
       { primary: '#d3aa5a', text: '#ebe6dc', muted: '#9a948a', background: '#0f1117', artBand: 'navy-gold', headings: '#d3aa5a' },
-      { fontFamily: 'Spectral', headingFamily: 'Archivo', nameFamily: 'Cormorant Garamond', fontSize: 10, lineHeight: 1.5, letterSpacing: 0, headingScale: 1, uppercaseHeadings: true },
-      { columns: 1, metaColumn: 'margin', showPhoto: false }
+      { fontFamily: 'Spectral', headingFamily: 'Archivo', nameFamily: 'Cormorant Garamond', fontSize: 10, lineHeight: 1.44, letterSpacing: 0, headingScale: 1.95, uppercaseHeadings: true },
+      // No contact icons: the wall label under a picture is one line of type,
+      // not a row of little pictograms. The gaps carry the three rhythms the
+      // page is read by - between sections, between entries, between lines -
+      // and on the stock pair the entry gap and the line gap came out equal,
+      // which left a run of entries reading as one grey block.
+      { columns: 1, metaColumn: 'margin', showPhoto: false, icons: false, sectionGap: 13, itemGap: 8 }
     ),
   },
   {
