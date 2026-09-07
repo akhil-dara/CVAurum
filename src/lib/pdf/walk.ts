@@ -1967,38 +1967,78 @@ export function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
  * measure portal settle separately. That is a page cut that can differ
  * between the two, which the whole module exists to prevent.
  *
- * So when the two runs OVERLAP they are joined rather than spaced: two boxes
- * on one visual line become ONE block spanning both - the same answer
+ * So when the two runs OVERLAP they are joined rather than spaced: the whole
+ * overlapping RUN becomes ONE block spanning all of it - the same answer
  * `coalesceSameLineBlocks` already gives same-line siblings - and the
  * heading's `keepWithNext` survives the join, so a cut still cannot fall
- * between a title and the content it labels. Runs that overlap without
- * sharing a line (a tall image beside a short label) simply get no gap
- * block: there is no empty space there to offer as a break.
+ * between a title and the content it labels.
+ *
+ * The RUN, not just the last-emitted/first-incoming pair. A gutter label
+ * wraps by design (the section CSS breaks long words for exactly that, and a
+ * ~160px column is narrow enough to need it), so the title arrives as two
+ * stacked lines whose SECOND one starts level with the body's first line -
+ * two boxes overlapping by exactly 0, which "shares a line" refuses, leaving
+ * the list out of order. And an entry can open with an ATOMIC block (a chip
+ * row, an image) rather than a line. So the join walks both ways from the
+ * joint: already-emitted trailing ink that reaches past the incoming block's
+ * top is absorbed, then any further incoming block the merged span still
+ * covers, whatever kind either side is. Atomic wins the union - a chip row
+ * stays indivisible - and `keepWithNext` is OR-ed.
+ *
+ * One `'entry-gap'` is emitted either way, because it is more than a break
+ * candidate: `pageChromeMap.locateStructural` names the entry a cut falls in
+ * by COUNTING gap blocks, so an entry with no gap of its own makes every
+ * later entry answer one entry too early - the canvas would open its page
+ * gap above the wrong entry while the export cut where it always did. A join
+ * has no empty span to measure, so that marker is ZERO-HEIGHT, sitting at
+ * the merged block's bottom. It adds no illegal cut: `buildCandidates` skips
+ * a gap whose predecessor is `keepWithNext`, which the merged block carries
+ * whenever the title did (a section title always does), and where it does
+ * not, the candidate y is the boundary between two adjacent ink blocks that
+ * `buildCandidates` would have offered anyway - only the tier changes, from
+ * 'line' to 'entry-gap'.
  */
 function appendEntryBlocks(blocks: PageBlock[], entryBlocks: PageBlock[], prevEnd: PageBlock | null): PageBlock {
+  const EPS = 0.5 // sub-pixel float noise - the tolerance the sanity check uses
   const first = entryBlocks[0]
-  if (prevEnd && first.topPx >= prevEnd.bottomPx) {
-    blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: first.topPx })
-  } else if (
-    prevEnd &&
-    // The caller's trailing block IS the last one emitted; rewriting anything
-    // else would silently reorder the list this exists to keep in order.
-    blocks[blocks.length - 1] === prevEnd &&
-    prevEnd.kind === 'line' &&
-    first.kind === 'line' &&
-    sharesLine(prevEnd, first)
-  ) {
-    blocks[blocks.length - 1] = {
-      kind: 'line',
-      topPx: Math.min(prevEnd.topPx, first.topPx),
-      bottomPx: Math.max(prevEnd.bottomPx, first.bottomPx),
-      ...(prevEnd.keepWithNext || first.keepWithNext ? { keepWithNext: true as const } : {}),
-    }
-    blocks.push(...entryBlocks.slice(1))
-    return blocks[blocks.length - 1]
+  if (!prevEnd || first.topPx >= prevEnd.bottomPx) {
+    if (prevEnd) blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: first.topPx })
+    blocks.push(...entryBlocks)
+    return entryBlocks[entryBlocks.length - 1]
   }
-  blocks.push(...entryBlocks)
-  return blocks[blocks.length - 1]
+
+  let merged: PageBlock = { ...first }
+  const absorb = (b: PageBlock): PageBlock => ({
+    kind: merged.kind === 'atomic' || b.kind === 'atomic' ? 'atomic' : 'line',
+    topPx: Math.min(merged.topPx, b.topPx),
+    bottomPx: Math.max(merged.bottomPx, b.bottomPx),
+    ...(merged.keepWithNext || b.keepWithNext ? { keepWithNext: true as const } : {}),
+  })
+  // Backwards: every trailing ink block still hanging over the incoming
+  // one's top. A gap block ends the walk - rewriting past one would reorder
+  // the list this exists to keep in order.
+  while (blocks.length) {
+    const tail = blocks[blocks.length - 1]
+    if (tail.kind !== 'line' && tail.kind !== 'atomic') break
+    if (tail.bottomPx <= merged.topPx + EPS) break
+    merged = absorb(tail)
+    blocks.pop()
+  }
+  // Forwards: every further block of this entry the merged span now covers.
+  let i = 1
+  while (i < entryBlocks.length && entryBlocks[i].topPx < merged.bottomPx - EPS) {
+    merged = absorb(entryBlocks[i])
+    i++
+  }
+
+  blocks.push(merged)
+  blocks.push({ kind: 'entry-gap', topPx: merged.bottomPx, bottomPx: merged.bottomPx })
+  const rest = entryBlocks.slice(i)
+  blocks.push(...rest)
+  // Never the marker itself: the NEXT entry measures its own gap from the
+  // last real ink, so its (real) gap block follows this zero-height one
+  // rather than starting inside it, and each entry still counts exactly one.
+  return rest.length ? rest[rest.length - 1] : merged
 }
 
 /** One section's own blocks: its title row, then each entry with an

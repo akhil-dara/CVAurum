@@ -1716,10 +1716,95 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     }
     // The title and the entry's head row are ONE line of ink to a y-only
     // model - the same answer same-line siblings already get - and the
-    // heading's own keep-with-next survives the join.
+    // heading's own keep-with-next survives the join. The zero-height
+    // entry-gap after it is the structural marker pageChromeMap.ts counts to
+    // name the entry a cut falls in (see appendEntryBlocks's own comment).
     expect(blocks).toEqual([
       { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 120, bottomPx: 120 },
       { kind: 'line', topPx: 125, bottomPx: 140 },
+    ])
+  })
+
+  // The join above only ever handled one shape: a one-line title beside a
+  // body whose first block is itself a line. Two shapes it did NOT handle
+  // reach the same code. A gutter label WRAPS by design (the CSS breaks long
+  // words for exactly this reason, and CERTIFICATIONS in a narrow gutter is
+  // the named case), so the title arrives as two stacked lines - the second
+  // of which starts where the body's first line has already begun, an
+  // overlap of exactly 0 that "shares a line" refuses. And an entry whose
+  // first block is a chip row or an image is atomic, not a line. Both used
+  // to be pushed straight through: an unsorted, overlapping list, whose
+  // break candidate then survived or died on sub-pixel geometry that the
+  // export's sheet and the preview's portal settle separately.
+  it('a WRAPPED side title folds the whole overlapping run, not just the last line, into one ordered block', () => {
+    install()
+
+    // Grid-stretched gutter label (box 100..900) wrapping to two real lines,
+    // the second of which covers the body's own first row.
+    const titleLine1 = txt('CERTIF', { top: 100, bottom: 120, left: 0, right: 90 })
+    const titleLine2 = txt('ICATIONS', { top: 120, bottom: 140, left: 0, right: 90 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 900, left: 0, right: 100 }, [titleLine1, titleLine2])
+
+    const itemHead = elm(['rm-item-head'], { top: 100, bottom: 120, left: 110, right: 600 })
+    const bulletText = txt('Did a thing', { top: 125, bottom: 140, left: 110, right: 560 })
+    const bulletLi = elm([], { top: 125, bottom: 140, left: 110, right: 560 }, [bulletText])
+    const bulletsUl = elm(['rm-bullets'], { top: 125, bottom: 140, left: 110, right: 600 }, [bulletLi])
+    const entry1 = elm(['rm-item'], { top: 100, bottom: 140, left: 110, right: 600 }, [itemHead, bulletsUl])
+
+    const entry2Text = txt('Second entry', { top: 150, bottom: 170, left: 110, right: 560 })
+    const entry2 = elm(['rm-item'], { top: 150, bottom: 170, left: 110, right: 560 }, [entry2Text])
+
+    const body = elm(['rm-section-body'], { top: 100, bottom: 170, left: 110, right: 600 }, [entry1, entry2])
+    const section = elm(['rm-section'], { top: 100, bottom: 170, left: 0, right: 600 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    for (const b of blocks) expect(b.bottomPx).toBeGreaterThanOrEqual(b.topPx)
+    for (let i = 1; i < blocks.length; i++) {
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].topPx)
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].bottomPx)
+    }
+    expect(blocks).toEqual([
+      // Both title lines AND the body rows they cover are one run of ink.
+      { kind: 'line', topPx: 100, bottomPx: 140, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 140, bottomPx: 140 }, // entry 1's marker
+      { kind: 'entry-gap', topPx: 140, bottomPx: 150 }, // entry 2's own real gap
+      { kind: 'line', topPx: 150, bottomPx: 170 },
+    ])
+  })
+
+  it('a side title beside an ATOMIC first block folds too, keeping the run ordered and the block indivisible', () => {
+    install()
+
+    const titleText = txt('SKILLS', { top: 100, bottom: 120, left: 0, right: 90 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 120, left: 0, right: 100 }, [titleText])
+
+    // The entry opens with a chip row - one indivisible box, not a line -
+    // sitting level with the label rather than below it.
+    const chipText = txt('React', { top: 105, bottom: 120, left: 110, right: 160 })
+    const chips = elm(['rm-chips'], { top: 100, bottom: 160, left: 110, right: 600 }, [chipText])
+    const tailText = txt('and a note below', { top: 170, bottom: 185, left: 110, right: 560 })
+    const entry = elm(['rm-item'], { top: 100, bottom: 185, left: 110, right: 600 }, [chips, tailText])
+
+    const body = elm(['rm-section-body'], { top: 100, bottom: 185, left: 110, right: 600 }, [entry])
+    const section = elm(['rm-section'], { top: 100, bottom: 185, left: 0, right: 600 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    for (const b of blocks) expect(b.bottomPx).toBeGreaterThanOrEqual(b.topPx)
+    for (let i = 1; i < blocks.length; i++) {
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].topPx)
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].bottomPx)
+    }
+    expect(blocks).toEqual([
+      // Atomic wins the join: a chip row stays unbreakable even once the
+      // label beside it is part of the same block.
+      { kind: 'atomic', topPx: 100, bottomPx: 160, keepWithNext: true },
+      { kind: 'entry-gap', topPx: 160, bottomPx: 160 },
+      { kind: 'line', topPx: 170, bottomPx: 185 },
     ])
   })
 
