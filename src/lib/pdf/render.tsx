@@ -150,14 +150,20 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     ])
     await raf2()
 
-    // Render once more now the webfonts have resolved. The Artboard's layout
-    // effect is what fits headings and keywords, and it fires before the fonts
-    // land - so on its first pass it measures FALLBACK metrics and a heading
-    // that fits in the fallback face still breaks in the real one. Re-rendering
-    // re-runs it against the real thing, and leaves it the single place that
-    // decides: applying the same passes again by hand from here re-measured a
-    // layout the effect had already settled and moved it a fraction of a pixel,
-    // which was enough to make the DOM's page cuts disagree with the ops'.
+    // Render once more now the webfonts have resolved, and give the Artboard's
+    // own font-ready pass (keywordFit.ts) a frame to land. The layout effect
+    // that fits headings and keywords fires before the fonts do - so on its
+    // first pass it measures FALLBACK metrics, and a heading that fits in the
+    // fallback face still breaks in the real one.
+    //
+    // This render alone does NOT cure that, though it long claimed to:
+    // TemplateRenderer is memoised on its props and these are the identical
+    // ones, so React bails out and no effect re-runs. Re-running the passes
+    // by hand from here is not the cure either - it re-measured a layout the
+    // effect had already settled and moved it a fraction of a pixel, which was
+    // enough to make the DOM's page cuts disagree with the ops'. The Artboard
+    // waits for the faces itself and refits every tree it serves, this one and
+    // the preview's measure portal alike, so the two settle on one answer.
     root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
     await raf2()
 

@@ -3,7 +3,7 @@
  * resume DOM. All visual parameters become CSS variables on .rm-root so the
  * exact same tree renders on screen and in the printed PDF.
  */
-import { useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
@@ -13,7 +13,7 @@ import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
 import { deriveStats } from '@/lib/stats'
-import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
+import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
@@ -1113,6 +1113,19 @@ export function Artboard({
     fitHeadingWords(rootRef.current)
     applyKeywordFit(rootRef.current)
   })
+  // ...and again once the document's own faces have actually loaded. The pass
+  // above fires with whatever the browser had at the time, which for a
+  // freshly chosen face is the FALLBACK - and nothing re-renders this tree
+  // when the real face lands. The offscreen measure portal is rendered once
+  // per edit and then left alone, so it kept a heading fitted to the fallback
+  // while the exporter, rendering its own tree later, fitted to the real
+  // face: two sizes for one heading, and page cuts that disagreed between the
+  // preview and the export (see keywordFit.ts).
+  const { fontFamily, headingFamily, nameFamily } = doc.metadata.typography
+  useEffect(() => {
+    if (!rootRef.current) return
+    return refitWhenFontsReady(rootRef.current, [fontFamily, headingFamily, nameFamily])
+  }, [fontFamily, headingFamily, nameFamily])
 
   return (
     <div ref={rootRef} className={rootClass} style={vars} data-template={config.id}>

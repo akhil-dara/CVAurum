@@ -1399,7 +1399,13 @@ function extractBlocksFromScope(scope: Element, rootTop: number, usablePageHeigh
   for (const section of sections) {
     const sectionBlocks = extractSectionBlocks(section, rootTop, usablePageHeightPx)
     if (!sectionBlocks.length) continue
-    if (prevEnd) {
+    // Only where there is a real empty span to measure. Two sections stack in
+    // a column, so the next one's first block normally starts at or below the
+    // previous one's end - but a section that overlaps its neighbour (a
+    // decorative rule drawn past its own box, a float) would otherwise get a
+    // gap block running BACKWARDS, whose midpoint is a break candidate inside
+    // real ink. See `appendEntryBlocks` for the same rule inside a section.
+    if (prevEnd && sectionBlocks[0].topPx >= prevEnd.bottomPx) {
       blocks.push({ kind: 'section-gap', topPx: prevEnd.bottomPx, bottomPx: sectionBlocks[0].topPx })
     }
     if (whole.has(section)) {
@@ -1940,6 +1946,61 @@ export function coalesceSameLineBlocks(blocks: PageBlock[]): PageBlock[] {
   return out
 }
 
+/**
+ * Joins one entry's blocks to whatever the section has already emitted, and
+ * returns the section's new trailing block.
+ *
+ * The ordinary joint is an `'entry-gap'` block measuring the real empty span
+ * between the two - the title row and the first entry, or two consecutive
+ * entries.
+ *
+ * A section that lays its TITLE BESIDE its content has no such span to
+ * measure. `layout.headingPlacement: 'side'` (and the gutter-label section
+ * styles) make the section a grid whose title and body are cells of one ROW,
+ * so the title's box and the entry's first row cover the SAME rows of the
+ * page. Measuring a gap between them ran from the title's BOTTOM back UP to
+ * the entry's TOP: a negative span, out of order, sitting over ink that the
+ * following block also claims. `paginate` validates nothing it is handed
+ * (see `sanityCheckPageBlocks`) - it built a break candidate at that span's
+ * midpoint, and whether `fallsInsideInk` then threw the candidate away came
+ * down to sub-pixel geometry, which the export's own sheet and the preview's
+ * measure portal settle separately. That is a page cut that can differ
+ * between the two, which the whole module exists to prevent.
+ *
+ * So when the two runs OVERLAP they are joined rather than spaced: two boxes
+ * on one visual line become ONE block spanning both - the same answer
+ * `coalesceSameLineBlocks` already gives same-line siblings - and the
+ * heading's `keepWithNext` survives the join, so a cut still cannot fall
+ * between a title and the content it labels. Runs that overlap without
+ * sharing a line (a tall image beside a short label) simply get no gap
+ * block: there is no empty space there to offer as a break.
+ */
+function appendEntryBlocks(blocks: PageBlock[], entryBlocks: PageBlock[], prevEnd: PageBlock | null): PageBlock {
+  const first = entryBlocks[0]
+  if (prevEnd && first.topPx >= prevEnd.bottomPx) {
+    blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: first.topPx })
+  } else if (
+    prevEnd &&
+    // The caller's trailing block IS the last one emitted; rewriting anything
+    // else would silently reorder the list this exists to keep in order.
+    blocks[blocks.length - 1] === prevEnd &&
+    prevEnd.kind === 'line' &&
+    first.kind === 'line' &&
+    sharesLine(prevEnd, first)
+  ) {
+    blocks[blocks.length - 1] = {
+      kind: 'line',
+      topPx: Math.min(prevEnd.topPx, first.topPx),
+      bottomPx: Math.max(prevEnd.bottomPx, first.bottomPx),
+      ...(prevEnd.keepWithNext || first.keepWithNext ? { keepWithNext: true as const } : {}),
+    }
+    blocks.push(...entryBlocks.slice(1))
+    return blocks[blocks.length - 1]
+  }
+  blocks.push(...entryBlocks)
+  return blocks[blocks.length - 1]
+}
+
 /** One section's own blocks: its title row, then each entry with an
  *  `'entry-gap'` block (the measured empty span) between consecutive ones —
  *  including between the title row and the first entry, so paginate.ts's
@@ -1972,11 +2033,7 @@ function extractSectionBlocks(section: Element, rootTop: number, usablePageHeigh
     const collapsed = dropTrailingTitleKeepWithNext(coalesceSameLineBlocks(rawEntryBlocks))
     const entryBlocks = keepEntries ? keepEntryWhole(collapsed, usablePageHeightPx) : collapsed
     if (!entryBlocks.length) continue
-    if (prevEnd) {
-      blocks.push({ kind: 'entry-gap', topPx: prevEnd.bottomPx, bottomPx: entryBlocks[0].topPx })
-    }
-    blocks.push(...entryBlocks)
-    prevEnd = entryBlocks[entryBlocks.length - 1]
+    prevEnd = appendEntryBlocks(blocks, entryBlocks, prevEnd)
   }
 
   return blocks

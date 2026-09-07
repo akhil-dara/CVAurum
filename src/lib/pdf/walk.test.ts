@@ -1675,6 +1675,54 @@ describe('extractPageBlocks (task 2, native multi-page pdf plan)', () => {
     ])
   })
 
+  // A section whose TITLE sits BESIDE its content (layout.headingPlacement:
+  // 'side', and the gutter-label section styles) lays the title and the body
+  // out as cells of one grid ROW, so the title's box and the entry's first
+  // row cover the SAME vertical span. A y-only block list has no way to say
+  // "two things, side by side": the entry-gap this used to measure between
+  // them ran from the title's BOTTOM back UP to the entry's TOP - a negative
+  // span whose midpoint is a break candidate inside real ink - and the two
+  // ink blocks overlapped, which is precisely the malformed shape
+  // `sanityCheckPageBlocks` exists to catch and `paginate` never validates.
+  // Two passes over two separately-laid-out trees (the export's own sheet and
+  // the preview's measure portal) can then disagree about whether that
+  // candidate survives `fallsInsideInk`, which is a page cut that differs
+  // between the preview and the export.
+  it('a section whose title sits BESIDE its content emits sorted, non-overlapping blocks with no negative gap', () => {
+    install()
+
+    // Title cell: the left column of the section's grid row.
+    const titleText = txt('EXPERIENCE', { top: 100, bottom: 120, left: 0, right: 150 })
+    const title = elm(['rm-section-title'], { top: 100, bottom: 120, left: 0, right: 150 }, [titleText])
+    // Body cell: the right column of the SAME row, so it starts level with
+    // the title rather than below it.
+    const itemHead = elm(['rm-item-head'], { top: 100, bottom: 120, left: 170, right: 600 })
+    const bulletText = txt('Did a thing', { top: 125, bottom: 140, left: 170, right: 560 })
+    const bulletLi = elm([], { top: 125, bottom: 140, left: 170, right: 560 }, [bulletText])
+    const bulletsUl = elm(['rm-bullets'], { top: 125, bottom: 140, left: 170, right: 600 }, [bulletLi])
+    const entry = elm(['rm-item'], { top: 100, bottom: 140, left: 170, right: 600 }, [itemHead, bulletsUl])
+    const body = elm(['rm-section-body'], { top: 100, bottom: 140, left: 170, right: 600 }, [entry])
+    const section = elm(['rm-section'], { top: 100, bottom: 140, left: 0, right: 600 }, [title, body])
+    const root = elm(['rm-root'], { top: 0, bottom: 1000, left: 0, right: 800 }, [section])
+
+    const blocks = extractPageBlocks(root as unknown as HTMLElement)
+
+    // What the paginator requires of every list it is handed: no negative
+    // spans, sorted by topPx, and no two blocks overlapping.
+    for (const b of blocks) expect(b.bottomPx).toBeGreaterThanOrEqual(b.topPx)
+    for (let i = 1; i < blocks.length; i++) {
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].topPx)
+      expect(blocks[i].topPx).toBeGreaterThanOrEqual(blocks[i - 1].bottomPx)
+    }
+    // The title and the entry's head row are ONE line of ink to a y-only
+    // model - the same answer same-line siblings already get - and the
+    // heading's own keep-with-next survives the join.
+    expect(blocks).toEqual([
+      { kind: 'line', topPx: 100, bottomPx: 120, keepWithNext: true },
+      { kind: 'line', topPx: 125, bottomPx: 140 },
+    ])
+  })
+
   it('emits an atomic block for an image and for a chip row, without decomposing either into lines', () => {
     install()
 

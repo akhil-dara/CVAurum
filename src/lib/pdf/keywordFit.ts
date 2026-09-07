@@ -20,6 +20,7 @@
  * render, so the two wrap identically. Doing it only to the export's DOM makes
  * the PDF disagree with the preview it was previewed from.
  */
+import { ensureFontsReady } from '@/data/fonts'
 
 /** Terms that must survive whole, plus the last-word-and-separator pair
  *  inside each one: when a term is too wide to keep whole, that shorter pair
@@ -183,6 +184,50 @@ export function fitHeadingWords(root: HTMLElement): void {
     if (size <= 0) continue
     if (scale >= 1) continue
     el.style.fontSize = `${size * scale}px`
+  }
+}
+
+/**
+ * Runs both fit passes again once the document's own faces are rasterizable.
+ *
+ * Both passes measure GLYPH widths, so the face they measure against decides
+ * what they do - and a layout effect fires before a webfont has loaded. The
+ * ladder above keeps two trees on the same rung as long as they measure the
+ * same face; it cannot help when one of them measured the FALLBACK.
+ *
+ * That is exactly what a fresh template does. The preview's measure portal
+ * renders once, the moment the document changes, while the newly chosen face
+ * is still being fetched, and nothing re-renders it when the face lands - so
+ * it keeps a fit taken from the fallback. The exporter renders its own sheet
+ * later, with the face already in hand, and fits to the real thing. Two
+ * different heading sizes for one document, and every line under them moves:
+ * the multi-page parity check allows half a pixel and saw fifteen.
+ *
+ * (The exporter's own attempt to cure this - render a second time once the
+ * fonts have resolved - cannot: the renderer is memoised on its props, and
+ * the second render passes the identical ones, so React bails out and the
+ * layout effect never re-runs. Re-running the passes by hand from there was
+ * tried too and moved a settled layout by a fraction of a pixel. Doing it
+ * here leaves the Artboard the single place that decides, and gives every
+ * tree it serves the same answer.)
+ *
+ * Returns a cancel function: an Artboard unmounted (or given new faces)
+ * before the fonts land must not fit a tree that is no longer on the page.
+ * Both passes are idempotent, so calling this after every family change costs
+ * nothing when the face was already loaded.
+ */
+export function refitWhenFontsReady(root: HTMLElement, families: (string | undefined)[]): () => void {
+  let cancelled = false
+  void ensureFontsReady(families).then(() => {
+    if (cancelled) return
+    // Headings first, then keywords - shrinking a heading changes the width
+    // available to nothing else, but it must be settled before keywords are
+    // measured against it (same order as the layout effect's own pass).
+    fitHeadingWords(root)
+    applyKeywordFit(root)
+  })
+  return () => {
+    cancelled = true
   }
 }
 
