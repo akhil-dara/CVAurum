@@ -133,15 +133,6 @@ const metaColumnOf = (opts?: SecOpts): 'none' | 'gutter' | 'margin' =>
   opts?.metaColumn === 'gutter' || opts?.metaColumn === 'margin' ? opts.metaColumn : 'none'
 /** The four-digit year a stored date opens with ('2021-03' -> '2021'). */
 const yearOf = (d?: string) => /^\s*(\d{4})/.exec(d || '')?.[1] ?? ''
-/** The author's initials, at most two letters. */
-const initialsOf = (name?: string) =>
-  (name || '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() || '')
-    .join('')
-
 /**
  * What the gutter says about one entry: the year it starts, the year it ends
  * (empty while it is still running), and the short word beneath the numeral.
@@ -1141,17 +1132,14 @@ function Summary({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts
     />
   )
   if (!gutter) return text
-  // The opening paragraph has no date to hand the gutter, and an empty cell
-  // beside the first thing on the page reads as a mistake. It gets the
-  // author's initials instead - ink only, like every year below it.
-  return (
-    <div className="rm-item">
-      <div className="rm-meta-cell">
-        <Deco className="rm-initials">{initialsOf(doc.content.basics.name)}</Deco>
-      </div>
-      {text}
-    </div>
-  )
+  // The opening paragraph has no date, so the gutter stays EMPTY beside it.
+  // It used to be handed the author's initials, which printed a lettered
+  // block against the first paragraph that said nothing a reader could use
+  // (owner review, 2026-09-07). The entry wrapper stays, so the paragraph
+  // still starts on the text column's own left edge: the gutter rules put
+  // every child that is not the meta cell in the second column, and with no
+  // cell at all the first column is simply blank.
+  return <div className="rm-item">{text}</div>
 }
 
 function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {

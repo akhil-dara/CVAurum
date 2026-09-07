@@ -3536,15 +3536,8 @@
   text-transform: uppercase;
   color: var(--rm-muted);
 }
-/* The opening paragraph has no date, so the gutter gives it the initials. */
-.rm-root.meta-gutter .rm-initials {
-  font-family: var(--rm-font-heading);
-  font-size: calc(var(--rm-fs) * 1.9);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  color: var(--rm-primary);
-}
+/* The opening paragraph has no date, so the gutter stays empty beside it -
+   see Summary in sections.tsx for why it no longer shows initials there. */
 
 /* ---- the margin ---- */
 .rm-root.meta-margin .rm-col-main .rm-item {

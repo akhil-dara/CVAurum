@@ -1143,30 +1143,109 @@
 }
 
 /* ===================================================== Chronicle (the rail)
-   A tinted rail down the left carries each entry's opening year in tall
-   condensed numerals. The numeral is decorative text (rm-deco): the PDF
-   draws it as outlines and Word never sees it, and the entry beside the
-   rail keeps its own real, readable date line. The rail's own rules live
-   in artboard.css under `.meta-gutter`; these give it Chronicle's colour
-   and its face. Anchored on .rm-root so they beat the structural rules,
+   A ledger. One continuous rail runs down the left of the body, and every
+   entry hands it the year it opens in, set in tall condensed numerals. The
+   numeral is decorative text (rm-deco): the PDF draws it as outlines and
+   Word never sees it, so the entry keeps its own real, readable date line
+   beside it - quieter than the numeral, because the rail is the year and
+   the line is the detail.
+
+   The rail is ONE element per section rather than one per entry. It used to
+   be the meta CELL's own background, which printed a stack of separate
+   tinted blocks - one per entry, each exactly the entry's height, white
+   space between them - and read as a column of table cells rather than a
+   rail (owner review, 2026-09-07). The tint and the hairline now come from a
+   pseudo on the SECTION, stretched over the gap beneath it so the run is
+   unbroken from the first heading to the last line; a rect that tall is
+   cropped per page by the painter (pdf/paint.ts assignOpsToPages), so it
+   continues onto page 2 with no seam.
+
+   Anchored on .rm-root so they beat the structural rules in artboard.css,
    which name the root class too. */
 .rm-root.tpl-chronicle .rm-body {
-  --rm-gutter-bg: #f3efe8;
+  /* The rail's grid column, and the ink inside it. The column was 150px -
+     about 22% of the sheet - which squeezed the text into 69% of the page
+     and over-wrapped every bullet. At 104px the body keeps three quarters
+     of the sheet and the numerals still have room. */
+  --rm-meta-w: 104px;
+  /* What the reader sees of the rail: the tint stops 16px short of the text
+     column so the hairline never touches a word. */
+  --rm-rail-w: 88px;
+  --rm-gutter-bg: #f8f5f0;
+  --rm-rail-line: color-mix(in srgb, var(--rm-primary) 55%, var(--rm-bg));
+}
+.rm-root.tpl-chronicle .rm-col-main .rm-section::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* Down through the gap to the next section's own rail, so the run reads
+     as one element and not as one block per heading. */
+  bottom: calc(var(--rm-section-gap) * -1);
+  width: var(--rm-rail-w);
+  background: var(--rm-gutter-bg);
+  border-right: 1px solid var(--rm-rail-line);
+}
+.rm-root.tpl-chronicle .rm-col-main .rm-section:last-child::before {
+  bottom: 0;
+}
+/* The cell itself carries nothing but the numerals now: no tint of its own,
+   no rule, no dot. */
+.rm-root.tpl-chronicle .rm-col-main .rm-meta-cell {
+  background: none;
+  border-right: none;
+  /* The numerals stop clear of the hairline instead of running into it:
+     the rail is 88px, the column 104px, so 2.4em of right padding leaves
+     the widest year about 8px short of the rule it is aligned toward. */
+  padding: 0.02em 2.4em 0.4em 0.2em;
+}
+.rm-root.tpl-chronicle .rm-col-main .rm-meta-cell::after {
+  content: none;
 }
 .rm-root.tpl-chronicle .rm-year {
   font-family: 'Bebas Neue', sans-serif;
   font-weight: 400;
+  font-size: calc(var(--rm-fs) * 3.1);
   letter-spacing: 0.01em;
+  line-height: 0.86;
 }
-.rm-root.tpl-chronicle .rm-initials {
-  font-family: 'Bebas Neue', sans-serif;
-  font-weight: 400;
+.rm-root.tpl-chronicle .rm-year-sub {
+  font-size: calc(var(--rm-fs) * 0.72);
+  letter-spacing: 0.16em;
+  margin-top: 0.35em;
 }
-/* A heavy ink rule closes the masthead, the way a running head closes off
-   the front matter of a bound volume. */
+/* The masthead. The name is the biggest thing on the page and the role sits
+   under it in the accent, tracked small, with the details in one row
+   beneath - the compact composition's own name size (0.62 of the stock one)
+   left it smaller than a section title. Scoped to Chronicle: one other
+   template composes its header the same way. */
 .tpl-chronicle .rm-header-compact {
+  align-items: flex-end;
   border-bottom: 3px solid var(--rm-text);
-  padding-bottom: 0.7em;
+  padding-bottom: 0.75em;
+}
+.rm-root.tpl-chronicle .rm-header-compact .rm-name {
+  font-size: calc(var(--rm-fs) * 3.05);
+  line-height: 1;
+  margin-bottom: 0.5em;
+}
+.rm-root.tpl-chronicle .rm-header-compact .rm-headline-inline {
+  display: block;
+  font-size: calc(var(--rm-fs) * 0.95);
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--rm-primary);
+  /* The role is a line INSIDE the name's own heading, so the space above it
+     is its own margin - the heading's margin-bottom only reaches the contact
+     row. At line-height 1 the name's descenders run past their line box, and
+     without this the tail of a 'g' sat on the role's capitals. */
+  margin-top: 0.95em;
+  margin-bottom: 0.1em;
+}
+.rm-root.tpl-chronicle .rm-header-compact .rm-contacts {
+  font-size: calc(var(--rm-fs) * 0.88);
+  gap: 0.3em 0.95em;
 }
 /* The title's own underline gives way to a short accent bar after the words.
    A flex ROW, not a bar beneath a block title: the painter resolves a static
@@ -1192,6 +1271,14 @@
 .tpl-chronicle .rm-item-org {
   color: var(--rm-primary);
   font-weight: 600;
+}
+/* The rail says the year; the head row's date is the detail behind it, so it
+   steps back rather than matching the numeral for weight. */
+.rm-root.tpl-chronicle .rm-col-main .rm-item-date {
+  font-size: calc(var(--rm-fs) * 0.82);
+  font-weight: 400;
+  color: color-mix(in srgb, var(--rm-muted) 78%, var(--rm-bg));
+  letter-spacing: 0.02em;
 }
 
 /* ===================================================== Folio Noir (gallery wall)

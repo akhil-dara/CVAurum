@@ -51,12 +51,15 @@ describe('meta column', () => {
     expect(projects).toMatch(/rm-deco rm-year-sub" data-deco="1">project</)
   })
 
-  it('gutter: the summary opens with the initials, as decoration', () => {
+  it('gutter: the summary has no date, so the rail stays empty beside it', () => {
     const doc = createDocument({ sample: true })
     doc.metadata.layout.metaColumn = 'gutter'
     const html = renderToStaticMarkup(<SectionBody sectionKey="summary" doc={doc} config={getTemplate('aurum')} />)
-    expect(html).toContain('rm-meta-cell')
-    expect(html).toMatch(/rm-deco rm-initials" data-deco="1">AM</)
+    expect(html).not.toContain('rm-meta-cell')
+    expect(html).not.toContain('rm-initials')
+    // The paragraph still sits in the entry wrapper, which is what keeps it
+    // on the text column's own left edge rather than under the rail.
+    expect(html).toContain('rm-item')
   })
 
   it('margin: the date leaves the sub-line for the margin cell, once', () => {

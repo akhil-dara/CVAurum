@@ -1013,7 +1013,7 @@ export const TEMPLATES: TemplateConfig[] = [
       'chronicle',
       { primary: '#d9531e', text: '#1b1b1f', muted: '#6b6560', background: '#ffffff' },
       { fontFamily: 'Figtree', headingFamily: 'Figtree', nameFamily: 'Figtree', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.05, uppercaseHeadings: true },
-      { columns: 1, metaColumn: 'gutter', showPhoto: false }
+      { columns: 1, metaColumn: 'gutter', showPhoto: false, sectionGap: 14, itemGap: 6 }
     ),
   },
   {
