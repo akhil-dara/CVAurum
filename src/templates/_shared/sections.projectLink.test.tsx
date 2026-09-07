@@ -104,18 +104,28 @@ describe('the tag look is the one the document already draws, not a second one',
     for (const r of tagged) expect(r.selector, r.selector).toContain('links-tag')
   })
 
-  it('the paper and the accent bar both reach the section tag', () => {
-    const box = rules.find((r) => r.selector.includes('.links-tag .rm-tag-link') && !r.selector.includes('::before'))
+  it('the paper and the coloured spine both reach the section tag', () => {
+    const box = rules.find((r) => r.selector.includes('.links-tag .rm-tag-link'))
     expect(box?.selector).toContain('rm-link-tag')
     expect(box?.body).toContain('inline-block')
-    const bar = rules.find((r) => r.selector.includes('.links-tag .rm-tag-link::before'))
-    expect(bar?.selector).toContain('rm-link-tag')
+    // The accent is the tag's own left edge, so it cannot drift away from it.
+    expect(box?.body).toMatch(/border-left:\s*2px solid var\(--rm-primary\)/)
   })
 
-  it('plain takes the box, the bar and the link colour off the line', () => {
+  // The accent used to be an absolutely-placed bar set in from the left edge,
+  // and on the printed page it read as a stray capital I in front of the
+  // address instead of as an edge. A bar that floats inside the tag must not
+  // come back: only a real border can be trusted to stay on the edge.
+  it('nothing paints the accent inside the tag any more', () => {
+    const floating = rules.filter((r) => /rm-tag-link::(before|after)/.test(r.selector))
+    expect(floating.map((r) => r.selector)).toEqual([])
+  })
+
+  it('plain takes the box, the spine and the link colour off the line', () => {
     const plain = rules.filter((r) => r.selector.includes('rm-link-plain'))
     expect(plain.length).toBeGreaterThan(0)
-    expect(plain.map((r) => r.body).join(';')).toContain('content: none')
+    // `border: none` resets all four edges, the coloured left one included.
+    expect(plain.map((r) => r.body).join(';')).toMatch(/border:\s*none/)
     // Ordinary text is the colour of the words around it, and the link-colour
     // audit (elementColors.test.ts) allows exactly that word.
     expect(plain.map((r) => r.body).join(';')).toMatch(/color:\s*inherit/)

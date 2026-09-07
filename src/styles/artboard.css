@@ -3246,14 +3246,26 @@
 }
 
 /* Tag-shaped named links (2026-09-04, the default): a project's Portfolio
-   or a credential's Verify set in a small paper tag with an accent bar,
-   sharing the folio chip's paper and hairline. Built to the PDF painter's
-   rules (walk.ts): inline-block plus nowrap, because the painter takes ONE
-   box per element and an inline tag that wrapped would paint as a single
-   rect merged across both lines; the accent is a ::before box rather than
-   a thicker left border, because a rounded box with MIXED per-edge borders
-   paints as four straight lines and loses its radius, while the uniform
-   1px border keeps it. Contact and header links are never tagged; the
+   or a credential's Verify set in a small paper tag with a coloured spine
+   down its left edge, sharing the folio chip's paper and hairline. Built to
+   the PDF painter's rules (walk.ts): inline-block plus nowrap, because the
+   painter takes ONE box per element and an inline tag that wrapped would
+   paint as a single rect merged across both lines.
+
+   THE SPINE IS THE TAG'S OWN LEFT BORDER (2026-09-07). It used to be an
+   absolutely-placed ::before bar set in a little from the left edge, which
+   on the printed page did not read as an edge at all: floating inside the
+   box with paper on both sides of it, it read as a stray capital I or a
+   text cursor sitting in front of the address. A border cannot float, so
+   this cannot happen again.
+
+   The box is square-cornered because of that border. The painter draws a
+   rounded box's border as ONE stroked path only while all four edges match;
+   with a heavier left edge it falls back to four straight lines, which
+   overshoot a rounded corner - the fill would stay round while the hairline
+   turned square, and the print would stop matching the screen. A square tag
+   with one coloured edge is a deliberate shape, so the radius goes rather
+   than the spine. Contact and header links are never tagged; the
    editing-only dotted mark and the hover hint keep their higher
    specificity and still apply. max-width keeps a long user-typed label
    from running past its column. */
@@ -3266,25 +3278,15 @@
   white-space: nowrap;
   max-width: 100%;
   position: relative;
-  padding: 0.02em 0.45em 0.02em 0.62em;
+  padding: 0.02em 0.45em 0.02em 0.5em;
   margin: 0 0.28em 0.1em 0;
   border: 1px solid var(--rm-folio-line);
-  border-radius: 3px;
+  border-left: 2px solid var(--rm-primary);
+  border-radius: 0;
   background: var(--rm-folio-paper);
   text-decoration: none;
   line-height: 1.35;
   vertical-align: baseline;
-}
-.links-tag .rm-tag-link::before,
-.rm-item-link.rm-link-tag .rm-tag-link::before {
-  content: '';
-  position: absolute;
-  left: 0.16em;
-  top: 0.22em;
-  bottom: 0.22em;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--rm-primary);
 }
 .links-tag .rm-verify-link {
   color: var(--rm-link-color, var(--rm-muted));
@@ -3304,8 +3306,10 @@
 }
 /* The other half of the section's own choice: 'plain' takes the tag back off
    the line, whatever the document asked for, and leaves the address as the
-   words around it. Nothing is added - the box, the accent bar and the link
-   colour are removed - so there is still exactly one tag look on the page. */
+   words around it. Nothing is added - the box, the coloured spine and the
+   link colour are removed - so there is still exactly one tag look on the
+   page. The `border: none` shorthand is what takes the spine off: it resets
+   all four edges, the left one included. */
 .rm-item-link.rm-link-plain {
   color: inherit;
 }
@@ -3317,9 +3321,6 @@
   border-radius: 0;
   background: none;
 }
-.rm-item-link.rm-link-plain .rm-tag-link::before {
-  content: none;
-}
 /* The tag's own margin does the separating; the printed separators go. A
    Verify tag keeps a little room from the issuer it used to follow a bar. */
 /* Between tags the separator glyph is not rendered at all (sections.tsx
@@ -3329,15 +3330,16 @@
 .links-tag .rm-mini-verify .rm-tag-link {
   margin-left: 0.35em;
 }
-/* Dark sidebar: the same tag on the band's own paper. */
+/* Dark sidebar: the same tag on the band's own paper, its spine in the
+   band's own ink because the document's accent can go muddy on a dark
+   ground. `border-color` sets all four edges, so the spine is restated
+   after it rather than before. */
 .links-tag .rm-col-aside .rm-tag-link {
   --rm-folio-paper: color-mix(in srgb, var(--rm-sidebar-bg) 84%, var(--rm-sidebar-text) 16%);
   --rm-folio-line: color-mix(in srgb, var(--rm-sidebar-text) 32%, transparent);
   background: var(--rm-folio-paper);
   border-color: var(--rm-folio-line);
-}
-.links-tag .rm-col-aside .rm-tag-link::before {
-  background: var(--rm-sidebar-text);
+  border-left-color: var(--rm-sidebar-text);
 }
 .links-tag .rm-col-aside .rm-verify-link {
   color: inherit;
