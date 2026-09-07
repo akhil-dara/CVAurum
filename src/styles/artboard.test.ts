@@ -75,6 +75,45 @@ describe('the display header keeps the role line off the name', () => {
 })
 
 /**
+ * The stepped header carries the same risk as the display masthead and
+ * answers it differently: its three lines sit in three bands, so the air
+ * between the name and the role is the two bands' own padding, not a
+ * margin. That padding is half an em of the BODY type on each side, while
+ * the threshold extraction uses is half the NAME's type - so the name can
+ * only be so large before the padding stops clearing it.
+ *
+ * At the worst corner of the sliders (heading size 2.6, which makes the
+ * name 3.162 times the body size, and a role line at the smallest 0.7)
+ * the drop is about 0.2F name-sizes of descent plus one em of padding plus
+ * the role's own line, against a threshold of 0.5F name-sizes: it clears
+ * while F stays under about 1.79.
+ */
+describe('the stepped header keeps its three bands three lines', () => {
+  const steps = rulesFor('.rm-header-stepped', /^\.rm-step(?![\w-])/)
+  const name = rulesFor('.rm-header-stepped', /^\.rm-name$/)
+
+  it('pads every band, which is what separates one line from the next', () => {
+    expect(steps.length).toBeGreaterThan(0)
+    const paddings = steps.flatMap((r) => declared(r.body, 'padding'))
+    expect(paddings.length).toBeGreaterThan(0)
+    for (const value of paddings) {
+      const vertical = parseFloat(value.split(/\s+/)[0])
+      expect(vertical, `padding is ${value}, which leaves the bands touching`).toBeGreaterThan(0)
+    }
+  })
+
+  it('keeps the name small enough for that padding to clear the drop', () => {
+    const sizes = name.flatMap((r) => declared(r.body, 'font-size'))
+    expect(sizes.length).toBeGreaterThan(0)
+    for (const value of sizes) {
+      const factor = /^calc\(\s*var\(--rm-name-size\)\s*\*\s*(\d*\.?\d+)\s*\)$/.exec(value)
+      expect(factor, `font-size is ${value}, which is not measured against --rm-name-size`).not.toBeNull()
+      expect(parseFloat(factor![1])).toBeLessThanOrEqual(1.75)
+    }
+  })
+})
+
+/**
  * The gutter and the entry layouts both want the entry's left padding, and
  * they are in two different sheets: templates.css is imported second
  * (TemplateRenderer.tsx), so a TIE there beats this one. Nothing in either

@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Packer } from 'docx'
 import JSZip from 'jszip'
-import { buildDocx, docxMetrics } from './docx'
+import { buildDocx, docxMetrics, loadArtBandImage, setArtBandImage } from './docx'
 import { defaultMetadata } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
@@ -198,6 +198,16 @@ describe('buildDocx writes the metrics into the package', () => {
     expect(body).toMatch(/<w:tab w:val="right" w:pos="9638"\/>/)
   })
 })
+
+/** A one-pixel image, standing in for a decoded art band. */
+const PIXEL = {
+  data: new Uint8Array([
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196,
+    137, 0, 0, 0, 10, 73, 68, 65, 84, 120, 156, 99, 0, 1, 0, 0, 5, 0, 1, 13, 10, 45, 180, 0, 0, 0, 0, 73, 69, 78, 68,
+    174, 66, 96, 130,
+  ]),
+  type: 'png' as const,
+}
 
 /** The paragraph that prints `text`, with its properties. */
 const paraOf = (xml: string, text: string) => xml.split('<w:p>').slice(1).find((p) => p.includes(`>${text}</w:t>`)) ?? ''
@@ -762,6 +772,34 @@ describe('the Word export composes the header the way the page does', () => {
   it('the stats band never reaches the file', async () => {
     const { body } = await unpack(docWith({ layout: { headerStyle: 'band', stats: true } }))
     expect(texts(body).some((t) => /^(years|companies|skills)$/.test(t))).toBe(false)
+  })
+
+  it('stepped: the name, the role and the contacts on three shaded lines of their own', async () => {
+    const { body } = await unpack(docWith({ layout: { headerStyle: 'stepped' }, theme: { primary: '#123d2e' } }))
+    // The accent, then the same accent lightened 14% and 28% - the shades
+    // the page grades the three bands with (Artboard.tsx useVars).
+    expect(paraOf(body, 'Jordan Rivera')).toMatch(/<w:shd [^>]*w:fill="123D2E"/)
+    expect(paraOf(body, 'Product Designer')).toMatch(/<w:shd [^>]*w:fill="33584B"/)
+    expect(paraOf(body, 'Lisbon')).toMatch(/<w:shd [^>]*w:fill="547369"/)
+    for (const text of ['Jordan Rivera', 'Product Designer', 'Lisbon']) expect(runColor(body, text)).toBe('FFFFFF')
+    // Three paragraphs, not a table: the words stay in the reading order.
+    expect(table(body)).toBe('')
+  })
+
+  it('the art band prints as a strip above the header, and only when it was decoded', async () => {
+    // A browser decodes the band before the export runs; a test hands the
+    // builder the pixels itself (loadArtBandImage needs an image decoder,
+    // which this environment has none of).
+    setArtBandImage(PIXEL)
+    const on = await unpack(docWith({ theme: { artBand: 'emerald' } }))
+    expect(on.body).toContain('<w:drawing>')
+    expect(on.body.indexOf('<w:drawing>')).toBeLessThan(on.body.indexOf('Jordan Rivera'))
+    const off = await unpack(docWith({ theme: { artBand: 'none' } }))
+    expect(off.body).not.toContain('<w:drawing>')
+    setArtBandImage(null)
+    const undecoded = await unpack(docWith({ theme: { artBand: 'emerald' } }))
+    expect(undecoded.body).not.toContain('<w:drawing>')
+    expect(await loadArtBandImage('emerald')).toBeNull()
   })
 })
 

@@ -4,7 +4,7 @@ import { cn, DATE_LANGUAGE_OPTIONS } from '@/lib/utils'
 import { Slider, Toggle, Segmented, Select, ColorField, FieldGroup } from '../fields/Controls'
 import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
-import { HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
+import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
@@ -659,6 +659,21 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
             How your name &amp; contacts compose — on top of any template.
+          </p>
+        </div>
+        <div>
+          <label className="label">Art behind the header</label>
+          <ArtBandRow
+            value={m.theme.artBand ?? 'none'}
+            onPick={(band) =>
+              update((md) => {
+                md.theme.artBand = band as typeof md.theme.artBand
+              })
+            }
+          />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            A band of abstract art behind your name, washed in the page colour so the words still read. None is one tap
+            away.
           </p>
         </div>
         <div>

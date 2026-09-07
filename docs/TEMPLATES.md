@@ -177,7 +177,7 @@ interface TemplateConfig {
 | `tags` | `string[]` | Searchable/filterable labels (e.g. `'compact'`, `'creative'`, `'sidebar'`). The gallery derives its chips from them, so a new tag gets a chip for free; `'signature'` marks the [Signature collection](#the-signature-collection). |
 | `atsSafe` | `boolean` | When `true`, the gallery shows the ATS-safe shield. Only set this if your design keeps a single readable text flow (see [Rules](#rules-and-gotchas)). |
 | `class` | `string` | The CSS root class applied to `.rm-root`. By convention, prefix with `tpl-` (e.g. `tpl-aurora`). Every rule in `templates.css` for your template is scoped under this class. |
-| `header` | enum | Header layout. One of `standard`, `centered`, `banner`, `split`, `compact`, `display` (the name set huge across the width, contacts as a byline between rules), `block` (the name fills a colour block in tall capitals) or `band` (a two-stop gradient band carries the name, with a slot for the stats row). The author can recompose any header from the canvas (`layout.headerStyle`), so the root carries `hdr-<style>` for whichever is drawn. |
+| `header` | enum | Header layout. One of `standard`, `centered`, `banner`, `split`, `compact`, `display` (the name set huge across the width, contacts as a byline between rules), `block` (the name fills a colour block in tall capitals) `band` (a two-stop gradient band carries the name, with a slot for the stats row) or `stepped` (the name, the role and the contacts on three full-width bands in graded shades of the accent). The author can recompose any header from the canvas (`layout.headerStyle`), so the root carries `hdr-<style>` for whichever is drawn. |
 | `section` | enum | Section-title treatment. One of `underline`, `rule-after`, `bar`, `plain`, `boxed`, `side`. |
 | `skills` | enum | Skills rendering. One of `inline`, `chips`, `bars`, `dots`, `grouped-chips`. |
 | `languageMeter` | `boolean` | Show a proficiency meter on the languages section. |
@@ -203,7 +203,7 @@ These map directly onto the `--rm-*` color variables (see the
 | `links` | Link colour (named, inline and URL-line links) → `--rm-link-color`, set only when chosen |
 | `gradientTo` | The second stop of the `band` header's gradient → `--rm-gradient-to`; unset, a lighter tint of the accent. A template may read it elsewhere too (Atlas colours its dates and ring arcs with it) |
 | `footer` | The footer strip's ground → `--rm-footer-bg`; unset, the text colour. The strip's text is whichever of white and the text colour reads on it (`--rm-on-footer`) |
-| `artBand` | `'none'` (default), `'navy-gold'`, `'terracotta'`, `'cobalt'` or `'emerald'`: an image band behind the header. Accepted by the schema now; drawn by a later batch |
+| `artBand` | `'none'` (default), `'navy-gold'`, `'terracotta'`, `'cobalt'` or `'emerald'`: an image band behind the header (`public/art/bands/`), under a wash of the page colour - the accent's, on a header that has a ground of its own - so the words still read. Any composition can carry one; the header's Style popover and the Design panel both offer the four and the way back to none |
 
 Any rule of yours that colours one of these elements must read its variable first, with your
 own colour as the fallback (`color: var(--rm-headline-color, var(--rm-muted))`), or the
@@ -310,7 +310,9 @@ guarantees them, so style against them freely.
 | `.rm-stats` / `.rm-stat` / `.rm-stat-value` / `.rm-stat-label` | The stats row and its tiles, with `layout.stats`. |
 | `.rm-rings` / `.rm-ring` / `.rm-ring-track` / `.rm-ring-arc` | The rings skills style: the row, one ring, its track circle and its arc, each svg with one fill. |
 | `.rm-footer` / `.rm-footer-row` / `.rm-footer-label` | The footer strip after the columns, a row per group, and the row's label. The root carries `rm-has-footer` when a strip is drawn. |
-| `.rm-header-display` / `.rm-header-block` / `.rm-header-band` | The header element under the three Signature compositions (the root also carries `hdr-display`, `hdr-block`, `hdr-band`). |
+| `.rm-header-display` / `.rm-header-block` / `.rm-header-band` | The header element under three of the Signature compositions (the root also carries `hdr-display`, `hdr-block`, `hdr-band`). |
+| `.rm-header-stepped` / `.rm-step` / `.rm-step-name` / `.rm-step-role` / `.rm-step-contacts` | The stepped header and its three bands (`hdr-stepped` on the root). The second and third shades are `--rm-step-2` and `--rm-step-3`, the accent lightened 14% and 28% unless a template names its own. |
+| `.rm-header-art` / `.rm-art-band` / `.rm-art-veil` | A header carrying art (`theme.artBand`): the class on the header, the image itself and the wash over it. Both are the header's first children, because the painter has no z-index - it paints in document order. |
 | `.rm-section-icon` | The heading's badge. The root carries `sicon-<style>` and, for S/L, `sicon-size-s` / `sicon-size-l`; the folio style adds `.rm-folio-ink` / `.rm-folio-tint` / `.rm-folio-paper` glyph svgs and two `.rm-folio-fold` svgs inside. |
 | `.rm-section-body` | The section's content container. |
 | `.rm-item` | A single entry within a section (a job, a degree, …). |

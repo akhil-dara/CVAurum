@@ -56,6 +56,16 @@ export function lighten(hex: string, amount: number): string {
   return `#${c.map((v) => channelHex(v + (255 - v) * t)).join('')}`
 }
 
+/** The colour as an `rgba()` at `alpha`: the wash a header lays over its art
+ *  band, written in the one translucent form the painter reads back from the
+ *  computed style (walk.ts parseColor). A value that is not a hex colour
+ *  comes back as it was. */
+export function withAlpha(hex: string, alpha: number): string {
+  const c = hexChannels(hex)
+  if (!c) return hex
+  return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${Math.min(1, Math.max(0, alpha))})`
+}
+
 /** Relative luminance, as the accessibility contrast formula defines it. */
 function luminance([r, g, b]: [number, number, number]): number {
   const lin = (v: number) => {

@@ -11,7 +11,7 @@ import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
-import { elementColorVars, lighten, readableOn } from '@/lib/elementColors'
+import { elementColorVars, lighten, readableOn, withAlpha } from '@/lib/elementColors'
 import { deriveStats } from '@/lib/stats'
 import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
@@ -20,6 +20,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
+import { artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
@@ -114,6 +115,23 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       // derived from the accent alone (elementColors.ts).
       '--rm-gradient-to': theme.gradientTo || lighten(theme.primary, 0.18),
       '--rm-on-primary': readableOn(theme.primary, theme.text),
+      // The stepped header's second and third bands: the accent lightened
+      // 14% and 28%, so the three steps grade from the accent down. A
+      // template can name its own two shades instead (templates.css).
+      '--rm-step-2': lighten(theme.primary, 0.14),
+      '--rm-step-3': lighten(theme.primary, 0.28),
+      // The wash a header lays over its art band (theme.artBand): the page's
+      // own colour at a third strength, which keeps the header's words
+      // readable over any of the four and settles the art into the page. A
+      // gradient fade would say it better, but the painter drops any
+      // gradient with a translucent stop (paint.ts registerAxialShading),
+      // and a wash that the PDF cannot draw is a page the export does not
+      // match. A flat translucent fill it draws exactly. A composition that
+      // has a ground of its own (block, band, stepped) hands that ground to
+      // the art and washes it in the accent instead, so its white words
+      // still read (artboard.css .rm-header-art).
+      '--rm-art-veil': withAlpha(theme.background, 0.35),
+      '--rm-art-veil-accent': withAlpha(theme.primary, 0.55),
       // The footer strip: its ground is the theme's footer colour when one
       // is set (the stylesheet falls back to the text colour), and its text
       // whichever of white and the text colour reads on that ground.
@@ -623,6 +641,22 @@ function Header({
     </div>
   )
 
+  // Art behind the header (theme.artBand): the band itself and the wash that
+  // settles it into the page, both hidden from every reader and parser and
+  // both the header's FIRST children - the painter has no z-index and paints
+  // in document order, so being first is what puts them UNDER the words in
+  // the PDF; on the page the stylesheet stacks them the same way.
+  const artBand = doc.metadata.theme.artBand ?? 'none'
+  const art =
+    artBand === 'none' ? null : (
+      <>
+        <img className="rm-art-band" src={artBandSrc(artBand)} alt="" aria-hidden="true" />
+        <div className="rm-art-veil" aria-hidden="true" />
+      </>
+    )
+  /** The header's classes, plus the one that says it carries art. */
+  const hcls = (variantClass: string) => `rm-header ${variantClass}${art ? ' rm-header-art' : ''}`
+
   // The stats band, where the author asked for it: in the band's own slot
   // under the gradient, at the foot of any other header.
   const stats = doc.metadata.layout.stats ? <StatsBand doc={doc} /> : null
@@ -638,7 +672,8 @@ function Header({
 
   if (variant === 'display') {
     return (
-      <header className="rm-header rm-header-display">
+      <header className={hcls('rm-header-display')}>
+        {art}
         {Gear}
         {HeaderPhoto}
         <div className="rm-header-main">
@@ -653,7 +688,8 @@ function Header({
 
   if (variant === 'block') {
     return (
-      <header className="rm-header rm-header-block">
+      <header className={hcls('rm-header-block')}>
+        {art}
         {Gear}
         <div className="rm-header-main">{nameEl}</div>
         <div className="rm-header-side">
@@ -669,7 +705,8 @@ function Header({
   if (variant === 'band') {
     return (
       <>
-        <header className="rm-header rm-header-band">
+        <header className={hcls('rm-header-band')}>
+          {art}
           {Gear}
           <div className="rm-header-main">
             {nameEl}
@@ -683,9 +720,29 @@ function Header({
     )
   }
 
+  // stepped: three full-width bands in graded shades of the accent, the name
+  // in the first, the role in the second, the details in the third. Each is
+  // its own line of the page - nothing decorative shares a line with content,
+  // so the export reads back exactly as it was written.
+  if (variant === 'stepped') {
+    return withStats(
+      <header className={hcls('rm-header-stepped')}>
+        {art}
+        {Gear}
+        <div className="rm-step rm-step-name">
+          {HeaderPhoto}
+          {nameEl}
+        </div>
+        {headlineEl ? <div className="rm-step rm-step-role">{headlineEl}</div> : null}
+        <div className="rm-step rm-step-contacts">{ContactsEl}</div>
+      </header>
+    )
+  }
+
   if (variant === 'centered') {
     return withStats(
-      <header className="rm-header rm-header-centered">
+      <header className={hcls('rm-header-centered')}>
+        {art}
         {Gear}
         <div className="rm-header-main">
           {HeaderPhoto}
@@ -699,7 +756,8 @@ function Header({
 
   if (variant === 'banner') {
     return withStats(
-      <header className="rm-header rm-header-banner">
+      <header className={hcls('rm-header-banner')}>
+        {art}
         {Gear}
         <div className="rm-header-main">
           {nameEl}
@@ -713,7 +771,8 @@ function Header({
 
   if (variant === 'split') {
     return withStats(
-      <header className="rm-header rm-header-split">
+      <header className={hcls('rm-header-split')}>
+        {art}
         {Gear}
         <div className="rm-header-lead">
           {HeaderPhoto}
@@ -726,7 +785,8 @@ function Header({
 
   if (variant === 'compact') {
     return withStats(
-      <header className="rm-header rm-header-compact">
+      <header className={hcls('rm-header-compact')}>
+        {art}
         {Gear}
         {HeaderPhoto}
         <div className="rm-header-main">
@@ -753,7 +813,8 @@ function Header({
 
   // standard
   return withStats(
-    <header className="rm-header rm-header-standard">
+    <header className={hcls('rm-header-standard')}>
+      {art}
       {Gear}
       <div className="rm-header-main">
         {nameEl}

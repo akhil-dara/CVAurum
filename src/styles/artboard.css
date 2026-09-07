@@ -1734,6 +1734,116 @@
   color: inherit;
 }
 
+/* stepped: three full-width bands in graded shades of the accent - the name,
+   the role, the details - each its own line of the page. --rm-step-2 and
+   --rm-step-3 are the accent lightened 14% and 28% (Artboard.tsx useVars);
+   a template can name its own two shades instead. */
+.rm-header-stepped {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  background: var(--rm-primary);
+  color: var(--rm-on-primary, #fff);
+  margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
+}
+.rm-header-stepped .rm-step {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  padding: 0.5em var(--rm-pad);
+}
+.rm-header-stepped .rm-step-name {
+  background: var(--rm-primary);
+  align-items: center;
+  padding-top: var(--rm-pad);
+}
+.rm-header-stepped .rm-step-role {
+  background: var(--rm-step-2, var(--rm-primary));
+}
+.rm-header-stepped .rm-step-contacts {
+  background: var(--rm-step-3, var(--rm-primary));
+}
+.rm-root .rm-header-stepped .rm-name {
+  /* Big enough to carry the band, small enough that the step's own padding
+     still clears the drop a PDF's text extraction needs between two lines:
+     a baseline that falls less than half the previous run's type size reads
+     as the SAME line (the reason spelled out on .rm-header-display's
+     headline), and 1.4 name-sizes leaves that threshold well behind. */
+  font-size: calc(var(--rm-name-size) * 1.4);
+  line-height: 1;
+  margin: 0;
+  text-indent: 0;
+  overflow-wrap: anywhere;
+  color: var(--rm-name-color, var(--rm-on-primary, #fff));
+}
+.rm-root .rm-header-stepped .rm-headline {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rm-headline-color, var(--rm-on-primary, #fff));
+}
+.rm-root .rm-header-stepped .rm-contacts {
+  color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+}
+.rm-header-stepped .rm-contact a {
+  color: inherit;
+}
+.rm-header-stepped .rm-photo,
+.rm-header-stepped .rm-monogram,
+.rm-header-stepped .rm-visual-wrap {
+  flex: 0 0 auto;
+}
+
+/* ---- art behind a header (theme.artBand) ----
+   The band is an <img> the header lays behind its words, with a wash of the
+   page colour over it so the words stay readable and the art settles into
+   the page. Both are the header's FIRST children: the painter has no
+   z-index and paints in document order, so being first is what puts them
+   under the words in the PDF (walk.ts), and `isolation` gives the header a
+   stacking context of its own so the same two elements sit at z-index -1 on
+   the page - above the header's own ground, below every word, and without
+   re-stacking any other child. Nothing is clipped or hidden here: the Style
+   pill hangs ABOVE the header, outside its box. */
+.rm-header-art {
+  isolation: isolate;
+}
+.rm-art-band,
+.rm-art-veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.rm-art-band {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rm-art-veil {
+  background: var(--rm-art-veil, transparent);
+}
+/* A header that is not already full-bleed keeps its words off the art's
+   edge, and the art off the page's. */
+.rm-header-art:not(.rm-header-block):not(.rm-header-band):not(.rm-header-stepped) {
+  padding: 0.9em 1.1em;
+}
+/* A composition with a ground of its own hands that ground to the art: an
+   opaque block over the image would leave nothing to see. The art keeps the
+   colour, through a wash of the accent instead of a wash of the page, so
+   the words a coloured header sets in white still read - and the stepped
+   header keeps its three lines, with the art where its three shades were. */
+.rm-header-art.rm-header-block,
+.rm-header-art.rm-header-band,
+.rm-header-art.rm-header-stepped,
+.rm-header-art.rm-header-stepped .rm-step {
+  background: none;
+}
+.rm-header-art.rm-header-block .rm-art-veil,
+.rm-header-art.rm-header-band .rm-art-veil,
+.rm-header-art.rm-header-stepped .rm-art-veil {
+  background: var(--rm-art-veil-accent, var(--rm-art-veil, transparent));
+}
+
 /* the stats band (stats.ts): up to four figures a reader takes in at a
    glance, each decorative text - ink only, never in a parser's text */
 .rm-stats {

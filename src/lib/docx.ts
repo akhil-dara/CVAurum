@@ -46,8 +46,9 @@ import {
   sectionDateOptions,
 } from '@/lib/utils'
 import { prettyUrl, cleanEmail, linkWords } from '@/templates/_shared/atoms'
+import { artBandSrc } from '@/templates/_shared/headerStyles'
 import { getTemplate } from '@/templates/registry'
-import { readableOn } from '@/lib/elementColors'
+import { lighten, readableOn } from '@/lib/elementColors'
 import { headingCase, STOCK_SCALE, type HeadingCase } from '@/lib/typeStyle'
 
 /* ----------------------------------------------------------------- helpers */
@@ -514,6 +515,62 @@ function photoParagraph(
   })
 }
 
+/* --------------------------------------------------------------- art band */
+
+/** The art band's pixels, decoded once per export and read by the header
+ *  builder. Word embeds no webp and the builder itself is synchronous, so
+ *  the decoding happens outside it - the same shape the other export-wide
+ *  settings take (SIZE, LINKS_LIVE). */
+let ART: { data: Uint8Array; type: 'png' } | null = null
+
+/** Hands the builder a decoded band, or clears it. */
+export function setArtBandImage(img: { data: Uint8Array; type: 'png' } | null) {
+  ART = img
+}
+
+/** Decodes the chosen band into PNG bytes Word can embed: webp is not an
+ *  OOXML image format, so the browser's own decoder re-encodes it, exactly
+ *  the way the PDF painter transcodes a webp mark. Null wherever there is
+ *  no image decoder (a test) and on any failure - a header without its art
+ *  still exports. */
+export async function loadArtBandImage(band: string | undefined): Promise<{ data: Uint8Array; type: 'png' } | null> {
+  if (!band || band === 'none' || typeof document === 'undefined') return null
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('band decode failed'))
+      i.src = artBandSrc(band)
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx || !canvas.width || !canvas.height) return null
+    ctx.drawImage(img, 0, 0)
+    const decoded = decodePhoto(canvas.toDataURL('image/png'))
+    return decoded && decoded.type === 'png' ? { data: decoded.data, type: 'png' } : null
+  } catch {
+    return null
+  }
+}
+
+/** The band as Word can print it: a full-width strip above the header. Word
+ *  lays no text over an image, so the art leads the header instead of
+ *  sitting behind it. The art is 1200x300, so the strip is a quarter of its
+ *  width tall; `width` arrives in twips, and an image is measured in pixels
+ *  (15 twips to the pixel at 96 dots to the inch). */
+function artParagraph(doc: ResumeDocument, width: number): Paragraph | null {
+  if ((doc.metadata.theme.artBand ?? 'none') === 'none' || !ART) return null
+  const w = Math.max(1, Math.round(width / 15))
+  return new Paragraph({
+    spacing: { after: 60 },
+    children: [
+      new ImageRun({ data: ART.data, type: ART.type, transformation: { width: w, height: Math.round(w / 4) } }),
+    ],
+  })
+}
+
 /* -------------------------------------------------------- section builder */
 
 function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: number): Paragraph[] {
@@ -836,33 +893,43 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string, width: numb
   const variant = doc.metadata.layout.headerStyle ?? getTemplate(doc.metadata.template).header
   const display = variant === 'display'
   const filled = variant === 'block' || variant === 'band'
-  const on = filled ? toHex(readableOn(C.accent, C.body), 'FFFFFF') : undefined
+  // stepped: three lines of the header on three shaded paragraphs, in the
+  // accent and the accent lightened 14% and 28% - the shades the page
+  // grades its three bands with (Artboard.tsx useVars).
+  const stepped = variant === 'stepped'
+  const step = (amount: number) => toHex(lighten(theme.primary, amount), C.accent)
+  const shaded = (fill: string) => ({ shading: { type: ShadingType.CLEAR, color: 'auto', fill } })
+  const on = filled || stepped ? toHex(readableOn(C.accent, C.body), 'FFFFFF') : undefined
   const colorOf = (chosen: string | undefined, usual: string) => (on && !chosen ? on : usual)
   const nameColor = colorOf(theme.name, C.name)
   const headlineColor = colorOf(theme.headline, C.headline)
   const contactColor = colorOf(theme.contacts, C.contact)
   const contactLinkColor = colorOf(theme.contacts, C.contactLink)
   const centred = display ? { alignment: AlignmentType.CENTER } : {}
-  const out: Paragraph[] = [
+  // The art the page draws BEHIND the header leads it here: Word lays no
+  // text over an image.
+  const art = artParagraph(doc, filled ? width - 480 : width)
+  const out: Paragraph[] = art ? [art] : []
+  out.push(
     new Paragraph({
       ...centred,
-      spacing: { after: 20 },
+      ...(stepped ? { ...shaded(C.accent), spacing: { after: 0 } } : { spacing: { after: 20 } }),
       children: [
         new TextRun({
           text: b.name || 'Your Name',
           ...(C.nameBold ? { bold: true } : {}),
           color: nameColor,
-          size: display ? SIZE.name * 2 : SIZE.name,
+          size: display ? SIZE.name * 2 : stepped ? Math.round(SIZE.name * 1.4) : SIZE.name,
           font: C.headFont,
         }),
       ],
-    }),
-  ]
+    })
+  )
   if (b.label)
     out.push(
       new Paragraph({
         ...centred,
-        spacing: { after: 40 },
+        ...(stepped ? { ...shaded(step(0.14)), spacing: { after: 0 } } : { spacing: { after: 40 } }),
         children: [new TextRun({ text: b.label, color: headlineColor, size: SIZE.headline, font: C.headFont })],
       })
     )
@@ -894,6 +961,8 @@ function buildHeader(doc: ResumeDocument, C: Ctx, separator: string, width: numb
       new Paragraph({
         ...centred,
         spacing: { after: 100 },
+        // The stepped header's last band holds the details.
+        ...(stepped ? shaded(step(0.28)) : {}),
         // The display masthead's dateline sits between a heavy rule above
         // and a hairline below, both in the text colour, as on the page.
         ...(display
@@ -1094,6 +1163,9 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
 }
 
 export async function exportDocumentDocx(doc: ResumeDocument, filename?: string, fitScale = 1) {
+  // The band is decoded before the (synchronous) builder runs, so the header
+  // can embed it - see loadArtBandImage.
+  setArtBandImage(await loadArtBandImage(doc.metadata.theme.artBand))
   const blob = await Packer.toBlob(buildDocx(doc, fitScale))
   downloadBlob(blob, filename || resumeFilename(doc.content.basics.name, doc.title, 'docx'))
 }

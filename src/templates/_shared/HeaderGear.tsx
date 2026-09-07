@@ -9,7 +9,7 @@ import { Settings2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import type { MetaEditFn } from './Editable'
-import { HEADER_STYLES, HeaderMini } from './headerStyles'
+import { ArtBandRow, HEADER_STYLES, HeaderMini } from './headerStyles'
 import { FONTS } from '@/data/fonts'
 import { usePopoverA11y } from './popoverA11y'
 
@@ -242,6 +242,20 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                     </button>
                   )
                 })}
+              </div>
+              <div className="mx-2 my-1 border-t border-border" />
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Art <span className="font-normal normal-case">— behind the header</span>
+              </div>
+              <div className="px-2 pb-1.5">
+                <ArtBandRow
+                  value={doc.metadata.theme.artBand ?? 'none'}
+                  onPick={(band) =>
+                    editMeta((m) => {
+                      m.theme.artBand = band as Metadata['theme']['artBand']
+                    })
+                  }
+                />
               </div>
               <div className="mx-2 my-1 border-t border-border" />
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

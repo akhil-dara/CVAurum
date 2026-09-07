@@ -15,7 +15,7 @@ vi.mock('@/lib/pdf/hyphens', async (importOriginal) => ({
 }))
 
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
-import { HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
+import { ART_BANDS, ArtMini, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 
 /**
  * The header compositions a Signature template composes from: a display
@@ -69,6 +69,56 @@ describe('header compositions', () => {
 })
 
 /**
+ * The stepped composition (P1) and the art band (P10): three stacked bands
+ * in graded shades of the accent, and an image any composition can carry
+ * behind its words. The art is decoration - it is the header's first child,
+ * so the painter (which paints in document order, having no z-index) lays
+ * it under the words, and it is hidden from every reader and parser.
+ */
+describe('the stepped header and the art behind a header', () => {
+  it('steps the name, the role and the contacts into three bands, each once', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.headerStyle = 'stepped'
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(html).toContain('rm-header-stepped')
+    expect(html).toContain('hdr-stepped')
+    expect(html.match(/class="rm-name"/g)?.length).toBe(1)
+    expect(html.match(/class="rm-headline"/g)?.length).toBe(1)
+    expect(html.match(/class="rm-contacts/g)?.length).toBe(1)
+    // Each band is its own line of the page, in reading order: a name, the
+    // role under it, the details under that. Nothing shares a line, so the
+    // exported PDF reads back the way it was written.
+    const name = html.indexOf('rm-step-name')
+    const role = html.indexOf('rm-step-role')
+    const contacts = html.indexOf('rm-step-contacts')
+    expect(name).toBeGreaterThan(-1)
+    expect(role).toBeGreaterThan(name)
+    expect(contacts).toBeGreaterThan(role)
+  })
+
+  it('hangs the chosen band behind any composition, under the words and out of the text', () => {
+    for (const v of ['standard', 'stepped'] as const) {
+      const doc = createDocument({ sample: true })
+      doc.metadata.layout.headerStyle = v
+      doc.metadata.theme.artBand = 'emerald'
+      const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+      const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? ''
+      expect(header, v).toContain('rm-header-art')
+      expect(header, v).toContain('src="/art/bands/emerald.webp"')
+      expect(header.indexOf('rm-art-band')).toBeLessThan(header.indexOf('rm-name'))
+      expect(header, v).toContain('aria-hidden="true"')
+    }
+  })
+
+  it('leaves a document that asked for no band without an image at all', () => {
+    const doc = createDocument({ sample: true })
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(html).not.toContain('rm-art-band')
+    expect(html).not.toContain('rm-header-art')
+  })
+})
+
+/**
  * The picker draws a miniature of each composition beside its name, on the
  * canvas gear and in the Design panel alike (headerStyles.tsx). A
  * composition the list offers but the miniature does not know falls to a
@@ -79,13 +129,31 @@ describe('header composition mocks', () => {
   it('every named composition draws its own miniature, never the placeholder', () => {
     const named = HEADER_STYLES.filter((h) => h.value)
     expect(named.map((h) => h.value)).toEqual(
-      expect.arrayContaining(['standard', 'centered', 'split', 'banner', 'compact', 'display', 'block', 'band'])
+      expect.arrayContaining([
+        'standard',
+        'centered',
+        'split',
+        'banner',
+        'compact',
+        'display',
+        'block',
+        'band',
+        'stepped',
+      ])
     )
     for (const h of named) {
       const html = renderToStaticMarkup(<HeaderMini kind={h.value} />)
       expect(html, h.value).not.toContain('border-dashed')
     }
     expect(renderToStaticMarkup(<HeaderMini kind="" />)).toContain('border-dashed')
+  })
+
+  it('every band shows itself in its swatch, and None is always offered', () => {
+    expect(ART_BANDS.map((b) => b.value)).toEqual(['none', 'navy-gold', 'terracotta', 'cobalt', 'emerald'])
+    for (const b of ART_BANDS.filter((x) => x.value !== 'none')) {
+      expect(renderToStaticMarkup(<ArtMini kind={b.value} />), b.value).toContain(`/art/bands/${b.value}.webp`)
+    }
+    expect(renderToStaticMarkup(<ArtMini kind="none" />)).toContain('border-dashed')
   })
 })
 
