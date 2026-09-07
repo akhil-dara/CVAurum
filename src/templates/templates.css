@@ -1069,6 +1069,27 @@
   border-bottom: var(--rm-heading-rule, 2px) solid var(--rm-text);
   padding-bottom: 0.2em;
 }
+/* ONE rule under a running head, not two. The shared rule-after style runs a
+   tinted hairline on from the words to the right margin; a broadsheet head
+   already carries a full-width rule beneath it, and on the page the two
+   landed a few points apart at different weights, lengths and tints - not a
+   newspaper's double rule (two rules of one measure) but two devices
+   competing, the pale one weak enough to read as a printing fault. The
+   masthead keeps the document's only double rule, which is what makes it
+   the masthead. */
+.tpl-broadsheet .rm-section-title::after {
+  content: none;
+}
+/* The dateline is one line. Six contacts with an icon apiece overran the
+   measure and dropped the last one alone onto a second line, which read as
+   an accident rather than a second line of byline. The icons are what cost
+   the width - and a row of little UI glyphs was the least newspaper-like
+   thing on the page - so the template drops them (layout.icons) and closes
+   the gap a shade, which seats six contacts between the rules with air left
+   at both ends. */
+.tpl-broadsheet .rm-dateline .rm-contacts {
+  gap: 0.3em 0.85em;
+}
 .tpl-broadsheet .rm-section-number {
   color: var(--rm-primary);
   margin-right: 0.6em;

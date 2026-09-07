@@ -959,7 +959,7 @@ export const TEMPLATES: TemplateConfig[] = [
       'broadsheet',
       { primary: '#c8102e', text: '#14110f', muted: '#5e5852', background: '#fbf8f2' },
       { fontFamily: 'Source Serif 4', headingFamily: 'Archivo', nameFamily: 'Abril Fatface', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.1, uppercaseHeadings: true },
-      { columns: 1, sectionNumbers: true, showPhoto: false }
+      { columns: 1, sectionNumbers: true, icons: false, showPhoto: false }
     ),
   },
   {
