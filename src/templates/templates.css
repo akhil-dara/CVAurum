@@ -1093,9 +1093,17 @@
   color: var(--rm-primary);
   margin-right: 0.4em;
 }
+/* The group labels in the strip stay in the BODY face. In the heading face -
+   a display capital-only condensed - a label was indistinguishable from the
+   strip's own section titles: the strip held "LANGUAGES" the skill group and
+   "LANGUAGES" the section six lines apart in the same caps at the same size,
+   and the first read as a title for the line above it. Small tracked caps in
+   the text face read as a label. */
 .tpl-marquee .rm-footer-label {
-  font-family: var(--rm-font-heading);
-  letter-spacing: 0.06em;
+  font-family: var(--rm-font-body);
+  font-size: 0.74em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   color: var(--rm-primary);
 }
 

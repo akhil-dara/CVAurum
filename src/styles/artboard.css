@@ -1634,28 +1634,42 @@
   margin-right: auto;
 }
 
-/* block: a full-bleed colour block holding a giant name; the role and the
-   contacts stack at the right beneath it. Wrapping flex rows rather than a
-   grid, so a header with no identity mark loses no width to an empty
-   column. */
+/* block: a full-bleed colour block holding a giant name, with the role and
+   the contacts as a byline along the block's foot. Wrapping flex rows rather
+   than a grid, so a header with no identity mark loses no width to an empty
+   column.
+
+   The byline is what keeps the block's height its content's. The role and
+   the contacts used to stack in a right-hand column of seven short lines,
+   which left the whole lower-left of the block bare: a quarter of the page
+   in the accent colour with a void in the middle of it. Along the foot they
+   share the name's left margin and run back under it, and the block is a
+   name, a gap, and two lines of type.
+
+   That gap is sized off the NAME, not the body type, for the reason spelled
+   out on .rm-header-display's headline: extraction infers a line break from
+   how far the next run's baseline DROPPED, and a drop under half the
+   previous run's type size reads as the SAME line - a 0.6em gap of body type
+   left the role joined to the name and exported "Alex MorganSENIOR SOFTWARE
+   ENGINEER". The name is set at 3.2x the name size, so the threshold is 1.6
+   name-sizes of drop, and the gap only has to make up what the name's own
+   box does not already give. Measured on the exported PDF at the default: an
+   86.7px name wants a drop over 43px, and 1.15 name-sizes of gap puts the
+   role 57px under it.
+
+   A rise is not a drop, which is why the column had to go rather than simply
+   being pinned beside the name: with the role's baseline ABOVE the name's,
+   nothing separates them at all and the exported first line read "Alex
+   Morgan SENIOR SOFTWARE ENGINEER" - the name field with a job title in
+   it. */
 .rm-header-block {
   flex-wrap: wrap;
   align-items: flex-end;
-  /* The row gap is sized off the NAME, not the body type, for the reason
-     spelled out on .rm-header-display's headline: extraction infers a line
-     break from how far the next run's baseline dropped, and a drop under
-     half the previous run's type size reads as the SAME line. This name is
-     set at 3.2x the name size, so the threshold is 1.6 name-sizes and the
-     gap has to clear it: a 0.6em gap of body type left the role line joined
-     to the name's last word - the exported text read
-     "Alex MorganSENIOR SOFTWARE ENGINEER" - and 0.8 name-sizes still only
-     just reached it. Measured at the default: an 86.7px name wants a drop
-     over 43px, and this gives about 69px. */
-  gap: calc(var(--rm-name-size) * 1.6) 1.5em;
+  gap: calc(var(--rm-name-size) * 1.15) 1.5em;
   background: var(--rm-primary);
   color: var(--rm-on-primary, #fff);
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
-  padding: var(--rm-pad) var(--rm-pad) 1.4em;
+  padding: calc(var(--rm-pad) * 0.72) var(--rm-pad);
 }
 .rm-header-block .rm-header-main {
   flex: 1 1 0;
@@ -1668,13 +1682,15 @@
   order: 2;
   align-self: flex-start;
 }
+/* The byline: the role, then the contacts on their own line under it. */
 .rm-header-block .rm-header-side {
   order: 3;
   flex: 0 0 100%;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4em 1.6em;
 }
 .rm-root .rm-header-block .rm-name {
   font-size: calc(var(--rm-name-size) * 3.2);
@@ -1685,16 +1701,28 @@
   color: var(--rm-name-color, var(--rm-on-primary, #fff));
 }
 .rm-root .rm-header-block .rm-headline {
+  flex: 0 1 auto;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  margin-bottom: 0.35em;
+  margin-bottom: 0;
   color: var(--rm-headline-color, var(--rm-on-primary, #fff));
 }
 .rm-root .rm-header-block .rm-contacts {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.2em;
+  /* Always its own line under the role, however few contacts there are, so
+     the foot reads the same way on every document - and so the role never
+     shares a baseline with a contact, which is how the two arrive glued into
+     one line in the exported text. */
+  flex: 1 0 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: baseline;
+  /* A step under the role, and tight enough that the default six contacts
+     still make ONE line beneath it: a second line of them is the difference
+     between a foot and a stranded corner. */
+  font-size: 0.88em;
+  gap: 0.3em 0.8em;
   color: var(--rm-contact-color, var(--rm-on-primary, #fff));
 }
 .rm-header-block .rm-contact a {
@@ -1928,12 +1956,15 @@
 }
 .rm-footer {
   margin: 0 0 calc(-1 * var(--rm-pad));
-  padding: 1em var(--rm-pad) var(--rm-pad);
+  padding: 1.15em var(--rm-pad) var(--rm-pad);
   background: var(--rm-footer-bg, var(--rm-text));
   color: var(--rm-on-footer, #fff);
   display: flex;
   flex-direction: column;
-  gap: 0.3em;
+  /* Section to section inside the strip - wider than the gap between two
+     groups of one section, so the strip reads as sections holding groups
+     rather than as one undifferentiated list. */
+  gap: 1.3em;
 }
 .rm-footer .rm-section {
   margin-bottom: 0;
@@ -1944,8 +1975,12 @@
 .rm-root .rm-footer .rm-section-title {
   color: var(--rm-heading-color, var(--rm-primary));
 }
+/* Group to group. Every label used to land nearer the keywords ABOVE it than
+   its own, so each one read as a title for the line it followed. What makes
+   a label belong downwards is this gap being several times the one that
+   holds a label to its own keywords, not either measured on its own. */
 .rm-footer .rm-section-body {
-  gap: 0.15em;
+  gap: 0.65em;
 }
 /* One row per group: the label, then the list. */
 .rm-footer-row {
@@ -1958,7 +1993,7 @@
      holding one keyword instead of twelve. */
   display: flex;
   flex-direction: column;
-  gap: 0.1em;
+  gap: 0.05em;
 }
 .rm-footer .rm-footer-row,
 .rm-footer .rm-footer-row:last-child {
@@ -1980,10 +2015,17 @@
   display: block;
 }
 
+/* A group label names the keywords under it; it is not a second section
+   title, so it is smaller and more tracked than the strip's titles rather
+   than the same caps at the same size. */
 .rm-footer-label {
   width: auto;
   flex: none;
-  font-weight: 700;
+  font-size: 0.82em;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: inherit;
 }
 .rm-footer-list {
