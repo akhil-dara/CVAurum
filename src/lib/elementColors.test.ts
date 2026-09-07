@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ELEMENT_COLORS, elementColorVars, lighten, readableOn } from './elementColors'
+import { ELEMENT_COLORS, elementColorVars, lighten, readableOn, veilAlpha } from './elementColors'
+import { ART_BANDS, ART_BAND_GROUNDS } from '@/templates/_shared/headerStyles'
 import { MetadataSchema } from '@/types/metadata'
 
 /**
@@ -185,5 +186,83 @@ describe('the colours a coloured header derives', () => {
   it('readableOn falls back to white when the ground cannot be read', () => {
     expect(readableOn('not a colour', '#1a1a1a')).toBe('#ffffff')
     expect(readableOn('#fde047')).toBe('#1a1a1a')
+  })
+})
+
+/**
+ * The wash a header lays over its art band (P10). The promise the spec makes
+ * is that the words stay readable over the art, and a flat wash at a fixed
+ * strength cannot keep it: two of the four bands are near-black grounds, and
+ * a third of the page colour over one of those leaves ordinary text at about
+ * 2.7:1 - under even the large-text bar. The painter cannot draw a gradient
+ * with a translucent stop (paint.ts registerAxialShading), so the fade the
+ * spec describes has to be a flat wash; what is derived instead is its
+ * strength, from the same contrast maths readableOn uses.
+ */
+describe('the art wash is strong enough to read the words through', () => {
+  const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  /** The composited colour: the wash at `a` over the art's own ground. */
+  const over = (page: string, ground: string, a: number) => {
+    const [p, g] = [channels(page), channels(ground)]
+    return `#${p.map((v, i) => Math.round(a * v + (1 - a) * g[i]).toString(16).padStart(2, '0')).join('')}`
+  }
+  /** The accessibility contrast ratio, written out here so the assertion does
+   *  not lean on the same private helper the code under test uses. */
+  const ratio = (a: string, b: string) => {
+    const lum = (hex: string) =>
+      channels(hex)
+        .map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : Math.pow((v / 255 + 0.055) / 1.055, 2.4)))
+        .reduce((s, v, i) => s + [0.2126, 0.7152, 0.0722][i] * v, 0)
+    const [x, y] = [lum(a), lum(b)]
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
+  }
+
+  const pages = [
+    { name: 'the default light page', bg: '#ffffff', text: '#1b1b1f' },
+    { name: 'a dark page', bg: '#15181e', text: '#e8ebef' },
+    { name: 'a cream page', bg: '#faf7f2', text: '#241f1b' },
+  ]
+
+  it('clears 4.5:1 over every ground each band can put under the words', () => {
+    for (const page of pages) {
+      for (const [band, grounds] of Object.entries(ART_BAND_GROUNDS)) {
+        const a = veilAlpha(page.bg, page.text, grounds)
+        for (const ground of grounds) {
+          const seen = ratio(over(page.bg, ground, a), page.text)
+          expect(seen, `${band} on ${page.name} (${ground}, wash ${a})`).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+    }
+  })
+
+  it('never washes the art out further than it has to', () => {
+    // One step lighter has to fail somewhere, or the wash is heavier than the
+    // words need and the art is being hidden for nothing.
+    for (const page of pages) {
+      for (const grounds of Object.values(ART_BAND_GROUNDS)) {
+        const a = veilAlpha(page.bg, page.text, grounds)
+        if (a <= 0.35) continue // the floor, which is not derived
+        const worst = Math.min(...grounds.map((g) => ratio(over(page.bg, g, a - 0.01), page.text)))
+        expect(worst).toBeLessThan(4.5)
+      }
+    }
+  })
+
+  it('keeps a floor under the wash, and never goes fully opaque on a readable page', () => {
+    // A document with no band asks for no constraint at all and still gets
+    // the wash the page always drew.
+    expect(veilAlpha('#ffffff', '#1b1b1f', [])).toBe(0.35)
+    for (const page of pages)
+      for (const grounds of Object.values(ART_BAND_GROUNDS))
+        expect(veilAlpha(page.bg, page.text, grounds)).toBeLessThan(1)
+  })
+
+  it('leaves a colour it cannot read at the floor', () => {
+    expect(veilAlpha('rebeccapurple', '#1b1b1f', ['#000000'])).toBe(0.35)
+  })
+
+  it('names a light and a dark extreme for every band the picker offers', () => {
+    for (const band of ART_BANDS.filter((b) => b.value !== 'none'))
+      expect(ART_BAND_GROUNDS[band.value], band.value).toHaveLength(2)
   })
 })

@@ -1813,6 +1813,10 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  /* Three templates round the corners of their banner header. The art fills
+     the same box, so it takes the same corners - square art poking out of a
+     rounded header is the composition undone. */
+  border-radius: inherit;
 }
 .rm-art-band {
   width: 100%;
@@ -1824,22 +1828,28 @@
 }
 /* A header that is not already full-bleed keeps its words off the art's
    edge, and the art off the page's. */
-.rm-header-art:not(.rm-header-block):not(.rm-header-band):not(.rm-header-stepped) {
+.rm-header-art:not(.rm-header-block):not(.rm-header-band):not(.rm-header-stepped):not(.rm-header-banner) {
   padding: 0.9em 1.1em;
 }
 /* A composition with a ground of its own hands that ground to the art: an
    opaque block over the image would leave nothing to see. The art keeps the
    colour, through a wash of the accent instead of a wash of the page, so
    the words a coloured header sets in white still read - and the stepped
-   header keeps its three lines, with the art where its three shades were. */
-.rm-header-art.rm-header-block,
-.rm-header-art.rm-header-band,
-.rm-header-art.rm-header-stepped,
-.rm-header-art.rm-header-stepped .rm-step {
+   header keeps its three lines, with the art where its three shades were.
+   Each selector carries the page root as well, because templates.css is
+   imported second (TemplateRenderer.tsx) and four templates repaint their
+   banner: a tie there would beat this sheet and leave the opaque gradient
+   over the art. */
+.rm-root .rm-header-art.rm-header-block,
+.rm-root .rm-header-art.rm-header-band,
+.rm-root .rm-header-art.rm-header-banner,
+.rm-root .rm-header-art.rm-header-stepped,
+.rm-root .rm-header-art.rm-header-stepped .rm-step {
   background: none;
 }
 .rm-header-art.rm-header-block .rm-art-veil,
 .rm-header-art.rm-header-band .rm-art-veil,
+.rm-header-art.rm-header-banner .rm-art-veil,
 .rm-header-art.rm-header-stepped .rm-art-veil {
   background: var(--rm-art-veil-accent, var(--rm-art-veil, transparent));
 }

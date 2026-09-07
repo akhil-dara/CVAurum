@@ -97,7 +97,10 @@ describe('the stepped header and the art behind a header', () => {
   })
 
   it('hangs the chosen band behind any composition, under the words and out of the text', () => {
-    for (const v of ['standard', 'stepped'] as const) {
+    // banner is the header of four shipped templates and paints a full-bleed
+    // ground of its own, so it is the composition an author is likeliest to
+    // pick a band on.
+    for (const v of ['standard', 'stepped', 'banner'] as const) {
       const doc = createDocument({ sample: true })
       doc.metadata.layout.headerStyle = v
       doc.metadata.theme.artBand = 'emerald'

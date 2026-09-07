@@ -34,6 +34,25 @@ export const ART_BANDS: { label: string; value: string }[] = [
 /** Where a band's image lives (public/art/bands). */
 export const artBandSrc = (band: string) => `/art/bands/${band}.webp`
 
+/**
+ * The darkest and the lightest ground each band can put under a word, taken
+ * from its palette (public/art/bands/README.md). The wash a header lays over
+ * its art is derived from these: it has to be strong enough that the words
+ * still read over EITHER extreme, so a near-black fold and a gold vein are
+ * both accounted for (elementColors.ts veilAlpha). A new band belongs here
+ * the day its image does.
+ */
+export const ART_BAND_GROUNDS: Record<string, string[]> = {
+  // midnight navy, and the gold veining that runs through it
+  'navy-gold': ['#0b1020', '#d9a441'],
+  // copper contour lines on a warm cream ground
+  terracotta: ['#9a4a28', '#f4ece0'],
+  // ink black and chalk white blocks, the widest range of the four
+  cobalt: ['#0a0a0c', '#f2f0ea'],
+  // deep emerald folds on near-black
+  emerald: ['#05120d', '#2f7d5e'],
+}
+
 /** The swatch of a band: the art itself, so the choice is what it shows. */
 export function ArtMini({ kind }: { kind: string }) {
   if (!kind || kind === 'none')

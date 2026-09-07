@@ -85,6 +85,43 @@ function contrast(a: number, b: number): number {
  *  sets its name and contacts in this unless the author coloured them. A
  *  ground that cannot be read takes white, the colour a coloured header
  *  always drew its text in. */
+/** The wash the header lays over its art band is never lighter than this,
+ *  whatever the maths asks for: a page whose own text barely reads on its own
+ *  ground would otherwise drive the wash to nothing. It is the strength the
+ *  wash always had. */
+const VEIL_FLOOR = 0.35
+/** The contrast the words are held to, the same ratio this file's callers
+ *  compute elsewhere - a body line is small text, so 4.5:1, not 3:1. */
+const VEIL_TARGET = 4.5
+
+/** How strong the wash a header lays over its art band has to be: the
+ *  SMALLEST strength of the page's own colour that still leaves `text` at
+ *  4.5:1 over every ground the art puts under the words (the light and dark
+ *  extremes of its palette, headerStyles.tsx). A flat wash rather than a
+ *  fade, because the painter drops any gradient with a translucent stop
+ *  (paint.ts registerAxialShading) and a wash the PDF cannot draw is a page
+ *  the export does not match - but its STRENGTH is derived, so the art is
+ *  never lighter than the words need, and never heavier. No grounds (a
+ *  document carrying no band) asks nothing, and takes the floor. */
+export function veilAlpha(page: string, text: string, grounds: string[]): number {
+  const wash = hexChannels(page)
+  const ink = hexChannels(text)
+  if (!wash || !ink) return VEIL_FLOOR
+  const l = luminance(ink)
+  const reads = (a: number) =>
+    grounds.every((g) => {
+      const art = hexChannels(g)
+      if (!art) return true
+      const mixed = art.map((v, i) => a * wash[i] + (1 - a) * v) as [number, number, number]
+      return contrast(luminance(mixed), l) >= VEIL_TARGET
+    })
+  // A hundredth at a time, from the floor up: the first strength that reads
+  // is the answer, and a page whose own colour cannot carry its own text
+  // ends at 0.99 rather than erasing the art altogether.
+  for (let step = Math.round(VEIL_FLOOR * 100); step < 100; step++) if (reads(step / 100)) return step / 100
+  return 0.99
+}
+
 export function readableOn(bg: string, dark: string = '#1a1a1a'): string {
   const ground = hexChannels(bg)
   if (!ground) return '#ffffff'

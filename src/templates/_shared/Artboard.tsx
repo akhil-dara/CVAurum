@@ -11,7 +11,7 @@ import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
-import { elementColorVars, lighten, readableOn, withAlpha } from '@/lib/elementColors'
+import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
 import { deriveStats } from '@/lib/stats'
 import { applyKeywordFit, fitHeadingWords } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
@@ -20,7 +20,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
-import { artBandSrc } from './headerStyles'
+import { ART_BAND_GROUNDS, artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
@@ -121,16 +121,20 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       '--rm-step-2': lighten(theme.primary, 0.14),
       '--rm-step-3': lighten(theme.primary, 0.28),
       // The wash a header lays over its art band (theme.artBand): the page's
-      // own colour at a third strength, which keeps the header's words
-      // readable over any of the four and settles the art into the page. A
-      // gradient fade would say it better, but the painter drops any
+      // own colour, at the smallest strength that still leaves the text
+      // readable over the darkest and lightest ground THIS band puts under a
+      // word (elementColors.ts veilAlpha, headerStyles.tsx ART_BAND_GROUNDS).
+      // A gradient fade would say it better, but the painter drops any
       // gradient with a translucent stop (paint.ts registerAxialShading),
       // and a wash that the PDF cannot draw is a page the export does not
-      // match. A flat translucent fill it draws exactly. A composition that
-      // has a ground of its own (block, band, stepped) hands that ground to
-      // the art and washes it in the accent instead, so its white words
-      // still read (artboard.css .rm-header-art).
-      '--rm-art-veil': withAlpha(theme.background, 0.35),
+      // match. A flat translucent fill it draws exactly, at any strength. A
+      // composition that has a ground of its own (block, band, banner,
+      // stepped) hands that ground to the art and washes it in the accent
+      // instead, so its white words still read (artboard.css .rm-header-art).
+      '--rm-art-veil': withAlpha(
+        theme.background,
+        veilAlpha(theme.background, theme.text, ART_BAND_GROUNDS[theme.artBand ?? 'none'] ?? [])
+      ),
       '--rm-art-veil-accent': withAlpha(theme.primary, 0.55),
       // The footer strip: its ground is the theme's footer colour when one
       // is set (the stylesheet falls back to the text colour), and its text

@@ -288,7 +288,11 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   if (el instanceof HTMLImageElement && el.src) {
     const isSvg = /^data:image\/svg\+xml/i.test(el.src)
     if (!isSvg || !svgLogoOps(el, box, ops)) {
-      ops.push({ kind: 'image', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, src: el.src, radii })
+      // The element's own object-fit travels with the op: a source the
+      // painter has to re-encode is drawn into the box the same way the
+      // canvas draws it (paint.ts), rather than always stretched.
+      const fit = cs.objectFit === 'cover' || cs.objectFit === 'contain' ? cs.objectFit : undefined
+      ops.push({ kind: 'image', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, src: el.src, radii, fit })
     }
   }
 }

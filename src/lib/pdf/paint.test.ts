@@ -51,6 +51,13 @@ beforeAll(() => {
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
       return { ok: true, arrayBuffer: async () => ab } as Response
     }
+    if (url.endsWith('.webp')) {
+      // Neither PNG nor JPEG magic - the bytes a real art band arrives as,
+      // which is what sends embedImage down its decode-and-re-encode path.
+      const bytes = Buffer.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+      return { ok: true, arrayBuffer: async () => ab } as Response
+    }
     const file = url.replace(/^\/fonts-pdf\//, '')
     const bytes = fs.readFileSync(path.join(FONT_DIR, file))
     const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
@@ -1840,5 +1847,145 @@ describe('clampChromeOpToPage — chrome gradients continue across pages', () =>
       color: { r: 0, g: 0, b: 0, a: 1 },
     }
     expect(clampChromeOpToPage(line, 1123, 500)).toBe(line)
+  })
+})
+
+/**
+ * The art band (P10) reaches the PDF through the generic image path: it is a
+ * webp, so pdf-lib cannot embed its bytes and the painter decodes and
+ * re-encodes it. Re-encoded as a PNG at the source's NATURAL size, a
+ * 1200x300 photographic band lands as about a megabyte of Flate-compressed
+ * samples, which puts any document carrying one two to three times over the
+ * export budget the spec sets - and, drawn straight into the box, it
+ * stretches where the canvas crops, so the two outputs show different
+ * pictures. An opaque source is therefore re-encoded as a JPEG at the size
+ * it is actually drawn, with the same crop the page shows.
+ */
+describe('paintOps - an opaque source is re-encoded at the size it is drawn', () => {
+  // Neither PNG nor JPEG magic: the bytes reach the decode-and-re-encode
+  // path, exactly as a real webp band does.
+  const WEBP_SRC = 'https://example.test/band.webp'
+  // A real 1x1 JPEG and a real 1x1 PNG, so pdf-lib's own embedders run for
+  // real on whichever one the painter asks the canvas for.
+  const JPEG_B64 =
+    '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q=='
+  const PNG_B64 = TEST_PNG_BASE64
+
+  type Draw = { args: number[]; type: string }
+  let draws: Draw[] = []
+  let boxes: { w: number; h: number }[] = []
+  let asked: string[] = []
+  let opaque = true
+  let originalDocument: unknown
+  let originalImage: unknown
+
+  beforeAll(() => {
+    const g = globalThis as unknown as Record<string, unknown>
+    originalDocument = g.document
+    originalImage = g.Image
+    g.Image = class {
+      naturalWidth = 1200
+      naturalHeight = 300
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      set src(_v: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    }
+    g.document = {
+      createElement: (tag: string) => {
+        if (tag !== 'canvas') return {}
+        const canvas = {
+          width: 0,
+          height: 0,
+          getContext: () => ({
+            drawImage: (...args: unknown[]) => {
+              draws.push({ args: args.slice(1) as number[], type: 'draw' })
+            },
+            getImageData: (_x: number, _y: number, w: number, h: number) => {
+              const data = new Uint8ClampedArray(w * h * 4).fill(255)
+              if (!opaque) data[3] = 0
+              return { data }
+            },
+          }),
+          toDataURL: (type: string) => {
+            asked.push(type)
+            boxes.push({ w: canvas.width, h: canvas.height })
+            return type === 'image/jpeg' ? `data:image/jpeg;base64,${JPEG_B64}` : `data:image/png;base64,${PNG_B64}`
+          },
+        }
+        return canvas
+      },
+    }
+  })
+  afterAll(() => {
+    const g = globalThis as unknown as Record<string, unknown>
+    g.document = originalDocument
+    g.Image = originalImage
+  })
+
+  const reset = (isOpaque: boolean) => {
+    draws = []
+    boxes = []
+    asked = []
+    opaque = isOpaque
+  }
+
+  /** The PDF as it is written out, where the image's own filter shows. */
+  const savedPdf = async (ops: DrawOp[]) => {
+    const { page } = await renderPage(ops)
+    return Buffer.from(await page.doc.save()).toString('latin1')
+  }
+
+  const bandOp = (overrides: Partial<Extract<DrawOp, { kind: 'image' }>> = {}): DrawOp => ({
+    kind: 'image',
+    xPx: 0,
+    yPx: 0,
+    wPx: 260,
+    hPx: 120,
+    src: WEBP_SRC,
+    fit: 'cover',
+    ...overrides,
+  })
+
+  it('writes an opaque source as a JPEG stream, not a Flate one', async () => {
+    reset(true)
+    const pdf = await savedPdf([bandOp()])
+    expect(asked).toContain('image/jpeg')
+    expect(pdf).toContain('DCTDecode')
+  })
+
+  it('encodes it at the size it is drawn, not at the source natural size', async () => {
+    reset(true)
+    await savedPdf([bandOp()])
+    // The drawn box, supersampled - never the 1200x300 the source decodes to.
+    expect(boxes.length).toBe(1)
+    expect(boxes[0].w).toBeGreaterThanOrEqual(260)
+    expect(boxes[0].w).toBeLessThanOrEqual(260 * 2)
+    expect(boxes[0].h / boxes[0].w).toBeCloseTo(120 / 260, 2)
+  })
+
+  it('crops the source the way the page crops it, instead of stretching it', async () => {
+    reset(true)
+    await savedPdf([bandOp()])
+    // 1200x300 into a 260x120 box under object-fit: cover: the full height is
+    // kept and the width is cut to the box's aspect, centred - 650 of 1200,
+    // starting at 275. A stretch would pass no source rectangle at all.
+    const crop = draws.find((d) => d.args.length === 8)
+    expect(crop, 'the source was drawn without a crop rectangle').toBeDefined()
+    const [sx, sy, sw, sh] = crop!.args
+    expect(sh).toBe(300)
+    expect(sw).toBeCloseTo(650, 0)
+    expect(sx).toBeCloseTo(275, 0)
+    expect(sy).toBe(0)
+  })
+
+  it('leaves a source with transparency on the PNG path, at its natural size', async () => {
+    // The identity marks and logos ride on their alpha; a JPEG has none.
+    reset(false)
+    const pdf = await savedPdf([bandOp({ src: 'https://example.test/mark.webp' })])
+    expect(asked).toEqual(['image/png'])
+    expect(boxes[0]).toEqual({ w: 1200, h: 300 })
+    expect(pdf).not.toContain('DCTDecode')
   })
 })

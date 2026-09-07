@@ -256,3 +256,115 @@ describe('a side heading keeps its own line', () => {
     for (const rule of pseudos) expect(declared(rule.body, 'flex')).toEqual(['0 0 auto'])
   })
 })
+
+/**
+ * Art behind a header (P10): the band is an <img> the header lays behind its
+ * words. A composition that paints its OWN full-bleed ground has to hand
+ * that ground to the art, keep its own padding, and wash the art in the
+ * accent rather than the page colour - otherwise the art is either covered
+ * by an opaque block, or the words jump out of the page margin when the
+ * art's own padding takes over. Three lists in the sheet say which
+ * compositions those are, and a composition missing from any of them breaks
+ * the moment an author picks a band on it. This audit reads the
+ * compositions out of the sheet itself, so the next coloured one cannot be
+ * added without being named.
+ */
+describe('every full-bleed header composition is named in the art rules', () => {
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] }))
+  const composition = /^\.rm-header-([a-z]+)$/
+  /** A ground of its own: a background that is a colour or a gradient. */
+  const grounds = (body: string) =>
+    [...declared(body, 'background'), ...declared(body, 'background-color')].some(
+      (v) => !/^(none|transparent|inherit|initial)$/.test(v)
+    )
+  /** Pulled out to the page's edge: a margin with a negative side. */
+  const fullBleed = (body: string) => declared(body, 'margin').some((v) => /-\s*1\s*\)|(^|\s)-\d/.test(v))
+
+  const coloured = [
+    ...new Set(
+      rules
+        .filter((r) => grounds(r.body) && fullBleed(r.body))
+        .flatMap((r) => r.selector.split(',').map((s) => composition.exec(subject(s))?.[1]).filter(Boolean) as string[])
+    ),
+  ]
+
+  /** The composition names a selector list mentions. */
+  const named = (selectors: string[]) => [
+    ...new Set(selectors.flatMap((s) => [...s.matchAll(/\.rm-header-([a-z]+)/g)].map((m) => m[1]))),
+  ]
+
+  const excludedFromArtPadding = named(
+    rules
+      .filter((r) => r.selector.startsWith('.rm-header-art:not(') && declared(r.body, 'padding').length > 0)
+      .flatMap((r) => [...r.selector.matchAll(/:not\(([^)]+)\)/g)].map((m) => m[1]))
+  )
+  const handingOverTheirGround = named(
+    rules
+      .filter((r) => r.selector.includes('.rm-header-art') && declared(r.body, 'background').includes('none'))
+      .flatMap((r) => r.selector.split(','))
+  )
+  const washedInTheAccent = named(
+    rules
+      .filter(
+        (r) =>
+          r.selector.includes('.rm-header-art') &&
+          r.selector.split(',').map(subject).some((s) => /^\.rm-art-veil$/.test(s)) &&
+          declared(r.body, 'background').some((v) => v.includes('--rm-art-veil-accent'))
+      )
+      .flatMap((r) => r.selector.split(','))
+  )
+
+  it('finds the compositions that paint their own full-bleed ground', () => {
+    // banner is one of them, and it is the header of four shipped templates.
+    expect(coloured).toContain('banner')
+    expect(coloured.length).toBeGreaterThan(3)
+  })
+
+  it('leaves each of them its own padding', () => {
+    for (const name of coloured) expect(excludedFromArtPadding, name).toContain(name)
+  })
+
+  it('hands each of their grounds to the art', () => {
+    for (const name of coloured) expect(handingOverTheirGround, name).toContain(name)
+  })
+
+  it('washes each of them in the accent, not the page colour', () => {
+    for (const name of coloured) expect(washedInTheAccent, name).toContain(name)
+  })
+
+  it('outranks a template that repaints the same composition', () => {
+    // templates.css is imported second (TemplateRenderer.tsx), so a tie there
+    // wins: four templates repaint their banner as a gradient, and a rule
+    // that only tied with them would leave that gradient over the art.
+    const templates = fs
+      .readFileSync(path.join(here, '../templates/templates.css'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+    const weight = (selector: string) => (selector.match(/[.[]|:(?!not\b)[a-z-]+/g) ?? []).length
+    const handing = rules
+      .filter((r) => r.selector.includes('.rm-header-art') && declared(r.body, 'background').includes('none'))
+      .flatMap((r) => r.selector.split(',').map((s) => s.trim()))
+    const repaints = [...templates.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .flatMap((m) => m[1].split(',').map((s) => ({ selector: s.trim().replace(/\s+/g, ' '), body: m[2] })))
+      .filter((r) => composition.test(subject(r.selector)) && grounds(r.body))
+    expect(repaints.length).toBeGreaterThan(0)
+    for (const repaint of repaints) {
+      const name = composition.exec(subject(repaint.selector))![1]
+      const covering = handing.filter((s) => s.includes(`.rm-header-${name}`))
+      expect(covering.length, repaint.selector).toBeGreaterThan(0)
+      for (const selector of covering) expect(weight(selector), selector).toBeGreaterThan(weight(repaint.selector))
+    }
+  })
+
+  it('lets the art take the corners of a rounded header', () => {
+    // Three templates round their banner; square art poking out of a rounded
+    // header is the whole composition undone.
+    const art = rules.filter((r) =>
+      r.selector.split(',').map(subject).some((s) => /^\.rm-art-(band|veil)$/.test(s))
+    )
+    const radiused = art.filter((r) => declared(r.body, 'border-radius').includes('inherit'))
+    const covered = radiused.flatMap((r) => r.selector.split(',').map(subject))
+    expect(covered).toContain('.rm-art-band')
+    expect(covered).toContain('.rm-art-veil')
+  })
+})

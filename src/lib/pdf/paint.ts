@@ -293,15 +293,58 @@ export function dataUriToBytes(src: string): Uint8Array | null {
   }
 }
 
-/** Decodes `src` with the browser's own image pipeline and re-encodes it as
- *  PNG bytes at natural size (transparency preserved). Used for formats
- *  pdf-lib cannot embed directly — WEBP/GIF/AVIF logos render fine in the
- *  preview but used to export as an EMPTY gap (user report 2026-08-16:
- *  `downscaleImage` keeps the ORIGINAL data URL whenever its JPEG re-encode
- *  is not smaller, so small webp logos reach the walker in webp). Returns
- *  null when decoding fails or outside a DOM (unit tests keep today's
- *  skip-on-unsupported behavior). */
-async function transcodeToPngBytes(src: string): Promise<Uint8Array | null> {
+/** Re-encoded bytes, and which of pdf-lib's two embedders reads them. */
+type Transcoded = { bytes: Uint8Array; jpeg: boolean }
+
+/** How much of a source is kept when it is drawn into `box` under
+ *  `object-fit: cover`: the largest centred rectangle of the source that has
+ *  the box's own shape, which is exactly what the canvas shows. */
+export function coverCrop(
+  srcW: number,
+  srcH: number,
+  boxW: number,
+  boxH: number
+): { sx: number; sy: number; sw: number; sh: number } {
+  if (!boxW || !boxH) return { sx: 0, sy: 0, sw: srcW, sh: srcH }
+  const wide = srcW / srcH > boxW / boxH
+  const sw = wide ? srcH * (boxW / boxH) : srcW
+  const sh = wide ? srcH : srcW * (boxH / boxW)
+  return { sx: (srcW - sw) / 2, sy: (srcH - sh) / 2, sw, sh }
+}
+
+/** Twice the drawn size is enough resolution for print without paying for
+ *  the source's own: an art band decodes at 1200x300 and is drawn about a
+ *  third of that wide. */
+const SUPERSAMPLE = 2
+/** The quality a re-encoded opaque source is written at. High enough that a
+ *  photographic band shows no artefacts at print size, low enough that a
+ *  document carrying one stays inside the export budget (P10: under 400 KB). */
+const JPEG_QUALITY = 0.82
+
+/** Decodes `src` with the browser's own image pipeline and re-encodes it for
+ *  pdf-lib. Used for formats pdf-lib cannot embed directly - WEBP/GIF/AVIF
+ *  logos render fine in the preview but used to export as an EMPTY gap (user
+ *  report 2026-08-16: `downscaleImage` keeps the ORIGINAL data URL whenever
+ *  its JPEG re-encode is not smaller, so small webp logos reach the walker in
+ *  webp).
+ *
+ *  A source with NO transparency is re-encoded as a JPEG at the size it is
+ *  drawn (`box`), cropped the way the page crops it. A PNG at the source's
+ *  natural size is what this used to do for everything, and for a 1200x300
+ *  photographic art band that is about a megabyte of Flate-compressed
+ *  samples in the file - two to three times the whole export budget - drawn
+ *  stretched where the canvas cropped it, so the PDF showed a different
+ *  picture from the page.
+ *
+ *  A source WITH transparency (the identity marks and logos, which ride on
+ *  their alpha) keeps the PNG path exactly as it was, and so does a
+ *  `contain` fit, whose letterboxing needs a ground colour a JPEG has no way
+ *  to leave out. Returns null when decoding fails or outside a DOM (unit
+ *  tests keep today's skip-on-unsupported behavior). */
+async function transcodeBytes(
+  src: string,
+  box: { wPx: number; hPx: number; fit?: 'cover' | 'contain' }
+): Promise<Transcoded | null> {
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const i = new Image()
@@ -312,27 +355,67 @@ async function transcodeToPngBytes(src: string): Promise<Uint8Array | null> {
     const w = img.naturalWidth
     const h = img.naturalHeight
     if (!w || !h) return null
+    const natural = document.createElement('canvas')
+    natural.width = w
+    natural.height = h
+    const nctx = natural.getContext('2d')
+    if (!nctx) return null
+    nctx.drawImage(img, 0, 0)
+    // Whether any pixel is see-through, read off the decoded source itself
+    // rather than guessed from the file extension. A reader that refuses to
+    // hand back the pixels leaves the source on the PNG path, which is the
+    // safe answer for anything that might carry alpha.
+    let opaque = false
+    try {
+      const pixels = nctx.getImageData(0, 0, w, h).data
+      opaque = true
+      for (let i = 3; i < pixels.length; i += 4)
+        if (pixels[i] !== 255) {
+          opaque = false
+          break
+        }
+    } catch {
+      opaque = false
+    }
+    const drawW = Math.max(1, Math.round(box.wPx * SUPERSAMPLE))
+    const drawH = Math.max(1, Math.round(box.hPx * SUPERSAMPLE))
+    if (!opaque || box.fit === 'contain' || !drawW || !drawH) {
+      const bytes = dataUriToBytes(natural.toDataURL('image/png'))
+      return bytes ? { bytes, jpeg: false } : null
+    }
     const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
+    canvas.width = drawW
+    canvas.height = drawH
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
-    ctx.drawImage(img, 0, 0)
-    return dataUriToBytes(canvas.toDataURL('image/png'))
+    if (box.fit === 'cover') {
+      const { sx, sy, sw, sh } = coverCrop(w, h, box.wPx, box.hPx)
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, drawW, drawH)
+    } else {
+      // No object-fit of its own: the DOM stretches the source into the box,
+      // and so does this.
+      ctx.drawImage(img, 0, 0, drawW, drawH)
+    }
+    const bytes = dataUriToBytes(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
+    return bytes ? { bytes, jpeg: true } : null
   } catch {
     return null
   }
 }
 
-/** Fetches `src`, embeds its ORIGINAL bytes (no re-encode/resize), once per
- *  src; non-PNG/JPEG formats the browser can decode are transcoded to PNG
- *  (see transcodeToPngBytes) instead of silently skipped. */
+/** Fetches the op's source, embeds its ORIGINAL bytes (no re-encode/resize),
+ *  once per source and drawn size; non-PNG/JPEG formats the browser can
+ *  decode are re-encoded (see transcodeBytes) instead of silently skipped.
+ *  The drawn size is part of the key because a re-encoded source is written
+ *  at the size it is drawn - the same picture in two boxes is two pictures. */
 async function embedImage(
   page: PDFPage,
-  src: string,
+  op: { src: string; wPx: number; hPx: number; fit?: 'cover' | 'contain' },
   cache: Map<string, Promise<PDFImage | null>>
 ): Promise<PDFImage | null> {
-  let pending = cache.get(src)
+  const src = op.src
+  const key = `${src}|${Math.round(op.wPx)}x${Math.round(op.hPx)}|${op.fit ?? ''}`
+  let pending = cache.get(key)
   if (!pending) {
     pending = (async () => {
       try {
@@ -347,14 +430,15 @@ async function embedImage(
         }
         if (hasMagic(bytes, PNG_MAGIC)) return await page.doc.embedPng(bytes)
         if (hasMagic(bytes, JPEG_MAGIC)) return await page.doc.embedJpg(bytes)
-        const transcoded = await transcodeToPngBytes(src)
-        if (transcoded) return await page.doc.embedPng(transcoded)
+        const transcoded = await transcodeBytes(src, op)
+        if (transcoded)
+          return transcoded.jpeg ? await page.doc.embedJpg(transcoded.bytes) : await page.doc.embedPng(transcoded.bytes)
         return null // undecodable — skip
       } catch {
         return null // failed to load — skip
       }
     })()
-    cache.set(src, pending)
+    cache.set(key, pending)
   }
   return pending
 }
@@ -1083,7 +1167,7 @@ export async function paintOps(
           break
         }
         case 'image': {
-          const img = await embedImage(page, op.src, images)
+          const img = await embedImage(page, op, images)
           if (!img) break
           const xPt = pxToPt(op.xPx)
           const yPt = flipY(pxToPt(op.yPx + op.hPx), pageHeightPt) // bottom-left, page space (y-up)
@@ -1141,14 +1225,14 @@ export async function paintOps(
             // clip operator overhead for the common (non-photo) case.
             page.drawImage(img, { x: xPt, y: yPt, width: wPt, height: hPt })
           }
-          // NOT implemented: CSS `object-fit: cover` for non-square sources
-          // (DOM crops via CSS; drawImage above still stretches to the box).
-          // Scoped out per the task-17 brief ("if this exceeds an hour...
-          // SKIP with a documented note") — ImageCropper already makes square
-          // sources the normal case, and doing it only for the radius>0
-          // branch above (the zero-radii branch must stay clip-free, per the
-          // ship-blocker test) would make cover behavior inconsistent between
-          // rounded and square photo boxes rather than fixing it uniformly.
+          // Both draws above fill the box, which is right because the CROP
+          // has already happened: a source the painter re-encodes is cut to
+          // the box's own shape first (transcodeBytes, `object-fit: cover`),
+          // so what is drawn here is already the picture the canvas shows.
+          // A source pdf-lib embeds whole - a PNG or JPEG photo - is still
+          // stretched rather than cropped; ImageCropper makes those square
+          // to begin with, and re-encoding one to crop it would cost the
+          // original's quality for a case that does not arise.
           break
         }
         case 'link': {

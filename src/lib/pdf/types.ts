@@ -207,6 +207,12 @@ export type DrawOp = DrawOpChrome &
         src: string
         radiusPx?: number
         radii?: CornerRadii
+        /** The element's own `object-fit`, when it has one (a photo and an
+         *  art band crop with `cover`, an entry logo fits inside with
+         *  `contain`; absent means the CSS default, which stretches). It
+         *  decides how a re-encoded source is drawn into the box, so the
+         *  export shows the same picture the canvas does. */
+        fit?: 'cover' | 'contain'
       }
     /**
      * An inline `<svg>` icon (section-heading chips, contact-row marks — task
