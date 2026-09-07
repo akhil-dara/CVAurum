@@ -10,6 +10,19 @@ import type { TemplateDefaults } from '@/types/template'
  * changes — so picking a two-column template actually populates the sidebar, and
  * picking a single-column one folds the sidebar back into the main flow.
  */
+/**
+ * Which value survives a template switch for a field that has a real default.
+ *
+ * `cur` is the document's value, `fallback` the schema's default, `next` the
+ * incoming template's. A document still sitting on the default never made a
+ * choice, so the template's value wins; anything else is the author's and
+ * stays. (Fields that are OPTIONAL - the header composition, say - need none
+ * of this: undefined already means "no choice".)
+ */
+function chosen<T>(cur: T, fallback: T, next: T): T {
+  return cur === fallback ? next : cur
+}
+
 export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefaults): Metadata {
   const targetCols = defaults.layout.columns
   let main = [...cur.layout.main]
@@ -119,11 +132,17 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // preserve user choices (sectionSettings - every per-section choice,
       // the entry order and emphasis included - rides the spread above):
       hidden: cur.layout.hidden,
-      // Structural choices the user made stay when the template changes,
-      // like the column split and the header composition do.
-      metaColumn: cur.layout.metaColumn,
-      headingPlacement: cur.layout.headingPlacement,
-      sectionFrame: cur.layout.sectionFrame,
+      // Structural choices the user MADE stay when the template changes,
+      // like the column split and the header composition do - but a field
+      // still sitting on its own default was never a choice, and keeping it
+      // meant a template could never apply its own structure. Every one of
+      // these has a real default rather than being optional, so "unset" has
+      // to be read as "equal to the default": picking the template whose
+      // whole idea is a year gutter left the gutter off, because the fresh
+      // document said 'none' and 'none' won.
+      metaColumn: chosen(cur.layout.metaColumn, 'none', defaults.layout.metaColumn),
+      headingPlacement: chosen(cur.layout.headingPlacement, 'above', defaults.layout.headingPlacement),
+      sectionFrame: chosen(cur.layout.sectionFrame, 'none', defaults.layout.sectionFrame),
       footer,
       // The stats band and the running numbers stay once chosen; a template
       // that ships them turns them on where the author had them off.

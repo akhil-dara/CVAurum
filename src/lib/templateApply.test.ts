@@ -276,3 +276,25 @@ describe("a template's own structure lights up where the author chose none", () 
     expect(next.layout.main).toContain('skills')
   })
 })
+
+describe('a template can apply its own structure', () => {
+  const fresh = () => createDocument({ sample: true }).metadata
+
+  it('gives a new document the template it picked, gutter and all', () => {
+    const m = applyTemplateToMetadata(fresh(), getTemplate('chronicle').defaults)
+    expect(m.layout.metaColumn).toBe('gutter')
+    const t = applyTemplateToMetadata(fresh(), getTemplate('terrace').defaults)
+    expect(t.layout.headingPlacement).toBe('side')
+    const f = applyTemplateToMetadata(fresh(), getTemplate('folio-noir').defaults)
+    expect(f.layout.metaColumn).toBe('margin')
+  })
+
+  it('still keeps a choice the author actually made', () => {
+    const chosen = fresh()
+    chosen.layout.metaColumn = 'margin'
+    chosen.layout.headingPlacement = 'side'
+    const m = applyTemplateToMetadata(chosen, getTemplate('aurum').defaults)
+    expect(m.layout.metaColumn).toBe('margin')
+    expect(m.layout.headingPlacement).toBe('side')
+  })
+})
