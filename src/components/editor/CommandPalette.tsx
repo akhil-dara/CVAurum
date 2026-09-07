@@ -14,6 +14,7 @@ import { BODY_SECTION_KEYS, DEFAULT_LABELS } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
+import { runPdfExport } from '@/lib/pdf/exportFlow'
 
 interface Cmd {
   id: string
@@ -121,20 +122,9 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         group: 'Export',
         label: 'Download PDF',
         hint: 'crisp, selectable, ATS-exact',
-        // Same in-flight guard as the top bar's Download PDF button (shared
-        // via useEditorStore's pdfExporting flag) — a no-op if an export
-        // triggered elsewhere is already running, rather than firing a
-        // second concurrent exportResumePdf/download.
-        run: async () => {
-          if (useEditorStore.getState().pdfExporting) return
-          useEditorStore.getState().setPdfExporting(true)
-          try {
-            const { exportResumePdf } = await import('@/lib/pdf/export')
-            await exportResumePdf(useResumeStore.getState().doc ?? doc)
-          } finally {
-            useEditorStore.getState().setPdfExporting(false)
-          }
-        },
+        // The same flow as the top bar's Download PDF button: one in-flight
+        // guard, one visible generating state, one outcome message.
+        run: () => runPdfExport(useResumeStore.getState().doc ?? doc),
       },
       { id: 'export-menu', group: 'Export', label: 'Open export menu…', hint: 'Word, JSON Resume, PDF', run: () => window.dispatchEvent(new Event('cvaurum:open-export')) },
       { id: 'share', group: 'Export', label: 'Share privately…', hint: 'private link or encrypted file', run: () => window.dispatchEvent(new Event('cvaurum:open-share')) },

@@ -95,8 +95,14 @@ export function resolveDecoBoxesGlobal(capturing: boolean, decoBoxes: DecoBox[] 
  * wrapped by `paginateOrThrow` below). Auto-fit overflow no longer throws
  * (spec 1b, 2026-08-17): a doc auto-fit cannot shrink onto one page
  * re-renders at natural scale and paginates natively instead. The caller
- * still falls back to the browser print export on this error so the user
- * always gets a correct PDF. */
+ * reports it as a failed export: there is no other export path. */
+
+/** Page count of the most recent successful render, for the outcome the
+ *  export shows the author ("2 pages"). The bytes alone do not say. */
+let lastPageCount = 1
+export function lastRenderedPageCount(): number {
+  return lastPageCount
+}
 
 
 // @pdf-lib/fontkit is CJS: under Vite the real module ends up on `.default`,
@@ -398,6 +404,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
       window.__cvaLastCutReasons = lastReasons.slice()
     }
 
+    lastPageCount = pageCount
     return stampPdfVersion(await pdfDoc.save())
   } finally {
     root.unmount()

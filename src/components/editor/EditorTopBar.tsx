@@ -30,6 +30,7 @@ import { useAppStore } from '@/store/useAppStore'
 // Loaded on the export click: pdf-lib + fontkit are ~1.2MB the editor
 // never needs until the moment a file is actually produced.
 import { ExportDialog, type ExportFormat } from './ExportDialog'
+import { runPdfExport } from '@/lib/pdf/exportFlow'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
@@ -39,7 +40,6 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const { zoom, autoFit, zoomIn, zoomOut, setAutoFit, atsView, setAtsView, previewExact, setPreviewExact, pdfExporting } =
     useEditorStore()
 
-  const toast = useAppStore((s) => s.toast)
   const past = useStore(useResumeStore.temporal, (s) => s.pastStates.length)
   const future = useStore(useResumeStore.temporal, (s) => s.futureStates.length)
   const { undo, redo } = useResumeStore.temporal.getState()
@@ -62,45 +62,14 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     setExportOpen(false)
     setExportFmt(fmt)
   }
-  // PDF is generated in-app by the native renderer (crisp, selectable, exact —
-  // same DOM/CSS as the preview), and multi-page resumes export natively too
-  // (native-multipage-pdf plan — clean page breaks, no external tooling). No
-  // in-app filename popup needed — the download is named for you. Browser
-  // print is an automatic fallback for the rare doc native genuinely can't
-  // handle (auto-fit on and still overflowing, or no legal page-break
-  // candidate anywhere), so the user always gets an export.
-  //
-  // In-flight guard: the store's `pdfExporting` flag (checked/set
-  // synchronously via getState()/setPdfExporting, not React state) blocks a
-  // second concurrent call — e.g. the Export menu reopening and "Download
-  // PDF" getting clicked again while the first export is still rendering —
-  // which used to fire a duplicate exportResumePdf and double-download. The
-  // dropdown stays open (rather than closing immediately) so the disabled,
-  // busy-labeled button is actually visible while the export runs.
-  const exportPdf = async () => {
-    if (useEditorStore.getState().pdfExporting) return
-    useEditorStore.getState().setPdfExporting(true)
-    try {
-      const { exportResumePdf } = await import('@/lib/pdf/export')
-      const outcome = await exportResumePdf(useResumeStore.getState().doc ?? doc)
-      // A character no embedded font can draw is DROPPED, not shown as a box,
-      // so an export can succeed while losing whole sentences - a name written
-      // in Telugu simply is not in the file. Say so rather than hand over a
-      // resume with the author's own name missing.
-      if (outcome === 'native') {
-        const { lastUnsupportedCharacters } = await import('@/lib/pdf/metrics')
-        const missing = lastUnsupportedCharacters()
-        if (missing.length) {
-          toast(
-            `Exported, but ${missing.length} character${missing.length > 1 ? 's' : ''} could not be drawn and were left out: ${missing.slice(0, 8).join(' ')}${missing.length > 8 ? '...' : ''}. Try a template whose font covers this script.`,
-            'error'
-          )
-        }
-      }
-    } finally {
-      useEditorStore.getState().setPdfExporting(false)
-      setExportOpen(false)
-    }
+  // PDF is generated in-app by the native renderer (crisp, selectable, exact -
+  // same DOM/CSS as the preview), multi-page included. It is the ONLY engine:
+  // there is no print fallback behind it, so a failure is reported as one.
+  // runPdfExport owns the in-flight guard, the visible generating state
+  // (PdfExportStatus) and the outcome toast, shared with the command palette.
+  const exportPdf = () => {
+    setExportOpen(false)
+    void runPdfExport(useResumeStore.getState().doc ?? doc)
   }
 
   return (

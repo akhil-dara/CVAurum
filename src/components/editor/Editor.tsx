@@ -6,6 +6,7 @@ import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
 import { EditorTopBar } from './EditorTopBar'
+import { PdfExportStatus } from './PdfExportStatus'
 import { EditorTour } from './EditorTour'
 import { CommandPalette } from './CommandPalette'
 import { ShareDialog } from './ShareDialog'
@@ -73,6 +74,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <EditorTopBar doc={doc} />
+      <PdfExportStatus />
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <LeftRail />
         <AnimatePresence initial={false}>

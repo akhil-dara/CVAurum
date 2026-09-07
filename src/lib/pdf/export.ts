@@ -1,69 +1,63 @@
 /**
  * The single entry point every "Download PDF" affordance (top bar menu,
- * command palette) should call. Native, in-app rendering (render.tsx) is the
- * default engine now that both verification gates are green across all
- * templates x personas AND multi-page resumes render natively via smart
- * band-slicing (native-multipage-pdf plan) — the browser's print dialog is
- * kept as the automatic fallback for the two cases native genuinely can't
- * handle (auto-fit ON still doesn't paginate, by design — spec section 3 —
- * so an over-length doc with auto-fit on still overflows; and a doc with no
- * legal page-break candidate anywhere, `PaginationImpossibleError`) and as a
- * support/debug escape hatch.
+ * command palette) calls.
+ *
+ * Every PDF this app hands out comes from the native renderer (render.tsx):
+ * vector text, selectable, the same layout the preview shows. There is no
+ * other path behind it. A browser-print fallback used to catch renderer
+ * failures, and it hid them: the author got a different document, made by
+ * a different engine, and nothing said so. A failure is now reported as a
+ * failure (`PdfExportError`) and NOTHING is downloaded, so a regression can
+ * never hide behind a fallback and a bug report carries the real error.
  */
 import { saveDoc } from '@/lib/storage'
-import { openPrintWindow, pdfBaseName } from '@/lib/pdf'
+import { pdfBaseName } from '@/lib/pdf'
 import { downloadBlob } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
-import { renderResumePdf, PdfMultiPageUnsupportedError } from './render'
+import { renderResumePdf, lastRenderedPageCount, PdfMultiPageUnsupportedError } from './render'
 
-export type PdfExportOutcome = 'native' | 'print-fallback'
+/** What the export produced, for the user-facing outcome message. */
+export interface PdfExportResult {
+  fileName: string
+  pages: number
+  /** size of the file in bytes */
+  bytes: number
+}
 
-/** Support/debug lever only — flip via devtools console. With the native
- *  engine now the default, this flag's ONLY job is to force the old print
- *  path (e.g. to rule out a native-renderer bug while triaging a report). */
-const FORCE_PRINT_KEY = 'cvaurum:pdf-engine'
+/** The renderer could not produce the document. `message` is written for
+ *  the user; the original error is logged for the bug report. */
+export class PdfExportError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PdfExportError'
+  }
+}
 
-export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportOutcome> {
-  // The print route loads the doc from storage by id, so keep it saved
-  // before export exactly as the pre-native flow did — harmless for the
-  // native path too.
+export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportResult> {
+  // An export is the moment the author most expects their work to be safe,
+  // so the document is persisted before anything else happens.
   await saveDoc(doc)
 
-  // localStorage.getItem can THROW (sandboxed iframes, strict cookie
-  // blocking, some corporate privacy configs) — a throw here must NOT escape
-  // and skip both export paths. Treat it the same as the flag being unset
-  // (matches src/lib/backup.ts's localStorage guard) so the native path
-  // still runs.
-  let forcePrint = false
+  let bytes: Uint8Array
   try {
-    forcePrint = localStorage.getItem(FORCE_PRINT_KEY) === 'print'
-  } catch {
-    /* private mode / blocked storage — fall through to the native path */
-  }
-
-  if (forcePrint) {
-    openPrintWindow(doc.id)
-    return 'print-fallback'
-  }
-
-  try {
-    const bytes = await renderResumePdf(doc)
-    downloadBlob(new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' }), `${pdfBaseName(doc)}.pdf`)
-    return 'native'
+    bytes = await renderResumePdf(doc)
   } catch (e) {
-    // PdfMultiPageUnsupportedError now only fires for the two cases native
-    // genuinely can't handle (native-multipage-pdf plan, task 4): auto-fit ON
-    // still doesn't paginate (by design), or paginate() found no legal
-    // break candidate anywhere. An ordinary multi-page doc with auto-fit OFF
-    // no longer throws here at all — it renders natively above. Both
-    // remaining cases are EXPECTED outcomes, not bugs, so stay quiet.
-    // Anything else is a real renderer failure and must be logged
-    // unconditionally (not just in dev) so a user's bug report carries the
-    // signal.
-    if (!(e instanceof PdfMultiPageUnsupportedError)) {
-      console.error('Native PDF export failed, falling back to print', e)
-    }
-    openPrintWindow(doc.id)
-    return 'print-fallback'
+    // Logged unconditionally (not just in dev) so a user's bug report
+    // carries the signal.
+    console.error('Native PDF export failed', e)
+    throw new PdfExportError(explain(e))
   }
+
+  const fileName = `${pdfBaseName(doc)}.pdf`
+  downloadBlob(new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' }), fileName)
+  return { fileName, pages: lastRenderedPageCount(), bytes: bytes.byteLength }
+}
+
+/** A sentence the author can act on, never a stack trace. */
+function explain(e: unknown): string {
+  if (e instanceof PdfMultiPageUnsupportedError) {
+    return 'This resume has no place where a page can end. Try shorter entries or a different template.'
+  }
+  const detail = e instanceof Error && e.message ? ` (${e.message.slice(0, 120)})` : ''
+  return `The PDF renderer hit an error${detail}. Try again, or switch templates and try once more.`
 }
