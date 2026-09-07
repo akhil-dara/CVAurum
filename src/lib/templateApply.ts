@@ -1,4 +1,5 @@
 import { defaultMetadata } from '@/data/defaults'
+import { getTemplate } from '@/templates/registry'
 import type { Metadata } from '@/types/metadata'
 import type { TemplateDefaults } from '@/types/template'
 
@@ -66,6 +67,11 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   main = dedupe(main)
   aside = dedupe(aside)
 
+  // What the document's previous template gave it, so a value that only
+  // came from that template is never mistaken for the author's own choice.
+  // An unknown or missing template id reads as the schema defaults.
+  const prev = cur.template ? getTemplate(cur.template).defaults.layout : defaultMetadata().layout
+
   return defaultMetadata({
     template: defaults.template,
     page: cur.page,
@@ -132,22 +138,25 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // preserve user choices (sectionSettings - every per-section choice,
       // the entry order and emphasis included - rides the spread above):
       hidden: cur.layout.hidden,
-      // Structural choices the user MADE stay when the template changes,
-      // like the column split and the header composition do - but a field
-      // still sitting on its own default was never a choice, and keeping it
-      // meant a template could never apply its own structure. Every one of
-      // these has a real default rather than being optional, so "unset" has
-      // to be read as "equal to the default": picking the template whose
-      // whole idea is a year gutter left the gutter off, because the fresh
-      // document said 'none' and 'none' won.
-      metaColumn: chosen(cur.layout.metaColumn, 'none', defaults.layout.metaColumn),
-      headingPlacement: chosen(cur.layout.headingPlacement, 'above', defaults.layout.headingPlacement),
-      sectionFrame: chosen(cur.layout.sectionFrame, 'none', defaults.layout.sectionFrame),
+      // Structural choices the author MADE stay when the template changes,
+      // like the column split and the header composition do. Every one of
+      // these fields has a real default rather than being optional, so the
+      // document cannot say "no choice" with undefined - and a value that
+      // merely came from the PREVIOUS template is not the author's either.
+      // Comparing against the schema default let a gutter template leave
+      // its gutter off ('none' won); comparing against it and nothing else
+      // then let that gutter follow the author into the next template,
+      // whose whole idea was a margin. So the comparison is against what
+      // the previous template gave the document: unchanged means the
+      // author never chose, and the new template applies.
+      metaColumn: chosen(cur.layout.metaColumn, prev.metaColumn, defaults.layout.metaColumn),
+      headingPlacement: chosen(cur.layout.headingPlacement, prev.headingPlacement, defaults.layout.headingPlacement),
+      sectionFrame: chosen(cur.layout.sectionFrame, prev.sectionFrame, defaults.layout.sectionFrame),
       footer,
-      // The stats band and the running numbers stay once chosen; a template
-      // that ships them turns them on where the author had them off.
-      stats: cur.layout.stats || defaults.layout.stats,
-      sectionNumbers: cur.layout.sectionNumbers || defaults.layout.sectionNumbers,
+      // The two switches follow the same rule: what the previous template
+      // turned on is the previous template's, not the author's.
+      stats: chosen(cur.layout.stats, prev.stats, defaults.layout.stats),
+      sectionNumbers: chosen(cur.layout.sectionNumbers, prev.sectionNumbers, defaults.layout.sectionNumbers),
       sectionSettings: seedSectionSettings(defaults.layout.sectionSettings, cur.layout.sectionSettings),
       headings: cur.layout.headings,
     },

@@ -289,6 +289,18 @@ describe('a template can apply its own structure', () => {
     expect(f.layout.metaColumn).toBe('margin')
   })
 
+  it('does not carry one template structure into the next', () => {
+    const viaChronicle = applyTemplateToMetadata(fresh(), getTemplate('chronicle').defaults)
+    expect(viaChronicle.layout.metaColumn).toBe('gutter')
+    const thenFolio = applyTemplateToMetadata(viaChronicle, getTemplate('folio-noir').defaults)
+    expect(thenFolio.layout.metaColumn).toBe('margin')
+    const thenPlain = applyTemplateToMetadata(thenFolio, getTemplate('aurum').defaults)
+    expect(thenPlain.layout.metaColumn).toBe('none')
+    const viaAtlas = applyTemplateToMetadata(fresh(), getTemplate('atlas').defaults)
+    expect(viaAtlas.layout.stats).toBe(true)
+    expect(applyTemplateToMetadata(viaAtlas, getTemplate('aurum').defaults).layout.stats).toBe(false)
+  })
+
   it('still keeps a choice the author actually made', () => {
     const chosen = fresh()
     chosen.layout.metaColumn = 'margin'
