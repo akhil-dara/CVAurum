@@ -1411,9 +1411,38 @@
   font-weight: var(--rm-name-weight, 700);
   letter-spacing: -0.01em;
 }
+/* The heading rail. The stock side-heading column is 150px - a fifth of an
+   A4 page standing empty beside every section, with one short word set
+   against its right edge, and the words it labels squeezed into what was
+   left. Narrowed to the width the longest heading actually needs at this
+   size, it stops being a column and becomes a margin note, and the reading
+   column gets the width back: bullets that used to wrap three times now
+   wrap once. */
+.rm-root.tpl-terrace.heads-side {
+  --rm-heads-w: 92px;
+}
+.rm-root.tpl-terrace.heads-side .rm-col-main .rm-section {
+  column-gap: 16px;
+  /* No rule between sections. A hairline drawn across the whole grid - rail
+     and reading column together - repeated at every heading, turned the page
+     into a stack of horizontal stripes and read as a table, which is the one
+     thing a resume must not look like. The section gap carries the break
+     instead. */
+  border-top: none;
+  padding-top: 0;
+}
 .tpl-terrace .rm-section-title {
   color: var(--rm-heading-color, #1c5a44);
-  letter-spacing: 0.16em;
+  /* Sized and tracked to what the rail can hold. A heading wider than its
+     column gets shrunk on its own by the word fitter, and CERTIFICATIONS -
+     the longest of the stock titles - came back a quarter smaller than
+     LANGUAGES two inches above it, which reads as a mistake rather than a
+     hierarchy. Measured: the longest stock title is 88px here, inside a
+     92px rail, so every label on the page is drawn at the same size.
+     Written against the size the Design panel computes rather than replacing
+     it, so raising the heading slider still raises these. */
+  font-size: calc(var(--rm-section-title-size, calc(var(--rm-fs) * 1.06)) * 0.84);
+  letter-spacing: 0.1em;
 }
 .tpl-terrace .rm-item-title {
   font-weight: 700;

@@ -1812,13 +1812,28 @@
 .rm-header-stepped .rm-step-name {
   background: var(--rm-primary);
   align-items: center;
-  padding-top: var(--rm-pad);
+  /* A full page margin of colour above the name left a hand's breadth of
+     empty green over the only word on the page anyone reads first. Two
+     thirds of it still seats the name clear of the paper edge and stops the
+     first step reading as a header with nothing in it. */
+  padding-top: calc(var(--rm-pad) * 0.66);
+  padding-bottom: 0.46em;
 }
 .rm-header-stepped .rm-step-role {
   background: var(--rm-step-2, var(--rm-primary));
+  padding-top: 0.44em;
+  padding-bottom: 0.44em;
 }
+/* The last step carries six details at a size below the body's; on the
+   stock half-em of padding they sat in a strip barely taller than the
+   glyphs and read as a caption bar stuck under the header rather than the
+   third tread of the flight. The padding is all that grows - enlarging the
+   details themselves pushed the last one onto a second row and left half a
+   step of empty colour beside it. */
 .rm-header-stepped .rm-step-contacts {
   background: var(--rm-step-3, var(--rm-primary));
+  padding-top: 0.62em;
+  padding-bottom: 0.62em;
 }
 .rm-root .rm-header-stepped .rm-name {
   /* Big enough to carry the band, small enough that the step's own padding
@@ -1842,6 +1857,10 @@
 }
 .rm-root .rm-header-stepped .rm-contacts {
   color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+  /* Spread across the step rather than bunched at its left edge: the row is
+     the full width of the page and six details set a stock word-space apart
+     read as one long string. */
+  gap: 0.3em 1.7em;
 }
 .rm-header-stepped .rm-contact a {
   color: inherit;

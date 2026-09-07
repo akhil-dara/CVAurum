@@ -1053,8 +1053,21 @@ export const TEMPLATES: TemplateConfig[] = [
     defaults: defs(
       'terrace',
       { primary: '#123d2e', text: '#182420', muted: '#5f6b66', background: '#f7f6f1' },
-      { fontFamily: 'Lato', headingFamily: 'Chivo', nameFamily: 'Chivo', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.05, uppercaseHeadings: true },
-      { columns: 1, headingPlacement: 'side', showPhoto: false }
+      // A heading that labels the column beside it is a caption, not a
+      // banner: at the stock 1.06 it needed a quarter of the page to stand
+      // in and the words it labelled wrapped twice as often. Set smaller
+      // than the body it captions, it fits a narrow rail and reads as the
+      // margin note it is.
+      { fontFamily: 'Lato', headingFamily: 'Chivo', nameFamily: 'Chivo', fontSize: 10, lineHeight: 1.42, letterSpacing: 0, headingScale: 1.05, sectionTitleScale: 0.8, uppercaseHeadings: true },
+      // Nothing rules a section off from the next one here, so the gap has
+      // to do it alone - wide enough to read as a break, with the entry gap
+      // opened in step so the three rhythms stay in order.
+      // No pictogram beside a contact detail: the last step has to hold six
+      // of them on one line across the page, and the badge and its gap cost
+      // more width than the word it decorates. With them gone the six sit in
+      // one unhurried row instead of spilling a lone address onto a second
+      // line under half a step of empty colour.
+      { columns: 1, headingPlacement: 'side', showPhoto: false, icons: false, sectionGap: 17, itemGap: 7 }
     ),
   },
 ]
