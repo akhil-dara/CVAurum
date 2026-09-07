@@ -977,3 +977,41 @@ describe('the Word export justifies the prose the page justifies', () => {
     expect(paraOf(body, 'Shipped the thing')).not.toContain('<w:jc ')
   })
 })
+
+/**
+ * A project's visible URL line answers the section's own link style. Three of
+ * the four styles are ink - a tag, plain words, the document's own choice -
+ * and this file prints the address for all three. The fourth, 'none', says
+ * the line does not print at all, and the Word file reads the document rather
+ * than the page, so it has to drop the address itself (reported 2026-09-07).
+ */
+describe('the Word export drops a project address the section does not print', () => {
+  const linkDoc = (linkStyle?: 'auto' | 'tag' | 'plain' | 'none') => {
+    const doc = docWith({
+      layout: { main: ['projects'], ...(linkStyle ? { sectionSettings: { projects: { linkStyle } } } : {}) },
+    })
+    doc.content.projects = [
+      { id: 'p1', name: 'Ledger', url: 'https://github.com/example/ledger', highlights: [], keywords: [] },
+    ] as never
+    return doc
+  }
+
+  it('prints the address for a section that never chose', async () => {
+    const all = texts((await unpack(linkDoc())).body).join('\n')
+    expect(all).toContain('Ledger')
+    expect(all).toContain('github.com/example/ledger')
+  })
+
+  it('prints it for every style that shows the line', async () => {
+    for (const style of ['auto', 'tag', 'plain'] as const) {
+      const all = texts((await unpack(linkDoc(style))).body).join('\n')
+      expect(all, style).toContain('github.com/example/ledger')
+    }
+  })
+
+  it('prints no address at all when the section shows no line', async () => {
+    const all = texts((await unpack(linkDoc('none'))).body).join('\n')
+    expect(all).toContain('Ledger')
+    expect(all).not.toContain('github.com')
+  })
+})

@@ -74,6 +74,26 @@ describe('resumeToAtsText ignores purely visual link and icon choices', () => {
     expect(chip).toContain('Pulse')
     expect(chip).toBe(folio)
   })
+
+  // The section's own link style is NOT purely visual at one setting: 'none'
+  // says the address does not print, and this text reads the document rather
+  // than the page, so it has to drop the address itself.
+  it('drops the project address when the section prints no link line', () => {
+    const off = resumeToAtsText(
+      docWith({ layout: { main: ['projects', 'certificates'], sectionSettings: { projects: { linkStyle: 'none' } } } })
+    )
+    expect(off).toContain('Pulse')
+    expect(off).not.toContain('github.com/alexmorgan/pulse')
+  })
+
+  it('keeps it for every style that does print the line', () => {
+    for (const linkStyle of ['auto', 'tag', 'plain']) {
+      const on = resumeToAtsText(
+        docWith({ layout: { main: ['projects', 'certificates'], sectionSettings: { projects: { linkStyle } } } })
+      )
+      expect(on, linkStyle).toContain('github.com/alexmorgan/pulse')
+    }
+  })
 })
 
 describe('atsSectionOrder', () => {

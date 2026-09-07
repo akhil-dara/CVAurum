@@ -1309,10 +1309,11 @@
   padding-right: calc(var(--rm-chip-pad-x, 0.45em) * 0.28);
   font-weight: 600;
 }
-/* Inline is running text - no chip boxes at all, on the page or under the
-   editing carets - so the size that would have sized a pill sizes the run
-   instead, and "Tag size" still means something in this look. */
-.rm-root .rm-section :is(.rm-skill-inline, .rm-inline-edit).rm-tags-inline {
+/* Inline and stacked are running text - no chip boxes at all, on the page or
+   under the editing carets - so the size that would have sized a pill sizes
+   the run instead, and "Tag size" still means something in those looks. The
+   chip looks need no rule here: .rm-chip reads the same var. */
+.rm-root .rm-section :is(.rm-skill-inline, .rm-inline-edit):is(.rm-tags-inline, .rm-tags-stacked) {
   font-size: calc(var(--rm-fs) * var(--rm-chip-fs, 0.88));
 }
 
@@ -2660,7 +2661,12 @@
 .rm-skill-stacked .rm-skill-group-name {
   display: block;
 }
-.rm-skill-stacked .rm-skill-inline {
+/* A project's tags borrow this same rule through their own container class:
+   an entry's tag run has no group name in front of it, so "stacked" there is
+   the run taking a line of its own with the air this one gives it. One rule,
+   so the two cannot drift apart. */
+.rm-skill-stacked .rm-skill-inline,
+.rm-root .rm-section :is(.rm-skill-inline, .rm-inline-edit).rm-tags-stacked {
   display: block;
   margin-top: 0.12em;
 }
@@ -3251,7 +3257,11 @@
    editing-only dotted mark and the hover hint keep their higher
    specificity and still apply. max-width keeps a long user-typed label
    from running past its column. */
-.links-tag .rm-tag-link {
+/* A SECTION can ask for the tag on its own URL line whatever the document
+   asked for (sectionSettings[key].linkStyle: 'tag'), so that line joins the
+   selector rather than getting a tag look of its own to drift from this one. */
+.links-tag .rm-tag-link,
+.rm-item-link.rm-link-tag .rm-tag-link {
   display: inline-block;
   white-space: nowrap;
   max-width: 100%;
@@ -3265,7 +3275,8 @@
   line-height: 1.35;
   vertical-align: baseline;
 }
-.links-tag .rm-tag-link::before {
+.links-tag .rm-tag-link::before,
+.rm-item-link.rm-link-tag .rm-tag-link::before {
   content: '';
   position: absolute;
   left: 0.16em;
@@ -3285,10 +3296,29 @@
    one tag wrap INSIDE itself: an inline-block that wraps internally is still
    a single rectangle, so the painter's one-box-per-element rule (walk.ts
    boxOf) holds - only an inline element that spans lines merges rects. */
-.links-tag .rm-item-link .rm-tag-link {
+.links-tag .rm-item-link .rm-tag-link,
+.rm-item-link.rm-link-tag .rm-tag-link {
   white-space: normal;
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+/* The other half of the section's own choice: 'plain' takes the tag back off
+   the line, whatever the document asked for, and leaves the address as the
+   words around it. Nothing is added - the box, the accent bar and the link
+   colour are removed - so there is still exactly one tag look on the page. */
+.rm-item-link.rm-link-plain {
+  color: inherit;
+}
+.rm-item-link.rm-link-plain .rm-tag-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+.rm-item-link.rm-link-plain .rm-tag-link::before {
+  content: none;
 }
 /* The tag's own margin does the separating; the printed separators go. A
    Verify tag keeps a little room from the issuer it used to follow a bar. */

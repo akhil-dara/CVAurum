@@ -42,6 +42,12 @@ export const HAS_LOCATION = new Set(['work', 'education', 'custom'])
  *  read it, so neither can offer a tag style the other drops. */
 export const HAS_KEYWORDS = new Set(['projects'])
 
+/** Sections whose entries print a visible URL line of their own, so that line
+ *  can be styled or dropped. Only a project renders one today; the gear's row
+ *  and the painter both read this set, so neither can offer a link style the
+ *  other drops. */
+export const HAS_LINK = new Set(['projects'])
+
 /** The visual-style fields the style painter copies (NOT the show* content
  *  toggles). */
 export const STYLE_FIELDS = [
@@ -49,6 +55,7 @@ export const STYLE_FIELDS = [
   'headingAlign',
   'skillsStyle',
   'tagStyle',
+  'linkStyle',
   'chipSize',
   'entryLayout',
   'entryOrder',
@@ -70,6 +77,7 @@ const PAINT_NEEDS: [field: string, sections: Set<string>][] = [
   ['locationPlacement', HAS_LOCATION],
   ['dateAlign', HAS_DATES],
   ['tagStyle', HAS_KEYWORDS],
+  ['linkStyle', HAS_LINK],
 ]
 
 /**
@@ -79,9 +87,10 @@ const PAINT_NEEDS: [field: string, sections: Set<string>][] = [
  * that field. The entry order and emphasis painted onto a section with no
  * organisation line (projects, awards, skills) would leave nothing bold; a
  * location placement painted where no location prints, a date side where no
- * date does, and a tag look where the entries carry no keywords, would sit in
- * the settings doing nothing. In every case that section's gear never shows
- * the row, so nothing could clear the value again.
+ * date does, a tag look where the entries carry no keywords and a link style
+ * where no entry prints a URL line, would sit in the settings doing nothing.
+ * In every case that section's gear never shows the row, so nothing could
+ * clear the value again.
  */
 export function paintStyle(m: Metadata, key: string, copied: Record<string, string>): void {
   if (!m.layout.sectionSettings) m.layout.sectionSettings = {}
@@ -130,6 +139,19 @@ export function entryMetaOf(
     locWithDate: ss?.locationPlacement === 'with-date',
     dateLeft: ss?.dateAlign === 'left',
   }
+}
+
+/**
+ * How this section draws an entry's visible URL line. Unset is 'auto', the
+ * page as it always was: the line follows the document's own link style. The
+ * canvas, the Word export and the ATS text all ask this, so a line the page
+ * does not print is missing from the file and the text as well - those read
+ * the document, not the page, and would otherwise print an address the author
+ * turned off.
+ */
+export function linkStyleOf(ss: { linkStyle?: string } | undefined): 'auto' | 'tag' | 'plain' | 'none' {
+  const v = ss?.linkStyle
+  return v === 'tag' || v === 'plain' || v === 'none' ? v : 'auto'
 }
 
 /**
@@ -192,5 +214,8 @@ export function sectionOverrideClasses(ss: SectionSettings | undefined): string[
     // tagStyle adds nothing here: a section can hold both skill chips and
     // entry tags, so the tag look rides on the tag container itself
     // (rm-tags-*) and cannot reach the section's other chips by mistake.
+    // linkStyle adds nothing here either: it dresses ONE line, and a section
+    // holds named links beside it that the document's own style governs, so
+    // the class rides on that line (rm-link-*) rather than on the section.
   ].filter(Boolean)
 }

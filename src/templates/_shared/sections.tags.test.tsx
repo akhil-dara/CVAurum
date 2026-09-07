@@ -58,6 +58,21 @@ describe('a project tag list wears the style the section picked', () => {
     expect(render({ tagStyle: 'tags' })).toContain('class="rm-chips rm-tags-tags"')
   })
 
+  it('grid stays a chip list, laid out the way the grid skills are', () => {
+    // The reduced vocabulary was the complaint: the skills picker offered
+    // seven looks and a project's tags four, so a tag row could not be made
+    // to match a skills row. Grid and stacked now reach it through the very
+    // branches the skills renderer takes for them.
+    expect(render({ tagStyle: 'grid' })).toContain('class="rm-chips rm-tags-grid"')
+  })
+
+  it('stacked runs the tags together as text on a line of their own', () => {
+    const html = render({ tagStyle: 'stacked' })
+    expect(html).toContain('rm-skill-inline rm-tags-stacked')
+    expect(html).not.toContain('rm-chips')
+    expect(html.replace(/<[^>]*>/g, '')).toContain('TypeScript · Postgres')
+  })
+
   it('inline runs the tags together as text, with the separator the inline skills use', () => {
     const html = render({ tagStyle: 'inline' })
     expect(html).toContain('rm-skill-inline rm-tags-inline')
@@ -73,6 +88,8 @@ describe('a project tag list wears the style the section picked', () => {
     // skills chips were fixed for.
     expect(render({ tagStyle: 'inline' }, () => {})).toContain('rm-skill-inline rm-inline-edit rm-tags-inline')
     expect(render({ tagStyle: 'tags' }, () => {})).toContain('rm-chips rm-chips-edit rm-tags-tags')
+    expect(render({ tagStyle: 'stacked' }, () => {})).toContain('rm-skill-inline rm-inline-edit rm-tags-stacked')
+    expect(render({ tagStyle: 'grid' }, () => {})).toContain('rm-chips rm-chips-edit rm-tags-grid')
   })
 
   it('the style rides on the tag container, not on the section element', () => {
@@ -92,10 +109,31 @@ describe('the tag size is the pill size, and it reaches the tags', () => {
   let m: RegExpExecArray | null
   while ((m = re.exec(css))) rules.push({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] })
   const tagRules = rules.filter((r) => r.selector.includes('rm-tags-'))
+  // The grid look reuses the skills grid, whose rules live in the template
+  // sheet, so the audit reads both sheets to see every look.
+  const tplCss = fs
+    .readFileSync(path.join(here, '../templates.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+  const tplRules: { selector: string; body: string }[] = []
+  const tplRe = /([^{}]+)\{([^{}]*)\}/g
+  let t: RegExpExecArray | null
+  while ((t = tplRe.exec(tplCss))) tplRules.push({ selector: t[1].trim().replace(/\s+/g, ' '), body: t[2] })
 
-  it('the audit sees the three tag looks', () => {
-    for (const look of ['rm-tags-chips', 'rm-tags-tags', 'rm-tags-inline'])
-      expect(tagRules.some((r) => r.selector.includes(look))).toBe(true)
+  it('the audit sees every tag look', () => {
+    const all = [...tagRules, ...tplRules.filter((r) => r.selector.includes('rm-tags-'))]
+    for (const look of ['rm-tags-chips', 'rm-tags-tags', 'rm-tags-inline', 'rm-tags-stacked', 'rm-tags-grid'])
+      expect(all.some((r) => r.selector.includes(look)), look).toBe(true)
+  })
+
+  it('the two borrowed looks are the skills rules themselves, not copies', () => {
+    // Every rule that draws the grid skills draws the grid tags as well, and
+    // the rule that puts a stacked list on its own line is one rule. A second
+    // copy would drift from the first the next time either is touched.
+    const grid = tplRules.filter((r) => r.selector.includes('skl-ov-grid'))
+    expect(grid.length).toBeGreaterThan(0)
+    for (const r of grid) expect(r.selector, r.selector).toContain('rm-tags-grid')
+    const stack = rules.find((r) => r.selector.includes('rm-skill-stacked') && r.selector.includes('rm-skill-inline'))
+    expect(stack?.selector).toContain('rm-tags-stacked')
   })
 
   it('no tag look fixes a size of its own - the pill-size vars stay in charge', () => {
@@ -105,12 +143,15 @@ describe('the tag size is the pill size, and it reaches the tags', () => {
     }
   })
 
-  it('the inline run is sized too, so every look answers the size picker', () => {
-    // Inline draws no pill, so a rule that only sized pills would have left
-    // "Tag size" doing nothing in one of the three looks.
-    const inline = tagRules.filter((r) => r.selector.includes('rm-tags-inline'))
-    expect(inline.length).toBeGreaterThan(0)
-    expect(inline.map((r) => r.body).join(';')).toMatch(/--rm-chip-fs/)
+  it('the running looks are sized too, so every look answers the size picker', () => {
+    // Inline and stacked draw no pill, so a rule that only sized pills would
+    // have left "Tag size" doing nothing in two of the five looks. The chip
+    // looks are sized by .rm-chip itself, which reads the same var.
+    for (const look of ['rm-tags-inline', 'rm-tags-stacked']) {
+      const run = tagRules.filter((r) => r.selector.includes(look))
+      expect(run.length, look).toBeGreaterThan(0)
+      expect(run.map((r) => r.body).join(';'), look).toMatch(/--rm-chip-fs/)
+    }
   })
 })
 
@@ -138,8 +179,8 @@ describe('the tag style is an addition, so older files still open', () => {
     expect(m.layout.sectionSettings.projects).toEqual({ showKeywords: true })
   })
 
-  it('each of the three looks parses', () => {
-    for (const tagStyle of ['chips', 'tags', 'inline']) {
+  it('each of the looks parses, the two added ones included', () => {
+    for (const tagStyle of ['chips', 'tags', 'inline', 'stacked', 'grid']) {
       const m = MetadataSchema.parse({ layout: { sectionSettings: { projects: { tagStyle } } } })
       expect(m.layout.sectionSettings.projects.tagStyle).toBe(tagStyle)
     }

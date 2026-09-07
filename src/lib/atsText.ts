@@ -17,7 +17,7 @@ import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { currentYearMonth, entryDateOptions, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
-import { entryMetaOf, entryOrderOf } from '@/templates/_shared/sectionClasses'
+import { entryMetaOf, entryOrderOf, linkStyleOf } from '@/templates/_shared/sectionClasses'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
 
@@ -122,7 +122,15 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
     case 'projects':
       push(
         c.projects.flatMap((p) => [
-          ...entryHead(p.name, prettyUrl(p.url, doc.metadata.links?.display), formatDateRange(p.startDate, p.endDate, dates)),
+          // The address prints where the page prints it - and not at all when
+          // the section's link style says the line is not drawn. This text
+          // reads the DOCUMENT, so it would otherwise hand a parser an
+          // address the author had taken off the page.
+          ...entryHead(
+            p.name,
+            linkStyleOf(settings) === 'none' ? '' : prettyUrl(p.url, doc.metadata.links?.display),
+            formatDateRange(p.startDate, p.endDate, dates)
+          ),
           ...(htmlToText(p.description) ? [htmlToText(p.description)] : []),
           // The further named links, in the place the page prints them. They
           // were in the PDF and nowhere else, so a reader pasting the text lost

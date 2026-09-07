@@ -33,7 +33,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata, Typography } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { sanitizeHtml } from '@/lib/sanitize'
-import { entryMetaOf, entryOrderOf, keepEntriesOn, LOCATION_DATE_SEPARATOR } from '@/templates/_shared/sectionClasses'
+import { entryMetaOf, entryOrderOf, keepEntriesOn, linkStyleOf, LOCATION_DATE_SEPARATOR } from '@/templates/_shared/sectionClasses'
 import {
   currentYearMonth,
   downloadBlob,
@@ -684,16 +684,22 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
       }
     } else if (key === 'projects') {
       out.push(heading(label, C, align))
+      // The section's own link style, as the page reads it. Three of the four
+      // are ink and print the address; 'none' says the line is not drawn at
+      // all, and this file reads the DOCUMENT, so it has to drop the address
+      // itself rather than print one the page does not show. The title keeps
+      // its hyperlink either way, exactly as it does on the page.
+      const showUrl = linkStyleOf(settings) !== 'none'
       for (const p of content.projects) {
         // Anything at all under the title is body enough to hold it to.
         const hasBody =
-          !!p.url ||
+          (showUrl && !!p.url) ||
           has(p.description) ||
           (p.links ?? []).some((l) => (l.url || '').trim() || (l.label || '').trim()) ||
           (p.highlights ?? []).some((h) => htmlToText(h).length > 0) ||
           !!p.keywords?.length
         out.push(titleDate(p.name || 'Project', formatDateRange(p.startDate, p.endDate, dates), C, width, keepHead(keepEntries && hasBody), p.url))
-        if (p.url)
+        if (showUrl && p.url)
           out.push(
             new Paragraph({
               spacing: { after: 24 },

@@ -1412,7 +1412,12 @@
   margin-left: 0.55em;
   color: var(--rm-muted);
 }
-.rm-root .rm-section.skl-ov-grid :is(.rm-chips, .rm-chips-edit) {
+/* Every grid rule below is written twice over: once for the skills section
+   that picked the look, once for an entry's own tag list that picked the same
+   look by name (rm-tags-grid). One rule each, not a second set - a copy would
+   drift from this one the next time either is touched. */
+.rm-root .rm-section.skl-ov-grid :is(.rm-chips, .rm-chips-edit),
+.rm-root .rm-section :is(.rm-chips, .rm-chips-edit).rm-tags-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.3em 1.3em;
@@ -1423,12 +1428,14 @@
    user report. auto-fit lets the track count follow the column that actually
    exists: one column when the sidebar is narrow, two once there is genuinely
    room for two. The main column keeps its fixed pair, which always fits. */
-.rm-root .rm-col-aside .rm-section.skl-ov-grid :is(.rm-chips, .rm-chips-edit) {
+.rm-root .rm-col-aside .rm-section.skl-ov-grid :is(.rm-chips, .rm-chips-edit),
+.rm-root .rm-col-aside .rm-section :is(.rm-chips, .rm-chips-edit).rm-tags-grid {
   /* min() clamps the track to the column: a very narrow sidebar would
      otherwise reserve 11em and overflow its own edge. */
   grid-template-columns: repeat(auto-fit, minmax(min(11em, 100%), 1fr));
 }
-.rm-root .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit) {
+.rm-root .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit),
+.rm-root .rm-section :is(.rm-chips, .rm-chips-edit).rm-tags-grid :is(.rm-chip, .rm-chip-edit) {
   background: transparent;
   border: none;
   border-radius: 0;
@@ -1437,7 +1444,8 @@
   align-items: baseline;
   gap: 0.5em;
 }
-.rm-root .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before {
+.rm-root .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before,
+.rm-root .rm-section :is(.rm-chips, .rm-chips-edit).rm-tags-grid :is(.rm-chip, .rm-chip-edit)::before {
   content: '';
   width: 0.34em;
   height: 0.34em;
@@ -1446,7 +1454,8 @@
   background: var(--rm-primary);
   transform: rotate(45deg) translateY(-1px);
 }
-.rm-root .rm-section.skl-ov-grid .rm-add-btn {
+.rm-root .rm-section.skl-ov-grid .rm-add-btn,
+.rm-root .rm-section :is(.rm-chips, .rm-chips-edit).rm-tags-grid .rm-add-btn {
   grid-column: 1 / -1;
 }
 
@@ -1557,7 +1566,8 @@
 .rm-root .rm-col-aside .rm-section.skl-ov-tags :is(.rm-chip, .rm-chip-edit) {
   border-bottom-color: color-mix(in srgb, currentColor 50%, transparent);
 }
-.rm-root .rm-col-aside .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before {
+.rm-root .rm-col-aside .rm-section.skl-ov-grid :is(.rm-chip, .rm-chip-edit)::before,
+.rm-root .rm-col-aside .rm-section :is(.rm-chips, .rm-chips-edit).rm-tags-grid :is(.rm-chip, .rm-chip-edit)::before {
   background: currentColor;
 }
 

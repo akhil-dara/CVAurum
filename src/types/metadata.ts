@@ -193,8 +193,21 @@ export const LayoutSchema = z.object({
         /** How an entry's own keyword tags look, for the sections whose
          *  entries carry keywords (projects). The skills pickers only ever
          *  reached the skills section, so a project's tech tags had no style
-         *  at all. Unset keeps the chips the template draws. */
-        tagStyle: z.enum(['chips', 'tags', 'inline']).optional(),
+         *  at all. Unset keeps the chips the template draws.
+         *  The values name the skills styles of the same names, so a tag row
+         *  can be made to read exactly like a skills row. 'rings' is left out
+         *  on purpose: a ring draws a proficiency level, and a project keyword
+         *  has none. Widened, never renamed - an unknown value here fails the
+         *  whole document parse. */
+        tagStyle: z.enum(['chips', 'tags', 'inline', 'stacked', 'grid']).optional(),
+        /** How the section's visible URL line is drawn (projects). The
+         *  document's links.style governs NAMED links and the header
+         *  contacts; the address printed under a project title answered
+         *  nothing at all until this. 'auto' (and unset) follows the
+         *  document, so an existing file is unchanged; 'tag' wears the same
+         *  tag a named link wears; 'plain' is ordinary text; 'none' does not
+         *  print, in the Word file and the ATS text as well. */
+        linkStyle: z.enum(['auto', 'tag', 'plain', 'none']).optional(),
         /** how the section's entries are laid out (overrides the template's flow) */
         entryLayout: z.enum(['timeline', 'cards', 'grid', 'divided', 'ledger']).optional(),
         /** how the education score (GPA) is placed: inline (default), pushed right, or a pill */

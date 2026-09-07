@@ -20,7 +20,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
-import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
+import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LINK, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -107,12 +107,29 @@ const SKILL_STYLES: { label: string; value: string }[] = [
 ]
 
 /** How an entry's own keyword tags look ('' = the template's own chip).
- *  The three share their names, and their looks, with the skills styles. */
+ *  They share their names, and their looks, with the skills styles above, so
+ *  a project's tag row can be made to read exactly like a skills row - the
+ *  reduced vocabulary was the complaint. Rings alone is left out: a ring
+ *  draws a proficiency level, and a project keyword has none to draw. */
 const TAG_STYLES: { label: string; value: string }[] = [
   { label: 'Auto', value: '' },
   { label: 'Pills', value: 'chips' },
   { label: 'Tags', value: 'tags' },
   { label: 'Inline', value: 'inline' },
+  { label: 'Stacked', value: 'stacked' },
+  { label: 'Grid', value: 'grid' },
+]
+
+/** How a section's visible URL line is drawn ('' = Auto, the document's own
+ *  link style). The document setting governs NAMED links and the header
+ *  contacts; the address printed under a project title answered nothing at
+ *  all until this row. Shown by default, and it stays that way: an address a
+ *  portfolio resume prints is a real signal to lose silently. */
+const LINK_STYLES: { label: string; value: string; title: string }[] = [
+  { label: 'Auto', value: '', title: "Follow the document's link style (Design panel)" },
+  { label: 'Tag', value: 'tag', title: 'The same small paper tag a named link wears' },
+  { label: 'Plain', value: 'plain', title: 'The address as ordinary text' },
+  { label: 'Hidden', value: 'none', title: 'Do not print the address (the title keeps its link)' },
 ]
 
 /** Entry-flow layouts ('' = the template's own default). */
@@ -248,6 +265,36 @@ function Mini({ kind }: { kind: string }) {
               <span className={`h-[2.5px] flex-1 ${t}`} />
             </span>
           ))}
+        </span>
+      )
+    case 's:stacked':
+      return (
+        <span className="flex w-8 flex-col gap-[3px]">
+          <span className={`h-[3px] w-3.5 ${t}`} />
+          <span className="flex items-center gap-[3px]">
+            <span className={`h-[2.5px] w-2 ${t}`} />
+            <span className="h-[2.5px] w-[2.5px] rounded-full bg-foreground/45" />
+            <span className={`h-[2.5px] w-2 ${t}`} />
+          </span>
+        </span>
+      )
+    // link line (a project's visible URL)
+    case 'k:':
+      return <span className="h-[10px] w-6 rounded-[3px] border border-dashed border-muted-foreground/60" />
+    case 'k:tag':
+      return (
+        <span className="relative flex h-[11px] w-7 items-center justify-center rounded-[2px] border border-primary/40 bg-primary/10">
+          <span className={`absolute bottom-[2px] left-[2px] top-[2px] w-[2px] rounded-[1px] ${a}`} />
+          <span className={`ml-[3px] h-[3px] w-3.5 ${t}`} />
+        </span>
+      )
+    case 'k:plain':
+      return <span className={`h-[3px] w-6 ${t}`} />
+    case 'k:none':
+      return (
+        <span className="relative flex w-8 items-center justify-center">
+          <span className="h-[3px] w-5 rounded-[1px] bg-foreground/25" />
+          <span className="absolute left-1 right-1 top-1/2 h-px -rotate-12 bg-foreground/50" />
         </span>
       )
     // score placements
@@ -505,6 +552,7 @@ export function SectionGear({
       | 'headingAlign'
       | 'skillsStyle'
       | 'tagStyle'
+      | 'linkStyle'
       | 'chipSize'
       | 'entryLayout'
       | 'entryOrder'
@@ -1098,16 +1146,44 @@ export function SectionGear({
                   </p>
                 )}
 
+                {/* The section's own URL line - a project's address under its
+                    title. The document's link style governs NAMED links and
+                    the header contacts, so this line answered nothing at all
+                    until this row. It stays SHOWN by default: an address a
+                    portfolio resume prints is a real signal to drop quietly.
+                    Gated the way the tag rows below are, on the sections that
+                    actually print such a line. */}
+                {HAS_LINK.has(base) && (
+                  <Group label="Link line">
+                    <div className="grid grid-cols-4 gap-1">
+                      {LINK_STYLES.map((s) => (
+                        <StyleChip
+                          key={s.value || 'auto'}
+                          label={s.label}
+                          kind={`k:${s.value}`}
+                          title={s.title}
+                          on={(opts.linkStyle === 'auto' ? '' : (opts.linkStyle ?? '')) === s.value}
+                          onClick={() => setStyle('linkStyle', s.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+                      Auto follows the document (Design panel). Hidden drops the address from the page, the Word file
+                      and the plain-text copy; the title keeps its link.
+                    </p>
+                  </Group>
+                )}
+
                 {/* Entry tags - the sections whose entries carry keywords of
                     their own (projects). The skills pickers were gated to the
                     skills section, so these tags could only be shown or
-                    hidden; the same three looks, and the same size chips, now
+                    hidden; the skills looks, and the same size chips, now
                     reach them. Offered only while the tags are shown, as the
                     bullet row is. */}
                 {HAS_KEYWORDS.has(base) && opts.showKeywords !== false && (
                   <>
                     <Group label="Tags as">
-                      <div className="grid grid-cols-4 gap-1">
+                      <div className="grid grid-cols-3 gap-1">
                         {TAG_STYLES.map((s) => (
                           <StyleChip
                             key={s.value || 'auto'}
@@ -1328,6 +1404,7 @@ function StyleChip({
   onClick,
   disabled,
   reason,
+  title,
 }: {
   label: string
   kind: string
@@ -1336,12 +1413,15 @@ function StyleChip({
   /** A style the section cannot take right now; `reason` says why in a line. */
   disabled?: boolean
   reason?: string
+  /** A fuller sentence for the hover, where the chip's own word is short.
+   *  Falls back to that word, which is what every other chip shows. */
+  title?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      title={disabled && reason ? reason : label}
+      title={disabled && reason ? reason : title || label}
       aria-pressed={on}
       disabled={disabled}
       className={`flex min-w-0 flex-col items-center gap-1 rounded-lg border p-1.5 transition ${

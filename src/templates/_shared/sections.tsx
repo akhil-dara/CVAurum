@@ -18,7 +18,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { CanvasDate } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
-import { entryMetaOf, entryOrderOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
+import { entryMetaOf, entryOrderOf, linkStyleOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
 import { keywordChunks } from '@/lib/keywordChunks'
 
 /**
@@ -87,6 +87,9 @@ export type SecOpts = {
   skillsStyle?: string
   /** How an entry's own keyword tags look (projects). */
   tagStyle?: string
+  /** How an entry's visible URL line is drawn (projects); 'none' prints no
+   *  line at all (linkStyleOf reads it). */
+  linkStyle?: string
   entryLayout?: string
   showBadges?: boolean
   scoreStyle?: string
@@ -1449,10 +1452,19 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
 
 function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
   // How this section's entry tags look. Unset adds no class, so the chips the
-  // template draws stand; 'inline' runs them together as text through the
-  // very code path the inline skills use.
+  // template draws stand. The branch is the skills renderer's own: 'inline'
+  // and 'stacked' both run the keywords together as text and differ only in
+  // whether that run takes a line of its own, and every other look reuses the
+  // chip markup restyled by CSS.
   const tagClass = opts?.tagStyle ? `rm-tags-${opts.tagStyle}` : ''
-  const tagVariant = opts?.tagStyle === 'inline' ? 'inline' : 'chips'
+  const tagVariant = opts?.tagStyle === 'inline' || opts?.tagStyle === 'stacked' ? 'inline' : 'chips'
+  // How this section draws the URL line under a title. 'none' prints none at
+  // all - and the Word file and the ATS text drop the address with it, since
+  // they read the document. The title keeps its own link either way: that is
+  // where a project link is SET, so turning the line off is never a one-way
+  // door.
+  const linkMode = linkStyleOf(opts)
+  const linkClass = linkMode === 'tag' || linkMode === 'plain' ? ` rm-link-${linkMode}` : ''
   return (
     <>
       {doc.content.projects.map((p, i) => {
@@ -1530,8 +1542,8 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 it duplicated the title's own link editor, so two controls
                 wrote one value and each undid the other. The title's chain
                 button is where a project link is SET; this line displays it. */}
-            {p.url ? (
-              <div className="rm-item-link">
+            {p.url && linkMode !== 'none' ? (
+              <div className={`rm-item-link${linkClass}`}>
                 {/* Same words in both modes - the edit branch used to show the
                     raw address while print showed the tidied one, which is up
                     to a line-wrap of divergence. On the canvas the words are
