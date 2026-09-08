@@ -371,7 +371,19 @@ function TemplateCard({ tpl, base, onPick }: { tpl: TemplateConfig; base: Resume
         </div>
         <div className="flex flex-1 flex-col gap-2 p-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-foreground">{tpl.name}</span>
+            {/* The name is the design's own page (/templates/<id>): the card
+                still starts a résumé, but "Broadsheet résumé template" is a
+                thing people search for and a link is how they — and a crawler
+                — reach it. stopPropagation keeps a click on the name from
+                also firing the card's start action underneath it. */}
+            <Link
+              to={`/templates/${tpl.id}`}
+              onClick={(e) => e.stopPropagation()}
+              title={`About the ${tpl.name} template`}
+              className="text-sm font-semibold text-foreground transition hover:text-primary hover:underline"
+            >
+              {tpl.name}
+            </Link>
             <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
           </div>
           <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{tpl.description}</p>

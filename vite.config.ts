@@ -1,12 +1,153 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import type * as SeoPages from './src/lib/seoPages'
+
+const OUT = path.resolve(__dirname, 'dist')
+const SRC = path.resolve(__dirname, 'src')
+
+/**
+ * Load src/lib/seoPages.ts into this Node process.
+ *
+ * It cannot simply be imported at the top of this file: Vite bundles its own
+ * config with esbuild and externalises every bare specifier, so the '@/…'
+ * aliases inside the module (and inside the registry it reads) arrive at Node
+ * as missing packages. Compiling it here — with the alias spelled out — is what
+ * lets the build step and the app share one definition of every page's title,
+ * description and crawler HTML instead of keeping two copies in step by hand.
+ */
+async function loadSeoPages(): Promise<typeof SeoPages> {
+  const { build } = await import('esbuild')
+  const out = await build({
+    entryPoints: [path.join(SRC, 'lib', 'seoPages.ts')],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'node',
+    target: 'node18',
+    // The one thing esbuild cannot work out on its own here.
+    alias: { '@': SRC },
+    logLevel: 'silent',
+  })
+  const dir = path.resolve(__dirname, 'node_modules', '.cvaurum')
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, 'seoPages.mjs')
+  fs.writeFileSync(file, out.outputFiles[0].text)
+  // Cache-busted so a rebuild in the same process picks up an edited module.
+  return import(`${pathToFileURL(file).href}?v=${Date.now()}`) as Promise<typeof SeoPages>
+}
+
+/** Replace the content= of one meta tag, whichever attribute names it. */
+function setMeta(html: string, key: 'name' | 'property', tag: string, content: string): string {
+  const re = new RegExp(`(<meta\\s+${key}="${tag}"\\s+content=")[^"]*(")`)
+  return html.replace(re, `$1${content.replace(/\$/g, '$$$$')}$2`)
+}
+
+function setAttr(html: string, pattern: RegExp, value: string): string {
+  return html.replace(pattern, `$1${value.replace(/\$/g, '$$$$')}$2`)
+}
+
+/**
+ * Rewrite the head of the built index.html so it describes ONE page, and drop
+ * a block of real HTML inside #root so the page says something before a line
+ * of JavaScript runs. React's createRoot empties #root on boot, so a reader
+ * never sees the block and a crawler that renders the app sees the live page.
+ */
+function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: string, jsonLd?: string): string {
+  const url = `${site}${meta.path}`
+  const image = `${site}${meta.image}`
+  let html = shell
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`)
+  html = setMeta(html, 'name', 'description', meta.description)
+  html = setMeta(html, 'property', 'og:title', meta.title)
+  html = setMeta(html, 'property', 'og:description', meta.description)
+  html = setMeta(html, 'property', 'og:url', url)
+  html = setMeta(html, 'property', 'og:image', image)
+  html = setMeta(html, 'property', 'og:image:secure_url', image)
+  html = setMeta(html, 'property', 'og:image:type', image.endsWith('.jpg') ? 'image/jpeg' : 'image/png')
+  html = setMeta(html, 'property', 'og:image:alt', meta.title)
+  html = setMeta(html, 'name', 'twitter:title', meta.title)
+  html = setMeta(html, 'name', 'twitter:description', meta.description)
+  html = setMeta(html, 'name', 'twitter:image', image)
+  html = setMeta(html, 'name', 'twitter:image:alt', meta.title)
+  html = setAttr(html, /(<link rel="canonical" href=")[^"]*(")/, url)
+  html = setAttr(html, /(<link rel="alternate" hreflang="en" href=")[^"]*(")/, url)
+  html = setAttr(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*(")/, url)
+  if (jsonLd) {
+    html = html.replace(
+      '</head>',
+      `  <script type="application/ld+json">\n    ${jsonLd}\n    </script>\n  </head>`
+    )
+  }
+  // The FAQ rich result describes the homepage's visible FAQ. Repeating it on
+  // 59 pages that do not carry that FAQ is structured data about content the
+  // page does not have, which is exactly what a rich-result check flags.
+  html = html.replace(/\s*<!-- FAQ rich result[^>]*-->\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/, '')
+  // Same reason for the no-script fallback: it is the landing page's pitch,
+  // heading and all, and it would put a second <h1> — the same second <h1> —
+  // on every page in the set. Each page now carries its own copy in #root.
+  html = html.replace(
+    /<noscript>[\s\S]*?<\/noscript>/,
+    `<noscript><p style="max-width:760px;margin:0 auto;padding:24px 20px;font-family:system-ui,sans-serif">CVAurum needs JavaScript to edit and export a résumé. <a href="/">About CVAurum</a> · <a href="/templates">All templates</a></p></noscript>`
+  )
+  // The shell ships #root empty; fill it for whoever does not run scripts.
+  return html.replace(/(<div id="root"[^>]*>)(<\/div>)/, `$1\n${body}\n    $2`)
+}
+
+/**
+ * After the bundle is written, stamp out one static file per public page.
+ *
+ * The site is a single-page app served from one index.html, so /templates/<id>
+ * and / were byte-identical to anything that does not run JavaScript — same
+ * title, same description, same canonical URL. A crawler had no reason to
+ * index 58 designs separately and no words to rank them by. This writes the
+ * page a crawler is actually served: dist/templates/index.html and
+ * dist/templates/<id>/index.html, each with its own head and a block of real
+ * HTML in #root. Node only — nothing here launches a browser.
+ */
+function seoPages(): Plugin {
+  return {
+    name: 'cvaurum-seo-pages',
+    apply: 'build',
+    async closeBundle() {
+      const seo = await loadSeoPages()
+      const shell = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8')
+      const written: string[] = []
+
+      const write = (dir: string, html: string) => {
+        fs.mkdirSync(path.join(OUT, dir), { recursive: true })
+        fs.writeFileSync(path.join(OUT, dir, 'index.html'), html)
+        written.push(`${dir.replace(/\\/g, '/')}/index.html`)
+      }
+
+      write('templates', pageHtml(shell, seo.SITE, seo.galleryPageMeta(), seo.galleryStaticHtml()))
+      const ids = seo.allTemplateIds()
+      for (const id of ids) {
+        write(
+          path.join('templates', id),
+          pageHtml(shell, seo.SITE, seo.templatePageMeta(id), seo.staticHtml(id), seo.breadcrumbJsonLd(id))
+        )
+      }
+
+      const today = new Date().toISOString().slice(0, 10)
+      fs.writeFileSync(path.join(OUT, 'sitemap.xml'), seo.sitemapXml(today))
+
+      console.log(
+        `\nSEO: wrote ${written.length} pre-rendered pages (dist/${written[0]} … dist/${written[written.length - 1]}) ` +
+          `and dist/sitemap.xml with ${ids.length + 2} URLs (lastmod ${today})`
+      )
+    },
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    seoPages(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: 'auto',
