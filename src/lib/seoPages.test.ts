@@ -13,7 +13,12 @@ import {
   tagSentence,
   templatePageMeta,
   trimToWords,
+  landingStaticHtml,
+  shellHtml,
+  llmsTxt,
+  llmsFullTxt,
 } from '@/lib/seoPages'
+import { SITE as COPY } from '@/data/siteCopy'
 
 /** Every /templates/<id> link in a block of HTML, in order. */
 const templateLinks = (html: string) => [...html.matchAll(/href="\/templates\/([a-z0-9-]+)"/g)].map((m) => m[1])
@@ -180,5 +185,38 @@ describe('breadcrumb structured data', () => {
       'https://cvaurum.com/templates',
       'https://cvaurum.com/templates/atlas',
     ])
+  })
+})
+
+describe('the landing page for whoever does not run scripts', () => {
+  it('carries the page: h1, rows, FAQ, signature links', () => {
+    const html = landingStaticHtml()
+    expect(html).toContain('<h1')
+    for (const r of COPY.comparison) expect(html).toContain(htmlEscape(r.capability))
+    for (const f of COPY.faq) expect(html).toContain(htmlEscape(f.q).replace(/"/g, '&quot;'))
+    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace']) expect(html).toContain(`/templates/${id}`)
+    expect(html).not.toMatch(/<script/i)
+  })
+  it('gives an app route a shell with its own title, a noindex and nothing in #root', () => {
+    const shell = shellHtml('<html><head><title>Old</title></head><body><div id="root"></div></body></html>', 'Your Resumes · CVAurum')
+    expect(shell).toContain('<title>Your Resumes · CVAurum</title>')
+    expect(shell).toContain('<meta name="robots" content="noindex" />')
+    expect(shell).toContain('<div id="root"></div>')
+  })
+})
+
+describe('llms.txt', () => {
+  it('is the convention: H1, summary quote, links', () => {
+    const t = llmsTxt()
+    expect(t.startsWith('# CVAurum')).toBe(true)
+    expect(t).toMatch(/\n> /)
+    expect(t).toContain('https://cvaurum.com/templates')
+    expect(t).toContain('/llms-full.txt')
+  })
+  it('the full text names every template with its page, without superlatives', () => {
+    const t = llmsFullTxt()
+    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
+    expect(t).not.toMatch(/best|beast|world-class|#1/i)
+    expect(t).toContain(COPY.oneLiner)
   })
 })

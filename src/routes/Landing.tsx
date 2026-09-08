@@ -26,6 +26,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { TEMPLATE_COUNT, getTemplate } from '@/templates/registry'
+import { SITE } from '@/data/siteCopy'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { Logo } from '@/components/ui/Logo'
@@ -48,44 +49,8 @@ const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 // (a light two-column and a dark sidebar), so the strip shows the range.
 const SHOWCASE = ['broadsheet', 'marquee', 'atlas', 'chronicle', 'clarity', 'sapphire']
 
-/** Honest head-to-head: what CVAurum does vs. what most resume builders do. */
-const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [
-  {
-    capability: 'Where your data lives',
-    cvaurum: 'Only in your browser — no server, no account, no tracking',
-    others: 'Uploaded to a server behind a login',
-  },
-  {
-    capability: 'Source code',
-    cvaurum: 'Fully open source (MIT) — read it, fork it, self-host it',
-    others: 'Closed — you take the privacy claims on faith',
-  },
-  {
-    capability: 'Templates',
-    cvaurum: `${TEMPLATE_COUNT} designer templates, restylable section by section`,
-    others: 'A few basic layouts, polish behind a paywall',
-  },
-  {
-    capability: 'ATS check',
-    cvaurum: 'Built-in deterministic score + job-description keyword match',
-    others: 'None, or an opaque AI score you can’t reproduce',
-  },
-  {
-    capability: 'Offline',
-    cvaurum: 'All fonts self-hosted — zero external requests, truly offline',
-    others: 'Pulls fonts/assets from CDNs — still phones home',
-  },
-  {
-    capability: 'Export formats',
-    cvaurum: 'Vector PDF (PDF/A-2B archival + PDF/UA-1 accessible), Word .docx, and JSON Resume',
-    others: 'PDF only, often a flattened image',
-  },
-  {
-    capability: 'Price',
-    cvaurum: 'Free, forever — no tiers, no upsell',
-    others: 'Free to start, then paywalled to export',
-  },
-]
+/** The comparison rows, from the one place the page's words live. */
+const COMPARISON = SITE.comparison
 
 export function Landing() {
   useTitle('CVAurum — Free Open-Source Resume Builder (Local, Private, ATS-Ready)')
@@ -427,61 +392,12 @@ export function Landing() {
         </section>
 
         {/* faq */}
-        <section className="mx-auto max-w-3xl px-6 pb-16 land-reveal">
+        <section id="faq" className="mx-auto max-w-3xl px-6 pb-16 land-reveal">
           <h2 className="text-center text-xl font-semibold tracking-tight">Questions</h2>
           <div className="mt-6 space-y-3">
-            <Faq
-              q="How do I know my data is really private?"
-              a="Because you can check. CVAurum runs entirely in your browser — your resume is stored locally and never sent anywhere. There's no account, no server, and no analytics. Open your browser's network tab and you'll see zero outbound requests, even for fonts, which we self-host."
-            />
-            <Faq
-              q="If it's free and open source, what's the catch?"
-              a="There isn't one. CVAurum is MIT-licensed and the full source is on GitHub. There's no paid tier, no export paywall, and no data to monetize because we never collect any. Fork it, self-host it, or run it offline forever."
-            />
-            <Faq
-              q="Is the ATS score real, or AI guesswork?"
-              a="It's deterministic, not a guess. The same resume and job description always produce the same score, and it shows exactly which keywords matched and which are missing — so you can fix your resume with confidence."
-            />
-            <Faq
-              q="Where is my data stored?"
-              a="Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy."
-            />
-            <Faq
-              q="Will my résumé pass ATS scans?"
-              a="The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description."
-            />
-            <Faq
-              q="Can I move my résumé to another computer?"
-              a="Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser."
-            />
-            <Faq
-              q="Do I need to create an account?"
-              a="No. There's no sign-up, no email, and no login — open CVAurum and start editing immediately. Most builders make you register before you can even see the editor; CVAurum never does."
-            />
-            <Faq
-              q="What's the difference between a CV and a resume?"
-              a="A resume is a concise, one-to-two page summary tailored to a specific job (common in the US). A CV is a longer, comprehensive record of your academic and professional history (standard in academia and much of Europe). CVAurum builds both — pick a compact template for a resume, or add sections for a full CV."
-            />
-            <Faq
-              q="Are the links in my PDF clickable?"
-              a="Yes, by default — they are real clickable regions in the file, not underlined words. Each link also keeps its display text separate from its destination, so it can read Portfolio or Verify while pointing anywhere: a project can carry several named links, and a certification or award can end its line with a short Verify (printed as small tags, or as plain words if you prefer) — with an issuer badge beside the name if you add one. Where a link prints as a word, that word is also the control — click it on the page and the same card opens. The Word file and the ATS preview say the same thing the page does, and Word gets real hyperlinks. If you are printing on paper or submitting somewhere a live link is unwelcome, one switch in Design turns clickability off while keeping the text."
-            />
-            <Faq
-              q="Can I edit on my phone?"
-              a="Yes. The drag-and-drop canvas is a desktop surface, so on a phone the form panel is the editor — and everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop."
-            />
-            <Faq
-              q="What file formats can I download?"
-              a="A crisp vector PDF with real, selectable text; an editable Word (.docx) that mirrors your template; and the open JSON Resume format. Every export is free and unlimited — no paywall, no watermark."
-            />
-            <Faq
-              q="Is the PDF archival quality?"
-              a="Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts."
-            />
-            <Faq
-              q="How long should my resume be?"
-              a="For most roles, one page — two if you have 10+ years of experience. CVAurum auto-fits your content to a single page when it's close, and shows live page-break guides so you always know where you stand."
-            />
+            {SITE.faq.map((f) => (
+              <Faq key={f.q} q={f.q} a={f.a} />
+            ))}
           </div>
         </section>
       </main>

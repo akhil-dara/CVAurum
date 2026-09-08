@@ -79,7 +79,9 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   if (jsonLd) {
     html = html.replace(
       '</head>',
-      `  <script type="application/ld+json">\n    ${jsonLd}\n    </script>\n  </head>`
+      // id: the live page's own breadcrumb effect reuses this block instead
+      // of appending a second BreadcrumbList beside it.
+      `  <script type="application/ld+json" id="ld-breadcrumb">\n    ${jsonLd}\n    </script>\n  </head>`
     )
   }
   // The FAQ rich result describes the homepage's visible FAQ. Repeating it on
@@ -132,6 +134,24 @@ function seoPages(): Plugin {
         )
       }
 
+      // The app routes get content-free shells (their own title, noindex),
+      // and public/_redirects sends /resume/* and /print/* to the plain
+      // shell, so the landing block below never flashes inside the app.
+      fs.writeFileSync(path.join(OUT, 'shell.html'), shell)
+      write('app', seo.shellHtml(shell, 'Your Resumes · CVAurum'))
+      write('tracker', seo.shellHtml(shell, 'Job Application Tracker · CVAurum'))
+      write('r', seo.shellHtml(shell, 'Shared resume · CVAurum'))
+
+      // The landing page carries its content in its HTML, for a reader that
+      // does not run scripts (an assistant asked to compare résumé builders
+      // reads exactly this). React empties #root the moment the app boots.
+      const rootRe = /(<div id="root"[^>]*>)(<\/div>)/
+      if (!rootRe.test(shell)) throw new Error('seoPages: dist/index.html has no empty <div id="root"> to fill')
+      fs.writeFileSync(path.join(OUT, 'index.html'), shell.replace(rootRe, `$1\n${seo.landingStaticHtml()}\n    $2`))
+
+      fs.writeFileSync(path.join(OUT, 'llms.txt'), seo.llmsTxt())
+      fs.writeFileSync(path.join(OUT, 'llms-full.txt'), seo.llmsFullTxt())
+
       const today = new Date().toISOString().slice(0, 10)
       fs.writeFileSync(path.join(OUT, 'sitemap.xml'), seo.sitemapXml(today))
 
@@ -156,7 +176,7 @@ export default defineConfig({
         id: '/',
         name: 'CVAurum — Free Open-Source Resume Builder',
         short_name: 'CVAurum',
-        description: 'Free, open-source, 100% local resume builder. 52 ATS-ready templates, a built-in ATS score, PDF résumé import, and PDF / Word / JSON export — no account, fully offline.',
+        description: 'Free, open-source, 100% local resume builder. 58 ATS-ready templates, a built-in ATS score, PDF résumé import, and PDF / Word / JSON export — no account, fully offline.',
         categories: ['productivity', 'business', 'utilities'],
         theme_color: '#d4982f',
         background_color: '#0b0f1a',
@@ -185,9 +205,14 @@ export default defineConfig({
         // and its worker chunk — it must download only after the user opts in.
         // /fonts-pdf/ holds static font instances used ONLY when exporting a
         // PDF; they are fetched on demand (1–3 families per résumé).
-        globIgnores: ['**/ocr/**', '**/semantic/**', '**/semantic.worker-*.js', '**/fonts-pdf/**'],
+        // The 58 pre-rendered template pages (about 0.8 MB) are never read by
+        // a browser: the fallback below serves the shell and the app renders
+        // the page, online or offline.
+        globIgnores: ['**/ocr/**', '**/semantic/**', '**/semantic.worker-*.js', '**/fonts-pdf/**', 'templates/**/index.html'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        navigateFallback: '/index.html',
+        // The plain shell, not index.html: that one carries the landing
+        // page's content in #root, which would flash inside /resume/<id>.
+        navigateFallback: '/shell.html',
         // The print route renders client-side; never serve the SPA shell for it from cache wrongly.
         navigateFallbackDenylist: [/^\/print\//],
       },

@@ -1,0 +1,10 @@
+# Cloudflare Pages / Netlify rewrites.
+#
+# dist/index.html carries the landing page's content in its HTML (for
+# readers that do not run scripts), and it is also what the host serves for
+# every unknown path. The two dynamic app routes would show that content for
+# the moment the bundle takes to load, so they are served the plain shell
+# instead. /, /templates and /templates/<id> are real files with their own
+# content; /app, /tracker and /r have their own content-free shells.
+/resume/*  /shell.html  200
+/print/*   /shell.html  200

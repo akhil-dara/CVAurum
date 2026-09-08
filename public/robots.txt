@@ -19,4 +19,78 @@ Allow: /fonts/
 Allow: /favicon.svg
 Allow: /og.png
 
+# Machine readers are welcome on the public pages. The landing page carries
+# its content in its HTML, the gallery and every template page do too, and
+# /llms.txt describes the product; an assistant asked about résumé builders
+# should be able to read all of it. The private routes stay private.
+User-agent: GPTBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: CCBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: Bytespider
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
 Sitemap: https://cvaurum.com/sitemap.xml

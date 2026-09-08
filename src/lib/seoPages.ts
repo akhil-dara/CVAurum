@@ -16,6 +16,7 @@
 import { TEMPLATES, TEMPLATE_MAP, galleryOrder } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { htmlEscape } from '@/lib/utils'
+import { SITE as COPY } from '@/data/siteCopy'
 
 /** Canonical host. Also written in index.html, robots.txt and the sitemap. */
 export const SITE = 'https://cvaurum.com'
@@ -230,4 +231,220 @@ export function breadcrumbJsonLd(id: string): string {
 /** Every id, in gallery order — what the build step iterates. */
 export function allTemplateIds(): string[] {
   return ORDERED.map((t) => t.id)
+}
+
+/* ---- The landing page for whoever does not run scripts ------------------
+   An assistant asked to compare résumé builders fetches https://cvaurum.com
+   and reads the HTML before any JavaScript runs. That HTML used to be the
+   head and an empty <div id="root">: nothing to quote, compare or rank. The
+   block below is written into dist/index.html's #root at build time (the
+   plugin in vite.config.ts); React empties it the moment the app boots, so
+   a person sees the page they always did. It renders from the same object
+   the page renders from (src/data/siteCopy.ts), so the two cannot drift. */
+
+/** The six designs whose structure is different, one sentence each. */
+const SIGNATURE_STRUCTURE: Record<string, string> = {
+  broadsheet:
+    'A front page: the name set huge in a display serif across the full width, a byline of contacts between double rules, and numbered running heads down one column.',
+  marquee:
+    'A poster: the name fills a colour block in tall condensed capitals, the body runs in one column beneath, and skills and languages live in a dark strip along the foot of the page.',
+  atlas:
+    'A dashboard: a navy-to-teal band carries the name, and beneath it a numbers band of figures the app reads out of the content itself (years, companies, projects, a headline figure), each tile editable.',
+  chronicle:
+    'A ledger: every entry hands its opening year to a tinted rail down the left, set in tall condensed numerals, while the entry keeps its own dates in a plain column beside them; any entry can set its own year and word.',
+  'folio-noir':
+    'A gallery wall: gold on near-black, a band of art behind the name, a hairline running out of every heading, and each entry’s dates and places set in a narrow margin down the right.',
+  terrace:
+    'Three steps of green carry the name, the role and the contacts across the top, and beneath them every section title sits in a column of its own, beside the words it labels.',
+}
+
+const SIGNATURE_IDS = ORDERED.filter((t) => t.tags.includes('signature')).map((t) => t.id)
+
+function esc(s: string): string {
+  return htmlEscape(s).replace(/"/g, '&quot;')
+}
+
+export function landingStaticHtml(): string {
+  const steps = COPY.steps.map((s) => `        <li><strong>${esc(s.title)}.</strong> ${esc(s.body)}</li>`).join('\n')
+  const rows = COPY.comparison
+    .map((r) => `        <tr><th scope="row">${esc(r.capability)}</th><td>${esc(r.cvaurum)}</td><td>${esc(r.others)}</td></tr>`)
+    .join('\n')
+  const privacy = COPY.privacy.map((p) => `        <li>${esc(p)}</li>`).join('\n')
+  const faq = COPY.faq.map((f) => `        <dt>${esc(f.q)}</dt>\n        <dd>${esc(f.a)}</dd>`).join('\n')
+  const signature = SIGNATURE_IDS.map((id) => {
+    const t = must(id)
+    return `        <li><a href="/templates/${t.id}">${esc(t.name)}</a>: ${esc(SIGNATURE_STRUCTURE[id] ?? t.description)}</li>`
+  }).join('\n')
+  return `<main class="seo-static">
+    <h1>${esc(COPY.hero)}</h1>
+    <p>${esc(COPY.oneLiner)}</p>
+    <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
+    <h2>Three steps</h2>
+    <ol>
+${steps}
+    </ol>
+    <h2>Head-to-head</h2>
+    <table>
+      <thead><tr><th>Capability</th><th>CVAurum</th><th>Most builders</th></tr></thead>
+      <tbody>
+${rows}
+      </tbody>
+    </table>
+    <h2>Privacy</h2>
+    <ul>
+${privacy}
+    </ul>
+    <h2>Questions</h2>
+    <dl>
+${faq}
+    </dl>
+    <h2>Templates</h2>
+    <p>${TEMPLATES.length} designs, every one exporting real selectable text, each on its own page. The Signature collection changes the structure of the page, not only its colours:</p>
+    <ul>
+${signature}
+    </ul>
+    <p><a href="${COPY.links.gallery}">Every template, rendered on the same example résumé</a>.</p>
+    <p>CVAurum is open source under the MIT licence: <a href="${COPY.links.repo}">${COPY.links.repo}</a>.</p>
+  </main>`
+}
+
+/**
+ * The built index.html with its own title and a noindex, and nothing in
+ * #root: what /app, /tracker and /r are served, so the landing block never
+ * flashes inside the app before the bundle loads.
+ */
+export function shellHtml(indexHtml: string, title: string): string {
+  return indexHtml.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>${htmlEscape(title)}</title>\n    <meta name="robots" content="noindex" />`
+  )
+}
+
+/* ---- llms.txt ------------------------------------------------------------
+   The convention machine readers look for at /llms.txt: an H1, a blockquote
+   summary, then sections of links with one-line descriptions. Plain facts. */
+
+function templateLine(t: TemplateConfig): string {
+  const tags = tagSentence(t.tags)
+  return `- [${t.name}](${SITE}/templates/${t.id}): ${t.description}${tags ? ` (${tags})` : ''}`
+}
+
+export function llmsTxt(): string {
+  const signature = SIGNATURE_IDS.map((id) => {
+    const t = must(id)
+    return `- [${t.name}](${SITE}/templates/${t.id}): ${SIGNATURE_STRUCTURE[id] ?? t.description}`
+  }).join('\n')
+  return `# CVAurum
+
+> ${COPY.oneLiner}
+
+Everything runs in the visitor's browser: the editor, the PDF engine, the ATS checks and the storage. There is no backend, no account and no paid tier. The source is public under the MIT licence.
+
+## Product
+
+- [Home](${SITE}/): what CVAurum is, how it compares with other résumé builders, privacy, questions and answers.
+- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, filterable by tag; each design has its own page.
+- [The app](${SITE}/app): the editor and the résumé dashboard. Nothing to sign up for.
+- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.
+
+## Signature templates
+
+Six single-column designs whose structure is different, not only their colours:
+
+${signature}
+
+## Source
+
+- [Repository](${COPY.links.repo}): the whole application, MIT licensed; fork it, self-host it, run it offline.
+
+## Optional
+
+- [Full description](${SITE}/llms-full.txt): the privacy architecture, the export engine, the ATS check, import, editing, every template with its page, offline use, sharing and licence.
+`
+}
+
+export function llmsFullTxt(): string {
+  const signature = SIGNATURE_IDS.map((id) => {
+    const t = must(id)
+    return `- [${t.name}](${SITE}/templates/${t.id}): ${SIGNATURE_STRUCTURE[id] ?? t.description}`
+  }).join('\n')
+  const rest = ORDERED.filter((t) => !SIGNATURE_IDS.includes(t.id)).map(templateLine).join('\n')
+  const faq = COPY.faq.map((f) => `**${f.q}** ${f.a}`).join('\n\n')
+  return `# CVAurum
+
+> ${COPY.oneLiner}
+
+## What it is
+
+CVAurum is a résumé builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the MIT licence at ${COPY.links.repo}.
+
+## Privacy architecture
+
+${COPY.privacy.map((p) => `- ${p}`).join('\n')}
+- The site's Content-Security-Policy allows no outbound request at all (connect-src 'self'), so even a future bug could not send data anywhere.
+- A share link carries the résumé inside the URL fragment, which browsers never send to a server, encrypted with AES-256-GCM under a key derived from a passphrase by PBKDF2-SHA-256 (600,000 iterations).
+
+## Export
+
+- PDF: a vector renderer in the browser paints the same document the preview shows, page for page, with real selectable text, clickable links and multi-page output that breaks at section or entry boundaries; a typical file is about 50 KB. Every export conforms to PDF/A-2B (archival: fonts and an sRGB profile embedded) and PDF/UA-1 (accessible: a tagged structure in logical reading order), verified against the veraPDF validator. It is the only export path; there is no print-dialog fallback, and a failure is reported as one.
+- Word (.docx): a single-column, ATS-friendly document with real bullet lists and real hyperlinks that follows the template's fonts, accent colour, margins and type size.
+- JSON Resume: the open schema, with CVAurum's design choices under meta.cvaurum, so a file round-trips with the JSON Resume ecosystem.
+
+## ATS check
+
+- Deterministic and on-device: the same résumé and job description always give the same result. Structural checks (contact details, a summary, quantified bullets, action verbs, length, layout, standard headings) roll into a score.
+- Paste a job description to see matched and missing keywords and a match score.
+- A parser's-eye view shows the plain text an applicant-tracking system reads, in its reading order.
+- A per-system parse simulation models how five common applicant-tracking systems (Workday, Greenhouse, Lever, Taleo, iCIMS) read the page, with the structural risks each one flags; it is guidance, not a claim about any vendor's internals.
+- A writing coach flags weak openers, passive voice, first-person pronouns, clichés, missing metrics and over-long bullets, with a fix for each.
+- A recruiter skim heatmap shows where a first skim lands on the page, deterministically.
+- Optional semantic matching with a small on-device language model (about 34 MB, self-hosted, opt-in) checks whether each requirement in a job description is expressed in the résumé even when the wording differs.
+
+## Import
+
+- PDF import reconstructs an existing résumé into editable sections (contact, experience, education, skills and so on) in the browser; scanned pages are read with on-device OCR. Nothing is uploaded, and the result is meant to be reviewed.
+- JSON Resume files import and keep editing.
+
+## Editing
+
+- Edit directly on the page or in a form panel; both stay in sync, with undo and redo and autosave.
+- Per-section styles: heading style, entry layout (timeline, cards, grid, divided), skills display, bullet marker, proficiency meters, logos and credential badges, date format and language, time spans on date ranges.
+- Header layouts, fonts (45 bundled, self-hosted), colours for the name, headline, headings, contacts and links, spacing, margins, A4 or US Letter, light or dark theme.
+- Links keep their display text and their destination apart, print as tags or plain words, and read the same in the PDF, the Word file and the ATS view; one switch turns clickability off for paper.
+- The Signature designs' structures are editable: Atlas's numbers band is a list of figures to choose, rename, override, reorder or add to; Chronicle's year rail derives each entry's year and word and any entry can set its own.
+- Six example résumés to start from, including a final-year student with internships.
+- Paste a list into a bullet field and it becomes one bullet per line.
+- On a phone the form panel is the editor and every canvas control has a panel equivalent; a tablet edits on the page.
+- A multi-résumé dashboard and a job application tracker (a kanban board from wishlist to offer).
+
+## Templates
+
+${TEMPLATES.length} designs, every one exporting real selectable text; each has its own page at ${SITE}/templates/<id>. The gallery at ${SITE}/templates renders them all on the same example résumé.
+
+### Signature collection
+
+Single-column designs whose structure is different, not only their colours:
+
+${signature}
+
+### All other designs
+
+${rest}
+
+## Offline and installation
+
+CVAurum installs as a web app (Add to Home Screen or Install) on desktop and mobile. The whole app and all fonts are precached by a service worker, so it works with no connection at all, including PDF export.
+
+## Sharing
+
+An encrypted share link (the résumé rides in the URL fragment, unreadable without the passphrase, which travels by another channel) or an exported file: a full backup, a JSON Resume file, a PDF or a Word document.
+
+## Questions and answers
+
+${faq}
+
+## Licence and source
+
+MIT licence. Source: ${COPY.links.repo}. Site: ${SITE}.
+`
 }
