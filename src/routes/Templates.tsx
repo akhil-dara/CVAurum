@@ -13,7 +13,7 @@ import { AlignLeft, ArrowRight, Github, Plus, Search } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
-import { TEMPLATES } from '@/templates/registry'
+import { TEMPLATES, galleryOrder } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import type { ResumeDocument } from '@/types/document'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
@@ -45,6 +45,8 @@ const CANONICAL = 'https://cvaurum.com/templates'
 
 /** Derived once from the registry - a new tag on a new template gets a chip. */
 const TAG_CHOICES = tagChoices(TEMPLATES)
+// the signature collection leads the wall
+const GALLERY = galleryOrder(TEMPLATES)
 
 /** 'two-column' reads as a slug; the chip says it in words. */
 const tagLabel = (tag: TemplateTag) => {
@@ -83,7 +85,7 @@ export function Templates() {
    */
   const apply = (next: TemplateFilter, replace = false) => setParams(templateFilterParams(next), { replace })
 
-  const shown = useMemo(() => filterTemplates(TEMPLATES, filter), [filter])
+  const shown = useMemo(() => filterTemplates(GALLERY, filter), [filter])
   const filtered = isFilterActive(filter)
 
   // One sample resume, rendered in every design - the same document the

@@ -52,6 +52,81 @@ function persona(over: Partial<ResumeContent> & { basics: ResumeContent['basics'
   }
 }
 
+/* ------------------------------------------------ final-year student, two internships */
+// The case a great many first-time users are in: the degree is a year from
+// done, there are two internships to show, and a project that real people
+// used. Education leads, the internships read as internships on the year
+// rail, and the finish reads as expected everywhere the document is read.
+const FINAL_YEAR: ResumeContent = persona({
+  basics: {
+    name: 'Rohan Mehta',
+    label: 'Final-year B.Tech, Computer Science',
+    image: '',
+    email: 'rohan.mehta@email.com',
+    phone: '+91 98201 33470',
+    url: 'https://rohanmehta.dev',
+    summary:
+      'Final-year computer science student graduating in May 2026, with two software internships behind me and a habit of shipping: a reconciliation dashboard a finance team uses every day, and a campus app with 1,200 users.',
+    location: { city: 'Pune', region: 'Maharashtra', countryCode: 'IN' },
+    profiles: [
+      { network: 'GitHub', username: 'rohanmehta', url: 'https://github.com/rohanmehta' },
+      { network: 'LinkedIn', username: 'rohanmehta', url: 'https://linkedin.com/in/rohanmehta' },
+    ],
+  },
+  education: [
+    {
+      id: 'e1', institution: 'Pune Institute of Technology', area: 'Computer Science and Engineering', studyType: 'B.Tech',
+      status: 'pursuing', location: 'Pune, India',
+      startDate: '2022-08', endDate: '2026-05', score: '8.7 CGPA', url: '', summary: '',
+      courses: ['Data Structures', 'Algorithms', 'Operating Systems', 'Databases', 'Distributed Systems'],
+    },
+  ],
+  work: [
+    {
+      id: 'w1', name: 'Finlytic', position: 'Software Engineering Intern', location: 'Bengaluru, India', url: '',
+      startDate: '2025-05', endDate: '2025-07', summary: '',
+      highlights: [
+        'Built a reconciliation dashboard in React and Go that the finance team uses daily, cutting a weekly three-hour manual check to twenty minutes.',
+        'Wrote the integration tests that caught two settlement bugs before release.',
+      ],
+      rail: { word: 'Internship' },
+    },
+    {
+      id: 'w2', name: 'Skyline Labs', position: 'Backend Intern', location: 'Remote', url: '',
+      startDate: '2024-12', endDate: '2025-02', summary: '',
+      highlights: [
+        'Added rate limiting and request tracing to a Node.js API serving 40k requests a day.',
+        'Documented the service so the next intern could run it on day one.',
+      ],
+      rail: { word: 'Internship' },
+    },
+  ],
+  projects: [
+    {
+      id: 'p1', name: 'CampusConnect', description: 'A phone-first app where students find rides, notes and study groups; 1,200 users across two campuses.', url: 'https://github.com/rohanmehta/campusconnect',
+      startDate: '2024-06', endDate: '',
+      highlights: ['React Native front end on an Express and PostgreSQL back end, run on a free tier.', 'Won the college hackathon out of 42 teams.'],
+      keywords: ['React Native', 'Express', 'PostgreSQL'],
+    },
+    {
+      id: 'p2', name: 'Kiln', description: 'A small static site generator in Rust, written to learn the language properly.', url: 'https://github.com/rohanmehta/kiln',
+      startDate: '2024-01', endDate: '2024-03', highlights: [], keywords: ['Rust'],
+    },
+  ],
+  skills: [
+    { id: 's1', name: 'Languages', level: '', keywords: ['Python', 'Go', 'TypeScript', 'Java', 'SQL'] },
+    { id: 's2', name: 'Web & APIs', level: '', keywords: ['React', 'Node.js', 'Express', 'PostgreSQL', 'REST'] },
+    { id: 's3', name: 'Tools', level: '', keywords: ['Git', 'Docker', 'Linux', 'AWS'] },
+  ],
+  certificates: [{ id: 'c1', name: 'AWS Cloud Practitioner', date: '2025', issuer: 'Amazon Web Services', url: '' }],
+  awards: [{ id: 'a1', title: 'Winner, Smart Campus Hackathon', date: '2025', awarder: 'Pune Institute of Technology', summary: 'First of 42 teams, for CampusConnect.' }],
+  languages: [
+    { id: 'l1', language: 'English', fluency: 'Professional', rating: 4 },
+    { id: 'l2', language: 'Hindi', fluency: 'Native', rating: 5 },
+    { id: 'l3', language: 'Marathi', fluency: 'Native', rating: 5 },
+  ],
+})
+
 /* ------------------------------------------------ engineer (canonical + logos) */
 // Clone the canonical gallery content, then dress it up with entry logos and a
 // role-summary line — the picker's engineer shows the logo feature; the gallery
@@ -379,6 +454,22 @@ export const SAMPLES: SamplePersona[] = [
       sec(m, 'work', { showBadges: true })
       sec(m, 'education', { scoreStyle: 'pill' })
       sec(m, 'projects', { bulletStyle: 'dash' })
+    },
+  },
+  {
+    id: 'finalyear',
+    name: 'Rohan Mehta',
+    role: 'Final-year student',
+    blurb: 'Graduating next year with two internships — education first, internships on the year rail, a project people used.',
+    template: 'chronicle',
+    content: FINAL_YEAR,
+    tweaks: (m) => {
+      // the story a hiring manager wants from a student: the degree, then
+      // what they did with it, then what they built
+      m.layout.main = ['summary', 'education', 'work', 'projects', 'skills', 'certificates', 'awards', 'languages']
+      m.layout.headings = { ...(m.layout.headings ?? {}), work: 'Internships' }
+      sec(m, 'education', { scoreStyle: 'pill' })
+      sec(m, 'projects', { showKeywords: true, tagStyle: 'tags' })
     },
   },
   {

@@ -60,3 +60,39 @@ describe('the student persona', () => {
     expect(resumeToAtsText(build(student))).toContain('Expected May 2027')
   })
 })
+
+const finalYear = SAMPLES.find((s) => s.id === 'finalyear') as SamplePersona
+
+describe('the final-year persona', () => {
+  it('is offered beside the others, in a signature template', () => {
+    expect(finalYear).toBeDefined()
+    expect(finalYear.blurb.length).toBeGreaterThan(20)
+    expect(getTemplate(finalYear.template).tags).toContain('signature')
+  })
+
+  it('is a document the schema accepts, field for field', () => {
+    expect(() => ResumeContentSchema.parse(finalYear.content)).not.toThrow()
+  })
+
+  it('is a year from graduating, with two internships and a project people used', () => {
+    const [degree] = finalYear.content.education
+    expect(degree.status).toBe('pursuing')
+    expect(degree.endDate).toBe('2026-05')
+    expect(finalYear.content.work).toHaveLength(2)
+    expect(finalYear.content.work.every((w) => /intern/i.test(w.position))).toBe(true)
+    expect(finalYear.content.work.every((w) => w.rail?.word === 'Internship')).toBe(true)
+    expect(finalYear.content.projects.length).toBeGreaterThan(0)
+  })
+
+  it('leads with the degree, then the internships under their own heading', () => {
+    const doc = build(finalYear)
+    const main = doc.metadata.layout.main
+    expect(main.indexOf('education')).toBeLessThan(main.indexOf('work'))
+    expect(main.indexOf('work')).toBeLessThan(main.indexOf('projects'))
+    expect(doc.metadata.layout.headings?.work).toBe('Internships')
+  })
+
+  it('states the graduation as expected wherever the document is read', () => {
+    expect(resumeToAtsText(build(finalYear))).toContain('Expected May 2026')
+  })
+})

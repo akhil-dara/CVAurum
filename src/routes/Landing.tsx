@@ -43,7 +43,9 @@ const goldText = {
 const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** Templates shown live (with sample content) in the showcase strip. */
-const SHOWCASE = ['clarity', 'obsidian', 'sapphire', 'crest', 'broadsheet', 'atlas']
+// Four of the signature six (each a different structure) beside two classics
+// (a light two-column and a dark sidebar), so the strip shows the range.
+const SHOWCASE = ['broadsheet', 'marquee', 'atlas', 'chronicle', 'clarity', 'sapphire']
 
 /** Honest head-to-head: what CVAurum does vs. what most resume builders do. */
 const COMPARISON: { capability: string; cvaurum: string; others: string }[] = [

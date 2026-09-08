@@ -1,7 +1,10 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ShieldCheck } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
-import { TEMPLATES } from '@/templates/registry'
+import { TEMPLATES, galleryOrder } from '@/templates/registry'
+
+// the signature collection leads the picker, as it leads the public wall
+const GALLERY = galleryOrder(TEMPLATES)
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -42,7 +45,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
         Hover a card for a full-size look.
       </p>
       <div className="grid grid-cols-2 gap-3">
-        {TEMPLATES.map((tpl) => (
+        {GALLERY.map((tpl) => (
           <TemplateCard
             key={tpl.id}
             tpl={tpl}

@@ -1074,6 +1074,15 @@ export const TEMPLATES: TemplateConfig[] = [
 
 export const TEMPLATE_MAP: Record<string, TemplateConfig> = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]))
 
+/** The order a gallery shows the collection in: the signature designs first
+ *  (the newest and the most distinct from one another), then the rest as
+ *  registered. The registry's own order is unchanged, so nothing that reads
+ *  it by position moves. */
+export function galleryOrder(list: readonly TemplateConfig[]): TemplateConfig[] {
+  const signature = list.filter((t) => t.tags.includes('signature'))
+  return [...signature, ...list.filter((t) => !signature.includes(t))]
+}
+
 /** How many designs the collection holds. Copy that quotes the number reads
  *  it from here, so the page can never claim a count the registry does not
  *  have; the static tags in index.html cannot import it and are guarded by a
