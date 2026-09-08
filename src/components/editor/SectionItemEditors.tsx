@@ -465,23 +465,25 @@ function ItemFields({
             placeholder="https://vertexlabs.io"
           />
 
+          {/* Location used to sit beside a nested pair of date fields, which
+              left each of the four month/year selects a quarter of the row —
+              too narrow to show the month or year it had selected. The dates
+              now get a row of their own, as they do in every other section. */}
+          <TextField
+            label="Location"
+            value={item.location}
+            onChange={set('location')}
+            placeholder="San Francisco, CA"
+          />
           <Row>
-            <TextField
-              label="Location"
-              value={item.location}
-              onChange={set('location')}
-              placeholder="San Francisco, CA"
+            <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
+            <DateField
+              label="End"
+              value={item.endDate}
+              onChange={set('endDate')}
+              allowPresent
+              singleWith={item.startDate}
             />
-            <div className="grid grid-cols-2 gap-2">
-              <DateField label="Start" value={item.startDate} onChange={set('startDate')} />
-              <DateField
-                label="End"
-                value={item.endDate}
-                onChange={set('endDate')}
-                allowPresent
-                singleWith={item.startDate}
-              />
-            </div>
           </Row>
           <RailFields doc={doc} sectionKey={sectionKey} item={item} patch={patch} />
           <TextAreaField

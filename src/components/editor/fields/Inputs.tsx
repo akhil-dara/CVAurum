@@ -360,6 +360,10 @@ export function RatingField({
   )
 }
 
+/** Two fields side by side — but only where there is room for two. A phone's
+ *  panel is 375px wide, and splitting that in half (and in half again, for a
+ *  date's month and year selects) left the selects too narrow to show what
+ *  they had selected. Below the first breakpoint the pair stacks instead. */
 export function Row({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3">{children}</div>
+  return <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>
 }
