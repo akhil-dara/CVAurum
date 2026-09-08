@@ -40,6 +40,7 @@
  */
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Maximize, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
@@ -652,15 +653,25 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     // the mapping.
   }, [doc, autoFit, exactCanvas, pageH, contentH, printH])
 
+  const fitZoom = useMemo(
+    () => (containerW > 0 ? clamp((containerW - 56) / pageW, 0.35, 1.5) : 1),
+    [containerW, pageW]
+  )
   const effectiveZoom = useMemo(() => {
     // Auto fit-to-width whenever the container is NARROWER than the sheet
     // (2026-08-17 spec 2, mobile): the phone Preview used to render the
     // 794px sheet unscaled in a 375px viewport, forcing sideways panning.
     // Wide containers keep honoring the user's explicit Fit toggle/zoom.
-    const mustFit = containerW > 0 && containerW < pageW + 56
-    if ((fitToWidth || mustFit) && containerW > 0) return clamp((containerW - 56) / pageW, 0.35, 1.5)
+    // The one exception is a phone that has ASKED to zoom (CanvasZoom below,
+    // which turns `autoFit` off): fitting a 794px sheet into 375px paints body
+    // copy at ~4px, so "always fit" there means "never readable". Desktop and
+    // tablet keep the unconditional narrow-container fit — their zoom controls
+    // live in the top bar and this rule is what stops a dragged-narrow window
+    // from spilling the sheet sideways.
+    const mustFit = containerW > 0 && containerW < pageW + 56 && !(isPhone && !fitToWidth)
+    if ((fitToWidth || mustFit) && containerW > 0) return fitZoom
     return zoom
-  }, [fitToWidth, containerW, pageW, zoom])
+  }, [fitToWidth, containerW, pageW, zoom, fitZoom, isPhone])
 
   // Page count from the PRINTABLE height (what the PDF paginates), NOT the
   // chrome-inflated editable canvas — so the editor and the export always agree.
@@ -740,6 +751,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       >
         {/* skim-heat status pill — floats over the canvas while the heat is on */}
         {skimView && <SkimPill />}
+        {/* phone zoom — the top bar's cluster is `hidden md:flex` and no panel
+          carries an equivalent, so without this the preview is frozen at
+          fit-to-width and cannot be read (see CanvasZoom). */}
+        {isPhone && <CanvasZoom effectiveZoom={effectiveZoom} fitZoom={fitZoom} />}
         {/* first-time hint on a blank resume — the canvas interactions aren't
           guessable ("what do I click? what do I type where?") */}
         {!exactCanvas && <BlankCanvasTip doc={doc} />}
@@ -764,7 +779,14 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             </div>
           </div>
         )}
-        <div className="flex min-h-full w-full justify-center px-6 py-8">
+        {/* `w-max min-w-full`, not `w-full`: a centered flex row that is exactly
+          the scrollport's width pushes a wider child out BOTH sides, and the
+          left overflow of a centered box cannot be scrolled to — zoomed past
+          fit, the résumé's left margin (the name, the whole left column) was
+          simply unreachable. Sized to its content instead, the row scrolls to
+          either edge, and `min-w-full` keeps the sheet centered whenever the
+          canvas is the wider one. */}
+        <div className="flex min-h-full w-max min-w-full justify-center px-6 py-8">
           {/* reserves scaled space */}
           <div style={{ width: pageW * effectiveZoom, height: sheetH * effectiveZoom }}>
             <div
@@ -832,5 +854,58 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         />
       )}
     </>
+  )
+}
+
+/**
+ * Zoom for the phone canvas.
+ *
+ * The top bar's zoom cluster sits in a `hidden md:flex` wrapper, so on a phone
+ * those three buttons exist at 0x0 and cannot be tapped, and no panel carries
+ * an equivalent — which left the preview permanently at fit-to-width. Measured
+ * on a 375px phone: the sheet fits at 0.40, so 10.24px body copy paints at
+ * 4.1px. The résumé was there and unreadable, in both the bottom-bar Preview
+ * and the top bar's exact-PDF mode.
+ *
+ * Sticks to the TOP of the canvas (the canvas box ends where the bottom bar
+ * begins, so nothing here can hide under it), is always visible rather than
+ * revealed on hover, and uses 40px targets.
+ */
+function CanvasZoom({ effectiveZoom, fitZoom }: { effectiveZoom: number; fitZoom: number }) {
+  const autoFit = useEditorStore((s) => s.autoFit)
+  const setZoom = useEditorStore((s) => s.setZoom)
+  const setAutoFit = useEditorStore((s) => s.setAutoFit)
+  const fitted = autoFit || Math.abs(effectiveZoom - fitZoom) < 0.005
+  // Step from what is ON SCREEN, not from the store's `zoom`: fitted at 0.40
+  // the store still reads 1, so the plain `zoomIn` would jump the first tap to
+  // 110% and the first `zoomOut` would jump to 90%.
+  const step = (dir: 1 | -1) => setZoom(Math.round((effectiveZoom + dir * 0.15) * 100) / 100)
+  const btn =
+    'flex h-10 w-10 items-center justify-center rounded-full text-foreground transition active:bg-muted disabled:opacity-35'
+  // `items-start` matters: the row is `h-0` so it takes no space in the scroll
+  // flow, and a stretched flex child inherits that zero height — the pill's
+  // background collapsed to a 10px bar with the icons hanging out of it.
+  return (
+    <div className="pointer-events-none sticky top-3 z-30 flex h-0 items-start justify-end overflow-visible pr-3">
+      <div
+        data-testid="canvas-zoom"
+        className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-border bg-surface/95 p-1 shadow-float backdrop-blur"
+      >
+        <button className={btn} onClick={() => step(-1)} disabled={effectiveZoom <= 0.401} aria-label="Zoom out" title="Zoom out">
+          <ZoomOut className="h-[18px] w-[18px]" />
+        </button>
+        <button
+          className="flex h-10 min-w-[46px] items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums text-foreground transition active:bg-muted"
+          onClick={() => setAutoFit(true)}
+          aria-label="Fit to width"
+          title="Fit to width"
+        >
+          {fitted ? <Maximize className="h-[18px] w-[18px]" /> : `${Math.round(effectiveZoom * 100)}%`}
+        </button>
+        <button className={btn} onClick={() => step(1)} disabled={effectiveZoom >= 1.999} aria-label="Zoom in" title="Zoom in">
+          <ZoomIn className="h-[18px] w-[18px]" />
+        </button>
+      </div>
+    </div>
   )
 }
