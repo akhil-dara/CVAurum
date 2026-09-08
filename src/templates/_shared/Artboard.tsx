@@ -12,7 +12,7 @@ import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
-import { deriveStats } from '@/lib/stats'
+import { resolveStatTiles } from '@/lib/stats'
 import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
@@ -571,12 +571,14 @@ function HeaderVisual({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaE
  *  header has a slot for it under the gradient; any other header carries it
  *  at its foot. */
 function StatsBand({ doc }: { doc: ResumeDocument }) {
-  const stats = deriveStats(doc.content)
+  const stats = resolveStatTiles(doc.content, doc.metadata.layout.statTiles)
   if (!stats.length) return null
   return (
     <div className="rm-stats">
-      {stats.map((s) => (
-        <div className="rm-stat" key={s.label}>
+      {stats.map((s, i) => (
+        // The author names these, so two tiles may share a label or carry
+        // none at all; the position in the band is what tells them apart.
+        <div className="rm-stat" key={i}>
           <Deco className="rm-stat-value">{s.value}</Deco>
           <Deco className="rm-stat-label">{s.label}</Deco>
         </div>

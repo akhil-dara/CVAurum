@@ -16,6 +16,8 @@ vi.mock('@/lib/pdf/hyphens', async (importOriginal) => ({
 
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { ART_BANDS, ArtMini, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
+import { getTemplate } from '@/templates/registry'
+import { applyTemplateToMetadata } from '@/lib/templateApply'
 
 /**
  * The header compositions a Signature template composes from: a display
@@ -188,5 +190,40 @@ describe('side headings', () => {
     const doc = createDocument({ sample: true })
     const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
     expect(html).not.toContain('heads-side')
+  })
+})
+
+/**
+ * The numbers band (P1): with no list the band draws what the content
+ * derives, and with a list it draws exactly those tiles, in that order,
+ * under the names the author typed. The band's own switch still decides
+ * whether it is drawn at all.
+ */
+describe('the numbers band follows the author’s list', () => {
+  const atlas = () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate('atlas').defaults)
+    return doc
+  }
+  it('draws the derived four with no list', () => {
+    const html = renderToStaticMarkup(<TemplateRenderer doc={atlas()} mode="print" />)
+    expect(html.match(/rm-stat-label/g)).toHaveLength(4)
+    expect(html).toContain('skills')
+  })
+  it('draws exactly the list, renamed and reordered, and a custom tile', () => {
+    const doc = atlas()
+    doc.metadata.layout.statTiles = [
+      { id: 'a', kind: 'companies', label: 'employers' },
+      { id: 'b', kind: 'custom', value: '3', label: 'internships' },
+    ]
+    const html = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(html.match(/rm-stat-label/g)).toHaveLength(2)
+    expect(html.indexOf('employers')).toBeLessThan(html.indexOf('internships'))
+    expect(html).not.toContain('>skills<')
+  })
+  it('draws no band when the switch is off', () => {
+    const doc = atlas()
+    doc.metadata.layout.stats = false
+    expect(renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)).not.toContain('rm-stats')
   })
 })

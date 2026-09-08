@@ -152,6 +152,20 @@ export const LayoutSchema = z.object({
   /** A band of numbers derived from the content (years, companies, skills,
    *  a headline number), painted as decoration only. */
   stats: z.boolean().default(false),
+  /** The numbers band as the author shaped it: which numbers, in which
+   *  order, with any label or value they typed over the derived one. Absent
+   *  means the derived default. No cap here (a longer list must never fail
+   *  the document); the resolver keeps five. */
+  statTiles: z
+    .array(
+      z.object({
+        id: z.string(),
+        kind: z.enum(['years', 'companies', 'projects', 'certifications', 'languages', 'headline', 'skills', 'custom']),
+        label: z.string().optional(),
+        value: z.string().optional(),
+      })
+    )
+    .optional(),
   /** Decorative running numbers before section titles (01, 02, ...). */
   sectionNumbers: z.boolean().default(false),
   /** which side the sidebar sits on (only used when columns === 2) */
