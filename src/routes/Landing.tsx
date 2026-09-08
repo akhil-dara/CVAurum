@@ -20,6 +20,7 @@ import {
   Download,
   Github,
   Check,
+  Minus,
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
@@ -340,7 +341,32 @@ export function Landing() {
               head-to-head.
             </p>
           </div>
-          <div className="mt-8 overflow-x-auto rounded-2xl border border-border">
+          {/* Narrow screens: two columns of prose can't fit, and a sideways scroller hides the
+              "Most builders" column entirely — so the same head-to-head reads as one card per
+              row, both answers labelled, nothing off the edge. The table returns from md up. */}
+          <div className="mt-8 space-y-3 md:hidden">
+            {COMPARISON.map((r) => (
+              <div key={r.capability} className="rounded-2xl border border-border p-4">
+                <h3 className="text-sm font-semibold">{r.capability}</h3>
+                <p className="mt-3 flex gap-2 text-sm">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <span>
+                    <span className="font-semibold" style={goldText}>
+                      CVAurum
+                    </span>{' '}
+                    — {r.cvaurum}
+                  </span>
+                </p>
+                <p className="mt-2 flex gap-2 text-sm text-muted-foreground">
+                  <Minus className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    <span className="font-semibold">Most builders</span> — {r.others}
+                  </span>
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-border md:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="bg-surface-muted/50 text-left">
