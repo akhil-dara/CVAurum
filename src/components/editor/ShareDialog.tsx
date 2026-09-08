@@ -76,7 +76,8 @@ export function ShareDialog({ doc }: { doc: ResumeDocument }) {
 
         <div className="max-h-[74vh] overflow-y-auto p-5">
           <p className="mb-4 flex items-start gap-1.5 rounded-lg bg-emerald-500/10 p-2.5 text-xs leading-relaxed text-emerald-700 dark:text-emerald-300">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /> Your résumé is AES-256 encrypted <em>inside</em> the link and never uploaded. The passphrase is never in the link — so even if the link is cached or logged anywhere, it can’t be opened without it.
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Your résumé is AES-256 encrypted <em>inside</em> the link and never uploaded. The passphrase is never in the link — so even if the link is cached or logged anywhere, it can’t be opened without it.</span>
           </p>
 
           {/* passphrase */}
