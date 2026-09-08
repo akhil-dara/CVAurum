@@ -327,6 +327,17 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
       }
     }
 
+    // A footer strip's ground now runs on to the foot of whatever page the
+    // strip lands on (artboard.css `.rm-footer::after`), and the paper's edge
+    // cuts it. Asked for HERE, and only here: the tail is out of flow, but it
+    // still stands in `container.scrollHeight`, which the auto-fit search and
+    // the one-page test above both measure - so it is switched on only after
+    // the last of those measurements has been taken, and before the walker
+    // reads the layout. A one-page document's strip already ends at the
+    // paper's edge, so its tail falls entirely off the sheet and paints
+    // nothing.
+    sheet.style.setProperty('--rm-foot-tail', `${pageHpx}px`)
+
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
     // Document properties (Info dict + XMP + /Lang + DisplayDocTitle) and

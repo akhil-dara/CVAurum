@@ -2046,7 +2046,9 @@
    colour runs to the page edge, through the negative margin below. A
    longer document already stands taller than that floor, so there the
    strip simply follows the content - whole, never torn (walk.ts reads
-   rm-keep-whole off the wrapper; print.css says the same to the browser). */
+   rm-keep-whole off the wrapper; print.css says the same to the browser) -
+   and the rest of the way down to the paper's foot is carried by the tail
+   below (`.rm-footer::after`). */
 .rm-root.rm-has-footer {
   display: flex;
   flex-direction: column;
@@ -2065,12 +2067,42 @@
   padding: 1.15em var(--rm-pad) var(--rm-pad);
   background: var(--rm-footer-bg, var(--rm-text));
   color: var(--rm-on-footer, #fff);
+  position: relative;
   display: flex;
   flex-direction: column;
   /* Section to section inside the strip - wider than the gap between two
      groups of one section, so the strip reads as sections holding groups
      rather than as one undifferentiated list. */
   gap: 1.3em;
+}
+/* ---- the strip's tail ----
+   The strip's ground runs on to the foot of the page it lands on. On a
+   one-page document the root's min-height above already seats the strip at
+   the foot and nothing more is needed; on a longer one the artboard ends
+   where the CONTENT ends, which is never a whole number of pages, so the
+   strip stopped short and left a band of bare paper under a strip that
+   bleeds to both side edges - measured at 100px, a twelfth of the page, on
+   the two-page sample.
+   This tail is more of the same ground below the strip, out of flow
+   (absolute), so it changes neither the artboard's height nor the blocks the
+   paginator breaks on; the page's own edge cuts it. Its height is a variable
+   that DEFAULTS TO NOTHING on purpose: the export measures the artboard's
+   scroll height to choose an auto-fit scale and to decide whether one page
+   is enough, and a tail standing in that measurement would shrink or
+   re-paginate every document that has a strip. Only the exporter asks for
+   it, and only once every measurement is done (pdf/render.tsx). */
+.rm-footer::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* One pixel of overlap, not a clean abutment: two rects that merely touch
+     leave the raster a half-covered row between them, which prints as a pale
+     hairline across the strip (measured: one row of rgb(61,59,58) in a
+     rgb(17,17,17) band). */
+  top: calc(100% - 1px);
+  height: var(--rm-foot-tail, 0px);
+  background: var(--rm-footer-bg, var(--rm-text));
 }
 .rm-footer .rm-section {
   margin-bottom: 0;
