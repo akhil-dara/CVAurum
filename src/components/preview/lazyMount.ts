@@ -59,6 +59,34 @@ function scheduleGrant() {
   else setTimeout(grantNextMount, 120)
 }
 
+/**
+ * A card can be carried into view by the page itself, with no scroll and no
+ * resize: filter the gallery down to one match and the surviving card keeps
+ * its React key, so its placeholder simply moves up the page. Scroll and
+ * resize listeners never fire for that, and the card sat as a grey skeleton
+ * forever (measured on a 375x812 phone: search "atlas", still a skeleton at
+ * 6s, resolved only after a 200px scroll). So every element still waiting for
+ * a turn re-measures itself on a shared slow tick; the tick stops as soon as
+ * the last one has been granted.
+ */
+const layoutWatchers = new Set<() => void>()
+let layoutTimer = 0
+function watchLayout(fn: () => void) {
+  layoutWatchers.add(fn)
+  if (!layoutTimer && typeof window !== 'undefined') {
+    layoutTimer = window.setInterval(() => {
+      for (const watcher of [...layoutWatchers]) watcher()
+    }, 250)
+  }
+  return () => {
+    layoutWatchers.delete(fn)
+    if (!layoutWatchers.size && layoutTimer) {
+      clearInterval(layoutTimer)
+      layoutTimer = 0
+    }
+  }
+}
+
 export function enqueueMount(fn: () => void, inView?: () => boolean) {
   hookScrollClock()
   mountQueue.push({ fn, inView })
@@ -123,10 +151,12 @@ export function useLazyMount<T extends Element>(
     check()
     window.addEventListener('scroll', schedule, { passive: true, capture: true })
     window.addEventListener('resize', schedule, { passive: true })
+    const unwatchLayout = watchLayout(schedule)
     return () => {
       if (frame) cancelAnimationFrame(frame)
       window.removeEventListener('scroll', schedule, { capture: true } as EventListenerOptions)
       window.removeEventListener('resize', schedule)
+      unwatchLayout()
     }
   }, [seen, marginPx])
   return [ref, seen] as const
