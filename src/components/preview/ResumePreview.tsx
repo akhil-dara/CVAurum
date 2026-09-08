@@ -658,20 +658,30 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     [containerW, pageW]
   )
   const effectiveZoom = useMemo(() => {
-    // Auto fit-to-width whenever the container is NARROWER than the sheet
-    // (2026-08-17 spec 2, mobile): the phone Preview used to render the
-    // 794px sheet unscaled in a 375px viewport, forcing sideways panning.
-    // Wide containers keep honoring the user's explicit Fit toggle/zoom.
-    // The one exception is a phone that has ASKED to zoom (CanvasZoom below,
-    // which turns `autoFit` off): fitting a 794px sheet into 375px paints body
-    // copy at ~4px, so "always fit" there means "never readable". Desktop and
-    // tablet keep the unconditional narrow-container fit — their zoom controls
-    // live in the top bar and this rule is what stops a dragged-narrow window
-    // from spilling the sheet sideways.
-    const mustFit = containerW > 0 && containerW < pageW + 56 && !(isPhone && !fitToWidth)
-    if ((fitToWidth || mustFit) && containerW > 0) return fitZoom
+    // Fit-to-width — the default — scales the sheet to the container, so a
+    // narrow window or a phone never paints the 794px sheet unscaled and
+    // forces sideways panning.
+    //
+    // An EXPLICIT zoom always wins, at every width. Every zoom control turns
+    // fit off, so `fitToWidth === false` means the user asked for this scale.
+    // It used to lose to an extra "the container is narrower than the sheet,
+    // so fit anyway" rule, which on a tablet (canvas column ~704px, forever
+    // under 794+56) pinned the canvas to the fitted scale for good: the top
+    // bar's Zoom in / Zoom out moved the readout and nothing else, so the one
+    // remedy for a too-small canvas silently did nothing. Zoomed past fit the
+    // canvas row is `w-max` (see below), so a wider sheet simply scrolls.
+    if (fitToWidth && containerW > 0) return fitZoom
     return zoom
-  }, [fitToWidth, containerW, pageW, zoom, fitZoom, isPhone])
+  }, [fitToWidth, containerW, zoom, fitZoom])
+
+  // Publish what the canvas is ACTUALLY painting at, so the top bar's zoom
+  // steps from the size on screen instead of from the store's untouched
+  // `zoom`. Fitted at 0.82, stepping from 1 made the first "Zoom out" tap
+  // (1 -> 0.9) grow the sheet.
+  const setCanvasZoom = useEditorStore((s) => s.setCanvasZoom)
+  useEffect(() => {
+    setCanvasZoom(effectiveZoom)
+  }, [effectiveZoom, setCanvasZoom])
 
   // Page count from the PRINTABLE height (what the PDF paginates), NOT the
   // chrome-inflated editable canvas — so the editor and the export always agree.

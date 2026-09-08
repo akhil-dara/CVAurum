@@ -6,6 +6,10 @@ export type CopiedStyle = Record<string, string>
 
 export type LeftTab = 'content' | 'design' | 'templates' | 'ats'
 
+/** Keep a stepped zoom at two decimals — a fitted scale is a long fraction
+ *  (0.816429…), and 81.6429% would render as a jittery readout. */
+const round2 = (n: number) => Math.round(n * 100) / 100
+
 interface EditorState {
   leftTab: LeftTab
   /** section currently expanded/being edited */
@@ -13,6 +17,10 @@ interface EditorState {
   /** preview zoom (1 = 100%) */
   zoom: number
   autoFit: boolean
+  /** the zoom the canvas is actually PAINTING at — `zoom`, or the fitted scale
+   *  while fit-to-width is on. Published by ResumePreview so the zoom controls
+   *  step from the size on screen rather than from an untouched `zoom`. */
+  canvasZoom: number
   /** show the left panel (collapsible) */
   leftOpen: boolean
   /** highlight ATS missing keywords in the preview */
@@ -41,6 +49,7 @@ interface EditorState {
   setLeftTab: (t: LeftTab) => void
   setActiveSection: (s: string | null) => void
   setZoom: (z: number) => void
+  setCanvasZoom: (v: number) => void
   zoomIn: () => void
   zoomOut: () => void
   resetZoom: () => void
@@ -63,6 +72,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeSection: 'basics',
   zoom: 1,
   autoFit: true,
+  canvasZoom: 1,
   leftOpen: true,
   highlightKeywords: false,
   focusItem: null,
@@ -77,8 +87,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setLeftTab: (leftTab) => set({ leftTab }),
   setActiveSection: (activeSection) => set({ activeSection }),
   setZoom: (zoom) => set({ zoom: Math.min(2, Math.max(0.4, zoom)), autoFit: false }),
-  zoomIn: () => set({ zoom: Math.min(2, get().zoom + 0.1), autoFit: false }),
-  zoomOut: () => set({ zoom: Math.max(0.4, get().zoom - 0.1), autoFit: false }),
+  setCanvasZoom: (canvasZoom) => {
+    if (get().canvasZoom !== canvasZoom) set({ canvasZoom })
+  },
+  // Step from what is ON SCREEN, not from `zoom`: fit-to-width leaves `zoom`
+  // at its untouched 1 while the canvas paints at (say) 0.82, so stepping
+  // from `zoom` made the first "Zoom out" tap grow the sheet — and the first
+  // "Zoom in" jump straight to 110%.
+  zoomIn: () => set({ zoom: Math.min(2, round2(get().canvasZoom + 0.1)), autoFit: false }),
+  zoomOut: () => set({ zoom: Math.max(0.4, round2(get().canvasZoom - 0.1)), autoFit: false }),
   resetZoom: () => set({ zoom: 1, autoFit: false }),
   setAutoFit: (autoFit) => set({ autoFit }),
   toggleLeft: () => set({ leftOpen: !get().leftOpen }),
