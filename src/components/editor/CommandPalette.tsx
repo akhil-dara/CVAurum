@@ -248,7 +248,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
           {results.map((c, i) => (
             <button
               key={c.id}
-              className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
+              className={`flex min-h-[40px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
               // mouseMOVE, not mouseenter: when the list re-renders under a
               // stationary cursor, mouseenter fires and silently steals the
               // selection from the keyboard — Enter then runs the wrong command.
@@ -260,7 +260,10 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
                 <span className="truncate">{c.label}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                {c.hint && <span className="max-w-[12rem] truncate text-xs text-muted-foreground">{c.hint}</span>}
+                {/* The hint is the second thing you read, so on a phone it
+                    yields: sharing 375px with it truncated the command's own
+                    name to "T…", which is the one word you are searching for. */}
+                {c.hint && <span className="hidden max-w-[12rem] truncate text-xs text-muted-foreground sm:inline">{c.hint}</span>}
                 {i === sel && <CornerDownLeft className="h-3.5 w-3.5 text-muted-foreground" />}
               </span>
             </button>

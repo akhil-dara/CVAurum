@@ -270,20 +270,30 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                   </button>
                 </div>
                 <div className="my-1 h-px bg-border md:hidden" />
+                {/* The palette is the ONLY way to reach focus mode, the skim
+                    heatmap and search-by-name for templates / fonts / accents.
+                    Its bar button starts at sm and Ctrl+K needs a keyboard, so
+                    below sm this menu item is the only door in. */}
                 <button
-                  className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
+                  className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
+                  onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-palette')) }}
+                >
+                  <Command className="h-4 w-4 text-primary" /> Find a command…
+                </button>
+                <button
+                  className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
                   onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-share')) }}
                 >
                   <Share2 className="h-4 w-4 text-primary" /> Share privately
                 </button>
                 <button
-                  className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
+                  className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
                   onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-tour')) }}
                 >
                   <HelpCircle className="h-4 w-4 text-primary" /> Show the quick tour
                 </button>
                 <button
-                  className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
+                  className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
                   onClick={() => { setMoreOpen(false); updateSettings({ theme: isDark ? 'light' : 'dark' }) }}
                 >
                   {isDark ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4 text-primary" />}
