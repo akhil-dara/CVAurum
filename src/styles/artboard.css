@@ -3015,18 +3015,27 @@
    read "RE" with a cross over the rest, and a four-letter word had nothing
    left to point at (reported 2026-09-08, and before). A pill has padding to
    spare and keeps its handles where they were. */
-.mode-preview .rm-inline-edit .rm-kw-edit .rm-kw-grip {
+.mode-preview .rm-inline-edit .rm-kw-edit .rm-kw-grip,
+.mode-preview .rm-chip-edit .rm-kw-grip {
   left: 0;
   top: auto;
-  bottom: calc(100% - 0.35em);
+  bottom: 100%;
   transform: none;
 }
-.mode-preview .rm-inline-edit .rm-kw-x {
+.mode-preview .rm-inline-edit .rm-kw-x,
+.mode-preview .rm-chip-edit .rm-kw-x,
+.mode-preview .rm-chip-edit .rm-chip-del {
   right: 0;
+  left: auto;
   top: auto;
-  bottom: calc(100% - 0.35em);
+  bottom: 100%;
   transform: none;
 }
+/* Adjacent to the word's top edge, never over its letters: the word is
+   what the author clicks to EDIT, and a handle on its first or last
+   letter took that click ("move and close take over", 2026-09-08). With
+   no gap between word and handle the pointer still climbs straight into
+   a handle without the hover dropping. Pills take the same rule. */
 /* The add affordance on an inline list is a word among words, not a pill:
    a pill there read as a chip on a list that has none. */
 .mode-preview .rm-inline-edit .rm-add-btn {
