@@ -1958,10 +1958,30 @@
 .rm-art-veil {
   background: var(--rm-art-veil, transparent);
 }
-/* A header that is not already full-bleed keeps its words off the art's
-   edge, and the art off the page's. */
+/* A header with no ground of its own hangs the art ABOVE the words, never
+   behind them. Printed behind, the veins of the marble ran through the name
+   and the contact line - the lines a recruiter reads first - on every
+   template the band followed the author into, and no wash the painter can
+   draw darkens art enough for muted text without drowning it. So the band
+   is a strip across the top of the header, closed by a hairline in the
+   accent, and the name, the role and the contacts sit on the plain page
+   below it. The strip's height follows the name, so the two scale together.
+   (Folio Noir's own rules say the same for its header; a colour-block
+   composition keeps the art as its ground, through a wash of the accent,
+   further down.) */
 .rm-header-art:not(.rm-header-block):not(.rm-header-band):not(.rm-header-stepped):not(.rm-header-banner) {
-  padding: 0.9em 1.1em;
+  --rm-art-strip: calc(var(--rm-name-size) * 1.45);
+  padding-top: calc(var(--rm-art-strip) + 1.2em);
+}
+.rm-header-art:not(.rm-header-block):not(.rm-header-band):not(.rm-header-stepped):not(.rm-header-banner) .rm-art-band {
+  bottom: auto;
+  height: var(--rm-art-strip);
+}
+.rm-header-art:not(.rm-header-block):not(.rm-header-band):not(.rm-header-stepped):not(.rm-header-banner) .rm-art-veil {
+  top: var(--rm-art-strip);
+  bottom: auto;
+  height: 1px;
+  background: var(--rm-art-line, var(--rm-primary));
 }
 /* A composition with a ground of its own hands that ground to the art: an
    opaque block over the image would leave nothing to see. The art keeps the
@@ -3623,6 +3643,18 @@
 }
 .rm-root.meta-gutter .rm-col-main .rm-item > :not(.rm-meta-cell) {
   grid-column: 2;
+}
+/* On the canvas the rail's cell is a button for the entry's date control;
+   it says so on hover the way every other quiet affordance on the sheet
+   does, and costs no layout. */
+.rm-root.mode-edit.meta-gutter .rm-col-main .rm-meta-cell[role='button'] {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.rm-root.mode-edit.meta-gutter .rm-col-main .rm-meta-cell[role='button']:hover,
+.rm-root.mode-edit.meta-gutter .rm-col-main .rm-meta-cell[role='button']:focus-visible {
+  outline: 1px dashed var(--rm-primary);
+  outline-offset: 2px;
 }
 .rm-root.meta-gutter .rm-col-main .rm-meta-cell {
   grid-column: 1;

@@ -315,6 +315,18 @@ describe('a template can apply its own structure', () => {
     expect(applyTemplateToMetadata(authored, getTemplate('sapphire').defaults).layout.footer).toEqual(['languages'])
   })
 
+  it('does not carry one template art into the next, but keeps art the author chose', () => {
+    const viaNoir = applyTemplateToMetadata(fresh(), getTemplate('folio-noir').defaults)
+    expect(viaNoir.theme.artBand).toBe('navy-gold')
+    expect(applyTemplateToMetadata(viaNoir, getTemplate('chronicle').defaults).theme.artBand).toBe('none')
+    expect(applyTemplateToMetadata(viaNoir, getTemplate('aurum').defaults).theme.artBand).toBe('none')
+    const chosen = applyTemplateToMetadata(fresh(), getTemplate('aurum').defaults)
+    chosen.theme.artBand = 'cobalt'
+    expect(applyTemplateToMetadata(chosen, getTemplate('chronicle').defaults).theme.artBand).toBe('cobalt')
+    // a template that ships art still lights it up where nothing was chosen
+    expect(applyTemplateToMetadata(applyTemplateToMetadata(fresh(), getTemplate('aurum').defaults), getTemplate('folio-noir').defaults).theme.artBand).toBe('navy-gold')
+  })
+
   it('still keeps a choice the author actually made', () => {
     const chosen = fresh()
     chosen.layout.metaColumn = 'margin'

@@ -142,9 +142,34 @@ const metaColumnOf = (opts?: SecOpts): 'none' | 'gutter' | 'margin' =>
  * The label arrives already resolved (`railLabel`), so the defaults and the
  * author's own overrides are decided in one pure place rather than here.
  */
-function GutterCell({ rail }: { rail: RailLabel }) {
+function GutterCell({ rail, edit }: { rail: RailLabel; edit?: boolean }) {
+  // On the canvas the numerals are the thing an author reaches for when they
+  // want to change them, so the cell opens the entry's own date control -
+  // the popover that carries the Rail row (year and word) - by pressing the
+  // date button of the entry it belongs to. The numerals themselves stay
+  // decoration: editing text inside aria-hidden content is a trap for a
+  // screen reader, and the popover already has the two fields.
+  const open = (el: HTMLElement) => {
+    const button = el.closest('.rm-item')?.querySelector<HTMLButtonElement>('.rm-date-edit')
+    button?.click()
+  }
+  const editing = edit
+    ? {
+        role: 'button' as const,
+        tabIndex: 0,
+        title: 'Year and word on the rail — click to edit',
+        'aria-label': 'Edit the year and the word on the rail',
+        onClick: (e: React.MouseEvent<HTMLDivElement>) => open(e.currentTarget),
+        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            open(e.currentTarget)
+          }
+        },
+      }
+    : {}
   return (
-    <div className="rm-meta-cell">
+    <div className="rm-meta-cell" {...editing}>
       <Deco className="rm-year">{rail.year}</Deco>
       {rail.word ? <Deco className="rm-year-sub">{rail.word}</Deco> : null}
     </div>
@@ -685,7 +710,7 @@ function ItemHead({
   // account for it. Same flag the date itself answers.
   const cell =
     column === 'gutter' && rail && show(opts?.showDates) ? (
-      <GutterCell rail={rail} />
+      <GutterCell rail={rail} edit={!!edit} />
     ) : inMargin ? (
       <div className="rm-meta-cell">
         {loc}

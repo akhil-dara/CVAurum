@@ -296,7 +296,8 @@ describe('every full-bleed header composition is named in the art rules', () => 
 
   const excludedFromArtPadding = named(
     rules
-      .filter((r) => r.selector.startsWith('.rm-header-art:not(') && declared(r.body, 'padding').length > 0)
+      // the plain-header rule now pads the top alone, for the strip of art it hangs there
+      .filter((r) => r.selector.startsWith('.rm-header-art:not(') && declared(r.body, 'padding(?:-top)?').length > 0)
       .flatMap((r) => [...r.selector.matchAll(/:not\(([^)]+)\)/g)].map((m) => m[1]))
   )
   const handingOverTheirGround = named(

@@ -78,6 +78,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   // came from that template is never mistaken for the author's own choice.
   // An unknown or missing template id reads as the schema defaults.
   const prev = cur.template ? getTemplate(cur.template).defaults.layout : defaultMetadata().layout
+  const prevArt = cur.template ? getTemplate(cur.template).defaults.theme.artBand : defaultMetadata().theme.artBand
 
   return defaultMetadata({
     template: defaults.template,
@@ -92,9 +93,15 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       headings: cur.theme.headings ?? defaults.theme.headings,
       contacts: cur.theme.contacts ?? defaults.theme.contacts,
       links: cur.theme.links ?? defaults.theme.links,
-      // The art band is the author's once chosen; a template that ships one
-      // lights it up only where nothing was decided, the way the photo does.
-      artBand: cur.theme.artBand !== 'none' ? cur.theme.artBand : defaults.theme.artBand,
+      // The art band is the author's once chosen - but a band that merely
+      // came with the PREVIOUS template is that template's, and it must not
+      // follow the author into a design that never asked for it: Folio Noir's
+      // marble followed a switch into Chronicle and the name and the contacts
+      // were printed straight onto it (2026-09-08). Unchanged from what the
+      // previous template gave means the author never chose; the new
+      // template's own answer applies (none, for all but one).
+      artBand:
+        cur.theme.artBand !== 'none' && cur.theme.artBand !== prevArt ? cur.theme.artBand : defaults.theme.artBand,
     },
     // Adopt the template's typographic identity (fonts, sizes, spacing, case) but
     // keep the user's cross-cutting style choices so a switch never silently
