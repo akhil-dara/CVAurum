@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useEffect, type ComponentType, type ReactNod
 import { createBrowserRouter, useRouteError } from 'react-router-dom'
 import { RootLayout } from './RootLayout'
 import { Landing } from '@/routes/Landing'
+import { NotFound } from '@/routes/NotFound'
 
 const RELOAD_KEY = 'cvaurum:chunk-reload'
 
@@ -65,6 +66,12 @@ function FailedToLoad() {
     sessionStorage.removeItem(RELOAD_KEY)
     window.location.reload()
   }
+  // The root layout removes the boot splash when it mounts, and an error at
+  // the root replaces the layout, so this card sat underneath the splash
+  // and the visitor saw "Loading CVAurum..." for ever.
+  useEffect(() => {
+    document.getElementById('boot-splash')?.remove()
+  }, [])
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center text-foreground">
       <h1 className="text-lg font-semibold">This part didn’t load</h1>
@@ -130,6 +137,10 @@ export const router = createBrowserRouter([
       { path: '/resume/:id', element: s(<EditorRoute />) },
       { path: '/tracker', element: s(<Tracker />) },
       { path: '/r', element: s(<ShareReceive />) },
+      // A wrong address is not an error: it gets its own page, inside the
+      // layout (so the boot splash goes and the toaster works), not the
+      // "this part didn't load" card meant for a chunk that failed to fetch.
+      { path: '*', element: <NotFound /> },
     ],
   },
   // Standalone, chrome-free page used for native "Save as PDF".

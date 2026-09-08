@@ -141,6 +141,11 @@ function seoPages(): Plugin {
       write('app', seo.shellHtml(shell, 'Your Resumes · CVAurum'))
       write('tracker', seo.shellHtml(shell, 'Job Application Tracker · CVAurum'))
       write('r', seo.shellHtml(shell, 'Shared resume · CVAurum'))
+      // Served by the host with a 404 status for any path that is not a
+      // file above and not rewritten by _redirects; the app boots from it
+      // and shows its not-found page, so a wrong address is a real 404 to a
+      // crawler and a clear page to a person.
+      fs.writeFileSync(path.join(OUT, '404.html'), seo.shellHtml(shell, 'Page not found · CVAurum'))
 
       // The landing page carries its content in its HTML, for a reader that
       // does not run scripts (an assistant asked to compare résumé builders
@@ -163,11 +168,45 @@ function seoPages(): Plugin {
   }
 }
 
+/**
+ * The dev server's copy of what the build writes for machine readers, so
+ * http://localhost:5199/llms.txt answers the same way https://cvaurum.com/llms.txt
+ * does (without this the dev server fell through to the app shell and the
+ * router's not-found page). The generated text is built once per server.
+ */
+function machineReadersDev(): Plugin {
+  let seoPromise: Promise<typeof SeoPages> | null = null
+  const files: Record<string, (seo: typeof SeoPages) => string> = {
+    '/llms.txt': (seo) => seo.llmsTxt(),
+    '/llms-full.txt': (seo) => seo.llmsFullTxt(),
+  }
+  return {
+    name: 'cvaurum-machine-readers-dev',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url || '').split('?')[0]
+        const make = files[url]
+        if (!make) return next()
+        seoPromise ??= loadSeoPages()
+        seoPromise.then(
+          (seo) => {
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+            res.end(make(seo))
+          },
+          (err) => next(err)
+        )
+      })
+    },
+  }
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     seoPages(),
+    machineReadersDev(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: 'auto',
@@ -214,7 +253,11 @@ export default defineConfig({
         // page's content in #root, which would flash inside /resume/<id>.
         navigateFallback: '/shell.html',
         // The print route renders client-side; never serve the SPA shell for it from cache wrongly.
-        navigateFallbackDenylist: [/^\/print\//],
+        // A path that names a file (llms.txt, robots.txt, sitemap.xml, an
+        // image) is a file, not a page: with the worker installed, typing
+        // cvaurum.com/llms.txt got the app's not-found page instead of the
+        // text (measured), because the fallback answered the navigation.
+        navigateFallbackDenylist: [/^\/print\//, /\/[^/]+\.[a-z0-9]+$/i],
       },
       // Keep the dev server untouched; the service worker only ships in builds.
       devOptions: { enabled: false },
