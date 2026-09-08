@@ -300,8 +300,11 @@ export function Dashboard() {
           </div>
           {/* Wraps on a narrow screen: the three pills are 362px wide and a
               phone gives the row 327px, which used to slice the primary
-              button in half against the right edge. */}
-          <div className="flex flex-wrap gap-2">
+              button in half against the right edge. From sm: up the row is
+              back to one line - wrapping there would let this flex item
+              shrink to its min-content width and break the alignment with
+              the card grid below. */}
+          <div className="flex flex-wrap gap-2 sm:flex-nowrap">
             <button
               className="btn-ghost btn-sm"
               onClick={() => pdfRef.current?.click()}
