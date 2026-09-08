@@ -26,7 +26,7 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
     const missing = lastUnsupportedCharacters()
     if (missing.length) {
       toast(
-        `Downloaded ${result.fileName}, but ${missing.length} character${missing.length > 1 ? 's' : ''} could not be drawn and were left out: ${missing.slice(0, 8).join(' ')}${missing.length > 8 ? '...' : ''}. Try a template whose font covers this script.`,
+        `Downloaded ${result.fileName}, but ${missing.length} character${missing.length > 1 ? 's' : ''} could not be drawn and were left out: ${missing.slice(0, 8).join(' ')}${missing.length > 8 ? '...' : ''}. No bundled font has these characters yet.`,
         'error'
       )
     } else {

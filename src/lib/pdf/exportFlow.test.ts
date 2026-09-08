@@ -76,7 +76,7 @@ describe('runPdfExport', () => {
 
     await runPdfExport(doc)
 
-    expect(toasts()).toEqual(['error: Downloaded a.pdf, but 2 characters could not be drawn and were left out: అ ఖ. Try a template whose font covers this script.'])
+    expect(toasts()).toEqual(['error: Downloaded a.pdf, but 2 characters could not be drawn and were left out: అ ఖ. No bundled font has these characters yet.'])
   })
 })
 

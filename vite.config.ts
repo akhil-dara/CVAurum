@@ -10,6 +10,23 @@ const OUT = path.resolve(__dirname, 'dist')
 const SRC = path.resolve(__dirname, 'src')
 
 /**
+ * The web-font files that carry a script other than Latin (Cyrillic, Greek,
+ * Vietnamese; see scripts/fetch-fonts.cjs). The browser fetches one only
+ * when a page's text needs it, so they stay OUT of the install-time
+ * precache (which would otherwise grow by about 2.4 MB for every visitor)
+ * and are cached on first use instead (runtimeCaching below). Read off the
+ * generated stylesheet, whose comments name each block's subset.
+ */
+function nonLatinFontFiles(): string[] {
+  const css = fs.readFileSync(path.join(SRC, 'styles', 'fonts.css'), 'utf8')
+  const files: string[] = []
+  const re = /\/\*\s*[^*]*?\s(latin-ext|latin|cyrillic-ext|cyrillic|greek-ext|greek|vietnamese)\s*\*\/\s*@font-face\s*\{[^}]*?url\(\/fonts\/([^)]+)\)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(css))) if (m[1] !== 'latin' && m[1] !== 'latin-ext') files.push(`fonts/${m[2]}`)
+  return [...new Set(files)]
+}
+
+/**
  * Load src/lib/seoPages.ts into this Node process.
  *
  * It cannot simply be imported at the top of this file: Vite bundles its own
@@ -247,7 +264,25 @@ export default defineConfig({
         // The 58 pre-rendered template pages (about 0.8 MB) are never read by
         // a browser: the fallback below serves the shell and the app renders
         // the page, online or offline.
-        globIgnores: ['**/ocr/**', '**/semantic/**', '**/semantic.worker-*.js', '**/fonts-pdf/**', 'templates/**/index.html'],
+        globIgnores: [
+          '**/ocr/**',
+          '**/semantic/**',
+          '**/semantic.worker-*.js',
+          '**/fonts-pdf/**',
+          'templates/**/index.html',
+          ...nonLatinFontFiles(),
+        ],
+        // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
+        // non-Latin web subsets, the PDF instances) is cached the first time
+        // it is fetched, so a résumé in Cyrillic still exports offline once
+        // it has been exported online.
+        runtimeCaching: [
+          {
+            urlPattern: /\/(fonts|fonts-pdf)\/.+\.(woff2|ttf)$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'cvaurum-fonts', expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 3600 } },
+          },
+        ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // The plain shell, not index.html: that one carries the landing
         // page's content in #root, which would flash inside /resume/<id>.

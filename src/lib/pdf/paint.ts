@@ -29,6 +29,7 @@ import {
 } from 'pdf-lib'
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, ptToPx, flipY } from './units'
+import { fontCoveringAll, mayNeedFallback, segmentByCoverage } from './textFallback'
 import { smallCapsSegments } from './smallcaps'
 import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
@@ -883,7 +884,7 @@ export async function paintOps(
     // can never straddle two ops.
     const mark = tagSink?.begin(page, op)
     if (op.kind === 'text' && !op.run.isDecorative) {
-      const { run } = op
+      let { run } = op
       // A wrapped keyword chip is split into VISIBLE outline pieces plus one
       // INVISIBLE run carrying the whole phrase (see TextRun.outlineOnly).
       // Both leave the shared same-line snap chain alone: the outlines are
@@ -892,9 +893,38 @@ export async function paintOps(
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
       // font (real content, tracked or not) must propagate, not be
       // swallowed as a cosmetic per-op issue.
-      const font = await fonts.embed(run.family, run.weight)
+      let font = await fonts.embed(run.family, run.weight)
       const sizePt = pxToPt(run.sizePx)
       let xPt = pxToPt(run.xPx)
+
+      // A run its own font cannot draw in full (a Cyrillic name in a
+      // Latin-only family, say) is split where the script changes and each
+      // piece is drawn with the first chain font that has its glyphs, which
+      // is the same font the browser drew it with (the chain sits in the
+      // CSS stack). Latin runs never pay for this: mayNeedFallback is a
+      // single regex test. See textFallback.ts.
+      let pieces: Array<{ text: string; font: PDFFont | null }> | null = null
+      if (mayNeedFallback(run.text)) {
+        const chain = await fonts.coverage(run.family, run.weight)
+        if (chain.length > 1) {
+          const segs = segmentByCoverage(run.text, chain.map((c) => c.has))
+          if (segs.some((s) => s.font !== 0)) {
+            const chainFonts = await Promise.all(chain.map((c) => fonts.embed(c.family, run.weight)))
+            if (run.letterSpacingPx !== 0 || (run.smallCapsScale ?? 0) > 0) {
+              // A tracked heading is shaped as ONE run (two layers, outlines
+              // plus an invisible text layer), so it takes the first font that
+              // draws all of it; a heading is one script in practice.
+              const whole = fontCoveringAll(run.text, chain.map((c) => c.has))
+              if (whole > 0) {
+                run = { ...run, family: chain[whole].family }
+                font = chainFonts[whole]
+              }
+            } else {
+              pieces = segs.map((s) => ({ text: s.text, font: s.font >= 0 ? chainFonts[s.font] : null }))
+            }
+          }
+        }
+      }
 
       // Snap to the previous run's true end whenever the real DOM gap is
       // smaller than a genuine space character in THIS run's own font,
@@ -922,7 +952,12 @@ export async function paintOps(
       // Tz ratio needs, AND exactly the "untracked width" the tracked
       // branch's OWN Tz ratio needs (see paintTrackedHeading's doc comment)
       // as the denominator against the visible tracked width.
-      const embeddedWidthPt = safeWidthPt(font, run.text, sizePt, pxToPt(run.widthPx || 0))
+      const pieceWidthsPt = pieces
+        ? pieces.map((p) => (p.font ? safeWidthPt(p.font, p.text, sizePt, 0) : 0))
+        : null
+      const embeddedWidthPt = pieceWidthsPt
+        ? pieceWidthsPt.reduce((sum, w) => sum + w, 0)
+        : safeWidthPt(font, run.text, sizePt, pxToPt(run.widthPx || 0))
       let tzPct = 100
       // What the run advances the pen by BEFORE Tz. The embedded (untracked)
       // metric everywhere except a justified line, whose pieces are spread
@@ -972,7 +1007,10 @@ export async function paintOps(
         // rule - the one built into the common browser among them - ignores
         // it and draws every justified line short.
         const domWidthPt = run.widthPx > 0 ? pxToPt(run.widthPx) : 0
-        const spread = justifiedPieces(font, run.text, sizePt, embeddedWidthPt, domWidthPt)
+        // A mixed-script run is not spread as a justified line: its pieces
+        // already carry their own fonts, and the Tz scaling below fits the
+        // whole to the browser's width the same way it does one font.
+        const spread = pieces ? null : justifiedPieces(font, run.text, sizePt, embeddedWidthPt, domWidthPt)
         if (spread) {
           advanceWidthPt = domWidthPt
         } else if (domWidthPt > 0 && embeddedWidthPt > 0) {
@@ -995,6 +1033,17 @@ export async function paintOps(
             for (let i = 0; i < spread.texts.length; i++) {
               page.drawText(spread.texts[i], { ...style, x: pieceXPt })
               pieceXPt += spread.widthsPt[i] + spread.gapPt
+            }
+          } else if (pieces && pieceWidthsPt) {
+            // Each piece starts where the previous one's SCALED advance ends:
+            // Tz scales the glyph advances after the text origin, not the
+            // origin itself. A piece no chain font can draw is skipped (it is
+            // reported by the export, as before).
+            let pieceXPt = xPt
+            for (let i = 0; i < pieces.length; i++) {
+              const piece = pieces[i]
+              if (piece.font) page.drawText(piece.text, { ...style, font: piece.font, x: pieceXPt })
+              pieceXPt += pieceWidthsPt[i] * (tzPct / 100)
             }
           } else {
             page.drawText(run.text, { ...style, x: xPt })

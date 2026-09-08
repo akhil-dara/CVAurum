@@ -91,11 +91,36 @@ const FALLBACKS: Record<FontCategory, string> = {
 
 export const FONT_MAP: Record<string, FontDef> = Object.fromEntries(FONTS.map((f) => [f.name, f]))
 
+/**
+ * Bundled families that draw the scripts a Latin-only family cannot, one
+ * chain per category: the category's own face first (a serif résumé keeps a
+ * serif Cyrillic), then Inter, which covers Cyrillic, Greek and Vietnamese
+ * in full. These sit in the CSS stack right after the chosen family, so the
+ * browser draws a Cyrillic letter with them instead of with whatever system
+ * font it finds; the PDF painter walks the same chain (src/lib/pdf/
+ * textFallback.ts), so the page and the export agree glyph for glyph.
+ */
+export const SCRIPT_FALLBACKS: Record<FontCategory, string[]> = {
+  sans: ['Inter'],
+  serif: ['Source Serif 4', 'Inter'],
+  mono: ['Source Code Pro', 'Inter'],
+  display: ['Oswald', 'Inter'],
+  handwriting: ['Inter'],
+}
+
+/** The fallback families for `name`, in order, never naming `name` itself. */
+export function scriptFallbacks(name?: string): string[] {
+  const def = name ? FONT_MAP[name] : undefined
+  const chain = SCRIPT_FALLBACKS[def?.category ?? 'sans']
+  return chain.filter((f) => f !== name)
+}
+
 export function fontStack(name?: string): string {
   if (!name) return FALLBACKS.sans
   const def = FONT_MAP[name]
   const fb = def ? def.fallback ?? FALLBACKS[def.category] : FALLBACKS.sans
-  return `"${name}", ${fb}`
+  const chain = scriptFallbacks(name).map((f) => `"${f}"`)
+  return [`"${name}"`, ...chain, fb].join(', ')
 }
 
 /**

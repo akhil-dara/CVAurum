@@ -89,3 +89,48 @@ describe('PdfFontCache.embedGlyphOutlines', () => {
     expect(fetchCalls).toHaveLength(1)
   })
 })
+
+// ---------------------------------------------------------------------------
+// The script-fallback chain (issue #10): a run whose own family cannot draw a
+// character is drawn with the first family in its category's chain that can.
+// The chain is resolved from the run's WHOLE CSS stack, whose first name is
+// quoted: stripping the quotes before splitting once left a trailing quote on
+// the name, so every family fell to the sans chain and a display face's
+// Cyrillic came out in Inter while the canvas drew it in Oswald (measured).
+const REAL_INDEX_ALL = JSON.parse(fs.readFileSync(path.join(FONT_DIR, 'index.json'), 'utf8')) as Record<string, string>
+
+describe('PdfFontCache.coverage: the script-fallback chain', () => {
+  let originalFetch: typeof fetch
+  beforeAll(() => {
+    originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: string | URL) => {
+      const file = String(input).replace(/^\/fonts-pdf\//, '')
+      const bytes = fs.readFileSync(path.join(FONT_DIR, file))
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+      return { ok: true, arrayBuffer: async () => ab } as Response
+    }) as typeof fetch
+  })
+  afterAll(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it('reads the family off a quoted CSS stack and follows its own category chain', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, REAL_INDEX_ALL)
+    const chain = await fonts.coverage('"Bebas Neue", "Oswald", "Inter", ui-sans-serif, system-ui, sans-serif', 400)
+    expect(chain.map((c) => c.family.split(',')[0].replace(/"/g, ''))).toEqual(['Bebas Neue', 'Oswald', 'Inter'])
+    const cyrillicD = 'Д'.codePointAt(0)!
+    expect(chain[0].has(cyrillicD)).toBe(false)
+    expect(chain[1].has(cyrillicD)).toBe(true)
+  })
+
+  it('a Latin-only family reports no missing Cyrillic, because the chain has it', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, REAL_INDEX_ALL)
+    expect(await fonts.missingGlyphs('"Lato", "Inter", sans-serif', 400, 'Даниил Гогов')).toEqual([])
+    // still honest about a script no bundled font has
+    expect(await fonts.missingGlyphs('"Lato", "Inter", sans-serif', 400, 'అఖిల్')).not.toEqual([])
+  })
+})

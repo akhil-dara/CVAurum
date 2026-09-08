@@ -1,6 +1,7 @@
 import type { PDFDocument, PDFFont } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
+import { scriptFallbacks } from '@/data/fonts'
 
 // @pdf-lib/fontkit is CJS: under Vite the real module ends up on `.default`,
 // while under other bundlers/interop settings the namespace import IS the
@@ -52,6 +53,7 @@ export function resolveFontKey(index: Record<string, string>, family: string, we
 export class PdfFontCache {
   private cache = new Map<string, Promise<PDFFont>>()
   private glyphFontCache = new Map<string, Promise<FontkitFont>>()
+  private coverageCache = new Map<string, Promise<Array<{ family: string; has: (cp: number) => boolean }>>>()
   private bytesCache = new Map<string, Promise<Uint8Array>>()
   constructor(
     private doc: PDFDocument,
@@ -90,31 +92,67 @@ export class PdfFontCache {
   }
 
   /**
-   * The distinct characters in `text` this (family, weight) has no glyph for.
+   * The fonts that may draw a run set in `family`: the family itself, then
+   * its script fallbacks (src/data/fonts.ts), each with a glyph test. A chain
+   * member with no static font of its own is skipped rather than failing the
+   * run. Resolved once per (family, weight) and shared with `embed`'s bytes.
+   */
+  async coverage(family: string, weight: number): Promise<Array<{ family: string; has: (cp: number) => boolean }>> {
+    const key = `${this.resolve(family, weight) ?? family}|${weight}`
+    let p = this.coverageCache.get(key)
+    if (!p) {
+      p = (async () => {
+        const out: Array<{ family: string; has: (cp: number) => boolean }> = []
+        const seen = new Set<string>()
+        // `family` is the run's whole CSS stack ('"Bebas Neue", "Oswald", ...'):
+        // the FIRST name, unquoted, is the one the registry knows. (Stripping
+        // the quotes before splitting left a trailing quote on the name, so
+        // every family fell to the sans chain and a display face's Cyrillic
+        // came out in Inter while the canvas drew it in Oswald: measured.)
+        const primary = family.split(',')[0].trim().replace(/^['"]|['"]$/g, '')
+        for (const fam of [family, ...scriptFallbacks(primary)]) {
+          const k = this.resolve(fam, weight)
+          if (!k || seen.has(k)) continue
+          seen.add(k)
+          let font: FontkitFont
+          try {
+            font = await this.embedGlyphOutlines(fam, weight)
+          } catch {
+            continue
+          }
+          const has = (font as unknown as { hasGlyphForCodePoint?: (cp: number) => boolean }).hasGlyphForCodePoint
+          if (typeof has !== 'function') continue
+          out.push({ family: fam, has: (cp) => has.call(font, cp) })
+        }
+        return out
+      })()
+      this.coverageCache.set(key, p)
+    }
+    return p
+  }
+
+  /**
+   * The distinct characters in `text` that NO font in the chain for
+   * (family, weight) has a glyph for.
    *
    * A character with no glyph is not drawn as a box - it is dropped, so a
    * resume written in a script the embedded fonts do not cover exports
    * "successfully" while carrying none of its own words. Measured: a summary
    * in Telugu, Japanese and Hindi produced a 60KB PDF with all three scripts
-   * absent from the text layer.
+   * absent from the text layer. Cyrillic, Greek and Vietnamese are covered
+   * by the fallback chain now (issue #10); the rest is still reported.
    */
   async missingGlyphs(family: string, weight: number, text: string): Promise<string[]> {
     if (!text) return []
-    let font: FontkitFont
-    try {
-      font = await this.embedGlyphOutlines(family, weight)
-    } catch {
-      return [] // no font resolved at all is a different failure, reported elsewhere
-    }
-    const has = (font as unknown as { hasGlyphForCodePoint?: (cp: number) => boolean }).hasGlyphForCodePoint
-    if (typeof has !== 'function') return []
+    const chain = await this.coverage(family, weight)
+    if (!chain.length) return [] // no font resolved at all is a different failure, reported elsewhere
     const missing = new Set<string>()
     for (const ch of text) {
       const cp = ch.codePointAt(0)
       if (cp === undefined) continue
       // Whitespace and control characters are never drawn; absence is normal.
       if (cp <= 0x20) continue
-      if (!has.call(font, cp)) missing.add(ch)
+      if (!chain.some((c) => c.has(cp))) missing.add(ch)
     }
     return [...missing]
   }
