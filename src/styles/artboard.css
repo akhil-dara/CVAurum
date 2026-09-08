@@ -3008,6 +3008,34 @@
 .rm-inline-edit .rm-kw-x:hover {
   color: var(--rm-primary);
 }
+/* On an INLINE list the two handles stand ABOVE the word - the grip at its
+   left end, the cross at its right - overlapping its top edge by a third of
+   their height, so the pointer travels from the word to a handle without
+   leaving the keyword's hover. Inside the word they hid its letters: "REST"
+   read "RE" with a cross over the rest, and a four-letter word had nothing
+   left to point at (reported 2026-09-08, and before). A pill has padding to
+   spare and keeps its handles where they were. */
+.mode-preview .rm-inline-edit .rm-kw-edit .rm-kw-grip {
+  left: 0;
+  top: auto;
+  bottom: calc(100% - 0.35em);
+  transform: none;
+}
+.mode-preview .rm-inline-edit .rm-kw-x {
+  right: 0;
+  top: auto;
+  bottom: calc(100% - 0.35em);
+  transform: none;
+}
+/* The add affordance on an inline list is a word among words, not a pill:
+   a pill there read as a chip on a list that has none. */
+.mode-preview .rm-inline-edit .rm-add-btn {
+  background: none;
+  border-radius: 0;
+  padding: 0 0.15em;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
 
 /* Optional link underlines (2026-08-25). The export makes every URL clickable,
    but nothing on the page says so; an author who wants that visible can turn
