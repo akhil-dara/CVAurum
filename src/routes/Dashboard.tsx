@@ -89,10 +89,13 @@ function StorageNotice({
       ? 'Your browser has not guaranteed permanent storage for this site — it may clear your resumes under disk pressure. Download a backup.'
       : 'It has been a while since your last backup. Download one so a cleared browser can never lose your resumes.'
   return (
-    <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
+    // One row on a wide screen; on a narrow one the message keeps a readable
+    // column and the two controls drop to a line of their own instead of
+    // squeezing the sentence into a sliver.
+    <div className="mb-6 flex flex-wrap items-start gap-x-2.5 gap-y-2 rounded-xl border border-warning/30 bg-warning/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
       <span aria-hidden>⚠️</span>
-      <span className="min-w-0 flex-1">{message}</span>
-      <button className="btn-outline btn-sm h-7 shrink-0" onClick={onBackup}>
+      <span className="min-w-0 flex-1 basis-56">{message}</span>
+      <button className="btn-outline btn-sm ml-auto h-7 shrink-0" onClick={onBackup}>
         <DatabaseBackup className="h-3.5 w-3.5" /> Back up now
       </button>
       <button className="btn-icon h-6 w-6 shrink-0" onClick={onDismiss} aria-label="Dismiss">
