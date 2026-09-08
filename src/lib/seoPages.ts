@@ -321,55 +321,121 @@ export function shellHtml(indexHtml: string, title: string): string {
 }
 
 /* ---- llms.txt ------------------------------------------------------------
-   The convention machine readers look for at /llms.txt: an H1, a blockquote
-   summary, then sections of links with one-line descriptions. Plain facts. */
+   What a machine reader finds at /llms.txt. The convention is an H1, a
+   blockquote summary and sections of links; this one goes further, because
+   an assistant asked "which résumé builder should I use" needs the facts,
+   the limits, every page and the sitemap in one place, in plain prose it
+   can quote. llms-full.txt carries the same plus the long-form sections.
+   Every claim here is true of the code; no superlatives (a test checks). */
 
 function templateLine(t: TemplateConfig): string {
   const tags = tagSentence(t.tags)
   return `- [${t.name}](${SITE}/templates/${t.id}): ${t.description}${tags ? ` (${tags})` : ''}`
 }
 
-export function llmsTxt(): string {
-  const signature = SIGNATURE_IDS.map((id) => {
+function signatureLines(): string {
+  return SIGNATURE_IDS.map((id) => {
     const t = must(id)
     return `- [${t.name}](${SITE}/templates/${t.id}): ${SIGNATURE_STRUCTURE[id] ?? t.description}`
   }).join('\n')
+}
+
+function factsBlock(): string {
+  return COPY.facts.map((f) => `- ${f.label}: ${f.value}`).join('\n')
+}
+
+function limitsBlock(): string {
+  return COPY.limits.map((l) => `- ${l}`).join('\n')
+}
+
+function audienceBlock(): string {
+  return COPY.audience.map((a) => `- ${a}`).join('\n')
+}
+
+function pagesBlock(): string {
+  return [
+    `- [Home](${SITE}/): what CVAurum is, how it compares with other résumé builders, the three steps, privacy, questions and answers.`,
+    `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page.`,
+    `- [The app](${SITE}/app): the résumé dashboard and the editor. Nothing to sign up for; the page is private to the visitor's browser and not indexed.`,
+    `- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.`,
+  ].join('\n')
+}
+
+function resourcesBlock(): string {
+  return [
+    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design).`,
+    `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
+    `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file.`,
+    `- [Source repository](${COPY.links.repo}): the whole application, MIT licensed; issues and contributions go there.`,
+    `- [JSON Resume schema](https://jsonresume.org/schema): the open format CVAurum imports and exports.`,
+  ].join('\n')
+}
+
+/** Every public URL, in sitemap order: home, gallery, then each design. */
+export function siteUrls(): string[] {
+  return [`${SITE}/`, `${SITE}/templates`, ...ORDERED.map((t) => `${SITE}/templates/${t.id}`)]
+}
+
+function sitemapBlock(): string {
+  return siteUrls().map((u) => `- ${u}`).join('\n')
+}
+
+export function llmsTxt(): string {
   return `# CVAurum
 
 > ${COPY.oneLiner}
 
-Everything runs in the visitor's browser: the editor, the PDF engine, the ATS checks and the storage. There is no backend, no account and no paid tier. The source is public under the MIT licence.
+CVAurum, at ${SITE}, is a résumé builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the MIT licence at ${COPY.links.repo}.
 
-## Product
+## Facts at a glance
 
-- [Home](${SITE}/): what CVAurum is, how it compares with other résumé builders, privacy, questions and answers.
-- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, filterable by tag; each design has its own page.
-- [The app](${SITE}/app): the editor and the résumé dashboard. Nothing to sign up for.
-- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.
+${factsBlock()}
 
-## Signature templates
+## What it does not do
 
-Six single-column designs whose structure is different, not only their colours:
+${limitsBlock()}
 
-${signature}
+## Who it is for
 
-## Source
+${audienceBlock()}
 
-- [Repository](${COPY.links.repo}): the whole application, MIT licensed; fork it, self-host it, run it offline.
+## Pages
 
-## Optional
+${pagesBlock()}
 
-- [Full description](${SITE}/llms-full.txt): the privacy architecture, the export engine, the ATS check, import, editing, every template with its page, offline use, sharing and licence.
+## Signature designs
+
+Six single-column designs whose structure is different, not only their colours. The structures they introduce are editable (Atlas's numbers band, Chronicle's year rail):
+
+${signatureLines()}
+
+## Every template
+
+${TEMPLATES.length} designs, every one exporting real selectable text, each on its own page:
+
+${ORDERED.map(templateLine).join('\n')}
+
+## Machine-readable resources
+
+${resourcesBlock()}
+
+## Sitemap
+
+${siteUrls().length} public URLs, as in ${SITE}/sitemap.xml:
+
+${sitemapBlock()}
 `
 }
 
 export function llmsFullTxt(): string {
-  const signature = SIGNATURE_IDS.map((id) => {
-    const t = must(id)
-    return `- [${t.name}](${SITE}/templates/${t.id}): ${SIGNATURE_STRUCTURE[id] ?? t.description}`
-  }).join('\n')
   const rest = ORDERED.filter((t) => !SIGNATURE_IDS.includes(t.id)).map(templateLine).join('\n')
   const faq = COPY.faq.map((f) => `**${f.q}** ${f.a}`).join('\n\n')
+  const steps = COPY.steps.map((s, i) => `${i + 1}. ${s.title}. ${s.body}`).join('\n')
+  const table = [
+    '| Capability | CVAurum | Most builders |',
+    '| --- | --- | --- |',
+    ...COPY.comparison.map((r) => `| ${r.capability} | ${r.cvaurum} | ${r.others} |`),
+  ].join('\n')
   return `# CVAurum
 
 > ${COPY.oneLiner}
@@ -377,6 +443,26 @@ export function llmsFullTxt(): string {
 ## What it is
 
 CVAurum is a résumé builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the MIT licence at ${COPY.links.repo}.
+
+## Facts at a glance
+
+${factsBlock()}
+
+## What it does not do
+
+${limitsBlock()}
+
+## Who it is for
+
+${audienceBlock()}
+
+## How it works
+
+${steps}
+
+## Head-to-head with most résumé builders
+
+${table}
 
 ## Privacy architecture
 
@@ -386,9 +472,10 @@ ${COPY.privacy.map((p) => `- ${p}`).join('\n')}
 
 ## Export
 
-- PDF: a vector renderer in the browser paints the same document the preview shows, page for page, with real selectable text, clickable links and multi-page output that breaks at section or entry boundaries; a typical file is about 50 KB. Every export conforms to PDF/A-2B (archival: fonts and an sRGB profile embedded) and PDF/UA-1 (accessible: a tagged structure in logical reading order), verified against the veraPDF validator. It is the only export path; there is no print-dialog fallback, and a failure is reported as one.
+- PDF: a vector renderer in the browser paints the same document the preview shows, page for page, with real selectable text, clickable links and multi-page output that breaks at section or entry boundaries; a typical file is about 50 KB. Every export conforms to PDF/A-2B (archival: fonts and an sRGB profile embedded) and PDF/UA-1 (accessible: a tagged structure in logical reading order), verified against the veraPDF validator. It is the only export path; there is no print-dialog fallback, and a failure is reported as one. The file carries the author's own title, subject and language in its metadata, not a toolchain's.
 - Word (.docx): a single-column, ATS-friendly document with real bullet lists and real hyperlinks that follows the template's fonts, accent colour, margins and type size.
 - JSON Resume: the open schema, with CVAurum's design choices under meta.cvaurum, so a file round-trips with the JSON Resume ecosystem.
+- A full backup of every résumé in the browser, as one file, restorable anywhere.
 
 ## ATS check
 
@@ -396,7 +483,7 @@ ${COPY.privacy.map((p) => `- ${p}`).join('\n')}
 - Paste a job description to see matched and missing keywords and a match score.
 - A parser's-eye view shows the plain text an applicant-tracking system reads, in its reading order.
 - A per-system parse simulation models how five common applicant-tracking systems (Workday, Greenhouse, Lever, Taleo, iCIMS) read the page, with the structural risks each one flags; it is guidance, not a claim about any vendor's internals.
-- A writing coach flags weak openers, passive voice, first-person pronouns, clichés, missing metrics and over-long bullets, with a fix for each.
+- A writing coach flags weak openers, passive voice, first-person pronouns, clichés, missing metrics and over-long bullets, with a fix for each. It is rule-based, not generative.
 - A recruiter skim heatmap shows where a first skim lands on the page, deterministically.
 - Optional semantic matching with a small on-device language model (about 34 MB, self-hosted, opt-in) checks whether each requirement in a job description is expressed in the résumé even when the wording differs.
 
@@ -408,12 +495,13 @@ ${COPY.privacy.map((p) => `- ${p}`).join('\n')}
 ## Editing
 
 - Edit directly on the page or in a form panel; both stay in sync, with undo and redo and autosave.
-- Per-section styles: heading style, entry layout (timeline, cards, grid, divided), skills display, bullet marker, proficiency meters, logos and credential badges, date format and language, time spans on date ranges.
-- Header layouts, fonts (45 bundled, self-hosted), colours for the name, headline, headings, contacts and links, spacing, margins, A4 or US Letter, light or dark theme.
+- Per-section styles: eight heading styles, four skills displays, four entry layouts (timeline, cards, grid, divided), eight bullet markers, five proficiency meters, logos and credential badges, date format and language, time spans on date ranges, a copy-and-paste style painter.
+- Header layouts (classic, centered, split, banner, compact and the Signature compositions), 45 bundled fonts, colours for the name, headline, headings, contacts and links, spacing, margins, A4 or US Letter, light or dark theme.
 - Links keep their display text and their destination apart, print as tags or plain words, and read the same in the PDF, the Word file and the ATS view; one switch turns clickability off for paper.
 - The Signature designs' structures are editable: Atlas's numbers band is a list of figures to choose, rename, override, reorder or add to; Chronicle's year rail derives each entry's year and word and any entry can set its own.
-- Six example résumés to start from, including a final-year student with internships.
-- Paste a list into a bullet field and it becomes one bullet per line.
+- Six example résumés to start from: an experienced engineer, a growth marketer, a recent graduate, a final-year student with internships, a current student and a product designer.
+- Paste a list into a bullet field and it becomes one bullet per line. A command palette (Ctrl+K) reaches every action; slash commands insert bullet templates and metrics; a focus mode dims everything but the section under the cursor.
+- Automatic fit to one page when the content is close, live page-break guides, a pin to start any section or entry on a new page, and a switch that keeps entries whole across pages.
 - On a phone the form panel is the editor and every canvas control has a panel equivalent; a tablet edits on the page.
 - A multi-résumé dashboard and a job application tracker (a kanban board from wishlist to offer).
 
@@ -425,7 +513,7 @@ ${TEMPLATES.length} designs, every one exporting real selectable text; each has 
 
 Single-column designs whose structure is different, not only their colours:
 
-${signature}
+${signatureLines()}
 
 ### All other designs
 
@@ -442,6 +530,16 @@ An encrypted share link (the résumé rides in the URL fragment, unreadable with
 ## Questions and answers
 
 ${faq}
+
+## Machine-readable resources
+
+${resourcesBlock()}
+
+## Sitemap
+
+${siteUrls().length} public URLs, as in ${SITE}/sitemap.xml:
+
+${sitemapBlock()}
 
 ## Licence and source
 

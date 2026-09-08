@@ -17,6 +17,7 @@ import {
   shellHtml,
   llmsTxt,
   llmsFullTxt,
+  siteUrls,
 } from '@/lib/seoPages'
 import { SITE as COPY } from '@/data/siteCopy'
 
@@ -213,10 +214,24 @@ describe('llms.txt', () => {
     expect(t).toContain('https://cvaurum.com/templates')
     expect(t).toContain('/llms-full.txt')
   })
+  it('carries the facts, the limits, every template and the sitemap, without superlatives', () => {
+    const t = llmsTxt()
+    for (const f of COPY.facts) expect(t).toContain(`- ${f.label}: `)
+    for (const l of COPY.limits) expect(t).toContain(l)
+    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
+    expect(t).toContain('https://cvaurum.com/sitemap.xml')
+    expect(t).toContain('https://cvaurum.com/robots.txt')
+    expect(siteUrls()).toHaveLength(TEMPLATES.length + 2)
+    for (const u of siteUrls()) expect(t).toContain(`- ${u}`)
+    expect(t).not.toMatch(/best|beast|world-class|#1/i)
+  })
   it('the full text names every template with its page, without superlatives', () => {
     const t = llmsFullTxt()
     for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
     expect(t).toContain(COPY.oneLiner)
+    for (const r of COPY.comparison) expect(t).toContain(`| ${r.capability} |`)
+    for (const f of COPY.faq) expect(t).toContain(`**${f.q}**`)
+    expect(t).toContain('## Sitemap')
   })
 })

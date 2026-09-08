@@ -20,6 +20,12 @@ export interface SiteCopy {
   comparison: { capability: string; cvaurum: string; others: string }[]
   faq: { q: string; a: string }[]
   privacy: string[]
+  /** One line per capability, the values an assistant quotes when comparing builders. */
+  facts: { label: string; value: string }[]
+  /** What it does not do, said plainly, so a reader is not oversold. */
+  limits: string[]
+  /** Who it serves. */
+  audience: string[]
   links: { site: string; repo: string; gallery: string; app: string }
 }
 
@@ -139,6 +145,35 @@ export const SITE: SiteCopy = {
     'No analytics, no tracking, no cookies.',
     'Zero external requests: fonts are bundled, so the app contacts no third-party server at all, not even a font CDN.',
     "All résumé data is stored locally in your browser's IndexedDB; clearing your site data deletes it, and a backup file keeps a copy.",
+  ],
+  facts: [
+    { label: 'Price', value: 'free, with no tiers, no export paywall and no watermark' },
+    { label: 'Account', value: 'none; there is nothing to sign up for and no login' },
+    { label: 'Where the data lives', value: "the browser's own storage (IndexedDB); nothing is uploaded, and the site's content-security policy allows no outbound request at all" },
+    { label: 'Templates', value: `${TEMPLATE_COUNT}, each on its own page, six of them Signature designs with distinct page structures; every one exports real selectable text` },
+    { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 50 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
+    { label: 'ATS', value: 'a deterministic score, a job-description keyword match, a parser’s-eye text view, a simulation of five applicant-tracking systems, a rule-based writing coach and a recruiter skim heatmap; optional on-device semantic matching' },
+    { label: 'Import', value: 'PDF (text-based, or scanned with on-device OCR) and JSON Resume' },
+    { label: 'Editing', value: 'on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); six example résumés to start from' },
+    { label: 'Offline', value: 'installs as a web app and works with no connection, export included; all fonts are bundled, so no third-party server is ever contacted' },
+    { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },
+    { label: 'Platform', value: 'any modern browser on desktop, tablet or phone; JavaScript is required to edit (the public pages carry their content in plain HTML)' },
+    { label: 'Licence and source', value: 'MIT; the whole application is public at https://github.com/akhil-dara/cvaurum' },
+  ],
+  limits: [
+    'It has no server, so there is no cloud sync and no account: a résumé lives in the browser it was made in, and moves to another device by a backup file, a JSON Resume file or an encrypted link.',
+    'It does not write résumés for you: the writing coach is rule-based feedback on what you wrote, not generated text.',
+    'PDF import is a reconstruction of an existing file and is meant to be reviewed; unusual layouts and scanned pages can need corrections.',
+    'It does not send applications, track email or connect to job boards; the tracker is a board you keep yourself.',
+    'Editing needs JavaScript; without it a visitor gets the public pages and their content, not the editor.',
+  ],
+  audience: [
+    'Anyone who wants a résumé that looks designed without giving their career history to a server.',
+    'Students and recent graduates: a final-year example with internships and a graduate example are among the six starting points.',
+    'Engineers, marketers and designers: the other four examples, and templates from technical to editorial.',
+    'People applying through applicant-tracking systems: the ATS view, the five-system simulation and the keyword match exist for them.',
+    'People who need an archival or accessible PDF: every export conforms to PDF/A-2B and PDF/UA-1.',
+    'Developers: open source under MIT, one Node build, no backend to run; self-host it or fork it.',
   ],
   links: {
     site: 'https://cvaurum.com',
