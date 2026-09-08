@@ -157,9 +157,29 @@ function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: 
   )
 }
 
+/**
+ * Which shape this popover takes. A floating card can only be reached with a
+ * pointer that can hover a scrollbar and a window that can be resized; on a
+ * touch screen whatever hangs below the edge is simply gone. Phones took the
+ * sheet already; a tablet (touch, but wider than 640) was left with the card
+ * and lost its bottom strip. Desktop - any width, because a fine pointer is
+ * what decides - keeps the card exactly as before.
+ */
+function wantsSheet() {
+  const w = document.documentElement.clientWidth
+  if (w < 640) return true
+  const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
+  return coarse && w < 1024
+}
+
 export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
   const [open, setOpen] = useState(false)
   const [top, setTop] = useState(0)
+  // The room left under `top`. The panel used to cap its height at the whole
+  // window (100vh-16px) no matter how far down it started, so top + height
+  // fell below the window edge and the last controls - the body font among
+  // them - could not be scrolled back into view.
+  const [maxH, setMaxH] = useState(0)
   const [sheet, setSheet] = useState(false)
   const current = doc.metadata.layout.headerStyle ?? ''
   const panelRef = useRef<HTMLDivElement>(null)
@@ -171,8 +191,10 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
   // header's popover to open at the Numbers group instead.
   useEffect(() => {
     const onOpen = () => {
-      setSheet(document.documentElement.clientWidth < 640)
-      setTop(Math.max(8, Math.min(120, window.innerHeight - 420)))
+      setSheet(wantsSheet())
+      const t = Math.max(8, Math.min(120, window.innerHeight - 420))
+      setTop(t)
+      setMaxH(window.innerHeight - t - 8)
       setOpen(true)
       requestAnimationFrame(() => panelRef.current?.querySelector('#hg-numbers')?.scrollIntoView({ block: 'start' }))
     }
@@ -187,14 +209,18 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
     // saw a cut-off card that would not scroll (reported from a phone,
     // 2026-08-30; the panel itself scrolled, but only within the sliver
     // that was actually on screen).
-    if (document.documentElement.clientWidth < 640) {
+    if (wantsSheet()) {
       setSheet(true)
       setOpen(true)
       return
     }
     setSheet(false)
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setTop(Math.max(8, Math.min(r.top - 4, window.innerHeight - 420)))
+    // Level with the pill, but never starting so low that the panel's own
+    // height would run off the bottom: what is left under `top` IS the cap.
+    const t = Math.max(8, Math.min(r.top - 4, window.innerHeight - 420))
+    setTop(t)
+    setMaxH(window.innerHeight - t - 8)
     setOpen(true)
   }
   const pick = (value: string) =>
@@ -228,9 +254,13 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
               className={
                 sheet
                   ? 'fixed inset-x-0 bottom-0 z-[61] overflow-y-auto overflow-x-hidden overscroll-contain rounded-t-2xl border-t border-border bg-surface p-1.5 pb-4 text-foreground shadow-float'
-                  : 'fixed z-[61] max-h-[calc(100vh-16px)] w-[19rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float'
+                  : 'fixed z-[61] w-[19rem] overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border border-border bg-surface p-1.5 text-foreground shadow-float'
               }
-              style={sheet ? { maxHeight: Math.round(window.innerHeight * 0.8) } : { top, left: Math.max(8, document.documentElement.clientWidth - 304 - 12) }}
+              style={
+                sheet
+                  ? { maxHeight: Math.round(window.innerHeight * 0.8) }
+                  : { top, maxHeight: maxH, left: Math.max(8, document.documentElement.clientWidth - 304 - 12) }
+              }
             >
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Header <span className="font-normal normal-case">— layout</span>
