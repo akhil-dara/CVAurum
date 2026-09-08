@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeContent } from '@/types/document'
-import { formatDate, formatDateRange, isSingleDate, monthNames } from '@/lib/utils'
+import { currentYearMonth, formatDate, formatDateRange, isSingleDate, monthNames } from '@/lib/utils'
 import type { DateRangeOptions } from '@/lib/utils'
+import { railLabel } from '@/lib/rail'
 import type { EditFn } from './Editable'
 
 const NOW_YEAR = new Date().getFullYear()
@@ -97,6 +98,10 @@ function MonthYear({
   )
 }
 
+/** What the rail draws beside this entry, as the author stored it. Both
+ *  halves optional: a missing one means the automatic label. */
+export type RailValue = { year?: string; word?: string }
+
 /**
  * Click-to-edit date on the resume canvas. Shows the formatted date (or a hint)
  * and opens a month/year picker popover — so dates are editable right where you
@@ -110,6 +115,11 @@ export function CanvasDate({
   applyStart,
   applyEnd,
   dateOpts,
+  railOn,
+  rail,
+  applyRail,
+  sectionKey,
+  status,
 }: {
   edit: EditFn
   range?: boolean
@@ -121,6 +131,19 @@ export function CanvasDate({
    *  present word and language, plus the section's time span when it asked
    *  for one - so the label while editing is the text the print render sets. */
   dateOpts?: DateRangeOptions
+  /** The document's date column is the rail, so this entry HAS a cell there
+   *  to control. False on every template that draws no rail, where the two
+   *  fields would set something invisible. */
+  railOn?: boolean
+  /** The author's own numerals and word for this entry, when they set them. */
+  rail?: RailValue
+  /** Writes them back. Absent for a section the rail draws nothing for. */
+  applyRail?: (c: ResumeContent, rail: RailValue) => void
+  /** Which section this entry is in, and how far along it is - the two
+   *  things the automatic label is decided from, so the fields can show it
+   *  as their placeholder. */
+  sectionKey?: string
+  status?: string
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -141,6 +164,13 @@ export function CanvasDate({
   // (formatDateRange treats an empty end as Present, which is wrong when the
   // start is empty too — that's a brand-new, untouched entry).
   const label = range ? (start.trim() || (end || '').trim() ? formatDateRange(start, end, dateOpts) : 'Add dates') : formatDate(start, dateOpts) || 'Add date'
+
+  // What the rail would draw here on its own - shown as the placeholder, so
+  // the author sees the automatic label before deciding to replace it.
+  const railDefault =
+    railOn && applyRail && sectionKey
+      ? railLabel(sectionKey, { startDate: start, endDate: end, status }, currentYearMonth())
+      : null
 
   const openAt = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -200,6 +230,28 @@ export function CanvasDate({
                       )}
                     </>
                   )}
+                </>
+              )}
+              {railOn && applyRail && (
+                <>
+                  <div className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rail</div>
+                  <div className="flex gap-1">
+                    <input
+                      className="input h-7 w-16 px-1.5 text-xs"
+                      aria-label="Rail year"
+                      placeholder={railDefault?.year ?? 'year'}
+                      value={rail?.year ?? ''}
+                      onChange={(e) => edit((c) => applyRail(c, { ...rail, year: e.target.value }))}
+                    />
+                    <input
+                      className="input h-7 min-w-0 flex-1 px-1.5 text-xs"
+                      aria-label="Rail word"
+                      placeholder={railDefault?.word || 'word'}
+                      value={rail?.word ?? ''}
+                      onChange={(e) => edit((c) => applyRail(c, { ...rail, word: e.target.value }))}
+                    />
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">The big year and the word under it. Leave blank for the automatic one.</p>
                 </>
               )}
               <div className="mt-3 flex justify-end">

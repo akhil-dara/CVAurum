@@ -4,7 +4,8 @@ import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import type { NamedLink } from '@/types/resume'
 import { cn, currentYearMonth, dateProgress, uid } from '@/lib/utils'
-import { newItem, removeItem, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
+import { newItem, removeItem, entryBadgeOn, metaColumnOn, ADD_LABEL } from '@/lib/sections'
+import { railLabel } from '@/lib/rail'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
 import { LogoPicker } from './fields/LogoPicker'
@@ -196,7 +197,7 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
                 </div>
                 {open && (
                   <div className="space-y-3 border-t border-border p-3">
-                    <ItemFields sectionKey={sectionKey} item={it} patch={(fn) => patchById(id, fn)} />
+                    <ItemFields doc={doc} sectionKey={sectionKey} item={it} patch={(fn) => patchById(id, fn)} />
                     <PageBreakRow sectionKey={sectionKey} itemId={id} />
                   </div>
                 )}
@@ -359,11 +360,76 @@ function PageBreakRow({ sectionKey, itemId }: { sectionKey: string; itemId: stri
   )
 }
 
-function ItemFields({
+/** The section name the rail decides its automatic word from. Every custom
+ *  section is one 'custom' as far as the rail is concerned. */
+const railSectionOf = (sectionKey: string) => (sectionKey.startsWith('custom-') ? 'custom' : sectionKey)
+/** The five section kinds the rail draws a cell for. No other entry has one,
+ *  so no other form offers the fields. */
+const RAIL_SECTIONS = new Set(['work', 'education', 'projects', 'volunteer', 'custom'])
+
+/**
+ * The rail's two fields for one entry, folded away under a disclosure.
+ *
+ * This is the phone's path to them: the canvas date popover carries the same
+ * pair, and a phone has no editable canvas. Shown only while the document's
+ * date column IS the rail - on any other template the two fields would set
+ * something that is never drawn.
+ *
+ * Each field's placeholder is the automatic label, resolved with this entry's
+ * own override taken out, so the author sees what the rail says today before
+ * deciding to say something else.
+ */
+function RailFields({
+  doc,
   sectionKey,
   item,
   patch,
 }: {
+  doc: ResumeDocument
+  sectionKey: string
+  item: AnyItem
+  patch: (fn: (it: AnyItem) => void) => void
+}) {
+  const key = railSectionOf(sectionKey)
+  if (!RAIL_SECTIONS.has(key)) return null
+  if (metaColumnOn(doc.metadata, doc.content) !== 'gutter') return null
+  const railDefault = railLabel(key, { ...item, rail: undefined }, currentYearMonth())
+  return (
+    <details className="mt-1">
+      <summary className="cursor-pointer text-xs text-muted-foreground">Rail label</summary>
+      <Row>
+        <TextField
+          label="Rail year"
+          value={item.rail?.year ?? ''}
+          onChange={(v) =>
+            patch((it) => {
+              it.rail = { ...(it.rail ?? {}), year: v }
+            })
+          }
+          placeholder={railDefault?.year ?? 'automatic'}
+        />
+        <TextField
+          label="Rail word"
+          value={item.rail?.word ?? ''}
+          onChange={(v) =>
+            patch((it) => {
+              it.rail = { ...(it.rail ?? {}), word: v }
+            })
+          }
+          placeholder={railDefault?.word || 'automatic'}
+        />
+      </Row>
+    </details>
+  )
+}
+
+function ItemFields({
+  doc,
+  sectionKey,
+  item,
+  patch,
+}: {
+  doc: ResumeDocument
   sectionKey: string
   item: AnyItem
   patch: (fn: (it: AnyItem) => void) => void
@@ -417,6 +483,7 @@ function ItemFields({
               />
             </div>
           </Row>
+          <RailFields doc={doc} sectionKey={sectionKey} item={item} patch={patch} />
           <TextAreaField
             label="Role summary"
             value={item.summary ?? ''}
@@ -483,6 +550,7 @@ function ItemFields({
               singleWith={item.startDate}
             />
           </Row>
+          <RailFields doc={doc} sectionKey={sectionKey} item={item} patch={patch} />
           <Labeled
             label="Status"
             hint="In progress states the finish as expected — “Expected May 2027” — instead of printing a graduation that has not happened yet."
@@ -575,6 +643,7 @@ function ItemFields({
               singleWith={item.startDate}
             />
           </Row>
+          <RailFields doc={doc} sectionKey={sectionKey} item={item} patch={patch} />
           <Labeled label="One-line description">
             <RichTextEditor value={item.description ?? ''} onChange={set('description')} minHeight={36} />
           </Labeled>
@@ -735,6 +804,7 @@ function ItemFields({
               singleWith={item.startDate}
             />
           </Row>
+          <RailFields doc={doc} sectionKey={sectionKey} item={item} patch={patch} />
           <Labeled label="Summary">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />
           </Labeled>
@@ -774,6 +844,7 @@ function ItemFields({
             <DateField label="Date" value={item.date} onChange={set('date')} />
             <TextField label="Location" value={item.location} onChange={set('location')} />
           </Row>
+          <RailFields doc={doc} sectionKey={sectionKey} item={item} patch={patch} />
           <TextField label="Link" value={item.url} onChange={set('url')} placeholder="https://…" />
           <Labeled label="Description">
             <RichTextEditor value={item.summary ?? ''} onChange={set('summary')} minHeight={48} />

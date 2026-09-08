@@ -17,7 +17,7 @@ import { railLabel, type RailLabel } from '@/lib/rail'
 import { Chips, Deco, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords, ringPath } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
-import { CanvasDate } from './CanvasDate'
+import { CanvasDate, type RailValue } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
 import { entryMetaOf, entryOrderOf, linkStyleOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
 import { keywordChunks } from '@/lib/keywordChunks'
@@ -152,6 +152,20 @@ function GutterCell({ rail }: { rail: RailLabel }) {
 }
 
 type Apply = (c: ResumeDocument['content'], v: string) => void
+/**
+ * What the entry's date popover needs to offer the rail's two fields: which
+ * section decides the automatic word, how far along the entry is, what the
+ * author already stored, and where to write a change back. Built only where
+ * the rail is the document's date column - `on` carries that answer, so a
+ * template with no rail never shows the row.
+ */
+type RailCtl = {
+  on: boolean
+  sectionKey: string
+  status?: string
+  value?: RailValue
+  apply: (c: ResumeDocument['content'], rail: RailValue) => void
+}
 /** A date range that's click-to-edit on the canvas (and plain text in print). */
 function rangeDate(
   edit: EditFn | undefined,
@@ -160,11 +174,27 @@ function rangeDate(
   end: string,
   applyStart: Apply,
   applyEnd: Apply,
-  dates?: DateRangeOptions
+  dates?: DateRangeOptions,
+  rail?: RailCtl
 ): ReactNode {
   if (!visible) return undefined
   if (!edit) return formatDateRange(start, end, dates) || undefined
-  return <CanvasDate edit={edit} range start={start} end={end} applyStart={applyStart} applyEnd={applyEnd} dateOpts={dates} />
+  return (
+    <CanvasDate
+      edit={edit}
+      range
+      start={start}
+      end={end}
+      applyStart={applyStart}
+      applyEnd={applyEnd}
+      dateOpts={dates}
+      railOn={rail?.on}
+      rail={rail?.value}
+      applyRail={rail?.apply}
+      sectionKey={rail?.sectionKey}
+      status={rail?.status}
+    />
+  )
 }
 /** The document's date settings, plus the time span a section asked for,
  *  read against this render's today. */
@@ -181,11 +211,24 @@ function singleDate(
   visible: boolean,
   date: string,
   applyDate: Apply,
-  dates?: DateOptions
+  dates?: DateOptions,
+  rail?: RailCtl
 ): ReactNode {
   if (!visible) return undefined
   if (!edit) return date ? formatDate(date, dates) : undefined
-  return <CanvasDate edit={edit} start={date} applyStart={applyDate} dateOpts={dates} />
+  return (
+    <CanvasDate
+      edit={edit}
+      start={date}
+      applyStart={applyDate}
+      dateOpts={dates}
+      railOn={rail?.on}
+      rail={rail?.value}
+      applyRail={rail?.apply}
+      sectionKey={rail?.sectionKey}
+      status={rail?.status}
+    />
+  )
 }
 
 type ProfStyle = 'dots' | 'bars' | 'stars' | 'text' | 'none'
@@ -1211,7 +1254,15 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                 (c, v) => {
                   c.work[i].endDate = v
                 },
-                spanOpts(opts)
+                spanOpts(opts),
+                {
+                  on: metaColumnOf(opts) === 'gutter',
+                  sectionKey: 'work',
+                  value: w.rail,
+                  apply: (c, r) => {
+                    c.work[i].rail = r
+                  },
+                }
               )}
             />
             <div className="rm-item-sub">
@@ -1383,7 +1434,16 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 (c, v) => {
                   c.education[i].endDate = v
                 },
-                progressOpts(opts, e.status)
+                progressOpts(opts, e.status),
+                {
+                  on: metaColumnOf(opts) === 'gutter',
+                  sectionKey: 'education',
+                  status: e.status,
+                  value: e.rail,
+                  apply: (c, r) => {
+                    c.education[i].rail = r
+                  },
+                }
               )}
             />
             <div className="rm-item-sub">
@@ -1523,7 +1583,15 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 (c, v) => {
                   c.projects[i].endDate = v
                 },
-                spanOpts(opts)
+                spanOpts(opts),
+                {
+                  on: metaColumnOf(opts) === 'gutter',
+                  sectionKey: 'projects',
+                  value: p.rail,
+                  apply: (c, r) => {
+                    c.projects[i].rail = r
+                  },
+                }
               )}
             />
             {/* The link line shows only when there IS a link. It used to be an
@@ -2658,7 +2726,15 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 (c, val) => {
                   c.volunteer[i].endDate = val
                 },
-                spanOpts(opts)
+                spanOpts(opts),
+                {
+                  on: metaColumnOf(opts) === 'gutter',
+                  sectionKey: 'volunteer',
+                  value: v.rail,
+                  apply: (c, r) => {
+                    c.volunteer[i].rail = r
+                  },
+                }
               )}
             />
             {edit || (orgFirst ? v.position : v.organization) ? (
@@ -2904,7 +2980,15 @@ function Custom({
                 (c, v) => {
                   c.custom[secIndex].items[i].date = v
                 },
-                opts?.dates
+                opts?.dates,
+                {
+                  on: metaColumnOf(opts) === 'gutter',
+                  sectionKey: 'custom',
+                  value: it.rail,
+                  apply: (c, r) => {
+                    c.custom[secIndex].items[i].rail = r
+                  },
+                }
               )}
             />
             {edit || (orgFirst ? it.name : it.subtitle) || (!withDate && it.location) ? (
