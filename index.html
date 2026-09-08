@@ -46,7 +46,7 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="CVAurum — a beautiful resume that never leaves your browser." />
+    <meta property="og:image:alt" content="Six CVAurum resume templates fanned out beside the words: beautiful resumes that never leave your browser." />
     <meta property="og:site_name" content="CVAurum" />
     <meta property="og:locale" content="en_US" />
 
@@ -60,7 +60,7 @@
     <meta name="twitter:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
     <meta name="twitter:description" content="Build an ATS-ready resume free, right in your browser — no sign-up, no server, open-source. 58 premium templates, PDF résumé import, and vector PDF / Word / JSON export. Your data never leaves your device." />
     <meta name="twitter:image" content="https://cvaurum.com/og.png" />
-    <meta name="twitter:image:alt" content="CVAurum — a beautiful resume that never leaves your browser." />
+    <meta name="twitter:image:alt" content="Six CVAurum resume templates fanned out beside the words: beautiful resumes that never leave your browser." />
 
     <!-- Structured data: rich result for the app -->
     <script type="application/ld+json">
@@ -68,37 +68,26 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "CVAurum",
-      "description": "CVAurum is a 100% client-side, open-source, privacy-first resume builder. Build ATS-ready resumes entirely in your browser with no server, no account, and no tracking. Includes 52 premium data-driven templates, local PDF résumé import (with on-device OCR), a deterministic ATS score, job-description keyword matching, and exports to crisp vector PDF, WYSIWYG Word, and JSON Resume.",
+      "description": "CVAurum is a 100% client-side, open-source, privacy-first resume builder. Build ATS-ready resumes entirely in your browser with no server, no account, and no tracking. Includes 58 premium data-driven templates, local PDF résumé import (with on-device OCR), a deterministic ATS score, job-description keyword matching, and exports to crisp vector PDF, WYSIWYG Word, and JSON Resume.",
       "url": "https://cvaurum.com/",
       "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web Browser",
+      "operatingSystem": "Any (runs in the browser)",
       "browserRequirements": "Requires JavaScript. Works fully offline.",
       "image": "https://cvaurum.com/og.png",
+      "screenshot": "https://cvaurum.com/og.png",
       "license": "https://opensource.org/licenses/MIT",
       "isAccessibleForFree": true,
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Person", "name": "Akhil Dara" },
       "codeRepository": "https://github.com/akhil-dara/cvaurum",
+      "softwareHelp": "https://github.com/akhil-dara/cvaurum",
       "featureList": [
-        "100% client-side — no server, no account, no tracking",
-        "Privacy-first: all data stored locally in your browser",
-        "52 premium data-driven resume templates",
-        "Import an existing PDF résumé (with on-device OCR)",
-        "Built-in deterministic ATS score",
-        "“What ATS sees” plain-text parser preview",
-        "Job-description keyword matching",
-        "Export to crisp vector PDF with selectable text",
-        "Export to WYSIWYG Word (.docx)",
-        "Export to JSON Resume",
-        "Self-hosts all fonts — zero external network requests, true offline use",
-        "Full local backup and restore to a single file",
-        "Inline WYSIWYG canvas editing",
-        "Per-section heading, skills and entry-layout styles with visual previews, live on the canvas",
-        "Header layout switching (classic, centered, split, banner, compact)",
-        "Photo or monogram identity mark — user's choice, never a placeholder",
-        "Full-size hover previews of every template with your own content",
-        "Exact-PDF preview mode",
-        "Open source (MIT) — free forever"
+        "58 premium resume templates",
+        "Built-in deterministic ATS check with job-description keyword matching",
+        "Import an existing PDF résumé, read on your own device",
+        "Export to crisp vector PDF, Word (.docx) and JSON Resume",
+        "Works fully offline — self-hosted fonts, no external requests",
+        "No account, no server, no tracking"
       ]
     }
     </script>
@@ -171,8 +160,23 @@
         },
         {
           "@type": "Question",
+          "name": "Are the links in my PDF clickable?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, by default — they are real clickable regions in the file, not underlined words. Each link also keeps its display text separate from its destination, so it can read Portfolio or Verify while pointing anywhere: a project can carry several named links, and a certification or award can end its line with a short Verify (printed as small tags, or as plain words if you prefer) — with an issuer badge beside the name if you add one. Where a link prints as a word, that word is also the control — click it on the page and the same card opens. The Word file and the ATS preview say the same thing the page does, and Word gets real hyperlinks. If you are printing on paper or submitting somewhere a live link is unwelcome, one switch in Design turns clickability off while keeping the text." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I edit on my phone?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The drag-and-drop canvas is a desktop surface, so on a phone the form panel is the editor — and everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop." }
+        },
+        {
+          "@type": "Question",
           "name": "What file formats can I download?",
           "acceptedAnswer": { "@type": "Answer", "text": "A crisp vector PDF with real, selectable text; an editable Word (.docx) that mirrors your template; and the open JSON Resume format. Every export is free and unlimited — no paywall, no watermark." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the PDF archival quality?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts." }
         },
         {
           "@type": "Question",
@@ -191,8 +195,8 @@
         <p>CVAurum is a 100% client-side resume studio. Build a beautiful, ATS-ready resume with live WYSIWYG editing, score it against any job description, and export a crisp vector PDF, a WYSIWYG Word document, or JSON Resume — all without an account, a server, or a single tracking pixel. Your data never leaves your device. Free, forever, and MIT-licensed open source.</p>
         <h2>100% private and local-first</h2>
         <p>No account, no sign-up, no server, no analytics. Every resume lives in your browser's storage on your own machine. Back up and restore your whole library to a single file whenever you like.</p>
-        <h2>52 premium, data-driven templates</h2>
-        <p>Choose from 52 professionally designed templates and edit directly on the page — what you see is exactly what you export.</p>
+        <h2>58 premium, data-driven templates</h2>
+        <p>Choose from 58 professionally designed templates and edit directly on the page — what you see is exactly what you export.</p>
         <h2>Import your existing PDF résumé</h2>
         <p>Already have a resume? Drop in the PDF and CVAurum rebuilds it into editable sections right in your browser — nothing is uploaded. Scanned or image-only PDFs are read with on-device OCR.</p>
         <h2>Built-in ATS score and keyword matching</h2>
