@@ -338,6 +338,20 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // nothing.
     sheet.style.setProperty('--rm-foot-tail', `${pageHpx}px`)
 
+    // And the paper's own ground runs to the foot of the last page
+    // (artboard.css `.rm-root:not(.rm-has-footer)`). The artboard is as tall
+    // as its content; the sheet is a whole page tall, so the root's ground
+    // stopped short and the rest of the last page printed bare white - 20px
+    // of it under Terrace's stress document, and any coloured ground shows
+    // it. The floor is where the last page's own bottom edge falls in the
+    // artboard's coordinates: page 1 starts at 0, and every later page's
+    // content sits `padding.topPx` below its own top edge (assignOpsToPages).
+    // Asked for HERE for the same reason as the tail above: it is out of
+    // every measurement that has already been taken, and in place before the
+    // walker reads the layout.
+    const lastBandTopPx = cutsPx.length ? cutsPx[cutsPx.length - 1] - padding.topPx : 0
+    sheet.style.setProperty('--rm-sheet-floor', `${lastBandTopPx + pageHpx}px`)
+
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
     // Document properties (Info dict + XMP + /Lang + DisplayDocTitle) and
