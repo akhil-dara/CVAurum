@@ -42,13 +42,33 @@ describe('meta column', () => {
     expect(html).toContain('to 2021')
   })
 
-  it('gutter: a course says graduated and a project says project', () => {
+  // The word is stored as the author would type it and set in capitals by
+  // the stylesheet, so a finished course reads Graduated and the tile above
+  // the project reads Project.
+  it('gutter: a course says Graduated and a project says Project', () => {
     const doc = createDocument({ sample: true })
     doc.metadata.layout.metaColumn = 'gutter'
     const edu = renderToStaticMarkup(<SectionBody sectionKey="education" doc={doc} config={getTemplate('aurum')} />)
-    expect(edu).toMatch(/rm-deco rm-year-sub" data-deco="1">graduated</)
+    expect(edu).toMatch(/rm-deco rm-year-sub" data-deco="1">Graduated</)
     const projects = renderToStaticMarkup(<SectionBody sectionKey="projects" doc={doc} config={getTemplate('aurum')} />)
-    expect(projects).toMatch(/rm-deco rm-year-sub" data-deco="1">project</)
+    expect(projects).toMatch(/rm-deco rm-year-sub" data-deco="1">Project</)
+  })
+
+  it('the rail draws the author’s word, and an end-only course opens it with Expected', () => {
+    const doc = createDocument({ sample: true })
+    doc.metadata.layout.metaColumn = 'gutter'
+    doc.content.work[0].rail = { word: 'Ongoing' }
+    const html = renderToStaticMarkup(<SectionBody sectionKey="work" doc={doc} config={getTemplate('aurum')} />)
+    expect(html).toContain('Ongoing')
+    expect(html).not.toContain('to now')
+    expect(html).toContain('Mar 2021')
+    for (const list of [doc.content.work, doc.content.education, doc.content.projects, doc.content.volunteer]) for (const e of list) { e.startDate = ''; e.endDate = '' }
+    for (const s of doc.content.custom) for (const i of s.items) i.date = ''
+    doc.content.education[0].endDate = '2027-05'
+    const page = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(page).toContain('meta-gutter')
+    expect(page).toContain('2027')
+    expect(page).toContain('Expected')
   })
 
   it('gutter: the summary has no date, so the rail stays empty beside it', () => {
@@ -130,10 +150,10 @@ describe('meta column', () => {
   })
 
   // A column with nothing to show is not drawn: a student's resume with
-  // undated projects and a course that has only a finish gave the year rail
-  // nothing, and it stood as a tinted seventh of the page. The margin still
-  // has the finish to print, so it stays.
-  it('a document with no dates opens no rail, and one with only a finish opens the margin alone', () => {
+  // undated projects and no course dates at all gave the year rail nothing,
+  // and it stood as a tinted seventh of the page. A lone expected finish is
+  // a year, though - the rail opens on it and so does the margin.
+  it('a document with no dates opens no column, and a lone finish opens either one', () => {
     const doc = createDocument({ sample: true })
     for (const list of [doc.content.work, doc.content.education, doc.content.projects, doc.content.volunteer]) {
       for (const e of list) { e.startDate = ''; e.endDate = '' }
@@ -148,7 +168,7 @@ describe('meta column', () => {
     expect(none).not.toContain('rm-meta-cell')
     expect(none).not.toContain('Present')
     doc.content.education[0].endDate = '2027-05'
-    expect(renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)).not.toContain('meta-gutter')
+    expect(renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)).toContain('meta-gutter')
     doc.metadata.layout.metaColumn = 'margin'
     const margin = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
     expect(margin).toContain('meta-margin')

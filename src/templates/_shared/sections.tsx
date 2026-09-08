@@ -13,6 +13,7 @@ import type { TemplateConfig } from '@/types/template'
 import { currentYearMonth, entryDateOptions, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
 import type { DateOptions, DateRangeOptions } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, metaColumnOn, ADD_LABEL } from '@/lib/sections'
+import { railLabel, type RailLabel } from '@/lib/rail'
 import { Chips, Deco, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords, ringPath } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
@@ -132,30 +133,20 @@ const locBesideDate = (opts?: SecOpts) => entryMetaOf(opts).locWithDate
 const metaColumnOf = (opts?: SecOpts): 'none' | 'gutter' | 'margin' =>
   opts?.metaColumn === 'gutter' || opts?.metaColumn === 'margin' ? opts.metaColumn : 'none'
 /** The four-digit year a stored date opens with ('2021-03' -> '2021'). */
-const yearOf = (d?: string) => /^\s*(\d{4})/.exec(d || '')?.[1] ?? ''
-/**
- * What the gutter says about one entry: the year it starts, the year it ends
- * (empty while it is still running), and the short word beneath the numeral.
- * `word` names an entry that is not a plain span - 'project', 'graduated' -
- * and an empty string asks for no word at all, which is what a one-dated
- * entry wants.
- */
-export type MetaSpan = { start?: string; end?: string; word?: string }
-
 /**
  * The gutter's cell for one entry: a big year over a short word, both drawn
  * as ink only (the Deco atom). The entry's real date line stays where it
  * always was, in the content column, so the year is never the only copy of
  * a fact - a parser reads the date and never sees this.
+ *
+ * The label arrives already resolved (`railLabel`), so the defaults and the
+ * author's own overrides are decided in one pure place rather than here.
  */
-function GutterCell({ meta }: { meta: MetaSpan }) {
-  const year = yearOf(meta.start)
-  if (!year) return null
-  const sub = meta.word ?? (meta.end ? `to ${yearOf(meta.end) || meta.end}` : 'to now')
+function GutterCell({ rail }: { rail: RailLabel }) {
   return (
     <div className="rm-meta-cell">
-      <Deco className="rm-year">{year}</Deco>
-      {sub ? <Deco className="rm-year-sub">{sub}</Deco> : null}
+      <Deco className="rm-year">{rail.year}</Deco>
+      {rail.word ? <Deco className="rm-year-sub">{rail.word}</Deco> : null}
     </div>
   )
 }
@@ -599,7 +590,7 @@ function ItemHead({
   title,
   date,
   loc,
-  meta,
+  rail,
   badge,
   logo,
   edit,
@@ -615,8 +606,9 @@ function ItemHead({
   /** The entry's location, when the section puts it beside the date rather
    *  than on the sub-line under the title. Editable where it lands. */
   loc?: ReactNode
-  /** The entry's raw span, for a meta column that words its own years. */
-  meta?: MetaSpan
+  /** The rail's label for this entry, already resolved - the numerals and
+   *  the word under them - or null when the entry has no year to stand on. */
+  rail?: RailLabel | null
   badge?: string
   logo?: string
   edit?: EditFn
@@ -649,8 +641,8 @@ function ItemHead({
   // it back: it is decoration, so no parser, Word file or ATS text could
   // account for it. Same flag the date itself answers.
   const cell =
-    column === 'gutter' && meta && show(opts?.showDates) ? (
-      <GutterCell meta={meta} />
+    column === 'gutter' && rail && show(opts?.showDates) ? (
+      <GutterCell rail={rail} />
     ) : inMargin ? (
       <div className="rm-meta-cell">
         {loc}
@@ -1143,6 +1135,9 @@ function Summary({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts
 }
 
 function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
+  // One reading of "now" for every entry in this section, so a render can
+  // never word one entry against a different today than the next.
+  const today = currentYearMonth()
   return (
     <>
       {doc.content.work.map((w, i) => {
@@ -1197,7 +1192,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                 c.work[i].url = val
               }}
               linkLabel={w.position || w.name}
-              meta={{ start: w.startDate, end: w.endDate }}
+              rail={railLabel('work', w, today)}
               logo={w.logo}
               edit={edit}
               setLogo={(c, v) => {
@@ -1289,6 +1284,9 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
 }
 
 function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
+  // One reading of "now" for every entry in this section, so a render can
+  // never word one entry against a different today than the next.
+  const today = currentYearMonth()
   return (
     <>
       {doc.content.education.map((e, i) => {
@@ -1366,7 +1364,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.education[i].url = val
               }}
               linkLabel={e.institution || e.area}
-              meta={{ start: e.startDate, end: e.endDate, word: 'graduated' }}
+              rail={railLabel('education', e, today)}
               logo={e.logo}
               edit={edit}
               setLogo={(c, v) => {
@@ -1439,6 +1437,9 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
 }
 
 function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
+  // One reading of "now" for every entry in this section, so a render can
+  // never word one entry against a different today than the next.
+  const today = currentYearMonth()
   // How this section's entry tags look. Unset adds no class, so the chips the
   // template draws stand. The branch is the skills renderer's own: 'inline'
   // and 'stacked' both run the keywords together as text and differ only in
@@ -1471,7 +1472,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 c.projects[i].url = val
               }}
               linkLabel={p.name}
-              meta={{ start: p.startDate, end: p.endDate, word: 'project' }}
+              rail={railLabel('projects', p, today)}
               linkExtra={
                 edit ? (
                   <button
@@ -2595,6 +2596,9 @@ function Publications({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
 }
 
 function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: SecOpts }) {
+  // One reading of "now" for every entry in this section, so a render can
+  // never word one entry against a different today than the next.
+  const today = currentYearMonth()
   return (
     <>
       {doc.content.volunteer.map((v, i) => {
@@ -2636,7 +2640,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.volunteer[i].url = val
               }}
               linkLabel={v.organization || v.position}
-              meta={{ start: v.startDate, end: v.endDate }}
+              rail={railLabel('volunteer', v, today)}
               logo={v.logo}
               edit={edit}
               setLogo={(c, val) => {
@@ -2833,6 +2837,9 @@ function Custom({
   const secIndex = doc.content.custom.findIndex((c) => c.id === id)
   const sec = doc.content.custom[secIndex]
   if (!sec) return null
+  // One reading of "now" for every entry in this section, so a render can
+  // never word one entry against a different today than the next.
+  const today = currentYearMonth()
   return (
     <>
       {sec.items.map((it, i) => {
@@ -2886,7 +2893,7 @@ function Custom({
                 c.custom[secIndex].items[i].url = val
               }}
               linkLabel={it.name || it.subtitle}
-              meta={{ start: it.date, word: '' }}
+              rail={railLabel('custom', it, today)}
               edit={edit}
               title={orgFirst ? subtitle() : name()}
               loc={withDate ? place : undefined}

@@ -81,13 +81,15 @@ describe('the date column is on only while it has something to show', () => {
     expect(metaColumnOn(asking(doc, 'margin').metadata, doc.content)).toBe('none')
   })
 
-  it('an expected finish alone fills the margin but not the year rail', () => {
-    // a student: undated projects, a course with a finish but no start
+  it('an expected finish alone opens the rail with its year, and the margin', () => {
+    // a student: undated projects, a course with a finish but no start. The
+    // finish is still a year the rail can stand beside the entry, so the
+    // rail opens on it rather than waiting for a start date that never comes.
     const doc = undated()
     doc.content.education[0].endDate = '2027-05'
     expect(hasDatedEntry(doc.content, 'start')).toBe(false)
     expect(hasDatedEntry(doc.content, 'any')).toBe(true)
-    expect(metaColumnOn(asking(doc, 'gutter').metadata, doc.content)).toBe('none')
+    expect(metaColumnOn(asking(doc, 'gutter').metadata, doc.content)).toBe('gutter')
     expect(metaColumnOn(asking(doc, 'margin').metadata, doc.content)).toBe('margin')
   })
 

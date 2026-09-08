@@ -6,7 +6,8 @@
 import type { Metadata } from '@/types/metadata'
 import { DEFAULT_ASIDE_ORDER, DEFAULT_MAIN_ORDER, DEFAULT_TWO_COL_MAIN } from '@/data/defaults'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
-import { htmlToText, uid } from '@/lib/utils'
+import { currentYearMonth, htmlToText, uid } from '@/lib/utils'
+import { hasRailYear } from '@/lib/rail'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type AnyItem = Record<string, any>
@@ -309,10 +310,14 @@ export function hasDatedEntry(content: ResumeContent, need: 'start' | 'any' = 'a
  *  projects and a course with no start was a tinted column of nothing, a
  *  seventh of the page gone (a student's resume, 2026-09-07). Never built
  *  rather than built and hidden: in the margin the cell holds the entry's
- *  only copy of its date. */
+ *  only copy of its date.
+ *
+ *  The rail asks the label resolver rather than counting start dates, so it
+ *  opens on anything the rail could actually draw - a course with only an
+ *  expected finish, or a year the author typed in themselves. */
 export function metaColumnOn(metadata: Metadata, content: ResumeContent): 'none' | 'gutter' | 'margin' {
   const asked = metadata.layout.metaColumn
-  if (asked === 'gutter') return hasDatedEntry(content, 'start') ? 'gutter' : 'none'
+  if (asked === 'gutter') return hasRailYear(content, currentYearMonth()) ? 'gutter' : 'none'
   if (asked === 'margin') return hasDatedEntry(content, 'any') ? 'margin' : 'none'
   return 'none'
 }

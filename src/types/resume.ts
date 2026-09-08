@@ -64,6 +64,9 @@ export const WorkSchema = z.object({
   /** per-entry badge override: absent follows the section's showBadges
    *  setting; true/false forces it for this entry (CVAurum extension) */
   badge: z.boolean().optional(),
+  /** the rail's numerals and the word beneath them, when the author set
+   *  them (CVAurum extension) */
+  rail: z.object({ year: z.string().optional(), word: z.string().optional() }).optional(),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   location: z.string().optional().default(''),
@@ -82,6 +85,9 @@ export const EducationSchema = z.object({
   logo: z.string().optional(),
   /** per-entry badge override (see WorkSchema.badge) */
   badge: z.boolean().optional(),
+  /** the rail's numerals and the word beneath them, when the author set
+   *  them (CVAurum extension) */
+  rail: z.object({ year: z.string().optional(), word: z.string().optional() }).optional(),
   url: z.string().optional().default(''),
   area: z.string().optional().default(''),
   studyType: z.string().optional().default(''),
@@ -122,6 +128,9 @@ export const ProjectSchema = z.object({
   /** Further named links, printed after the description as short names rather
    *  than addresses. `url` above stays the project's primary link. */
   links: z.array(NamedLinkSchema).optional(),
+  /** the rail's numerals and the word beneath them, when the author set
+   *  them (CVAurum extension) */
+  rail: z.object({ year: z.string().optional(), word: z.string().optional() }).optional(),
   startDate: z.string().optional().default(''),
   endDate: z.string().optional().default(''),
   highlights: z.array(z.string()).optional().default([]),
@@ -202,6 +211,9 @@ export const VolunteerSchema = z.object({
   logo: z.string().optional(),
   /** per-entry badge override (see WorkSchema.badge) */
   badge: z.boolean().optional(),
+  /** the rail's numerals and the word beneath them, when the author set
+   *  them (CVAurum extension) */
+  rail: z.object({ year: z.string().optional(), word: z.string().optional() }).optional(),
   position: z.string().optional().default(''),
   url: z.string().optional().default(''),
   startDate: z.string().optional().default(''),
@@ -215,6 +227,9 @@ export const CustomItemSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional().default(''),
   subtitle: z.string().optional().default(''),
+  /** the rail's numerals and the word beneath them, when the author set
+   *  them (CVAurum extension) */
+  rail: z.object({ year: z.string().optional(), word: z.string().optional() }).optional(),
   date: z.string().optional().default(''),
   location: z.string().optional().default(''),
   url: z.string().optional().default(''),
