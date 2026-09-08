@@ -1322,6 +1322,11 @@
   /* The height of the picture on the wall, measured against the name so the
      two scale together. */
   --rm-folio-art: calc(var(--rm-name-size) * 1.45);
+  /* Spectral's word space is a quarter em, and after a bold figure ("38%
+     and") it read as no space at all at body size on the dark ground. A
+     little more air between words; the export measures the page's own
+     widths, so it follows. */
+  word-spacing: 0.06em;
 }
 
 /* The art is a picture HUNG ABOVE the words, not a ground printed behind
