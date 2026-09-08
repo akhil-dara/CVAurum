@@ -245,6 +245,31 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
               <div className="card absolute right-0 z-20 mt-1 w-56 overflow-hidden p-1.5 shadow-float">
+                {/* Undo / redo. The bar's own pair is hidden below md and a
+                    phone has no Ctrl+Z, so a mis-tapped Remove (section ⋯
+                    menu, entry trash) or a template switch could not be taken
+                    back at all. The menu stays open on these two so several
+                    steps can be undone in a row. Only below md — above it the
+                    bar already carries them. */}
+                <div className="flex items-center gap-1 md:hidden">
+                  <button
+                    className="btn-ghost flex h-10 flex-1 items-center justify-start gap-2 rounded-lg px-2.5 text-sm"
+                    onClick={() => undo()}
+                    disabled={past === 0}
+                    title="Undo"
+                  >
+                    <Undo2 className="h-4 w-4 text-primary" /> Undo
+                  </button>
+                  <button
+                    className="btn-ghost flex h-10 flex-1 items-center justify-start gap-2 rounded-lg px-2.5 text-sm"
+                    onClick={() => redo()}
+                    disabled={future === 0}
+                    title="Redo"
+                  >
+                    <Redo2 className="h-4 w-4 text-primary" /> Redo
+                  </button>
+                </div>
+                <div className="my-1 h-px bg-border md:hidden" />
                 <button
                   className="btn-ghost flex h-auto w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
                   onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-share')) }}
