@@ -7,6 +7,7 @@ import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Bold, Italic, Underline as UnderlineIcon, List, Link2, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { splitPastedLines } from '@/lib/pasteLines'
 
 interface Props {
   value: string
@@ -14,13 +15,16 @@ interface Props {
   placeholder?: string
   withLists?: boolean
   minHeight?: number
+  /** bullet fields: a paste of two or more lines becomes that many bullets
+   *  (the parent inserts them). Left out, a paste is ordinary text. */
+  onPasteLines?: (lines: string[]) => void
 }
 
 // Slash-command snippets live in a shared module so "/" works identically on
 // the canvas and in this panel editor.
 import { SLASH_COMMANDS, type Slash } from '@/lib/slashCommands'
 
-export function RichTextEditor({ value, onChange, placeholder, withLists = true, minHeight = 64 }: Props) {
+export function RichTextEditor({ value, onChange, placeholder, withLists = true, minHeight = 64, onPasteLines }: Props) {
   // Slash menu state, mirrored into a ref so the ProseMirror keydown handler
   // (bound once at editor creation) always sees the latest values.
   const [menu, setMenu] = useState<{ open: boolean; items: Slash[]; index: number; top: number; left: number; from: number; to: number }>(
@@ -29,6 +33,11 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
   const menuRef = useRef(menu)
   menuRef.current = menu
   const editorRef = useRef<Editor | null>(null)
+  // Same reason as the menu: the paste handler is bound to the ProseMirror
+  // view, and the callback it must reach closes over the CURRENT list of
+  // bullets. Through a ref it can never splice into a stale one.
+  const pasteLinesRef = useRef(onPasteLines)
+  pasteLinesRef.current = onPasteLines
 
   const closeMenu = () => setMenu((m) => (m.open ? { ...m, open: false } : m))
   const runSlash = (cmd: Slash) => {
@@ -74,6 +83,18 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
         if (event.key === 'Enter') { event.preventDefault(); runSlash(m.items[m.index]); return true }
         if (event.key === 'Escape') { event.preventDefault(); closeMenu(); return true }
         return false
+      },
+      // A pasted list becomes one bullet per line — but only where the parent
+      // owns a list to put them in. Anywhere else, and for anything that is a
+      // single line, the paste is left to the editor as ordinary text.
+      handlePaste: (_view, event) => {
+        const onLines = pasteLinesRef.current
+        if (!onLines) return false
+        const lines = splitPastedLines(event.clipboardData?.getData('text/plain') ?? '')
+        if (lines.length < 2) return false
+        event.preventDefault()
+        onLines(lines)
+        return true
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),

@@ -16,6 +16,7 @@ export function RichTextLazy(props: {
   placeholder?: string
   withLists?: boolean
   minHeight?: number
+  onPasteLines?: (lines: string[]) => void
 }) {
   return (
     <Suspense

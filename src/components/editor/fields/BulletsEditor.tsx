@@ -2,6 +2,7 @@ import { GripVertical, Trash2, Plus } from 'lucide-react'
 import { SortableList } from '../SortableList'
 import { RichTextLazy as RichTextEditor } from './RichTextLazy'
 import { Labeled } from './Inputs'
+import { htmlEscape } from '@/lib/utils'
 
 export function BulletsEditor({
   label,
@@ -42,6 +43,15 @@ export function BulletsEditor({
                     withLists={false}
                     minHeight={38}
                     placeholder={placeholder ?? 'Describe an achievement, ideally with a metric…'}
+                    // A list pasted into one field becomes one bullet per
+                    // line: they follow the bullet the paste hit, or take its
+                    // place when that bullet was still empty. Escaped, so
+                    // pasted text can never smuggle markup into the field.
+                    onPasteLines={(lines) => {
+                      const empty = items[i].replace(/<[^>]+>/g, '').trim().length === 0
+                      const safe = lines.map(htmlEscape)
+                      onChange([...items.slice(0, empty ? i : i + 1), ...safe, ...items.slice(i + 1)])
+                    }}
                   />
                 </div>
                 <button
