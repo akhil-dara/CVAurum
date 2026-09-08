@@ -5,6 +5,7 @@ import { Slider, Toggle, Segmented, Select, ColorField, FieldGroup } from '../fi
 import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
+import { StatTilesEditor } from '@/templates/_shared/StatTilesEditor'
 import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
@@ -659,6 +660,13 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
             How your name &amp; contacts compose — on top of any template.
+          </p>
+        </div>
+        <div>
+          <label className="label">Numbers band</label>
+          <StatTilesEditor doc={doc} editMeta={update} />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            Which figures the band shows, in what order, with your own labels.
           </p>
         </div>
         <div>

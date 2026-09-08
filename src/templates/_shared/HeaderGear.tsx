@@ -3,13 +3,14 @@
  * where you see it (mirrors the per-section gear). Pinned to the viewport's
  * right edge so the header stays visible while it changes live.
  */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import type { MetaEditFn } from './Editable'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from './headerStyles'
+import { StatTilesEditor } from './StatTilesEditor'
 import { FONTS } from '@/data/fonts'
 import { usePopoverA11y } from './popoverA11y'
 
@@ -165,6 +166,20 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
   // Escape closes; focus moves in on open and back to the gear on close.
   usePopoverA11y(open, () => setOpen(false), panelRef)
 
+  // The numbers band on the canvas is decoration - aria-hidden outlines, not
+  // editable text - so a click on a tile cannot edit it in place. It asks the
+  // header's popover to open at the Numbers group instead.
+  useEffect(() => {
+    const onOpen = () => {
+      setSheet(document.documentElement.clientWidth < 640)
+      setTop(Math.max(8, Math.min(120, window.innerHeight - 420)))
+      setOpen(true)
+      requestAnimationFrame(() => panelRef.current?.querySelector('#hg-numbers')?.scrollIntoView({ block: 'start' }))
+    }
+    window.addEventListener('cvaurum:open-header-numbers', onOpen)
+    return () => window.removeEventListener('cvaurum:open-header-numbers', onOpen)
+  }, [])
+
   const openPopover = (e: React.MouseEvent) => {
     // Phones get a bottom sheet, exactly like the section style sheet. As a
     // floating panel this opened level with the header - mid-screen on a
@@ -243,6 +258,14 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                   )
                 })}
               </div>
+              <div className="mx-2 my-1 border-t border-border" />
+              <div
+                id="hg-numbers"
+                className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Numbers <span className="font-normal normal-case">— the band of figures</span>
+              </div>
+              <StatTilesEditor doc={doc} editMeta={editMeta} />
               <div className="mx-2 my-1 border-t border-border" />
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Art <span className="font-normal normal-case">— behind the header</span>

@@ -570,11 +570,17 @@ function HeaderVisual({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaE
  *  each decorative text - ink for a reader, nothing for a parser. The band
  *  header has a slot for it under the gradient; any other header carries it
  *  at its foot. */
-function StatsBand({ doc }: { doc: ResumeDocument }) {
+function StatsBand({ doc, edit }: { doc: ResumeDocument; edit?: boolean }) {
   const stats = resolveStatTiles(doc.content, doc.metadata.layout.statTiles)
   if (!stats.length) return null
   return (
-    <div className="rm-stats">
+    // The tiles are aria-hidden decoration, so they are not editable in
+    // place; a click asks the header's Style popover for the Numbers group.
+    <div
+      className="rm-stats"
+      onClick={edit ? () => window.dispatchEvent(new Event('cvaurum:open-header-numbers')) : undefined}
+      title={edit ? 'Numbers band — click to edit' : undefined}
+    >
       {stats.map((s, i) => (
         // The author names these, so two tiles may share a label or carry
         // none at all; the position in the band is what tells them apart.
@@ -669,7 +675,7 @@ function Header({
 
   // The stats band, where the author asked for it: in the band's own slot
   // under the gradient, at the foot of any other header.
-  const stats = doc.metadata.layout.stats ? <StatsBand doc={doc} /> : null
+  const stats = doc.metadata.layout.stats ? <StatsBand doc={doc} edit={!!editMeta} /> : null
   const withStats = (head: ReactNode) =>
     stats ? (
       <>
