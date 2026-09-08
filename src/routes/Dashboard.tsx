@@ -298,7 +298,10 @@ export function Dashboard() {
               Private &amp; local — everything is saved in this browser. Nothing leaves your device.
             </p>
           </div>
-          <div className="flex gap-2">
+          {/* Wraps on a narrow screen: the three pills are 362px wide and a
+              phone gives the row 327px, which used to slice the primary
+              button in half against the right edge. */}
+          <div className="flex flex-wrap gap-2">
             <button
               className="btn-ghost btn-sm"
               onClick={() => pdfRef.current?.click()}
