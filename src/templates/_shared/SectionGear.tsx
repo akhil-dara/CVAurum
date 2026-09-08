@@ -833,6 +833,73 @@ export function SectionGear({
                   </Group>
                 )}
 
+                {/* The section's own lines come first: what a project prints
+                    (its address, its tags) is what an author opens this popover
+                    for, and buried seventeen groups down nobody found it. */}
+                {/* The section's own URL line - a project's address under its
+                    title. The document's link style governs NAMED links and
+                    the header contacts, so this line answered nothing at all
+                    until this row. It stays SHOWN by default: an address a
+                    portfolio resume prints is a real signal to drop quietly.
+                    Gated the way the tag rows below are, on the sections that
+                    actually print such a line. */}
+                {HAS_LINK.has(base) && (
+                  <Group label="Link line">
+                    <div className="grid grid-cols-4 gap-1">
+                      {LINK_STYLES.map((s) => (
+                        <StyleChip
+                          key={s.value || 'auto'}
+                          label={s.label}
+                          kind={`k:${s.value}`}
+                          title={s.title}
+                          on={(opts.linkStyle === 'auto' ? '' : (opts.linkStyle ?? '')) === s.value}
+                          onClick={() => setStyle('linkStyle', s.value || undefined)}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+                      Auto follows the document (Design panel). Hidden drops the address from the page, the Word file
+                      and the plain-text copy; the title keeps its link.
+                    </p>
+                  </Group>
+                )}
+
+                {/* Entry tags - the sections whose entries carry keywords of
+                    their own (projects). The skills pickers were gated to the
+                    skills section, so these tags could only be shown or
+                    hidden; the skills looks, and the same size chips, now
+                    reach them. Offered only while the tags are shown, as the
+                    bullet row is. */}
+                {HAS_KEYWORDS.has(base) && opts.showKeywords !== false && (
+                  <>
+                    <Group label="Tags as">
+                      <div className="grid grid-cols-3 gap-1">
+                        {TAG_STYLES.map((s) => (
+                          <StyleChip
+                            key={s.value || 'auto'}
+                            label={s.label}
+                            kind={`s:${s.value}`}
+                            on={(opts.tagStyle ?? '') === s.value}
+                            onClick={() => setStyle('tagStyle', s.value || undefined)}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                    <Group label="Tag size">
+                      <div className="grid grid-cols-3 gap-1">
+                        {CHIP_SIZES.map((z) => (
+                          <ChipBtn
+                            key={z.value || 'auto'}
+                            label={z.label}
+                            on={(opts.chipSize ?? '') === z.value}
+                            onClick={() => setStyle('chipSize', z.value || undefined)}
+                          />
+                        ))}
+                      </div>
+                    </Group>
+                  </>
+                )}
+
                 {/* Page pin — force this section to start a new page (spec 1).
                     With auto-fit on, pagination isn't user-controlled, so the
                     row explains instead of offering a dead toggle. */}
@@ -1146,69 +1213,6 @@ export function SectionGear({
                   </p>
                 )}
 
-                {/* The section's own URL line - a project's address under its
-                    title. The document's link style governs NAMED links and
-                    the header contacts, so this line answered nothing at all
-                    until this row. It stays SHOWN by default: an address a
-                    portfolio resume prints is a real signal to drop quietly.
-                    Gated the way the tag rows below are, on the sections that
-                    actually print such a line. */}
-                {HAS_LINK.has(base) && (
-                  <Group label="Link line">
-                    <div className="grid grid-cols-4 gap-1">
-                      {LINK_STYLES.map((s) => (
-                        <StyleChip
-                          key={s.value || 'auto'}
-                          label={s.label}
-                          kind={`k:${s.value}`}
-                          title={s.title}
-                          on={(opts.linkStyle === 'auto' ? '' : (opts.linkStyle ?? '')) === s.value}
-                          onClick={() => setStyle('linkStyle', s.value || undefined)}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
-                      Auto follows the document (Design panel). Hidden drops the address from the page, the Word file
-                      and the plain-text copy; the title keeps its link.
-                    </p>
-                  </Group>
-                )}
-
-                {/* Entry tags - the sections whose entries carry keywords of
-                    their own (projects). The skills pickers were gated to the
-                    skills section, so these tags could only be shown or
-                    hidden; the skills looks, and the same size chips, now
-                    reach them. Offered only while the tags are shown, as the
-                    bullet row is. */}
-                {HAS_KEYWORDS.has(base) && opts.showKeywords !== false && (
-                  <>
-                    <Group label="Tags as">
-                      <div className="grid grid-cols-3 gap-1">
-                        {TAG_STYLES.map((s) => (
-                          <StyleChip
-                            key={s.value || 'auto'}
-                            label={s.label}
-                            kind={`s:${s.value}`}
-                            on={(opts.tagStyle ?? '') === s.value}
-                            onClick={() => setStyle('tagStyle', s.value || undefined)}
-                          />
-                        ))}
-                      </div>
-                    </Group>
-                    <Group label="Tag size">
-                      <div className="grid grid-cols-3 gap-1">
-                        {CHIP_SIZES.map((z) => (
-                          <ChipBtn
-                            key={z.value || 'auto'}
-                            label={z.label}
-                            on={(opts.chipSize ?? '') === z.value}
-                            onClick={() => setStyle('chipSize', z.value || undefined)}
-                          />
-                        ))}
-                      </div>
-                    </Group>
-                  </>
-                )}
 
                 {/* Skills display - only for the skills section, outside the strip */}
                 {sectionKey === 'skills' && !inFooter && (
