@@ -213,15 +213,14 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // The top bar carries its zoom cluster only from `md` up (EditorTopBar);
   // narrower than that the canvas carries its own pill, mouse or finger.
   const barHasZoom = useMediaQuery('(min-width: 768px)')
-  // On a phone the canvas is something you LOOK at, never something you edit:
-  // the editor there is panel-only (LeftRail's bottom bar), and the page is
-  // painted at fit-to-width — about 0.44 — so every inline affordance shrinks
-  // with it. Measured on a 375px phone: the section "Style" chips came out
-  // 21x8px and the per-link edit buttons 3x3px, against a 40px touch target,
-  // and they were live — a stray tap opened the section style sheet or put a
-  // caret in a bullet. Rendering the SAME print DOM the exact-preview and the
-  // export use drops all of it. Desktop and tablet are untouched.
-  const exactCanvas = previewExact || isPhone
+  // The page is editable on every screen, a phone included: that is the
+  // product's design (the owner's call, 2026-09-08). A morning change had
+  // swapped the phone's canvas for the print render because its controls
+  // were mouse-sized at fit zoom; the answer to that is the finger-sized hit
+  // areas artboard.css gives every control on a coarse pointer and a zoom
+  // that reaches 300%, not a page that cannot be touched. Only the Preview
+  // mode shows the print render, on any device.
+  const exactCanvas = previewExact
   const focusMode = useEditorStore((s) => s.focusMode)
   const skimView = useEditorStore((s) => s.skimView)
   const updateContent = useResumeStore((s) => s.updateContent)
@@ -767,12 +766,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         {/* first-time hint on a blank resume — the canvas interactions aren't
           guessable ("what do I click? what do I type where?") */}
         {!exactCanvas && <BlankCanvasTip doc={doc} />}
-        {/* Unmistakable mode flag — floating over the canvas while previewing.
-            Not on a phone: there the canvas is ALWAYS this render, so a badge
-            announcing a mode the user cannot leave (and a "Back to editing"
-            that has no editable page to return to) is noise over the top of
-            the résumé. The bottom bar's own tabs are the way back. */}
-        {previewExact && !isPhone && (
+        {/* Unmistakable mode flag — floating over the canvas while previewing;
+            "Back to editing" returns to the editable page on every device. */}
+        {previewExact && (
           <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
             <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />

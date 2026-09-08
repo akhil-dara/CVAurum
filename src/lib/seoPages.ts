@@ -502,7 +502,7 @@ ${COPY.privacy.map((p) => `- ${p}`).join('\n')}
 - Six example résumés to start from: an experienced engineer, a growth marketer, a recent graduate, a final-year student with internships, a current student and a product designer.
 - Paste a list into a bullet field and it becomes one bullet per line. A command palette (Ctrl+K) reaches every action; slash commands insert bullet templates and metrics; a focus mode dims everything but the section under the cursor.
 - Automatic fit to one page when the content is close, live page-break guides, a pin to start any section or entry on a new page, and a switch that keeps entries whole across pages.
-- On a phone the form panel is the editor and every canvas control has a panel equivalent; a tablet edits on the page.
+- The page is editable on a phone and a tablet as well as a desktop; on a small screen the form panel is the comfortable route, and every canvas control has a panel equivalent.
 - A multi-résumé dashboard and a job application tracker (a kanban board from wishlist to offer).
 
 ## Templates
