@@ -15,8 +15,29 @@ const DANGEROUS = /^(javascript|data|vbscript|file):/i
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE = /^\+?[\d][\d\s().-]{5,}$/
-/** A bare domain: at least one dot, a plausible TLD, no spaces. */
-const DOMAIN = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(\/[^\s]*)?$/i
+/** A bare domain: at least one dot, a plausible TLD, no spaces. Letters of
+ *  any script, so an internationalised domain (пример.рф) is a domain too. */
+const DOMAIN = /^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)*\.\p{L}{2,}(\/[^\s]*)?$/iu
+
+/**
+ * A PDF URI action holds 7-bit ASCII, so an address with letters outside it
+ * is written the way a browser sends it: the host in punycode, the rest
+ * UTF-8 percent-encoded. Handed to the writer as typed, `https://пример.рф/
+ * резюме` came out of the PDF with no destination at all and a Cyrillic path
+ * segment as garbage (measured with the reader's own annotation list).
+ * A plain ASCII address is returned untouched.
+ */
+export function asciiUrl(url: string): string {
+  if (/^[\x21-\x7e]+$/.test(url)) return url
+  let out: string
+  try {
+    out = new URL(url).href
+  } catch {
+    out = encodeURI(url)
+  }
+  // A non-special scheme (tel:, mailto:) keeps spaces; a URI cannot.
+  return out.replace(/ /g, '%20')
+}
 
 /**
  * The URL a piece of text should point at, or `null` when it should not be a
@@ -27,9 +48,9 @@ export function linkTarget(raw?: string | null): string | null {
   const s = (raw ?? '').trim()
   if (!s) return null
   if (DANGEROUS.test(s)) return null
-  if (HAS_SCHEME.test(s)) return s
-  if (EMAIL.test(s)) return `mailto:${s}`
-  if (DOMAIN.test(s)) return `https://${s}`
+  if (HAS_SCHEME.test(s)) return asciiUrl(s)
+  if (EMAIL.test(s)) return asciiUrl(`mailto:${s}`)
+  if (DOMAIN.test(s)) return asciiUrl(`https://${s}`)
   if (PHONE.test(s)) return `tel:${s.replace(/[^\d+]/g, '')}`
   return null
 }

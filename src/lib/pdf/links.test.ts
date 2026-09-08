@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { linkTarget, mergeRuns } from './links'
+import { asciiUrl, linkTarget, mergeRuns } from './links'
 
 describe('linkTarget', () => {
   it('keeps an absolute URL as it is', () => {
@@ -72,5 +72,31 @@ describe('mergeRuns', () => {
 
   it('returns nothing for nothing', () => {
     expect(mergeRuns([])).toEqual([])
+  })
+})
+
+describe('asciiUrl: what a PDF link can hold', () => {
+  it('leaves an ASCII address exactly as it is', () => {
+    expect(asciiUrl('https://example.com/verify?id=12345&x=y#top')).toBe('https://example.com/verify?id=12345&x=y#top')
+    expect(asciiUrl('mailto:a.b@example.com')).toBe('mailto:a.b@example.com')
+  })
+  it('writes an internationalised host in punycode and a non-Latin path percent-encoded', () => {
+    expect(asciiUrl('https://пример.рф/резюме')).toBe('https://xn--e1afmkfd.xn--p1ai/%D1%80%D0%B5%D0%B7%D1%8E%D0%BC%D0%B5')
+    expect(asciiUrl('https://github.com/daniil/демо')).toBe('https://github.com/daniil/%D0%B4%D0%B5%D0%BC%D0%BE')
+  })
+  it('never leaves a space in the address', () => {
+    expect(asciiUrl('tel:+359 88 123')).toBe('tel:+359%2088%20123')
+    expect(asciiUrl('https://example.com/a b')).toBe('https://example.com/a%20b')
+  })
+})
+
+describe('linkTarget with non-Latin addresses', () => {
+  it('turns a bare internationalised domain into a link, encoded for the PDF', () => {
+    expect(linkTarget('пример.рф')).toBe('https://xn--e1afmkfd.xn--p1ai/')
+    expect(linkTarget('пример.рф/резюме')).toBe('https://xn--e1afmkfd.xn--p1ai/%D1%80%D0%B5%D0%B7%D1%8E%D0%BC%D0%B5')
+  })
+  it('encodes a typed scheme URL and a non-Latin email the same way', () => {
+    expect(linkTarget('https://github.com/daniil/демо')).toBe('https://github.com/daniil/%D0%B4%D0%B5%D0%BC%D0%BE')
+    expect(linkTarget('иван@пример.рф')).toBe('mailto:%D0%B8%D0%B2%D0%B0%D0%BD@%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D1%80.%D1%80%D1%84')
   })
 })
