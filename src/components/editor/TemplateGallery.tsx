@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ShieldCheck } from 'lucide-react'
+import { Check, ShieldCheck, X, ZoomIn } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES, galleryOrder } from '@/templates/registry'
 
@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 import { SAMPLE_CONTENT } from '@/data/sample'
 import { useLazyMount } from '@/components/preview/lazyMount'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
+import { usePhoneLayout } from '@/lib/layoutMode'
+import { PAGE_DIMENSIONS } from '@/types/metadata'
 
 export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   const applyTemplate = useResumeStore((s) => s.applyTemplate)
@@ -34,6 +36,14 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
     !doc_.content.education.length &&
     !doc_.content.skills.length
   const previewBase = isBlank ? { ...doc_, content: SAMPLE_CONTENT } : doc_
+  // A phone cannot hover: the full-size look opens as a sheet from a
+  // Preview button on the card instead.
+  const phone = usePhoneLayout()
+  const [previewing, setPreviewing] = useState<(typeof TEMPLATES)[number] | null>(null)
+  const pick = (tpl: (typeof TEMPLATES)[number]) => {
+    applyTemplate(tpl.defaults)
+    toast(`Switched to ${tpl.name}`, 'success')
+  }
 
   return (
     <div className="space-y-3">
@@ -42,7 +52,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
         {isBlank
           ? 'Previews show example content until you add yours.'
           : 'Your content flows into every one — switch any time.'}{' '}
-        Hover a card for a full-size look.
+        {phone ? 'Tap Preview on a card for a full-size look.' : 'Hover a card for a full-size look.'}
       </p>
       <div className="grid grid-cols-2 gap-3">
         {GALLERY.map((tpl) => (
@@ -51,12 +61,71 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
             tpl={tpl}
             doc={previewBase}
             active={current === tpl.id}
-            onPick={() => {
-              applyTemplate(tpl.defaults)
-              toast(`Switched to ${tpl.name}`, 'success')
-            }}
+            onPick={() => pick(tpl)}
+            onPreview={phone ? () => setPreviewing(tpl) : undefined}
           />
         ))}
+      </div>
+      {previewing && (
+        <PreviewSheet
+          tpl={previewing}
+          doc={previewBase}
+          onClose={() => setPreviewing(null)}
+          onUse={() => {
+            pick(previewing)
+            setPreviewing(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * The phone's full-size look: the same render the desktop's hover flyout
+ * shows, as a sheet with a Close and a "Use this design". The thumbnails
+ * draw the whole résumé at about 4px type, which cannot be judged.
+ */
+function PreviewSheet({
+  tpl,
+  doc,
+  onClose,
+  onUse,
+}: {
+  tpl: (typeof TEMPLATES)[number]
+  doc: ResumeDocument
+  onClose: () => void
+  onUse: () => void
+}) {
+  const previewDoc = useMemo<ResumeDocument>(
+    () => ({ ...doc, metadata: applyTemplateToMetadata(doc.metadata, tpl.defaults) }),
+    [doc, tpl.defaults]
+  )
+  const width = Math.min(typeof window !== 'undefined' ? window.innerWidth - 32 : 343, 380)
+  const { w: pageW, h: pageH } = PAGE_DIMENSIONS[previewDoc.metadata.page.format]
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col justify-end bg-black/40" role="dialog" aria-label={`${tpl.name} preview`}>
+      <div className="fixed inset-0" onClick={onClose} />
+      <div className="relative flex max-h-[calc(100%-24px)] flex-col rounded-t-2xl border border-border bg-surface shadow-float">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border pl-4 pr-2">
+          <span className="text-sm font-semibold">{tpl.name} — with your content</span>
+          <button className="btn-icon h-10 w-10" onClick={onClose} aria-label="Close preview" title="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-muted p-4">
+          <div className="mx-auto overflow-hidden rounded-md bg-white shadow-page" style={{ width, height: (width * pageH) / pageW }}>
+            <PreviewThumb doc={previewDoc} width={width} />
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-2 border-t border-border p-3">
+          <button className="btn-outline h-11 flex-1" onClick={onClose}>
+            Close
+          </button>
+          <button className="btn-primary h-11 flex-1" onClick={onUse}>
+            Use this design
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -89,11 +158,14 @@ function TemplateCard({
   doc,
   active,
   onPick,
+  onPreview,
 }: {
   tpl: (typeof TEMPLATES)[number]
   doc: ResumeDocument
   active: boolean
   onPick: () => void
+  /** A phone's route to the full-size look; absent where hover does it. */
+  onPreview?: () => void
 }) {
   // Render the thumbnail with the user's content but this template's look.
   const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
@@ -104,10 +176,20 @@ function TemplateCard({
 
   return (
     <HoverZoom doc={previewDoc} label={`${tpl.name} — with your content`}>
+      <div className="relative">
+      {onPreview && (
+        <button
+          className="absolute bottom-10 right-1.5 z-10 flex h-10 items-center gap-1 rounded-full border border-border bg-surface/95 px-2.5 text-xs font-medium shadow-soft backdrop-blur"
+          onClick={onPreview}
+          aria-label={`Preview ${tpl.name} full size`}
+        >
+          <ZoomIn className="h-4 w-4" /> Preview
+        </button>
+      )}
       <button
         onClick={onPick}
         className={cn(
-          'group relative flex flex-col overflow-hidden rounded-lg border bg-surface text-left transition-all hover:shadow-card',
+          'group relative flex w-full flex-col overflow-hidden rounded-lg border bg-surface text-left transition-all hover:shadow-card',
           active ? 'border-primary ring-2 ring-primary/40' : 'border-border hover:border-primary/40'
         )}
         title={tpl.description}
@@ -145,6 +227,7 @@ function TemplateCard({
           )}
         </div>
       </button>
+      </div>
     </HoverZoom>
   )
 }

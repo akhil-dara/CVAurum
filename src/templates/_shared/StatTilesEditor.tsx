@@ -64,10 +64,10 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
   }
   return (
     <div className="px-2 pb-1.5" data-testid="stat-tiles-editor">
-      <label className="flex cursor-pointer items-center gap-2 text-xs">
+      <label className="flex cursor-pointer items-center gap-2 text-xs phone:min-h-[44px] phone:text-sm">
         <input
           type="checkbox"
-          className="h-3.5 w-3.5 accent-primary"
+          className="h-3.5 w-3.5 accent-primary phone:h-5 phone:w-5"
           checked={layout.stats}
           onChange={(e) =>
             editMeta((m) => {
@@ -79,18 +79,18 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
       </label>
       {layout.stats && (
         <>
-          <div className="mt-1.5 flex flex-col gap-1">
+          <div className="mt-1.5 flex flex-col gap-1 phone:gap-0">
             {KINDS.map((k) => {
               const d = derived[k.kind]
               const checked = on(k.kind)
               return (
                 <label
                   key={k.kind}
-                  className={`flex items-center gap-2 text-xs ${!d && !checked ? 'text-muted-foreground' : ''}`}
+                  className={`flex items-center gap-2 text-xs phone:min-h-[44px] phone:text-sm ${!d && !checked ? 'text-muted-foreground' : ''}`}
                 >
                   <input
                     type="checkbox"
-                    className="h-3.5 w-3.5 accent-primary"
+                    className="h-3.5 w-3.5 accent-primary phone:h-5 phone:w-5"
                     checked={checked}
                     disabled={!checked && (!d || tiles.length >= MAX)}
                     onChange={() => toggle(k.kind)}
@@ -107,7 +107,7 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
             </span>
             <button
               type="button"
-              className="btn-outline btn-xs"
+              className="btn-outline btn-xs phone:h-10 phone:px-3 phone:text-sm"
               disabled={tiles.length >= MAX}
               onClick={() => write([...tiles, { id: newId(), kind: 'custom', value: '', label: '' }])}
             >
@@ -119,13 +119,13 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
               const d = t.kind === 'custom' ? null : derived[t.kind]
               return (
                 <li key={t.id} className="rounded-lg border border-border p-1.5">
-                  <div className="flex items-center gap-1">
-                    <span className="flex-1 text-[11px] font-medium">
+                  <div className="flex items-center gap-1 phone:gap-2">
+                    <span className="flex-1 text-[11px] font-medium phone:text-sm">
                       {t.kind === 'custom' ? 'Custom' : KINDS.find((k) => k.kind === t.kind)?.name}
                     </span>
                     <button
                       type="button"
-                      className="btn-icon h-6 w-6"
+                      className="btn-icon h-6 w-6 phone:h-10 phone:w-10"
                       aria-label="Move up"
                       disabled={i === 0}
                       onClick={() => move(i, -1)}
@@ -134,7 +134,7 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
                     </button>
                     <button
                       type="button"
-                      className="btn-icon h-6 w-6"
+                      className="btn-icon h-6 w-6 phone:h-10 phone:w-10"
                       aria-label="Move down"
                       disabled={i === tiles.length - 1}
                       onClick={() => move(i, 1)}
@@ -143,7 +143,7 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
                     </button>
                     <button
                       type="button"
-                      className="btn-icon h-6 w-6"
+                      className="btn-icon h-6 w-6 phone:h-10 phone:w-10"
                       aria-label="Remove"
                       onClick={() => write(tiles.filter((x) => x.id !== t.id))}
                     >
@@ -152,14 +152,14 @@ export function StatTilesEditor({ doc, editMeta }: { doc: ResumeDocument; editMe
                   </div>
                   <div className="mt-1 flex gap-1">
                     <input
-                      className="input h-7 w-16 px-1.5 text-xs"
+                      className="input h-7 w-16 px-1.5 text-xs phone:h-10 phone:w-20 phone:text-sm"
                       placeholder={d?.value ?? 'value'}
                       value={t.value ?? ''}
                       onChange={(e) => patch(t.id, { value: e.target.value })}
                       aria-label="Value"
                     />
                     <input
-                      className="input h-7 min-w-0 flex-1 px-1.5 text-xs"
+                      className="input h-7 min-w-0 flex-1 px-1.5 text-xs phone:h-10 phone:text-sm"
                       placeholder={d?.label || 'label'}
                       value={t.label ?? ''}
                       onChange={(e) => patch(t.id, { label: e.target.value })}
