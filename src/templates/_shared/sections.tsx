@@ -12,7 +12,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { currentYearMonth, entryDateOptions, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
 import type { DateOptions, DateRangeOptions } from '@/lib/utils'
-import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, ADD_LABEL } from '@/lib/sections'
+import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, metaColumnOn, ADD_LABEL } from '@/lib/sections'
 import { Chips, Deco, Dots, LevelBar, Stars, RichText, prettyUrl, linkWords, ringPath } from './atoms'
 import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
@@ -3083,7 +3083,7 @@ export function SectionBody({
     // it. The cell is never BUILT there rather than built and hidden - in
     // the margin the cell holds the entry's only date, and hiding that would
     // lose it.
-    metaColumn: compact || noMeta ? 'none' : doc.metadata.layout.metaColumn,
+    metaColumn: compact || noMeta ? 'none' : metaColumnOn(doc.metadata, doc.content),
   }
   const body = sectionRenderer(sectionKey, doc, config, edit, opts, compact)
   // Summary is a single field (always editable); every other section is a list,

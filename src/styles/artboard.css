@@ -1753,6 +1753,40 @@
    height, so the band keeps that much coloured ground BELOW its last line
    and the words are never covered. Both sides read the same overlap, so
    the two can never drift apart. */
+/* The name owns the band. The header's main block may shrink to nothing in
+   a flex row (its min-width: 0 is what lets a long name wrap at all), and
+   the contacts - a wrapping row whose natural width is every contact on one
+   line - took the whole band from it: a long name was left one character
+   wide and broke one letter per line, 2,600px of gradient with nothing else
+   on the page (2026-09-07). The main block keeps the larger share, the
+   contacts wrap inside the rest, and a name breaks only at a space. */
+.rm-header-band {
+  /* Two things share the band, the name's block and the contacts. When they
+     do not fit side by side the contacts drop BELOW the name, whole, as a
+     row of columns; nothing is squeezed. Squeezing was the failure: a grid
+     of addresses narrowed until it broke one letter per line and stood a
+     page tall, and a name narrowed until it did the same. */
+  flex-wrap: wrap;
+}
+.rm-header-band .rm-header-main {
+  /* Starts at half the band and grows into what the contacts leave: a
+     basis of its own content let one long role line claim the whole band
+     and push five short contacts below a name they fitted beside. The
+     name breaks only at a space. */
+  flex: 1 1 50%;
+  min-width: 50%;
+}
+.rm-header-band .rm-name,
+.rm-header-band .rm-headline {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+/* A long name (rm-long-name, over 22 characters) takes one size down in the
+   band so it holds two lines beside the contacts, not four. */
+.rm-root.rm-long-name .rm-header-band .rm-name {
+  font-size: calc(var(--rm-name-size) * 0.86);
+}
 .rm-header-band:has(+ .rm-stats) {
   padding-bottom: calc(var(--rm-band-inset) + var(--rm-stat-overlap));
   margin-bottom: 0;
@@ -1779,11 +1813,33 @@
   grid-template-rows: repeat(3, auto);
   grid-auto-flow: column;
   grid-auto-columns: max-content;
+  /* Never squeezed: an address does not wrap, and a grid of max-content
+     columns asked to shrink spilled its end-aligned tracks LEFT over the
+     name. It keeps its natural width beside the name, or drops below it. */
+  flex: 0 0 auto;
   justify-content: end;
   align-content: center;
   gap: 0.3em 1.6em;
   text-align: left;
   color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+}
+/* How many contacts there are decides the columns: up to five stand in one
+   column, so the name keeps the width (a 16-letter name beside a two-column
+   block of five wrapped for no reason); six sit three to a column; more
+   take four or five to a column rather than a fourth column. */
+.rm-root .rm-header-band .rm-contacts[data-contacts='4'] {
+  grid-template-rows: repeat(4, auto);
+}
+.rm-root .rm-header-band .rm-contacts[data-contacts='5'] {
+  grid-template-rows: repeat(5, auto);
+}
+.rm-root .rm-header-band .rm-contacts[data-contacts='7'],
+.rm-root .rm-header-band .rm-contacts[data-contacts='8'] {
+  grid-template-rows: repeat(4, auto);
+}
+.rm-root .rm-header-band .rm-contacts[data-contacts='9'],
+.rm-root .rm-header-band .rm-contacts[data-contacts='10'] {
+  grid-template-rows: repeat(5, auto);
 }
 .rm-header-band .rm-contact a {
   color: inherit;

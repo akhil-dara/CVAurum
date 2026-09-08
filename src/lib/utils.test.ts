@@ -79,6 +79,16 @@ describe('formatDateRange with a time span', () => {
     expect(formatDateRange('2021', '2021', { duration: true, now: '2024-08' })).toBe('2021')
     expect(formatDateRange('2021-03', '2021-03', { duration: true })).toBe('Mar 2021')
     expect(formatDateRange('2019', '2021', { duration: true, now: '2024-08' })).toBe('2019 — 2021')
+  })
+
+  it('prints nothing for an entry with no dates at all, never Present', () => {
+    // a student's undated projects printed "Present" in the PDF (2026-09-07)
+    expect(formatDateRange('', '')).toBe('')
+    expect(formatDateRange(undefined, undefined)).toBe('')
+    expect(formatDateRange('', '', { progress: 'auto', now: '2026-09' })).toBe('')
+    expect(formatDateRange(' ', '', { duration: true })).toBe('')
+    // an end on its own still reads as it did
+    expect(formatDateRange('', '2027-05', { progress: 'auto', now: '2026-09' })).toBe('Expected May 2027')
     expect(formatDateRange('2023-06', '', { duration: true })).toBe('Jun 2023 — Present')
   })
 })
@@ -162,7 +172,9 @@ describe('formatDateRange with a separator, a present word and a month style', (
     expect(formatDateRange('2021-01', '', { present: 'Current' })).toBe('Jan 2021 — Current')
     expect(formatDateRange('2021-01', 'Present', { present: 'Now', separator: 'endash' })).toBe('Jan 2021 – Now')
     expect(formatDateRange('2021-01', '', { present: '' })).toBe('Jan 2021 — Present')
-    expect(formatDateRange('', '', { present: 'Current' })).toBe('Current')
+    // ...but a range with no start has nothing to be open FROM: it is undated,
+    // and an undated entry prints no date, whatever the word (2026-09-07)
+    expect(formatDateRange('', '', { present: 'Current' })).toBe('')
   })
 
   it('spells both ends in the chosen style and language, span words included', () => {

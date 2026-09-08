@@ -298,6 +298,11 @@ export function formatDateRange(start?: string, end?: string, opts: DateRangeOpt
   // Under way with nothing to end on: the whole range is the word, since
   // "Present" would claim the course is over as much as a date would.
   if (opts.progress === 'pursuing' && isOpenEnd(end)) return pursuingWord(opts)
+  // Nothing at either end is nothing, not "Present": an entry the author
+  // never dated (a student's projects, 2026-09-07) printed "Present" in the
+  // PDF, the ATS text and the Word file, claiming a timeline the resume does
+  // not have, while the canvas rightly invited "Add dates".
+  if (!(start || '').trim() && !(end || '').trim()) return ''
   const s = formatDate(start, opts)
   const e = end ? formatDate(end, opts) : presentWord(opts)
   // A finish that has not happened yet is stated as expected: either the

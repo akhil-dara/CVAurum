@@ -1141,6 +1141,13 @@
   letter-spacing: -0.015em;
   margin-bottom: 0.1em;
 }
+/* The floor above is for a name that fits one line. A long one (over 22
+   characters) keeps the name the biggest thing on the page at a size that
+   holds two lines beside the contacts - at 34px it took four and, on the
+   canvas, one letter per line. */
+.rm-root.tpl-atlas.rm-long-name .rm-header-band .rm-name {
+  font-size: max(26px, calc(var(--rm-fs) * 2.05));
+}
 /* The role reads as the name's second line, not as a contact that drifted
    left: a size up from the body, tracked, in the same white. */
 .rm-root.tpl-atlas .rm-header-band .rm-headline {
@@ -1195,7 +1202,10 @@
   --rm-gutter-bg: #f8f5f0;
   --rm-rail-line: color-mix(in srgb, var(--rm-primary) 55%, var(--rm-bg));
 }
-.rm-root.tpl-chronicle .rm-col-main .rm-section::before {
+/* Only while the rail is open (meta-gutter): a document with no start dates
+   draws no rail, and the tint must go with it or it stands as a bare tinted
+   column beside text that now starts at the margin. */
+.rm-root.tpl-chronicle.meta-gutter .rm-col-main .rm-section::before {
   content: '';
   position: absolute;
   left: 0;
@@ -1207,7 +1217,7 @@
   background: var(--rm-gutter-bg);
   border-right: 1px solid var(--rm-rail-line);
 }
-.rm-root.tpl-chronicle .rm-col-main .rm-section:last-child::before {
+.rm-root.tpl-chronicle.meta-gutter .rm-col-main .rm-section:last-child::before {
   bottom: 0;
 }
 /* The cell itself carries nothing but the numerals now: no tint of its own,
@@ -1256,7 +1266,7 @@
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
   /* The role is a line INSIDE the name's own heading, so the space above it
      is its own margin - the heading's margin-bottom only reaches the contact
      row. At line-height 1 the name's descenders run past their line box, and
@@ -1363,7 +1373,7 @@
   font-weight: 600;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--rm-primary);
+  color: var(--rm-headline-color, var(--rm-primary));
   margin-bottom: 0.95em;
 }
 /* One muted row under it. The details are held apart by a wide gap alone -

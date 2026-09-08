@@ -129,6 +129,32 @@ describe('meta column', () => {
     expect(edu).toContain('rm-year')
   })
 
+  // A column with nothing to show is not drawn: a student's resume with
+  // undated projects and a course that has only a finish gave the year rail
+  // nothing, and it stood as a tinted seventh of the page. The margin still
+  // has the finish to print, so it stays.
+  it('a document with no dates opens no rail, and one with only a finish opens the margin alone', () => {
+    const doc = createDocument({ sample: true })
+    for (const list of [doc.content.work, doc.content.education, doc.content.projects, doc.content.volunteer]) {
+      for (const e of list) { e.startDate = ''; e.endDate = '' }
+    }
+    for (const a of doc.content.awards) a.date = ''
+    for (const c of doc.content.certificates) c.date = ''
+    for (const p of doc.content.publications) p.releaseDate = ''
+    for (const sec of doc.content.custom) for (const i of sec.items) i.date = ''
+    doc.metadata.layout.metaColumn = 'gutter'
+    const none = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(none).not.toContain('meta-gutter')
+    expect(none).not.toContain('rm-meta-cell')
+    expect(none).not.toContain('Present')
+    doc.content.education[0].endDate = '2027-05'
+    expect(renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)).not.toContain('meta-gutter')
+    doc.metadata.layout.metaColumn = 'margin'
+    const margin = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(margin).toContain('meta-margin')
+    expect(margin).toContain('rm-meta-cell')
+  })
+
   it('the page says which column it opened, and says nothing when it opened none', () => {
     const doc = createDocument({ sample: true })
     doc.metadata.layout.metaColumn = 'gutter'

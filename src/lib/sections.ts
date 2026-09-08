@@ -289,6 +289,34 @@ const anyTxt = (arr?: string[]) => !!arr && arr.some(txt)
  * filled) does not count — otherwise an empty "References" heading leaks into
  * the printed PDF with nothing under it.
  */
+/** Whether any entry carries a date the page's date column could show:
+ *  `'start'` asks for an opening date (the year rail on the left draws the
+ *  year an entry began), `'any'` for either end (the margin on the right
+ *  prints the range as it is). */
+export function hasDatedEntry(content: ResumeContent, need: 'start' | 'any' = 'any'): boolean {
+  const has = (v?: string) => !!(v || '').trim()
+  const ranged = [...(content.work ?? []), ...(content.education ?? []), ...(content.projects ?? []), ...(content.volunteer ?? [])]
+  if (ranged.some((e) => has(e.startDate) || (need === 'any' && has(e.endDate)))) return true
+  if (need === 'start') return false
+  if ((content.awards ?? []).some((a) => has(a.date))) return true
+  if ((content.certificates ?? []).some((c) => has(c.date))) return true
+  if ((content.publications ?? []).some((p) => has(p.releaseDate))) return true
+  return (content.custom ?? []).some((sec) => (sec.items ?? []).some((i) => has(i.date)))
+}
+
+/** The date column the page actually draws: the one the document asked for,
+ *  and only while some entry has a date to put in it. A rail beside undated
+ *  projects and a course with no start was a tinted column of nothing, a
+ *  seventh of the page gone (a student's resume, 2026-09-07). Never built
+ *  rather than built and hidden: in the margin the cell holds the entry's
+ *  only copy of its date. */
+export function metaColumnOn(metadata: Metadata, content: ResumeContent): 'none' | 'gutter' | 'margin' {
+  const asked = metadata.layout.metaColumn
+  if (asked === 'gutter') return hasDatedEntry(content, 'start') ? 'gutter' : 'none'
+  if (asked === 'margin') return hasDatedEntry(content, 'any') ? 'margin' : 'none'
+  return 'none'
+}
+
 export function sectionHasContent(key: string, content: ResumeContent): boolean {
   switch (key) {
     case 'summary':

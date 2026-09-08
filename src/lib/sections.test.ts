@@ -5,7 +5,7 @@
  * end.
  */
 import { describe, it, expect } from 'vitest'
-import { resolveOrder } from './sections'
+import { hasDatedEntry, metaColumnOn, resolveOrder } from './sections'
 import { MetadataSchema } from '@/types/metadata'
 import { createDocument } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
@@ -48,5 +48,53 @@ describe('resolveOrder places the footer strip last', () => {
     doc.content.skills = []
     expect(resolveOrder(doc).footer).toEqual([])
     expect(resolveOrder(doc, { includeEmpty: true }).footer).toEqual(['skills'])
+  })
+})
+
+describe('the date column is on only while it has something to show', () => {
+  const dated = () => createDocument({ sample: true })
+  const undated = () => {
+    const doc = createDocument({ sample: true })
+    for (const list of [doc.content.work, doc.content.education, doc.content.projects, doc.content.volunteer]) {
+      for (const e of list) { e.startDate = ''; e.endDate = '' }
+    }
+    for (const a of doc.content.awards) a.date = ''
+    for (const c of doc.content.certificates) c.date = ''
+    for (const p of doc.content.publications) p.releaseDate = ''
+    for (const sec of doc.content.custom) for (const i of sec.items) i.date = ''
+    return doc
+  }
+  const asking = (doc: ResumeDocument, column: 'gutter' | 'margin') => {
+    doc.metadata.layout.metaColumn = column
+    return doc
+  }
+
+  it('a dated document keeps the rail and the margin it asked for', () => {
+    expect(metaColumnOn(asking(dated(), 'gutter').metadata, dated().content)).toBe('gutter')
+    expect(metaColumnOn(asking(dated(), 'margin').metadata, dated().content)).toBe('margin')
+  })
+
+  it('with no dates anywhere neither column is drawn', () => {
+    const doc = undated()
+    expect(hasDatedEntry(doc.content)).toBe(false)
+    expect(metaColumnOn(asking(doc, 'gutter').metadata, doc.content)).toBe('none')
+    expect(metaColumnOn(asking(doc, 'margin').metadata, doc.content)).toBe('none')
+  })
+
+  it('an expected finish alone fills the margin but not the year rail', () => {
+    // a student: undated projects, a course with a finish but no start
+    const doc = undated()
+    doc.content.education[0].endDate = '2027-05'
+    expect(hasDatedEntry(doc.content, 'start')).toBe(false)
+    expect(hasDatedEntry(doc.content, 'any')).toBe(true)
+    expect(metaColumnOn(asking(doc, 'gutter').metadata, doc.content)).toBe('none')
+    expect(metaColumnOn(asking(doc, 'margin').metadata, doc.content)).toBe('margin')
+  })
+
+  it('never asks for a column the document did not', () => {
+    expect(metaColumnOn(asking(dated(), 'gutter').metadata, dated().content)).not.toBe('none')
+    const doc = dated()
+    doc.metadata.layout.metaColumn = 'none'
+    expect(metaColumnOn(doc.metadata, doc.content)).toBe('none')
   })
 })

@@ -8,7 +8,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
-import { resolveOrder, sectionLabel } from '@/lib/sections'
+import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
@@ -277,8 +277,10 @@ function contactsClass(doc: ResumeDocument): string {
 
 function Contacts({ entries, icons, cls }: { entries: ContactEntry[]; icons: boolean; cls: string }) {
   if (!entries.length) return null
+  // How many there are, for a header that lays them out by count (the band
+  // stands a few in one column and splits more into columns).
   return (
-    <div className={cls}>
+    <div className={cls} data-contacts={entries.length}>
       {entries.map((e, i) => (
         <span className="rm-contact" key={i}>
           {icons ? e.icon : null}
@@ -316,7 +318,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
     </span>
   )
   return (
-    <div className={cls}>
+    <div className={cls} data-contacts={4 + (b.profiles?.length ?? 0)}>
       {field(
         <Mail />,
         <Ed
@@ -1059,9 +1061,12 @@ export function Artboard({
     // An entry's dates can have a column of their own: a gutter of
     // decorative years on the left, or a margin holding the real date on
     // the right. Absent unless asked for, so nothing existing shifts.
-    doc.metadata.layout.metaColumn && doc.metadata.layout.metaColumn !== 'none'
-      ? `meta-${doc.metadata.layout.metaColumn}`
-      : '',
+    // ...and only while some entry has a date to put there (metaColumnOn).
+    metaColumnOn(doc.metadata, doc.content) !== 'none' ? `meta-${metaColumnOn(doc.metadata, doc.content)}` : '',
+    // A long name says so, for a header that sets the name beside other
+    // things (the band): a name that would take three lines at full size
+    // takes one size down instead.
+    (doc.content.basics.name || '').trim().length > 22 ? 'rm-long-name' : '',
     // A section can hand its title a column of its own on the left, beside
     // the content instead of above it. Absent unless asked for, so a page
     // that never chose it keeps the headings it has.
