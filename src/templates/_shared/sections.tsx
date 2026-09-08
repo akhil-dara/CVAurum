@@ -2579,6 +2579,10 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                 }}
                 rich
                 multiline
+                // The read-only page draws a description as its own block, so
+                // the canvas has to as well: left inline it ran on to the end
+                // of the awarder line ("Vertex LabsTop 2% of ...").
+                as="div"
                 placeholder="Summary"
               />
             ) : null}
@@ -2651,6 +2655,8 @@ function Publications({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                 }}
                 rich
                 multiline
+                // Same as an award: its own block, or it joins the publisher.
+                as="div"
                 placeholder="Summary"
               />
             ) : null}
