@@ -58,11 +58,19 @@ function Design({ id }: { id: string }) {
   }, [id])
   // Breadcrumb rich result. A data block, not executable script, so it is
   // welcome under the site's script-src 'self' policy.
+  // A pre-rendered page already carries the build's block (id
+  // "ld-breadcrumb"); reuse it rather than adding a second BreadcrumbList
+  // beside it. Once the app has booted this effect owns the block, so it
+  // goes on leaving the page with the page, whoever created it.
   useEffect(() => {
-    const el = document.createElement('script')
-    el.type = 'application/ld+json'
+    const existing = document.getElementById('ld-breadcrumb') as HTMLScriptElement | null
+    const el = existing ?? document.createElement('script')
+    if (!existing) {
+      el.type = 'application/ld+json'
+      el.id = 'ld-breadcrumb'
+      document.head.appendChild(el)
+    }
     el.textContent = breadcrumbJsonLd(id)
-    document.head.appendChild(el)
     return () => el.remove()
   }, [id])
 

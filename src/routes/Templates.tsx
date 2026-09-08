@@ -351,40 +351,50 @@ function TemplateCard({ tpl, base, onPick }: { tpl: TemplateConfig; base: Resume
     [base, tpl.defaults]
   )
 
+  // A card used to be one <button> with the name's <a> inside it, and the
+  // rendered preview's own links inside it too: interactive content inside
+  // a button is not valid HTML, and a parser may unwrap it. The card is a
+  // plain box now: the picture starts a résumé on click (it is a rendered
+  // page, so it cannot be a button either), the name is the link to the
+  // design's own page, and a "Use" button beside the name is the keyboard's
+  // and the screen reader's way to start.
   return (
     <HoverZoom doc={doc} label={tpl.name}>
-      <button
-        onClick={onPick}
-        aria-label={`Start a résumé in ${tpl.name} — ${tpl.description}`}
-        title={`Use the ${tpl.name} template`}
-        className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-card"
-      >
+      <div className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-card">
         {/* The preview is the sample resume's text, which is not this page's
             content - keep it out of search snippets, as the landing strip does.
             The card's own copy below stays indexable. */}
         <div
           ref={thumbRef}
           data-nosnippet
-          className="aspect-[210/297] shrink-0 overflow-hidden border-b border-border bg-white"
+          role="presentation"
+          onClick={onPick}
+          title={`Use the ${tpl.name} template`}
+          className="aspect-[210/297] shrink-0 cursor-pointer overflow-hidden border-b border-border bg-white"
         >
           {seen ? <PreviewThumb doc={doc} width={260} /> : <ThumbSkeleton accent={tpl.defaults.theme.primary} />}
         </div>
         <div className="flex flex-1 flex-col gap-2 p-3">
           <div className="flex items-center justify-between gap-2">
-            {/* The name is the design's own page (/templates/<id>): the card
-                still starts a résumé, but "Broadsheet résumé template" is a
-                thing people search for and a link is how they — and a crawler
-                — reach it. stopPropagation keeps a click on the name from
-                also firing the card's start action underneath it. */}
+            {/* The name is the design's own page (/templates/<id>):
+                "Broadsheet résumé template" is a thing people search for and
+                a link is how they — and a crawler — reach it. */}
             <Link
               to={`/templates/${tpl.id}`}
-              onClick={(e) => e.stopPropagation()}
               title={`About the ${tpl.name} template`}
               className="text-sm font-semibold text-foreground transition hover:text-primary hover:underline"
             >
               {tpl.name}
             </Link>
-            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+            <button
+              type="button"
+              onClick={onPick}
+              aria-label={`Start a résumé in ${tpl.name} — ${tpl.description}`}
+              title={`Use the ${tpl.name} template`}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-primary"
+            >
+              Use <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </button>
           </div>
           <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{tpl.description}</p>
           {/* The strict tag is left off the pills for the same reason it is
@@ -403,7 +413,7 @@ function TemplateCard({ tpl, base, onPick }: { tpl: TemplateConfig; base: Resume
               ))}
           </div>
         </div>
-      </button>
+      </div>
     </HoverZoom>
   )
 }
