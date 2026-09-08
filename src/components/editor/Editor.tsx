@@ -5,6 +5,8 @@ import type { ResumeDocument } from '@/types/document'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
+import { useIsCompactEditor } from '@/hooks/useIsPhone'
+import { cn } from '@/lib/utils'
 import { EditorTopBar } from './EditorTopBar'
 import { PdfExportStatus } from './PdfExportStatus'
 import { EditorTour } from './EditorTour'
@@ -31,6 +33,13 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
   // change, so typing paid a second full-tree render for nothing.
   const leftTab = useEditorStore((s) => s.leftTab)
   const leftOpen = useEditorStore((s) => s.leftOpen)
+  // A touch device under `xl` can't show the panel and a usable canvas at the
+  // same time — side by side, the sheet is squeezed to its 0.35 minimum scale
+  // and every on-canvas control with it. There the panel takes the whole
+  // editing area (as it already does on a phone) and the canvas gets the full
+  // width the moment the panel is closed. A mouse keeps the split.
+  const compact = useIsCompactEditor()
+  const split = !compact
 
   // Global undo/redo shortcuts.
   useEffect(() => {
@@ -85,10 +94,14 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              // Mobile: full-width, fills the height (canvas is hidden). Desktop: a
-              // fixed 392px column beside the canvas.
+              // Phone, and any touch device under `xl`: full-width, fills the
+              // editing area (canvas is hidden). Mouse: a fixed 392px column
+              // beside the canvas.
               data-tour="panel"
-              className="order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none md:w-[392px] md:flex-none md:border-r"
+              className={cn(
+                'order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none',
+                split && 'md:w-[392px] md:flex-none md:border-r',
+              )}
             >
               <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
                 <h2 className="text-sm font-semibold">{PANEL_TITLES[leftTab]}</h2>
@@ -96,7 +109,10 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
                     means the exact-PDF view, and two buttons with one name
                     and two meanings read as a bug. This one just puts the
                     editable page on screen. */}
-                <button className="btn-ghost btn-sm md:hidden" onClick={() => setLeftOpen(false)}>
+                <button
+                  className={cn('btn-ghost btn-sm', split && 'md:hidden')}
+                  onClick={() => setLeftOpen(false)}
+                >
                   <Eye className="h-4 w-4" /> View page
                 </button>
               </div>
@@ -109,7 +125,13 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             </motion.aside>
           )}
         </AnimatePresence>
-        <div data-tour="canvas" className={`order-2 min-h-0 min-w-0 flex-1 md:order-none ${leftOpen ? 'hidden md:block' : ''}`}>
+        <div
+          data-tour="canvas"
+          className={cn(
+            'order-2 min-h-0 min-w-0 flex-1 md:order-none',
+            leftOpen && (split ? 'hidden md:block' : 'hidden'),
+          )}
+        >
           <ResumePreview doc={doc} />
         </div>
       </div>
