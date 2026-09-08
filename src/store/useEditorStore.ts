@@ -86,7 +86,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setLeftTab: (leftTab) => set({ leftTab }),
   setActiveSection: (activeSection) => set({ activeSection }),
-  setZoom: (zoom) => set({ zoom: Math.min(2, Math.max(0.4, zoom)), autoFit: false }),
+  setZoom: (zoom) => set({ zoom: Math.min(3, Math.max(0.4, zoom)), autoFit: false }),
   setCanvasZoom: (canvasZoom) => {
     if (get().canvasZoom !== canvasZoom) set({ canvasZoom })
   },
@@ -94,7 +94,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // at its untouched 1 while the canvas paints at (say) 0.82, so stepping
   // from `zoom` made the first "Zoom out" tap grow the sheet — and the first
   // "Zoom in" jump straight to 110%.
-  zoomIn: () => set({ zoom: Math.min(2, round2(get().canvasZoom + 0.1)), autoFit: false }),
+  zoomIn: () => set({ zoom: Math.min(3, round2(get().canvasZoom + 0.1)), autoFit: false }),
   zoomOut: () => set({ zoom: Math.max(0.4, round2(get().canvasZoom - 0.1)), autoFit: false }),
   resetZoom: () => set({ zoom: 1, autoFit: false }),
   setAutoFit: (autoFit) => set({ autoFit }),

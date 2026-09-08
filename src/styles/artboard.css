@@ -3943,3 +3943,72 @@
 .rm-root.heads-side.meta-gutter .rm-col-main .rm-section-title {
   margin-left: 0;
 }
+
+/* ---- A finger's hit areas -------------------------------------------------
+   Every edit control drawn on the canvas is a mouse-sized target, and the
+   canvas is scaled: on a 768px tablet at fit zoom the reorder arrows are
+   9.6px square, the date buttons 9.7px tall, a link button 6.7px, and even
+   at the old 200% cap none reached 28px (2026-09-08). On a coarse pointer
+   each control gets an invisible hit area of at least 28 SCREEN pixels
+   through a positioned pseudo-element: out of flow, so the page the user
+   sees and the PDF stay identical, and it disappears with the control in
+   print. `--rm-zoom` is the page's scale (ResumePreview); the inset is
+   negative only while the control is smaller than 28px on screen.
+   :where() keeps the specificity at zero, so a control that positions itself
+   (absolute delete badges, the section gear) keeps its own `position`. */
+@media (pointer: coarse) {
+  :where(.rm-root) :where(button.no-print, .no-print button, [role='button'].no-print):not(:where(.rm-item-move *, .rm-section-controls *, .rm-item-del, .rm-section > .rm-section-gear)) {
+    position: relative;
+  }
+  :where(.rm-root) :where(button.no-print, .no-print button, [role='button'].no-print):not(:where(.rm-item-move *, .rm-section-controls *, .rm-item-del, .rm-section > .rm-section-gear))::after {
+    content: '';
+    position: absolute;
+    inset: min(0px, calc(50% - 14px / var(--rm-zoom, 1)));
+    /* Hit area only, nothing drawn. Behind everything in flow: a cluster of
+       four 16px controls with 28px hit areas overlaps, and above the flow
+       the LAST control's area covered its neighbours' own boxes, so a tap
+       dead on "Hide section" reached "Move section down" (measured). Below
+       the flow, a control's own box always wins and the areas only claim
+       the empty space between. */
+    z-index: -1;
+    background: transparent;
+  }
+  /* The clusters below are scaled instead (out of flow), and an area on
+     their buttons spilled over the row beneath: an entry's move arrows hang
+     above its head row, and their areas covered the date on it. */
+  /* The Style pill inside a controls row is `position: static` (its row is
+     the positioned box), and as a flex item its z-index: 6 still makes it a
+     stacking context above its siblings: its hit area then spanned the whole
+     row and a tap dead on "Hide section" reached the pill (measured). Own
+     box, own area, no layer of its own. */
+  .rm-section-controls .rm-section-gear {
+    position: relative;
+    z-index: auto;
+  }
+  /* The clusters that float beside the page's content - the section's
+     controls row, an entry's move arrows and its delete badge - are
+     absolutely positioned, so growing them moves nothing on the page or in
+     the PDF. On a coarse pointer they grow to a finger's size in SCREEN
+     pixels: 1.44 layout px of control per screen px of zoom brings a 19.5px
+     button to 28px at any zoom under 144%; above that they are big enough
+     as drawn. Anchored at the corner they hang from, so they grow away from
+     the text they sit beside. */
+  .rm-root .rm-section-controls,
+  .rm-root .rm-section > .rm-section-gear {
+    transform: scale(max(1, calc(1.44 / var(--rm-zoom, 1))));
+    /* up into the section gap, not down onto the first entry's date row
+       (grown downward, "Move section down" sat on that date: measured) */
+    transform-origin: bottom right;
+  }
+  /* An entry's own move arrows: the tap cluster (CanvasReorder) carries the
+     same two moves at finger size the moment an entry is tapped, and these
+     arrows, grown, collided with it. */
+  .rm-root .rm-item-move {
+    display: none !important;
+  }
+  .mode-preview .rm-item-del {
+    /* a 1.5em badge: 2.24 layout px per screen px of zoom reaches 28px */
+    transform: scale(max(1, calc(2.24 / var(--rm-zoom, 1))));
+    transform-origin: top left;
+  }
+}

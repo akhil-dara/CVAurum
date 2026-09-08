@@ -57,6 +57,7 @@ interface HoverEntry {
   sectionKey: string
   top: number
   right: number
+  left: number
 }
 
 interface Slot {
@@ -447,6 +448,7 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           sectionKey: sectionEl?.dataset.section ?? '',
           top: rect.top,
           right: rect.right,
+          left: rect.left,
         })
       } else {
         setHover(null)
@@ -493,8 +495,13 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
     setHover(null)
   }
 
+  // On a coarse pointer the cluster is finger-sized and hangs at the entry's
+  // LEFT edge: right-aligned it landed on the section's own controls row
+  // (grown to finger size there too) for a section's first entry, and a tap
+  // meant for "Move section up" reached "Drag to reorder entry" (measured).
+  const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const clusterBtn =
-    'flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted-foreground shadow-sm transition hover:text-foreground hover:border-primary/50 disabled:pointer-events-none disabled:opacity-30'
+    'flex h-6 w-6 coarse:h-8 coarse:w-8 items-center justify-center rounded-full border border-border bg-surface text-muted-foreground shadow-sm transition hover:text-foreground hover:border-primary/50 disabled:pointer-events-none disabled:opacity-30'
 
   return createPortal(
     <>
@@ -508,7 +515,7 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           // hovered again - the cluster kept itself alive by being pointed
           // at. Above the top edge it can only cover the previous entry's
           // tail, whose controls are not revealed - they need THEIR hover.
-          style={{ top: hover.top - 30, left: hover.right - (autoFitOn ? 96 : 124) }}
+          style={coarse ? { top: hover.top - 40, left: hover.left } : { top: hover.top - 30, left: hover.right - (autoFitOn ? 96 : 124) }}
           data-canvas-entry-cluster
         >
           <button
