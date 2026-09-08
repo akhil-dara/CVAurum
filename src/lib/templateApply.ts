@@ -57,7 +57,14 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   // else the one the template ships (Marquee seats skills and languages in
   // its strip), the way the art band and the photo light up only where
   // nothing was decided.
-  const footer = cur.layout.footer.length ? cur.layout.footer : defaults.layout.footer
+  // ...unless the strip is exactly the one the PREVIOUS template shipped:
+  // that was the template's, not the author's, and it must not follow the
+  // author into a design that has no strip (a two-column template that
+  // came after the poster kept the poster's skills strip, and printed the
+  // skills twice).
+  const prevFooter = (cur.template ? getTemplate(cur.template).defaults.layout.footer : []) ?? []
+  const footerIsPrev = cur.layout.footer.join('|') === prevFooter.join('|')
+  const footer = cur.layout.footer.length && !footerIsPrev ? cur.layout.footer : defaults.layout.footer
 
   // Dedupe so no section can ever appear in both columns (guards against drift
   // over a long chain of template switches). A section in the footer strip is

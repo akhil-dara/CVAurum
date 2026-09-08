@@ -2163,7 +2163,12 @@
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
+  /* Small capitals, never a case transform: the text layer keeps the word
+     as written ("Languages"), so a parser reads a skill group's name and
+     not a LANGUAGES section heading. Set in capitals, the strip's first
+     group swallowed every keyword line into a languages section and the
+     import gate recovered no skills at all (2026-09-08). */
+  font-variant-caps: small-caps;
   color: inherit;
 }
 .rm-footer-list {
@@ -3598,7 +3603,8 @@
 .rm-root.meta-gutter,
 .rm-root.meta-margin {
   --rm-meta-w: 150px;
-  --rm-margin-w: 132px;
+  /* wide enough for "MAR 2021 — PRESENT" on one line at the margin's size */
+  --rm-margin-w: 140px;
 }
 
 /* ---- the gutter ---- */
@@ -3674,9 +3680,15 @@
   gap: 0.25em;
   border-left: 1px solid var(--rm-line);
   padding-left: 0.9em;
-  font-size: calc(var(--rm-fs) * 0.8);
-  letter-spacing: 0.14em;
+  /* A date is one line or it is not a date: wrapped as "MAR 2021 -" over
+     "PRESENT" no parser reads it (the import gate lost seven of eight roles
+     to it). Set small and lightly tracked so "EXPECTED MAY 2027" holds one
+     line inside the margin, and never allowed to break. */
+  font-size: calc(var(--rm-fs) * 0.76);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  /* the date and the place are bare text in this cell, one line each */
+  white-space: nowrap;
   color: var(--rm-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -3692,7 +3704,7 @@
    sheet's right edge and showed the author a line the PDF does not have.
    Inside the margin it wraps like everything else there. */
 .rm-root.meta-margin .rm-col-main .rm-meta-cell .rm-date-edit {
-  white-space: normal;
+  white-space: nowrap;
 }
 
 /* The canvas's hover controls keep the geometry they have with no meta

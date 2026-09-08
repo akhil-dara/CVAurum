@@ -301,6 +301,20 @@ describe('a template can apply its own structure', () => {
     expect(applyTemplateToMetadata(viaAtlas, getTemplate('aurum').defaults).layout.stats).toBe(false)
   })
 
+  it('does not carry the poster footer strip into the next template', () => {
+    const viaMarquee = applyTemplateToMetadata(fresh(), getTemplate('marquee').defaults)
+    expect(viaMarquee.layout.footer).toEqual(['skills', 'languages'])
+    const thenSapphire = applyTemplateToMetadata(viaMarquee, getTemplate('sapphire').defaults)
+    expect(thenSapphire.layout.footer).toEqual([])
+    // the sections went back into the body, once
+    const all = [...thenSapphire.layout.main, ...thenSapphire.layout.aside]
+    expect(all.filter((k) => k === 'skills')).toHaveLength(1)
+    // a strip the author composed survives a switch
+    const authored = applyTemplateToMetadata(fresh(), getTemplate('marquee').defaults)
+    authored.layout.footer = ['languages']
+    expect(applyTemplateToMetadata(authored, getTemplate('sapphire').defaults).layout.footer).toEqual(['languages'])
+  })
+
   it('still keeps a choice the author actually made', () => {
     const chosen = fresh()
     chosen.layout.metaColumn = 'margin'
