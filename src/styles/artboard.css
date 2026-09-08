@@ -2774,6 +2774,17 @@
   top: 0;
   margin-right: 0.3em;
 }
+/* Beside a year rail the margin to the left of the title IS the rail, and
+   the pill landed on the numerals: "2022 + Logo", and the rail's own click
+   answered where the pill should have (2026-09-08). There it hangs at the
+   right end of the line under the title instead - the organisation line's
+   right half, which is empty - still out of flow, still print-free. */
+.rm-root.meta-gutter .rm-col-main .rm-logo-btn-empty {
+  right: 0;
+  left: auto;
+  top: 100%;
+  margin: 0.15em 0 0;
+}
 .rm-logo-add {
   opacity: 0;
   white-space: nowrap;

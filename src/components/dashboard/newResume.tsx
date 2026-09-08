@@ -181,7 +181,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
     // the same and composites once.
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float">
+      <div className="relative z-10 flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Pick a starting example</h2>
           <button className="btn-icon" onClick={onClose} aria-label="Close">
@@ -189,7 +189,10 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
           </button>
         </div>
         <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
-        <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden sm:grid-cols-2 lg:grid-cols-5">
+        {/* Six examples: two, three or six to a row so no row is left with a
+            lone card (five columns stranded the sixth), and the rows scroll
+            inside the dialog with room kept for the scrollbar. */}
+        <div className="panel-scroll grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden pr-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
           {docs.map(({ persona, doc }) => (
             <SampleCard key={persona.id} persona={persona} doc={doc} onPick={onPick} />
           ))}
