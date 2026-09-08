@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, Info, XCircle, X } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
+import { useEditorStore } from '@/store/useEditorStore'
 
 const ICONS = {
   success: CheckCircle2,
@@ -11,6 +12,11 @@ const ICONS = {
 export function Toaster() {
   const toasts = useAppStore((s) => s.toasts)
   const dismiss = useAppStore((s) => s.dismissToast)
+  // A phone has one narrow strip of screen above the bottom tab bar, and the
+  // export's "Generating your PDF…" pill is parked in it too. A toast is wide
+  // enough there to cover the pill completely - so while an export is running,
+  // step the stack up over the pill's height and let both be seen.
+  const exporting = useEditorStore((s) => s.pdfExporting)
   return (
     <div
       role="status"
@@ -21,7 +27,9 @@ export function Toaster() {
       // its taps (the card is pointer-events-auto). Sit above the bar below
       // md - the same breakpoint that turns the bar back into the desktop
       // left rail - and keep the desktop corner unchanged.
-      className="pointer-events-none fixed bottom-20 right-4 z-[100] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2 md:bottom-4"
+      className={`pointer-events-none fixed right-4 z-[100] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2 transition-[bottom] duration-200 md:bottom-4 ${
+        exporting ? 'bottom-[8.5rem]' : 'bottom-20'
+      }`}
     >
       <AnimatePresence>
         {toasts.map((t) => {
