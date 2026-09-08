@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ResumeContent } from '@/types/document'
 import { currentYearMonth, formatDate, formatDateRange, isSingleDate, monthNames } from '@/lib/utils'
@@ -177,6 +177,17 @@ export function CanvasDate({
     setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.left, window.innerWidth - 248)) })
     setOpen(true)
   }
+  // The popover opens under its button, and an entry low on the screen put
+  // its foot - the Rail row and Done - below the window's edge with nothing
+  // to scroll (2026-09-08). Once it has a height, it moves up as far as it
+  // must to fit, and when even that is not enough it scrolls inside.
+  const panelRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!open || !panelRef.current) return
+    const h = panelRef.current.offsetHeight
+    const maxTop = window.innerHeight - h - 8
+    if (pos.top > maxTop) setPos((p) => ({ ...p, top: Math.max(8, maxTop) }))
+  }, [open, pos.top])
 
   return (
     <>
@@ -187,7 +198,11 @@ export function CanvasDate({
         createPortal(
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
-            <div className="fixed z-[61] w-60 rounded-xl border border-border bg-surface p-3 text-foreground shadow-float" style={{ top: pos.top, left: pos.left }}>
+            <div
+              ref={panelRef}
+              className="fixed z-[61] max-h-[calc(100vh-16px)] w-60 overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-3 text-foreground shadow-float"
+              style={{ top: pos.top, left: pos.left }}
+            >
               <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {range ? (single ? 'Date' : 'Start') : 'Date'}
               </div>
