@@ -122,7 +122,7 @@ export function ShareDialog({ doc }: { doc: ResumeDocument }) {
               </div>
               <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-primary/5 p-2.5 text-xs leading-relaxed text-foreground">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                Send the passphrase through a <strong>different</strong> channel than the link (say it in person, or use another app). Never put both in the same message.
+                <span>Send the passphrase through a <strong>different</strong> channel than the link (say it in person, or use another app). Never put both in the same message.</span>
               </p>
             </>
           )}
