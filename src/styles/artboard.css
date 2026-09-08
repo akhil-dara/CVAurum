@@ -2602,6 +2602,17 @@
 .rm-date-edit {
   font: inherit;
   color: inherit;
+  /* A button does not inherit the case its surroundings ask for - the
+     browser's own stylesheet sets `text-transform: none` on form controls,
+     and `font: inherit` does not carry case. Where the date sits somewhere
+     that prints it in caps (Folio Noir's date margin), the canvas showed
+     "Mar 2021" while the export showed "MAR 2021": the author was reading a
+     different document from the one they would send. Take the case from
+     the surroundings, as every other line of the sheet does. */
+  text-transform: inherit;
+  /* Same story for alignment: a button centres its own text, so a date that
+     wrapped came out centred where the export sets it flush. */
+  text-align: inherit;
   background: none;
   border: none;
   padding: 0 0.15em;
@@ -3673,6 +3684,15 @@
    they are the margin's now, and it sets them. */
 .rm-root.meta-margin .rm-col-main .rm-meta-cell .rm-item-loc {
   color: var(--rm-muted);
+}
+/* In a head row a date must not break across lines, so the canvas's date
+   button keeps itself on one. The margin is a COLUMN, though, and a long
+   date ("Expected May 2027" in caps) is wider than it: the export wraps it
+   onto a second line, so a button that refuses to wrap ran out past the
+   sheet's right edge and showed the author a line the PDF does not have.
+   Inside the margin it wraps like everything else there. */
+.rm-root.meta-margin .rm-col-main .rm-meta-cell .rm-date-edit {
+  white-space: normal;
 }
 
 /* The canvas's hover controls keep the geometry they have with no meta
