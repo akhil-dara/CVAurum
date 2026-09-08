@@ -20,6 +20,7 @@ import { sanitizeHtml } from '@/lib/sanitize'
 import { filterSlash, type Slash } from '@/lib/slashCommands'
 import { RichText } from './atoms'
 import { keywordChunks } from '@/lib/keywordChunks'
+import { splitPastedLines } from '@/lib/pasteLines'
 
 export type EditFn = (recipe: (c: ResumeContent) => void) => void
 /** Mutate document metadata (layout/typography/theme) from the canvas. */
@@ -42,6 +43,8 @@ interface EditableProps {
    *  spellchecker flags most tech terms and proper nouns, drawing a squiggly underline
    *  under nearly every chip. On (default) everywhere else, prose benefits from it. */
   spellCheck?: boolean
+  /** bullet fields: a paste of two or more lines becomes that many bullets (the parent inserts them) */
+  onPasteLines?: (lines: string[]) => void
 }
 
 interface SlashMenu {
@@ -79,7 +82,7 @@ function detectSlash(root: HTMLElement): Omit<SlashMenu, 'items' | 'index'> & { 
   }
 }
 
-function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true }: EditableProps) {
+function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines }: EditableProps) {
   const ref = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // "/" quick-insert menu (rich fields only). Kept in a ref too so the keydown
@@ -168,6 +171,16 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
     // let a menu click land before the blur tears the menu down
     setTimeout(() => setMenu(null), 120)
   }
+  // A pasted list belongs in one bullet per line, not all of it in this one.
+  // The parent does the inserting; this field only reports the lines.
+  const onPaste = (e: React.ClipboardEvent) => {
+    if (!onPasteLines) return
+    const lines = splitPastedLines(e.clipboardData.getData('text/plain'))
+    if (lines.length < 2) return
+    e.preventDefault()
+    if (timer.current) clearTimeout(timer.current)
+    onPasteLines(lines)
+  }
   const onKeyDown = (e: React.KeyboardEvent) => {
     // While the "/" menu is open it owns the navigation keys.
     const m = menuRef.current
@@ -226,6 +239,7 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
         onInput={onInput}
         onBlur={onBlur}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         className={`rm-editable${rich ? ' rm-rich' : ''}${className ? ' ' + className : ''}`}
       />
       {/* Rich fields only: a plain field stores text, so formatting applied to
@@ -277,6 +291,7 @@ export function Ed({
   placeholder,
   spellCheck,
   chunk,
+  onPasteLines,
 }: {
   edit?: EditFn
   value: string
@@ -290,6 +305,8 @@ export function Ed({
   spellCheck?: boolean
   /** Render the value in break-safe pieces when not editing (keywordChunks). */
   chunk?: boolean
+  /** bullet fields: a paste of two or more lines becomes that many bullets */
+  onPasteLines?: (lines: string[]) => void
 }) {
   if (!edit) {
     if (rich) return <RichText html={value} className={className} />
@@ -319,6 +336,7 @@ export function Ed({
       onEnter={onEnter}
       placeholder={placeholder}
       spellCheck={spellCheck}
+      onPasteLines={onPasteLines}
       onChange={(v) => edit((c) => apply(c, v))}
     />
   )

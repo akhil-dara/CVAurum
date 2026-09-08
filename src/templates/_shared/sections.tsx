@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom'
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
-import { currentYearMonth, entryDateOptions, formatDateRange, formatDate, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
+import { currentYearMonth, entryDateOptions, formatDateRange, formatDate, htmlEscape, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
 import type { DateOptions, DateRangeOptions } from '@/lib/utils'
 import { pushNewItem, removeItem, moveItem, sectionHasContent, entryBadgeOn, metaColumnOn, ADD_LABEL } from '@/lib/sections'
 import { railLabel, type RailLabel } from '@/lib/rail'
@@ -312,6 +312,7 @@ function Bullets({
   onAdd,
   onRemove,
   onInsertAfter,
+  onInsertLines,
   onPruneEmpty,
 }: {
   items: string[]
@@ -320,11 +321,15 @@ function Bullets({
   onAdd?: () => void
   onRemove?: (bi: number) => void
   onInsertAfter?: (bi: number) => void
+  /** A list pasted into bullet `bi` becomes one bullet per line — after it, or
+   *  in its place when the bullet the paste landed in was still empty. */
+  onInsertLines?: (bi: number, lines: string[], replaceCurrent: boolean) => void
   onPruneEmpty?: () => void
 }) {
   const ulRef = useRef<HTMLUListElement>(null)
   const pendingFocus = useRef<number | null>(null)
   const deleting = useRef(false)
+  const pasting = useRef(false)
   useEffect(() => {
     if (pendingFocus.current == null || !ulRef.current) return
     const eds = ulRef.current.querySelectorAll<HTMLElement>('.rm-bullet-row .rm-editable')
@@ -337,7 +342,7 @@ function Bullets({
   // from the printed resume (breaking WYSIWYG). Skipped mid-delete so it can't
   // re-index a splice that's already in flight.
   const onListBlur = (e: FocusEvent<HTMLUListElement>) => {
-    if (!onPruneEmpty || deleting.current) return
+    if (!onPruneEmpty || deleting.current || pasting.current) return
     const next = e.relatedTarget as Node | null
     if (next && ulRef.current?.contains(next)) return
     if (items.some((h) => htmlToText(h).trim().length === 0)) onPruneEmpty()
@@ -370,6 +375,29 @@ function Bullets({
                 ? () => {
                     pendingFocus.current = bi + 1
                     onInsertAfter(bi)
+                  }
+                : undefined
+            }
+            onPasteLines={
+              onInsertLines
+                ? (lines) => {
+                    const empty = htmlToText(h).trim().length === 0
+                    pendingFocus.current = bi + lines.length - (empty ? 1 : 0)
+                    // Leave the pasted-into field BEFORE the list changes under
+                    // it. A focused editable is never rewritten from props (that
+                    // would eat the caret), so when the paste lands in an empty
+                    // bullet — the one the lines replace — the field keeps its
+                    // blank DOM, and the focus move below commits that blank
+                    // back over the first pasted line. Blurring first lets the
+                    // field take its new text; the guard stops the departure
+                    // from pruning the very bullet we are about to replace.
+                    const active = document.activeElement as HTMLElement | null
+                    if (active && ulRef.current?.contains(active)) {
+                      pasting.current = true
+                      active.blur()
+                      pasting.current = false
+                    }
+                    onInsertLines(bi, lines, empty)
                   }
                 : undefined
             }
@@ -1340,6 +1368,15 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                         })
                     : undefined
                 }
+                onInsertLines={
+                  edit
+                    ? (bi, lines, replace) =>
+                        edit((c) => {
+                          const safe = lines.map(htmlEscape)
+                          c.work[i].highlights.splice(replace ? bi : bi + 1, replace ? 1 : 0, ...safe)
+                        })
+                    : undefined
+                }
                 onPruneEmpty={
                   edit
                     ? () =>
@@ -1810,6 +1847,15 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                     ? (bi) =>
                         edit((c) => {
                           c.projects[i].highlights.splice(bi + 1, 0, '')
+                        })
+                    : undefined
+                }
+                onInsertLines={
+                  edit
+                    ? (bi, lines, replace) =>
+                        edit((c) => {
+                          const safe = lines.map(htmlEscape)
+                          c.projects[i].highlights.splice(replace ? bi : bi + 1, replace ? 1 : 0, ...safe)
                         })
                     : undefined
                 }
@@ -2814,6 +2860,15 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                         })
                     : undefined
                 }
+                onInsertLines={
+                  edit
+                    ? (bi, lines, replace) =>
+                        edit((c) => {
+                          const safe = lines.map(htmlEscape)
+                          c.volunteer[i].highlights.splice(replace ? bi : bi + 1, replace ? 1 : 0, ...safe)
+                        })
+                    : undefined
+                }
                 onPruneEmpty={
                   edit
                     ? () =>
@@ -3069,6 +3124,19 @@ function Custom({
                     ? (bi) =>
                         edit((c) => {
                           ;(c.custom[secIndex].items[i].highlights ??= []).splice(bi + 1, 0, '')
+                        })
+                    : undefined
+                }
+                onInsertLines={
+                  edit
+                    ? (bi, lines, replace) =>
+                        edit((c) => {
+                          const safe = lines.map(htmlEscape)
+                          ;(c.custom[secIndex].items[i].highlights ??= []).splice(
+                            replace ? bi : bi + 1,
+                            replace ? 1 : 0,
+                            ...safe
+                          )
                         })
                     : undefined
                 }
