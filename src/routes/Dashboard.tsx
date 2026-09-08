@@ -214,20 +214,27 @@ export function Dashboard() {
         />
       </div>
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        {/* On a phone the wording drops away and each control becomes a
+            comfortably tappable glyph — with the labels in, this row was 400px
+            wide in a 375px window and pushed the theme switch off the edge,
+            where nothing could scroll it back. */}
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
-          <div className="flex items-center gap-2">
-            <InstallButton />
-            <Link className="btn-ghost btn-sm" to="/tracker">
-              <KanbanSquare className="h-4 w-4" /> Job Tracker
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <InstallButton className="btn-outline btn-sm h-10 sm:h-8" />
+            <Link className="btn-ghost btn-sm h-10 sm:h-8" to="/tracker" title="Job Tracker" aria-label="Job Tracker">
+              <KanbanSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Job Tracker</span>
             </Link>
             <div className="relative">
               <button
-                className="btn-ghost btn-sm"
+                className="btn-ghost btn-sm h-10 sm:h-8"
                 onClick={() => setBackupMenu((o) => !o)}
                 title="Back up or restore all your data"
+                aria-label="Backup"
               >
-                <DatabaseBackup className="h-4 w-4" /> Backup
+                <DatabaseBackup className="h-4 w-4" />
+                <span className="hidden sm:inline">Backup</span>
               </button>
               {backupMenu && (
                 <>
@@ -255,7 +262,7 @@ export function Dashboard() {
                 </>
               )}
             </div>
-            <ThemeToggle />
+            <ThemeToggle className="btn-icon h-10 w-10 sm:h-9 sm:w-9" />
           </div>
         </div>
       </header>

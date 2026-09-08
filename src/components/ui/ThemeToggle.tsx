@@ -6,8 +6,11 @@ import { useAppStore } from '@/store/useAppStore'
  * (honouring the OS when the saved setting is still "system") and show the icon
  * of the mode you'll switch TO — Moon while light, Sun while dark. No three-way
  * cycle and no "monitor" glyph, which read as confusing.
+ *
+ * `className` lets a cramped header ask for a bigger phone-sized tap target
+ * without changing the default everywhere else.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ className = 'btn-icon' }: { className?: string }) {
   const theme = useAppStore((s) => s.settings.theme)
   const update = useAppStore((s) => s.updateSettings)
   const isDark =
@@ -15,7 +18,7 @@ export function ThemeToggle() {
     (theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches)
   return (
     <button
-      className="btn-icon"
+      className={className}
       onClick={() => update({ theme: isDark ? 'light' : 'dark' })}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
