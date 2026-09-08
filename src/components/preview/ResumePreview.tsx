@@ -45,6 +45,7 @@ import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useIsPhone } from '@/hooks/useIsPhone'
 import { clamp, uid } from '@/lib/utils'
 import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitOnePageScale } from '@/lib/fitOnePage'
@@ -207,6 +208,16 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const fitToWidth = useEditorStore((s) => s.autoFit)
   const atsView = useEditorStore((s) => s.atsView)
   const previewExact = useEditorStore((s) => s.previewExact)
+  const isPhone = useIsPhone()
+  // On a phone the canvas is something you LOOK at, never something you edit:
+  // the editor there is panel-only (LeftRail's bottom bar), and the page is
+  // painted at fit-to-width — about 0.44 — so every inline affordance shrinks
+  // with it. Measured on a 375px phone: the section "Style" chips came out
+  // 21x8px and the per-link edit buttons 3x3px, against a 40px touch target,
+  // and they were live — a stray tap opened the section style sheet or put a
+  // caret in a bullet. Rendering the SAME print DOM the exact-preview and the
+  // export use drops all of it. Desktop and tablet are untouched.
+  const exactCanvas = previewExact || isPhone
   const focusMode = useEditorStore((s) => s.focusMode)
   const skimView = useEditorStore((s) => s.skimView)
   const updateContent = useResumeStore((s) => s.updateContent)
@@ -538,7 +549,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         // SAME scale the portal measures (fitScale === measureScale in every
         // settled state), so portal-space cuts ARE canvas-space ys — no
         // structural mapping, no suppression, every boundary drawn.
-        if (previewExact) {
+        if (exactCanvas) {
           setPageSeparators(result.cutsPx.map((y) => ({ y })))
           setPageBadgeTops([0, ...result.cutsPx])
           setPagePageCount(result.pageCount)
@@ -639,7 +650,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     // without a `doc` change (fit-scale settling, async font/photo loads)
     // on either tree, so a stale layout is never walked on either side of
     // the mapping.
-  }, [doc, autoFit, previewExact, pageH, contentH, printH])
+  }, [doc, autoFit, exactCanvas, pageH, contentH, printH])
 
   const effectiveZoom = useMemo(() => {
     // Auto fit-to-width whenever the container is NARROWER than the sheet
@@ -725,15 +736,19 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       )}
       <div
         ref={scrollRef}
-        className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !previewExact ? ' focus-mode' : ''}`}
+        className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !exactCanvas ? ' focus-mode' : ''}`}
       >
         {/* skim-heat status pill — floats over the canvas while the heat is on */}
         {skimView && <SkimPill />}
         {/* first-time hint on a blank resume — the canvas interactions aren't
           guessable ("what do I click? what do I type where?") */}
-        {!previewExact && <BlankCanvasTip doc={doc} />}
-        {/* unmistakable mode flag — floating over the canvas while previewing */}
-        {previewExact && (
+        {!exactCanvas && <BlankCanvasTip doc={doc} />}
+        {/* Unmistakable mode flag — floating over the canvas while previewing.
+            Not on a phone: there the canvas is ALWAYS this render, so a badge
+            announcing a mode the user cannot leave (and a "Back to editing"
+            that has no editable page to return to) is noise over the top of
+            the résumé. The bottom bar's own tabs are the way back. */}
+        {previewExact && !isPhone && (
           <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
             <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
@@ -762,7 +777,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
               }}
             >
               <div ref={innerRef} style={{ width: pageW }}>
-                {previewExact ? (
+                {exactCanvas ? (
                   // Exact-PDF mode: the print render — no edit chrome, placeholders,
                   // hover rings, or empty sections. What you see here is the export.
                   <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
@@ -783,7 +798,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
               {/* canvas inline reordering — entry hover cluster + drag sessions
                 for the section/entry grips (edit chrome, portals to body). */}
-              {!previewExact && <CanvasReorder rootRef={innerRef} />}
+              {!exactCanvas && <CanvasReorder rootRef={innerRef} />}
 
               {/* Paginated WYSIWYG preview chrome: page-gap separators + "Page k / N"
                 badges, siblings of `.rm-root` (never inside it — see PageChrome.tsx's
@@ -795,13 +810,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                   before the main column, leaving an empty stripe (a whole
                   column per page once the resume paginates). Edit chrome
                   that points at it and moves a section across on click. */}
-              {!previewExact && <ColumnBalanceHint rootRef={innerRef} doc={doc} />}
+              {!exactCanvas && <ColumnBalanceHint rootRef={innerRef} doc={doc} />}
 
               <PageChromeOverlay
                 separatorYs={pageSeparators}
                 badgeTops={pageBadgeTops}
                 pageCount={pagePageCount}
-                variant={previewExact ? 'hairline' : 'band'}
+                variant={exactCanvas ? 'hairline' : 'band'}
               />
             </div>
           </div>
