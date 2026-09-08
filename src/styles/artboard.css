@@ -2036,31 +2036,6 @@
   color: var(--rm-muted);
 }
 
-/* ---- the paper's own floor on the last page ----
-   The artboard ends where the CONTENT ends, and the paper does not: a sheet
-   is a whole page tall whatever the ink does. The root paints the document's
-   ground (`background: var(--rm-bg)` at the top of this file) over its own
-   box and nothing below it, so a coloured-ground template whose last page
-   stopped short printed a band of bare white between the last of the ground
-   and the foot of the paper - measured at 20px on Terrace's stress document
-   (ground to row 1159 of an 1179-row page), and the same short fall sits
-   under every template; only a white ground hides it.
-   The floor pushes the root's own box down to the foot of the page its last
-   line lands on, so the ground reaches the paper's edge and the edge cuts
-   it. Nothing moves: the root is a plain block, the content stays anchored
-   at the top, and the extra height is below the last line.
-   Like the strip's tail below, the floor DEFAULTS TO NOTHING on purpose: the
-   export measures the artboard's scroll height to choose an auto-fit scale
-   and to decide whether one page is enough, and a floor standing in that
-   measurement would re-paginate every document. Only the exporter asks for
-   it, and only once every measurement is done (pdf/render.tsx). A document
-   with a footer strip is left alone - its root is a flex column whose body
-   takes the slack, so a floor there would drag the strip down the page, and
-   the strip's own tail already carries its ground to the foot. */
-.rm-root:not(.rm-has-footer) {
-  min-height: var(--rm-sheet-floor, 0px);
-}
-
 /* ---- the footer strip ----
    The sections the author moved to layout.footer, after the columns in a
    full-width band, one line per group (Artboard.tsx FooterStrip). The root

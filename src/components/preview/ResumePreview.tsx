@@ -761,32 +761,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 transformOrigin: 'top left',
               }}
             >
-              <div
-                ref={innerRef}
-                style={
-                  {
-                    width: pageW,
-                    // The artboard's own ground reaches the foot of the last
-                    // page, the way the export's reaches the foot of the paper
-                    // (artboard.css `.rm-root:not(.rm-has-footer)`, asked for
-                    // on the PDF's own sheet in pdf/render.tsx). Without it a
-                    // document that ends short of the page left the sheet's
-                    // own white showing under the last line - which the exact
-                    // preview, whose whole promise is "this is the export",
-                    // then showed where the PDF prints the document's ground.
-                    // Costs nothing when the content is already the taller of
-                    // the two, which is every edit-mode canvas with its "+ Add"
-                    // chrome.
-                    // Measured off the PRINT tree's height, never off this
-                    // canvas's own: the floor grows this canvas, so a floor
-                    // that read `contentH` back would feed its own input - a
-                    // rounded-up scrollHeight pushed the page count to two and
-                    // the sheet to two pages for a one-page document (measured
-                    // while writing this).
-                    '--rm-sheet-floor': printH ? `${pages * pageH}px` : '0px',
-                  } as React.CSSProperties
-                }
-              >
+              <div ref={innerRef} style={{ width: pageW }}>
                 {previewExact ? (
                   // Exact-PDF mode: the print render — no edit chrome, placeholders,
                   // hover rings, or empty sections. What you see here is the export.
