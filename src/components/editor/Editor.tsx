@@ -17,6 +17,7 @@ import { ContentPanel } from './panels/ContentPanel'
 import { DesignPanel } from './panels/DesignPanel'
 import { AtsPanel } from './panels/AtsPanel'
 import { TemplateGallery } from './TemplateGallery'
+import { isPhoneLayout } from '@/lib/layoutMode'
 import { ResumePreview } from '@/components/preview/ResumePreview'
 
 const PANEL_TITLES: Record<string, string> = {
@@ -72,7 +73,12 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
         sessionStorage.removeItem('cvaurum:pick-design')
         useEditorStore.getState().setLeftTab('templates')
         useEditorStore.getState().setLeftOpen(true)
-        useAppStore.getState().toast('Start by picking a design — hover any card for a full-size preview. Your content will flow into whichever you choose.', 'info')
+        useAppStore.getState().toast(
+          isPhoneLayout()
+            ? 'Start by picking a design — tap Preview on a card for a full-size look. Your content will flow into whichever you choose.'
+            : 'Start by picking a design — hover any card for a full-size preview. Your content will flow into whichever you choose.',
+          'info'
+        )
       }
     } catch {
       /* private mode */
@@ -84,7 +90,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <EditorTopBar doc={doc} />
       <PdfExportStatus />
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col desk:flex-row">
         <LeftRail />
         <AnimatePresence initial={false}>
           {leftOpen && (
@@ -95,12 +101,13 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
               // Phone, and any touch device under `xl`: full-width, fills the
-              // editing area (canvas is hidden). Mouse: a fixed 392px column
-              // beside the canvas.
+              // editing area (canvas is hidden). Mouse: a column beside the
+              // canvas, 392px on a wide screen and down to 300px in a window
+              // snapped to half a laptop screen, so the canvas keeps room.
               data-tour="panel"
               className={cn(
-                'order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface md:order-none',
-                split && 'md:w-[392px] md:flex-none md:border-r',
+                'order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface desk:order-none',
+                split && 'desk:w-[clamp(300px,36vw,392px)] desk:flex-none desk:border-r',
               )}
             >
               <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
@@ -110,7 +117,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
                     and two meanings read as a bug. This one just puts the
                     editable page on screen. */}
                 <button
-                  className={cn('btn-ghost btn-sm', split && 'md:hidden')}
+                  className={cn('btn-ghost btn-sm', split && 'desk:hidden')}
                   onClick={() => setLeftOpen(false)}
                 >
                   <Eye className="h-4 w-4" /> View page
@@ -128,8 +135,8 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
         <div
           data-tour="canvas"
           className={cn(
-            'order-2 min-h-0 min-w-0 flex-1 md:order-none',
-            leftOpen && (split ? 'hidden md:block' : 'hidden'),
+            'order-2 min-h-0 min-w-0 flex-1 desk:order-none',
+            leftOpen && (split ? 'phone:hidden' : 'hidden'),
           )}
         >
           <ResumePreview doc={doc} />

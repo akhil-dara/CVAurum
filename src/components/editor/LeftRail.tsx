@@ -24,7 +24,7 @@ export function LeftRail() {
         // mobile: horizontal bottom bar (order-3, sent below panel+canvas).
         // desktop: vertical left rail — keep its natural DOM order (first child)
         // so it sits on the LEFT, before the panel and canvas.
-        'order-3 border-t md:order-none md:w-16 md:flex-col md:items-center md:justify-start md:gap-1 md:border-r md:border-t-0 md:py-3',
+        'order-3 border-t desk:order-none desk:w-16 desk:flex-col desk:items-center desk:justify-start desk:gap-1 desk:border-r desk:border-t-0 desk:py-3',
       )}
     >
       {TABS.map((t) => {
@@ -39,8 +39,8 @@ export function LeftRail() {
               setLeftOpen(true)
             }}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors md:h-14 md:w-14 md:flex-none md:rounded-xl md:py-0',
-              active ? 'text-primary md:bg-primary/10' : 'text-muted-foreground hover:text-foreground md:hover:bg-muted',
+              'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors desk:h-14 desk:w-14 desk:flex-none desk:rounded-xl desk:py-0',
+              active ? 'text-primary desk:bg-primary/10' : 'text-muted-foreground hover:text-foreground desk:hover:bg-muted',
             )}
             title={t.label}
           >
@@ -54,7 +54,7 @@ export function LeftRail() {
       <button
         onClick={() => setLeftOpen(false)}
         className={cn(
-          'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors md:hidden',
+          'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors desk:hidden',
           !leftOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
         )}
         title="Preview"
@@ -66,7 +66,7 @@ export function LeftRail() {
       {/* Desktop-only: collapse/expand the panel. */}
       <button
         onClick={toggleLeft}
-        className="mt-auto hidden h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:flex"
+        className="mt-auto hidden h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground desk:flex"
         title={leftOpen ? 'Collapse panel' : 'Expand panel'}
       >
         {leftOpen ? <PanelLeftClose className="h-[18px] w-[18px]" /> : <PanelLeft className="h-[18px] w-[18px]" />}

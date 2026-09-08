@@ -24,6 +24,7 @@ import {
   Sun,
 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
+import { isPhoneLayout } from '@/lib/layoutMode'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -77,11 +78,13 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
       <Logo compact />
       <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
 
-      {/* On phones the title yields space — Export must NEVER leave the screen. */}
+      {/* The title yields space so Export never leaves the screen, but it
+          keeps a readable minimum: in a 768px bar it used to shrink to 20px,
+          a slit that could not be read or edited (2026-09-08). */}
       <input
         value={doc.title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-24 min-w-0 max-w-[20vw] rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40 sm:w-44 sm:max-w-[40vw]"
+        className="w-24 min-w-[4rem] max-w-[20vw] rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40 sm:w-44 sm:max-w-[40vw]"
         aria-label="Resume title"
       />
 
@@ -91,8 +94,10 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
       </span>
 
       <div className="ml-auto flex items-center gap-1">
-        {/* undo / redo + zoom — hidden on phones to keep the bar uncluttered */}
-        <div className="hidden items-center gap-1 md:flex">
+        {/* undo / redo + zoom: needs a desktop layout AND a bar with room.
+            Under 768px there is none (a half-width laptop window is 683px):
+            the More menu carries undo/redo and the canvas its own zoom pill. */}
+        <div className="hidden items-center gap-1 md:desk:flex">
           <button className="btn-icon" onClick={() => undo()} disabled={past === 0} title="Undo (Ctrl+Z)">
             <Undo2 className="h-[18px] w-[18px]" />
           </button>
@@ -107,14 +112,16 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
             <button className="btn-icon h-7 w-7" onClick={zoomOut} title="Zoom out">
               <ZoomOut className="h-4 w-4" />
             </button>
-            <span className="w-12 text-center text-xs tabular-nums text-muted-foreground">
+            {/* the readout and Fit yield between md and lg so the title keeps
+                its width in a 768px bar */}
+            <span className="hidden w-12 text-center text-xs tabular-nums text-muted-foreground lg:inline">
               {autoFit ? 'Fit' : `${Math.round(zoom * 100)}%`}
             </span>
             <button className="btn-icon h-7 w-7" onClick={zoomIn} title="Zoom in">
               <ZoomIn className="h-4 w-4" />
             </button>
             <button
-              className="btn-icon h-7 w-7"
+              className="btn-icon hidden h-7 w-7 lg:flex"
               data-active={autoFit}
               onClick={() => setAutoFit(!autoFit)}
               title="Fit to width"
@@ -149,7 +156,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                   setAtsView(m.key === 'ats')
                   // phones: the edit panel covers the canvas — close it to preview,
                   // and bring it back when the user returns to Edit
-                  if (window.innerWidth < 768) useEditorStore.getState().setLeftOpen(m.key === 'edit')
+                  if (isPhoneLayout()) useEditorStore.getState().setLeftOpen(m.key === 'edit')
                 }}
                 title={m.title}
               >

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
+import { isPhoneLayout } from '@/lib/layoutMode'
 import type { Metadata } from '@/types/metadata'
 import type { MetaEditFn } from './Editable'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from './headerStyles'
@@ -166,8 +167,8 @@ function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: 
  * what decides - keeps the card exactly as before.
  */
 function wantsSheet() {
+  if (isPhoneLayout()) return true
   const w = document.documentElement.clientWidth
-  if (w < 640) return true
   const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
   return coarse && w < 1024
 }

@@ -66,5 +66,15 @@ export default {
       },
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [
+    require('@tailwindcss/typography'),
+    function ({ addVariant }) {
+      // The editor's layout mode, stamped on <html> by src/lib/layoutMode.ts:
+      // a phone is decided by pointer and width together, never width alone.
+      addVariant('desk', ':where(html[data-layout="desk"]) &')
+      addVariant('phone', ':where(html[data-layout="phone"]) &')
+      // a finger-driven screen, whatever its width
+      addVariant('coarse', '@media (pointer: coarse)')
+    },
+  ],
 }

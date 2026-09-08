@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, AlertTriangle, XCircle, Target, FileText, PenLine, Sparkles } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
+import { isPhoneLayout } from '@/lib/layoutMode'
 import { analyzeResume, type CheckStatus } from '@/lib/ats'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
@@ -81,7 +82,7 @@ function SkimCard() {
         onClick={() => {
           setSkimView(!skimView)
           // phones: the panel covers the canvas — close it so the heat is visible
-          if (!skimView && window.innerWidth < 768) useEditorStore.getState().setLeftOpen(false)
+          if (!skimView && isPhoneLayout()) useEditorStore.getState().setLeftOpen(false)
         }}
         className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${skimView ? 'bg-primary' : 'bg-muted-foreground/30'}`}
       >

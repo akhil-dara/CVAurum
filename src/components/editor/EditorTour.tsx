@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react'
+import { isPhoneLayout } from '@/lib/layoutMode'
 
 const TOUR_KEY = 'cvaurum:tour:v1'
 const CARD_W = 324
@@ -84,9 +85,9 @@ export function EditorTour() {
     return () => window.removeEventListener('cvaurum:open-tour', onOpen)
   }, [])
 
-  // md is where the canvas appears beside the panel (`hidden md:block`), so
-  // it is also where the desktop wording becomes true.
-  const mobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  // The phone layout is where the panel covers the canvas, so it is also
+  // where the desktop wording stops being true.
+  const mobile = isPhoneLayout()
   const steps = mobile ? STEPS.filter((st) => !st.desktopOnly) : STEPS
   const step = steps[i]
 
@@ -107,7 +108,7 @@ export function EditorTour() {
 
   // Measure the current target (re-measure on step change, resize, scroll).
   const measure = useCallback(() => {
-    const mobileNow = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    const mobileNow = isPhoneLayout()
     const sel = (mobileNow && step?.mobileSel) || step?.sel
     if (!open || !sel) return setRect(null)
     const el = document.querySelector(sel) as HTMLElement | null

@@ -46,7 +46,7 @@ import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
-import { useIsPhone } from '@/hooks/useIsPhone'
+import { useIsPhone, useMediaQuery } from '@/hooks/useIsPhone'
 import { clamp, uid } from '@/lib/utils'
 import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitOnePageScale } from '@/lib/fitOnePage'
@@ -210,6 +210,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const atsView = useEditorStore((s) => s.atsView)
   const previewExact = useEditorStore((s) => s.previewExact)
   const isPhone = useIsPhone()
+  // The top bar carries its zoom cluster only from `md` up (EditorTopBar);
+  // narrower than that the canvas carries its own pill, mouse or finger.
+  const barHasZoom = useMediaQuery('(min-width: 768px)')
   // On a phone the canvas is something you LOOK at, never something you edit:
   // the editor there is panel-only (LeftRail's bottom bar), and the page is
   // painted at fit-to-width — about 0.44 — so every inline affordance shrinks
@@ -761,10 +764,6 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       >
         {/* skim-heat status pill — floats over the canvas while the heat is on */}
         {skimView && <SkimPill />}
-        {/* phone zoom — the top bar's cluster is `hidden md:flex` and no panel
-          carries an equivalent, so without this the preview is frozen at
-          fit-to-width and cannot be read (see CanvasZoom). */}
-        {isPhone && <CanvasZoom effectiveZoom={effectiveZoom} fitZoom={fitZoom} />}
         {/* first-time hint on a blank resume — the canvas interactions aren't
           guessable ("what do I click? what do I type where?") */}
         {!exactCanvas && <BlankCanvasTip doc={doc} />}
@@ -806,6 +805,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 height: sheetH,
                 transform: `scale(${effectiveZoom})`,
                 transformOrigin: 'top left',
+                // read by artboard.css to size a finger's hit areas in
+                // screen pixels, whatever the zoom
+                ['--rm-zoom' as string]: effectiveZoom,
               }}
             >
               <div ref={innerRef} style={{ width: pageW }}>
@@ -853,6 +855,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             </div>
           </div>
         </div>
+        {/* The canvas's own zoom, at the foot of the scrollport: a finger-driven
+            screen has no bar cluster, and neither does a bar under 768px. It
+            used to sit top-right, where it covered the page's header contacts
+            at fit zoom and, on a phone, the Export menu's "Download PDF" row. */}
+        {(isPhone || !barHasZoom) && <CanvasZoom effectiveZoom={effectiveZoom} fitZoom={fitZoom} />}
       </div>
       {addOpen && (
         <SectionGallery
@@ -868,18 +875,17 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 }
 
 /**
- * Zoom for the phone canvas.
+ * Zoom for a canvas whose top bar carries no zoom cluster: a phone, and any
+ * bar under 768px (the cluster is `hidden md:desk:flex`). Without it those
+ * buttons exist at 0x0 and cannot be used, no panel carries an equivalent,
+ * and the preview is frozen at fit-to-width. Measured on a 375px phone: the
+ * sheet fits at 0.40, so 10.24px body copy paints at 4.1px.
  *
- * The top bar's zoom cluster sits in a `hidden md:flex` wrapper, so on a phone
- * those three buttons exist at 0x0 and cannot be tapped, and no panel carries
- * an equivalent — which left the preview permanently at fit-to-width. Measured
- * on a 375px phone: the sheet fits at 0.40, so 10.24px body copy paints at
- * 4.1px. The résumé was there and unreadable, in both the bottom-bar Preview
- * and the top bar's exact-PDF mode.
- *
- * Sticks to the TOP of the canvas (the canvas box ends where the bottom bar
- * begins, so nothing here can hide under it), is always visible rather than
- * revealed on hover, and uses 40px targets.
+ * Sticks to the FOOT of the scrollport, centred (placed after the page in
+ * the scroller, so it also paints above it without a stacking trick): the
+ * top-right corner covered the header's contact line at fit zoom and, under
+ * the top bar's menus, the Export menu's "Download PDF" row and the More
+ * menu's Redo. Always visible rather than revealed on hover; 40px targets.
  */
 function CanvasZoom({ effectiveZoom, fitZoom }: { effectiveZoom: number; fitZoom: number }) {
   const autoFit = useEditorStore((s) => s.autoFit)
@@ -896,7 +902,7 @@ function CanvasZoom({ effectiveZoom, fitZoom }: { effectiveZoom: number; fitZoom
   // flow, and a stretched flex child inherits that zero height — the pill's
   // background collapsed to a 10px bar with the icons hanging out of it.
   return (
-    <div className="pointer-events-none sticky top-3 z-30 flex h-0 items-start justify-end overflow-visible pr-3">
+    <div className="pointer-events-none sticky bottom-3 z-10 flex h-0 items-end justify-center overflow-visible">
       <div
         data-testid="canvas-zoom"
         className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-border bg-surface/95 p-1 shadow-float backdrop-blur"
@@ -912,7 +918,7 @@ function CanvasZoom({ effectiveZoom, fitZoom }: { effectiveZoom: number; fitZoom
         >
           {fitted ? <Maximize className="h-[18px] w-[18px]" /> : `${Math.round(effectiveZoom * 100)}%`}
         </button>
-        <button className={btn} onClick={() => step(1)} disabled={effectiveZoom >= 1.999} aria-label="Zoom in" title="Zoom in">
+        <button className={btn} onClick={() => step(1)} disabled={effectiveZoom >= 2.999} aria-label="Zoom in" title="Zoom in">
           <ZoomIn className="h-[18px] w-[18px]" />
         </button>
       </div>
