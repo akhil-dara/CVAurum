@@ -16,7 +16,12 @@ export function Toaster() {
       role="status"
       aria-live="polite"
       aria-atomic="false"
-      className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-80 flex-col gap-2"
+      // On a phone the editor's bottom tab bar owns the last ~54px of the
+      // screen, and a toast pinned to bottom-4 lands on top of it and eats
+      // its taps (the card is pointer-events-auto). Sit above the bar below
+      // md - the same breakpoint that turns the bar back into the desktop
+      // left rail - and keep the desktop corner unchanged.
+      className="pointer-events-none fixed bottom-20 right-4 z-[100] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2 md:bottom-4"
     >
       <AnimatePresence>
         {toasts.map((t) => {
@@ -41,7 +46,14 @@ export function Toaster() {
                 }
               />
               <p className="flex-1 text-sm leading-snug text-foreground">{t.message}</p>
-              <button className="btn-icon h-6 w-6" onClick={() => dismiss(t.id)} aria-label="Dismiss">
+              {/* 40px of touch target on a phone, without growing the card:
+                  the negative margin gives the button back the 24px box the
+                  layout had. */}
+              <button
+                className="btn-icon -m-2 h-10 w-10 shrink-0 md:m-0 md:h-6 md:w-6"
+                onClick={() => dismiss(t.id)}
+                aria-label="Dismiss"
+              >
                 <X className="h-4 w-4" />
               </button>
             </motion.div>
