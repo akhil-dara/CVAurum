@@ -55,13 +55,27 @@ export function Dots({ value = 0, max = 5 }: { value?: number; max?: number }) {
   )
 }
 
-/** 0–max filled stars (proficiency). */
+/** A five-pointed star in a 24-unit box, the shape every meter star draws. */
+export const STAR_PATH = 'M12 2.5l2.95 6.3 6.9.75-5.1 4.7 1.4 6.85L12 17.6l-6.15 3.5 1.4-6.85-5.1-4.7 6.9-.75z'
+
+/**
+ * 0–max filled stars (proficiency). Each star is an inline SVG path, not the
+ * ★ character: no bundled font carries that glyph, so the exporter, which
+ * draws decorative text from the embedded font's outlines, printed every
+ * star as a crossed missing-glyph box while the canvas showed a system
+ * font's star (measured on an imported résumé, 2026-09-09). The walker
+ * paints inline <svg><path> already (the ring meters use it), with the fill
+ * read from the element's colour, so the page and the PDF now draw the
+ * same shape.
+ */
 export function Stars({ value = 0, max = 5 }: { value?: number; max?: number }) {
   return (
     <span className="rm-stars" aria-hidden>
       {Array.from({ length: max }).map((_, i) => (
         <span key={i} className={`rm-star ${i < value ? 'on' : ''}`}>
-          ★
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d={STAR_PATH} />
+          </svg>
         </span>
       ))}
     </span>
