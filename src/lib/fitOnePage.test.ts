@@ -96,3 +96,126 @@ describe('fitOnePageScale', () => {
     expect(seen[seen.length - 1]).toBe(s)
   })
 })
+
+
+// ---------------------------------------------------------------------------
+// Magic fit: two scales, in the author's order, inside the author's floors,
+// keeping proportion: the lead axis moves a little alone, then both together,
+// then the lead axis on to its floor.
+import { fitToPages, typeFloor, FIT_SPACE_MIN, FIT_SPACE_MAX, MAX_FIT_UP, LEAD_SHRINK, LEAD_GROW } from './fitOnePage'
+import type { FitVector } from './fitOnePage'
+
+/** A résumé whose height is `full x type x space`: type and spacing both
+ *  scale it linearly, which is enough to tell the stages apart. */
+const twoAxis = (full: number) => {
+  const seen: FitVector[] = []
+  const measure = async (fit: FitVector) => {
+    seen.push({ ...fit })
+    return full * fit.type * fit.space
+  }
+  return { measure, seen, last: () => seen[seen.length - 1] }
+}
+const RULES = { target: 1, minBody: 9, fontSize: 10, priority: 'spacing' as const }
+const height = (full: number, f: FitVector) => full * f.type * f.space
+
+describe('typeFloor', () => {
+  it('is the author’s minimum body size against the size as set, never below the legibility floor', () => {
+    expect(typeFloor({ minBody: 9, fontSize: 10 })).toBe(0.9)
+    expect(typeFloor({ minBody: 11, fontSize: 12.25 })).toBe(0.898)
+    expect(typeFloor({ minBody: 7, fontSize: 16 })).toBe(0.66)
+    expect(typeFloor({ minBody: 12, fontSize: 10 })).toBe(1)
+  })
+})
+
+describe('fitToPages', () => {
+  it('a small overflow is taken by spacing alone', async () => {
+    const m = twoAxis(1100)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
+    expect(r.type).toBe(1)
+    expect(r.space).toBeGreaterThanOrEqual(LEAD_SHRINK.space)
+    expect(height(1100, r)).toBeLessThanOrEqual(1000)
+    expect(height(1100, { ...r, space: r.space + 0.004 })).toBeGreaterThan(1000)
+    expect(m.last()).toEqual(r)
+  })
+  it('a larger overflow moves both together, spacing leading, so neither is crushed alone', async () => {
+    const m = twoAxis(1300)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
+    expect(height(1300, r)).toBeLessThanOrEqual(1000)
+    expect(r.type).toBeLessThan(1)
+    expect(r.type).toBeGreaterThanOrEqual(0.9)
+    // spacing sits at the lead bound times the shared factor: proportion kept
+    expect(r.space).toBeCloseTo(LEAD_SHRINK.space * r.type, 2)
+  })
+  it('only when the type floor stops the pair does spacing go on alone to its floor', async () => {
+    const m = twoAxis(1500)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
+    expect(r.type).toBe(0.9) // the floor (9pt of 10pt)
+    expect(r.space).toBeLessThan(LEAD_SHRINK.space * 0.9)
+    expect(r.space).toBeGreaterThanOrEqual(FIT_SPACE_MIN)
+    expect(height(1500, r)).toBeLessThanOrEqual(1000)
+  })
+  it('never takes type below the author’s minimum body size', async () => {
+    const m = twoAxis(1400)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, { ...RULES, minBody: 9, priority: 'type' })
+    expect(r.type).toBeGreaterThanOrEqual(0.9)
+    expect(height(1400, r)).toBeLessThanOrEqual(1000)
+  })
+  it('type-first moves type before spacing', async () => {
+    const m = twoAxis(1050)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, { ...RULES, priority: 'type' })
+    expect(r.space).toBe(1)
+    expect(r.type).toBeGreaterThanOrEqual(LEAD_SHRINK.type)
+    expect(height(1050, r)).toBeLessThanOrEqual(1000)
+  })
+  it('grows a sparse page: spacing leads, then both, never past the ceilings', async () => {
+    const m = twoAxis(600)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
+    expect(r.space).toBeLessThanOrEqual(FIT_SPACE_MAX)
+    expect(r.type).toBeLessThanOrEqual(MAX_FIT_UP)
+    expect(height(600, r)).toBeLessThanOrEqual(1000)
+    expect(r.type).toBeGreaterThan(1) // both grew: 600 x 1.12 x 1 = 672 left room
+    const m2 = twoAxis(920)
+    const r2 = await fitToPages({ pageH: 1000, measure: m2.measure }, RULES)
+    expect(r2.type).toBe(1) // 920 x 1.08 = 994: spacing alone fills it
+    expect(r2.space).toBeGreaterThan(1)
+    expect(r2.space).toBeLessThanOrEqual(LEAD_GROW.space)
+  })
+  it('falls back to the fewest pages the floors allow, at the largest sizes that reach them', async () => {
+    const m = twoAxis(2000)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure, subsequentPageH: 1000 }, RULES)
+    expect(r).toEqual({ type: 1, space: 1 }) // two pages already fit as set
+    const m2 = twoAxis(2100)
+    const r2 = await fitToPages({ pageH: 1000, measure: m2.measure, subsequentPageH: 1000 }, RULES)
+    expect(r2.type).toBe(1)
+    expect(height(2100, r2)).toBeLessThanOrEqual(2000)
+    expect(r2.space).toBeGreaterThanOrEqual(LEAD_SHRINK.space)
+  })
+  it('accepts a two-page target as fitting and fills it', async () => {
+    const m = twoAxis(1800)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure, subsequentPageH: 1000 }, { ...RULES, target: 2 })
+    expect(height(1800, r)).toBeLessThanOrEqual(2000)
+    expect(r.space).toBeGreaterThan(1)
+  })
+  it('“both” is the old single scale', async () => {
+    const m = twoAxis(1210)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, { ...RULES, priority: 'both', minBody: 7 })
+    expect(r.type).toBe(r.space)
+    expect(height(1210, r)).toBeLessThanOrEqual(1000)
+    expect((r.type + 0.004) ** 2 * 1210).toBeGreaterThan(1000)
+  })
+  it('uses the true page count when given, not the height model', async () => {
+    const m = twoAxis(1100)
+    let pages = 2
+    const r = await fitToPages(
+      { pageH: 1000, measure: async (f) => { const h = await m.measure(f); pages = h <= 950 ? 1 : 2; return h }, countPages: async () => pages },
+      RULES
+    )
+    expect(height(1100, r)).toBeLessThanOrEqual(950)
+    expect(r.type).toBe(1)
+  })
+  it('leaves the DOM measured at the vector it returns', async () => {
+    const m = twoAxis(1300)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
+    expect(m.last()).toEqual(r)
+  })
+})

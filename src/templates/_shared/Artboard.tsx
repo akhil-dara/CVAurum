@@ -13,6 +13,9 @@ import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
 import { resolveStatTiles } from '@/lib/stats'
+import type { FitVector } from '@/lib/fitOnePage'
+
+const FIT_AS_SET: FitVector = { type: 1, space: 1 }
 import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
@@ -86,26 +89,31 @@ const BULLET_TYPE: Record<string, string> = {
   none: 'none',
 }
 
-function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
+function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
   const { theme, typography: t, layout, page } = doc.metadata
+  const lock = page.fit?.lock ?? {}
   return useMemo(() => {
-    const fs = t.fontSize * PT_TO_PX * fitScale
-    const nameSize = fs * (1.55 + clamp(t.headingScale, 1, 2.6) * 0.62)
+    // Magic fit: the body follows the TYPE scale, the gaps the SPACING scale;
+    // a locked size derives from the body as set, so it stays exactly what
+    // the sliders say however far the fit moves (fitOnePage.ts fitToPages).
+    const fsBase = t.fontSize * PT_TO_PX
+    const fs = fsBase * fit.type
+    const nameSize = (lock.name ? fsBase : fs) * (1.55 + clamp(t.headingScale, 1, 2.6) * 0.62)
     return {
       '--rm-fs': `${fs.toFixed(2)}px`,
       '--rm-lh': String(t.lineHeight),
       '--rm-ls': `${t.letterSpacing}em`,
       '--rm-name-size': `${nameSize.toFixed(2)}px`,
       '--rm-section-title-size': `${(fs * t.sectionTitleScale).toFixed(2)}px`,
-      '--rm-section-gap': `${(layout.sectionGap * PT_TO_PX * fitScale).toFixed(2)}px`,
-      '--rm-item-gap': `${(layout.itemGap * PT_TO_PX * fitScale).toFixed(2)}px`,
+      '--rm-section-gap': `${(layout.sectionGap * PT_TO_PX * (lock.sectionGap ? 1 : fit.space)).toFixed(2)}px`,
+      '--rm-item-gap': `${(layout.itemGap * PT_TO_PX * fit.space).toFixed(2)}px`,
       /* One slider, two rhythms. The item gap is sized so two multi-line
        * ENTRY blocks read as separate; between two ONE-LINE minis (a
        * language, an interest, a credential line) the same gap reads as a
        * hole - the built-in example's languages sat 21pt apart for 10pt of
        * text. Minis take a derived fraction, so tightening or loosening the
        * one slider keeps both rhythms in proportion. */
-      '--rm-item-gap-mini': `${Math.max(2, layout.itemGap * 0.55 * PT_TO_PX * fitScale).toFixed(2)}px`,
+      '--rm-item-gap-mini': `${Math.max(2, layout.itemGap * 0.55 * PT_TO_PX * fit.space).toFixed(2)}px`,
       '--rm-pad': `${(page.margin * MM_TO_PX).toFixed(2)}px`,
       '--rm-text': theme.text,
       '--rm-muted': theme.muted,
@@ -179,13 +187,18 @@ function useVars(doc: ResumeDocument, fitScale: number): CSSProperties {
       // The headline and contact scales, the two weights, and the multiplier
       // a template's own section-title ratio rides on (typeStyle.ts).
       ...typeScaleVars(t),
+      // A locked headline or contact line: their sizes are body x multiplier
+      // (typeStyle.ts); dividing the multiplier by the type scale undoes the
+      // fit for those two lines only, so they stay exactly as set.
+      ...(lock.headline && fit.type !== 1 ? { '--rm-headline-mul': String(Number(typeScaleVars(t)['--rm-headline-mul']) / fit.type) } : {}),
+      ...(lock.contacts && fit.type !== 1 ? { '--rm-contact-mul': String(Number(typeScaleVars(t)['--rm-contact-mul']) / fit.type) } : {}),
       // The air under a section title and, when chosen, the width of its rule.
       ...headingVars(t),
       // The five element colours, each present only when set, so the
       // stylesheet's fallback chains decide the rest (elementColors.ts).
       ...elementColorVars(theme),
     } as CSSProperties
-  }, [theme, t, layout, page, fitScale])
+  }, [theme, t, layout, page, fit.type, fit.space, lock.name, lock.headline, lock.contacts, lock.sectionGap])
 }
 
 interface ContactEntry {
@@ -988,7 +1001,7 @@ export function SectionPreview({
   config: TemplateConfig
   sectionKey: string
 }) {
-  const vars = useVars(doc, 1)
+  const vars = useVars(doc, FIT_AS_SET)
   const t = doc.metadata.typography
   ensureFont(t.fontFamily)
   ensureFont(t.headingFamily)
@@ -1024,6 +1037,7 @@ export function Artboard({
   edit,
   editMeta,
   fitScale = 1,
+  fit,
   onAddSection,
 }: {
   doc: ResumeDocument
@@ -1031,11 +1045,14 @@ export function Artboard({
   mode?: RenderMode
   edit?: EditFn
   editMeta?: MetaEditFn
+  /** One scale for type and spacing together (the old fit). */
   fitScale?: number
+  /** Magic fit's two scales; wins over fitScale when given. */
+  fit?: FitVector
   onAddSection?: () => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
-  const vars = useVars(doc, fitScale)
+  const vars = useVars(doc, fit ?? { type: fitScale, space: fitScale })
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
   // with their inline "Add item" affordance; print/thumbnail show content only.
   const editing = !!edit

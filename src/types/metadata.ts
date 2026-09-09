@@ -49,6 +49,25 @@ export const PageSchema = z.object({
    *  decide for itself (sectionSettings[key].keepTogether); an entry taller
    *  than a page has no break that clears it and is left alone. */
   keepEntriesWhole: z.boolean().default(false),
+  /** Magic fit's rules (src/lib/fitOnePage.ts fitToPages): the page target,
+   *  the body size the fit never goes below, what gives first, and the
+   *  sizes it must leave exactly as set. Defaults reproduce the old fit,
+   *  except that the floor is a readable 9pt rather than 0.66 of the body. */
+  fit: z
+    .object({
+      target: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+      minBody: z.number().min(7).max(12).default(9),
+      priority: z.enum(['spacing', 'both', 'type']).default('spacing'),
+      lock: z
+        .object({
+          name: z.boolean().default(false),
+          headline: z.boolean().default(false),
+          contacts: z.boolean().default(false),
+          sectionGap: z.boolean().default(false),
+        })
+        .default({}),
+    })
+    .default({}),
 })
 
 export const ThemeSchema = z.object({

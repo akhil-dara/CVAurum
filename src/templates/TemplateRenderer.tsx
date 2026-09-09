@@ -1,4 +1,5 @@
 import '@/styles/artboard.css'
+import type { FitVector } from '@/lib/fitOnePage'
 import './templates.css'
 import { memo } from 'react'
 import type { ResumeDocument } from '@/types/document'
@@ -16,6 +17,7 @@ export const TemplateRenderer = memo(function TemplateRenderer({
   edit,
   editMeta,
   fitScale = 1,
+  fit,
   onAddSection,
 }: {
   doc: ResumeDocument
@@ -23,6 +25,8 @@ export const TemplateRenderer = memo(function TemplateRenderer({
   edit?: EditFn
   editMeta?: MetaEditFn
   fitScale?: number
+  /** Magic fit's two scales (type, spacing); wins over fitScale. */
+  fit?: FitVector
   onAddSection?: () => void
 }) {
   const config = getTemplate(doc.metadata.template)
@@ -30,5 +34,5 @@ export const TemplateRenderer = memo(function TemplateRenderer({
     const Custom = config.Component
     return <Custom doc={doc} mode={mode} />
   }
-  return <Artboard doc={doc} config={config} mode={mode} edit={edit} editMeta={editMeta} fitScale={fitScale} onAddSection={onAddSection} />
+  return <Artboard doc={doc} config={config} mode={mode} edit={edit} editMeta={editMeta} fitScale={fitScale} fit={fit} onAddSection={onAddSection} />
 })
