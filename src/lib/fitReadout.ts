@@ -63,5 +63,7 @@ export function formatFitReadout(metadata: Metadata, result: FitResult | null): 
   const s = fitSizesPt(metadata, result.fit)
   const moved = Math.abs(result.fit.type - 1) > 0.0005 || Math.abs(result.fit.space - 1) > 0.0005
   const head = moved ? 'Fitted' : 'As set'
-  return `${head}: body ${pt(s.body)}, headings ${pt(s.heading)}, name ${pt(s.name)}, gaps ${pt(s.sectionGap)} / ${pt(s.entryGap)} · ${pages}, ${fill}`
+  const t = metadata.page.fit.target
+  const short = result.pages > t ? ` · ${t} page${t === 1 ? ' is' : 's are'} out of reach within your rules` : ''
+  return `${head}: body ${pt(s.body)}, headings ${pt(s.heading)}, name ${pt(s.name)}, gaps ${pt(s.sectionGap)} / ${pt(s.entryGap)} · ${pages}, ${fill}${short}`
 }

@@ -346,7 +346,7 @@ function PageBreakRow({ sectionKey, itemId }: { sectionKey: string; itemId: stri
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-foreground">Start on new page</span>
           <span className="text-right text-[11px] leading-tight text-muted-foreground">
-            Turn off “Fit to one page” (Design) to pin page breaks.
+            Turn off “Magic fit” (Design) to pin page breaks.
           </span>
         </div>
       ) : (

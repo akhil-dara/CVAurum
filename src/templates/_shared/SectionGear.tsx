@@ -906,7 +906,7 @@ export function SectionGear({
                 <Group label="Page">
                   {autoFitOn ? (
                     <p className="px-2 py-1 text-[11px] leading-snug text-muted-foreground">
-                      Turn off “Fit to one page” (Design panel) to pin page breaks.
+                      Turn off “Magic fit” (Design panel) to pin page breaks.
                     </p>
                   ) : (
                     <ToggleRow label="Start on new page" on={pinned} onClick={togglePin} />

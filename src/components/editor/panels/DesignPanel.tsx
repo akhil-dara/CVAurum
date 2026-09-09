@@ -6,7 +6,7 @@ import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 import { StatTilesEditor } from '@/templates/_shared/StatTilesEditor'
-import { FitReadout } from './FitReadout'
+import { MagicFitCard } from './MagicFitCard'
 import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
@@ -991,16 +991,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
-        <Toggle
-          label="Fit to one page"
-          checked={m.page.autoFit}
-          onChange={(v) =>
-            update((md) => {
-              md.page.autoFit = v
-            })
-          }
-        />
-        <FitReadout doc={doc} />
+        <MagicFitCard doc={doc} />
         <Toggle
           label="Keep entries whole"
           checked={m.page.keepEntriesWhole}

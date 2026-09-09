@@ -46,8 +46,17 @@ describe('formatFitReadout', () => {
     expect(line).toBe('Fitted: body 9.4pt, headings 11.3pt, name 23.3pt, gaps 8.5pt / 5.1pt · 1 page, 98% full')
   })
   it('says “As set” when nothing moved, and names the last page on a longer résumé', () => {
-    const line = formatFitReadout(meta(), { fit: { type: 1, space: 1 }, pages: 2, lastPageFill: 0.23 })
+    const m = meta()
+    m.page.fit.target = 2
+    const line = formatFitReadout(m, { fit: { type: 1, space: 1 }, pages: 2, lastPageFill: 0.23 })
     expect(line).toBe('As set: body 10pt, headings 12pt, name 24.8pt, gaps 10pt / 6pt · 2 pages, page 2 is 23% full')
+  })
+  it('says when the page target was out of reach and the fit fell back to more pages', () => {
+    const line = formatFitReadout(meta(), { fit: { type: 0.7, space: 0.7 }, pages: 2, lastPageFill: 1 })
+    expect(line).toBe('Fitted: body 7pt, headings 8.4pt, name 17.4pt, gaps 7pt / 4.2pt · 2 pages, page 2 is 100% full · 1 page is out of reach within your rules')
+    const m = meta()
+    m.page.fit.target = 2
+    expect(formatFitReadout(m, { fit: { type: 0.7, space: 0.7 }, pages: 3, lastPageFill: 0.5 })).toContain('· 2 pages are out of reach within your rules')
   })
   it('says Off with the page count when the fit is off, and Measuring before the first result', () => {
     const m = meta()
