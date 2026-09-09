@@ -271,8 +271,15 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
   const tFloor = typeFloor(rules)
   const pagesAt = async (fit: FitVector): Promise<number> => {
     const h = await measure(fit)
-    if (countPages) return countPages()
+    // Content within the page height IS one page: the exporter and the
+    // preview paint it as one (their gate, exceedsOnePage, allows even a
+    // margin more), so the paginator is not asked. Asking it here declared a
+    // page two for content that only reached into the bottom padding, and a
+    // résumé the old fit put on one page fell back to two (pdf gate,
+    // folio-noir after the gate's template sequence: 1074px in a 1123px page).
+    // Past the page height the true count decides, as the old fallback did.
     if (h <= pageH) return 1
+    if (countPages) return countPages()
     return 1 + Math.ceil((h - pageH) / Math.max(1, subsequentPageH))
   }
   const fitsWithin = async (fit: FitVector, target: number) => (await pagesAt(fit)) <= target

@@ -129,6 +129,23 @@ describe('typeFloor', () => {
 })
 
 describe('fitToPages', () => {
+  it('counts content within the page height as one page even when the paginator would break it', async () => {
+    // 1074px in a 1123px page reaches into the bottom padding; the exporter
+    // paints that as one page, so the search must too (the old fit did).
+    // height = 1620 x k x k: at k = 0.814 the page is 1074px, within 1123
+    const m = twoAxis(1620)
+    let asked = 0
+    const r = await fitToPages(
+      { pageH: 1123, measure: m.measure, countPages: async () => { asked++; return 2 } },
+      { target: 1, minBody: null, fontSize: 10, priority: 'both' }
+    )
+    expect(r.type).toBeLessThan(1)
+    expect(r.type).toBeGreaterThanOrEqual(0.66)
+    expect(m.last().type).toBe(r.type)
+    // the paginator was only consulted for probes past the page height
+    expect(asked).toBeGreaterThan(0)
+  })
+
   it('a small overflow is taken by spacing alone', async () => {
     const m = twoAxis(1100)
     const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
@@ -211,15 +228,19 @@ describe('fitToPages', () => {
     expect(height(1210, r)).toBeLessThanOrEqual(1000)
     expect((r.type + 0.004) ** 2 * 1210).toBeGreaterThan(1000)
   })
-  it('uses the true page count when given, not the height model', async () => {
+  it('past the page height the true page count decides, not the height model', async () => {
+    // 1100px of content, target 2: the height model would accept it as set
+    // (1000 + a second page), but the paginator says three pages for
+    // anything past the page height, so the search must bring it within it.
     const m = twoAxis(1100)
-    let pages = 2
+    let h = 0
     const r = await fitToPages(
-      { pageH: 1000, measure: async (f) => { const h = await m.measure(f); pages = h <= 950 ? 1 : 2; return h }, countPages: async () => pages },
-      RULES
+      { pageH: 1000, measure: async (f) => { h = await m.measure(f); return h }, countPages: async () => (h > 1000 ? 3 : 1) },
+      { ...RULES, target: 2 }
     )
-    expect(height(1100, r)).toBeLessThanOrEqual(950)
+    expect(height(1100, r)).toBeLessThanOrEqual(1000)
     expect(r.type).toBe(1)
+    expect(r.space).toBeLessThan(1)
   })
   it('leaves the DOM measured at the vector it returns', async () => {
     const m = twoAxis(1300)

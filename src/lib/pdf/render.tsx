@@ -75,6 +75,7 @@ declare global {
     __cvaLastFit?: { type: number; space: number }
     __cvaPreviewFit?: { type: number; space: number }
     __cvaFitTrace?: Array<{ fit: { type: number; space: number }; h: number; fs: string; pages?: number }>
+    __cvaExportTrace?: Array<{ fit: { type: number; space: number }; h: number; fs: string; pages?: number; err?: string }>
     __cvaFitBusy?: boolean
   }
 }
@@ -194,12 +195,17 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
 
     if (doc.metadata.page.autoFit) {
       const marginPx = doc.metadata.page.margin * MM_TO_PX
+      if (import.meta.env.DEV) window.__cvaExportTrace = []
       await fitToPages(
         {
           pageH: pageHpx,
           measure: async (f) => {
             root.render(<TemplateRenderer doc={doc} mode="print" fit={f} />)
             await raf2()
+            if (import.meta.env.DEV) {
+              const r = container.querySelector<HTMLElement>('.rm-root')
+              ;(window.__cvaExportTrace ??= []).push({ fit: f, h: container.scrollHeight, fs: r ? getComputedStyle(r).getPropertyValue('--rm-fs') : '' })
+            }
             return container.scrollHeight
           },
           subsequentPageH: pageHpx - marginPx * 2,
@@ -211,14 +217,17 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
           if (!el) return Number.POSITIVE_INFINITY
           try {
             const pad = findMainColumnPaddingPx(el)
-            return paginate({
+            const n = paginate({
               blocks: extractPageBlocks(el, computeUsablePageHeightPx(pageHpx, pad)),
               contentHeightPx: el.getBoundingClientRect().height,
               usablePageHeightPx: computeUsablePageHeightPx(pageHpx, pad),
               firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageHpx, pad),
               maxPageHeightPx: pageHpx,
             }).pageCount
-          } catch {
+            if (import.meta.env.DEV) { const t = window.__cvaExportTrace; if (t && t.length) t[t.length - 1].pages = n }
+            return n
+          } catch (e) {
+            if (import.meta.env.DEV) { const t = window.__cvaExportTrace; if (t && t.length) t[t.length - 1].err = String((e as Error)?.message || e).slice(0, 120) }
             return Number.POSITIVE_INFINITY // no legal break here — never prefer this scale
           }
           },
