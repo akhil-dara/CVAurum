@@ -109,6 +109,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
       { id: 'skim', group: 'View', label: 'Toggle recruiter skim heatmap', hint: 'where a 7-second skim lands — deterministic, on-device', run: () => { useEditorStore.getState().setSkimView(!useEditorStore.getState().skimView) } },
       { id: 'panel-content', group: 'View', label: 'Open Content panel', run: () => { ed.setLeftTab('content'); ed.setLeftOpen(true) } },
       { id: 'panel-design', group: 'View', label: 'Open Design panel', run: () => { ed.setLeftTab('design'); ed.setLeftOpen(true) } },
+      { id: 'magic-fit-suggest', group: 'View', label: 'Magic fit: suggest', hint: 'measure a few moves that fit better', run: () => { ed.setLeftTab('design'); ed.setLeftOpen(true); setTimeout(() => window.dispatchEvent(new Event('cvaurum:magic-fit-suggest')), 60) } },
       { id: 'panel-templates', group: 'View', label: 'Open Templates panel', run: () => { ed.setLeftTab('templates'); ed.setLeftOpen(true) } },
       { id: 'panel-ats', group: 'View', label: 'Open ATS & Tailoring panel', run: () => { ed.setLeftTab('ats'); ed.setLeftOpen(true) } },
       { id: 'semantic', group: 'View', label: 'Semantic JD match', hint: 'meaning-level match — in the ATS panel', run: () => { ed.setLeftTab('ats'); ed.setLeftOpen(true) } },

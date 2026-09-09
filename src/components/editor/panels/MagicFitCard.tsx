@@ -1,7 +1,11 @@
+import { useEffect, useRef, useState } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
+import { suggestFits } from '@/lib/fitSuggest'
+import type { Suggestion } from '@/lib/fitSuggest'
 import { Slider, Toggle, Segmented } from '../fields/Controls'
 import { FitReadout } from './FitReadout'
 
@@ -125,8 +129,73 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
               </div>
             </div>
           </details>
+          <Suggest doc={doc} />
         </>
       )}
+    </div>
+  )
+}
+
+/** "Suggest" measures a few concrete moves (one page fewer, a small section
+ *  moved up) with the preview's own trial and lists the ones that come out
+ *  better, one Apply each; applied through the normal update path, so undo
+ *  works. Runs on request only, never on keystrokes. */
+function Suggest({ doc }: { doc: ResumeDocument }) {
+  const updateDoc = useResumeStore((s) => s.updateDoc)
+  const trial = useEditorStore((s) => s.fitTrial)
+  const result = useEditorStore((s) => s.fitResult)
+  const [state, setState] = useState<{ phase: 'idle' } | { phase: 'working' } | { phase: 'done'; offers: Suggestion[] }>({
+    phase: 'idle',
+  })
+  const run = useRef<() => void>(() => undefined)
+  run.current = async () => {
+    if (!trial || !result || state.phase === 'working') return
+    setState({ phase: 'working' })
+    try {
+      const offers = await suggestFits(doc, trial, result)
+      setState({ phase: 'done', offers })
+    } catch {
+      setState({ phase: 'done', offers: [] })
+    }
+  }
+  // The command palette's "Magic fit: suggest" lands here.
+  useEffect(() => {
+    const on = () => run.current()
+    window.addEventListener('cvaurum:magic-fit-suggest', on)
+    return () => window.removeEventListener('cvaurum:magic-fit-suggest', on)
+  }, [])
+  // A changed document makes the offers stale: back to the button.
+  useEffect(() => {
+    setState((s) => (s.phase === 'done' ? { phase: 'idle' } : s))
+  }, [doc])
+  const busy = state.phase === 'working'
+  return (
+    <div className="space-y-2" data-testid="fit-suggest">
+      <button
+        type="button"
+        className="btn-secondary btn-sm w-full"
+        disabled={busy || !trial || !result}
+        aria-busy={busy}
+        onClick={() => run.current()}
+      >
+        {busy ? 'Measuring moves…' : 'Suggest'}
+      </button>
+      {state.phase === 'done' && state.offers.length === 0 && (
+        <p className="text-[11px] leading-snug text-muted-foreground">Nothing better within your rules.</p>
+      )}
+      {state.phase === 'done' &&
+        state.offers.map((o) => (
+          <div
+            key={o.id}
+            className="flex items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-1.5"
+            data-testid="fit-offer"
+          >
+            <span className="text-xs leading-snug text-foreground">{o.label}</span>
+            <button type="button" className="btn-outline btn-sm shrink-0" onClick={() => updateDoc((d) => o.mutate(d))}>
+              Apply
+            </button>
+          </div>
+        ))}
     </div>
   )
 }

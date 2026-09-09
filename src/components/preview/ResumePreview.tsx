@@ -52,6 +52,7 @@ import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
+import { measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
 
 const AS_SET: FitVector = { type: 1, space: 1 }
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
@@ -289,7 +290,59 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // the same page count the preview/PDF lands on.
   const setOnePageScale = useEditorStore((s) => s.setOnePageScale)
   const setFitResult = useEditorStore((s) => s.setFitResult)
+  const setFitTrial = useEditorStore((s) => s.setFitTrial)
   const measureDoc = useDeferredValue(doc)
+  // Magic fit's trials: a candidate document rendered in its own hidden
+  // print portal, searched with the same routine and paginated with the
+  // same paginator as the real one. One trial at a time; the portal
+  // unmounts between them.
+  const [trialDoc, setTrialDoc] = useState<ResumeDocument | null>(null)
+  const [trialFit, setTrialFit] = useState<FitVector>(AS_SET)
+  const trialRef = useRef<HTMLDivElement | null>(null)
+  const pageHRef = useRef(pageH)
+  pageHRef.current = pageH
+  useEffect(() => {
+    let chain: Promise<unknown> = Promise.resolve()
+    const runTrial = async (candidate: ResumeDocument) => {
+      const ph = pageHRef.current
+      setTrialDoc(candidate)
+      setTrialFit(AS_SET)
+      await raf2()
+      const root = () => trialRef.current?.querySelector<HTMLElement>('.rm-root') ?? null
+      const marginMm = candidate.metadata.page.margin
+      const fit = await fitToPages(
+        {
+          pageH: ph,
+          measure: async (f) => {
+            setTrialFit(f)
+            await raf2()
+            return trialRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+          },
+          subsequentPageH: ph - marginMm * MM_TO_PX * 2,
+          countPages: async () => {
+            const r = root()
+            if (!r) return Number.POSITIVE_INFINITY
+            try {
+              return measurePages(r, ph, marginMm).pages
+            } catch {
+              return Number.POSITIVE_INFINITY
+            }
+          },
+        },
+        fitRulesOf(candidate.metadata)
+      )
+      const r = root()
+      const m = r ? measurePages(r, ph, marginMm) : { pages: Number.POSITIVE_INFINITY, lastPageFill: 0, lastPageSections: [] }
+      setTrialDoc(null)
+      return { fit, pages: m.pages, lastPageFill: m.lastPageFill, lastPageSections: m.lastPageSections }
+    }
+    setFitTrial((candidate) => {
+      const p = chain.then(() => runTrial(candidate))
+      chain = p.catch(() => undefined)
+      return p
+    })
+    return () => setFitTrial(null)
+  }, [setFitTrial])
   // A fresh closure here defeated TemplateRenderer's memo, so every
   // incidental state change in this component re-rendered the whole canvas.
   const openAddSection = useCallback(() => setAddOpen(true), [])
@@ -536,7 +589,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       // arithmetic again.
       if (!exceedsOnePage(contentHeightPx, pageH, doc.metadata.page.margin)) {
         clearOverlay()
-        setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / firstPageUsablePageHeightPx })
+        setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / firstPageUsablePageHeightPx, lastPageSections: [] })
         return
       }
       try {
@@ -566,6 +619,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             result.cutsPx.length === 0
               ? contentHeightPx / firstPageUsablePageHeightPx
               : (contentHeightPx - result.cutsPx[result.cutsPx.length - 1]) / usablePageHeightPx,
+          lastPageSections: sectionsFromY(printRoot, result.cutsPx.length ? result.cutsPx[result.cutsPx.length - 1] : 0),
         })
         if (result.cutsPx.length === 0) {
           setPageSeparators([])
@@ -783,6 +837,18 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         </div>,
         document.body
       )}
+      {trialDoc &&
+        createPortal(
+          <div
+            ref={trialRef}
+            aria-hidden
+            data-role="fit-trial"
+            style={{ position: 'fixed', top: 0, left: -100000, width: pageW, pointerEvents: 'none', zIndex: -1 }}
+          >
+            <TemplateRenderer doc={trialDoc} mode="print" fit={trialFit} />
+          </div>,
+          document.body
+        )}
       <div
         ref={scrollRef}
         className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !exactCanvas ? ' focus-mode' : ''}`}

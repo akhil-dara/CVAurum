@@ -17,6 +17,8 @@ export interface FitResult {
   pages: number
   /** The last page's content height over its usable height, 0..1+. */
   lastPageFill: number
+  /** The keys of the sections that begin on the last page (empty on one page). */
+  lastPageSections?: string[]
 }
 
 export function fitRulesOf(metadata: Metadata): FitRules {

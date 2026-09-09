@@ -1,6 +1,7 @@
 /** Editor-only UI state (not persisted with the document). */
 import { create } from 'zustand'
 import type { FitResult } from '@/lib/fitReadout'
+import type { FitTrialFn } from '@/lib/fitSuggest'
 
 /** The per-section visual style fields the style painter copies. */
 export type CopiedStyle = Record<string, string>
@@ -34,6 +35,9 @@ interface EditorState {
   /** What Magic fit did and how the pages came out, from the preview's own
    *  measurement (src/lib/fitReadout.ts); null until the first fit. */
   fitResult: FitResult | null
+  /** Measures a candidate document the way the preview measures the real
+   *  one (src/lib/fitSuggest.ts); the preview installs it while mounted. */
+  fitTrial: FitTrialFn | null
   /** show the resume as the plain text an ATS parser reads (instead of the canvas) */
   atsView: boolean
   /** render the canvas exactly as the exported PDF (no edit chrome/placeholders) */
@@ -64,6 +68,7 @@ interface EditorState {
   setFocusItem: (id: string | null) => void
   setOnePageScale: (v: number) => void
   setFitResult: (r: FitResult | null) => void
+  setFitTrial: (fn: FitTrialFn | null) => void
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
@@ -83,6 +88,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   focusItem: null,
   onePageScale: 1,
   fitResult: null,
+  fitTrial: null,
   atsView: false,
   copiedStyle: null,
   skimView: false,
@@ -127,6 +133,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return
     set({ fitResult })
   },
+  setFitTrial: (fitTrial) => set({ fitTrial }),
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),
   setFocusMode: (focusMode) => set({ focusMode }),
