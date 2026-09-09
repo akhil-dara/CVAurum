@@ -1,5 +1,6 @@
 /** Editor-only UI state (not persisted with the document). */
 import { create } from 'zustand'
+import type { FitResult } from '@/lib/fitReadout'
 
 /** The per-section visual style fields the style painter copies. */
 export type CopiedStyle = Record<string, string>
@@ -30,6 +31,9 @@ interface EditorState {
   /** the live auto-fit-to-one-page scale the preview/PDF settled on (1 = none).
    *  Mirrored here so silent exports (Word) can shrink to the same page count. */
   onePageScale: number
+  /** What Magic fit did and how the pages came out, from the preview's own
+   *  measurement (src/lib/fitReadout.ts); null until the first fit. */
+  fitResult: FitResult | null
   /** show the resume as the plain text an ATS parser reads (instead of the canvas) */
   atsView: boolean
   /** render the canvas exactly as the exported PDF (no edit chrome/placeholders) */
@@ -59,6 +63,7 @@ interface EditorState {
   setHighlightKeywords: (v: boolean) => void
   setFocusItem: (id: string | null) => void
   setOnePageScale: (v: number) => void
+  setFitResult: (r: FitResult | null) => void
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
@@ -77,6 +82,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   highlightKeywords: false,
   focusItem: null,
   onePageScale: 1,
+  fitResult: null,
   atsView: false,
   copiedStyle: null,
   skimView: false,
@@ -107,6 +113,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // something happened. Skip the no-op.
   setOnePageScale: (onePageScale) => {
     if (get().onePageScale !== onePageScale) set({ onePageScale })
+  },
+  setFitResult: (fitResult) => {
+    const cur = get().fitResult
+    if (
+      cur &&
+      fitResult &&
+      cur.pages === fitResult.pages &&
+      Math.abs(cur.lastPageFill - fitResult.lastPageFill) < 0.002 &&
+      cur.fit.type === fitResult.fit.type &&
+      cur.fit.space === fitResult.fit.space
+    )
+      return
+    set({ fitResult })
   },
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),

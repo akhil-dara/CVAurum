@@ -31,7 +31,8 @@ import * as fontkitNs from '@pdf-lib/fontkit'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
-import { fitOnePageScale } from '@/lib/fitOnePage'
+import { fitToPages } from '@/lib/fitOnePage'
+import { fitRulesOf } from '@/lib/fitReadout'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
@@ -71,6 +72,9 @@ declare global {
     /** DEV: the scale auto-fit settled on for the last export. */
     __cvaLastFitScale?: number
     __cvaPreviewFitScale?: number
+    __cvaLastFit?: { type: number; space: number }
+    __cvaPreviewFit?: { type: number; space: number }
+    __cvaFitTrace?: Array<{ fit: { type: number; space: number }; h: number; fs: string; pages?: number }>
     __cvaFitBusy?: boolean
   }
 }
@@ -190,15 +194,16 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
 
     if (doc.metadata.page.autoFit) {
       const marginPx = doc.metadata.page.margin * MM_TO_PX
-      await fitOnePageScale(
-        pageHpx,
-        async (scale) => {
-          root.render(<TemplateRenderer doc={doc} mode="print" fitScale={scale} />)
-          await raf2()
-          return container.scrollHeight
-        },
-        pageHpx - marginPx * 2,
-        async () => {
+      await fitToPages(
+        {
+          pageH: pageHpx,
+          measure: async (f) => {
+            root.render(<TemplateRenderer doc={doc} mode="print" fit={f} />)
+            await raf2()
+            return container.scrollHeight
+          },
+          subsequentPageH: pageHpx - marginPx * 2,
+          countPages: async () => {
           // TRUE page count at whatever scale was just rendered — the same
           // blocks, budgets and paginator the export itself uses below, so
           // the scale search can never be fooled by a height estimate.
@@ -216,13 +221,18 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
           } catch {
             return Number.POSITIVE_INFINITY // no legal break here — never prefer this scale
           }
-        }
-      ).then((scale) => {
+          },
+        },
+        fitRulesOf(doc.metadata)
+      ).then((f) => {
         // DEV instrumentation, same discipline as __cvaLastPaginationCuts:
-        // harnesses need to see WHICH scale auto-fit settled on, not just the
+        // harnesses need to see WHICH fit auto-fit settled on, not just the
         // page count it produced.
-        if (import.meta.env.DEV) window.__cvaLastFitScale = scale
-        return scale
+        if (import.meta.env.DEV) {
+          window.__cvaLastFitScale = f.type
+          window.__cvaLastFit = f
+        }
+        return f
       })
       await raf2()
       // The scale fitOnePageScale chose is KEPT, even when one page proved

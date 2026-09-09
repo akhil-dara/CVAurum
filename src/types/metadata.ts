@@ -51,13 +51,15 @@ export const PageSchema = z.object({
   keepEntriesWhole: z.boolean().default(false),
   /** Magic fit's rules (src/lib/fitOnePage.ts fitToPages): the page target,
    *  the body size the fit never goes below, what gives first, and the
-   *  sizes it must leave exactly as set. Defaults reproduce the old fit,
-   *  except that the floor is a readable 9pt rather than 0.66 of the body. */
+   *  sizes it must leave exactly as set. The defaults ARE the old fit (one
+   *  page, type and spacing together, a 7pt floor: the built-in examples
+   *  reach one page at 7.7pt, and a saved résumé must not re-fit differently
+   *  after an update); the card opens up the rest. */
   fit: z
     .object({
       target: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
-      minBody: z.number().min(7).max(12).default(9),
-      priority: z.enum(['spacing', 'both', 'type']).default('spacing'),
+      minBody: z.number().min(7).max(12).default(7),
+      priority: z.enum(['spacing', 'both', 'type']).default('both'),
       lock: z
         .object({
           name: z.boolean().default(false),

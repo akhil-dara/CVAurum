@@ -11,7 +11,9 @@ import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { loadDoc } from '@/lib/storage'
 import { ensureFontsReady } from '@/data/fonts'
-import { fitOnePageScale } from '@/lib/fitOnePage'
+import { fitToPages } from '@/lib/fitOnePage'
+import type { FitVector } from '@/lib/fitOnePage'
+import { fitRulesOf } from '@/lib/fitReadout'
 import { pdfBaseName } from '@/lib/pdf'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 
@@ -19,7 +21,7 @@ export function PrintPage() {
   const { id } = useParams<{ id: string }>()
   const [doc, setDoc] = useState<ResumeDocument | null>(null)
   const [missing, setMissing] = useState(false)
-  const [fitScale, setFitScale] = useState(1)
+  const [fit, setFit] = useState<FitVector>({ type: 1, space: 1 })
   const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -86,12 +88,18 @@ export function PrintPage() {
         if (doc.metadata.page.autoFit && sheetRef.current) {
           const { h: pageH } = PAGE_DIMENSIONS[doc.metadata.page.format]
           // Same binary-search fit the editor preview uses → identical page count.
-          await fitOnePageScale(pageH, async (sc) => {
-            if (cancelled || !sheetRef.current) return Number.POSITIVE_INFINITY
-            setFitScale(sc)
-            await raf2()
-            return sheetRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
-          })
+          await fitToPages(
+            {
+              pageH,
+              measure: async (f) => {
+                if (cancelled || !sheetRef.current) return Number.POSITIVE_INFINITY
+                setFit(f)
+                await raf2()
+                return sheetRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+              },
+            },
+            fitRulesOf(doc.metadata)
+          )
         }
         await raf2()
         if (cancelled) return
@@ -162,7 +170,7 @@ export function PrintPage() {
       </div>
       <div className="print-stage" style={{ paddingTop: 64 }}>
         <div ref={sheetRef} className="print-sheet" style={{ width: widthCss }}>
-          <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
+          <TemplateRenderer doc={doc} mode="print" fit={fit} />
         </div>
       </div>
     </>

@@ -296,8 +296,13 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
    * axis alone, on to its own floor/ceiling. Each stage stops as soon as
    * the page fits (shrink) or as far as it still fits (grow). Returns null
    * when even the end of the path does not fit (shrink only). */
-  const path = async (target: number): Promise<FitVector | null> => {
+  const path = async (target: number, allowGrow: boolean): Promise<FitVector | null> => {
     const shrinking = !(await fitsWithin(asSet, target))
+    // A target above the author's own is the fewest-pages fallback: the page
+    // is kept as set or shrunk, never grown to FILL the extra page (measured:
+    // a one-page résumé the floor could not fit grew to both ceilings and
+    // came out as two pages with the second three-quarters full).
+    if (!shrinking && !allowGrow) return asSet
     const dir = shrinking ? -1 : 1
     const leadBound = (dir < 0 ? LEAD_SHRINK : LEAD_GROW)[lead]
     const leadEnd = lead === 'space' ? (dir < 0 ? FIT_SPACE_MIN : FIT_SPACE_MAX) : dir < 0 ? tFloor : MAX_FIT_UP
@@ -354,7 +359,7 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
   }
 
   for (let target = rules.target; target <= Math.max(rules.target, 6); target++) {
-    const r = await path(target)
+    const r = await path(target, target === rules.target)
     if (r) {
       await measure(r)
       return r

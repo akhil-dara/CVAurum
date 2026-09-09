@@ -49,7 +49,11 @@ import { useResumeStore } from '@/store/useResumeStore'
 import { useIsPhone, useMediaQuery } from '@/hooks/useIsPhone'
 import { clamp, uid } from '@/lib/utils'
 import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
-import { fitOnePageScale } from '@/lib/fitOnePage'
+import { fitToPages } from '@/lib/fitOnePage'
+import type { FitVector } from '@/lib/fitOnePage'
+import { fitRulesOf } from '@/lib/fitReadout'
+
+const AS_SET: FitVector = { type: 1, space: 1 }
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { SectionGallery } from '@/components/editor/SectionGallery'
 import { extractPageBlocks, extractMainColumnBlocks } from '@/lib/pdf/walk'
@@ -273,17 +277,18 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // Auto-fit-to-one-page: shrink type/spacing so a resume that's just over a
   // page collapses to a single page. Genuinely long content
   // (needing < 0.78 scale) is left full size and paginates normally.
-  const [fitScale, setFitScale] = useState(1)
-  const fitScaleRef = useRef(1)
-  fitScaleRef.current = fitScale
-  // The hidden print-measure render is driven by its OWN scale so the binary
-  // search can probe trial scales without flickering the visible canvas.
-  const [measureScale, setMeasureScale] = useState(1)
+  const [fit, setFit] = useState<FitVector>(AS_SET)
+  const fitRef = useRef<FitVector>(AS_SET)
+  fitRef.current = fit
+  // The hidden print-measure render is driven by its OWN scales so the
+  // search can probe trial vectors without flickering the visible canvas.
+  const [measureFit, setMeasureFit] = useState<FitVector>(AS_SET)
   const fitReq = useRef(0)
   const autoFit = doc.metadata.page.autoFit
   // Publish the settled one-page scale so silent exports (Word) can shrink to
   // the same page count the preview/PDF lands on.
   const setOnePageScale = useEditorStore((s) => s.setOnePageScale)
+  const setFitResult = useEditorStore((s) => s.setFitResult)
   const measureDoc = useDeferredValue(doc)
   // A fresh closure here defeated TemplateRenderer's memo, so every
   // incidental state change in this component re-rendered the whole canvas.
@@ -367,8 +372,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
   useEffect(() => {
     if (!autoFit) {
-      setMeasureScale(1)
-      if (fitScaleRef.current !== 1) setFitScale(1)
+      setMeasureFit(AS_SET)
+      if (fitRef.current.type !== 1 || fitRef.current.space !== 1) setFit(AS_SET)
       setOnePageScale(1)
       if (import.meta.env.DEV) window.__cvaFitBusy = false
       return
@@ -376,6 +381,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     let cancelled = false
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
+      if (import.meta.env.DEV) window.__cvaFitTrace = []
       await ensureFontsReady([
         measureDoc.metadata.typography.fontFamily,
         measureDoc.metadata.typography.headingFamily,
@@ -392,48 +398,57 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         })
       }
       if (cancelled || myReq !== fitReq.current) return
-      const result = await fitOnePageScale(
-        pageH,
-        async (sc) => {
-          if (cancelled || myReq !== fitReq.current || !measureRef.current) return Number.POSITIVE_INFINITY
-          setMeasureScale(sc)
-          await raf2()
-          return measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
-        },
-        pageH - measureDoc.metadata.page.margin * MM_TO_PX * 2,
+      const result = await fitToPages(
+        {
+          pageH,
+          measure: async (f) => {
+            if (cancelled || myReq !== fitReq.current || !measureRef.current) return Number.POSITIVE_INFINITY
+            setMeasureFit(f)
+            await raf2()
+            const h = measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
+            if (import.meta.env.DEV) (window.__cvaFitTrace ??= []).push({ fit: f, h, fs: measureRef.current?.querySelector<HTMLElement>('.rm-root') ? getComputedStyle(measureRef.current.querySelector<HTMLElement>('.rm-root')!).getPropertyValue('--rm-fs') : '' })
+            return h
+          },
+          subsequentPageH: pageH - measureDoc.metadata.page.margin * MM_TO_PX * 2,
         // The TRUE page count at the scale just rendered, from the same
         // print-measure portal and budgets the export uses. Without this the
         // preview would pick its scale from a height estimate while the
         // export picks from real pagination, and the two would disagree on
         // the page count for exactly the documents auto-fit cannot fit.
-        async () => {
-          const printRoot = measureRef.current?.querySelector<HTMLElement>('.rm-root')
-          if (!printRoot) return Number.POSITIVE_INFINITY
-          try {
-            const pad = findMainColumnPaddingPx(printRoot)
-            return paginate({
-              blocks: extractPageBlocks(printRoot, computeUsablePageHeightPx(pageH, pad)),
-              contentHeightPx: printRoot.getBoundingClientRect().height,
-              usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
-              firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
-              maxPageHeightPx: pageH,
-            }).pageCount
-          } catch {
-            return Number.POSITIVE_INFINITY
-          }
+          countPages: async () => {
+            const printRoot = measureRef.current?.querySelector<HTMLElement>('.rm-root')
+            if (!printRoot) return Number.POSITIVE_INFINITY
+            try {
+              const pad = findMainColumnPaddingPx(printRoot)
+              const n = paginate({
+                blocks: extractPageBlocks(printRoot, computeUsablePageHeightPx(pageH, pad)),
+                contentHeightPx: printRoot.getBoundingClientRect().height,
+                usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
+                firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
+                maxPageHeightPx: pageH,
+              }).pageCount
+              if (import.meta.env.DEV) { const t = window.__cvaFitTrace; if (t && t.length) t[t.length - 1].pages = n }
+              return n
+            } catch {
+              return Number.POSITIVE_INFINITY
+            }
+          },
+          // Seed from the previous answer: an edit rarely moves the fit far,
+          // and the grid search lands on the identical answer either way -
+          // the hint only trims probes (the exporter searches cold and agrees).
+          hint: fitRef.current,
         },
-        // Seed from the previous answer: an edit rarely moves the fit far,
-        // and the grid search lands on the identical scale either way - the
-        // hint only trims probes (the exporter searches cold and agrees).
-        fitScaleRef.current
+        fitRulesOf(measureDoc.metadata)
       )
       if (cancelled || myReq !== fitReq.current) return
-      setMeasureScale(result)
-      setFitScale(result)
-      setOnePageScale(result)
+      setMeasureFit(result)
+      setFit(result)
+      // The Word export shrinks by the type scale (what its page count follows).
+      setOnePageScale(result.type)
       if (import.meta.env.DEV) {
         window.__cvaFitBusy = false
-        window.__cvaPreviewFitScale = result
+        window.__cvaPreviewFitScale = result.type
+        window.__cvaPreviewFit = result
       }
     }, 200)
     return () => {
@@ -452,7 +467,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       if (innerRef.current) setContentH(innerRef.current.scrollHeight)
     })
     return () => cancelAnimationFrame(raf)
-  }, [fitScale])
+  }, [fit])
 
   // Paginated WYSIWYG preview (native-multipage-pdf plan, task 5; fix rounds
   // 1-2). Pagination — cuts AND page count — always runs on the hidden
@@ -521,6 +536,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       // arithmetic again.
       if (!exceedsOnePage(contentHeightPx, pageH, doc.metadata.page.margin)) {
         clearOverlay()
+        setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / firstPageUsablePageHeightPx })
         return
       }
       try {
@@ -540,6 +556,16 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           // sheet with — parity by construction. Auto-fit ON ignores pins
           // (spec 1b), matching render.tsx exactly.
           forcedCutsPx: autoFit ? [] : resolveForcedCutsPx(printRoot, doc.metadata.page.breaks),
+        })
+        // The readout's numbers: the fit the portal is drawn at, the true page
+        // count, and how much of the last page the content reaches.
+        setFitResult({
+          fit: fitRef.current,
+          pages: result.pageCount,
+          lastPageFill:
+            result.cutsPx.length === 0
+              ? contentHeightPx / firstPageUsablePageHeightPx
+              : (contentHeightPx - result.cutsPx[result.cutsPx.length - 1]) / usablePageHeightPx,
         })
         if (result.cutsPx.length === 0) {
           setPageSeparators([])
@@ -691,7 +717,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // hair-over-one-page resume to a single sheet, or the editor would draw a
   // "Page 2" guide while the exported PDF stays one page.
   const padPx = doc.metadata.page.margin * MM_TO_PX
-  const fitted = autoFit && fitScale < 0.999
+  const fitted = autoFit && (fit.type < 0.999 || fit.space < 0.999)
   const pages = fitted ? 1 : Math.max(1, Math.ceil(((printH || contentH) - padPx) / pageH))
   // The white sheet must be tall enough to hold the edit-only "+ Add" chrome too,
   // so it never spills onto the gray — but page breaks are drawn at PDF boundaries.
@@ -753,7 +779,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
               reader of it (auto-fit, pagination, the height observer) waits
               at least 200ms anyway. React renders it when the urgent work is
               done; nothing that consumes it can tell the difference. */}
-          <TemplateRenderer doc={measureDoc} mode="print" fitScale={measureScale} />
+          <TemplateRenderer doc={measureDoc} mode="print" fit={measureFit} />
         </div>,
         document.body
       )}
@@ -810,14 +836,14 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 {exactCanvas ? (
                   // Exact-PDF mode: the print render — no edit chrome, placeholders,
                   // hover rings, or empty sections. What you see here is the export.
-                  <TemplateRenderer doc={doc} mode="print" fitScale={fitScale} />
+                  <TemplateRenderer doc={doc} mode="print" fit={fit} />
                 ) : (
                   <TemplateRenderer
                     doc={doc}
                     mode="preview"
                     edit={updateContent}
                     editMeta={updateMetadata}
-                    fitScale={fitScale}
+                    fit={fit}
                     onAddSection={openAddSection}
                   />
                 )}

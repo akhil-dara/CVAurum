@@ -6,6 +6,7 @@ import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 import { StatTilesEditor } from '@/templates/_shared/StatTilesEditor'
+import { FitReadout } from './FitReadout'
 import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
@@ -999,9 +1000,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
-        <p className="-mt-1 text-[11px] text-muted-foreground">
-          Auto-shrinks type &amp; spacing so a near-full resume fits one page.
-        </p>
+        <FitReadout doc={doc} />
         <Toggle
           label="Keep entries whole"
           checked={m.page.keepEntriesWhole}

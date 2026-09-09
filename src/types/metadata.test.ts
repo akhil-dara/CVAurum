@@ -19,8 +19,8 @@ describe('PageSchema.fit (Magic fit rules, 2026-09-09)', () => {
     const page = PageSchema.parse({})
     expect(page.fit).toEqual({
       target: 1,
-      minBody: 9,
-      priority: 'spacing',
+      minBody: 7,
+      priority: 'both',
       lock: { name: false, headline: false, contacts: false, sectionGap: false },
     })
   })

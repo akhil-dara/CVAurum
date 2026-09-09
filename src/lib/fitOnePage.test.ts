@@ -180,6 +180,13 @@ describe('fitToPages', () => {
     expect(r2.space).toBeGreaterThan(1)
     expect(r2.space).toBeLessThanOrEqual(LEAD_GROW.space)
   })
+  it('never grows into the extra page of a fallback target', async () => {
+    // one page impossible at the floors (2000 x 0.9 x 0.7 = 1260 > 1000);
+    // two pages fit as set, and the answer is as set, not the ceilings
+    const m = twoAxis(2000)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure, subsequentPageH: 1000 }, RULES)
+    expect(r).toEqual({ type: 1, space: 1 })
+  })
   it('falls back to the fewest pages the floors allow, at the largest sizes that reach them', async () => {
     const m = twoAxis(2000)
     const r = await fitToPages({ pageH: 1000, measure: m.measure, subsequentPageH: 1000 }, RULES)
