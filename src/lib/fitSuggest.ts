@@ -23,6 +23,8 @@ const SPARSE = 0.6
  *  offering when it does not save a page. */
 const GAIN = 0.1
 const MAX_OFFERS = 3
+/** The lowest floor the rules allow (the slider's bottom). */
+const FLOOR_MIN = 6
 
 const pages = (n: number) => `${n} page${n === 1 ? '' : 's'}`
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -62,6 +64,33 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
           label: `Fit ${pages(n)}: body ${pt(s.body)}, gaps ${pct(r.fit.space)}`,
           mutate: (d) => {
             d.metadata.page.fit.target = n
+          },
+        },
+        pages: r.pages,
+        fill: r.lastPageFill,
+      })
+    }
+  }
+
+  // Relax: the target was out of reach within the rules. Measure what body
+  // size the target needs with the floor let down to its lowest, and say so
+  // plainly; lowering the floor stays the author's call.
+  const ownFloor = doc.metadata.page.fit.minBody
+  if (current.pages > target && ownFloor != null && ownFloor > FLOOR_MIN) {
+    const c = structuredClone(doc)
+    c.metadata.page.fit.minBody = FLOOR_MIN
+    const r = await trial(c)
+    if (r.pages <= target) {
+      const s = fitSizesPt(c.metadata, r.fit)
+      // The floor the offer sets: the measured body, rounded down to the
+      // slider's half-point step, so the same fit is reachable afterwards.
+      const floor = Math.max(FLOOR_MIN, Math.floor(s.body * 2) / 2)
+      offers.push({
+        s: {
+          id: `floor-${floor}`,
+          label: `Fit ${pages(target)}: body ${pt(s.body)}, below your ${pt(ownFloor)} floor`,
+          mutate: (d) => {
+            d.metadata.page.fit.minBody = floor
           },
         },
         pages: r.pages,

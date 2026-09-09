@@ -49,6 +49,34 @@ describe('suggestFits', () => {
     expect(calls).toBe(0)
   })
 
+  it('when the target is out of reach, measures it with the floor let down and says so', async () => {
+    const doc = docWith(['experience', 'education', 'skills'], 2)
+    doc.metadata.page.fit.minBody = 9
+    const trial = async (c: ResumeDocument) => {
+      if (c.metadata.page.fit.minBody === 6) return res(2, 0.99, 0.86, 0.7)
+      return res(3, 0.4)
+    }
+    const out = await suggestFits(doc, trial, res(3, 0.98, 0.9, 0.9, ['skills']))
+    expect(out.map((s) => s.label)).toEqual(['Fit 2 pages: body 8.6pt, below your 9pt floor'])
+    const applied = structuredClone(doc)
+    out[0].mutate(applied)
+    expect(applied.metadata.page.fit.minBody).toBe(8.5)
+  })
+
+  it('offers no floor change when the floor is already at its lowest, or when even that cannot reach the target', async () => {
+    const low = docWith(['experience', 'education', 'skills'], 1)
+    let calls = 0
+    const counted = async () => {
+      calls++
+      return res(2, 0.99)
+    }
+    expect(await suggestFits(low, counted, res(2, 0.99, 0.7, 0.7, ['skills']))).toEqual([])
+    expect(calls).toBe(0)
+    const high = docWith(['experience', 'education', 'skills'], 1)
+    high.metadata.page.fit.minBody = 10
+    expect(await suggestFits(high, async () => res(2, 0.99, 0.7, 0.7), res(2, 0.99, 0.9, 0.9, ['skills']))).toEqual([])
+  })
+
   it('offers a move up for a section on a nearly empty last page when the trial says it helps', async () => {
     const doc = docWith(['experience', 'projects', 'education', 'skills', 'languages'], 2)
     const trial = async (c: ResumeDocument) => {

@@ -123,6 +123,7 @@ describe('typeFloor', () => {
     expect(typeFloor({ minBody: 9, fontSize: 10 })).toBe(0.9)
     expect(typeFloor({ minBody: 11, fontSize: 12.25 })).toBe(0.898)
     expect(typeFloor({ minBody: 7, fontSize: 16 })).toBe(0.66)
+    expect(typeFloor({ minBody: null, fontSize: 8 })).toBe(0.66)
     expect(typeFloor({ minBody: 12, fontSize: 10 })).toBe(1)
   })
 })

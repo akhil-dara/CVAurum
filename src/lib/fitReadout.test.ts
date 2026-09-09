@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defaultMetadata } from '@/data/defaults'
-import { fitRulesOf, fitSizesPt, formatFitReadout } from './fitReadout'
+import { effectiveFloorPt, fitRulesOf, fitSizesPt, formatFitReadout } from './fitReadout'
 
 const meta = () => {
   const m = defaultMetadata()
@@ -17,6 +17,15 @@ describe('fitRulesOf', () => {
     const m = meta()
     m.page.fit = { target: 2, minBody: 11, priority: 'type', lock: { name: false, headline: false, contacts: false, sectionGap: false } }
     expect(fitRulesOf(m)).toEqual({ target: 2, minBody: 11, fontSize: 10, priority: 'type' })
+  })
+})
+
+describe('effectiveFloorPt', () => {
+  it('is the search’s own floor until the author sets one', () => {
+    const m = meta()
+    expect(effectiveFloorPt(m)).toBeCloseTo(6.6, 5)
+    m.page.fit.minBody = 9
+    expect(effectiveFloorPt(m)).toBeCloseTo(9, 5)
   })
 })
 

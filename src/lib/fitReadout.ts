@@ -10,6 +10,7 @@
  */
 import type { FitRules, FitVector } from './fitOnePage'
 import type { Metadata } from '@/types/metadata'
+import { typeFloor } from './fitOnePage'
 
 /** The result the preview records after every fit and pagination. */
 export interface FitResult {
@@ -24,6 +25,12 @@ export interface FitResult {
 export function fitRulesOf(metadata: Metadata): FitRules {
   const f = metadata.page.fit
   return { target: f.target, minBody: f.minBody, fontSize: metadata.typography.fontSize, priority: f.priority }
+}
+
+/** The body size the fit will not go below on this document, in points:
+ *  the author's floor when set, else the search's own (0.66 of the body). */
+export function effectiveFloorPt(metadata: Metadata): number {
+  return typeFloor(fitRulesOf(metadata)) * metadata.typography.fontSize
 }
 
 export interface FitSizesPt {

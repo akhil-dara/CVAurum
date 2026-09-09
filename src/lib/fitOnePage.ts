@@ -195,7 +195,9 @@ export interface FitRules {
   /** At most this many pages. */
   target: number
   /** The body size, in points, the fit never goes below. */
-  minBody: number
+  /** The body size the fit never goes below, in points; null means the
+   *  search's own floor (MIN_FIT of the body), the fit before rules existed. */
+  minBody: number | null
   /** The body size as set, in points (the floor is expressed against it). */
   fontSize: number
   /** What gives first when the page is over: spacing, both together (the
@@ -220,7 +222,7 @@ export interface FitInput {
 /** The lowest type scale the rules allow: the legibility floor, or the
  *  author's own minimum body size, whichever is higher. */
 export function typeFloor(rules: Pick<FitRules, 'minBody' | 'fontSize'>): number {
-  const byBody = rules.fontSize > 0 ? rules.minBody / rules.fontSize : MIN_FIT
+  const byBody = rules.minBody != null && rules.fontSize > 0 ? rules.minBody / rules.fontSize : MIN_FIT
   return Math.min(1, Math.max(MIN_FIT, Number(byBody.toFixed(3))))
 }
 

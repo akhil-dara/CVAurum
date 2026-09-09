@@ -136,7 +136,7 @@ export const SITE: SiteCopy = {
     },
     {
       q: 'How long should my resume be?',
-      a: "For most roles, one page — two if you have 10+ years of experience. CVAurum auto-fits your content to a single page when it's close, and shows live page-break guides so you always know where you stand.",
+      a: "For most roles, one page — two if you have 10+ years of experience. Magic fit sizes type and spacing to the page count you pick (one, two or three) inside rules you set, such as a body size it never goes below and sizes it must keep as set, and tells you exactly what it chose; live page-break guides show where you stand, and Suggest measures a few moves that would fit better.",
     },
   ],
   privacy: [
@@ -154,7 +154,7 @@ export const SITE: SiteCopy = {
     { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 50 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
     { label: 'ATS', value: 'a deterministic score, a job-description keyword match, a parser’s-eye text view, a simulation of five applicant-tracking systems, a rule-based writing coach and a recruiter skim heatmap; optional on-device semantic matching' },
     { label: 'Import', value: 'PDF (text-based, or scanned with on-device OCR) and JSON Resume' },
-    { label: 'Editing', value: 'on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); six example résumés to start from' },
+    { label: 'Editing', value: 'on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); six example résumés to start from; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better' },
     { label: 'Scripts', value: 'Latin with accents, Cyrillic, Greek and Vietnamese, on the page and in every export; a font that lacks a script falls back to a bundled one of the same kind' },
     { label: 'Offline', value: 'installs as a web app and works with no connection, export included; all fonts are bundled, so no third-party server is ever contacted' },
     { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },

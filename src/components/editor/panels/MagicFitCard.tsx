@@ -5,6 +5,7 @@ import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
 import { suggestFits } from '@/lib/fitSuggest'
+import { effectiveFloorPt } from '@/lib/fitReadout'
 import type { Suggestion } from '@/lib/fitSuggest'
 import { Slider, Toggle, Segmented } from '../fields/Controls'
 import { FitReadout } from './FitReadout'
@@ -68,8 +69,8 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
             <div className="mt-3 space-y-3">
               <Slider
                 label="Body size never below"
-                value={fit.minBody}
-                min={7}
+                value={fit.minBody ?? Math.max(6, Math.round(effectiveFloorPt(doc.metadata) * 2) / 2)}
+                min={6}
                 max={12}
                 step={0.5}
                 unit="pt"
@@ -79,6 +80,26 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
                   })
                 }
               />
+              <p className="-mt-1 flex items-center justify-between gap-2 text-[11px] leading-snug text-muted-foreground">
+                <span>
+                  {fit.minBody == null
+                    ? `Not set: on this body size the fit stops at ${Math.round(effectiveFloorPt(doc.metadata) * 10) / 10}pt.`
+                    : 'Set by you: the fit never goes below it.'}
+                </span>
+                {fit.minBody != null && (
+                  <button
+                    type="button"
+                    className="shrink-0 underline decoration-dotted underline-offset-2 hover:text-foreground"
+                    onClick={() =>
+                      update((md) => {
+                        md.page.fit.minBody = null
+                      })
+                    }
+                  >
+                    Unset
+                  </button>
+                )}
+              </p>
               <div>
                 <label className="label">Shrink first</label>
                 <Segmented<FitPriority>
