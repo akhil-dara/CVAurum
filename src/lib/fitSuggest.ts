@@ -25,6 +25,9 @@ const GAIN = 0.1
 const MAX_OFFERS = 3
 /** The lowest floor the rules allow (the slider's bottom). */
 const FLOOR_MIN = 6
+/** The smallest body a relax offer may propose: below this the page is
+ *  not a résumé anyone wants (measured: a 7.25pt file offered 6pt). */
+const RELAX_MIN_BODY = 8
 
 const pages = (n: number) => `${n} page${n === 1 ? '' : 's'}`
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -80,7 +83,8 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
     const c = structuredClone(doc)
     c.metadata.page.fit.minBody = FLOOR_MIN
     const r = await trial(c)
-    if (r.pages <= target) {
+    const sBody = fitSizesPt(c.metadata, r.fit).body
+    if (r.pages <= target && sBody >= RELAX_MIN_BODY) {
       const s = fitSizesPt(c.metadata, r.fit)
       // The floor the offer sets: the measured body, rounded down to the
       // slider's half-point step, so the same fit is reachable afterwards.

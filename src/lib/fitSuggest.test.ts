@@ -63,6 +63,15 @@ describe('suggestFits', () => {
     expect(applied.metadata.page.fit.minBody).toBe(8.5)
   })
 
+  it('never proposes a body below 8pt, however low the floor may go', async () => {
+    const doc = docWith(['experience', 'education', 'skills'], 1)
+    doc.metadata.page.fit.minBody = 11
+    doc.metadata.typography.fontSize = 7.25
+    // at the 6pt floor the target is met, at 0.83 of 7.25pt = 6pt
+    const trial = async (c: ResumeDocument) => (c.metadata.page.fit.minBody === 6 ? res(1, 0.99, 0.83, 0.7) : res(3, 0.6))
+    expect(await suggestFits(doc, trial, res(3, 0.61, 1.517, 1, ['awards']))).toEqual([])
+  })
+
   it('offers no floor change when the floor is already at its lowest, or when even that cannot reach the target', async () => {
     const low = docWith(['experience', 'education', 'skills'], 1)
     let calls = 0

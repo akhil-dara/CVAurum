@@ -22,7 +22,9 @@ export function measurePages(printRoot: HTMLElement, pageH: number, marginMm: nu
   const first = computeFirstPageUsablePageHeightPx(pageH, padding)
   const contentHeightPx = printRoot.getBoundingClientRect().height
   if (!exceedsOnePage(contentHeightPx, pageH, marginMm)) {
-    return { pages: 1, lastPageFill: contentHeightPx / first, lastPageSections: [], cutsPx: [], contentHeightPx }
+    // The sheet against the page, the comparison the fit itself makes: a
+    // full page reads 100%, not 104% (against the usable height it did).
+    return { pages: 1, lastPageFill: contentHeightPx / pageH, lastPageSections: [], cutsPx: [], contentHeightPx }
   }
   const r = paginate({
     blocks: extractPageBlocks(printRoot, usable),

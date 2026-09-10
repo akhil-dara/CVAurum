@@ -223,7 +223,16 @@ export interface FitInput {
  *  author's own minimum body size, whichever is higher. */
 export function typeFloor(rules: Pick<FitRules, 'minBody' | 'fontSize'>): number {
   const byBody = rules.minBody != null && rules.fontSize > 0 ? rules.minBody / rules.fontSize : MIN_FIT
-  return Math.min(1, Math.max(MIN_FIT, Number(byBody.toFixed(3))))
+  // A floor above the size as set is honoured as a floor: "never below
+  // 11pt" on a 7.25pt body means the fit sets 11pt (measured: it used to be
+  // clamped to 1 and the author got 8.3pt back from an 11pt rule).
+  return Math.max(MIN_FIT, Number(byBody.toFixed(3)))
+}
+
+/** The highest type scale the rules allow: the growth cap, or the floor
+ *  when the floor sits above it. */
+export function typeCeil(rules: Pick<FitRules, 'minBody' | 'fontSize'>): number {
+  return Math.max(MAX_FIT_UP, typeFloor(rules))
 }
 
 const round3 = (n: number) => Number(n.toFixed(3))
@@ -269,6 +278,7 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
   const { pageH, measure, countPages } = input
   const subsequentPageH = input.subsequentPageH ?? pageH
   const tFloor = typeFloor(rules)
+  const tCeil = typeCeil(rules)
   const pagesAt = async (fit: FitVector): Promise<number> => {
     const h = await measure(fit)
     // Content within the page height IS one page: the exporter and the
@@ -283,92 +293,97 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
     return 1 + Math.ceil((h - pageH) / Math.max(1, subsequentPageH))
   }
   const fitsWithin = async (fit: FitVector, target: number) => (await pagesAt(fit)) <= target
-
-  /* A stage searches one parameter over an ascending grid of values; `at`
-   * turns a value into the vector to measure. `values[0]` is known to fit
-   * (the caller checked); the answer is the largest value that fits. */
-  const stage = async (values: number[], at: (v: number) => FitVector, target: number, hintValue?: number) => {
-    const hintI = hintValue === undefined ? -1 : values.findIndex((v) => Math.abs(v - hintValue) < 1e-9)
-    const i = await largestFitting(values.length - 1, (k) => fitsWithin(at(values[k]), target), hintI >= 0 ? hintI : undefined)
-    return at(values[i])
-  }
   const clampSpace = (v: number) => round3(Math.min(FIT_SPACE_MAX, Math.max(FIT_SPACE_MIN, v)))
-  const clampType = (v: number) => round3(Math.min(MAX_FIT_UP, Math.max(tFloor, v)))
+  const clampType = (v: number) => round3(Math.min(tCeil, Math.max(tFloor, v)))
+  const same = (a: FitVector, b: FitVector) => a.type === b.type && a.space === b.space
+  // The starting point: as set, unless the floor sits above it.
+  const origin: FitVector = { type: clampType(1), space: 1 }
+
+  /* Every priority is a PATH: an ordered list of vectors that starts next to
+   * the origin and walks outward, shrinking or growing. The answer is the
+   * point of least movement that meets the target (shrinking) or the point
+   * of most movement that still meets it (growing): both are "the largest
+   * fitting index" on a list ordered so that fitting is monotone, which is
+   * what the grid search needs and what makes the preview and the exporter
+   * land on the identical vector however they start. */
+  const walk = (from: number, to: number) => (from <= to ? grid(from, to) : grid(to, from).reverse())
   const lead: 'space' | 'type' = rules.priority === 'type' ? 'type' : 'space'
   const other: 'space' | 'type' = lead === 'space' ? 'type' : 'space'
-  const asSet: FitVector = { type: 1, space: 1 }
-
-  /* The three-stage path in one direction. `dir` is -1 to shrink, +1 to
-   * grow. Stage 1: the lead axis alone, as far as its lead bound. Stage 2:
-   * a scalar k moves both, the lead axis at leadBound x k, the other at k,
-   * as far as the first floor/ceiling either reaches. Stage 3: the lead
-   * axis alone, on to its own floor/ceiling. Each stage stops as soon as
-   * the page fits (shrink) or as far as it still fits (grow). Returns null
-   * when even the end of the path does not fit (shrink only). */
-  const path = async (target: number, allowGrow: boolean): Promise<FitVector | null> => {
-    const shrinking = !(await fitsWithin(asSet, target))
-    // A target above the author's own is the fewest-pages fallback: the page
-    // is kept as set or shrunk, never grown to FILL the extra page (measured:
-    // a one-page résumé the floor could not fit grew to both ceilings and
-    // came out as two pages with the second three-quarters full).
-    if (!shrinking && !allowGrow) return asSet
-    const dir = shrinking ? -1 : 1
-    const leadBound = (dir < 0 ? LEAD_SHRINK : LEAD_GROW)[lead]
-    const leadEnd = lead === 'space' ? (dir < 0 ? FIT_SPACE_MIN : FIT_SPACE_MAX) : dir < 0 ? tFloor : MAX_FIT_UP
-    const otherEnd = other === 'space' ? (dir < 0 ? FIT_SPACE_MIN : FIT_SPACE_MAX) : dir < 0 ? tFloor : MAX_FIT_UP
-    const vec = (leadV: number, otherV: number): FitVector =>
-      lead === 'space' ? { space: clampSpace(leadV), type: clampType(otherV) } : { type: clampType(leadV), space: clampSpace(otherV) }
-    // the whole path's end: does anything fit at all?
-    const endOfPath = vec(leadEnd, otherEnd)
-    if (shrinking && !(await fitsWithin(endOfPath, target))) return null
-    // Stage 1: lead alone to its lead bound (the grid runs from the bound
-    // towards 1 when shrinking, so "largest fitting" is the least movement).
-    const bound1 = dir < 0 ? Math.max(leadBound, leadEnd) : Math.min(leadBound, leadEnd)
-    if (dir < 0 ? !(await fitsWithin(vec(bound1, 1), target)) : await fitsWithin(vec(bound1, 1), target)) {
-      // Stage 2: both together. k runs over the other axis's own range,
-      // the lead axis rides at bound1 x k (relative to 1).
-      const kEnd = dir < 0 ? otherEnd : Math.min(otherEnd, dir < 0 ? 1 : leadEnd / bound1)
-      const both = (k: number) => vec(bound1 * k, k)
-      const kFits = (k: number) => fitsWithin(both(k), target)
-      if (dir < 0 ? !(await kFits(kEnd)) : await kFits(kEnd)) {
-        // Stage 3: the lead axis alone, the other at its end
-        const otherFixed = kEnd
-        const s3 = (v: number) => vec(v, otherFixed)
-        if (dir < 0) return stage(grid(leadEnd, round3(bound1 * kEnd)), s3, target, input.hint?.[lead])
-        const from = round3(bound1 * kEnd)
-        return stage(grid(from, leadEnd), s3, target, input.hint?.[lead])
-      }
-      if (dir < 0) return stage(grid(otherEnd, 1).map(round3), both, target, input.hint?.[other])
-      return stage(grid(1, kEnd), both, target, input.hint?.[other])
+  const endOf = (axis: 'space' | 'type', dir: -1 | 1) =>
+    axis === 'space' ? (dir < 0 ? FIT_SPACE_MIN : FIT_SPACE_MAX) : dir < 0 ? tFloor : tCeil
+  const vec = (leadV: number, otherV: number): FitVector =>
+    lead === 'space' ? { space: clampSpace(leadV), type: clampType(otherV) } : { type: clampType(leadV), space: clampSpace(otherV) }
+  const pathFor = (dir: -1 | 1): FitVector[] => {
+    const out: FitVector[] = []
+    const push = (v: FitVector) => {
+      if (!same(v, origin) && !(out.length && same(out[out.length - 1], v))) out.push(v)
     }
-    if (dir < 0) return stage(grid(bound1, 1), (v) => vec(v, 1), target, input.hint?.[lead])
-    return stage(grid(1, bound1), (v) => vec(v, 1), target, input.hint?.[lead])
+    if (rules.priority === 'both') {
+      /* The old single scale, kept as a choice: one k on both axes, between
+       * the type's own floor and cap (the gaps follow it exactly, as they
+       * always did: no spacing bound of its own, and no going on alone). */
+      const kEnd = dir < 0 ? tFloor : tCeil
+      for (const k of walk(origin.type, kEnd)) push({ type: clampType(k), space: round3(k) })
+      return out
+    }
+    const leadStart = origin[lead]
+    const otherStart = origin[other]
+    const leadEnd = endOf(lead, dir)
+    const otherEnd = endOf(other, dir)
+    // Stage 1: the lead alone, as far as its lead bound (never past its end).
+    const bound = (dir < 0 ? LEAD_SHRINK : LEAD_GROW)[lead]
+    const bound1 = dir < 0 ? Math.max(bound, leadEnd) : Math.min(bound, leadEnd)
+    for (const v of walk(leadStart, bound1)) push(vec(v, otherStart))
+    // Stage 2: both together. k runs over the other axis; the lead rides at
+    // bound1 x k (relative to its start), until either reaches its end.
+    const leadRoom = bound1 > 0 ? leadEnd / bound1 : 1
+    const kEnd = dir < 0 ? Math.max(otherEnd, leadRoom) : Math.min(otherEnd, leadRoom)
+    for (const k of walk(otherStart, kEnd)) push(vec(bound1 * k, k))
+    // Stage 3: whichever axis still has room goes on alone to its own end
+    // (the lead when the other stopped the pair, the other when the lead's
+    // own end stopped it: growing type-first, spacing goes on to 1.3 after
+    // type reaches its cap; it used to stop with it).
+    const after = out.length ? out[out.length - 1] : origin
+    if (after[lead] !== round3(leadEnd)) for (const v of walk(after[lead], leadEnd)) push(vec(v, after[other]))
+    const after2 = out.length ? out[out.length - 1] : origin
+    if (after2[other] !== round3(otherEnd)) for (const v of walk(after2[other], otherEnd)) push(vec(after2[lead], v))
+    return out
   }
 
-  if (rules.priority === 'both') {
-    /* The old single scale, kept as a choice: one k on both axes. */
-    if (await fitsWithin(asSet, rules.target)) {
-      const vals = grid(1, MAX_FIT_UP)
-      const i = await largestFitting(vals.length - 1, (k) => fitsWithin({ type: vals[k], space: vals[k] }, rules.target))
-      const r = { type: vals[i], space: vals[i] }
-      await measure(r)
-      return r
+  const hintIndexIn = (path: FitVector[]) => {
+    const h = input.hint
+    if (!h) return undefined
+    const i = path.findIndex((v) => same(v, h))
+    return i >= 0 ? i : undefined
+  }
+
+  /* One target. Returns null when even the end of the shrink path does not
+   * meet it. A target above the author's own is the fewest-pages fallback:
+   * the page is kept at the origin or shrunk, never grown to FILL the extra
+   * page (measured: a one-page résumé the floor could not fit grew to both
+   * ceilings and came out as two pages with the second three-quarters full). */
+  const search = async (target: number, allowGrow: boolean): Promise<FitVector | null> => {
+    if (await fitsWithin(origin, target)) {
+      if (!allowGrow) return origin
+      const path = pathFor(1)
+      if (!path.length) return origin
+      // ordered from the origin outward: fits up to some index, not after
+      const i = await largestFitting(path.length, (k) => (k === 0 ? Promise.resolve(true) : fitsWithin(path[k - 1], target)), hintIndexIn(path))
+      return i === 0 ? origin : path[i - 1]
     }
-    for (let target = rules.target; target <= Math.max(rules.target, 6); target++) {
-      if (!(await fitsWithin({ type: tFloor, space: tFloor }, target))) continue
-      const vals = grid(tFloor, 1)
-      const i = await largestFitting(vals.length - 1, (k) => fitsWithin({ type: vals[k], space: vals[k] }, target))
-      const r = { type: vals[i], space: vals[i] }
-      await measure(r)
-      return r
-    }
-    const r = { type: tFloor, space: tFloor }
-    await measure(r)
-    return r
+    const path = pathFor(-1)
+    if (!path.length) return null
+    // ordered from the end of the path back towards the origin: the far end
+    // fits (checked), and the answer is the least movement that still does
+    const rev = [...path].reverse()
+    if (!(await fitsWithin(rev[0], target))) return null
+    const hi = hintIndexIn(rev)
+    const i = await largestFitting(rev.length - 1, (k) => fitsWithin(rev[k], target), hi)
+    return rev[i]
   }
 
   for (let target = rules.target; target <= Math.max(rules.target, 6); target++) {
-    const r = await path(target, target === rules.target)
+    const r = await search(target, target === rules.target)
     if (r) {
       await measure(r)
       return r

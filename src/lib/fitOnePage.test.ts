@@ -124,7 +124,9 @@ describe('typeFloor', () => {
     expect(typeFloor({ minBody: 11, fontSize: 12.25 })).toBe(0.898)
     expect(typeFloor({ minBody: 7, fontSize: 16 })).toBe(0.66)
     expect(typeFloor({ minBody: null, fontSize: 8 })).toBe(0.66)
-    expect(typeFloor({ minBody: 12, fontSize: 10 })).toBe(1)
+    // a floor above the size as set is a floor: 12pt on a 10pt body is 1.2x
+    expect(typeFloor({ minBody: 12, fontSize: 10 })).toBe(1.2)
+    expect(typeFloor({ minBody: 11, fontSize: 7.25 })).toBe(1.517)
   })
 })
 
@@ -178,6 +180,41 @@ describe('fitToPages', () => {
     expect(r.type).toBeGreaterThanOrEqual(0.9)
     expect(height(1400, r)).toBeLessThanOrEqual(1000)
   })
+  it('sets the body UP to a floor above the size as set, and fits the rest around it', async () => {
+    // 7.25pt body, "never below 11pt", three pages: the owner's own file.
+    // 1.517x type on 900px of content = 1365px: two pages of 1000 as set
+    const m = twoAxis(900)
+    const r = await fitToPages(
+      { pageH: 1000, measure: m.measure, subsequentPageH: 1000 },
+      { target: 3, minBody: 11, fontSize: 7.25, priority: 'type' }
+    )
+    expect(r.type).toBeGreaterThanOrEqual(1.517)
+    expect(height(900, r)).toBeLessThanOrEqual(3000)
+    expect(m.last()).toEqual(r)
+    // and when the floor makes the target impossible, the fewest pages at the floor
+    const m2 = twoAxis(2500)
+    const r2 = await fitToPages(
+      { pageH: 1000, measure: m2.measure, subsequentPageH: 1000 },
+      { target: 1, minBody: 11, fontSize: 7.25, priority: 'type' }
+    )
+    // 2500 x 1.517 = 3793: four pages at the floor; three at tighter spacing
+    expect(r2.type).toBe(1.517)
+    expect(r2.space).toBeLessThan(1)
+    expect(height(2500, r2)).toBeLessThanOrEqual(3000)
+    expect(height(2500, { ...r2, space: r2.space + 0.004 })).toBeGreaterThan(3000)
+  })
+  it('growing type-first, spacing goes on to its ceiling after type reaches its cap', async () => {
+    // 500px in 1000: type to 1.15 is 575, spacing must go on to 1.3 (747)
+    const m = twoAxis(500)
+    const r = await fitToPages({ pageH: 1000, measure: m.measure }, { ...RULES, priority: 'type' })
+    expect(r.type).toBe(MAX_FIT_UP)
+    expect(r.space).toBe(FIT_SPACE_MAX)
+    const m2 = twoAxis(700)
+    const r2 = await fitToPages({ pageH: 1000, measure: m2.measure }, { ...RULES, priority: 'type' })
+    expect(r2.type).toBe(MAX_FIT_UP)
+    expect(r2.space).toBeGreaterThan(1.08)
+    expect(height(700, r2)).toBeLessThanOrEqual(1000)
+  })
   it('type-first moves type before spacing', async () => {
     const m = twoAxis(1050)
     const r = await fitToPages({ pageH: 1000, measure: m.measure }, { ...RULES, priority: 'type' })
@@ -220,6 +257,17 @@ describe('fitToPages', () => {
     const r = await fitToPages({ pageH: 1000, measure: m.measure, subsequentPageH: 1000 }, { ...RULES, target: 2 })
     expect(height(1800, r)).toBeLessThanOrEqual(2000)
     expect(r.space).toBeGreaterThan(1)
+  })
+  it('“both” never lets spacing go on past the type cap, nor gaps stop above the type floor', async () => {
+    const sparse = twoAxis(500)
+    const r = await fitToPages({ pageH: 1000, measure: sparse.measure }, { ...RULES, priority: 'both', minBody: null })
+    expect(r).toEqual({ type: MAX_FIT_UP, space: MAX_FIT_UP })
+    const dense = twoAxis(2200)
+    const r2 = await fitToPages({ pageH: 1000, measure: dense.measure }, { ...RULES, priority: 'both', minBody: null })
+    expect(r2.space).toBe(r2.type)
+    expect(r2.type).toBeGreaterThanOrEqual(0.66)
+    expect(height(2200, r2)).toBeLessThanOrEqual(1000)
+    expect(height(2200, { type: r2.type + 0.004, space: r2.space + 0.004 })).toBeGreaterThan(1000)
   })
   it('“both” is the old single scale', async () => {
     const m = twoAxis(1210)
