@@ -53,6 +53,8 @@ import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
 import { measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
+import { suggestFits } from '@/lib/fitSuggest'
+import { FitChip } from './FitChip'
 
 const AS_SET: FitVector = { type: 1, space: 1 }
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
@@ -343,6 +345,40 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     })
     return () => setFitTrial(null)
   }, [setFitTrial])
+
+  // Suggestions, unasked: after a fit that fell short of its target or left
+  // a sparse last page, a few concrete moves are measured (a second or two
+  // of hidden rendering, well after the last keystroke) and offered on the
+  // card and counted on the chip. Nothing runs when the fit is content, and
+  // nothing runs while the author is still typing.
+  const fitResultLive = useEditorStore((s) => s.fitResult)
+  const setFitOffers = useEditorStore((s) => s.setFitOffers)
+  const setFitSuggesting = useEditorStore((s) => s.setFitSuggesting)
+  const suggestReq = useRef(0)
+  useEffect(() => {
+    const myReq = ++suggestReq.current
+    const r = fitResultLive
+    const need = autoFit && !!r && (r.pages > doc.metadata.page.fit.target || (r.pages > 1 && r.lastPageFill < 0.6))
+    if (!need) {
+      setFitOffers([])
+      setFitSuggesting(false)
+      return
+    }
+    const id = setTimeout(async () => {
+      const trial = useEditorStore.getState().fitTrial
+      if (!trial || myReq !== suggestReq.current) return
+      setFitSuggesting(true)
+      try {
+        const offers = await suggestFits(doc, trial, r!)
+        if (myReq === suggestReq.current) setFitOffers(offers)
+      } catch {
+        if (myReq === suggestReq.current) setFitOffers([])
+      } finally {
+        if (myReq === suggestReq.current) setFitSuggesting(false)
+      }
+    }, 1200)
+    return () => clearTimeout(id)
+  }, [fitResultLive, doc, autoFit, setFitOffers, setFitSuggesting])
   // A fresh closure here defeated TemplateRenderer's memo, so every
   // incidental state change in this component re-rendered the whole canvas.
   const openAddSection = useCallback(() => setAddOpen(true), [])
@@ -589,7 +625,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       // arithmetic again.
       if (!exceedsOnePage(contentHeightPx, pageH, doc.metadata.page.margin)) {
         clearOverlay()
-        setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / firstPageUsablePageHeightPx, lastPageSections: [] })
+        setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / pageH, lastPageSections: [] })
         return
       }
       try {
@@ -617,7 +653,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           pages: result.pageCount,
           lastPageFill:
             result.cutsPx.length === 0
-              ? contentHeightPx / firstPageUsablePageHeightPx
+              ? contentHeightPx / pageH
               : (contentHeightPx - result.cutsPx[result.cutsPx.length - 1]) / usablePageHeightPx,
           lastPageSections: sectionsFromY(printRoot, result.cutsPx.length ? result.cutsPx[result.cutsPx.length - 1] : 0),
         })
@@ -853,6 +889,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         ref={scrollRef}
         className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !exactCanvas ? ' focus-mode' : ''}`}
       >
+        {/* what Magic fit did, in five words, and the way to its card */}
+        {!atsView && <FitChip doc={doc} />}
         {/* skim-heat status pill — floats over the canvas while the heat is on */}
         {skimView && <SkimPill />}
         {/* first-time hint on a blank resume — the canvas interactions aren't

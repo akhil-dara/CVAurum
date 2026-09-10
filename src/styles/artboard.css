@@ -3196,6 +3196,34 @@
   pointer-events: auto;
 }
 }
+/* A finger: the handles of the keyword being edited (tapped) stand above
+   it as on a desk, and the grip picks the word up on a tap instead of
+   dragging (touch never starts an HTML5 drag): the picked word is marked
+   until the next tapped keyword takes it. The handles used to show under a
+   hover-capable fine pointer only, so a phone had no way to remove or move
+   a keyword on the page at all (reported 2026-09-10). */
+@media (pointer: coarse) {
+  .mode-preview .rm-chip-edit:focus-within .rm-kw-grip,
+  .mode-preview .rm-kw-edit:focus-within .rm-kw-grip,
+  .mode-preview .rm-chip-edit:focus-within .rm-kw-x,
+  .mode-preview .rm-kw-edit:focus-within .rm-kw-x,
+  .mode-preview .rm-chip-edit:focus-within .rm-chip-del,
+  .mode-preview .rm-chip-edit.is-picked .rm-kw-grip,
+  .mode-preview .rm-kw-edit.is-picked .rm-kw-grip {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .mode-preview .rm-kw-edit.is-picked,
+  .mode-preview .rm-chip-edit.is-picked {
+    outline: 2px dashed var(--rm-primary);
+    outline-offset: 2px;
+    border-radius: 0.3em;
+  }
+  .mode-preview .rm-kw-edit.is-picked .rm-kw-grip,
+  .mode-preview .rm-chip-edit.is-picked .rm-kw-grip {
+    color: var(--rm-primary);
+  }
+}
 .rm-kw-grip:hover {
   color: var(--rm-primary);
 }

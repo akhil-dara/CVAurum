@@ -30,8 +30,19 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
   const page = doc.metadata.page
   const fit = page.fit
   const on = page.autoFit
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [rulesOpen, setRulesOpen] = useState(false)
+  // The chip over the page and the palette bring the author here.
+  useEffect(() => {
+    const open = () => {
+      setRulesOpen(true)
+      setTimeout(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 30)
+    }
+    window.addEventListener('cvaurum:open-magic-fit', open)
+    return () => window.removeEventListener('cvaurum:open-magic-fit', open)
+  }, [])
   return (
-    <div className="space-y-3" data-testid="magic-fit">
+    <div className="space-y-3 scroll-mt-3" data-testid="magic-fit" ref={rootRef}>
       <Toggle
         label="Magic fit"
         checked={on}
@@ -64,7 +75,8 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
               alignment and fonts stay yours.
             </p>
           </div>
-          <details className="space-y-3">
+          <Suggest doc={doc} />
+          <details className="space-y-3" open={rulesOpen} onToggle={(e) => setRulesOpen((e.currentTarget as HTMLDetailsElement).open)}>
             <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Fit rules</summary>
             <div className="mt-3 space-y-3">
               <Slider
@@ -150,33 +162,36 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
               </div>
             </div>
           </details>
-          <Suggest doc={doc} />
         </>
       )}
     </div>
   )
 }
 
-/** "Suggest" measures a few concrete moves (one page fewer, a small section
- *  moved up) with the preview's own trial and lists the ones that come out
- *  better, one Apply each; applied through the normal update path, so undo
- *  works. Runs on request only, never on keystrokes. */
+/** The moves Magic fit measured for this document (ResumePreview measures
+ *  them after a fit that fell short or left a sparse last page), one Apply
+ *  each; applied through the normal update path, so undo works. "Check
+ *  again" measures on request. */
 function Suggest({ doc }: { doc: ResumeDocument }) {
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const trial = useEditorStore((s) => s.fitTrial)
   const result = useEditorStore((s) => s.fitResult)
-  const [state, setState] = useState<{ phase: 'idle' } | { phase: 'working' } | { phase: 'done'; offers: Suggestion[] }>({
-    phase: 'idle',
-  })
+  const offers = useEditorStore((s) => s.fitOffers)
+  const busy = useEditorStore((s) => s.fitSuggesting)
+  const setFitOffers = useEditorStore((s) => s.setFitOffers)
+  const setFitSuggesting = useEditorStore((s) => s.setFitSuggesting)
+  const [checked, setChecked] = useState(false)
   const run = useRef<() => void>(() => undefined)
   run.current = async () => {
-    if (!trial || !result || state.phase === 'working') return
-    setState({ phase: 'working' })
+    if (!trial || !result || busy) return
+    setFitSuggesting(true)
     try {
-      const offers = await suggestFits(doc, trial, result)
-      setState({ phase: 'done', offers })
+      setFitOffers(await suggestFits(doc, trial, result))
     } catch {
-      setState({ phase: 'done', offers: [] })
+      setFitOffers([])
+    } finally {
+      setFitSuggesting(false)
+      setChecked(true)
     }
   }
   // The command palette's "Magic fit: suggest" lands here.
@@ -185,38 +200,31 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
     window.addEventListener('cvaurum:magic-fit-suggest', on)
     return () => window.removeEventListener('cvaurum:magic-fit-suggest', on)
   }, [])
-  // A changed document makes the offers stale: back to the button.
   useEffect(() => {
-    setState((s) => (s.phase === 'done' ? { phase: 'idle' } : s))
+    setChecked(false)
   }, [doc])
-  const busy = state.phase === 'working'
+  const short = result && result.pages > doc.metadata.page.fit.target
   return (
     <div className="space-y-2" data-testid="fit-suggest">
-      <button
-        type="button"
-        className="btn-secondary btn-sm w-full"
-        disabled={busy || !trial || !result}
-        aria-busy={busy}
-        onClick={() => run.current()}
-      >
-        {busy ? 'Measuring moves…' : 'Suggest'}
-      </button>
-      {state.phase === 'done' && state.offers.length === 0 && (
+      {offers.map((o) => (
+        <div
+          key={o.id}
+          className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5"
+          data-testid="fit-offer"
+        >
+          <span className="text-xs leading-snug text-foreground">{o.label}</span>
+          <button type="button" className="btn-primary btn-sm shrink-0" onClick={() => updateDoc((d) => o.mutate(d))}>
+            Apply
+          </button>
+        </div>
+      ))}
+      {busy && <p className="text-[11px] leading-snug text-muted-foreground">Measuring moves…</p>}
+      {!busy && offers.length === 0 && (checked || short) && (
         <p className="text-[11px] leading-snug text-muted-foreground">Nothing better within your rules.</p>
       )}
-      {state.phase === 'done' &&
-        state.offers.map((o) => (
-          <div
-            key={o.id}
-            className="flex items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-1.5"
-            data-testid="fit-offer"
-          >
-            <span className="text-xs leading-snug text-foreground">{o.label}</span>
-            <button type="button" className="btn-outline btn-sm shrink-0" onClick={() => updateDoc((d) => o.mutate(d))}>
-              Apply
-            </button>
-          </div>
-        ))}
+      <button type="button" className="btn-secondary btn-sm w-full" disabled={busy || !trial || !result} onClick={() => run.current()}>
+        {offers.length ? 'Check again' : 'Suggest moves'}
+      </button>
     </div>
   )
 }

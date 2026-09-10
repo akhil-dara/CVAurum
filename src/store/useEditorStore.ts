@@ -1,7 +1,7 @@
 /** Editor-only UI state (not persisted with the document). */
 import { create } from 'zustand'
 import type { FitResult } from '@/lib/fitReadout'
-import type { FitTrialFn } from '@/lib/fitSuggest'
+import type { FitTrialFn, Suggestion } from '@/lib/fitSuggest'
 
 /** The per-section visual style fields the style painter copies. */
 export type CopiedStyle = Record<string, string>
@@ -38,6 +38,11 @@ interface EditorState {
   /** Measures a candidate document the way the preview measures the real
    *  one (src/lib/fitSuggest.ts); the preview installs it while mounted. */
   fitTrial: FitTrialFn | null
+  /** The moves Magic fit can offer for the current document, measured by
+   *  the preview after a fit that fell short or left a sparse last page. */
+  fitOffers: Suggestion[]
+  /** True while the preview is measuring candidate moves. */
+  fitSuggesting: boolean
   /** show the resume as the plain text an ATS parser reads (instead of the canvas) */
   atsView: boolean
   /** render the canvas exactly as the exported PDF (no edit chrome/placeholders) */
@@ -69,6 +74,8 @@ interface EditorState {
   setOnePageScale: (v: number) => void
   setFitResult: (r: FitResult | null) => void
   setFitTrial: (fn: FitTrialFn | null) => void
+  setFitOffers: (offers: Suggestion[]) => void
+  setFitSuggesting: (v: boolean) => void
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
@@ -89,6 +96,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   onePageScale: 1,
   fitResult: null,
   fitTrial: null,
+  fitOffers: [],
+  fitSuggesting: false,
   atsView: false,
   copiedStyle: null,
   skimView: false,
@@ -134,6 +143,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ fitResult })
   },
   setFitTrial: (fitTrial) => set({ fitTrial }),
+  setFitOffers: (fitOffers) => {
+    const cur = get().fitOffers
+    if (cur.length === fitOffers.length && cur.every((o, i) => o.id === fitOffers[i].id && o.label === fitOffers[i].label)) return
+    set({ fitOffers })
+  },
+  setFitSuggesting: (fitSuggesting) => {
+    if (get().fitSuggesting !== fitSuggesting) set({ fitSuggesting })
+  },
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),
   setFocusMode: (focusMode) => set({ focusMode }),

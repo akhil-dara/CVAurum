@@ -952,6 +952,9 @@ function EditableChips({
   const pendingFocus = useRef<number | null>(null)
   const deleting = useRef(false)
   const [grabbed, setGrabbed] = useState<number | null>(null)
+  // Touch cannot drag (HTML5 drag never starts from a finger), so the grip
+  // picks a keyword up on a tap and the next tapped keyword takes it.
+  const [picked, setPicked] = useState<number | null>(null)
   useEffect(() => {
     if (pendingFocus.current == null || !wrapRef.current) return
     const eds = wrapRef.current.querySelectorAll<HTMLElement>('.rm-chip-edit .rm-editable')
@@ -1075,6 +1078,10 @@ function EditableChips({
         title="Drag to reorder (or Alt + Shift + arrow keys)"
         onMouseDown={() => setGrabbed(ki)}
         onMouseUp={() => setGrabbed(null)}
+        onClick={() => {
+          if (!window.matchMedia?.('(pointer: coarse)').matches) return
+          setPicked((p) => (p === ki ? null : ki))
+        }}
       >
         &#10247;
       </button>
@@ -1089,7 +1096,18 @@ function EditableChips({
       >
         {lead}
         {items.map((k, ki) => (
-          <span key={ki} className="rm-kw-edit" draggable={grabbed === ki} {...dragProps(ki)}>
+          <span
+            key={ki}
+            className={`rm-kw-edit${picked === ki ? ' is-picked' : ''}`}
+            draggable={grabbed === ki}
+            {...dragProps(ki)}
+            onClickCapture={() => {
+              if (picked === null || picked === ki || !onMove) return
+              commitBeforeMove()
+              onMove(picked, ki)
+              setPicked(null)
+            }}
+          >
             {ki > 0 ? <span className="rm-kw-sep"> · </span> : null}
             {handle(ki, k)}
             <Ed
@@ -1117,6 +1135,11 @@ function EditableChips({
                   stop(e)
                 }}
                 onClick={() => {
+                  // Blur first, as the pill list does: a focused keyword keeps
+                  // its own text and writes it back on blur, so removing it
+                  // while focused (a tap must focus it to reach this cross)
+                  // wrote "Go" over the word that took its place (measured).
+                  ;(document.activeElement as HTMLElement | null)?.blur()
                   onRemove(ki)
                   deleting.current = false
                 }}
@@ -1145,7 +1168,18 @@ function EditableChips({
   return (
     <div className={`rm-chips rm-chips-edit${className ? ` ${className}` : ''}`} ref={wrapRef} onBlur={onWrapBlur}>
       {items.map((k, ki) => (
-        <span key={ki} className="rm-chip rm-chip-edit" draggable={grabbed === ki} {...dragProps(ki)}>
+        <span
+          key={ki}
+          className={`rm-chip rm-chip-edit${picked === ki ? ' is-picked' : ''}`}
+          draggable={grabbed === ki}
+          {...dragProps(ki)}
+          onClickCapture={() => {
+            if (picked === null || picked === ki || !onMove) return
+            commitBeforeMove()
+            onMove(picked, ki)
+            setPicked(null)
+          }}
+        >
           {handle(ki, k)}
           <Ed
             edit={edit}
