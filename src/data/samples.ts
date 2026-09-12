@@ -62,8 +62,8 @@ const FINAL_YEAR: ResumeContent = persona({
     name: 'Rohan Mehta',
     label: 'Final-year B.Tech, Computer Science',
     image: '',
-    email: 'rohan.mehta@email.com',
-    phone: '+91 98201 33470',
+    email: 'rohan.mehta@example.com',
+    phone: '+91 12345 67890',
     url: 'https://rohanmehta.dev',
     summary:
       'Final-year computer science student graduating in May 2026, with two software internships behind me and a habit of shipping: a reconciliation dashboard a finance team uses every day, and a campus app with 1,200 users.',
@@ -150,7 +150,7 @@ const MARKETING: ResumeContent = persona({
     name: 'Jordan Rivera',
     label: 'Senior Marketing Manager',
     image: '',
-    email: 'jordan.rivera@email.com',
+    email: 'jordan.rivera@example.com',
     phone: '(555) 712-3380',
     url: 'https://jordanrivera.co',
     summary:
@@ -209,7 +209,7 @@ const GRADUATE: ResumeContent = persona({
     name: 'Sam Chen',
     label: 'Computer Science Graduate',
     image: '',
-    email: 'sam.chen@email.com',
+    email: 'sam.chen@example.com',
     phone: '(555) 449-2210',
     url: 'https://samchen.dev',
     summary:
@@ -282,7 +282,7 @@ const DESIGNER: ResumeContent = persona({
     name: 'Maya Patel',
     label: 'Senior Product Designer',
     image: '',
-    email: 'maya.patel@email.com',
+    email: 'maya.patel@example.com',
     phone: '(555) 806-4415',
     url: 'https://mayapatel.design',
     summary:
@@ -353,8 +353,8 @@ const STUDENT: ResumeContent = persona({
     name: 'Ananya Rao',
     label: 'Integrated M.Tech Student — Computer Science',
     image: '',
-    email: 'ananya.rao@email.com',
-    phone: '+91 98490 41127',
+    email: 'ananya.rao@example.com',
+    phone: '+91 12345 09876',
     url: 'https://ananyarao.dev',
     // No summary: a resume with no work history reads better opening on the
     // schooling itself, which is what the section order below does.

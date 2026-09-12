@@ -12,7 +12,7 @@ export const SAMPLE_CONTENT: ResumeContent = {
     // No baked-in avatar: identity marks (photo/monogram) are strictly the
     // user's choice — sample docs must never ship a placeholder-looking "dp".
     image: '',
-    email: 'alex.morgan@email.com',
+    email: 'alex.morgan@example.com',
     phone: '(555) 234-9981',
     url: 'https://alexmorgan.dev',
     summary:

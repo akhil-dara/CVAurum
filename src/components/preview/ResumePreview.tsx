@@ -890,7 +890,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !exactCanvas ? ' focus-mode' : ''}`}
       >
         {/* what Magic fit did, in five words, and the way to its card */}
-        {!atsView && <FitChip doc={doc} />}
+        {!atsView && !previewExact && <FitChip doc={doc} />}
         {/* skim-heat status pill — floats over the canvas while the heat is on */}
         {skimView && <SkimPill />}
         {/* first-time hint on a blank resume — the canvas interactions aren't
