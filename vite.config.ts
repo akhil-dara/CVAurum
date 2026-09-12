@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { createHash } from 'node:crypto'
 import type * as SeoPages from './src/lib/seoPages'
 
 const OUT = path.resolve(__dirname, 'dist')
@@ -91,6 +92,9 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   html = setMeta(html, 'name', 'twitter:image', image)
   html = setMeta(html, 'name', 'twitter:image:alt', meta.title)
   html = setAttr(html, /(<link rel="canonical" href=")[^"]*(")/, url)
+  // The page's Markdown twin, for a reader that prefers it.
+  html = html.replace(/\s*<link rel="alternate" type="text\/markdown"[^>]*>/, '')
+  html = html.replace(/<link rel="canonical"[^>]*>/, (m) => `${m}\n    <link rel="alternate" type="text/markdown" href="${site}${meta.path === '/' ? '/index' : meta.path}.md" />`)
   html = setAttr(html, /(<link rel="alternate" hreflang="en" href=")[^"]*(")/, url)
   html = setAttr(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*(")/, url)
   if (jsonLd) {
@@ -136,10 +140,21 @@ function seoPages(): Plugin {
       const shell = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8')
       const written: string[] = []
 
-      const write = (dir: string, html: string) => {
-        fs.mkdirSync(path.join(OUT, dir), { recursive: true })
-        fs.writeFileSync(path.join(OUT, dir, 'index.html'), html)
-        written.push(`${dir.replace(/\\/g, '/')}/index.html`)
+      // One FILE per page (templates.html, templates/<id>.html), never a
+      // folder with an index.html: the host answered /templates/atlas with a
+      // 307 to /templates/atlas/ for a folder, so every URL in the sitemap
+      // was a redirect (measured live 2026-09-12). A file is served at its
+      // clean URL, and the slash form redirects back to it.
+      const write = (file: string, html: string) => {
+        const target = path.join(OUT, `${file}.html`)
+        fs.mkdirSync(path.dirname(target), { recursive: true })
+        fs.writeFileSync(target, html)
+        written.push(`${file.replace(/\\/g, '/')}.html`)
+      }
+      const writeText = (file: string, text: string) => {
+        const target = path.join(OUT, file)
+        fs.mkdirSync(path.dirname(target), { recursive: true })
+        fs.writeFileSync(target, text)
       }
 
       write('templates', pageHtml(shell, seo.SITE, seo.galleryPageMeta(), seo.galleryStaticHtml()))
@@ -174,6 +189,21 @@ function seoPages(): Plugin {
       fs.writeFileSync(path.join(OUT, 'llms.txt'), seo.llmsTxt())
       fs.writeFileSync(path.join(OUT, 'llms-full.txt'), seo.llmsFullTxt())
 
+      // Markdown twins of the public pages (served for Accept: text/markdown
+      // by the host for Accept: text/markdown, linked as alternates from each page).
+      writeText('index.md', seo.landingMarkdown())
+      writeText('templates.md', seo.galleryMarkdown())
+      for (const id of ids) writeText(path.join('templates', `${id}.md`), seo.templateMarkdown(id))
+
+      // Agent discovery, truthful for a site with no server: an API catalog
+      // that points at the description, a skill file with its digest, and
+      // an auth.md that says there is nothing to register.
+      writeText(path.join('.well-known', 'api-catalog'), seo.apiCatalogJson())
+      const skill = seo.skillMd()
+      writeText(path.join('skills', 'cvaurum', 'SKILL.md'), skill)
+      writeText(path.join('.well-known', 'agent-skills', 'index.json'), seo.agentSkillsIndex(createHash('sha256').update(skill).digest('hex')))
+      writeText('auth.md', seo.authMd())
+
       const today = new Date().toISOString().slice(0, 10)
       fs.writeFileSync(path.join(OUT, 'sitemap.xml'), seo.sitemapXml(today))
 
@@ -196,6 +226,12 @@ function machineReadersDev(): Plugin {
   const files: Record<string, (seo: typeof SeoPages) => string> = {
     '/llms.txt': (seo) => seo.llmsTxt(),
     '/llms-full.txt': (seo) => seo.llmsFullTxt(),
+    '/index.md': (seo) => seo.landingMarkdown(),
+    '/templates.md': (seo) => seo.galleryMarkdown(),
+    '/auth.md': (seo) => seo.authMd(),
+    '/.well-known/api-catalog': (seo) => seo.apiCatalogJson(),
+    '/skills/cvaurum/SKILL.md': (seo) => seo.skillMd(),
+    '/.well-known/agent-skills/index.json': (seo) => seo.agentSkillsIndex(createHash('sha256').update(seo.skillMd()).digest('hex')),
   }
   return {
     name: 'cvaurum-machine-readers-dev',

@@ -158,6 +158,20 @@ function Design({ id }: { id: string }) {
               account, and everything stays in this browser. Switching designs later keeps your content.
             </p>
 
+            {/* A real image of the design, for the reader and for an image
+                index: the live rendering beside it is a canvas of text a
+                crawler cannot picture. The same file the link preview uses. */}
+            <figure className="mt-6 overflow-hidden rounded-xl border border-border bg-muted">
+              <img
+                src={`/og/${tpl.id}.jpg`}
+                width={1200}
+                height={630}
+                alt={`${tpl.name} résumé template: ${tpl.description}`}
+                className="block h-auto w-full"
+                loading="eager"
+                decoding="async"
+              />
+            </figure>
             <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-6 text-sm">
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">Layout</dt>
@@ -167,7 +181,9 @@ function Design({ id }: { id: string }) {
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">Photo</dt>
-                <dd className="mt-0.5 font-medium">{tpl.defaults.layout.showPhoto ? 'Optional' : 'No photo'}</dd>
+                {/* Every design can carry a photo (Design → Show photo); some
+                    turn it on from the start. "No photo" read as "cannot". */}
+                <dd className="mt-0.5 font-medium">{tpl.defaults.layout.showPhoto ? 'On by default' : 'Optional'}</dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">Exports</dt>

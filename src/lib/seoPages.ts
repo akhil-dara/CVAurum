@@ -140,6 +140,23 @@ function linkList(list: readonly TemplateConfig[]): string {
     .join('\n')
 }
 
+/** The alt text an image index reads: the design's name and what it is for. */
+export function imageAlt(tpl: TemplateConfig): string {
+  return `${tpl.name} résumé template: ${trimToWords(tpl.description, 110)}`
+}
+
+/** One picture per design, the file the link preview uses, as real content:
+ *  an image that lives only in og:image is never indexed as an image. */
+function figure(tpl: TemplateConfig, eager: boolean): string {
+  return `<figure><img src="/og/${tpl.id}.jpg" width="1200" height="630" alt="${htmlEscape(imageAlt(tpl))}" loading="${eager ? 'eager' : 'lazy'}" decoding="async"><figcaption>${htmlEscape(tpl.name)}</figcaption></figure>`
+}
+
+function cardList(list: readonly TemplateConfig[]): string {
+  return list
+    .map((t) => `      <li>${figure(t, false)}<p><a href="/templates/${t.id}">${htmlEscape(t.name)} résumé template</a> — ${htmlEscape(trimToWords(t.description, 120))}</p></li>`)
+    .join('\n')
+}
+
 /**
  * The HTML a crawler reads for one template page WITHOUT running a line of
  * JavaScript. It is injected inside <div id="root">, which React's createRoot
@@ -154,6 +171,7 @@ export function staticHtml(id: string): string {
   return `<main class="seo-static">
     <p><a href="/templates">Résumé templates</a> › ${htmlEscape(tpl.name)}</p>
     <h1>${htmlEscape(tpl.name)} résumé template</h1>
+    ${figure(tpl, true)}
     <p>${htmlEscape(tpl.description)}</p>
     <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
     <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} résumé templates</a></p>
@@ -173,19 +191,173 @@ export function galleryStaticHtml(): string {
     <p>${htmlEscape(GALLERY_INTRO)}</p>
     <nav aria-label="Every résumé template">
       <h2>Every design</h2>
-      <ul>
-${linkList(ORDERED)}
+      <ul class="seo-cards">
+${cardList(ORDERED)}
       </ul>
     </nav>
   </main>`
 }
 
-function urlEntry(loc: string, lastmod: string, changefreq: string, priority: string): string {
+/* ------------------------------------------------------- markdown twins
+ * Each public page has a Markdown twin beside it (index.md, templates.md,
+ * templates/<id>.md), linked from the page as its text/markdown alternate
+ * and announced in the landing page's Link header. Same data as the HTML,
+ * so they cannot drift. (A Pages Function cannot negotiate for them: the
+ * host serves an existing file before a function runs, measured 2026-09-12;
+ * the host's own Markdown-for-agents switch does that at the edge.) */
+
+const SITE_LIMITS: readonly string[] = COPY.limits
+
+export function landingMarkdown(): string {
+  return llmsTxt()
+}
+
+export function galleryMarkdown(): string {
+  return `# ${TEMPLATES.length} résumé templates, all free
+
+${GALLERY_INTRO}
+
+${ORDERED.map((t) => `- [${t.name}](${SITE}/templates/${t.id}) — ${trimToWords(t.description, 140)} (${tagSentence(t.tags)})`).join('\n')}
+
+Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
+`
+}
+
+export function templateMarkdown(id: string): string {
+  const tpl = must(id)
+  const related = relatedTemplateIds(id, 6).map((r) => must(r))
+  return `# ${tpl.name} résumé template
+
+${tpl.description}
+
+![${imageAlt(tpl)}](${SITE}/og/${tpl.id}.jpg)
+
+- Best for: ${tagSentence(tpl.tags)}
+- Layout: ${tpl.defaults.layout.columns === 2 ? 'two column' : 'single column'}
+- Photo: ${tpl.defaults.layout.showPhoto ? 'on by default' : 'optional'}
+- Exports: PDF (vector, selectable text), Word, JSON Resume
+- Price: free, MIT licensed; no account, nothing uploaded
+- Open in the editor: ${SITE}/app
+
+## Related designs
+
+${related.map((r) => `- [${r.name}](${SITE}/templates/${r.id}) — ${trimToWords(r.description, 120)}`).join('\n')}
+
+All ${TEMPLATES.length} designs: ${SITE}/templates
+`
+}
+
+/* ------------------------------------------------------- agent discovery
+ * What is TRUE of this site: no server, no API, no accounts. The documents
+ * below say so in the formats readers look for, rather than promising
+ * endpoints that do not exist. */
+
+/** RFC 9727 API catalog: the one "service" is the site itself, documented
+ *  by llms.txt; there is no API and no OpenAPI description to point at. */
+export function apiCatalogJson(): string {
+  return JSON.stringify(
+    {
+      linkset: [
+        {
+          anchor: `${SITE}/`,
+          'service-doc': [{ href: `${SITE}/llms.txt`, type: 'text/plain', title: 'CVAurum, described for machine readers' }],
+          'service-meta': [{ href: `${SITE}/llms-full.txt`, type: 'text/plain', title: 'The full description' }],
+          describedby: [{ href: `${SITE}/.well-known/agent-skills/index.json`, type: 'application/json' }],
+        },
+      ],
+      // Not part of the linkset: CVAurum has no HTTP API. Everything runs in
+      // the visitor's browser; there is nothing to call and no key to hold.
+      note: 'CVAurum has no HTTP API: the editor, the PDF engine and the storage run in the browser. The site itself is the service; llms.txt describes it.',
+    },
+    null,
+    2
+  )
+}
+
+/** A skill file an assistant can load: how to help a person use CVAurum,
+ *  including the JSON Resume path in and out and the in-page WebMCP tools. */
+export function skillMd(): string {
+  return `---
+name: cvaurum
+description: Help a person build, tailor or export a résumé with CVAurum (${SITE}), a free résumé builder that runs entirely in the browser. Use when someone asks for a résumé template, a PDF/Word résumé, an ATS check, or wants to import or export JSON Resume.
+---
+
+# CVAurum
+
+${COPY.oneLiner}
+
+Everything runs in the visitor's browser: no account, no upload, no API. The whole application is open source (${COPY.links.repo}).
+
+## What you can do for a person
+
+1. **Pick a design.** ${TEMPLATES.length} templates, each on its own page: ${SITE}/templates and ${SITE}/templates/<id>. Every page has a Markdown twin beside it: ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/index.md (also answered for \`Accept: text/markdown\` where the host negotiates).
+2. **Start a résumé.** ${SITE}/app opens the editor; "Start with an example" offers six ready résumés. A template page's "Use this template" opens the editor in that design.
+3. **Bring content in.** The editor imports JSON Resume (https://jsonresume.org/schema) and text PDFs (Import in the editor). If you hold a person's résumé as JSON Resume, hand them the file; the editor keeps it in their browser storage only.
+4. **Fit and export.** Magic fit (Design → Page) sizes type and spacing to a page target inside rules the person sets and says what it chose. Export gives a vector PDF (PDF/A-2B, PDF/UA-1), a Word file and JSON Resume.
+5. **Check for an ATS.** The ATS panel scores the résumé, matches a job description's keywords and shows the plain text a parser reads.
+
+## In the page (WebMCP)
+
+When the page is open in a browser that exposes \`navigator.modelContext\`, the app registers tools: \`list_resume_templates\`, \`open_resume_template\` (\`{ id }\`), \`create_resume_from_json_resume\` (\`{ jsonResume }\`) which saves a new résumé in the browser and opens it. They act only in that browser.
+
+## Limits
+
+${SITE_LIMITS.map((l) => `- ${l}`).join('\n')}
+`
+}
+
+/** The skills index (Agent Skills Discovery 0.2.0). The digest is the
+ *  SHA-256 of the SKILL.md as written; the build computes it. */
+export function agentSkillsIndex(digestHex: string): string {
+  return JSON.stringify(
+    {
+      $schema: 'https://schemas.agentskills.io/discovery/0.2.0/schema.json',
+      skills: [
+        {
+          name: 'cvaurum',
+          type: 'skill-md',
+          description: `Help a person build, tailor or export a résumé with CVAurum, a free résumé builder that runs entirely in the browser (${TEMPLATES.length} templates, PDF/Word/JSON Resume, ATS checks).`,
+          url: `${SITE}/skills/cvaurum/SKILL.md`,
+          digest: `sha256:${digestHex}`,
+        },
+      ],
+    },
+    null,
+    2
+  )
+}
+
+/** auth.md, self-contained: there is nothing to authenticate or register. */
+export function authMd(): string {
+  return `# auth.md
+
+CVAurum (${SITE}) has no accounts, no API keys and no registration, for people or for agents. Everything runs in the visitor's browser and nothing is stored on a server, so there is no credential to obtain and nothing a credential would unlock.
+
+- Audience: any agent or person may read the public pages (/, /templates, /templates/<id>, /llms.txt) without identifying itself.
+- Registration: none exists. There is no endpoint to create an account or provision a credential.
+- Credentials: none are used. Requests need no header, token or cookie.
+- Authorization servers: none. No OAuth or OpenID Connect metadata is published because no such server exists.
+
+The app's own routes (/app, /tracker, /resume/<id>) are shells that render from the visitor's browser storage; they hold nothing an agent could fetch.
+`
+}
+
+function urlEntry(loc: string, lastmod: string, changefreq: string, priority: string, images: readonly TemplateConfig[] = []): string {
+  const imgs = images
+    .map(
+      (t) => `
+    <image:image>
+      <image:loc>${SITE}/og/${t.id}.jpg</image:loc>
+      <image:title>${htmlEscape(t.name)} résumé template</image:title>
+      <image:caption>${htmlEscape(imageAlt(t))}</image:caption>
+    </image:image>`
+    )
+    .join('')
   return `  <url>
     <loc>${loc}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
+    <priority>${priority}</priority>${imgs}
   </url>`
 }
 
@@ -197,11 +369,11 @@ function urlEntry(loc: string, lastmod: string, changefreq: string, priority: st
 export function sitemapXml(today: string): string {
   const entries = [
     urlEntry(`${SITE}/`, today, 'weekly', '1.0'),
-    urlEntry(`${SITE}/templates`, today, 'weekly', '0.8'),
-    ...ORDERED.map((t) => urlEntry(`${SITE}/templates/${t.id}`, today, 'monthly', '0.6')),
+    urlEntry(`${SITE}/templates`, today, 'weekly', '0.8', ORDERED),
+    ...ORDERED.map((t) => urlEntry(`${SITE}/templates/${t.id}`, today, 'monthly', '0.6', [t])),
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <!--
     The landing page, the template gallery, and one page per design. /app,
     /tracker, /resume/:id and /print/:id are private, account-free shells with
@@ -366,6 +538,10 @@ function resourcesBlock(): string {
     `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design).`,
     `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
     `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file.`,
+    `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md and ${SITE}/templates/<id>.md, linked from the page as its text/markdown alternate.`,
+    `- [API catalog](${SITE}/.well-known/api-catalog) (RFC 9727): says plainly that there is no HTTP API; the site itself is the service.`,
+    `- [Skills index](${SITE}/.well-known/agent-skills/index.json) and [SKILL.md](${SITE}/skills/cvaurum/SKILL.md): how an assistant can help a person use CVAurum, with the in-page WebMCP tools it can call.`,
+    `- [auth.md](${SITE}/auth.md): there are no accounts, keys or registration, for people or for agents.`,
     `- [Source repository](${COPY.links.repo}): the whole application, MIT licensed; issues and contributions go there.`,
     `- [JSON Resume schema](https://jsonresume.org/schema): the open format CVAurum imports and exports.`,
   ].join('\n')
