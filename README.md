@@ -138,7 +138,7 @@ The structures they introduce are editable, not fixed decoration — see the num
 ### 📲 Installable & Offline (PWA)
 
 - **Install it like a native app** on desktop or mobile (Add to Home Screen / Install).
-- **Works fully offline, zero external requests** — all 45 fonts are **bundled** and the whole app is precached by a service worker, so CVAurum never contacts a third-party server (not even for fonts). Build resumes with no connection at all.
+- **Works fully offline, zero external requests** — all 45 fonts are **bundled**, the app and its Latin fonts are precached by a service worker, and each résumé's export fonts are saved while you are online so the PDF exports with no connection, so CVAurum never contacts a third-party server (not even for fonts). Build resumes with no connection at all.
 
 ### 🔒 Privacy by Default
 

@@ -156,7 +156,7 @@ export const SITE: SiteCopy = {
     { label: 'Import', value: 'PDF (text-based, or scanned with on-device OCR) and JSON Resume' },
     { label: 'Editing', value: 'on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); six example résumés to start from; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better' },
     { label: 'Scripts', value: 'Latin with accents, Cyrillic, Greek and Vietnamese, on the page and in every export; a font that lacks a script falls back to a bundled one of the same kind' },
-    { label: 'Offline', value: 'installs as a web app and works with no connection, export included; all fonts are bundled, so no third-party server is ever contacted' },
+    { label: 'Offline', value: 'installs as a web app and works with no connection: the app, its Latin fonts and the colour profile are saved on the device at install, and each résumé\u2019s export fonts are saved quietly while you are online, so it exports with no connection too. Every font is bundled with the app, so no third-party server is ever contacted' },
     { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },
     { label: 'Platform', value: 'any modern browser on desktop, tablet or phone; JavaScript is required to edit (the public pages carry their content in plain HTML)' },
     { label: 'Licence and source', value: 'MIT; the whole application is public at https://github.com/akhil-dara/cvaurum' },

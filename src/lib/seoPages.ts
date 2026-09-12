@@ -697,7 +697,7 @@ ${rest}
 
 ## Offline and installation
 
-CVAurum installs as a web app (Add to Home Screen or Install) on desktop and mobile. The whole app and all fonts are precached by a service worker, so it works with no connection at all, including PDF export.
+CVAurum installs as a web app (Add to Home Screen or Install) on desktop and mobile. A service worker saves the app itself, its Latin fonts and the PDF colour profile on the device at install, so editing works with no connection from the first visit; the font files an export embeds are saved quietly while a résumé is open and online, so that résumé exports with no connection too. Scripts beyond Latin, the design previews and the optional matching model are saved the first time they are used. So it works with no connection at all, including PDF export.
 
 ## Sharing
 
