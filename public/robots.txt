@@ -6,6 +6,9 @@
 
 User-agent: *
 Allow: /
+# Content signals (contentsignals.org): the public pages may be searched and
+# read by an assistant to answer someone; they are not offered for training.
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 
 # Private, user-specific, or chrome-free routes — no public value, never index.
 Disallow: /app
@@ -31,6 +34,34 @@ Disallow: /resume/
 Disallow: /print/
 
 User-agent: ClaudeBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
+User-agent: ChatGPT-User
 Allow: /
 Disallow: /app
 Disallow: /tracker

@@ -5,6 +5,7 @@ import './index.css'
 import { router } from './app/router'
 import { ErrorBoundary } from './app/ErrorBoundary'
 import { watchLayoutMode } from './lib/layoutMode'
+import { registerWebMcpTools } from './lib/webmcp'
 
 // html[data-layout] must be there before the first paint: the editor's
 // desk:/phone: classes read it.
@@ -23,6 +24,9 @@ window.addEventListener('vite:preloadError', (e) => {
   sessionStorage.setItem(KEY, '1')
   window.location.reload()
 })
+
+// In-page tools for a browser that exposes them (WebMCP); a no-op elsewhere.
+registerWebMcpTools()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

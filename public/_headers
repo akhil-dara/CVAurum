@@ -5,6 +5,22 @@
 # take effect. The build ships no inline executable JS, so script-src 'self'
 # needs no 'unsafe-inline'; inline styles (boot splash + React style props) need
 # 'unsafe-inline' under style-src only.
+# Machine-reader discovery on the landing page (RFC 8288 / RFC 9727): the
+# API catalog (which says there is no API), the description, the Markdown
+# twin. Vary: Accept because the host's Markdown-for-agents feature answers
+# a request with Accept: text/markdown from the same URL (a dashboard
+# switch on Cloudflare; the .md twins beside each page are always there).
+/
+  Link: </.well-known/api-catalog>; rel="api-catalog", </llms.txt>; rel="describedby"; type="text/plain", </index.md>; rel="alternate"; type="text/markdown"
+  Vary: Accept
+/templates
+  Vary: Accept
+/templates/*
+  Vary: Accept
+/.well-known/api-catalog
+  Content-Type: application/linkset+json
+/.well-known/agent-skills/index.json
+  Content-Type: application/json
 /*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
