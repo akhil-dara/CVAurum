@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { scheduleWarmPdfFonts } from '@/lib/pdf/fontWarm'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Eye } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -62,6 +63,13 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  // Save this résumé's PDF fonts on the device while there IS a connection,
+  // so that it exports without one. Idle, silent, once per set of families.
+  const { fontFamily, headingFamily, nameFamily } = doc.metadata.typography
+  useEffect(() => {
+    scheduleWarmPdfFonts([fontFamily, headingFamily, nameFamily])
+  }, [fontFamily, headingFamily, nameFamily])
 
   const setLeftOpen = useEditorStore((s) => s.setLeftOpen)
 

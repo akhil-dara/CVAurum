@@ -289,23 +289,32 @@ export default defineConfig({
         // .icc: the 3KB sRGB profile embedded as every export's PDF/A
         // OutputIntent — precached so an OFFLINE export is still PDF/A
         // (without it the fetch fails and conformance silently drops).
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,icc}'],
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,woff,woff2,icc,webp,json}'],
         // OCR engine assets (tesseract worker/core/traineddata, ~10MB) are only
         // needed when a user imports a scanned PDF — keep them OUT of the precache
         // so first load stays lean; they fetch on demand, same-origin, from /ocr/.
         // Same for the opt-in semantic-match engine (~34MB) under /semantic/,
         // and its worker chunk — it must download only after the user opts in.
         // /fonts-pdf/ holds static font instances used ONLY when exporting a
-        // PDF; they are fetched on demand (1–3 families per résumé).
-        // The 58 pre-rendered template pages (about 0.8 MB) are never read by
-        // a browser: the fallback below serves the shell and the app renders
-        // the page, online or offline.
+        // PDF; they are fetched on demand (1–3 families per résumé). Only the
+        // .ttf files are held back: its 6 KB index.json is the FIRST thing an
+        // export fetches, and while the whole folder was ignored every offline
+        // export died on it with "Failed to fetch" (measured on the production
+        // build, 2026-09-12, _local/probe-offline-export.cjs). The fonts
+        // themselves are put on the device by src/lib/pdf/fontWarm.ts while
+        // there is still a connection.
+        // The 58 pre-rendered template pages (1.01 MB) are never read by a
+        // browser: the fallback below serves the shell and the app renders the
+        // page, online or offline. The pattern must match what the build
+        // WRITES - it wrote folders with an index.html until the pages became
+        // one flat file each, after which this ignore matched nothing and all
+        // 58 shipped in every install (11.2% of the precache, measured).
         globIgnores: [
           '**/ocr/**',
           '**/semantic/**',
           '**/semantic.worker-*.js',
-          '**/fonts-pdf/**',
-          'templates/**/index.html',
+          '**/fonts-pdf/*.ttf',
+          'templates/*.html',
           ...nonLatinFontFiles(),
         ],
         // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
@@ -318,8 +327,30 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'cvaurum-fonts', expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 3600 } },
           },
+          // The design previews (2.4 MB across 58 files) are far too much to
+          // put in every install, but a page that has been looked at should
+          // still show its design with no connection.
+          {
+            urlPattern: /\/og\/[^/]+\.jpg$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'cvaurum-previews', expiration: { maxEntries: 80, maxAgeSeconds: 365 * 24 * 3600 } },
+          },
+          // The opt-in semantic model (34 MB) is downloaded only by someone
+          // who turns it on; keeping what they downloaded is what makes the
+          // panel's own promise ("works offline after the first load") true.
+          {
+            urlPattern: /\/semantic\/.+\.(wasm|onnx|json|txt)$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'cvaurum-semantic', expiration: { maxEntries: 40, maxAgeSeconds: 365 * 24 * 3600 } },
+          },
         ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // Control the FIRST visit too. Without this the opening page is not
+        // controlled by the worker, so nothing it fetches is cached and a
+        // connection lost during that first session takes the export with it.
+        // Safe beside registerType 'prompt': a worker only claims when there
+        // is no previous one to displace; an UPDATE still waits for the prompt.
+        clientsClaim: true,
         // The plain shell, not index.html: that one carries the landing
         // page's content in #root, which would flash inside /resume/<id>.
         navigateFallback: '/shell.html',

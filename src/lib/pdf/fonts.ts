@@ -2,6 +2,11 @@ import type { PDFDocument, PDFFont } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { scriptFallbacks } from '@/data/fonts'
+import { loadPdfFontIndex, resolveFontKey } from './fontIndex'
+
+// Re-exported: render.tsx and the tests have always taken these from here,
+// and they now live in a module the editor can import without dragging
+// pdf-lib and fontkit along with them (fontIndex.ts).
 
 // @pdf-lib/fontkit is CJS: under Vite the real module ends up on `.default`,
 // while under other bundlers/interop settings the namespace import IS the
@@ -16,38 +21,7 @@ const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? font
 
 export class PdfFontMissingError extends Error {}
 
-let indexPromise: Promise<Record<string, string>> | null = null
-export function loadPdfFontIndex(): Promise<Record<string, string>> {
-  if (!indexPromise) {
-    indexPromise = fetch('/fonts-pdf/index.json')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('font index missing'))))
-      .catch((e) => {
-        indexPromise = null
-        throw e
-      })
-  }
-  return indexPromise
-}
-
-const slug = (family: string) =>
-  family
-    .replace(/^['"]|['"]$/g, '')
-    .split(',')[0]
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-
-/** Pure font-key resolution, exported for testing. */
-export function resolveFontKey(index: Record<string, string>, family: string, weight: number): string | null {
-  const fam = slug(family)
-  if (index[`${fam}|${weight}`]) return `${fam}|${weight}`
-  const weights = Object.keys(index)
-    .filter((k) => k.startsWith(`${fam}|`))
-    .map((k) => Number(k.split('|')[1]))
-    .sort((a, b) => Math.abs(a - weight) - Math.abs(b - weight))
-  return weights.length ? `${fam}|${weights[0]}` : null
-}
+export { loadPdfFontIndex, resolveFontKey }
 
 /** Embeds each (family, weight) once per document. */
 export class PdfFontCache {
@@ -161,7 +135,12 @@ export class PdfFontCache {
     let p = this.bytesCache.get(key)
     if (!p) {
       p = fetch(`/fonts-pdf/${this.index[key]}`)
-        .then((r) => r.arrayBuffer())
+        .then((r) => {
+          // Without this the body of a 404 went to embedFont as font bytes,
+          // and the author got an opaque parse error naming nothing.
+          if (!r.ok) throw new Error(`the font file for ${key} is unavailable (${r.status})`)
+          return r.arrayBuffer()
+        })
         .then((b) => new Uint8Array(b))
       this.bytesCache.set(key, p)
     }

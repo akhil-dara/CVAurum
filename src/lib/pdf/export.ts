@@ -58,6 +58,16 @@ function explain(e: unknown): string {
   if (e instanceof PdfMultiPageUnsupportedError) {
     return 'This resume has no place where a page can end. Try shorter entries or a different template.'
   }
-  const detail = e instanceof Error && e.message ? ` (${e.message.slice(0, 120)})` : ''
+  const msg = e instanceof Error && e.message ? e.message : ''
+  // Offline, the export fails inside fetch() when a font it needs was never
+  // saved on this device, and "Failed to fetch" names neither the cause nor
+  // anything the author can do. Both pieces of the old advice - try again,
+  // switch templates - are useless with no connection, and switching is worse
+  // than useless: another template needs fonts that are not there either.
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false
+  if (offline || (e instanceof TypeError && /fetch|network|load failed/i.test(msg))) {
+    return 'This export needs a font that is not saved on this device yet, and there is no connection to fetch it. Connect once and export again — after that this résumé exports with no connection.'
+  }
+  const detail = msg ? ` (${msg.slice(0, 120)})` : ''
   return `The PDF renderer hit an error${detail}. Try again, or switch templates and try once more.`
 }
