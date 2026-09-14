@@ -16,6 +16,9 @@ import { useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, ChevronRight, Wand2 } from 'lucide-react'
 import { createDocument } from '@/data/defaults'
+// Written beside the images themselves, so the size in the markup is the size
+// of the file on disk and a page never reserves the wrong box for it.
+import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
 import type { ResumeDocument } from '@/types/document'
@@ -26,7 +29,17 @@ import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 // a design started there.
 import { useResumeActions } from '@/components/dashboard/newResume'
 import { useSeo } from '@/lib/useSeo'
-import { SITE, breadcrumbJsonLd, isTemplateId, relatedTemplateIds, tagSentence, templatePageMeta } from '@/lib/seoPages'
+import {
+  SITE,
+  breadcrumbJsonLd,
+  imageAlt,
+  isTemplateId,
+  relatedTemplateIds,
+  tagSentence,
+  templatePageImage,
+  templatePageImageHeight,
+  templatePageMeta,
+} from '@/lib/seoPages'
 
 
 export function TemplatePage() {
@@ -72,13 +85,6 @@ function Design({ id }: { id: string }) {
 
   const { create } = useResumeActions()
 
-  // The gallery's example résumé, laid out in this design — the same document
-  // every card on /templates shows, so the pages compare like for like.
-  const doc = useMemo<ResumeDocument>(() => {
-    const base = createDocument({ sample: true })
-    return { ...base, metadata: applyTemplateToMetadata(base.metadata, tpl.defaults) }
-  }, [tpl.defaults])
-
   const related = useMemo(() => relatedTemplateIds(id).map((rid) => getTemplate(rid)), [id])
 
   return (
@@ -120,21 +126,6 @@ function Design({ id }: { id: string }) {
               Opens the editor with an example résumé in this design — replace the words with your own. Free, no
               account, and everything stays in this browser. Switching designs later keeps your content.
             </p>
-
-            {/* A real image of the design, for the reader and for an image
-                index: the live rendering beside it is a canvas of text a
-                crawler cannot picture. The same file the link preview uses. */}
-            <figure className="mt-6 overflow-hidden rounded-xl border border-border bg-muted">
-              <img
-                src={`/og/${tpl.id}.jpg`}
-                width={1200}
-                height={630}
-                alt={`${tpl.name} résumé template: ${tpl.description}`}
-                className="block h-auto w-full"
-                loading="eager"
-                decoding="async"
-              />
-            </figure>
             <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-6 text-sm">
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">Layout</dt>
@@ -160,14 +151,30 @@ function Design({ id }: { id: string }) {
           </div>
 
           <div className="order-2 min-w-0 lg:order-1">
-            {/* The sample résumé's own words are not this page's content —
-                keep them out of a search snippet, as the gallery cards do. */}
-            <div
-              data-nosnippet
-              className="aspect-[210/297] w-full overflow-hidden rounded-xl border border-border bg-white shadow-card"
-            >
-              <PreviewThumb doc={doc} width={560} />
-            </div>
+            {/* The design, as the picture the export actually produces.
+
+                The page image, not the share card and not a rendering.
+                /og/<id>.jpg is 1200x630 landscape - the résumé inside it is
+                430x560, with body type about six pixels tall, which is a link
+                preview and not something anyone can read. This is the whole
+                page at 1200px wide, shown at about 560: finer than the
+                rendering that used to sit here, free of the render, and the
+                only thing on the page an image index can picture.
+
+                The height is read rather than assumed: A4 and US Letter give
+                different aspect ratios, so it is recorded per design when the
+                pictures are drawn. */}
+            <figure className="overflow-hidden rounded-xl border border-border bg-white shadow-card">
+              <img
+                src={templatePageImage(tpl.id)}
+                width={PAGE_IMAGE_WIDTH}
+                height={templatePageImageHeight(tpl.id)}
+                alt={imageAlt(tpl)}
+                className="block h-auto w-full"
+                loading="eager"
+                decoding="async"
+              />
+            </figure>
             <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
               Shown on the same example résumé every design in the gallery uses.
             </p>

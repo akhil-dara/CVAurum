@@ -1,12 +1,21 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { TEMPLATES, TEMPLATE_MAP, getTemplate } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
+import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
+import { samplePageImage } from '@/lib/seoLibrary'
 import {
   DESC_MAX,
   allTemplateIds,
   breadcrumbJsonLd,
+  galleryPageMeta,
   galleryStaticHtml,
+  imageAlt,
   isTemplateId,
+  templatePageImage,
+  templatePageImageHeight,
   relatedTemplateIds,
   sitemapXml,
   staticHtml,
@@ -24,6 +33,13 @@ import { SITE as COPY } from '@/data/siteCopy'
 
 /** Every /templates/<id> link in a block of HTML, in order. */
 const templateLinks = (html: string) => [...html.matchAll(/href="\/templates\/([a-z0-9-]+)"/g)].map((m) => m[1])
+
+/** Every <img …> in a block of HTML, as its raw tag, and one attribute of one. */
+const imgTags = (html: string) => [...html.matchAll(/<img\s[^>]*>/g)].map((m) => m[0])
+const attr = (tag: string, name: string) => tag.match(new RegExp(`${name}="([^"]*)"`))?.[1]
+
+/** The published folder the pages point into. */
+const PUBLIC = fileURLToPath(new URL('../../public/', import.meta.url))
 
 describe('the head each template page asks for', () => {
   it('names the design, its path and its preview image', () => {
@@ -157,6 +173,42 @@ describe('the sitemap', () => {
     expect(new Set(stamps)).toEqual(new Set(['2026-09-08']))
   })
 
+  /** The <image:loc> values of each <url> block, in document order. */
+  const perUrlImages = () =>
+    [...xml.matchAll(/<url>[\s\S]*?<\/url>/g)].map((m) => [...m[0].matchAll(/<image:loc>([^<]+)<\/image:loc>/g)].map((i) => i[1]))
+
+  it('declares a picture for every page that has one', () => {
+    const imgs = perUrlImages()
+    const designs = allTemplateIds()
+    const slugs = orderedSampleSlugs()
+    // The landing page has no page image of its own; both collections declare
+    // everything they list, and every page inside one declares itself.
+    expect(imgs[0]).toEqual([])
+    expect(imgs[1]).toEqual(designs.map((id) => `https://cvaurum.com${templatePageImage(id)}`))
+    for (const [i, id] of designs.entries()) {
+      expect(imgs[2 + i], id).toEqual([`https://cvaurum.com${templatePageImage(id)}`])
+    }
+    expect(imgs[2 + designs.length]).toEqual(slugs.map((s) => `https://cvaurum.com${samplePageImage(s)}`))
+    for (const [i, slug] of slugs.entries()) {
+      expect(imgs[3 + designs.length + i], slug).toEqual([`https://cvaurum.com${samplePageImage(slug)}`])
+    }
+  })
+
+  it('gives every image an absolute URL on this site', () => {
+    const locs = [...xml.matchAll(/<image:loc>([^<]+)<\/image:loc>/g)].map((m) => m[1])
+    expect(locs.length).toBe(2 * (TEMPLATES.length + orderedSampleSlugs().length))
+    for (const loc of locs) expect(loc.startsWith('https://cvaurum.com/')).toBe(true)
+    expect(xml).toContain('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"')
+  })
+
+  it('says nothing Google still reads besides the location', () => {
+    // image:title, image:caption, image:geo_location and image:license are
+    // gone from the sitemap image documentation; an ignored tag is only bytes.
+    for (const gone of ['image:title', 'image:caption', 'image:geo_location', 'image:license']) {
+      expect(xml, gone).not.toContain(`<${gone}>`)
+    }
+  })
+
   it('ranks the landing page above a collection above a single page in one', () => {
     const p = [...xml.matchAll(/<priority>([^<]+)<\/priority>/g)].map((m) => m[1])
     expect(p[0]).toBe('1.0')
@@ -189,14 +241,105 @@ describe('related designs', () => {
 })
 
 describe('breadcrumb structured data', () => {
+  const node = (id: string, type: string) =>
+    JSON.parse(breadcrumbJsonLd(id))['@graph'].find((n: { '@type': string }) => n['@type'] === type)
+
   it('walks home › templates › this design', () => {
-    const data = JSON.parse(breadcrumbJsonLd('atlas'))
-    expect(data['@type']).toBe('BreadcrumbList')
-    expect(data.itemListElement.map((i: { item: string }) => i.item)).toEqual([
+    const list = node('atlas', 'BreadcrumbList')
+    expect(list.itemListElement.map((i: { item: string }) => i.item)).toEqual([
       'https://cvaurum.com/',
       'https://cvaurum.com/templates',
       'https://cvaurum.com/templates/atlas',
     ])
+  })
+
+  // One block, two things to say: which trail the page sits on, and which of
+  // the pictures on it is the page's own. Google documents primaryImageOfPage
+  // as the way to say the second, and this page lists every other design.
+  it('names the page image as the page’s own picture', () => {
+    expect(node('atlas', 'WebPage').primaryImageOfPage).toMatchObject({
+      '@type': 'ImageObject',
+      contentUrl: 'https://cvaurum.com/img/templates/atlas.webp',
+      width: PAGE_IMAGE_WIDTH,
+      height: templatePageImageHeight('atlas'),
+      caption: imageAlt(getTemplate('atlas')),
+    })
+  })
+
+  it('carries one for every design in the registry', () => {
+    for (const tpl of TEMPLATES) {
+      expect(node(tpl.id, 'WebPage').primaryImageOfPage.contentUrl, tpl.id).toBe(
+        `https://cvaurum.com${templatePageImage(tpl.id)}`
+      )
+    }
+  })
+})
+
+/**
+ * The picture a design page shows and the card it shares are two different
+ * files, and both have to exist: nine designs shipped an og:image that was a
+ * 404 for months, because nothing ever asked.
+ */
+describe('the two pictures each design has', () => {
+  const published = (dir: string, ext: string) =>
+    new Set(
+      fs
+        .readdirSync(path.join(PUBLIC, dir))
+        .filter((f) => f.endsWith(ext))
+        .map((f) => f.slice(0, -ext.length))
+    )
+
+  it('publishes one page image per design, and no orphan', () => {
+    expect(published('img/templates', '.webp')).toEqual(new Set(allTemplateIds()))
+  })
+
+  it('publishes one share card per design, and no orphan', () => {
+    // public/og holds the designs' cards only; the library's live one folder
+    // deeper, and the site's own default is /og.png.
+    expect(published('og', '.jpg')).toEqual(new Set(allTemplateIds()))
+  })
+
+  it('keeps the share card a JPEG — og:image is never a WebP', () => {
+    // The link-preview readers document JPG/PNG/GIF between them and one
+    // has been measured failing on WebP, whatever the page itself shows.
+    for (const tpl of TEMPLATES) {
+      const { image } = templatePageMeta(tpl.id)
+      expect(image, tpl.id).toBe(`/og/${tpl.id}.jpg`)
+      expect(image.endsWith('.webp'), tpl.id).toBe(false)
+      expect(fs.existsSync(path.join(PUBLIC, image.slice(1))), tpl.id).toBe(true)
+    }
+    expect(galleryPageMeta().image.endsWith('.webp')).toBe(false)
+  })
+})
+
+describe('the picture in the HTML a crawler reads', () => {
+  it('shows the page image, eagerly, with the box it will fill', () => {
+    const img = imgTags(staticHtml('atlas'))[0]
+    expect(attr(img, 'src')).toBe('/img/templates/atlas.webp')
+    expect(attr(img, 'width')).toBe(String(PAGE_IMAGE_WIDTH))
+    expect(attr(img, 'height')).toBe(String(templatePageImageHeight('atlas')))
+    expect(attr(img, 'alt')).toBe(imageAlt(getTemplate('atlas')))
+    expect(attr(img, 'alt')!.length).toBeGreaterThan(20)
+    expect(attr(img, 'loading')).toBe('eager')
+    expect(attr(img, 'decoding')).toBe('async')
+  })
+
+  it('puts it beside the heading, before everything else', () => {
+    const html = staticHtml('atlas')
+    expect(html.indexOf('<img')).toBeGreaterThan(html.indexOf('<h1>'))
+    expect(html.indexOf('<img')).toBeLessThan(html.indexOf('<nav'))
+  })
+
+  it('gives the gallery every design as a lazy thumbnail', () => {
+    const tags = imgTags(galleryStaticHtml())
+    expect(tags).toHaveLength(TEMPLATES.length)
+    expect(new Set(tags.map((t) => attr(t, 'src')))).toEqual(new Set(allTemplateIds().map((id) => `/img/templates/${id}.webp`)))
+    for (const t of tags) {
+      expect(attr(t, 'loading')).toBe('lazy')
+      expect(attr(t, 'width')).toBe(String(PAGE_IMAGE_WIDTH))
+      expect(Number(attr(t, 'height'))).toBeGreaterThan(0)
+      expect(attr(t, 'alt')!.length).toBeGreaterThan(20)
+    }
   })
 })
 

@@ -33,6 +33,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "og": "node scripts/make-og.cjs",
+    "cards": "node scripts/make-share-cards.cjs",
+    "page-images": "node scripts/make-page-images.cjs",
     "icons": "node scripts/make-icons.cjs",
     "test": "vitest run",
     "pdf-fonts": "python scripts/make-pdf-fonts.py"

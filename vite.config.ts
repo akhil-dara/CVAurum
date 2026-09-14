@@ -85,6 +85,13 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   html = setMeta(html, 'property', 'og:url', url)
   html = setMeta(html, 'property', 'og:image', image)
   html = setMeta(html, 'property', 'og:image:secure_url', image)
+  // Only ever .jpg or .png reaches here, and it has to stay that way: og:image
+  // is JPEG on purpose. The page images are lossless WebP (under half the bytes
+  // of JPEG q82 for a full résumé page, and bit-exact), but the share-card
+  // consumers do not take it — LinkedIn documents JPG/PNG/GIF, Facebook
+  // jpeg/gif/png, and Slack has been measured failing on WebP outright. A
+  // .webp here would also be announced as image/png, which is worse than the
+  // wrong format: it is a lie about it.
   html = setMeta(html, 'property', 'og:image:type', image.endsWith('.jpg') ? 'image/jpeg' : 'image/png')
   html = setMeta(html, 'property', 'og:image:alt', meta.title)
   html = setMeta(html, 'name', 'twitter:title', meta.title)
@@ -336,6 +343,21 @@ export default defineConfig({
           // shell, so precaching 108 of them bought nothing offline and cost
           // about four megabytes of first load.
           'examples/*.html',
+          // The page images: one full-size picture of every design (67 files,
+          // 6.4 MB) and every example (108 files, 10.7 MB). The glob above
+          // sweeps up webp, and every file is far under
+          // maximumFileSizeToCacheInBytes, so without these two lines all 175
+          // of them — 17.1 MB, measured — would install on every first visit,
+          // for pages most visitors never open. They are cached the first time
+          // one is actually looked at instead (runtimeCaching below).
+          //
+          // Same shape as the two ignores above:
+          // DIST-RELATIVE, matching what the build writes (public/img is
+          // copied verbatim to dist/img) — a pattern that matches nothing
+          // fails silently, which is how the 58 template pages shipped in
+          // every install for a while.
+          'img/templates/*.webp',
+          'img/examples/*.webp',
           ...nonLatinFontFiles(),
         ],
         // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
@@ -348,13 +370,35 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'cvaurum-fonts', expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 3600 } },
           },
-          // The design previews (2.4 MB across 58 files) are far too much to
+          // The pictures of résumés — the page images under /img/ (17.1 MB) and
+          // the share cards under /og/ (about 40 KB each) — are far too much to
           // put in every install, but a page that has been looked at should
           // still show its design with no connection.
+          //
+          // The pattern used to be /\/og\/[^/]+\.jpg$/, which was written when
+          // /og/ held 58 flat files and nothing else existed. [^/]+ cannot
+          // cross a slash, so it matches neither the nested share cards
+          // (/og/examples/<slug>.jpg) nor the page images at all — both would
+          // have been refetched on every visit and missing offline.
+          //
+          // maxEntries 400: the pattern can match 350 files in total (67 + 108
+          // page images, 67 + 108 share cards). Anything smaller is an LRU
+          // ceiling someone can actually hit — 283 would start dropping the
+          // template previews partway through a browse of the 108-example
+          // library, which is exactly the case this cache exists for. 400 means
+          // eviction by count never happens; the bound is only a guard against
+          // unbounded growth, the same one the font cache uses. Worst case is
+          // ~20 MB, and only for someone who has opened every page on the site.
           {
-            urlPattern: /\/og\/[^/]+\.jpg$/,
+            urlPattern: /\/(img|og)\/.+\.(webp|jpg)$/,
             handler: 'CacheFirst',
-            options: { cacheName: 'cvaurum-previews', expiration: { maxEntries: 80, maxAgeSeconds: 365 * 24 * 3600 } },
+            // Thirty days, not a year. These URLs carry a design's id or a
+            // sample's slug, never a hash of the bytes, so the same URL does
+            // serve a different picture after one is redrawn - and a year of
+            // CacheFirst would have kept the seven designs whose pictures were
+            // taken while the renderer was dropping its glyphs on returning
+            // visitors' machines until 2027.
+            options: { cacheName: 'cvaurum-previews', expiration: { maxEntries: 400, maxAgeSeconds: 30 * 24 * 3600 } },
           },
           // The opt-in semantic model (34 MB) is downloaded only by someone
           // who turns it on; keeping what they downloaded is what makes the

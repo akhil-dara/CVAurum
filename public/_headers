@@ -17,6 +17,27 @@
   Vary: Accept
 /templates/*
   Vary: Accept
+# The pictures of résumés: the full-size page images (/img/templates/<id>.webp,
+# /img/examples/<slug>.webp) and the share cards (/og/<id>.jpg,
+# /og/examples/<slug>.jpg). 350 files — 17.1 MB of page images plus the smaller
+# cards — regenerated only when a design or a sample is redrawn.
+#
+# Not `immutable`, deliberately. These URLs are addressed by the design's id or
+# the sample's slug, NOT by a hash of their bytes, so the same URL really does
+# serve different pixels after a design is retouched — and `immutable` tells a
+# browser not to revalidate even on a reload, which would strand a reader on
+# last year's picture for the whole max-age.
+#
+# A week fresh, then a month of stale-while-revalidate: a repeat visitor within
+# the week pays nothing; between day 7 and day 37 the cached copy is shown
+# instantly while the new one is fetched behind it, so a regenerated image
+# reaches everyone within one more page view rather than on a year's delay;
+# after that it is an ordinary conditional request. Crawlers and the link-
+# preview fetchers ignore stale-while-revalidate and simply honour the week.
+/img/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+/og/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 /.well-known/agent-skills/index.json

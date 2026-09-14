@@ -2,8 +2,8 @@
  * Everything the per-template pages need that is NOT React.
  *
  * A single-page app is invisible to anything that does not run JavaScript, and
- * "58 résumé templates" is 58 things people search for by name — so each design
- * gets its own URL (/templates/<id>), its own head, and a block of real HTML
+ * every design in the registry is something people search for by name — so each
+ * one gets its own URL (/templates/<id>), its own head, and a block of real HTML
  * that a crawler reads straight out of the file. That HTML is produced here and
  * written into dist/ at build time (see the plugin in vite.config.ts); the same
  * metadata drives the live route's head at runtime. One source, two consumers,
@@ -17,8 +17,9 @@ import { TEMPLATES, TEMPLATE_MAP, galleryOrder } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
-import { orderedSampleSlugs as librarySlugs } from '@/lib/seoLibrary'
+import { orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLibrary'
 import { SAMPLE_COUNT } from '@/data/library/count'
+import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 
 /**
  * The example library's own pages, re-exported so the build step keeps loading
@@ -34,8 +35,12 @@ export {
   isSampleSlug,
   orderedSampleSlugs,
   sampleBreadcrumbJsonLd,
+  sampleImageAlt,
   sampleMarkdown,
+  samplePageImage,
+  samplePageImageHeight,
   samplePageMeta,
+  sampleShareCard,
   sampleStaticHtml,
 } from '@/lib/seoLibrary'
 
@@ -161,15 +166,53 @@ function linkList(list: readonly TemplateConfig[]): string {
     .join('\n')
 }
 
-/** The alt text an image index reads: the design's name and what it is for. */
-export function imageAlt(tpl: TemplateConfig): string {
-  return `${tpl.name} résumé template: ${trimToWords(tpl.description, 110)}`
+/* ------------------------------------------------------------- the pictures
+ * A design has two files, and they are not interchangeable:
+ *
+ *   /img/templates/<id>.webp   the page image — the whole résumé at 1200 px
+ *                              wide, lossless WebP: under half the bytes of
+ *                              JPEG q82 for a page of text, and bit-exact
+ *                              (measured). This is what a reader looks at and
+ *                              what an image index crawls.
+ *   /og/<id>.jpg               the share card — 1200×630 JPEG, and og:image
+ *                              never points anywhere else: the big link-preview
+ *                              readers document JPG/PNG/GIF between them, and
+ *                              one has been measured failing on WebP.
+ *
+ * The page used to show the share card as its picture, so what a crawler
+ * indexed for a design was a cropped 630-pixel band of it, not the page.
+ */
+
+/** A4 at 1200 px wide, for a design whose entry the generated map is missing:
+ *  a width and a height that are nearly right beat no box at all. */
+const FALLBACK_HEIGHT = Math.round((PAGE_IMAGE_WIDTH * 297) / 210)
+
+/** The indexable picture of a résumé in this design. */
+export function templatePageImage(id: string): string {
+  return `/img/templates/${id}.webp`
 }
 
-/** One picture per design, the file the link preview uses, as real content:
- *  an image that lives only in og:image is never indexed as an image. */
+/** Its intrinsic height — A4 and US Letter are different shapes. */
+export function templatePageImageHeight(id: string): number {
+  return PAGE_IMAGE_HEIGHT[`templates/${id}`] ?? FALLBACK_HEIGHT
+}
+
+/**
+ * What the picture shows: a résumé page set in this design, and what the
+ * design is — its style tags in words. Not the description, which is a
+ * paragraph of sales prose about the design rather than a description of the
+ * image, and reads as stuffing in an alt.
+ */
+export function imageAlt(tpl: TemplateConfig): string {
+  const tags = tagSentence(tpl.tags).toLowerCase()
+  return `A full résumé page in the ${tpl.name} template${tags ? `: ${tags}` : ''}`
+}
+
+/** One picture per design, as real content: an image that lives only in
+ *  og:image is never indexed as an image, and Google's image documentation is
+ *  explicit that it does not index CSS images either. */
 function figure(tpl: TemplateConfig, eager: boolean): string {
-  return `<figure><img src="/og/${tpl.id}.jpg" width="1200" height="630" alt="${htmlEscape(imageAlt(tpl))}" loading="${eager ? 'eager' : 'lazy'}" decoding="async"><figcaption>${htmlEscape(tpl.name)}</figcaption></figure>`
+  return `<figure><img src="${templatePageImage(tpl.id)}" width="${PAGE_IMAGE_WIDTH}" height="${templatePageImageHeight(tpl.id)}" alt="${htmlEscape(imageAlt(tpl))}" loading="${eager ? 'eager' : 'lazy'}" decoding="async"><figcaption>${htmlEscape(tpl.name)}</figcaption></figure>`
 }
 
 function cardList(list: readonly TemplateConfig[]): string {
@@ -251,7 +294,7 @@ export function templateMarkdown(id: string): string {
 
 ${tpl.description}
 
-![${imageAlt(tpl)}](${SITE}/og/${tpl.id}.jpg)
+![${imageAlt(tpl)}](${SITE}${templatePageImage(tpl.id)})
 
 - Best for: ${tagSentence(tpl.tags)}
 - Layout: ${tpl.defaults.layout.columns === 2 ? 'two column' : 'single column'}
@@ -363,14 +406,21 @@ The app's own routes (/app, /tracker, /resume/<id>) are shells that render from 
 `
 }
 
-function urlEntry(loc: string, lastmod: string, changefreq: string, priority: string, images: readonly TemplateConfig[] = []): string {
+/**
+ * One <url>, with the pictures that page carries.
+ *
+ * `images` is a plain list of absolute URLs, not a list of designs: the
+ * library's pages have pictures too and could not be expressed at all while
+ * this took TemplateConfig. Only <image:loc> is emitted — Google has removed
+ * image:title, image:caption, image:geo_location and image:license from the
+ * sitemap image documentation, and an ignored tag is only bytes to parse.
+ */
+function urlEntry(loc: string, lastmod: string, changefreq: string, priority: string, images: readonly string[] = []): string {
   const imgs = images
     .map(
-      (t) => `
+      (src) => `
     <image:image>
-      <image:loc>${SITE}/og/${t.id}.jpg</image:loc>
-      <image:title>${htmlEscape(t.name)} résumé template</image:title>
-      <image:caption>${htmlEscape(imageAlt(t))}</image:caption>
+      <image:loc>${src}</image:loc>
     </image:image>`
     )
     .join('')
@@ -388,12 +438,17 @@ function urlEntry(loc: string, lastmod: string, changefreq: string, priority: st
  * function stays pure and the file it writes is reproducible.
  */
 export function sitemapXml(today: string): string {
+  // Absolute URLs, computed once: a collection page declares every picture it
+  // lists, a single page declares its own.
+  const designs = ORDERED.map((t) => `${SITE}${templatePageImage(t.id)}`)
+  const slugs = librarySlugs()
+  const samples = slugs.map((slug) => `${SITE}${samplePageImage(slug)}`)
   const entries = [
     urlEntry(`${SITE}/`, today, 'weekly', '1.0'),
-    urlEntry(`${SITE}/templates`, today, 'weekly', '0.8', ORDERED),
-    ...ORDERED.map((t) => urlEntry(`${SITE}/templates/${t.id}`, today, 'monthly', '0.6', [t])),
-    urlEntry(`${SITE}/examples`, today, 'weekly', '0.8'),
-    ...librarySlugs().map((slug) => urlEntry(`${SITE}/examples/${slug}`, today, 'monthly', '0.6')),
+    urlEntry(`${SITE}/templates`, today, 'weekly', '0.8', designs),
+    ...ORDERED.map((t, i) => urlEntry(`${SITE}/templates/${t.id}`, today, 'monthly', '0.6', [designs[i]])),
+    urlEntry(`${SITE}/examples`, today, 'weekly', '0.8', samples),
+    ...slugs.map((slug, i) => urlEntry(`${SITE}/examples/${slug}`, today, 'monthly', '0.6', [samples[i]])),
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -410,16 +465,42 @@ ${entries.join('\n')}
 `
 }
 
-/** Breadcrumb structured data for one template page. Data, never script. */
+/**
+ * The structured data one template page carries: the trail back up, and which
+ * picture is the page's own. Data, never script.
+ *
+ * One @graph rather than two blocks, because the build and the live page write
+ * a single <script type="application/ld+json"> between them; primaryImageOfPage
+ * is how Google documents naming the image it should prefer for a page, which
+ * matters here because the page also lists every other design.
+ */
 export function breadcrumbJsonLd(id: string): string {
   const tpl = must(id)
+  const url = `${SITE}/templates/${tpl.id}`
   return JSON.stringify({
     '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE}/` },
-      { '@type': 'ListItem', position: 2, name: 'Résumé templates', item: `${SITE}/templates` },
-      { '@type': 'ListItem', position: 3, name: `${tpl.name} résumé template`, item: `${SITE}/templates/${tpl.id}` },
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': url,
+        url,
+        name: `${tpl.name} résumé template`,
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          contentUrl: `${SITE}${templatePageImage(tpl.id)}`,
+          width: PAGE_IMAGE_WIDTH,
+          height: templatePageImageHeight(tpl.id),
+          caption: imageAlt(tpl),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE}/` },
+          { '@type': 'ListItem', position: 2, name: 'Résumé templates', item: `${SITE}/templates` },
+          { '@type': 'ListItem', position: 3, name: `${tpl.name} résumé template`, item: url },
+        ],
+      },
     ],
   })
 }
@@ -560,7 +641,7 @@ function pagesBlock(): string {
 
 function resourcesBlock(): string {
   return [
-    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example).`,
+    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example), each naming the picture of the page it stands for — the whole résumé at 1200 px wide.`,
     `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
     `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file.`,
     `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/examples.md and ${SITE}/examples/<slug>.md, linked from the page as its text/markdown alternate.`,

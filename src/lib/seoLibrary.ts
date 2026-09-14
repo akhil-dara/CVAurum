@@ -19,6 +19,7 @@ import { relatedSamples } from '@/data/library/related'
 import { TEMPLATE_MAP } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
+import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 
 /** Canonical host — the same one siteCopy names, so there is one to change. */
 export const HOST = COPY.links.site
@@ -97,6 +98,60 @@ function when(start: string | undefined, end: string | undefined): string {
   return a ? `${a} – ${b}` : b
 }
 
+/* ------------------------------------------------------------- the pictures
+ * Every sample now has its OWN two files, rendered from its own résumé:
+ *
+ *   /img/examples/<slug>.webp   the page image — the whole résumé at 1200 px
+ *                               wide, lossless. A page of text is under half
+ *                               the bytes of JPEG q82 in lossless WebP AND
+ *                               bit-exact (measured), so this is the file a
+ *                               reader looks at and an image index crawls.
+ *   /og/examples/<slug>.jpg     the share card — 1200×630, JPEG only. og:image
+ *                               never points at the WebP: the big link-preview
+ *                               readers document JPG/PNG/GIF between them, and
+ *                               one has been measured failing on WebP.
+ *
+ * Before this, every example page pointed at the card of the design it happens
+ * to be set in, so a hundred pages advertised a picture of somebody else's
+ * résumé and dozens of them advertised the same one.
+ */
+
+/** A4 at 1200 px wide. Used only when the generated map has no entry for a
+ *  sample — a sample added before the images are rebuilt still ships a width
+ *  and a height rather than reflowing the page as the file lands. */
+const FALLBACK_HEIGHT = Math.round((PAGE_IMAGE_WIDTH * 297) / 210)
+
+/** The indexable picture of this sample's résumé. */
+export function samplePageImage(slug: string): string {
+  return `/img/examples/${slug}.webp`
+}
+
+/** Its intrinsic height: A4 and US Letter are different shapes, and a page
+ *  that declares the wrong one reserves the wrong box. */
+export function samplePageImageHeight(slug: string): number {
+  return PAGE_IMAGE_HEIGHT[`examples/${slug}`] ?? FALLBACK_HEIGHT
+}
+
+/** The link-preview card. JPEG, always — see the note above. */
+export function sampleShareCard(slug: string): string {
+  return `/og/examples/${slug}.jpg`
+}
+
+/**
+ * What the picture shows, in the order a person would say it: the job, the
+ * career stage, the country the résumé is written for, and the design it is
+ * set in. One helper for the whole collection, so the live route, the
+ * pre-rendered HTML and the Markdown twin cannot describe the same file three
+ * different ways — and no bullet prose from the résumé itself, which would be
+ * keyword stuffing rather than a description of an image.
+ */
+export function sampleImageAlt(slug: string): string {
+  const s = must(slug)
+  const tpl = TEMPLATE_MAP[s.template]
+  const stage = SENIORITY_LABELS[s.seniority].toLowerCase()
+  return `${s.role} résumé example — ${stage}, written for ${REGION_LABELS[s.region]}${tpl ? `, set in the ${tpl.name} design` : ''}`
+}
+
 export function samplePageMeta(slug: string): SamplePageMeta {
   const s = must(slug)
   const region = s.region === 'us' ? '' : ` (${REGION_LABELS[s.region]})`
@@ -104,9 +159,9 @@ export function samplePageMeta(slug: string): SamplePageMeta {
     path: `/examples/${s.slug}`,
     title: `${s.role} Résumé Example${region} — Free Template You Can Edit · CVAurum`,
     description: trim(s.blurb),
-    // A picture of the design it is shown in: the only real image this page
-    // has, and the link preview is better for it than for the site's default.
-    image: TEMPLATE_MAP[s.template] ? `/og/${s.template}.jpg` : '/og.png',
+    // This sample's own card, not the design's: the preview shows the résumé
+    // the page is about.
+    image: sampleShareCard(s.slug),
   }
 }
 
@@ -183,6 +238,21 @@ function resumeHtml(s: LibrarySample): string {
   return out.join('\n')
 }
 
+/**
+ * One picture of one sample's résumé, as real content.
+ *
+ * Only an <img src> is indexable — Google's image documentation says plainly
+ * that it does not index CSS images — and these pages carried no <img> at all,
+ * so 108 complete résumés were invisible to image search. The dimensions are
+ * explicit because the browser reserves the box from them, and the caption
+ * sits beside the alt because an image index reads the words around a picture.
+ */
+function figure(slug: string, eager: boolean): string {
+  const s = must(slug)
+  const tpl = TEMPLATE_MAP[s.template]
+  return `<figure><img src="${samplePageImage(slug)}" width="${PAGE_IMAGE_WIDTH}" height="${samplePageImageHeight(slug)}" alt="${htmlEscape(sampleImageAlt(slug))}" loading="${eager ? 'eager' : 'lazy'}" decoding="async"><figcaption>${htmlEscape(s.role)} résumé example${tpl ? `, in the ${htmlEscape(tpl.name)} design` : ''}</figcaption></figure>`
+}
+
 export function sampleStaticHtml(slug: string): string {
   const s = must(slug)
   const near = relatedSamples(slug, 8)
@@ -190,6 +260,7 @@ export function sampleStaticHtml(slug: string): string {
   return `<main class="seo-static">
     <p><a href="/examples">Résumé examples</a> › ${htmlEscape(s.role)}</p>
     <h1>${htmlEscape(s.role)} résumé example</h1>
+    ${figure(slug, true)}
     <p>${htmlEscape(s.blurb)}</p>
     <p>Written for ${htmlEscape(REGION_LABELS[s.region])}, at ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, in the ${htmlEscape(CATEGORY_LABELS[s.category].toLowerCase())} field${tpl ? `, shown in the <a href="/templates/${s.template}">${htmlEscape(tpl.name)}</a> design` : ''}. Every name, employer, address and number below is invented.</p>
     <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} résumé examples</a></p>
@@ -218,11 +289,14 @@ ${groups
   .map(
     (g) => `    <section>
       <h2>${htmlEscape(CATEGORY_LABELS[g.category])} résumé examples</h2>
-      <ul>
+      <ul class="seo-cards">
 ${g.items
   .map(
     (s) =>
-      `        <li><a href="/examples/${s.slug}">${htmlEscape(s.role)} résumé example</a> — ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, ${htmlEscape(REGION_LABELS[s.region])}</li>`
+      // Every listed sample shows its own page, lazily: 108 eager images on
+      // one shelf would download a hundred résumés nobody scrolled to, and
+      // native lazy loading is what Google documents as safe for indexing.
+      `        <li>${figure(s.slug, false)}<p><a href="/examples/${s.slug}">${htmlEscape(s.role)} résumé example</a> — ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, ${htmlEscape(REGION_LABELS[s.region])}</p></li>`
   )
   .join('\n')}
       </ul>
@@ -262,6 +336,10 @@ export function sampleMarkdown(slug: string): string {
     `# ${s.role} résumé example`,
     '',
     s.blurb,
+    '',
+    // The same picture the page shows, so the Markdown twin describes the
+    // same published files the HTML does.
+    `![${sampleImageAlt(s.slug)}](${HOST}${samplePageImage(s.slug)})`,
     '',
     `- Field: ${CATEGORY_LABELS[s.category]}`,
     `- Career stage: ${SENIORITY_LABELS[s.seniority]}`,
@@ -303,15 +381,42 @@ export function sampleMarkdown(slug: string): string {
 
 /* ------------------------------------------------------ structured data */
 
+/**
+ * The one structured-data block an example page carries: the trail back up,
+ * and which of the page's pictures is the page's own.
+ *
+ * Both live in a single @graph because the build and the live route write ONE
+ * <script type="application/ld+json"> between them, and primaryImageOfPage is
+ * how Google documents telling it which image to prefer for a page — worth
+ * saying on a shelf page that also links a hundred other résumés.
+ */
 export function sampleBreadcrumbJsonLd(slug: string): string {
   const s = must(slug)
+  const url = `${HOST}/examples/${s.slug}`
   return JSON.stringify({
     '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${HOST}/` },
-      { '@type': 'ListItem', position: 2, name: 'Résumé examples', item: `${HOST}/examples` },
-      { '@type': 'ListItem', position: 3, name: `${s.role} résumé example`, item: `${HOST}/examples/${s.slug}` },
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': url,
+        url,
+        name: `${s.role} résumé example`,
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          contentUrl: `${HOST}${samplePageImage(s.slug)}`,
+          width: PAGE_IMAGE_WIDTH,
+          height: samplePageImageHeight(s.slug),
+          caption: sampleImageAlt(s.slug),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${HOST}/` },
+          { '@type': 'ListItem', position: 2, name: 'Résumé examples', item: `${HOST}/examples` },
+          { '@type': 'ListItem', position: 3, name: `${s.role} résumé example`, item: url },
+        ],
+      },
     ],
   })
 }
@@ -329,6 +434,9 @@ export function examplesItemListJsonLd(): string {
       position: i + 1,
       name: `${s.role} résumé example`,
       url: `${HOST}/examples/${s.slug}`,
+      // The thumbnail the shelf shows for this sample, so the collection is
+      // described with the same pictures the page carries.
+      image: `${HOST}${samplePageImage(s.slug)}`,
     })),
   })
 }

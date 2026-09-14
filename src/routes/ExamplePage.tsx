@@ -17,6 +17,9 @@ import { useEffect, useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, ChevronRight, ShieldCheck, Wand2 } from 'lucide-react'
 import { getSample } from '@/data/library'
+// Written beside the images themselves, so the size in the markup is the size
+// of the file on disk and a page never reserves the wrong box for it.
+import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { sampleDoc } from '@/data/library/doc'
 import { relatedSamples, sampleShape } from '@/data/library/related'
 import { CATEGORY_LABELS, REGION_LABELS, SENIORITY_LABELS, type LibrarySample } from '@/data/library/types'
@@ -26,7 +29,14 @@ import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { useResumeActions } from '@/components/dashboard/newResume'
 import { cn } from '@/lib/utils'
 import { useSeo } from '@/lib/useSeo'
-import { HOST, sampleBreadcrumbJsonLd, samplePageMeta } from '@/lib/seoLibrary'
+import {
+  HOST,
+  sampleBreadcrumbJsonLd,
+  sampleImageAlt,
+  samplePageImage,
+  samplePageImageHeight,
+  samplePageMeta,
+} from '@/lib/seoLibrary'
 
 export function ExamplePage() {
   const { slug } = useParams<{ slug: string }>()
@@ -65,7 +75,6 @@ function Example({ sample }: { sample: LibrarySample }) {
   }, [sample.slug])
 
   const { create } = useResumeActions()
-  const doc = useMemo(() => sampleDoc(sample), [sample])
   const shape = useMemo(() => sampleShape(sample), [sample])
   const related = useMemo(() => relatedSamples(sample.slug), [sample.slug])
   const tpl = getTemplate(sample.template)
@@ -108,14 +117,29 @@ function Example({ sample }: { sample: LibrarySample }) {
               word below, which put the thing the visitor searched for a full
               screen past the fold. */}
           <div className="order-2 min-w-0 lg:order-1 lg:row-span-2">
-            {/* The sample's own words are not this page's content — keep them
-                out of a search snippet, as the gallery cards do. */}
-            <div
-              data-nosnippet
-              className="aspect-[210/297] w-full overflow-hidden rounded-xl border border-border bg-white shadow-card"
-            >
-              <PreviewThumb doc={doc} width={560} />
-            </div>
+            {/* The résumé, as the picture the export actually produces.
+
+                Not a rendering of it: this is the file the pre-rendered HTML
+                and the link card both point at, it is the page a reader would
+                get if they exported it, and it is the only thing here an image
+                search can see. At 1200px wide, shown at about 560, it also
+                resolves finer than the rendering it replaced - and the page no
+                longer lays out a whole résumé to show one.
+
+                The height is read rather than assumed: A4 and US Letter give
+                different aspect ratios, so it is recorded per sample when the
+                pictures are drawn. */}
+            <figure className="overflow-hidden rounded-xl border border-border bg-white shadow-card">
+              <img
+                src={samplePageImage(sample.slug)}
+                width={PAGE_IMAGE_WIDTH}
+                height={samplePageImageHeight(sample.slug)}
+                alt={sampleImageAlt(sample.slug)}
+                className="block h-auto w-full"
+                loading="eager"
+                decoding="async"
+              />
+            </figure>
             <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
               Shown in the {tpl.name} design. Switching design later keeps every word.
             </p>

@@ -32,7 +32,14 @@
     <meta name="keywords" content="free resume builder, open source resume builder, private resume builder, offline resume builder, ATS resume builder, resume builder no sign up, local resume builder, JSON Resume" />
     <meta name="author" content="Akhil Dara" />
     <meta name="application-name" content="CVAurum" />
-    <meta name="robots" content="index, follow" />
+    <!-- max-image-preview:large is what lets a result show the résumé page
+         image at full width. Without it Google is documented to fall back to
+         a thumbnail-sized preview, which is the whole point of rendering a
+         1200px-wide picture of every design and every example. No
+         max-video-preview: the site has no video. No max-snippet either —
+         the résumé text itself is deliberately marked data-nosnippet, so a
+         longer snippet is not something these pages are asking for. -->
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
     <link rel="canonical" href="https://cvaurum.com/" />
