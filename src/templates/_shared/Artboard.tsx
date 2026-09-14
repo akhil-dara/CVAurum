@@ -5,6 +5,7 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { ResumeDocument } from '@/types/document'
+import { contactLines } from './contacts'
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
@@ -26,6 +27,7 @@ import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
 import { ART_BAND_GROUNDS, artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
+import { useEditorStore } from '@/store/useEditorStore'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
 
@@ -213,38 +215,26 @@ interface ContactEntry {
   href?: string
 }
 
+/** The shared list, wearing icons. Which rows there are, in which order and
+ *  what words they carry is contacts.ts's answer - the ATS text reads the same
+ *  list, and the two drifted for as long as each built its own. */
 function buildContacts(doc: ResumeDocument): ContactEntry[] {
-  const b = doc.content.basics
-  // How URLs READ is the author's choice; where they POINT never changes.
-  const disp = doc.metadata.links?.display ?? 'pretty'
-  const out: ContactEntry[] = []
   const { Mail, Phone, Globe, MapPin } = ContactIcons
-  const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
-  const email = cleanEmail(b.email)
-  if (email) out.push({ icon: <Mail />, text: email, href: `mailto:${email}` })
-  if (b.phone) out.push({ icon: <Phone />, text: b.phone, href: `tel:${b.phone.replace(/[^\d+]/g, '')}` })
-  if (loc) out.push({ icon: <MapPin />, text: loc })
-  // The author's own words win over anything derived from the address: a link
-  // labelled "Portfolio" is what they typed, not what the URL happens to say.
-  if (b.url || b.urlLabel) {
-    const UrlIcon = b.urlIcon ? contactIcon(undefined, b.urlIcon) : Globe
-    out.push({ icon: <UrlIcon />, text: b.urlLabel?.trim() || prettyUrl(b.url, disp), href: safeHref(b.url) })
-  }
-  for (const p of b.profiles ?? []) {
-    const Icon = contactIcon(p.network, p.icon)
-    // Keep profiles legible even when the template hides icons: prefer the clean
-    // URL (so LinkedIn vs GitHub is obvious), else show "Network · handle" rather
-    // than a bare, ambiguous username.
-    const handle = (p.username || '').replace(/^@+/, '')
-    const text =
-      p.label?.trim() ||
-      prettyUrl(p.url, disp) ||
-      (p.network ? (handle ? `${p.network} · ${handle}` : p.network) : handle)
-    // Same rule as the canvas: no address and no handle means no contact,
-    // however the row happens to be named.
-    if (text && (p.url?.trim() || handle)) out.push({ icon: <Icon />, text, href: safeHref(p.url) })
-  }
-  return out
+  return contactLines(doc).map((c) => {
+    const Icon =
+      c.kind === 'email'
+        ? Mail
+        : c.kind === 'phone'
+          ? Phone
+          : c.kind === 'location'
+            ? MapPin
+            : c.kind === 'url'
+              ? c.icon
+                ? contactIcon(undefined, c.icon)
+                : Globe
+              : contactIcon(c.network, c.icon)
+    return { icon: <Icon />, text: c.text, href: c.href }
+  })
 }
 
 /**
@@ -861,6 +851,19 @@ function Header({
   )
 }
 
+/**
+ * Opens the Design panel at the row that turns the running section numbers
+ * on and off (DesignPanel listens for the event). Same shape as the Magic
+ * fit chip's opener: the tab and the panel first, the event a beat later, so
+ * the panel is mounted and listening by the time it lands.
+ */
+function openSectionNumbers() {
+  const ed = useEditorStore.getState()
+  ed.setLeftTab('design')
+  ed.setLeftOpen(true)
+  setTimeout(() => window.dispatchEvent(new Event('cvaurum:open-section-numbers')), 80)
+}
+
 function Section({
   sectionKey,
   doc,
@@ -901,7 +904,11 @@ function Section({
   const keepEntries = compact || keepEntriesOn(doc.metadata.page, ss)
   const cls = [
     'rm-section',
-    ...sectionOverrideClasses(ss),
+    // The document's own heading style rides in here as the section's
+    // default: sectionOverrideClasses resolves section-over-document, so one
+    // choice in Design restyles every heading and a section that decided for
+    // itself still wins.
+    ...sectionOverrideClasses(ss, doc.metadata.typography),
     ...(keepEntries ? ['rm-keep-entries'] : []),
     ...(compact ? ['rm-section-compact'] : []),
   ].join(' ')
@@ -925,7 +932,25 @@ function Section({
   return (
     <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
-      <h2 className="rm-section-title">
+      <h2
+        className="rm-section-title"
+        // A running numeral is decoration - an aria-hidden outline, not
+        // editable text - so a click on one cannot edit it in place. It asks
+        // the Design panel for the switch that draws it, the way a stat tile
+        // asks the header for its Numbers group. People who dislike the
+        // numerals had nothing to click, and on every design but the two
+        // that ship them, no switch to find at all (measured: 2 of 58).
+        // Delegated from the heading rather than wrapped around the
+        // numeral: the edit tree and the export tree have to hold the same
+        // elements, and a wrapper would exist in only one of them.
+        onClick={
+          edit && number
+            ? (e) => {
+                if ((e.target as HTMLElement).closest('.rm-section-number')) openSectionNumbers()
+              }
+            : undefined
+        }
+      >
         {showIcon ? <SectionIcon sectionKey={sectionKey} style={iconStyle} /> : null}
         {number ? <Deco className="rm-section-number">{number}</Deco> : null}
         {/* A linked heading points where the author says, and the exporter

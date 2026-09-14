@@ -17,6 +17,7 @@ import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
 import { currentYearMonth, entryDateOptions, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
+import { contactLines, levelIsText } from '@/templates/_shared/contacts'
 import { entryMetaOf, entryOrderOf, linkStyleOf } from '@/templates/_shared/sectionClasses'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
@@ -39,11 +40,22 @@ function heading(label: string): string[] {
   return ['', label, '='.repeat(Math.max(6, Math.min(label.length, 28)))]
 }
 
-/** An entry's two head lines in the order the page prints them - the section
- *  says whether the organisation leads - then its date and location line.
- *  The pair is named in the order the page and the Word file name it: the
- *  location leads once the section prints it beside the date, and follows
- *  the date while it sits on the sub-line under the title. */
+/**
+ * An entry's two lines, in the order the page prints them.
+ *
+ * The page draws the title and the DATE on one row - the date at the far edge
+ * of it - and the organisation with the location on the row beneath. This used
+ * to emit title, organisation, then date, which put the employer where the
+ * file puts the date and the date where the file puts the employer. A parser
+ * binds an employer by what sits next to the title, so the panel was showing a
+ * structure the exported file does not have (measured: eleven tokens out of
+ * sequence on every design in the registry).
+ *
+ * The section says whether the organisation leads, and whether the location
+ * rides the head row beside the date rather than the sub-line. Which EDGE the
+ * date sits on is ink - a text file has no columns - so dateAlign never
+ * reaches these lines.
+ */
 function entryHead(
   title?: string,
   org?: string,
@@ -54,15 +66,15 @@ function entryHead(
 ): string[] {
   const out: string[] = []
   const [first, second] = orgFirst ? [org, title] : [title, org]
-  if (first) out.push(first)
-  if (second) out.push(second)
-  const meta = locWithDate ? line(loc, date) : line(date, loc)
-  if (meta) out.push(meta)
+  const head = line(first, locWithDate ? line(loc, date) : date)
+  if (head) out.push(head)
+  const sub = locWithDate ? second : line(second, loc)
+  if (sub) out.push(sub)
   return out
 }
 
 /** Serialize one section's content to plain lines. Returns [] when empty. */
-function sectionText(key: string, doc: ResumeDocument): string[] {
+function sectionText(key: string, doc: ResumeDocument, compact = false): string[] {
   const c = doc.content
   const label = sectionLabel(key, doc)
   const settings = doc.metadata.layout.sectionSettings?.[key]
@@ -150,13 +162,18 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
       )
       break
     case 'languages':
-      push(c.languages.filter((l) => l.language).map((l) => line(l.language, l.fluency)))
+      // Only the words the file actually carries: with a dots, bars or stars
+      // meter the level is vector marks and the text layer has the language
+      // name alone.
+      push(c.languages.filter((l) => l.language).map((l) => line(l.language, levelIsText(doc, 'languages', l.rating, compact) ? l.fluency : undefined)))
       break
     case 'certificates':
+      // Name and date share the head row, issuer beneath - the shape the page
+      // draws and therefore the shape the file carries. See entryHead.
       push(
         c.certificates
           .filter((x) => x.name)
-          .map((x) => line(x.name, verified(x.issuer, x.url, x.urlLabel), formatDate(x.date, dates))),
+          .flatMap((x) => [line(x.name, formatDate(x.date, dates)), verified(x.issuer, x.url, x.urlLabel) ?? ''].filter(Boolean)),
       )
       break
     case 'awards':
@@ -164,7 +181,8 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         c.awards
           .filter((a) => a.title)
           .flatMap((a) => [
-            line(a.title, verified(a.awarder, a.url, a.urlLabel), formatDate(a.date, dates)),
+            line(a.title, formatDate(a.date, dates)),
+            ...(verified(a.awarder, a.url, a.urlLabel) ? [verified(a.awarder, a.url, a.urlLabel) as string] : []),
             ...(htmlToText(a.summary) ? [htmlToText(a.summary)] : []),
           ]),
       )
@@ -174,7 +192,8 @@ function sectionText(key: string, doc: ResumeDocument): string[] {
         c.publications
           .filter((p) => p.name)
           .flatMap((p) => [
-            line(p.name, p.publisher, formatDate(p.releaseDate, dates)),
+            line(p.name, formatDate(p.releaseDate, dates)),
+            ...(p.publisher ? [p.publisher] : []),
             ...(htmlToText(p.summary) ? [htmlToText(p.summary)] : []),
           ]),
       )
@@ -239,23 +258,16 @@ export function resumeToAtsText(doc: ResumeDocument): string {
   if (b.name) head.push(b.name)
   if (b.label) head.push(b.label)
   head.push('')
-  const email = cleanEmail(b.email)
-  if (email) head.push(email)
-  if (b.phone) head.push(b.phone)
-  const linkDisplay = doc.metadata.links?.display
-  // A named contact link reads as its name here too. The page shows Portfolio;
-  // this used to show myportfolio.com/work, so the ATS preview disagreed with
-  // the document it was previewing.
-  if (b.url) head.push(linkWords(b.url, b.urlLabel, linkDisplay))
-  for (const p of b.profiles ?? []) {
-    const t = linkWords(p.url, p.label, linkDisplay) || [p.network, p.username].filter(Boolean).join(' ')
-    if (t) head.push(t)
-  }
-  const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
-  if (loc) head.push(loc)
+  // The page's own list, in the page's own order - email, phone, location,
+  // site, profiles. This block used to build a second one, which put the
+  // location last and named links by a different rule, so the panel showed a
+  // reading order the exported file does not have.
+  for (const c of contactLines(doc)) head.push(c.text)
 
   const order = atsSectionOrder(main, aside, twoCol, footer)
-  const body = order.flatMap((key) => sectionText(key, doc))
+  // A section in the footer strip renders through the compact row, which
+  // words its levels differently - the serializer has to know which it is.
+  const body = order.flatMap((key) => sectionText(key, doc, footer.includes(key)))
 
   return [...head, ...body].join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
 }

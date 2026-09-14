@@ -220,6 +220,13 @@ describe('resumeToAtsText leads each entry with the field the section leads with
   // The page can put the organisation above the title in a section; the text
   // a parser reads must list the two lines in the same order. Emphasis is
   // ink, not words: which line is bold changes nothing here.
+  //
+  // The DATE rides the head row beside whichever field leads, because that is
+  // where the page draws it - at the far edge of the title's own row, with the
+  // organisation and the location on the row beneath. These expectations used
+  // to read title, organisation, date, which puts the employer where the file
+  // puts the date; against the exported text layer of all 67 designs that was
+  // eleven tokens out of sequence on every one of them.
   const docWith = (sectionSettings: Record<string, unknown> = {}): ResumeDocument =>
     ({
       id: 'res-1',
@@ -250,25 +257,25 @@ describe('resumeToAtsText leads each entry with the field the section leads with
 
   it('title first by default: position, then company; degree, then school', () => {
     const text = resumeToAtsText(docWith())
-    expect(text).toContain('Engineer\nAcme\nJan 2019 — Mar 2021  ·  Austin')
-    expect(text).toContain('BSc, Computer Science\nState University\n2015 — 2019')
-    expect(text).toContain('Driver\nFood Bank\n2020 — 2021')
-    expect(text).toContain('Keynote\nDevConf\n2022  ·  Berlin')
+    expect(text).toContain('Engineer  ·  Jan 2019 — Mar 2021\nAcme  ·  Austin')
+    expect(text).toContain('BSc, Computer Science  ·  2015 — 2019\nState University')
+    expect(text).toContain('Driver  ·  2020 — 2021\nFood Bank')
+    expect(text).toContain('Keynote  ·  2022\nDevConf  ·  Berlin')
   })
 
   it('organisation first swaps the two lines in that section, and in no other', () => {
     const text = resumeToAtsText(docWith({ work: { entryOrder: 'org-first' }, custom: { entryOrder: 'org-first' } }))
-    expect(text).toContain('Acme\nEngineer\nJan 2019 — Mar 2021  ·  Austin')
-    expect(text).toContain('BSc, Computer Science\nState University\n')
-    expect(text).toContain('Driver\nFood Bank\n')
+    expect(text).toContain('Acme  ·  Jan 2019 — Mar 2021\nEngineer  ·  Austin')
+    expect(text).toContain('BSc, Computer Science  ·  2015 — 2019\nState University')
+    expect(text).toContain('Driver  ·  2020 — 2021\nFood Bank')
     // A custom section's settings are keyed by its own key, not by 'custom'.
-    expect(text).toContain('Keynote\nDevConf\n')
+    expect(text).toContain('Keynote  ·  2022\nDevConf  ·  Berlin')
     const each = resumeToAtsText(
       docWith({ education: { entryOrder: 'org-first' }, volunteer: { entryOrder: 'org-first' }, 'custom-x1': { entryOrder: 'org-first' } }),
     )
-    expect(each).toContain('State University\nBSc, Computer Science\n2015 — 2019')
-    expect(each).toContain('Food Bank\nDriver\n2020 — 2021')
-    expect(each).toContain('DevConf\nKeynote\n2022  ·  Berlin')
+    expect(each).toContain('State University  ·  2015 — 2019\nBSc, Computer Science')
+    expect(each).toContain('Food Bank  ·  2020 — 2021\nDriver')
+    expect(each).toContain('DevConf  ·  2022\nKeynote  ·  Berlin')
   })
 
   it('is byte-identical whichever line is bold', () => {
@@ -319,13 +326,13 @@ describe('resumeToAtsText follows the section on the meta line', () => {
     expect(resumeToAtsText(docWith({ work: moved, education: moved, 'custom-x1': moved }))).toBe(stock)
   })
 
-  it('prints the date and then the location while the location is on the sub-line', () => {
-    expect(resumeToAtsText(docWith())).toContain('Engineer\nAcme\nJan 2019 — Mar 2021  ·  Austin')
+  it('keeps the location with the organisation while it sits on the sub-line', () => {
+    expect(resumeToAtsText(docWith())).toContain('Engineer  ·  Jan 2019 — Mar 2021\nAcme  ·  Austin')
   })
 
-  it('leads with the location once the section prints it beside the date', () => {
+  it('moves the location up beside the date once the section prints it there', () => {
     const text = resumeToAtsText(docWith({ work: { locationPlacement: 'with-date' } }))
-    expect(text).toContain('Engineer\nAcme\nAustin  ·  Jan 2019 — Mar 2021')
+    expect(text).toContain('Engineer  ·  Austin  ·  Jan 2019 — Mar 2021\nAcme')
   })
 })
 
