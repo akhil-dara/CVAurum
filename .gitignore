@@ -30,3 +30,7 @@ pnpm-debug.log*
 # internal process docs - kept locally, never published
 docs/superpowers/
 docs/PDF-RENDERER.md
+
+# Python bytecode from the build scripts
+__pycache__/
+*.pyc
