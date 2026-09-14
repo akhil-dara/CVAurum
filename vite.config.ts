@@ -331,6 +331,11 @@ export default defineConfig({
           '**/semantic.worker-*.js',
           '**/fonts-pdf/*.ttf',
           'templates/*.html',
+          // Same reason as the line above: the pre-rendered per-sample pages
+          // exist for a crawler. The app serves /examples/<slug> from the
+          // shell, so precaching 108 of them bought nothing offline and cost
+          // about four megabytes of first load.
+          'examples/*.html',
           ...nonLatinFontFiles(),
         ],
         // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
