@@ -84,25 +84,49 @@ function Example({ sample }: { sample: LibrarySample }) {
           </span>
         </nav>
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="mt-6 grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          {/* What it is and the one button, first on every width. */}
           <div className="order-1 lg:order-2">
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{sample.role} résumé example</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{sample.blurb}</p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button className="btn-primary" onClick={() => create(true, sample.template, sample.content, sample.tweaks)}>
+              <button
+                className="btn-primary"
+                onClick={() => create(true, sample.template, sample.content, sample.tweaks, `${sample.role} resume`)}
+              >
                 <Wand2 className="h-4 w-4" /> Use this example
               </button>
               <Link className="btn-outline" to="/examples">
                 All examples
               </Link>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          </div>
+
+          {/* Then the résumé itself. On a phone it used to come after every
+              word below, which put the thing the visitor searched for a full
+              screen past the fold. */}
+          <div className="order-2 min-w-0 lg:order-1 lg:row-span-2">
+            {/* The sample's own words are not this page's content — keep them
+                out of a search snippet, as the gallery cards do. */}
+            <div
+              data-nosnippet
+              className="aspect-[210/297] w-full overflow-hidden rounded-xl border border-border bg-white shadow-card"
+            >
+              <PreviewThumb doc={doc} width={560} />
+            </div>
+            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
+              Shown in the {tpl.name} design. Switching design later keeps every word.
+            </p>
+          </div>
+
+          <div className="order-3">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Opens the editor with this résumé in place — replace the words with your own. Free, no account, and
               everything stays in this browser. Every name, employer and number in it is invented.
             </p>
 
-            <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-6 text-sm">
+            <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-5 text-sm">
               <Fact label="Field" value={CATEGORY_LABELS[sample.category]} />
               <Fact label="Career stage" value={SENIORITY_LABELS[sample.seniority]} />
               <Fact label="Written for" value={REGION_LABELS[sample.region]} />
@@ -161,19 +185,6 @@ function Example({ sample }: { sample: LibrarySample }) {
             </div>
           </div>
 
-          <div className="order-2 min-w-0 lg:order-1">
-            {/* The sample's own words are not this page's content — keep them
-                out of a search snippet, as the gallery cards do. */}
-            <div
-              data-nosnippet
-              className="aspect-[210/297] w-full overflow-hidden rounded-xl border border-border bg-white shadow-card"
-            >
-              <PreviewThumb doc={doc} width={560} />
-            </div>
-            <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
-              Shown in the {tpl.name} design. Switching design later keeps every word.
-            </p>
-          </div>
         </div>
 
         {related.length > 0 && (

@@ -11,7 +11,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Plus, Search, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, Plus, Search, SlidersHorizontal, X } from 'lucide-react'
 import { LIBRARY } from '@/data/library'
 import { sampleDoc } from '@/data/library/doc'
 import {
@@ -66,6 +66,11 @@ export function Examples() {
   const searchRef = useRef<HTMLInputElement>(null)
   const [chooser, setChooser] = useState(false)
   const [sampleOpen, setSampleOpen] = useState(false)
+  // On a phone the three chip rows stood between the heading and the first
+  // example - measured at 375x812, the grid began two screens down. They fold
+  // away behind a count there, and are always open from `sm` up, where they
+  // cost one row and are worth seeing.
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [params, setParams] = useSearchParams()
   // Keyed on the query STRING: the params object is fresh every render, so
@@ -78,6 +83,7 @@ export function Examples() {
 
   const shown = useMemo(() => filterLibrary(LIBRARY, filter), [filter])
   const active = isLibraryFilterActive(filter)
+  const chosenCount = filter.categories.length + filter.seniorities.length + filter.regions.length
   const counts = useMemo(
     () => ({
       categories: facetCounts(LIBRARY, filter, 'categories'),
@@ -154,6 +160,25 @@ export function Examples() {
             />
           </label>
 
+          <button
+            type="button"
+            className="btn-outline btn-sm w-full justify-between sm:hidden"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <span className="inline-flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+              {chosenCount > 0 && (
+                <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
+                  {chosenCount}
+                </span>
+              )}
+            </span>
+            <ChevronDown className={cn('h-4 w-4 transition-transform', filtersOpen && 'rotate-180')} />
+          </button>
+
+          <div className={cn('space-y-4', !filtersOpen && 'hidden sm:block')}>
           <FacetRow
             legend="Field"
             choices={CATEGORY_CHOICES}
@@ -175,6 +200,7 @@ export function Examples() {
             counts={counts.regions}
             onToggle={(value) => apply({ ...filter, regions: toggleFacet(filter.regions, value) })}
           />
+          </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
@@ -200,7 +226,12 @@ export function Examples() {
             </button>
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          // Two to a row on a phone rather than one. A full-width A4 thumbnail
+          // is taller than the screen, which made a hundred and eight of them
+          // about a hundred and fifty screens of scrolling; at half the width
+          // the page is still recognisable as a shape, which is what a card is
+          // for.
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {shown.map((s) => (
               <SampleCard key={s.slug} sample={s} onPick={() => create(true, s.template, s.content, s.tweaks)} />
             ))}
