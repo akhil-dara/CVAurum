@@ -17,6 +17,16 @@
   Vary: Accept
 /templates/*
   Vary: Accept
+/examples
+  Vary: Accept
+/examples/*
+  Vary: Accept
+/prompts
+  Vary: Accept
+# The prompt library has a Markdown twin beside it (/prompts.md) like every
+# other public page, so it takes the same Vary.
+/prompts
+  Vary: Accept
 # The pictures of résumés: the full-size page images (/img/templates/<id>.webp,
 # /img/examples/<slug>.webp) and the share cards (/og/<id>.jpg,
 # /og/examples/<slug>.jpg). 350 files — 17.1 MB of page images plus the smaller

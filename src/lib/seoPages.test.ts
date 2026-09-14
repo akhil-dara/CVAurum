@@ -28,7 +28,18 @@ import {
   llmsFullTxt,
   siteUrls,
   orderedSampleSlugs,
+  PROMPTS,
+  PROMPTS_INTRO,
+  SCHEMA_DOC,
+  documentSections,
+  documentShape,
+  documentShapeMarkdown,
+  promptsMarkdown,
+  promptsPageMeta,
+  promptsStaticHtml,
+  skillMd,
 } from '@/lib/seoPages'
+import { ResumeContentSchema } from '@/types/document'
 import { SITE as COPY } from '@/data/siteCopy'
 
 /** Every /templates/<id> link in a block of HTML, in order. */
@@ -152,7 +163,9 @@ describe('the HTML a crawler reads without running the app', () => {
 describe('the sitemap', () => {
   const xml = sitemapXml('2026-09-08')
 
-  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 3
+  // Home, the gallery, the example shelf and the prompt library, plus one
+  // page per design and one per example.
+  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 4
 
   it('lists the landing page, both collections and every page in them', () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
@@ -162,9 +175,10 @@ describe('the sitemap', () => {
     const designs = allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`)
     expect(locs.slice(2, 2 + designs.length)).toEqual(designs)
     expect(locs[2 + designs.length]).toBe('https://cvaurum.com/examples')
-    expect(locs.slice(3 + designs.length)).toEqual(
+    expect(locs.slice(3 + designs.length, -1)).toEqual(
       orderedSampleSlugs().map((slug) => `https://cvaurum.com/examples/${slug}`)
     )
+    expect(locs[locs.length - 1]).toBe('https://cvaurum.com/prompts')
   })
 
   it('stamps every entry with the day it was generated', () => {
@@ -192,6 +206,9 @@ describe('the sitemap', () => {
     for (const [i, slug] of slugs.entries()) {
       expect(imgs[3 + designs.length + i], slug).toEqual([`https://cvaurum.com${samplePageImage(slug)}`])
     }
+    // The prompt library is words, not pictures; it declares none rather than
+    // borrowing the site's default card as though it were page content.
+    expect(imgs[imgs.length - 1]).toEqual([])
   })
 
   it('gives every image an absolute URL on this site', () => {
@@ -212,10 +229,13 @@ describe('the sitemap', () => {
   it('ranks the landing page above a collection above a single page in one', () => {
     const p = [...xml.matchAll(/<priority>([^<]+)<\/priority>/g)].map((m) => m[1])
     expect(p[0]).toBe('1.0')
-    // Both collection pages rank above the pages inside them.
+    // Every collection page ranks above the pages inside it; the prompt
+    // library is one too, and is the last entry.
     expect(p[1]).toBe('0.8')
     expect(p[2 + TEMPLATES.length]).toBe('0.8')
-    const inner = p.filter((_, i) => i !== 0 && i !== 1 && i !== 2 + TEMPLATES.length)
+    expect(p[p.length - 1]).toBe('0.8')
+    const collections = new Set([0, 1, 2 + TEMPLATES.length, p.length - 1])
+    const inner = p.filter((_, i) => !collections.has(i))
     expect(new Set(inner)).toEqual(new Set(['0.6']))
   })
 })
@@ -375,11 +395,22 @@ describe('llms.txt', () => {
     for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
     expect(t).toContain('https://cvaurum.com/sitemap.xml')
     expect(t).toContain('https://cvaurum.com/robots.txt')
-    // Home, the gallery, one line per design, and the library's shelf - the
-    // library's own pages live in the sitemap and examples.md, not here.
-    expect(siteUrls()).toHaveLength(TEMPLATES.length + 3)
+    // Home, the gallery, one line per design, the library's shelf and the
+    // prompt library - the library's own pages live in the sitemap and
+    // examples.md, not here.
+    expect(siteUrls()).toHaveLength(TEMPLATES.length + 4)
     for (const u of siteUrls()) expect(t).toContain(`- ${u}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
+  })
+  // The question people ask about a designed résumé is whether the decoration
+  // lands in the text a parser reads. The answer is measured, so it has to be
+  // findable in the file an assistant reads, not only on the page.
+  it('carries the measured account of what reaches the text layer', () => {
+    for (const t of [llmsTxt(), llmsFullTxt()]) {
+      expect(t).toContain("## What reaches the exported file's text layer")
+      for (const line of COPY.textLayer) expect(t).toContain(line)
+    }
+    expect(landingStaticHtml()).toContain(htmlEscape(COPY.textLayer[0]).replace(/"/g, '&quot;'))
   })
   it('the full text names every template with its page, without superlatives', () => {
     const t = llmsFullTxt()
@@ -389,5 +420,125 @@ describe('llms.txt', () => {
     for (const r of COPY.comparison) expect(t).toContain(`| ${r.capability} |`)
     for (const f of COPY.faq) expect(t).toContain(`**${f.q}**`)
     expect(t).toContain('## Sitemap')
+  })
+})
+
+/**
+ * The prompt library at /prompts.
+ *
+ * A prompt that names a field the importer does not read produces an answer
+ * that silently loses half a résumé, so the field names are the thing worth
+ * testing: they are generated from the same Zod schemas io.ts validates
+ * against, and no prompt is allowed to spell one out itself.
+ */
+describe('the document shape an assistant is handed', () => {
+  it('lists every top-level section the importer reads', () => {
+    expect(documentSections()).toEqual(Object.keys(ResumeContentSchema.shape))
+    const md = documentShapeMarkdown()
+    for (const section of documentSections()) expect(md, section).toContain(`\`${section}\``)
+  })
+
+  it('reads the field names out of the schema, never a copy of them', () => {
+    const lines = documentShape()
+    const work = lines.find((l) => l.path === 'work[]')!
+    expect(work.fields).toEqual(Object.keys(ResumeContentSchema.shape.work._def.innerType.element.shape))
+    // Nested objects and arrays-of-objects get their own line, or a prompt
+    // that mentions basics.location would be pointing at nothing.
+    expect(lines.map((l) => l.path)).toEqual(
+      expect.arrayContaining(['basics', 'basics.location', 'basics.profiles[]', 'custom[]', 'custom[].items[]'])
+    )
+  })
+
+  it('is published where the prompts point, inside SKILL.md', () => {
+    const skill = skillMd()
+    expect(SCHEMA_DOC).toBe('https://cvaurum.com/skills/cvaurum/SKILL.md')
+    expect(skill).toContain('## The document shape')
+    expect(skill).toContain(documentShapeMarkdown())
+    expect(skill).toContain('/prompts')
+  })
+})
+
+describe('the prompt library', () => {
+  it('covers the jobs people bring, each a complete piece of writing', () => {
+    expect(PROMPTS.length).toBeGreaterThanOrEqual(5)
+    expect(new Set(PROMPTS.map((p) => p.id)).size).toBe(PROMPTS.length)
+    for (const p of PROMPTS) {
+      expect(p.id, p.id).toMatch(/^[a-z0-9-]+$/)
+      expect(p.title.length, p.id).toBeGreaterThan(10)
+      expect(p.when.length, p.id).toBeGreaterThan(30)
+      expect(p.prompt.length, p.id).toBeGreaterThan(300)
+      expect(p.after.length, p.id).toBeGreaterThan(30)
+    }
+  })
+
+  // The whole point of the format choice: an answer that is JSON Resume is an
+  // answer this app imports. A prompt that forgot to ask for it is a prompt
+  // whose answer has to be retyped.
+  it('asks for JSON Resume and points at the generated field list', () => {
+    const needsSchema = PROMPTS.filter((p) => /JSON Resume document/.test(p.prompt))
+    expect(needsSchema.length).toBeGreaterThanOrEqual(4)
+    for (const p of PROMPTS) expect(p.prompt, p.id).toMatch(/JSON Resume/)
+    expect(PROMPTS.filter((p) => p.prompt.includes(SCHEMA_DOC)).length).toBeGreaterThanOrEqual(3)
+  })
+
+  // A prompt is where an assistant is told what it may not do, and this is
+  // the thing it must not do.
+  it('forbids inventing experience where a prompt could produce it', () => {
+    // The prohibition is spelled differently in each prompt because each one
+    // is written, not templated — what every one of them has to carry is an
+    // explicit refusal to add something the person did not give it.
+    const refusal = /\b(do not (invent|guess|add)|may not invent|without adding anything|only what (is in|I told you|the résumé)|built only from)\b/i
+    for (const p of PROMPTS) expect(p.prompt, p.id).toMatch(refusal)
+  })
+
+  // Every field name a prompt mentions has to exist, or the answer arrives
+  // with that part of the résumé dropped on import.
+  it('never names a field the schema does not have', () => {
+    const known = new Set<string>(['meta', 'meta.cvaurum'])
+    for (const line of documentShape()) {
+      const base = line.path.replace(/\[\]/g, '')
+      known.add(base)
+      for (const f of line.fields) {
+        known.add(f)
+        known.add(`${base}.${f}`)
+      }
+    }
+    // Every dotted or bracketed word in a prompt that LOOKS like a field path.
+    for (const p of PROMPTS) {
+      const mentioned = [...p.prompt.matchAll(/\b([a-z]+(?:\[\])?(?:\.[a-zA-Z]+)+)\b/g)]
+        .map((m) => m[1].replace(/\[\]/g, ''))
+        // 'jsonresume.org' and the like are addresses, not paths.
+        .filter((s) => !/^(www|https?|jsonresume|cvaurum)\b/.test(s) && !/\.(org|com|md|json|txt)$/.test(s))
+      for (const path of mentioned) expect(known.has(path), `${p.id}: ${path}`).toBe(true)
+    }
+  })
+
+  it('gives the page a head, a crawler block and a Markdown twin that agree', () => {
+    const meta = promptsPageMeta()
+    expect(meta.path).toBe('/prompts')
+    expect(meta.description.length).toBeLessThanOrEqual(DESC_MAX)
+    expect(meta.image.endsWith('.webp')).toBe(false)
+
+    const html = promptsStaticHtml()
+    const md = promptsMarkdown()
+    expect(html).toContain(`<h1>${PROMPTS.length} résumé prompts for an AI assistant</h1>`)
+    expect(html).toContain(htmlEscape(PROMPTS_INTRO))
+    expect(md.startsWith(`# ${PROMPTS.length} résumé prompts`)).toBe(true)
+    for (const p of PROMPTS) {
+      // The prompt itself is the page's content: a crawler and an assistant
+      // both get the whole text, not a title and a button.
+      expect(html, p.id).toContain(`id="${p.id}"`)
+      expect(html, p.id).toContain(htmlEscape(p.prompt))
+      expect(md, p.id).toContain(p.prompt)
+      expect(md, p.id).toContain(`## ${p.title}`)
+    }
+    expect(html).not.toMatch(/<script/i)
+  })
+
+  it('is listed among the pages and in the sitemap a machine reader is given', () => {
+    const t = llmsTxt()
+    expect(t).toContain('https://cvaurum.com/prompts')
+    expect(siteUrls()).toContain('https://cvaurum.com/prompts')
+    expect(sitemapXml('2026-09-08')).toContain('<loc>https://cvaurum.com/prompts</loc>')
   })
 })

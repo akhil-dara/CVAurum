@@ -23,6 +23,36 @@ const find = (d: ResumeDocument, id: string, measured = {}): AtsCheck => {
 
 const bullet = (text: string) => text
 
+/**
+ * A document whose ONLY bullets are the ones under test.
+ *
+ * Every bullet in the document is read, not just the ones in `work`, so the
+ * sample's own projects and volunteering would otherwise decide the answer.
+ * The summary goes too: three of the rules read it as well as the bullets.
+ */
+const withBullets = (highlights: string[], summary = '') => {
+  const d = doc({
+    projects: [],
+    volunteer: [],
+    custom: [],
+    work: [
+      {
+        id: 'w0',
+        name: 'Company',
+        position: 'Engineer',
+        location: 'Austin, TX',
+        url: '',
+        startDate: '2020-01',
+        endDate: '',
+        summary: '',
+        highlights,
+      },
+    ],
+  })
+  d.content.basics = { ...d.content.basics, summary }
+  return d
+}
+
 describe('the page count', () => {
   it('uses what the app measured rather than a guess at the word count', () => {
     const d = doc()
@@ -169,6 +199,33 @@ describe('skills', () => {
     const skills = [{ id: 's1', name: '', level: '', keywords: Array.from({ length: 30 }, (_, i) => `skill${i}`) }]
     expect(find(doc({ skills }), 'skillGroups').status).toBe('warn')
   })
+
+  it('points at the group that has no name', () => {
+    const skills = [
+      { id: 's1', name: 'Languages', level: '', keywords: ['Go'] },
+      { id: 's2', name: '', level: '', keywords: ['Kafka'] },
+    ]
+    expect(find(doc({ skills }), 'skillGroups').where).toEqual({ section: 'skills', entry: 1 })
+  })
+})
+
+describe('location on a role', () => {
+  it('points at the role that does not say where it was', () => {
+    const role = (position: string, location: string) => ({
+      id: position,
+      name: 'Company',
+      position,
+      location,
+      url: '',
+      startDate: '2020-01',
+      endDate: '',
+      summary: '',
+      highlights: [bullet('Cut deploys from forty minutes to four by moving the pipeline to GitOps.')],
+    })
+    const check = find(doc({ work: [role('Engineer', 'Austin, TX'), role('Analyst', '')] }), 'entryLocation')
+    expect(check.status).toBe('warn')
+    expect(check.where).toEqual({ section: 'work', entry: 1 })
+  })
 })
 
 describe('the LinkedIn link', () => {
@@ -190,29 +247,6 @@ describe('the LinkedIn link', () => {
 })
 
 describe('bullet writing', () => {
-  // Every bullet in the document, not only the ones in `work`: the punctuation
-  // rule reads projects and volunteering too, and the sample's own bullets
-  // would otherwise decide the answer.
-  const withBullets = (highlights: string[]) =>
-    doc({
-      projects: [],
-      volunteer: [],
-      custom: [],
-      work: [
-        {
-          id: 'w0',
-          name: 'Company',
-          position: 'Engineer',
-          location: 'Austin, TX',
-          url: '',
-          startDate: '2020-01',
-          endDate: '',
-          summary: '',
-          highlights,
-        },
-      ],
-    })
-
   it('calls out a bullet too short to carry a result', () => {
     const check = find(withBullets(['Improved performance.', 'Cut the deploy from forty minutes to four.']), 'bulletDepth')
     expect(check.status).toBe('warn')
@@ -236,7 +270,164 @@ describe('bullet writing', () => {
   })
 })
 
+describe('first-person pronouns', () => {
+  it('flags a bullet that says "I", and points at that bullet', () => {
+    const check = find(
+      withBullets(['Cut deploys from forty minutes to four.', 'I rebuilt the billing pipeline over one quarter.']),
+      'pronouns'
+    )
+    expect(check.status).toBe('warn')
+    expect(check.where).toEqual({ section: 'work', entry: 0, bullet: 1 })
+  })
+
+  it('reads a pronoun in the summary as well as in a bullet', () => {
+    const check = find(withBullets(['Cut deploys from forty minutes to four.'], 'My work is in payments infrastructure.'), 'pronouns')
+    expect(check.status).toBe('warn')
+    expect(check.where).toEqual({ section: 'summary' })
+  })
+
+  it('leaves a roman numeral alone, because "Title I school" is not a pronoun', () => {
+    // Two real examples from the library; the first regex tried fired on both.
+    expect(find(withBullets(['Taught third grade at a Title I school of 480 students.']), 'pronouns').status).toBe('pass')
+    expect(find(withBullets(['Ran a CBSE school covering Classes I to XII and 1,860 students.']), 'pronouns').status).toBe('pass')
+  })
+
+  it('does not read the country "US" as the pronoun "us"', () => {
+    expect(find(withBullets(['Led the US and EMEA rollout across 14 offices in one year.']), 'pronouns').status).toBe('pass')
+  })
+
+  it('fails a page written in the first person throughout', () => {
+    const check = find(
+      withBullets(['I led the migration to Kubernetes.', 'My team cut the deploy time.', 'We raised uptime to 99.9%.']),
+      'pronouns'
+    )
+    expect(check.status).toBe('fail')
+  })
+})
+
+describe('buzzwords', () => {
+  it('asks for the evidence instead of "team player"', () => {
+    const check = find(withBullets(['A team player who supported the release train every fortnight.']), 'buzzwords')
+    expect(check.status).toBe('warn')
+    expect(check.detail).toContain('team player')
+    expect(check.where).toEqual({ section: 'work', entry: 0, bullet: 0 })
+  })
+
+  it('catches one in the summary too', () => {
+    expect(find(withBullets(['Cut deploys from forty minutes to four.'], 'A detail-oriented engineer with eight years in payments and a bias for shipping.'), 'buzzwords').status).toBe('warn')
+  })
+
+  it('passes a page that claims nothing it cannot show', () => {
+    expect(find(withBullets(['Cut deploys from forty minutes to four by moving the pipeline to GitOps.']), 'buzzwords').status).toBe('pass')
+  })
+})
+
+describe('passive voice', () => {
+  it('flags a bullet whose opening clause hides who did the work', () => {
+    const check = find(withBullets(['The billing pipeline was rebuilt over a single quarter.']), 'passiveVoice')
+    expect(check.status).toBe('warn')
+    expect(check.where).toEqual({ section: 'work', entry: 0, bullet: 0 })
+  })
+
+  it('leaves a later clause alone, where the subject is somebody else', () => {
+    // Measured on the 108 examples: 24 of the 25 raw matches looked like this,
+    // and every one of them was correct English about a different subject.
+    expect(find(withBullets(['Trained six supervisors, four of whom were promoted to run their own branches.']), 'passiveVoice').status).toBe('pass')
+    expect(find(withBullets(['Logged four setting-out errors before concrete was poured.']), 'passiveVoice').status).toBe('pass')
+    expect(find(withBullets(['Cleared a suspense balance that had been carried for three years.']), 'passiveVoice').status).toBe('pass')
+  })
+
+  it('leaves "is" and "are" alone, because on a résumé they are adjectives', () => {
+    expect(find(withBullets(['The team is dedicated to a weekly release cadence and holds to it.']), 'passiveVoice').status).toBe('pass')
+  })
+})
+
+describe('filler words', () => {
+  it('flags "several" where a number belongs', () => {
+    const check = find(withBullets(['Built several dashboards for the merchandising team over two quarters.']), 'filler')
+    expect(check.status).toBe('warn')
+    expect(check.detail).toContain('several')
+    expect(check.where).toEqual({ section: 'work', entry: 0, bullet: 0 })
+  })
+
+  it('fails a page leaning on filler in most of its bullets', () => {
+    const check = find(
+      withBullets([
+        'Built various dashboards for the merchandising team.',
+        'Successfully delivered numerous reports each quarter.',
+        'Ran a variety of workshops for the support team.',
+      ]),
+      'filler'
+    )
+    expect(check.status).toBe('fail')
+  })
+
+  it('passes bullets that give the number instead', () => {
+    expect(find(withBullets(['Built nine dashboards that 40 category managers read every Monday.']), 'filler').status).toBe('pass')
+  })
+})
+
+describe('where a check points', () => {
+  it('counts bullets from the original list, so an empty row does not shift the index', () => {
+    // An empty bullet still draws a row on the canvas; skipping it in the count
+    // would put the reader's cursor one line above the problem.
+    const check = find(withBullets(['Cut deploys from forty minutes to four.', '', 'I rebuilt the billing pipeline.']), 'pronouns')
+    expect(check.where).toEqual({ section: 'work', entry: 0, bullet: 2 })
+  })
+
+  it('finds a bullet in projects and volunteering, not only in work', () => {
+    const d = doc({
+      work: [],
+      custom: [],
+      volunteer: [],
+      projects: [
+        {
+          id: 'p0',
+          name: 'Ledger',
+          description: '',
+          url: '',
+          startDate: '',
+          endDate: '',
+          highlights: ['I wrote the parser over one weekend.'],
+          keywords: [],
+        },
+      ],
+    })
+    expect(find(d, 'pronouns').where).toEqual({ section: 'projects', entry: 0, bullet: 0 })
+  })
+})
+
 describe('the report as a whole', () => {
+  it('puts the check worth fixing first', () => {
+    const rank = { fail: 0, warn: 1, pass: 2 }
+    const empty = createDocument({})
+    const checks = analyzeResume(empty).checks
+    for (let i = 1; i < checks.length; i++) {
+      expect(rank[checks[i].status]).toBeGreaterThanOrEqual(rank[checks[i - 1].status])
+    }
+    expect(checks[0].status).not.toBe('pass')
+  })
+
+  it('scores each category on its own, so a reader can see which one is going wrong', () => {
+    // A page whose writing is poor and whose structure is intact: the writing
+    // ring must fall while the others hold.
+    const good = withBullets([
+      'Cut deploys from forty minutes to four by moving the pipeline to GitOps.',
+      'Raised uptime to 99.98% across nine services in one quarter.',
+      'Halved on-call pages by rewriting the four noisiest alerts.',
+    ])
+    const bad = withBullets([
+      'I was responsible for various things.',
+      'My team successfully delivered several projects.',
+      'A team player, I really helped out as needed.',
+    ])
+    const a = analyzeResume(good, { pages: 1, bodyPt: 10.5 })
+    const b = analyzeResume(bad, { pages: 1, bodyPt: 10.5 })
+    expect(b.categoryScores.writing).toBeLessThan(a.categoryScores.writing - 30)
+    expect(b.categoryScores.format).toBe(a.categoryScores.format)
+  })
+
+
   it('files every check under a category a reader can act on', () => {
     for (const check of analyzeResume(doc()).checks) {
       expect(['content', 'writing', 'format'], check.id).toContain(check.category)

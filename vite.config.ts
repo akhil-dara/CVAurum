@@ -178,6 +178,7 @@ function seoPages(): Plugin {
       // HTML - which is the only reason a search for "data analyst resume
       // example" can land anywhere but the homepage.
       write('examples', pageHtml(shell, seo.SITE, seo.examplesPageMeta(), seo.examplesStaticHtml(), seo.examplesItemListJsonLd()))
+      write('prompts', pageHtml(shell, seo.SITE, seo.promptsPageMeta(), seo.promptsStaticHtml()))
       const slugs = seo.orderedSampleSlugs()
       for (const slug of slugs) {
         write(
@@ -215,6 +216,7 @@ function seoPages(): Plugin {
       writeText('templates.md', seo.galleryMarkdown())
       for (const id of ids) writeText(path.join('templates', `${id}.md`), seo.templateMarkdown(id))
       writeText('examples.md', seo.examplesMarkdown())
+      writeText('prompts.md', seo.promptsMarkdown())
       for (const slug of slugs) writeText(path.join('examples', `${slug}.md`), seo.sampleMarkdown(slug))
 
       // Agent discovery, truthful for a site with no server: an API catalog
@@ -251,6 +253,7 @@ function machineReadersDev(): Plugin {
     '/index.md': (seo) => seo.landingMarkdown(),
     '/templates.md': (seo) => seo.galleryMarkdown(),
     '/examples.md': (seo) => seo.examplesMarkdown(),
+    '/prompts.md': (seo) => seo.promptsMarkdown(),
     '/auth.md': (seo) => seo.authMd(),
     '/.well-known/api-catalog': (seo) => seo.apiCatalogJson(),
     '/skills/cvaurum/SKILL.md': (seo) => seo.skillMd(),

@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 export const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** Which public page the reader is on, so its nav item says so. */
-export type SiteSection = 'templates' | 'examples' | null
+export type SiteSection = 'templates' | 'examples' | 'prompts' | null
 
 function NavLink({ to, label, active }: { to: string; label: string; active: boolean }) {
   return active ? (
@@ -44,18 +44,25 @@ export function SiteHeader({ current = null, action }: { current?: SiteSection; 
             navigation to another route's fragment does not scroll to it —
             only a real one does. Those stay plain anchors so the section a
             reader asked for is the section they land on. */}
-        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          <a className="transition hover:text-foreground" href="/#how">
+        {/* The landing anchors give way first, and the landing page still
+            carries all three. That rule now costs all of them at tablet width:
+            at 768px this row already wrapped to two lines and pushed the
+            viewport to 838px with four items (measured before Prompts was
+            added, which costs 6px more), so md keeps the three PAGES and lg
+            brings the anchors back. That plus a 20px gap below lg lands the
+            row at exactly 768 — one line, nothing off the edge, for the first
+            time. */}
+        <nav className="hidden items-center gap-5 text-sm text-muted-foreground md:flex lg:gap-6">
+          <a className="hidden transition hover:text-foreground lg:inline" href="/#how">
             How it works
           </a>
           <NavLink to="/templates" label="Templates" active={current === 'templates'} />
           <NavLink to="/examples" label="Examples" active={current === 'examples'} />
-          {/* Five items crowd a tablet; the two that are landing anchors give
-              way first, and the landing page still carries both. */}
+          <NavLink to="/prompts" label="Prompts" active={current === 'prompts'} />
           <a className="hidden transition hover:text-foreground lg:inline" href="/#compare">
             Compare
           </a>
-          <a className="transition hover:text-foreground" href="/#privacy">
+          <a className="hidden transition hover:text-foreground lg:inline" href="/#privacy">
             Privacy
           </a>
         </nav>
@@ -98,6 +105,9 @@ export function SiteFooter() {
           </Link>
           <Link className="transition hover:text-foreground" to="/examples">
             Examples
+          </Link>
+          <Link className="transition hover:text-foreground" to="/prompts">
+            Prompts
           </Link>
           <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
             GitHub

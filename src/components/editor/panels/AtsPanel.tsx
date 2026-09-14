@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, AlertTriangle, XCircle, Target, FileText, PenLine, Sparkles } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, Target, FileText, PenLine, Sparkles, Crosshair } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
-import { ATS_CATEGORY_LABELS, analyzeResume, type AtsCategory, type AtsMeasurement, type CheckStatus } from '@/lib/ats'
+import { ATS_CATEGORY_LABELS, analyzeResume, type AtsCategory, type AtsCheck, type AtsMeasurement, type CheckStatus } from '@/lib/ats'
 import { fitSizesPt } from '@/lib/fitReadout'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
@@ -52,6 +52,102 @@ function Ring({ value, label, size = 92 }: { value: number; label?: string; size
         {label && <span className="text-[10px] text-muted-foreground">{label}</span>}
       </div>
     </div>
+  )
+}
+
+/* ------------------------------------------------------- jump to the fault
+ * A check that says "3 bullets use a first-person pronoun" is a note; one that
+ * puts the cursor in the offending bullet is a fix. `AtsCheck.where` carries
+ * the section key the canvas draws under `data-section`, the entry index
+ * inside it, and the bullet index inside that — these turn the three into a
+ * DOM node.
+ */
+
+/** The VISIBLE canvas. The hidden print tree ResumePreview portals into
+ *  <body> to measure the fit carries the same ids, so an unscoped query would
+ *  hand back an off-screen node 100,000px to the left and scroll nothing. */
+const CANVAS = '.canvas-bg'
+
+/** The id the canvas drew this entry under, or undefined if there isn't one. */
+function entryId(doc: ResumeDocument, where: NonNullable<AtsCheck['where']>): string | undefined {
+  if (where.entry == null) return undefined
+  if (where.section.startsWith('custom-')) {
+    const sec = doc.content.custom.find((s) => s.id === where.section.slice('custom-'.length))
+    return sec?.items[where.entry]?.id
+  }
+  const arr = (doc.content as unknown as Record<string, Array<{ id?: string }> | undefined>)[where.section]
+  return arr?.[where.entry]?.id
+}
+
+/** A short outline that fades, so the eye lands where the scroll did. Inline
+ *  styles rather than a class: this is the only thing in the app that needs it,
+ *  and it must not depend on a stylesheet loading. */
+function flash(el: HTMLElement) {
+  const prev = { outline: el.style.outline, offset: el.style.outlineOffset, radius: el.style.borderRadius }
+  el.style.outline = '2px solid hsl(var(--primary))'
+  el.style.outlineOffset = '3px'
+  el.style.borderRadius = el.style.borderRadius || '3px'
+  setTimeout(() => {
+    el.style.transition = 'outline-color 400ms ease'
+    el.style.outlineColor = 'transparent'
+    setTimeout(() => {
+      el.style.outline = prev.outline
+      el.style.outlineOffset = prev.offset
+      el.style.borderRadius = prev.radius
+      el.style.transition = ''
+    }, 450)
+  }, 1200)
+}
+
+/** Scroll the canvas to what a check is complaining about. False when the
+ *  target is not on the page — a hidden section, or an entry the template
+ *  does not draw — so the caller can leave the button off. */
+function reveal(doc: ResumeDocument, where: NonNullable<AtsCheck['where']>): boolean {
+  const canvas = document.querySelector<HTMLElement>(CANVAS)
+  if (!canvas) return false
+  const section = canvas.querySelector<HTMLElement>(`.rm-section[data-section="${CSS.escape(where.section)}"]`)
+  let target: HTMLElement | null = section
+  const id = entryId(doc, where)
+  if (id) {
+    const item = (section ?? canvas).querySelector<HTMLElement>(`[data-item-id="${CSS.escape(id)}"]`)
+    if (item) {
+      target = item
+      // Bullet rows only exist on an editable canvas; on the exact-PDF preview
+      // the entry itself is as close as this can get, which is close enough.
+      const row = where.bullet == null ? null : item.querySelectorAll<HTMLElement>('.rm-bullet-row')[where.bullet]
+      if (row) target = row
+    }
+  }
+  if (!target) return false
+  target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  flash(target)
+  // Put the caret in it where it is editable, so the fix can start on arrival.
+  // preventScroll: the focus must not fight the smooth scroll above.
+  target.querySelector<HTMLElement>('.rm-editable')?.focus({ preventScroll: true })
+  return true
+}
+
+function ShowMe({ doc, where }: { doc: ResumeDocument; where: NonNullable<AtsCheck['where']> }) {
+  const [gone, setGone] = useState(false)
+  if (gone) return null
+  return (
+    <button
+      type="button"
+      className="btn-ghost btn-sm mt-1.5 h-7 gap-1 px-2 text-[11px]"
+      onClick={() => {
+        // On a phone the panel IS the screen; the canvas behind it is not laid
+        // out until it closes, so the scroll has to wait for that frame.
+        if (isPhoneLayout()) {
+          useEditorStore.getState().setLeftOpen(false)
+          setTimeout(() => reveal(doc, where), 140)
+          return
+        }
+        if (!reveal(doc, where)) setGone(true)
+      }}
+    >
+      <Crosshair className="h-3 w-3" />
+      {where.bullet != null ? 'Show the bullet' : 'Show it'}
+    </button>
   )
 }
 
@@ -196,19 +292,16 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
   )
   const report = useMemo(() => analyzeResume(doc, measured), [doc, measured])
 
-  // Worst first inside each group: the first row a reader sees should be the
-  // one worth their next five minutes.
-  const grouped = useMemo(() => {
-    const rank: Record<string, number> = { fail: 0, warn: 1, pass: 2 }
-    return (Object.keys(ATS_CATEGORY_LABELS) as AtsCategory[])
-      .map((category) => ({
-        category,
-        checks: report.checks
-          .filter((c) => c.category === category)
-          .sort((a, b) => rank[a.status] - rank[b.status] || b.weight - a.weight),
-      }))
-      .filter((g) => g.checks.length)
-  }, [report.checks])
+  // `analyzeResume` already returns the checks worst-first, heaviest-first;
+  // filter preserves that order, so each group opens on the row worth the
+  // reader's next five minutes.
+  const grouped = useMemo(
+    () =>
+      (Object.keys(ATS_CATEGORY_LABELS) as AtsCategory[])
+        .map((category) => ({ category, checks: report.checks.filter((c) => c.category === category) }))
+        .filter((g) => g.checks.length),
+    [report.checks]
+  )
 
   return (
     <div className="space-y-5">
@@ -240,14 +333,22 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
       <div className="space-y-4">
         {grouped.map(({ category, checks }) => {
           const failed = checks.filter((c) => c.status !== 'pass').length
+          // Each category carries its own score, so a reader can see WHICH of
+          // the three jobs is going wrong without reading twenty-five rows.
+          const catScore = report.categoryScores[category]
           return (
             <section key={category} className="space-y-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {ATS_CATEGORY_LABELS[category]}
                 </h3>
-                <span className="text-[11px] tabular-nums text-muted-foreground">
-                  {checks.length - failed}/{checks.length}
+                <span className="flex items-baseline gap-2 text-[11px] tabular-nums text-muted-foreground">
+                  <span>
+                    {checks.length - failed}/{checks.length}
+                  </span>
+                  <span className="font-semibold" style={{ color: scoreColor(catScore) }}>
+                    {catScore}
+                  </span>
                 </span>
               </div>
               {checks.map((c) => {
@@ -258,6 +359,7 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium">{c.label}</p>
                       <p className="text-xs leading-snug text-muted-foreground">{c.detail}</p>
+                      {c.status !== 'pass' && c.where && <ShowMe doc={doc} where={c.where} />}
                     </div>
                   </div>
                 )

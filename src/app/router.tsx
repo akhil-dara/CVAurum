@@ -50,6 +50,7 @@ const TemplatesPage = lazyRoute(() => import('@/routes/Templates').then((m) => (
 const TemplatePage = lazyRoute(() => import('@/routes/TemplatePage').then((m) => ({ default: m.TemplatePage })))
 const ExamplesPage = lazyRoute(() => import('@/routes/Examples').then((m) => ({ default: m.Examples })))
 const ExamplePage = lazyRoute(() => import('@/routes/ExamplePage').then((m) => ({ default: m.ExamplePage })))
+const PromptsPage = lazyRoute(() => import('@/routes/Prompts').then((m) => ({ default: m.Prompts })))
 const EditorRoute = lazyRoute(() => import('@/routes/EditorRoute').then((m) => ({ default: m.EditorRoute })))
 const Tracker = lazyRoute(() => import('@/routes/Tracker').then((m) => ({ default: m.Tracker })))
 const PrintPage = lazyRoute(() => import('@/routes/PrintPage').then((m) => ({ default: m.PrintPage })))
@@ -139,6 +140,10 @@ export const router = createBrowserRouter([
       // One indexable page per sample - "data analyst resume example" is the
       // phrase people type, and the library alone can never rank for it.
       { path: '/examples/:slug', element: s(<ExamplePage />) },
+      // Prompts to hand to an assistant, whose answers this app imports —
+      // public, indexable, and the way in for someone whose history is in a
+      // chat window rather than in a file.
+      { path: '/prompts', element: s(<PromptsPage />) },
       { path: '/app', element: s(<Dashboard />) },
       { path: '/resume/:id', element: s(<EditorRoute />) },
       { path: '/tracker', element: s(<Tracker />) },

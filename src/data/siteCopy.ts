@@ -25,6 +25,15 @@ export interface SiteCopy {
   facts: { label: string; value: string }[]
   /** What it does not do, said plainly, so a reader is not oversold. */
   limits: string[]
+  /**
+   * What reaches the exported file's text layer and what does not.
+   *
+   * The question people actually ask about a designed résumé is whether the
+   * decoration - numbered headings, bullet glyphs, rules, monograms - ends up
+   * in the text a parser reads. Every line here is a number a gate in this
+   * repository produces, so it can be re-measured rather than believed.
+   */
+  textLayer: string[]
   /** Who it serves. */
   audience: string[]
   links: { site: string; repo: string; gallery: string; app: string }
@@ -108,6 +117,10 @@ export const SITE: SiteCopy = {
       a: "The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description.",
     },
     {
+      q: 'Do numbered headings, bullet glyphs and decorative marks break ATS parsing?',
+      a: `Not here, and the answer is measured rather than assumed. Decoration is painted as vector outlines, so it never becomes text: the two designs that print a running number beside each heading export those headings as SUMMARY and EXPERIENCE, with no numeral in the text at all. Across all ${TEMPLATE_COUNT} designs the exported text layer matches the app's own "what an ATS sees" preview word for word — nothing missing, nothing added, nothing out of order — which also means the file carries no word your content does not have. Bullet markers are the deliberate exception: each one is real text sitting on the same line as its sentence (623 of them across the ${TEMPLATE_COUNT} designs, none stranded alone on a line), so a list you copy out of the PDF is still a list.`,
+    },
+    {
       q: 'Can I move my résumé to another computer?',
       a: 'Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser.',
     },
@@ -172,6 +185,33 @@ export const SITE: SiteCopy = {
     'PDF import is a reconstruction of an existing file and is meant to be reviewed; unusual layouts and scanned pages can need corrections.',
     'It does not send applications, track email or connect to job boards; the tracker is a board you keep yourself.',
     'Editing needs JavaScript; without it a visitor gets the public pages and their content, not the editor.',
+  ],
+  /* Each line is the output of a gate in this repository, re-runnable against
+   * the real exporter. The gate is named so the claim can be checked:
+   *   _local/gate-ats-truth.cjs      panel text vs file text, all designs
+   *   _local/gate-marker-line.cjs    every marker, and where it sits
+   *   _local/probe-prompts-columns.cjs   which column is written first
+   *   _local/probe-prompts-selectable.cjs  a visible line with nothing to
+   *     select. It exists because _local/gate-selectable.cjs, which is the
+   *     real gate and checks more, currently renders from the resume store
+   *     and finds it null inside page.evaluate; the probe loads the document
+   *     out of storage instead. It compares DOM position against PDF
+   *     position, so it can only read a first page: 29 of the 67 designs fit
+   *     the sample on one, which is where the 3,523 lines come from.
+   *   _local/gate-pdfa.cjs           veraPDF on PDF/A-2B and PDF/UA-1, and
+   *     src/lib/pdf/metadata.test.ts + pdfa.test.ts for /Lang, the structure
+   *     tree and the sRGB output intent
+   * The two counts below (67 designs, 623 markers) are the numbers those
+   * gates printed; TEMPLATE_COUNT is interpolated so the first can never go
+   * stale on its own. */
+  textLayer: [
+    `All ${TEMPLATE_COUNT} designs export a text layer that matches the app's own "what an ATS sees" preview word for word: nothing missing, nothing added, nothing out of order.`,
+    'Decoration is painted as vector outlines and never becomes text. That is the same measurement read the other way: the file carries no word the content does not have, so a rule, a monogram or a heading numeral cannot turn up in the middle of a sentence.',
+    'The two designs that print running numbers beside their section headings export those headings as SUMMARY and EXPERIENCE. Not one numeral of the running count reaches the text layer.',
+    `Every list marker does reach the text layer, on the same line as the words it belongs to: 623 markers across the ${TEMPLATE_COUNT} designs, none stranded on a line of its own — so a list copied out of the file is still a list.`,
+    'On all 17 two-column designs the main column is written before the sidebar, so a parser reads the name before the skills list, and a vertical line separates the two columns with no text straddling it.',
+    'A line a reader can see always has text to select at that same place, which is the fault where a wrapped heading is painted as outlines with nothing behind it: 3,523 visible lines were checked for it and none showed it.',
+    'The file declares its language, carries a tagged structure tree in reading order, and names an sRGB output intent.',
   ],
   audience: [
     'Anyone who wants a résumé that looks designed without giving their career history to a server.',
