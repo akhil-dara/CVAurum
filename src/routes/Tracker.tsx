@@ -97,7 +97,7 @@ export function Tracker() {
 
       {!loaded ? null : (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd}>
-          <div className="flex flex-1 gap-4 overflow-x-auto p-4">
+          <div className="flex items-start gap-4 overflow-x-auto p-4">
             {JOB_STATUSES.map((col) => (
               <Column
                 key={col.id}
@@ -111,6 +111,16 @@ export function Tracker() {
             ))}
           </div>
           <DragOverlay>{activeCard ? <Card card={activeCard} overlay /> : null}</DragOverlay>
+          {apps.length === 0 && (
+            // A board of five empty columns explained nothing about itself.
+            <div className="mx-auto max-w-md px-6 pb-10 text-center">
+              <p className="text-sm font-medium text-foreground">Nothing tracked yet</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Add a job to any column with its <span className="font-medium text-foreground">+</span>, then drag it
+                across as you hear back. Like your résumés, it stays in this browser.
+              </p>
+            </div>
+          )}
         </DndContext>
       )}
 
@@ -148,7 +158,13 @@ function Column({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex min-h-[120px] flex-1 flex-col gap-2 rounded-xl border border-dashed p-2 transition-colors',
+          'flex min-h-[120px] flex-col gap-2 rounded-xl border border-dashed p-2 transition-colors',
+          // Stretch to hold what it holds. `flex-1` unconditionally made an
+          // EMPTY column grow to the height of a full-height parent: on an
+          // empty board that was five page-tall dashed boxes with one line of
+          // grey text at the top of each, which reads as a broken page rather
+          // than an empty one.
+          cards.length ? 'flex-1' : '',
           isOver ? 'border-primary bg-primary/5' : 'border-border bg-surface-muted/30'
         )}
       >
