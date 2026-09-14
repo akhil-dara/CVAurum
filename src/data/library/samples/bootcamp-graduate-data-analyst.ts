@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A bootcamp only counts for what came out of it, so the capstone carries a
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'e1',
         institution: 'Riverlight Data Academy',
-        logo: monogram('R', '#1d4ed8'),
+        logo: brandmark('Riverlight Data Academy'),
         area: 'Data Analytics, full-time program',
         studyType: 'Certificate',
         location: 'Columbus, OH',
@@ -65,7 +66,7 @@ export const sample: LibrarySample = {
       {
         id: 'e2',
         institution: 'Ohio University',
-        logo: monogram('O', '#0f766e'),
+        logo: brandmark('Ohio University'),
         area: 'Communication',
         studyType: 'B.A.',
         location: 'Athens, OH',

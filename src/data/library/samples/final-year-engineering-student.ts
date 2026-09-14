@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * The placement-season résumé: degree first because it is the strongest thing
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'e1',
         institution: 'COEP Technological University',
-        logo: monogram('C', '#b45309'),
+        logo: brandmark('COEP Technological University'),
         area: 'Computer Engineering',
         studyType: 'B.Tech',
         location: 'Pune, Maharashtra',
@@ -65,7 +66,7 @@ export const sample: LibrarySample = {
       {
         id: 'e2',
         institution: 'Jnana Prabodhini Prashala',
-        logo: monogram('J', '#0f766e'),
+        logo: brandmark('Jnana Prabodhini Prashala'),
         area: 'Science with Mathematics',
         studyType: 'Class XII, Maharashtra State Board',
         location: 'Pune, Maharashtra',

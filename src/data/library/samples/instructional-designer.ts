@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A classroom teacher who moved into edtech. The teaching years stay at the
@@ -41,7 +42,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Lumenpath Learning',
-        logo: monogram('L', '#4338ca'),
+        logo: brandmark('Lumenpath Learning'),
         position: 'Senior Instructional Designer',
         location: 'Pune, Maharashtra',
         url: '',
@@ -59,7 +60,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Nimbus Learning Studio',
-        logo: monogram('N', '#0f766e'),
+        logo: brandmark('Nimbus Learning Studio'),
         position: 'Instructional Designer',
         location: 'Bengaluru, Karnataka',
         url: '',
@@ -75,7 +76,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Hillcrest Public School',
-        logo: monogram('H', '#b45309'),
+        logo: brandmark('Hillcrest Public School'),
         position: 'Mathematics Teacher, Grades 7-10',
         location: 'Nashik, Maharashtra',
         url: '',

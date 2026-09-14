@@ -1,11 +1,12 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Mid level, US. The analytics-engineering career as it usually happens:
  * marketing reporting first, then product analytics, then owning the models
  * everyone else queries. One of the three samples in this set that carries
- * employer monograms, and it carries one on every entry.
+ * employer marks, and it carries one on every entry.
  */
 export const sample: LibrarySample = {
   slug: 'analytics-engineer',
@@ -37,7 +38,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Fernwood Logistics',
-        logo: monogram('F', '#15803d'),
+        logo: brandmark('Fernwood Logistics'),
         position: 'Analytics Engineer',
         location: 'Chicago, IL',
         url: '',
@@ -55,7 +56,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Cobalt Meadow Software',
-        logo: monogram('C', '#0f766e'),
+        logo: brandmark('Cobalt Meadow Software'),
         position: 'Data Analyst',
         location: 'Chicago, IL',
         url: '',
@@ -71,7 +72,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Larkspur Media',
-        logo: monogram('L', '#b45309'),
+        logo: brandmark('Larkspur Media'),
         position: 'Marketing Analyst',
         location: 'Chicago, IL',
         url: '',

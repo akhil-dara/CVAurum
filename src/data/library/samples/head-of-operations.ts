@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Lead level, India. Fourteen years fits on two comfortable pages because the
@@ -41,7 +42,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Saffronway Commerce',
-        logo: monogram('S', '#0ea5e9'),
+        logo: brandmark('Saffronway Commerce'),
         position: 'Head of Operations',
         location: 'Bengaluru, Karnataka',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Palladane Retail Services',
-        logo: monogram('P', '#7c3aed'),
+        logo: brandmark('Palladane Retail Services'),
         position: 'Senior Manager, Fulfilment Operations',
         location: 'Hyderabad, Telangana',
         url: '',
@@ -76,7 +77,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Meridian Cargo Networks',
-        logo: monogram('M', '#0f766e'),
+        logo: brandmark('Meridian Cargo Networks'),
         position: 'Regional Operations Manager',
         location: 'Chennai, Tamil Nadu',
         url: '',
@@ -91,7 +92,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Ashvale Freight',
-        logo: monogram('A', '#b45309'),
+        logo: brandmark('Ashvale Freight'),
         position: 'Operations Executive',
         location: 'Coimbatore, Tamil Nadu',
         url: '',

@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A hospital pharmacist in India. State council registration is stated in the
@@ -42,7 +43,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Chandanvan Multispeciality Hospital',
-        logo: monogram('C', '#15803d'),
+        logo: brandmark('Chandanvan Multispeciality Hospital'),
         position: 'Clinical Pharmacist, Critical Care and Antimicrobial Stewardship',
         location: 'Pune, Maharashtra',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Suvarna Institute of Medical Sciences',
-        logo: monogram('S', '#0f766e'),
+        logo: brandmark('Suvarna Institute of Medical Sciences'),
         position: 'Clinical Pharmacist',
         location: 'Nashik, Maharashtra',
         url: '',
@@ -76,7 +77,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Meghdoot Hospitals',
-        logo: monogram('M', '#b45309'),
+        logo: brandmark('Meghdoot Hospitals'),
         position: 'Pharmacist, Inpatient Dispensary',
         location: 'Nagpur, Maharashtra',
         url: '',

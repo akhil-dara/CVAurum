@@ -1,11 +1,12 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Lead, India, and the longest page in this set. A leadership resume has to
  * carry two kinds of number: what the business got, and what changed for the
  * people doing the work. Both are here, and neither is a headcount alone.
- * Carries employer monograms on every work entry.
+ * Carries employer marks on every work entry.
  */
 export const sample: LibrarySample = {
   slug: 'head-of-data',
@@ -42,7 +43,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Harbourline Commerce',
-        logo: monogram('H', '#1d4ed8'),
+        logo: brandmark('Harbourline Commerce'),
         position: 'Head of Data',
         location: 'Hyderabad, Telangana',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Turnstone Mobility',
-        logo: monogram('T', '#0f766e'),
+        logo: brandmark('Turnstone Mobility'),
         position: 'Head of Data Engineering',
         location: 'Bengaluru, Karnataka',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Marigold Insight',
-        logo: monogram('M', '#b45309'),
+        logo: brandmark('Marigold Insight'),
         position: 'Analytics Manager',
         location: 'Bengaluru, Karnataka',
         url: '',
@@ -93,7 +94,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Pinewick Systems',
-        logo: monogram('P', '#9333ea'),
+        logo: brandmark('Pinewick Systems'),
         position: 'Data Analyst, then Senior Data Analyst',
         location: 'Chennai, Tamil Nadu',
         url: '',

@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
@@ -45,7 +46,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Thendral Learning',
-        logo: monogram('T', '#7c3aed'),
+        logo: brandmark('Thendral Learning'),
         position: 'UI Designer',
         location: 'Chennai, Tamil Nadu',
         url: '',
@@ -62,7 +63,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Curveline Studio',
-        logo: monogram('C', '#db2777'),
+        logo: brandmark('Curveline Studio'),
         position: 'Design Intern',
         location: 'Chennai, Tamil Nadu',
         url: '',

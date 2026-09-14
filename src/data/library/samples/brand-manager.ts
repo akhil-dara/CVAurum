@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * FMCG brand management, where the proof is share and distribution rather than
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Kingsmere Beverages',
-        logo: monogram('K', '#0e7490'),
+        logo: brandmark('Kingsmere Beverages'),
         position: 'Brand Manager',
         location: 'London',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Coldbrook Foods',
-        logo: monogram('C', '#b45309'),
+        logo: brandmark('Coldbrook Foods'),
         position: 'Assistant Brand Manager',
         location: 'Reading',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Windlow Home',
-        logo: monogram('W', '#3f3f46'),
+        logo: brandmark('Windlow Home'),
         position: 'Marketing Executive, Graduate Programme',
         location: 'Reading',
         url: '',

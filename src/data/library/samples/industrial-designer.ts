@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
@@ -46,7 +47,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Brackenhill Medical',
-        logo: monogram('B', '#0f766e'),
+        logo: brandmark('Brackenhill Medical'),
         position: 'Industrial Designer',
         location: 'Sheffield',
         url: '',
@@ -63,7 +64,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Wrenfield Appliances',
-        logo: monogram('W', '#b91c1c'),
+        logo: brandmark('Wrenfield Appliances'),
         position: 'Product Designer',
         location: 'Leeds',
         url: '',
@@ -79,7 +80,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Gantry Design Consultancy',
-        logo: monogram('G', '#334155'),
+        logo: brandmark('Gantry Design Consultancy'),
         position: 'Junior Industrial Designer',
         location: 'Manchester',
         url: '',

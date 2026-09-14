@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
@@ -34,7 +35,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Harborlight Regional Medical Center',
-        logo: monogram('H', '#0e7490'),
+        logo: brandmark('Harborlight Regional Medical Center'),
         position: 'Charge Nurse, Medical ICU',
         location: 'Portland, OR',
         url: '',
@@ -52,7 +53,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Wayfinder Health Staffing',
-        logo: monogram('W', '#b45309'),
+        logo: brandmark('Wayfinder Health Staffing'),
         position: 'Travel ICU Nurse (Contract)',
         location: 'Phoenix, AZ / Sacramento, CA / Boise, ID',
         url: '',
@@ -68,7 +69,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Cedar Hollow Community Hospital',
-        logo: monogram('C', '#4338ca'),
+        logo: brandmark('Cedar Hollow Community Hospital'),
         position: 'Staff Nurse, Progressive Care',
         location: 'Salem, OR',
         url: '',

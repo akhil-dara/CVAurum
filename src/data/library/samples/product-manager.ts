@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Mid level, US, and a career changer: support operations into product. The
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Trellisway Software',
-        logo: monogram('T', '#7c3aed'),
+        logo: brandmark('Trellisway Software'),
         position: 'Product Manager, Billing',
         location: 'Chicago, IL',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Fernhill Health',
-        logo: monogram('F', '#0e7490'),
+        logo: brandmark('Fernhill Health'),
         position: 'Product Manager, Patient Billing',
         location: 'Chicago, IL',
         url: '',
@@ -76,7 +77,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Fernhill Health',
-        logo: monogram('F', '#0e7490'),
+        logo: brandmark('Fernhill Health'),
         position: 'Support Operations Lead',
         location: 'Chicago, IL',
         url: '',

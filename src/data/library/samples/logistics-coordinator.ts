@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
@@ -42,7 +43,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Kestrel Freightways',
-        logo: monogram('K', '#0d9488'),
+        logo: brandmark('Kestrel Freightways'),
         position: 'Logistics Coordinator',
         location: 'Pune, Maharashtra',
         url: '',
@@ -59,7 +60,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Tarasan Supply Co.',
-        logo: monogram('T', '#b45309'),
+        logo: brandmark('Tarasan Supply Co.'),
         position: 'Logistics Executive',
         location: 'Pune, Maharashtra',
         url: '',

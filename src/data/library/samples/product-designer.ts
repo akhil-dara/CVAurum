@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
@@ -45,7 +46,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Tidewell Health',
-        logo: monogram('T', '#0d9488'),
+        logo: brandmark('Tidewell Health'),
         position: 'Product Designer',
         location: 'Seattle, WA',
         url: '',
@@ -62,7 +63,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Kettlebrook Commerce',
-        logo: monogram('K', '#b45309'),
+        logo: brandmark('Kettlebrook Commerce'),
         position: 'Product Designer',
         location: 'Seattle, WA',
         url: '',
@@ -78,7 +79,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Kettlebrook Commerce',
-        logo: monogram('K', '#b45309'),
+        logo: brandmark('Kettlebrook Commerce'),
         position: 'Front-End Engineer',
         location: 'Seattle, WA',
         url: '',

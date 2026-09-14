@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A lead résumé has a second job: proving the person can run a function, not
@@ -42,7 +43,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Larkspur Health Partners',
-        logo: monogram('L', '#0f766e'),
+        logo: brandmark('Larkspur Health Partners'),
         position: 'Finance Director',
         location: 'Minneapolis, MN',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Cedar Loop Software',
-        logo: monogram('C', '#1d4ed8'),
+        logo: brandmark('Cedar Loop Software'),
         position: 'Senior Finance Manager',
         location: 'Minneapolis, MN',
         url: '',
@@ -76,7 +77,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Thorsen Dairy Cooperative',
-        logo: monogram('T', '#7c2d12'),
+        logo: brandmark('Thorsen Dairy Cooperative'),
         position: 'FP&A Manager',
         location: 'Saint Paul, MN',
         url: '',
@@ -92,7 +93,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Aldrich Petrie LLP',
-        logo: monogram('A', '#334155'),
+        logo: brandmark('Aldrich Petrie LLP'),
         position: 'Audit Senior',
         location: 'Minneapolis, MN',
         url: '',

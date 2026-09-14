@@ -1,10 +1,11 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Mid level, UK. British spelling throughout, and every model on the page is
  * judged by what it did once it was serving traffic rather than by its
- * offline score. Carries employer monograms on every work entry.
+ * offline score. Carries employer marks on every work entry.
  */
 export const sample: LibrarySample = {
   slug: 'machine-learning-engineer',
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Lumenstack Health',
-        logo: monogram('L', '#1d4ed8'),
+        logo: brandmark('Lumenstack Health'),
         position: 'Machine Learning Engineer',
         location: 'London',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Bramblewick Retail Group',
-        logo: monogram('B', '#9333ea'),
+        logo: brandmark('Bramblewick Retail Group'),
         position: 'Machine Learning Engineer',
         location: 'Manchester',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Wrenfield Insight',
-        logo: monogram('W', '#0f766e'),
+        logo: brandmark('Wrenfield Insight'),
         position: 'Data Scientist',
         location: 'Leeds',
         url: '',

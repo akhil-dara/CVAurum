@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * The route into banking that nobody puts on a milkround poster: audit, then
@@ -42,7 +43,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Thamesreach Partners',
-        logo: monogram('T', '#c8102e'),
+        logo: brandmark('Thamesreach Partners'),
         position: 'Investment Banking Analyst',
         location: 'London',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Ashdown Levett LLP',
-        logo: monogram('AL', '#1f2937'),
+        logo: brandmark('Ashdown Levett LLP'),
         position: 'Assistant Manager, Transaction Services',
         location: 'Leeds',
         url: '',
@@ -76,7 +77,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Ashdown Levett LLP',
-        logo: monogram('AL', '#1f2937'),
+        logo: brandmark('Ashdown Levett LLP'),
         position: 'Audit Associate',
         location: 'Leeds',
         url: '',

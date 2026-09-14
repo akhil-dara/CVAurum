@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A career changer: a mechanical engineering degree, an MBA in finance, and
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Marudham Auto Components Limited',
-        logo: monogram('M', '#0f766e'),
+        logo: brandmark('Marudham Auto Components Limited'),
         position: 'Senior Treasury Analyst',
         location: 'Chennai, Tamil Nadu',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Neytal Finance Limited',
-        logo: monogram('N', '#1d4ed8'),
+        logo: brandmark('Neytal Finance Limited'),
         position: 'Treasury Analyst',
         location: 'Chennai, Tamil Nadu',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Sevanti Chemicals Limited',
-        logo: monogram('S', '#7c2d12'),
+        logo: brandmark('Sevanti Chemicals Limited'),
         position: 'Finance Executive',
         location: 'Coimbatore, Tamil Nadu',
         url: '',

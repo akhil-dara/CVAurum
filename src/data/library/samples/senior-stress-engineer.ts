@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Aerospace structures, where the deliverable is evidence a regulator will
@@ -41,7 +42,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Hollis Aerostructures',
-        logo: monogram('H', '#0f172a'),
+        logo: brandmark('Hollis Aerostructures'),
         position: 'Senior Stress Engineer',
         location: 'Wichita, KS',
         url: '',
@@ -59,7 +60,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Whitmore Aero Systems',
-        logo: monogram('W', '#7c2d12'),
+        logo: brandmark('Whitmore Aero Systems'),
         position: 'Stress Engineer',
         location: 'Everett, WA',
         url: '',
@@ -75,7 +76,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Larkfield Composites',
-        logo: monogram('L', '#155e75'),
+        logo: brandmark('Larkfield Composites'),
         position: 'Structural Analyst',
         location: 'Salt Lake City, UT',
         url: '',

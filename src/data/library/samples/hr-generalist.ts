@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A returner. The sixteen-month family care break is stated in the summary and
@@ -41,7 +42,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Sandera Health Partners',
-        logo: monogram('S', '#4f46e5'),
+        logo: brandmark('Sandera Health Partners'),
         position: 'HR Generalist',
         location: 'Phoenix, AZ',
         url: '',
@@ -58,7 +59,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Ironvale Manufacturing',
-        logo: monogram('I', '#0f766e'),
+        logo: brandmark('Ironvale Manufacturing'),
         position: 'HR Generalist',
         location: 'Tempe, AZ',
         url: '',
@@ -74,7 +75,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Pennant Logistics',
-        logo: monogram('P', '#b45309'),
+        logo: brandmark('Pennant Logistics'),
         position: 'HR Assistant',
         location: 'Mesa, AZ',
         url: '',

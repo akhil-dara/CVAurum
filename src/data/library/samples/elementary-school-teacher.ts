@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * The hardest résumé in education to write well: two years in, almost no
@@ -40,7 +41,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Kestrel Ridge Elementary School',
-        logo: monogram('K', '#b45309'),
+        logo: brandmark('Kestrel Ridge Elementary School'),
         position: 'Third Grade Teacher',
         location: 'Columbus, OH',
         url: '',
@@ -59,7 +60,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Marley Park Elementary School',
-        logo: monogram('M', '#0f766e'),
+        logo: brandmark('Marley Park Elementary School'),
         position: 'Long-Term Substitute Teacher, Grade 1',
         location: 'Columbus, OH',
         url: '',

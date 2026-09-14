@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A manager is still judged on results, so the numbers here are the ones a
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Wrenfield Software',
-        logo: monogram('W', '#1d4ed8'),
+        logo: brandmark('Wrenfield Software'),
         position: 'Engineering Manager',
         location: 'Boston, MA',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Hollis Grid',
-        logo: monogram('H', '#0f766e'),
+        logo: brandmark('Hollis Grid'),
         position: 'Engineering Manager',
         location: 'Boston, MA',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Ellerby Analytics',
-        logo: monogram('E', '#7c3aed'),
+        logo: brandmark('Ellerby Analytics'),
         position: 'Staff Software Engineer',
         location: 'Cambridge, MA',
         url: '',
@@ -93,7 +94,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Calderbrook Systems',
-        logo: monogram('C', '#b45309'),
+        logo: brandmark('Calderbrook Systems'),
         position: 'Software Engineer',
         location: 'Providence, RI',
         url: '',

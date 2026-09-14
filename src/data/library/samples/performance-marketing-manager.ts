@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A paid-media résumé that survives a numbers-first interview: budget held,
@@ -42,7 +43,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Arthway Finance',
-        logo: monogram('A', '#1d4ed8'),
+        logo: brandmark('Arthway Finance'),
         position: 'Senior Performance Marketing Manager',
         location: 'Chennai, Tamil Nadu',
         url: '',
@@ -60,7 +61,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Kaarigar Living',
-        logo: monogram('K', '#b91c1c'),
+        logo: brandmark('Kaarigar Living'),
         position: 'Performance Marketing Lead',
         location: 'Bengaluru, Karnataka',
         url: '',
@@ -76,7 +77,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Vriksha Organics',
-        logo: monogram('V', '#15803d'),
+        logo: brandmark('Vriksha Organics'),
         position: 'Digital Marketing Executive',
         location: 'Pune, Maharashtra',
         url: '',

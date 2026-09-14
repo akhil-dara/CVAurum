@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * The generalist acquisition résumé: one person holding paid, email and site
@@ -40,7 +41,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Thimble & Oak',
-        logo: monogram('T', '#b45309'),
+        logo: brandmark('Thimble & Oak'),
         position: 'Digital Marketing Manager',
         location: 'Chicago, IL',
         url: '',
@@ -57,7 +58,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Meadowmark Retail Group',
-        logo: monogram('M', '#0f766e'),
+        logo: brandmark('Meadowmark Retail Group'),
         position: 'Digital Marketing Specialist',
         location: 'Milwaukee, WI',
         url: '',
@@ -73,7 +74,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Gildmark Paper Co.',
-        logo: monogram('G', '#4338ca'),
+        logo: brandmark('Gildmark Paper Co.'),
         position: 'Marketing Coordinator',
         location: 'Milwaukee, WI',
         url: '',

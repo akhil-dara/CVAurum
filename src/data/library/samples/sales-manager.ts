@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Senior, India. A sales manager is judged on two things at once — the number
@@ -40,7 +41,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Ravira Payments',
-        logo: monogram('R', '#be123c'),
+        logo: brandmark('Ravira Payments'),
         position: 'Regional Sales Manager, North',
         location: 'Gurugram, Haryana',
         url: '',
@@ -59,7 +60,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Ravira Payments',
-        logo: monogram('R', '#be123c'),
+        logo: brandmark('Ravira Payments'),
         position: 'Area Sales Manager',
         location: 'New Delhi',
         url: '',
@@ -74,7 +75,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Anvira Health Networks',
-        logo: monogram('A', '#0f766e'),
+        logo: brandmark('Anvira Health Networks'),
         position: 'Senior Sales Executive',
         location: 'New Delhi',
         url: '',
@@ -89,7 +90,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Tamarind Consumer Products',
-        logo: monogram('T', '#a16207'),
+        logo: brandmark('Tamarind Consumer Products'),
         position: 'Sales Officer',
         location: 'Jaipur, Rajasthan',
         url: '',

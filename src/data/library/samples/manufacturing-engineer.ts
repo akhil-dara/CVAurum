@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A plant-floor résumé. The numbers a manufacturing manager actually asks
@@ -41,7 +42,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Halverton Plastics Group',
-        logo: monogram('H', '#b45309'),
+        logo: brandmark('Halverton Plastics Group'),
         position: 'Manufacturing Engineer',
         location: 'Grand Rapids, MI',
         url: '',
@@ -58,7 +59,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Cranmore Industrial',
-        logo: monogram('C', '#0f766e'),
+        logo: brandmark('Cranmore Industrial'),
         position: 'Process Engineer',
         location: 'Toledo, OH',
         url: '',
@@ -74,7 +75,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Stonefield Tooling',
-        logo: monogram('S', '#475569'),
+        logo: brandmark('Stonefield Tooling'),
         position: 'Associate Manufacturing Engineer',
         location: 'Toledo, OH',
         url: '',

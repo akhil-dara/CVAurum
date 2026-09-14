@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * The services-firm-to-product path, which a lot of Indian résumés have and
@@ -44,7 +45,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Kestrel Commerce',
-        logo: monogram('K', '#b91c1c'),
+        logo: brandmark('Kestrel Commerce'),
         position: 'Full-Stack Engineer',
         location: 'Hyderabad, Telangana',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Bluepine Technologies',
-        logo: monogram('B', '#1d4ed8'),
+        logo: brandmark('Bluepine Technologies'),
         position: 'Software Engineer',
         location: 'Bengaluru, Karnataka',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Varnika Software Services',
-        logo: monogram('V', '#047857'),
+        logo: brandmark('Varnika Software Services'),
         position: 'Associate Software Engineer',
         location: 'Hyderabad, Telangana',
         url: '',

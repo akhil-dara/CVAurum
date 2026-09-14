@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * An executive résumé that still reads as operations: access times, agency
@@ -43,7 +44,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Northgate Health Alliance',
-        logo: monogram('N', '#1e3a8a'),
+        logo: brandmark('Northgate Health Alliance'),
         position: 'Vice President, Ambulatory Operations',
         location: 'Columbus, OH',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Kettle Run Health System',
-        logo: monogram('K', '#0f766e'),
+        logo: brandmark('Kettle Run Health System'),
         position: 'Director, Perioperative Services',
         location: 'Indianapolis, IN',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Pinecrest Community Hospital',
-        logo: monogram('P', '#b45309'),
+        logo: brandmark('Pinecrest Community Hospital'),
         position: 'Administrator, Surgical Specialties',
         location: 'Dayton, OH',
         url: '',
@@ -92,7 +93,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Blue Larkspur Medical Group',
-        logo: monogram('B', '#4338ca'),
+        logo: brandmark('Blue Larkspur Medical Group'),
         position: 'Operations Analyst',
         location: 'Cincinnati, OH',
         url: '',

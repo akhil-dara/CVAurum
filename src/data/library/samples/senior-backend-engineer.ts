@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * The reference sample. Everything else in the library is written to this bar:
@@ -37,7 +38,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Northbank Payments',
-        logo: monogram('N', '#1d4ed8'),
+        logo: brandmark('Northbank Payments'),
         position: 'Senior Backend Engineer',
         location: 'Austin, TX',
         url: '',
@@ -54,7 +55,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Cedarline Systems',
-        logo: monogram('C', '#0f766e'),
+        logo: brandmark('Cedarline Systems'),
         position: 'Backend Engineer',
         location: 'Denver, CO',
         url: '',

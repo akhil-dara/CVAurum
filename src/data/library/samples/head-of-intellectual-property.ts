@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A patent attorney who started as a hardware engineer and now runs the
@@ -40,7 +41,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Halcyon Robotics',
-        logo: monogram('H', '#b45309'),
+        logo: brandmark('Halcyon Robotics'),
         position: 'Associate General Counsel, Intellectual Property',
         location: 'Seattle, WA',
         url: '',
@@ -59,7 +60,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Aveline Semiconductor',
-        logo: monogram('A', '#0f766e'),
+        logo: brandmark('Aveline Semiconductor'),
         position: 'Senior Patent Counsel',
         location: 'San Jose, CA',
         url: '',
@@ -75,7 +76,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Kellerman Pike LLP',
-        logo: monogram('K', '#6d28d9'),
+        logo: brandmark('Kellerman Pike LLP'),
         position: 'Patent Associate',
         location: 'San Francisco, CA',
         url: '',
@@ -90,7 +91,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Wrenfield Instruments',
-        logo: monogram('W', '#1d4ed8'),
+        logo: brandmark('Wrenfield Instruments'),
         position: 'Hardware Design Engineer',
         location: 'Portland, OR',
         url: '',

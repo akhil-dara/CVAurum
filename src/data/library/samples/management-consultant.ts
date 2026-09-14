@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * Senior, UK. A consulting history is a list of other people's problems, so
@@ -40,7 +41,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Ravenscourt Partners',
-        logo: monogram('R', '#1e3a8a'),
+        logo: brandmark('Ravenscourt Partners'),
         position: 'Engagement Manager',
         location: 'London',
         url: '',
@@ -58,7 +59,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Ravenscourt Partners',
-        logo: monogram('R', '#1e3a8a'),
+        logo: brandmark('Ravenscourt Partners'),
         position: 'Consultant',
         location: 'London',
         url: '',
@@ -74,7 +75,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Wexbury Group',
-        logo: monogram('W', '#0f766e'),
+        logo: brandmark('Wexbury Group'),
         position: 'Analyst, Operations Advisory',
         location: 'Manchester',
         url: '',
@@ -89,7 +90,7 @@ export const sample: LibrarySample = {
       {
         id: 'w4',
         name: 'Alderwick Foods',
-        logo: monogram('A', '#b45309'),
+        logo: brandmark('Alderwick Foods'),
         position: 'Supply Planner',
         location: 'Leeds',
         url: '',

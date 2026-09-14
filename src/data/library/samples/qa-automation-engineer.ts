@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A career changer. The earlier career is kept — shortened to two bullets that
@@ -44,7 +45,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Verdal Health Systems',
-        logo: monogram('V', '#0f766e'),
+        logo: brandmark('Verdal Health Systems'),
         position: 'QA Automation Engineer',
         location: 'Raleigh, NC',
         url: '',
@@ -61,7 +62,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Foxhill Software',
-        logo: monogram('F', '#b45309'),
+        logo: brandmark('Foxhill Software'),
         position: 'QA Analyst',
         location: 'Durham, NC',
         url: '',
@@ -77,7 +78,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Rowan Diagnostics',
-        logo: monogram('R', '#7c3aed'),
+        logo: brandmark('Rowan Diagnostics'),
         position: 'Clinical Laboratory Technician',
         location: 'Raleigh, NC',
         url: '',

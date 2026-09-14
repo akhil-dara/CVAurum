@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
@@ -73,7 +74,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Suvarna Consumer Brands',
-        logo: monogram('S', '#7c2d12'),
+        logo: brandmark('Suvarna Consumer Brands'),
         rail: { word: 'Internship' },
         position: 'Summer Intern, Strategy',
         location: 'Mumbai, Maharashtra',
@@ -90,7 +91,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Varsha Energy Systems',
-        logo: monogram('V', '#0f766e'),
+        logo: brandmark('Varsha Energy Systems'),
         position: 'Assistant Manager, Operations',
         location: 'Pune, Maharashtra',
         url: '',

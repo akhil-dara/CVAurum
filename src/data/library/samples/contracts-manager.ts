@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
-import { content, monogram } from '../types'
+import { content } from '../types'
+import { brandmark } from '../brandmark'
 
 /**
  * A site engineer who moved across into contracts and claims. The career
@@ -40,7 +41,7 @@ export const sample: LibrarySample = {
       {
         id: 'w1',
         name: 'Vindhya Infratech',
-        logo: monogram('V', '#b45309'),
+        logo: brandmark('Vindhya Infratech'),
         position: 'Senior Manager, Contracts & Commercial',
         location: 'Hyderabad, Telangana',
         url: '',
@@ -57,7 +58,7 @@ export const sample: LibrarySample = {
       {
         id: 'w2',
         name: 'Ekanth Constructions',
-        logo: monogram('E', '#166534'),
+        logo: brandmark('Ekanth Constructions'),
         position: 'Manager, Contracts & Claims',
         location: 'Pune, Maharashtra',
         url: '',
@@ -73,7 +74,7 @@ export const sample: LibrarySample = {
       {
         id: 'w3',
         name: 'Neelkanth Projects',
-        logo: monogram('N', '#1d4ed8'),
+        logo: brandmark('Neelkanth Projects'),
         position: 'Site Engineer, then Assistant Manager (Contracts)',
         location: 'Nagpur, Maharashtra',
         url: '',
