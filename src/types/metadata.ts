@@ -125,6 +125,11 @@ export const TypographySchema = z.object({
   letterSpacing: z.number().min(-0.05).max(0.2).default(0),
   /** heading size scale relative to body */
   headingScale: z.number().min(1).max(2.4).default(1.5),
+  /** The name as an exact multiple of the body size. Left unset, the name is
+   *  derived from headingScale, which cannot go below 2.17x the body - too
+   *  large for a plain résumé, where the name sits about 1.7x the body. Set,
+   *  it says the size outright. Optional, so no existing document moves. */
+  nameScale: z.number().min(1.1).max(3.2).optional(),
   /** section title size as a multiple of the body size (1.06 is what the page always drew) */
   sectionTitleScale: z.number().min(0.8).max(1.6).default(1.06),
   /** headline size as a multiple of the body size */
@@ -313,6 +318,10 @@ export const LayoutSchema = z.object({
    * only ever ADDED here: an unknown value fails the whole metadata parse
    * and a stored document would come back on defaults.
    */
+  /** What sits between the keywords of a skill group, a course list or an
+   *  interest: the middot the page always drew, or a comma, which is what a
+   *  plain résumé uses. Defaults to the middot, so no existing file moves. */
+  keywordSeparator: z.enum(['middot', 'comma', 'pipe', 'slash', 'space']).default('middot'),
   sectionIconStyle: z.enum(['folio', 'chip', 'plain', 'filled', 'circle', 'outline', 'none']).default('folio'),
   /** How large the section-heading badge is, for every icon style. */
   sectionIconSize: z.enum(['s', 'm', 'l']).default('m'),

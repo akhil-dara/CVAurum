@@ -52,7 +52,7 @@ export function fitSizesPt(metadata: Metadata, fit: FitVector): FitSizesPt {
   return {
     body,
     heading: body * t.sectionTitleScale,
-    name: nameBase * (1.55 + clamp(t.headingScale, 1, 2.6) * 0.62),
+    name: nameBase * (t.nameScale ?? 1.55 + clamp(t.headingScale, 1, 2.6) * 0.62),
     sectionGap: metadata.layout.sectionGap * (lock.sectionGap ? 1 : fit.space),
     entryGap: metadata.layout.itemGap * fit.space,
   }

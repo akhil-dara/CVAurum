@@ -33,6 +33,24 @@ function defs(
   }
 }
 
+/**
+ * What the Bare set switches off, everywhere it can be switched off: the
+ * monogram beside an employer or a school, the tag around a printed address,
+ * the chip around a keyword, the meter beside a language. A document carries
+ * these settings after the switch, so the look holds whatever the author
+ * brought with them.
+ */
+const BARE_SECTIONS = {
+  work: { showBadges: false, linkStyle: 'plain' as const },
+  education: { showBadges: false },
+  projects: { showBadges: false, linkStyle: 'plain' as const, tagStyle: 'inline' as const },
+  volunteer: { showBadges: false },
+  skills: { skillsStyle: 'inline' as const, meterStyle: 'none' as const },
+  languages: { meterStyle: 'none' as const },
+  interests: { tagStyle: 'inline' as const },
+  certificates: { showBadges: false },
+}
+
 export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'clarity',
@@ -357,6 +375,10 @@ export const TEMPLATES: TemplateConfig[] = [
     header: 'centered',
     section: 'underline',
     skills: 'inline',
+    // The classic format carries no ornament: no badge beside a heading, no
+    // mark beside an employer. Without this it inherited the decorated
+    // default and stopped being the thing its own description promises.
+    sectionIcons: false,
     defaults: defs(
       'harvard',
       { primary: '#111111', text: '#1a1a1a', muted: '#3f3f3f' },
@@ -1068,6 +1090,313 @@ export const TEMPLATES: TemplateConfig[] = [
       // one unhurried row instead of spilling a lone address onto a second
       // line under half a step of empty colour.
       { columns: 1, headingPlacement: 'side', showPhoto: false, icons: false, sectionGap: 17, itemGap: 7 }
+    ),
+  },
+
+  /* ------------------------------------------------------------ the Bare set
+   * Designs with nothing on the page but type: no badge beside a heading, no
+   * mark beside an employer, no chip around a keyword, no meter beside a
+   * language. Measured against the plain formats recruiters see most - 14mm
+   * margins, a 9.5pt body on a 1.25 line, a name about 1.7x the body - which
+   * is why each states its name size outright with `nameScale` rather than
+   * deriving a larger one. The quiet end of the collection.
+   */
+  {
+    id: 'plainsong',
+    name: 'Plainsong',
+    description:
+      'The plain format, set properly: a centred serif name, uppercase headings on a full rule, and nothing else on the page. Every millimetre goes to the words.',
+    tags: ['ats-safe', 'single-column', 'bare', 'classic'],
+    atsSafe: true,
+    class: 'tpl-plainsong',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'plainsong',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Tinos',
+        headingFamily: 'Tinos',
+        nameFamily: 'Tinos',
+        fontSize: 9.5,
+        lineHeight: 1.25,
+        headingScale: 1.2,
+        nameScale: 1.8,
+        uppercaseHeadings: true,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 8, itemGap: 5 }
+    ),
+  },
+  {
+    id: 'quire',
+    name: 'Quire',
+    description:
+      'A dense serif page for people with a lot to say: Merriweather set small and tight, centred contacts, and a rule under every heading. Fits more without feeling crowded.',
+    tags: ['ats-safe', 'single-column', 'bare', 'compact'],
+    atsSafe: true,
+    class: 'tpl-quire',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'quire',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Merriweather',
+        headingFamily: 'Merriweather',
+        nameFamily: 'Merriweather',
+        fontSize: 8.8,
+        lineHeight: 1.3,
+        headingScale: 1.15,
+        nameScale: 1.47,
+        uppercaseHeadings: true,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 7, itemGap: 4 }
+    ),
+  },
+  {
+    id: 'scribe',
+    name: 'Scribe',
+    description:
+      'The classic typeset résumé: a centred serif name over a hairline, uppercase headings on full rules, roles in italic, and bullets indented under each entry.',
+    tags: ['ats-safe', 'single-column', 'bare', 'classic'],
+    atsSafe: true,
+    class: 'tpl-scribe',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'scribe',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Tinos',
+        headingFamily: 'Tinos',
+        nameFamily: 'Tinos',
+        fontSize: 9.6,
+        lineHeight: 1.22,
+        headingScale: 1.15,
+        nameScale: 2.01,
+        uppercaseHeadings: true,
+        bulletIndent: 1.4,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 7, itemGap: 4 }
+    ),
+  },
+  {
+    id: 'beacon',
+    name: 'Beacon',
+    description:
+      'A plain sans page with one blue note: the name large at the left, headings bold on a rule, and an accent that marks the employers without decorating anything.',
+    tags: ['ats-safe', 'single-column', 'bare', 'modern'],
+    atsSafe: true,
+    class: 'tpl-beacon',
+    header: 'standard',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'beacon',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Source Sans 3',
+        headingFamily: 'Source Sans 3',
+        nameFamily: 'Source Sans 3',
+        fontSize: 9.7,
+        lineHeight: 1.34,
+        headingScale: 1.3,
+        nameScale: 2.22,
+        uppercaseHeadings: false,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 9, itemGap: 6 }
+    ),
+  },
+  {
+    id: 'bare',
+    name: 'Bare',
+    description:
+      'No rules, no marks, no colour: sections separated by space alone. The quietest page in the collection, and the one that never distracts from a sentence.',
+    tags: ['ats-safe', 'single-column', 'bare', 'minimal'],
+    atsSafe: true,
+    class: 'tpl-bare',
+    header: 'standard',
+    section: 'plain',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'bare',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Source Sans 3',
+        headingFamily: 'Source Sans 3',
+        nameFamily: 'Source Sans 3',
+        fontSize: 9.6,
+        lineHeight: 1.35,
+        headingScale: 1.2,
+        nameScale: 2.62,
+        uppercaseHeadings: true,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 10, itemGap: 6 }
+    ),
+  },
+  {
+    id: 'signal',
+    name: 'Signal',
+    description:
+      'Plain sans with a blue heading and a grey second line, so the page reads in two levels at a glance. Nothing is drawn that a rule cannot do.',
+    tags: ['ats-safe', 'single-column', 'bare', 'modern'],
+    atsSafe: true,
+    class: 'tpl-signal',
+    header: 'standard',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'signal',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Source Sans 3',
+        headingFamily: 'Source Sans 3',
+        nameFamily: 'Source Sans 3',
+        fontSize: 9.6,
+        lineHeight: 1.32,
+        headingScale: 1.25,
+        nameScale: 1.95,
+        uppercaseHeadings: true,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 9, itemGap: 5 }
+    ),
+  },
+  {
+    id: 'marker',
+    name: 'Marker',
+    description:
+      'Headings set in a filled block so the eye lands on them first, and plain type everywhere else. The one bare design that uses weight instead of a rule.',
+    tags: ['ats-safe', 'single-column', 'bare', 'modern'],
+    atsSafe: true,
+    class: 'tpl-marker',
+    header: 'standard',
+    section: 'boxed',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'marker',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'Lato',
+        headingFamily: 'Lato',
+        nameFamily: 'Lato',
+        fontSize: 9.5,
+        lineHeight: 1.3,
+        headingScale: 1.2,
+        nameScale: 1.9,
+        uppercaseHeadings: true,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 8, itemGap: 5 }
+    ),
+  },
+  {
+    id: 'console',
+    name: 'Console',
+    description:
+      'A small, even, engineering page: one grade of grey for the labels, black for the words, and no ornament at all. Reads like well-kept notes.',
+    tags: ['ats-safe', 'single-column', 'bare', 'technical'],
+    atsSafe: true,
+    class: 'tpl-console',
+    header: 'standard',
+    section: 'plain',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'console',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'IBM Plex Sans',
+        headingFamily: 'IBM Plex Sans',
+        nameFamily: 'IBM Plex Sans',
+        fontSize: 9,
+        lineHeight: 1.38,
+        headingScale: 1.1,
+        nameScale: 1.6,
+        uppercaseHeadings: false,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 8, itemGap: 5 }
+    ),
+  },
+  {
+    id: 'margin',
+    name: 'Margin',
+    description:
+      'Section names stand in the left margin and the words run in a single column beside them, so the page can be skimmed down one edge.',
+    tags: ['ats-safe', 'single-column', 'bare', 'technical'],
+    atsSafe: true,
+    class: 'tpl-margin',
+    header: 'standard',
+    section: 'side',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'margin',
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      {
+        fontFamily: 'IBM Plex Sans',
+        headingFamily: 'IBM Plex Sans',
+        nameFamily: 'IBM Plex Sans',
+        fontSize: 9.2,
+        lineHeight: 1.36,
+        headingScale: 1.05,
+        nameScale: 1.48,
+        uppercaseHeadings: false,
+        letterSpacing: 0,
+        sectionTitleScale: 1,
+        headlineScale: 1,
+        contactScale: 1,
+        proficiency: 'none',
+      },
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 9, itemGap: 5, headingPlacement: 'side' }
     ),
   },
 ]

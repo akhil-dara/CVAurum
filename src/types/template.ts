@@ -22,6 +22,9 @@ export interface TemplateProps {
 }
 
 export type TemplateTag =
+  /** Nothing on the page but type: no heading badge, employer mark, keyword
+   *  chip or level meter. The quiet end of the collection. */
+  | 'bare'
   | 'ats-safe'
   | 'single-column'
   | 'two-column'

@@ -36,6 +36,18 @@ import { keywordChunks } from '@/lib/keywordChunks'
  * export, three lines began " . ", which reads as a bullet marker to anything
  * parsing the text rather than as a list separator.
  */
+/** The string a document puts between keywords. */
+const KEYWORD_SEPARATORS: Record<string, string> = {
+  middot: ' \u00b7 ',
+  comma: ', ',
+  pipe: ' | ',
+  slash: ' / ',
+  space: '  ',
+}
+export function keywordSep(doc: ResumeDocument): string {
+  return KEYWORD_SEPARATORS[doc.metadata.layout.keywordSeparator] ?? ' \u00b7 '
+}
+
 function KeywordList({ items, sep }: { items: string[]; sep: string }) {
   const glued = sep.replace(/\s+$/, '')
   return (
@@ -912,6 +924,7 @@ function EditableChips({
   addLabel = '+ skill',
   placeholder = 'Skill',
   variant = 'chips',
+  sep,
   lead = '',
   className = '',
   onMove,
@@ -930,6 +943,8 @@ function EditableChips({
    *  export will show. 'inline' renders the keywords as running text with the
    *  same separator the preview uses. */
   variant?: 'chips' | 'inline'
+  /** what separates the words when the list is only being read */
+  sep?: string
   /** Text before the first keyword in the inline variant (the ": " after a
    *  group name), so editing does not change the punctuation. */
   lead?: string
@@ -986,7 +1001,7 @@ function EditableChips({
     return variant === 'inline' ? (
       <span className={`rm-skill-inline${className ? ` ${className}` : ''}`}>
         {lead}
-        <KeywordList items={visible} sep=" · " />
+        <KeywordList items={visible} sep={sep ?? " · "} />
       </span>
     ) : (
       <Chips items={visible} className={className} />
@@ -1580,7 +1595,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             ) : null}
             {e.courses?.length ? (
               <div className="rm-skill-inline">
-                <KeywordList items={e.courses} sep=" · " />
+                <KeywordList items={e.courses} sep={keywordSep(doc)} />
               </div>
             ) : null}
             <ItemMove edit={edit} sectionKey="education" id={e.id} label={ADD_LABEL.education} />
@@ -1908,6 +1923,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
             {show(opts?.showKeywords) ? (
               edit ? (
                 <EditableChips
+                  sep={keywordSep(doc)}
                   items={p.keywords ?? []}
                   edit={edit}
                   setItem={(c, ki, v) => {
@@ -1937,7 +1953,7 @@ function Projects({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opt
                 // The same component with no edit function: its view form IS
                 // the inline list the skills already print, so the running
                 // text is written once and read the same way in both places.
-                <EditableChips items={p.keywords} variant={tagVariant} className={tagClass} />
+                <EditableChips items={p.keywords} variant={tagVariant} className={tagClass} sep={keywordSep(doc)} />
               ) : null
             ) : null}
             <ItemMove edit={edit} sectionKey="projects" id={p.id} label={ADD_LABEL.projects} />
@@ -1979,6 +1995,7 @@ function SkillsCompact({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
             {edit ? (
               <span className="rm-footer-list">
                 <EditableChips
+                  sep={keywordSep(doc)}
                   variant="inline"
                   items={s.keywords ?? []}
                   edit={edit}
@@ -2004,7 +2021,7 @@ function SkillsCompact({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
               </span>
             ) : hasKeywords ? (
               <span className="rm-footer-list">
-                <KeywordList items={s.keywords!} sep=" · " />
+                <KeywordList items={s.keywords!} sep={keywordSep(doc)} />
               </span>
             ) : null}
             <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
@@ -2150,6 +2167,7 @@ function Skills({
               // while being edited and like running text everywhere else -
               // the editing surface disagreeing with its own output.
               <EditableChips
+                  sep={keywordSep(doc)}
                 variant={chipStyle ? 'chips' : 'inline'}
                 // The colon joins the name to the list; stacked puts the
                 // list on its own line, where a leading colon reads as a typo.
@@ -2203,7 +2221,7 @@ function Skills({
             ) : hasKeywords ? (
               <span className="rm-skill-inline">
                 {stacked || !s.name ? '' : ': '}
-                <KeywordList items={s.keywords!} sep=" · " />
+                <KeywordList items={s.keywords!} sep={keywordSep(doc)} />
               </span>
             ) : null}
             <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
@@ -2942,6 +2960,7 @@ function Interests({ doc, edit }: { doc: ResumeDocument; edit?: EditFn }) {
             />
             {edit ? (
               <EditableChips
+                  sep={keywordSep(doc)}
                 items={it.keywords ?? []}
                 edit={edit}
                 setItem={(c, ki, v) => {

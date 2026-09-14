@@ -98,7 +98,9 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
     // the sliders say however far the fit moves (fitOnePage.ts fitToPages).
     const fsBase = t.fontSize * PT_TO_PX
     const fs = fsBase * fit.type
-    const nameSize = (lock.name ? fsBase : fs) * (1.55 + clamp(t.headingScale, 1, 2.6) * 0.62)
+    // An exact scale when the design states one, else the old derivation.
+    const nameMul = t.nameScale ?? 1.55 + clamp(t.headingScale, 1, 2.6) * 0.62
+    const nameSize = (lock.name ? fsBase : fs) * nameMul
     return {
       '--rm-fs': `${fs.toFixed(2)}px`,
       '--rm-lh': String(t.lineHeight),
