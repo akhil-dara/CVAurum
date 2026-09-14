@@ -12,13 +12,14 @@ import { FitReadout } from './FitReadout'
 
 type FitTarget = Metadata['page']['fit']['target']
 type FitPriority = Metadata['page']['fit']['priority']
-type LockKey = 'name' | 'headline' | 'contacts' | 'sectionGap'
+type LockKey = 'name' | 'headline' | 'contacts' | 'sectionGap' | 'leading'
 
 const LOCKS: { key: LockKey; label: string }[] = [
   { key: 'name', label: 'Name' },
   { key: 'headline', label: 'Headline' },
   { key: 'contacts', label: 'Contacts' },
   { key: 'sectionGap', label: 'Section gap' },
+  { key: 'leading', label: 'Line height' },
 ]
 
 /** The Page group's Magic fit card: the switch with its readout, the page

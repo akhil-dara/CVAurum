@@ -21,7 +21,7 @@ describe('PageSchema.fit (Magic fit rules, 2026-09-09)', () => {
       target: 1,
       minBody: null,
       priority: 'both',
-      lock: { name: false, headline: false, contacts: false, sectionGap: false },
+      lock: { name: false, headline: false, contacts: false, sectionGap: false, leading: false },
     })
   })
   it('keeps what the author set and refuses a target it cannot fit', () => {
@@ -29,7 +29,7 @@ describe('PageSchema.fit (Magic fit rules, 2026-09-09)', () => {
     expect(page.fit.target).toBe(2)
     expect(page.fit.minBody).toBe(11)
     expect(page.fit.priority).toBe('type')
-    expect(page.fit.lock).toEqual({ name: true, headline: false, contacts: false, sectionGap: false })
+    expect(page.fit.lock).toEqual({ name: true, headline: false, contacts: false, sectionGap: false, leading: false })
     expect(() => PageSchema.parse({ fit: { target: 4 } })).toThrow()
   })
 })

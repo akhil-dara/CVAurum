@@ -14,6 +14,7 @@ import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
 import { resolveStatTiles } from '@/lib/stats'
 import type { FitVector } from '@/lib/fitOnePage'
+import { fitLineHeight } from '@/lib/fitOnePage'
 
 const FIT_AS_SET: FitVector = { type: 1, space: 1 }
 import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
@@ -103,7 +104,10 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
     const nameSize = (lock.name ? fsBase : fs) * nameMul
     return {
       '--rm-fs': `${fs.toFixed(2)}px`,
-      '--rm-lh': String(t.lineHeight),
+      // Leading rides the SPACING scale, bounded (fitOnePage.ts): the
+      // fit's cheapest lever, and the one it used to have to buy by
+      // shrinking the type.
+      '--rm-lh': String(fitLineHeight(t.lineHeight, fit.space, lock.leading)),
       '--rm-ls': `${t.letterSpacing}em`,
       '--rm-name-size': `${nameSize.toFixed(2)}px`,
       '--rm-section-title-size': `${(fs * t.sectionTitleScale).toFixed(2)}px`,

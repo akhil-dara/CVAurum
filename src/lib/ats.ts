@@ -8,6 +8,7 @@ import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { htmlToText } from '@/lib/utils'
 import { getTemplate } from '@/templates/registry'
 import { sectionHasContent } from '@/lib/sections'
+import { LEGIBLE_BODY_PT } from '@/lib/fitReadout'
 
 export type CheckStatus = 'pass' | 'warn' | 'fail'
 
@@ -301,10 +302,10 @@ export function analyzeResume(doc: ResumeDocument, measured: AtsMeasurement = {}
   push(
     'bodySize',
     'Body text size',
-    bodyPt >= 9.5 && bodyPt <= 12 ? 'pass' : bodyPt >= 8.5 ? 'warn' : 'fail',
+    bodyPt >= 9.5 && bodyPt <= 12 ? 'pass' : bodyPt >= LEGIBLE_BODY_PT ? 'warn' : 'fail',
     bodyPt >= 9.5 && bodyPt <= 12
       ? `${bodyRounded}pt — comfortable in print and on screen.`
-      : bodyPt < 8.5
+      : bodyPt < LEGIBLE_BODY_PT
         ? `${bodyRounded}pt is below what a printed résumé should use. Cut a little content instead of shrinking further.`
         : `${bodyRounded}pt is on the edge of readable. 10–11pt is the range to aim for.`,
     1,

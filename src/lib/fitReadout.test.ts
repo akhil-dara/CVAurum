@@ -15,7 +15,7 @@ const meta = () => {
 describe('fitRulesOf', () => {
   it('hands the search the document’s rules and the body size as set', () => {
     const m = meta()
-    m.page.fit = { target: 2, minBody: 11, priority: 'type', lock: { name: false, headline: false, contacts: false, sectionGap: false } }
+    m.page.fit = { target: 2, minBody: 11, priority: 'type', lock: { name: false, headline: false, contacts: false, sectionGap: false, leading: false } }
     expect(fitRulesOf(m)).toEqual({ target: 2, minBody: 11, fontSize: 10, priority: 'type' })
   })
 })
@@ -52,7 +52,9 @@ describe('fitSizesPt', () => {
 describe('formatFitReadout', () => {
   it('says what the fit did and how full the pages are', () => {
     const line = formatFitReadout(meta(), { fit: { type: 0.94, space: 0.85 }, pages: 1, lastPageFill: 0.98 })
-    expect(line).toBe('Fitted: body 9.4pt, headings 11.3pt, name 23.3pt, gaps 8.5pt / 5.1pt · 1 page, 98% full')
+    // Leading is reported because the fit moved it: it is one of the sizes the
+    // page is drawn at, and the one a reader is least likely to guess.
+    expect(line).toBe('Fitted: body 9.4pt, leading 1.19 from 1.28, headings 11.3pt, name 23.3pt, gaps 8.5pt / 5.1pt · 1 page, 98% full')
   })
   it('says “As set” when nothing moved, and names the last page on a longer résumé', () => {
     const m = meta()
@@ -62,7 +64,9 @@ describe('formatFitReadout', () => {
   })
   it('says when the page target was out of reach and the fit fell back to more pages', () => {
     const line = formatFitReadout(meta(), { fit: { type: 0.7, space: 0.7 }, pages: 2, lastPageFill: 1 })
-    expect(line).toBe('Fitted: body 7pt, headings 8.4pt, name 17.4pt, gaps 7pt / 4.2pt · 2 pages, page 2 is 100% full · 1 page is out of reach within your rules')
+    expect(line).toBe(
+      'Fitted: body 7pt, leading 1.13 from 1.28, headings 8.4pt, name 17.4pt, gaps 7pt / 4.2pt · 2 pages, page 2 is 100% full · 1 page is out of reach within your rules · 7pt is below what prints legibly — a page more would keep it readable'
+    )
     const m = meta()
     m.page.fit.target = 2
     expect(formatFitReadout(m, { fit: { type: 0.7, space: 0.7 }, pages: 3, lastPageFill: 0.5 })).toContain('· 2 pages are out of reach within your rules')
@@ -72,5 +76,27 @@ describe('formatFitReadout', () => {
     m.page.autoFit = false
     expect(formatFitReadout(m, { fit: { type: 1, space: 1 }, pages: 2, lastPageFill: 0.4 })).toBe('Off · 2 pages, page 2 is 40% full')
     expect(formatFitReadout(meta(), null)).toBe('Measuring…')
+  })
+})
+
+describe('what the readout owes the reader', () => {
+  it('leaves leading out when the fit did not move it', () => {
+    // One more number to read, for a page nothing happened to.
+    const line = formatFitReadout(meta(), { fit: { type: 1, space: 1 }, pages: 1, lastPageFill: 0.8 })
+    expect(line).not.toContain('leading')
+  })
+
+  it('says when the size it settled on is below what prints legibly', () => {
+    // The fit will go to two thirds of the body as set when no floor is named -
+    // a legal answer to "one page", and a size the app's own analysis fails a
+    // document on. The person reading this is the one who has to choose a
+    // second page instead, and they cannot choose what they are not told.
+    const line = formatFitReadout(meta(), { fit: { type: 0.7, space: 1 }, pages: 1, lastPageFill: 0.99 })
+    expect(line).toContain('below what prints legibly')
+  })
+
+  it('says nothing of the sort at a comfortable size', () => {
+    const line = formatFitReadout(meta(), { fit: { type: 0.95, space: 0.95 }, pages: 1, lastPageFill: 0.9 })
+    expect(line).not.toContain('below what prints legibly')
   })
 })

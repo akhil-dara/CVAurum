@@ -191,6 +191,47 @@ export const FIT_SPACE_MAX = 1.3
 export const LEAD_SHRINK = { space: 0.85, type: 0.92 } as const
 export const LEAD_GROW = { space: 1.12, type: 1.08 } as const
 
+/* ---- leading ---------------------------------------------------------------
+ * The line height was the one lever the fit could not pull. It is unitless,
+ * so it rode on the TYPE scale: the only way to take space out from between
+ * the lines was to make the letters smaller — the most visible change on a
+ * page, spent to save the least visible one. Going from 1.40 to 1.23 gives
+ * back about an eighth of the column with nothing a reader would name.
+ *
+ * So it moves with the SPACING scale instead, at a fraction of it. That is
+ * not a third axis: "spacing" meaning only the gaps BETWEEN blocks was an
+ * incomplete idea of spacing, and the space between two lines of a paragraph
+ * belongs to the same scale as the space between two paragraphs. Riding an
+ * axis the search already walks costs it nothing — the same two numbers, the
+ * same grid, and the same answer in the preview and the exporter.
+ *
+ * A fraction, and bounded, because leading cannot be treated like a gap: a
+ * gap closed to 0.7 is tight, lines closed to 0.7 collide.
+ */
+
+/** How much of the spacing scale's travel the leading takes. */
+export const LEADING_RATE = 0.45
+/** Bounds on the multiplier itself, whatever the spacing scale does. */
+export const LEADING_MIN = 0.88
+export const LEADING_MAX = 1.1
+/** Below this the ascenders of one line meet the descenders of the one above,
+ *  whatever the design asked for. A tight design has little to give. */
+export const LEADING_FLOOR = 1.05
+
+/**
+ * The line height the page is actually drawn at.
+ *
+ * One definition, because three places need the same answer: the artboard
+ * that renders it, the readout that reports it, and the exporter — which
+ * renders through the same artboard, so parity here is by construction rather
+ * than by agreement.
+ */
+export function fitLineHeight(lineHeight: number, space: number, locked = false): number {
+  if (locked || space === 1) return lineHeight
+  const mul = Math.min(LEADING_MAX, Math.max(LEADING_MIN, 1 + (space - 1) * LEADING_RATE))
+  return Math.max(Math.min(lineHeight, LEADING_FLOOR), lineHeight * mul)
+}
+
 export interface FitRules {
   /** At most this many pages. */
   target: number

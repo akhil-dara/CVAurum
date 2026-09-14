@@ -10,7 +10,7 @@
  */
 import type { FitRules, FitVector } from './fitOnePage'
 import type { Metadata } from '@/types/metadata'
-import { typeFloor } from './fitOnePage'
+import { fitLineHeight, typeFloor } from './fitOnePage'
 
 /** The result the preview records after every fit and pagination. */
 export interface FitResult {
@@ -35,6 +35,9 @@ export function effectiveFloorPt(metadata: Metadata): number {
 
 export interface FitSizesPt {
   body: number
+  /** The line height the page is drawn at, as a multiple of the body. Not a
+   *  point size like its neighbours - it is the number the slider shows. */
+  leading: number
   heading: number
   name: number
   sectionGap: number
@@ -42,6 +45,18 @@ export interface FitSizesPt {
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+
+/**
+ * The body size below which a printed résumé stops being comfortable to read.
+ *
+ * The same number the analysis panel fails a document on, named once so the
+ * two cannot drift: a fit that quietly produced a size the app's own report
+ * calls a fail was the product contradicting itself.
+ */
+export const LEGIBLE_BODY_PT = 8.5
+
+/** A multiple like a line height: as few decimals as say it. */
+const num = (n: number) => String(Math.round(n * 100) / 100)
 
 /** The sizes the page is drawn at under `fit`, in points. Mirrors useVars. */
 export function fitSizesPt(metadata: Metadata, fit: FitVector): FitSizesPt {
@@ -51,6 +66,7 @@ export function fitSizesPt(metadata: Metadata, fit: FitVector): FitSizesPt {
   const nameBase = lock.name ? t.fontSize : body
   return {
     body,
+    leading: fitLineHeight(t.lineHeight, fit.space, lock.leading),
     heading: body * t.sectionTitleScale,
     name: nameBase * (t.nameScale ?? 1.55 + clamp(t.headingScale, 1, 2.6) * 0.62),
     sectionGap: metadata.layout.sectionGap * (lock.sectionGap ? 1 : fit.space),
@@ -74,5 +90,13 @@ export function formatFitReadout(metadata: Metadata, result: FitResult | null): 
   const head = moved ? 'Fitted' : 'As set'
   const t = metadata.page.fit.target
   const short = result.pages > t ? ` · ${t} page${t === 1 ? ' is' : 's are'} out of reach within your rules` : ''
-  return `${head}: body ${pt(s.body)}, headings ${pt(s.heading)}, name ${pt(s.name)}, gaps ${pt(s.sectionGap)} / ${pt(s.entryGap)} · ${pages}, ${fill}${short}`
+  const setLead = metadata.typography.lineHeight
+  const lead = Math.abs(s.leading - setLead) > 0.005 ? `, leading ${num(s.leading)} from ${num(setLead)}` : ''
+  // The fit will go down to two thirds of the body as set when the author has
+  // not named a floor, which on a 10pt body is 6.6pt - a size the app's own
+  // analysis calls a fail. It is a legal answer to "one page", but the person
+  // reading the readout is the one who has to decide whether to spend a second
+  // page instead, and they cannot decide what they are not told.
+  const cramped = s.body < LEGIBLE_BODY_PT ? ` · ${pt(s.body)} is below what prints legibly — a page more would keep it readable` : ''
+  return `${head}: body ${pt(s.body)}${lead}, headings ${pt(s.heading)}, name ${pt(s.name)}, gaps ${pt(s.sectionGap)} / ${pt(s.entryGap)} · ${pages}, ${fill}${short}${cramped}`
 }

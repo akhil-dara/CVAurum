@@ -102,7 +102,19 @@ describe('fitOnePageScale', () => {
 // Magic fit: two scales, in the author's order, inside the author's floors,
 // keeping proportion: the lead axis moves a little alone, then both together,
 // then the lead axis on to its floor.
-import { fitToPages, typeFloor, FIT_SPACE_MIN, FIT_SPACE_MAX, MAX_FIT_UP, LEAD_SHRINK, LEAD_GROW } from './fitOnePage'
+import {
+  fitToPages,
+  typeFloor,
+  fitLineHeight,
+  LEADING_FLOOR,
+  LEADING_MAX,
+  LEADING_MIN,
+  FIT_SPACE_MIN,
+  FIT_SPACE_MAX,
+  MAX_FIT_UP,
+  LEAD_SHRINK,
+  LEAD_GROW,
+} from './fitOnePage'
 import type { FitVector } from './fitOnePage'
 
 /** A résumé whose height is `full x type x space`: type and spacing both
@@ -294,5 +306,73 @@ describe('fitToPages', () => {
     const m = twoAxis(1300)
     const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)
     expect(m.last()).toEqual(r)
+  })
+})
+
+/**
+ * Leading was the one lever Magic fit could not pull.
+ *
+ * `--rm-lh` was set from the author's line height and never touched by the
+ * fit, and a unitless line height rides on the font size — so the only way to
+ * take space out from between the lines was to make the letters smaller. That
+ * is the most visible change on a page, spent to save the least visible one.
+ *
+ * Leading now moves with the SPACING scale, at a fraction of it: "spacing"
+ * meaning only the gaps between blocks was an incomplete idea of spacing, and
+ * putting leading on the scale the author already points at costs the search
+ * nothing — the same two numbers, the same grid, the same answer in the
+ * preview and the exporter.
+ */
+describe('leading under the fit', () => {
+  it('leaves the page as set alone', () => {
+    expect(fitLineHeight(1.4, 1)).toBe(1.4)
+  })
+
+  it('tightens the lines when the spacing tightens, at a fraction of it', () => {
+    const tight = fitLineHeight(1.4, 0.8)
+    expect(tight).toBeLessThan(1.4)
+    // A fraction: the lines must not close at the rate the gaps do, or a page
+    // at the spacing floor would have its lines touching.
+    expect(tight).toBeGreaterThan(1.4 * 0.8)
+  })
+
+  it('opens the lines when the spacing opens', () => {
+    expect(fitLineHeight(1.4, 1.2)).toBeGreaterThan(1.4)
+  })
+
+  it('never closes the lines past the point where they collide', () => {
+    // An already-tight design has little room to give, and the multiplier
+    // alone would take it past legibility.
+    expect(fitLineHeight(1.15, FIT_SPACE_MIN)).toBeGreaterThanOrEqual(LEADING_FLOOR)
+    expect(fitLineHeight(1.05, FIT_SPACE_MIN)).toBeGreaterThanOrEqual(LEADING_FLOOR)
+  })
+
+  it('bounds how far it travels, either way', () => {
+    // Whatever the spacing scale does, leading moves inside its own bounds.
+    expect(fitLineHeight(1.4, 0.1)).toBeCloseTo(1.4 * LEADING_MIN, 5)
+    expect(fitLineHeight(1.4, 9)).toBeCloseTo(1.4 * LEADING_MAX, 5)
+  })
+
+  it('honours a lock, so an author who set their leading keeps it', () => {
+    expect(fitLineHeight(1.4, FIT_SPACE_MIN, true)).toBe(1.4)
+    expect(fitLineHeight(1.4, FIT_SPACE_MAX, true)).toBe(1.4)
+  })
+
+  it('moves monotonically with the spacing scale', () => {
+    // The search needs one direction of travel per axis; leading riding along
+    // must not double back, or a tighter spacing could produce a taller page.
+    let prev = Infinity
+    for (let space = FIT_SPACE_MAX; space >= FIT_SPACE_MIN; space -= 0.02) {
+      const lh = fitLineHeight(1.4, space)
+      expect(lh).toBeLessThanOrEqual(prev + 1e-9)
+      prev = lh
+    }
+  })
+
+  it('buys real vertical space at the spacing floor', () => {
+    // The point of the exercise: about a tenth of the page's height, taken
+    // from between the lines rather than out of the type.
+    const saved = 1 - fitLineHeight(1.4, FIT_SPACE_MIN) / 1.4
+    expect(saved).toBeGreaterThan(0.08)
   })
 })

@@ -69,6 +69,10 @@ export const PageSchema = z.object({
           headline: z.boolean().default(false),
           contacts: z.boolean().default(false),
           sectionGap: z.boolean().default(false),
+          /** Keep the line height exactly as the slider says. Without it the
+           *  fit takes space from between the lines before it takes it out of
+           *  the type, which is the cheaper of the two to a reader. */
+          leading: z.boolean().default(false),
         })
         .default({}),
     })
