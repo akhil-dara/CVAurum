@@ -3,17 +3,20 @@
  * the dashboard (/app): the create/import actions (which navigate straight into
  * the editor) and the Blank-vs-Example chooser modal.
  */
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
-import { FileText, FilePlus2, FileUp, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, FileText, FilePlus2, FileUp, Search, X } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
 import { saveDoc } from '@/lib/storage'
 import { importDocumentFromFile } from '@/lib/io'
-import { SAMPLES, type SamplePersona } from '@/data/samples'
+import { CATEGORY_LABELS, LIBRARY_CATEGORIES, type LibraryCategory, type LibrarySample } from '@/data/library/types'
+import { sampleDoc } from '@/data/library/doc'
+import { EMPTY_LIBRARY_FILTER, filterLibrary, toggleFacet } from '@/lib/libraryFilter'
+import { cn } from '@/lib/utils'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import type { ResumeContent } from '@/types/document'
@@ -26,8 +29,17 @@ export function useResumeActions() {
   const refreshLibrary = useAppStore((s) => s.refreshLibrary)
   const toast = useAppStore((s) => s.toast)
 
-  const create = async (sample: boolean, templateId?: string, content?: ResumeContent, tweak?: (m: import('@/types/metadata').Metadata) => void) => {
-    const doc = createDocument({ sample: sample || !!content, content })
+  const create = async (
+    sample: boolean,
+    templateId?: string,
+    content?: ResumeContent,
+    tweak?: (m: import('@/types/metadata').Metadata) => void,
+    // What to call it. A résumé started from the "Registered Nurse" example
+    // arriving in the list as "My Resume" is a list of identical names the
+    // moment someone tries two.
+    title?: string
+  ) => {
+    const doc = createDocument({ sample: sample || !!content, content, title })
     if (templateId) doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(templateId).defaults)
     // Persona polish (per-section styles, badges…) — applied after the template
     // defaults so sample resumes demonstrate the customization system.
@@ -162,18 +174,58 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
  * and get ideas. The student is the one still IN school: an expected
  * graduation, school marks, and projects where a job history would be.
  */
-export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) => void; onClose: () => void }) {
-  // Build a previewable doc per persona once (content + its flattering template).
-  const docs = useMemo(
-    () =>
-      SAMPLES.map((s) => {
-        const doc = createDocument({ sample: true, content: s.content, title: s.name })
-        doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(s.template).defaults)
-        s.tweaks?.(doc.metadata) // previews show the same persona polish
-        return { persona: s, doc }
-      }),
-    [],
+/** What the picker hands back: enough to start the résumé, and to name it. */
+export interface PickedSample {
+  template: string
+  content: ResumeContent
+  tweaks?: (m: import('@/types/metadata').Metadata) => void
+  role: string
+}
+
+/**
+ * Pick a starting example.
+ *
+ * It used to offer seven hand-written personas while the public library holds
+ * a hundred and eight, so someone who had just browsed the examples on the
+ * site found a different, much smaller set the moment they were inside the
+ * app. It offers the same library now — searchable, and filtered by field.
+ *
+ * The library is imported DYNAMICALLY, on open: it is a hundred complete
+ * résumés, and every page that can open this dialog (the landing page among
+ * them) would otherwise carry them all.
+ */
+export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) => void; onClose: () => void }) {
+  const [library, setLibrary] = useState<readonly LibrarySample[] | null>(null)
+  const [query, setQuery] = useState('')
+  const [categories, setCategories] = useState<readonly LibraryCategory[]>([])
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    let alive = true
+    void import('@/data/library').then((m) => {
+      if (alive) setLibrary(m.LIBRARY)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Escape closes, and the search box takes the caret, so the dialog can be
+  // driven without reaching for the mouse.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    searchRef.current?.focus()
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const shown = useMemo(
+    () => (library ? filterLibrary(library, { ...EMPTY_LIBRARY_FILTER, query, categories }) : []),
+    [library, query, categories]
   )
+
   return createPortal(
     // The scrim is a flat colour, never a backdrop filter. Blurring the whole
     // page behind a dialog is re-computed every frame while it is open, and
@@ -181,61 +233,137 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: SamplePersona) =
     // the same and composites once.
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float">
-        <div className="mb-1 flex items-center justify-between">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pick a starting example"
+        className="relative z-10 flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float"
+      >
+        <div className="mb-1 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Pick a starting example</h2>
           <button className="btn-icon" onClick={onClose} aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="mb-5 text-sm text-muted-foreground">A complete, realistic resume to learn from — swap in your details, switch templates anytime.</p>
-        {/* Six examples: two, three or six to a row so no row is left with a
-            lone card (five columns stranded the sixth), and the rows scroll
-            inside the dialog with room kept for the scrollbar. */}
-        <div className="panel-scroll grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden pr-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-          {docs.map(({ persona, doc }) => (
-            <SampleCard key={persona.id} persona={persona} doc={doc} onPick={onPick} />
-          ))}
+        <p className="mb-4 text-sm text-muted-foreground">
+          A complete résumé for that job, written out in full — swap in your details, switch designs anytime. Everything
+          in one is invented.
+        </p>
+
+        <div className="mb-3 space-y-2.5">
+          <label className="relative block max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a job title, a skill, a field…"
+              aria-label="Search the examples"
+              className="input h-9 w-full pl-9 pr-3 text-sm"
+            />
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {LIBRARY_CATEGORIES.map((c) => {
+              const on = categories.includes(c)
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setCategories(toggleFacet(categories, c))}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs font-medium transition',
+                    on
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                  )}
+                >
+                  {CATEGORY_LABELS[c]}
+                </button>
+              )
+            })}
+          </div>
         </div>
+
+        <div className="mb-2 flex items-center justify-between gap-3 border-t border-border pt-2.5">
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            {library ? `${shown.length} of ${library.length} examples` : 'Loading the examples…'}
+          </p>
+          <Link
+            to="/examples"
+            onClick={onClose}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            Read them in full <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        {library && shown.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-6 py-14 text-center">
+            <p className="text-sm font-medium">No example matches that</p>
+            <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">
+              Try the job title on its own, or clear the field chips.
+            </p>
+          </div>
+        ) : (
+          <div className="panel-scroll grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden pr-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            {library
+              ? shown.map((sample) => <SampleCard key={sample.slug} sample={sample} onPick={onPick} />)
+              : // Placeholders at the shape of the cards, so the dialog does not
+                // jump the moment the library lands.
+                Array.from({ length: 12 }, (_, i) => (
+                  <div key={i} className="overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+                    <div className="aspect-[210/297] border-b border-border bg-white">
+                      <ThumbSkeleton />
+                    </div>
+                    <div className="h-[58px] p-3" />
+                  </div>
+                ))}
+          </div>
+        )}
       </div>
     </div>,
-    document.body,
+    document.body
   )
 }
 
-function SampleCard({
-  persona,
-  doc,
-  onPick,
-}: {
-  persona: SamplePersona
-  doc: ReturnType<typeof createDocument>
-  onPick: (p: SamplePersona) => void
-}) {
-  // Every full resume here used to mount synchronously the moment the modal
+function SampleCard({ sample, onPick }: { sample: LibrarySample; onPick: (p: PickedSample) => void }) {
+  // Every full résumé here used to mount synchronously the moment the modal
   // opened. Each card now waits for its idle grant like every other
   // thumbnail; the aspect box holds the layout meanwhile.
   const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
-  return (
-    <HoverZoom doc={doc} label={`${persona.role} example`}>
-      <button
-        onClick={() => onPick(persona)}
-        // The CARD follows the theme; only the thumbnail below is paper
-        // white. It used to be white throughout while its text used
-        // theme tokens, so in dark mode the title was light-on-white and
-        // effectively invisible (2026-08-25 report).
-        className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
-        title={`Start from the ${persona.role} example`}
-      >
-        <div ref={thumbRef} className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
-          {seen ? <PreviewThumb doc={doc} width={210} /> : <ThumbSkeleton accent={doc.metadata?.theme?.primary} />}
-        </div>
-        <div className="p-3">
-          <div className="text-sm font-semibold text-foreground">{persona.role}</div>
-          <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{persona.blurb}</div>
-        </div>
-      </button>
+  const doc = useMemo(() => (seen ? sampleDoc(sample) : null), [seen, sample])
+  const pick = () => onPick({ template: sample.template, content: sample.content, tweaks: sample.tweaks, role: sample.role })
+
+  const card = (
+    <button
+      onClick={pick}
+      // The CARD follows the theme; only the thumbnail below is paper
+      // white. It used to be white throughout while its text used
+      // theme tokens, so in dark mode the title was light-on-white and
+      // effectively invisible (2026-08-25 report).
+      className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
+      title={`Start from the ${sample.role} example`}
+    >
+      <div ref={thumbRef} className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
+        {doc ? <PreviewThumb doc={doc} width={210} /> : <ThumbSkeleton />}
+      </div>
+      <div className="p-3">
+        <div className="text-sm font-semibold text-foreground">{sample.role}</div>
+        <div className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{sample.blurb}</div>
+      </div>
+    </button>
+  )
+
+  // The zoom needs the document; before the card has mounted one there is
+  // nothing to zoom into, and the plain card stands in.
+  return doc ? (
+    <HoverZoom doc={doc} label={`${sample.role} example`}>
+      {card}
     </HoverZoom>
+  ) : (
+    card
   )
 }
 

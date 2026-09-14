@@ -456,7 +456,7 @@ export function Landing() {
           onClose={() => setSampleOpen(false)}
           onPick={(p) => {
             setSampleOpen(false)
-            create(true, p.template, p.content, p.tweaks)
+            create(true, p.template, p.content, p.tweaks, `${p.role} resume`)
           }}
         />
       )}
