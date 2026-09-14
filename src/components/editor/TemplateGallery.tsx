@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ShieldCheck, X, ZoomIn } from 'lucide-react'
+import { Check, ChevronDown, Search, ShieldCheck, SlidersHorizontal, X, ZoomIn } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES, galleryOrder } from '@/templates/registry'
 
@@ -16,6 +16,25 @@ import { useLazyMount } from '@/components/preview/lazyMount'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 import { usePhoneLayout } from '@/lib/layoutMode'
 import { PAGE_DIMENSIONS } from '@/types/metadata'
+// The public gallery's own filtering, kept pure so both walls narrow the
+// same way and a design found in one is found in the other.
+import {
+  EMPTY_FILTER,
+  filterTemplates,
+  isFilterActive,
+  tagChoices,
+  type TemplateFilter,
+} from '@/lib/templateFilter'
+import type { TemplateTag } from '@/types/template'
+
+/** Derived once from the registry - a new tag on a new design gets a chip. */
+const TAG_CHOICES = tagChoices(TEMPLATES)
+
+/** 'two-column' reads as a slug; the chip says it in words. */
+const tagLabel = (tag: TemplateTag) => {
+  const words = tag.replace(/-/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
 
 export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   const applyTemplate = useResumeStore((s) => s.applyTemplate)
@@ -40,6 +59,15 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   // Preview button on the card instead.
   const phone = usePhoneLayout()
   const [previewing, setPreviewing] = useState<(typeof TEMPLATES)[number] | null>(null)
+  // Local, not in the URL: this is a panel inside a document being edited, and
+  // the address bar belongs to the résumé rather than to what the panel is
+  // showing at the moment.
+  const [filter, setFilter] = useState<TemplateFilter>(EMPTY_FILTER)
+  const [chipsOpen, setChipsOpen] = useState(false)
+  const shown = useMemo(() => filterTemplates(GALLERY, filter), [filter])
+  const narrowed = isFilterActive(filter)
+  const toggleTag = (tag: TemplateTag) =>
+    setFilter((f) => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag] }))
   const pick = (tpl: (typeof TEMPLATES)[number]) => {
     applyTemplate(tpl.defaults)
     toast(`Switched to ${tpl.name}`, 'success')
@@ -54,8 +82,93 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
           : 'Your content flows into every one — switch any time.'}{' '}
         {phone ? 'Tap Preview on a card for a full-size look.' : 'Hover a card for a full-size look.'}
       </p>
+      <label className="relative block">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={filter.query}
+          onChange={(e) => setFilter((f) => ({ ...f, query: e.target.value }))}
+          placeholder="Search designs"
+          aria-label="Search designs"
+          className="input h-8 w-full pl-8 pr-2 text-xs"
+        />
+      </label>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+        aria-expanded={chipsOpen}
+        onClick={() => setChipsOpen((v) => !v)}
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+          {filter.tags.length + (filter.atsOnly ? 1 : 0) > 0 && (
+            <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+              {filter.tags.length + (filter.atsOnly ? 1 : 0)}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !chipsOpen && '-rotate-90')} />
+      </button>
+      <div className={cn('flex flex-wrap gap-1', !chipsOpen && 'hidden')}>
+        <button
+          type="button"
+          aria-pressed={filter.atsOnly}
+          onClick={() => setFilter((f) => ({ ...f, atsOnly: !f.atsOnly }))}
+          className={cn(
+            'rounded-full border px-2 py-0.5 text-[11px] font-medium transition',
+            filter.atsOnly
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+          )}
+          title="The plainest single-column layouts - the safest bet with an unusually literal parser"
+        >
+          Strictest
+        </button>
+        {TAG_CHOICES.map((tag) => {
+          const on = filter.tags.includes(tag)
+          return (
+            <button
+              key={tag}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggleTag(tag)}
+              className={cn(
+                'rounded-full border px-2 py-0.5 text-[11px] font-medium transition',
+                on
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              )}
+            >
+              {tagLabel(tag)}
+            </button>
+          )
+        })}
+      </div>
+      {narrowed && (
+        <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <span aria-live="polite">
+            {shown.length} match{shown.length === 1 ? '' : 'es'}
+          </span>
+          <button className="transition hover:text-foreground" onClick={() => setFilter(EMPTY_FILTER)}>
+            Clear
+          </button>
+        </div>
+      )}
+      {shown.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
+          <p className="text-xs font-medium text-foreground">Nothing matches all of those</p>
+          <p className="mx-auto mt-1 max-w-[18rem] text-xs text-muted-foreground">
+            Every filter has to hold at once, and some tags never appear together - a design is single-column or
+            two-column, not both.
+          </p>
+          <button className="btn-outline btn-xs mt-3" onClick={() => setFilter(EMPTY_FILTER)}>
+            Clear filters
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 gap-3">
-        {GALLERY.map((tpl) => (
+        {shown.map((tpl) => (
           <TemplateCard
             key={tpl.id}
             tpl={tpl}
@@ -66,6 +179,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
           />
         ))}
       </div>
+      )}
       {previewing && (
         <PreviewSheet
           tpl={previewing}
