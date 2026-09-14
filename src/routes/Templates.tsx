@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AlignLeft, ArrowRight, Plus, Search } from 'lucide-react'
+import { AlignLeft, ArrowRight, ChevronDown, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { TEMPLATES, galleryOrder } from '@/templates/registry'
@@ -160,7 +160,7 @@ export function Templates() {
             </button>
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {shown.map((tpl) => (
               <TemplateCard key={tpl.id} tpl={tpl} base={base} onPick={() => create(true, tpl.id)} />
             ))}
@@ -217,6 +217,9 @@ function FilterRow({
   onToggleTag: (tag: TemplateTag) => void
   onAts: (atsOnly: boolean) => void
 }) {
+  // Open from `sm` up, where the chips cost two rows and are worth seeing.
+  const [chipsOpen, setChipsOpen] = useState(false)
+  const active = filter.tags.length + (filter.atsOnly ? 1 : 0)
   return (
     <div className="mt-8 flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -237,25 +240,31 @@ function FilterRow({
             onChange={(e) => onQuery(e.target.value)}
           />
         </div>
-        {/* Not "ATS-safe only": every design in the registry exports selectable
-            text, so labelling this one as the ATS verdict would tell a reader
-            the other 30 designs fail - which the editor and the rest of the
-            site both contradict. It narrows to the plainest layouts. */}
-        <label
-          className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-foreground shadow-soft"
-          title="Every design exports selectable text; this narrows to the plainest single-column layouts, the safest bet with a strict parser."
-        >
-          <input
-            type="checkbox"
-            className="h-3.5 w-3.5 accent-primary"
-            checked={filter.atsOnly}
-            onChange={(e) => onAts(e.target.checked)}
-          />
-          <AlignLeft className="h-4 w-4 text-muted-foreground" aria-hidden />
-          Strictest layouts
-        </label>
+        <StrictToggle on={filter.atsOnly} onAts={onAts} className="hidden sm:inline-flex" />
       </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by style">
+      <button
+        type="button"
+        className="btn-outline btn-sm w-full justify-between sm:hidden"
+        aria-expanded={chipsOpen}
+        onClick={() => setChipsOpen((v) => !v)}
+      >
+        <span className="inline-flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Style filters
+          {active > 0 && (
+            <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
+              {active}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={cn('h-4 w-4 transition-transform', chipsOpen && 'rotate-180')} />
+      </button>
+      <div
+        className={cn('flex flex-wrap gap-2 sm:flex', !chipsOpen && 'hidden')}
+        role="group"
+        aria-label="Filter by style"
+      >
+        <StrictToggle on={filter.atsOnly} onAts={onAts} className="inline-flex sm:hidden" />
         {TAG_CHOICES.map((tag) => {
           const on = filter.tags.includes(tag)
           return (
@@ -277,6 +286,41 @@ function FilterRow({
         })}
       </div>
     </div>
+  )
+}
+
+/**
+ * Narrow to the plainest single-column layouts.
+ *
+ * Deliberately not called "ATS-safe only": every design in the registry
+ * exports selectable text, so labelling this one as the ATS verdict would
+ * tell a reader the other designs fail - which the editor and the rest of
+ * the site both contradict.
+ *
+ * Rendered twice, because it belongs beside the search on a desk and inside
+ * the folded filters on a phone; one component so the two cannot drift.
+ */
+function StrictToggle({
+  on,
+  onAts,
+  className,
+}: {
+  on: boolean
+  onAts: (atsOnly: boolean) => void
+  className?: string
+}) {
+  return (
+    <label
+      className={cn(
+        'cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-foreground shadow-soft',
+        className
+      )}
+      title="Every design exports selectable text; this narrows to the plainest single-column layouts, the safest bet with a strict parser."
+    >
+      <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={on} onChange={(e) => onAts(e.target.checked)} />
+      <AlignLeft className="h-4 w-4 text-muted-foreground" aria-hidden />
+      Strictest layouts
+    </label>
   )
 }
 
