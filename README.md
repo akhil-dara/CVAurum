@@ -44,6 +44,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - [Quick Start](#-quick-start)
 - [Usage Highlights](#-usage-highlights)
   - [Templates](#templates)
+  - [Example library](#example-library)
   - [ATS Analysis & Job Tailoring](#ats-analysis--job-tailoring)
   - [Import & Export](#import--export)
   - [PDF Export](#pdf-export)
@@ -64,6 +65,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 - **67 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Amethyst, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono and Opal, plus the six **Signature** designs below — each with folio or icon-chip section headings in three sizes and a refined type scale.
 - Most templates are **ATS-safe** and flagged with a shield so you know which ones parse cleanly.
 - **A public gallery at [`/templates`](https://cvaurum.com/templates)** — every design rendered live on the same example résumé, searchable and filterable by tag, with the Signature collection leading the wall. The editor's own picker uses the same order.
+- **An example library at [`/examples`](https://cvaurum.com/examples)** — 108 complete résumés for named jobs across twelve fields, five career stages and three countries (37 written for India, 24 for the UK), each one written out in full rather than sketched, each on its own page, and each openable in the editor in one click. Every person, employer, address and figure in them is invented; the writing rules they are held to are checked in CI, not trusted. The in-app picker browses the same library.
 - **Full typography control:** separate body / heading / name fonts (**45 bundled, self-hosted fonts** — no CDN; **Latin, Cyrillic, Greek and Vietnamese** in every export: 28 families carry Cyrillic themselves, and where a family is Latin-only the page and the PDF both fall back, per script, to a bundled face of the same kind), font size, line-height, letter-spacing, separate size scales for section titles, the headline and the contact line, heading case (upper, small caps, or as typed) and name / heading weights, heading spacing and rule weight (with a per-section heading alignment), bullet indent and bullet spacing, accent colors plus an independent colour for the name, the headline, the section titles, the contact line and links (each Auto until set), spacing, and margins — every slider spans the document's full range and has a typed value box beside it.
 - **Layout freedom:** two-column ↔ single-column, **A4 or US-Letter** page size, light / dark / system theme.
 
@@ -208,6 +210,14 @@ Open **http://localhost:5173** and start building. CVAurum makes **zero external
 ---
 
 ## 🧭 Usage Highlights
+
+### Example library
+
+Knowing which design to use is not the same as knowing what to write in it. **[cvaurum.com/examples](https://cvaurum.com/examples)** holds **108 complete résumés** — software, data, engineering, design, marketing, business, finance, healthcare, education, legal, operations, and students — filterable by field, career stage and the country they are written for, and searchable. Each has its own page with the résumé at a readable size, a panel counting how it is built, and one button that starts it in the editor.
+
+They are written to a bar, not assembled: every bullet names something that happened and what changed because of it, older roles run shorter than recent ones, skills are grouped, and a career break is on the page with its dates rather than hidden. Twenty-one rules — no first person, no filler openings, bullet length, a figure in at least two bullets in five, dates in order, contact details only in the ranges reserved for fiction — are enforced by the test suite.
+
+Everything in them is invented: the people, the employers, the addresses, the phone numbers and the figures. Universities, professional bodies and certifications are real, as they are on any résumé.
 
 ### Templates
 
