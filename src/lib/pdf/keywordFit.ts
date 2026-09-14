@@ -167,9 +167,22 @@ const FIT_CONTAINERS = [
   '.heads-side .rm-col-main .rm-section-title',
 ].join(', ')
 
+/**
+ * Every box this pass can write a size to, under ANY design - which is not
+ * the set it can write to under the CURRENT one.
+ *
+ * The reset has to walk this wider set. A document moved from a design with a
+ * sidebar to one without keeps the elements, and they keep whatever size the
+ * pass gave them there, but they are no longer inside a fit container, so
+ * walking the container set walks past them and the size is never given back.
+ * The exporter mounts its own tree, which never had that inline size at all,
+ * so the two trees then hold the same heading at two different sizes.
+ */
+const FIT_RESET = ['.rm-section-title', '.rm-skill-inline', '.rm-chips'].join(', ')
+
 export function fitHeadingWords(root: HTMLElement): void {
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>(FIT_RESET))) el.style.fontSize = ''
   const boxes = Array.from(root.querySelectorAll<HTMLElement>(FIT_CONTAINERS))
-  for (const el of boxes) el.style.fontSize = ''
   for (const el of boxes) {
     const over = worstWordOverflow(el, root)
     if (over <= 1) continue
