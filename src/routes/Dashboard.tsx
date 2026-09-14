@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { FileText, Plus, FileUp, Copy, Trash2, MoreVertical, KanbanSquare, DatabaseBackup } from 'lucide-react'
+import { BookOpen, FileText, Plus, FileUp, Copy, Trash2, MoreVertical, KanbanSquare, DatabaseBackup } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { saveDoc, deleteDoc, requestDurability, getDurabilityStatus, type DurabilityStatus } from '@/lib/storage'
 import { exportFullBackup, importFullBackup } from '@/lib/backup'
@@ -51,8 +51,10 @@ export interface StorageNoticeInput {
 
 /**
  * Pure decision for which (if any) storage notice to show — no React, no DOM, so
- * it's directly unit-testable. Durability-denied (real risk of silent data loss)
- * always wins over backup staleness (one notice at a time). Backup staleness
+ * it's directly unit-testable. Neither fires on an empty library: there is
+ * nothing to lose yet, and nothing for the offered backup to carry.
+ * Durability-denied (real risk of silent data loss) then wins over backup
+ * staleness (one notice at a time). Backup staleness
  * restores the coverage the old per-session toast nudge had: ANY library with
  * >= 1 resume, once the OLDEST one has settled in for two days (skips brand-new
  * users/imports so they aren't nagged immediately), with no backup on record or
@@ -65,8 +67,13 @@ export function computeStorageNotice({
   dismissedAt,
   now,
 }: StorageNoticeInput): StorageNoticeKind | null {
-  if (durability === 'denied' && now - dismissedAt.durability > FOURTEEN_DAYS_MS) return 'durability'
+  // Nothing to warn about until there is something to lose. The durability
+  // notice used to fire on an empty library: an orange "it may clear your
+  // resumes" above the page title, on a first visit, offering to back up
+  // nothing. Unlike backup staleness it does NOT wait for the résumé to settle
+  // — a browser that has refused durable storage can drop it the same day.
   if (!library.length) return null
+  if (durability === 'denied' && now - dismissedAt.durability > FOURTEEN_DAYS_MS) return 'durability'
   const oldest = Math.min(...library.map((r) => r.createdAt || now))
   const settledIn = now - oldest > TWO_DAYS_MS
   const backupStale = !lastBackup || now - lastBackup > FOURTEEN_DAYS_MS
@@ -225,6 +232,18 @@ export function Dashboard() {
           <Logo to="/" />
           <div className="flex items-center gap-1.5 sm:gap-2">
             <InstallButton className="btn-outline btn-sm h-10 sm:h-8" />
+            {/* Nothing inside the app led to the example library, so the only
+                way to the hundred and eight was to leave for the public site
+                and find it there. */}
+            <Link
+              className="btn-ghost btn-sm h-10 sm:h-8"
+              to="/examples"
+              title="Browse the résumé examples"
+              aria-label="Examples"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Examples</span>
+            </Link>
             <Link className="btn-ghost btn-sm h-10 sm:h-8" to="/tracker" title="Job Tracker" aria-label="Job Tracker">
               <KanbanSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Job Tracker</span>

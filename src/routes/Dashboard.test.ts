@@ -105,3 +105,40 @@ describe('computeStorageNotice', () => {
     expect(notice).toBe('backup')
   })
 })
+
+/**
+ * The durability warning says the browser "may clear your resumes". On an
+ * empty library there are none to clear, the offered Back up now would back up
+ * nothing, and it was the first thing a first-time visitor saw — an orange
+ * warning above the page title, before they had done anything at all.
+ *
+ * The risk it names only exists once there is something to lose, which is also
+ * the first moment the reader can act on it.
+ */
+describe('the durability warning and an empty library', () => {
+  it('says nothing when there are no résumés to lose', () => {
+    expect(
+      computeStorageNotice({
+        durability: 'denied',
+        library: [],
+        lastBackup: 0,
+        dismissedAt: noDismissal,
+        now: NOW,
+      })
+    ).toBeNull()
+  })
+
+  it('says it the moment there is one, however new', () => {
+    // Unlike backup staleness, this one does not wait for the résumé to settle:
+    // a browser that has refused durable storage can drop it today.
+    expect(
+      computeStorageNotice({
+        durability: 'denied',
+        library: [{ createdAt: NOW }],
+        lastBackup: 0,
+        dismissedAt: noDismissal,
+        now: NOW,
+      })
+    ).toBe('durability')
+  })
+})
