@@ -59,8 +59,30 @@ describe('the bundled PDF fonts', () => {
       if (covers(font, SAMPLES.cyrillic)) cyrillic++
       if (!latinExtGaps.has(family)) expect(covers(font, SAMPLES.latinExt), `${family} Latin-ext`).toBe(true)
     }
-    // 28 families draw the Cyrillic letters; the sample also carries the
-    // Bulgarian grave-accented ѝ, which four of them lack.
-    expect(cyrillic).toBeGreaterThanOrEqual(24)
+    // 22 families draw the Cyrillic letters; the sample also carries the
+    // Bulgarian grave-accented ѝ, which several of them lack.
+    //
+    // It was 24 until the two Garamonds gave their non-Latin up. Both shipped
+    // on the long loca format, which fontkit's subsetter turns into blank
+    // glyphs, so they drew NOTHING legible in a PDF — in any script. Short
+    // loca can only address about 128 KB of outlines, and their outlines are
+    // heavy: EB Garamond fits Latin and Vietnamese, Cormorant Garamond fits
+    // Latin alone. Losing Cyrillic in two display serifs, where the fallback
+    // chain steps in, buys back every Latin glyph in seven templates.
+    expect(cyrillic).toBeGreaterThanOrEqual(22)
+  })
+
+  it('kept every script on the long-loca families whose outlines left room', () => {
+    // Tinos and Arimo had the same defect and the same fix, and their lighter
+    // outlines fit the whole set — so the trimming took nothing from them.
+    // This is what stops a future trim from being wider than it needs to be.
+    for (const family of ['tinos', 'arimo']) {
+      const key = Object.keys(INDEX).find((k) => k.startsWith(`${family}|`))
+      expect(key, `${family} ships`).toBeTruthy()
+      const font = load(INDEX[key!])
+      expect(covers(font, SAMPLES.cyrillic), `${family} Cyrillic`).toBe(true)
+      expect(covers(font, SAMPLES.greek), `${family} Greek`).toBe(true)
+      expect(covers(font, SAMPLES.vietnamese), `${family} Vietnamese`).toBe(true)
+    }
   })
 })

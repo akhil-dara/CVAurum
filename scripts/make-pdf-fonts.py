@@ -27,8 +27,10 @@ import pathlib
 import re
 import sys
 import tempfile
+from io import BytesIO
 
 from fontTools.merge import Merger
+from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
@@ -122,6 +124,91 @@ def instance_static(font_path: pathlib.Path, weight: int, label: str) -> TTFont 
         return None
 
 
+SCRIPT_SETS: list[tuple[str, object]] = [
+    # Widest first: each output keeps the most coverage that still fits the
+    # short loca format. Ranges are the scripts the app claims to support.
+    ("all scripts", None),
+    (
+        "latin, greek, cyrillic, vietnamese",
+        lambda c: c < 0x0250
+        or 0x0300 <= c <= 0x036F
+        or 0x0370 <= c <= 0x03FF
+        or 0x0400 <= c <= 0x052F
+        or 0x1E00 <= c <= 0x1EFF
+        or 0x2000 <= c <= 0x206F
+        or 0x20A0 <= c <= 0x20BF
+        or c in (0x2122, 0x2212),
+    ),
+    (
+        "latin, vietnamese",
+        lambda c: c < 0x0250
+        or 0x0300 <= c <= 0x036F
+        or 0x1E00 <= c <= 0x1EFF
+        or 0x2000 <= c <= 0x206F
+        or 0x20A0 <= c <= 0x20BF
+        or c in (0x2122, 0x2212),
+    ),
+    (
+        "latin",
+        lambda c: c < 0x0250 or 0x2000 <= c <= 0x206F or 0x20A0 <= c <= 0x20BF or c in (0x2122, 0x2212),
+    ),
+]
+
+
+def to_short_loca(font: TTFont, label: str) -> TTFont:
+    """Return `font` on the SHORT loca format, trimming scripts only as needed.
+
+    fontkit's subsetter — the one pdf-lib runs when we embed with
+    `subset: true` — produces a broken glyf table for a source font on the LONG
+    loca format (`head.indexToLocFormat == 1`). The PDF still carries correct,
+    extractable text and a correct ToUnicode map, so every text-layer check
+    passes; it simply draws almost none of the glyphs. Four families shipped
+    that way (Tinos, Arimo, EB Garamond, Cormorant Garamond) and seven
+    templates exported an unreadable résumé.
+
+    Short loca stores each glyph offset as a uint16 of half-offsets, so it can
+    only address ~128 KB of glyf. Whether a font fits is a property of its
+    outlines, not of its codepoint count: Tinos keeps every script and fits,
+    while Cormorant Garamond's heavier outlines fit only Latin. So the sets
+    above are tried widest-first and the first that fits is kept — a family
+    loses coverage only when its own outlines leave no choice, and the script
+    fallback chain (src/data/fonts.ts) carries anything dropped.
+    """
+    if font["head"].indexToLocFormat == 0:
+        return font
+    covered = set(font.getBestCmap().keys())
+    for name, pred in SCRIPT_SETS:
+        if pred is None:
+            continue
+        keep = [c for c in covered if pred(c)]
+        if not keep:
+            continue
+        trial = TTFont(BytesIO(_as_bytes(font)))
+        opts = subset.Options()
+        opts.notdef_outline = True
+        opts.layout_features = ["*"]
+        sub = subset.Subsetter(options=opts)
+        sub.populate(unicodes=keep)
+        sub.subset(trial)
+        # fontTools recalculates indexToLocFormat when it COMPILES the glyf
+        # table, not when the subsetter finishes, so the only honest way to
+        # ask "does this fit short loca?" is to save it and read it back.
+        baked = TTFont(BytesIO(_as_bytes(trial)))
+        trial.close()
+        if baked["head"].indexToLocFormat == 0:
+            print(f"  {label}: long loca -> short, keeping {name}")
+            return baked
+        baked.close()
+    print(f"  {label}: WARNING still long loca after every trim - fontkit will drop its glyphs")
+    return font
+
+
+def _as_bytes(font: TTFont) -> bytes:
+    buf = BytesIO()
+    font.save(buf)
+    return buf.getvalue()
+
+
 def main() -> int:
     if not CSS.is_file():
         print(f"no generated stylesheet: {CSS}", file=sys.stderr)
@@ -212,6 +299,7 @@ def main() -> int:
             if inst is not merged:
                 inst.close()
 
+        merged = to_short_loca(merged, out_name)
         try:
             merged.save(OUT / out_name)
             merged.close()
