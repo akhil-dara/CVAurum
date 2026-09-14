@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
 import type { ResumeDocument } from '@/types/document'
+import type { HeadingStyle } from '@/types/metadata'
 import { useResumeStore } from '@/store/useResumeStore'
 import { cn, DATE_LANGUAGE_OPTIONS } from '@/lib/utils'
 import { Slider, Toggle, Segmented, Select, ColorField, FieldGroup } from '../fields/Controls'
@@ -22,6 +24,25 @@ const BULLET_OPTIONS = [
   ['diamond', '◆'],
   ['none', '∅'],
 ] as const
+
+/**
+ * The document-wide section-heading treatments, named with the same words
+ * the section gear uses for the same eight styles, so one row cannot say
+ * "Rule" where the other says "Rule after" for the same look. '' is Auto:
+ * no document default at all, which leaves every section on the template's
+ * own - exactly what the gear's Auto means for one section.
+ */
+const HEADING_STYLE_OPTIONS: { label: string; value: '' | HeadingStyle; title: string }[] = [
+  { label: 'Auto', value: '', title: "The template's own heading style" },
+  { label: 'Underline', value: 'underline', title: 'A rule under the title' },
+  { label: 'Rule', value: 'rule-after', title: 'A rule running on after the words' },
+  { label: 'On-line', value: 'strike', title: 'The words sitting on a rule that crosses the column' },
+  { label: 'Bar', value: 'bar', title: 'A bar standing before the title' },
+  { label: 'Filled', value: 'boxed', title: 'The title in a filled block' },
+  { label: 'Lead', value: 'lead-rule', title: 'A short rule leading into the title' },
+  { label: 'Badge', value: 'badge', title: 'The title behind a badge' },
+  { label: 'Plain', value: 'plain', title: 'The words alone, no rule or fill' },
+]
 
 /** Button labels for the named weights the panel offers. */
 const WEIGHT_LABELS = { bold: 'Bold', regular: 'Regular', light: 'Light' } as const
@@ -137,6 +158,21 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   // Does the chosen design draw a numeral in front of each heading? Only two
   // style one, so only those two are offered the switch.
   const numbersDesign = getTemplate(m.template).defaults.layout.sectionNumbers === true
+
+  // A click on a running numeral on the canvas asks for this row by name
+  // (Artboard openSectionNumbers). The panel is long, so the row is scrolled
+  // to and flashed: landing somewhere near it is not finding it.
+  const numbersRef = useRef<HTMLDivElement>(null)
+  const [numbersFlash, setNumbersFlash] = useState(false)
+  useEffect(() => {
+    const onOpen = () => {
+      numbersRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      setNumbersFlash(true)
+      setTimeout(() => setNumbersFlash(false), 1600)
+    }
+    window.addEventListener('cvaurum:open-section-numbers', onOpen)
+    return () => window.removeEventListener('cvaurum:open-section-numbers', onOpen)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -437,6 +473,44 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             }
           />
           <p className="-mt-1 text-[11px] text-muted-foreground">Auto keeps the template's own weights.</p>
+        </div>
+        <div>
+          <label className="label">Heading style</label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {HEADING_STYLE_OPTIONS.map((s) => {
+              const on = (m.typography.headingStyle ?? '') === s.value
+              return (
+                <button
+                  key={s.value || 'auto'}
+                  type="button"
+                  title={s.title}
+                  aria-pressed={on}
+                  onClick={() =>
+                    update((md) => {
+                      // Auto is the ABSENCE of a document default, not a
+                      // ninth style: the sections fall back to the template
+                      // again, and a section that set its own keeps it either
+                      // way.
+                      if (s.value) md.typography.headingStyle = s.value
+                      else delete md.typography.headingStyle
+                    })
+                  }
+                  className={cn(
+                    'min-w-0 truncate rounded-md border px-1 py-1.5 text-xs font-medium transition',
+                    on
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                  )}
+                >
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            How every section title is drawn, in one move. A section that picked its own in its Style sheet keeps it;
+            Auto hands them all back to the template.
+          </p>
         </div>
         <Slider
           label="Heading spacing"
@@ -754,6 +828,40 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             Beside the content, a section title keeps to a column of its own on the left.
           </p>
         </div>
+        {/* The running numerals before section titles. The row shows when the
+            design ships them OR the document has them on. Gating on the
+            design alone is what the first condition still does, and it is
+            there for the reason it was written: a switch that vanished the
+            moment it was turned off could never be turned back on, so on the
+            two designs that draw numerals the row stays put in both states.
+            The second condition adds the case that had no switch anywhere -
+            a file arriving with the flag on any of the other 56 designs drew
+            numerals nobody could remove - and it cannot strand anyone: it
+            only ever appears while the numerals are being drawn, and turning
+            them off lands the page on the design's own answer, which is the
+            state that design offers in the first place. */}
+        {(getTemplate(m.template).defaults.layout.sectionNumbers === true || m.layout.sectionNumbers) && (
+          <div
+            ref={numbersRef}
+            className={cn(
+              '-mx-1 rounded-md px-1 py-1 transition-colors',
+              numbersFlash && 'bg-primary/10 ring-1 ring-primary'
+            )}
+          >
+            <Toggle
+              label="Number the sections"
+              checked={m.layout.sectionNumbers}
+              onChange={(v) =>
+                update((md) => {
+                  md.layout.sectionNumbers = v
+                })
+              }
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              01, 02, 03 before each section title — decoration only, never in the text a parser reads.
+            </p>
+          </div>
+        )}
         <div>
           <label className="label">Columns</label>
           <Segmented

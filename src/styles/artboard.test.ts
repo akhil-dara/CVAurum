@@ -369,3 +369,80 @@ describe('every full-bleed header composition is named in the art rules', () => 
     expect(covered).toContain('.rm-art-veil')
   })
 })
+
+/** Both sheets, comments stripped, split into one entry per selector. */
+const parseSheet = (text: string) =>
+  [...text.matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap((m) =>
+    m[1].split(',').map((s) => ({ selector: s.trim().replace(/\s+/g, ' '), body: m[2] }))
+  )
+const templatesCss = fs
+  .readFileSync(path.join(here, '../templates/templates.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+
+describe('the running section number', () => {
+  // layout.sectionNumbers opens every main-column heading with "01", "02".
+  // Only the two numbered Signature designs styled that span, so on the other
+  // 65 it printed with nothing around it at all - measured 0px between the
+  // numeral and the words on Atlas and Aurora, i.e. "01SUMMARY". A shared
+  // link or an imported JSON can put any design in that state, so the spacing
+  // is a base rule rather than one each design has to remember.
+  const numberRules = [...parseSheet(css), ...parseSheet(templatesCss)].filter(
+    (r) => subject(r.selector) === '.rm-section-number'
+  )
+
+  it('carries its own spacing with no design named', () => {
+    const base = numberRules.filter((r) => r.selector === '.rm-section-number')
+    expect(base.length).toBeGreaterThan(0)
+    const gaps = base.flatMap((r) => declared(r.body, 'margin-right'))
+    expect(gaps.length).toBeGreaterThan(0)
+    for (const gap of gaps) expect(parseFloat(gap), gap).toBeGreaterThan(0)
+  })
+
+  it('reads on a filled heading box, in both spellings of that style', () => {
+    // A filled title paints its label white, but that only INHERITS into the
+    // numeral, and a design's own numeral colour is a direct rule on the
+    // span - which beats inheritance at any specificity. Broadsheet drew
+    // rgb(200,16,46) on a rgb(200,16,46) box and Marquee rgb(255,90,31) on
+    // rgb(255,90,31): a coloured pill with a hole where "01" should be.
+    for (const style of ['.sec-boxed', '.sec-ov-boxed']) {
+      const onTheBox = numberRules.filter((r) => r.selector.includes(style))
+      expect(onTheBox.length, style).toBeGreaterThan(0)
+      expect(onTheBox.flatMap((r) => declared(r.body, 'color')), style).toContain('inherit')
+    }
+  })
+
+  it('is knocked out of a strike heading like the words beside it', () => {
+    // The strike rule is an absolutely positioned ::before, so it paints
+    // above every STATIC box in the heading: a mask with no position of its
+    // own came out right in the PDF (the painter walks the tree in order) and
+    // still read "0̶1̶" in the preview - one document, two answers.
+    const struck = numberRules.filter((r) => r.selector.includes('.sec-ov-strike'))
+    expect(struck.length).toBeGreaterThan(0)
+    expect(struck.flatMap((r) => declared(r.body, 'background')).length).toBeGreaterThan(0)
+    expect(struck.flatMap((r) => declared(r.body, 'position'))).toContain('relative')
+  })
+})
+
+describe('a strike heading cuts its mask in the ground it actually sits on', () => {
+  // The mask is the page colour by default. A heading inside a band is not on
+  // the page: Marquee's footer strip is rgb(17,17,17) under a rgb(255,248,240)
+  // page, so the page-coloured mask printed the heading in a glaring cream
+  // block on the black strip. The sidebar already had an override of its own;
+  // the strip had none, so --rm-footer-bg was never honoured.
+  const masks = parseSheet(templatesCss).filter(
+    (r) => r.selector.includes('.sec-ov-strike') && subject(r.selector) === '.rm-section-title-text'
+  )
+
+  it.each([
+    ['.rm-col-aside', '--rm-sidebar-bg'],
+    ['.rm-footer', '--rm-footer-bg'],
+  ])('repoints the mask at the band in %s', (band, token) => {
+    const inBand = masks.filter((r) => r.selector.includes(band))
+    expect(inBand.length, band).toBeGreaterThan(0)
+    for (const rule of inBand) {
+      const grounds = declared(rule.body, 'background').join(' ')
+      expect(grounds, rule.selector).toContain(`var(${token}`)
+      expect(grounds, rule.selector).not.toMatch(/var\(--rm-bg[,)]/)
+    }
+  })
+})

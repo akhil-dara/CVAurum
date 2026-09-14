@@ -129,6 +129,13 @@ interface DrawOpChrome {
    * clamped to that page's own height, instead of assigning it to a single
    * page's band the way ordinary content ops are assigned. Absent (not
    * `false`) on every op for a single-page document's ordinary content.
+   *
+   * The >= 96% test measures HEIGHT, so the tag alone does not establish
+   * that the rect covers the document — a page-tall decoration hung near the
+   * foot of a document barely longer than one page passes it too. paint.ts's
+   * `isDocumentGround` re-checks that the rect starts at the document's top
+   * before granting the full-bleed repeat; read its comment before trusting
+   * this flag anywhere else.
    */
   pageChrome?: true
 }

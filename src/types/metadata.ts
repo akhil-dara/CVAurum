@@ -114,6 +114,26 @@ export const ThemeSchema = z.object({
   footer: z.string().optional(),
 })
 
+/**
+ * How a section title is decorated. ONE vocabulary for both levels that can
+ * set it - the document's default (typography.headingStyle) and a section's
+ * own (layout.sectionSettings[key].headingStyle) - so the two can never
+ * drift into offering a style the other drops. Widened, never renamed: an
+ * unknown value fails the whole document parse and a stored résumé would
+ * come back on defaults.
+ */
+export const HEADING_STYLES = [
+  'underline',
+  'rule-after',
+  'bar',
+  'boxed',
+  'lead-rule',
+  'badge',
+  'strike',
+  'plain',
+] as const
+export type HeadingStyle = (typeof HEADING_STYLES)[number]
+
 export const TypographySchema = z.object({
   /** body font family name (must exist in the font registry) */
   fontFamily: z.string().default('Inter'),
@@ -156,6 +176,15 @@ export const TypographySchema = z.object({
   nameWeight: z.enum(['bold', 'regular', 'light']).optional(),
   /** weight of section titles; unset keeps the template's own */
   headingWeight: z.enum(['bold', 'regular']).optional(),
+  /** How every section title is decorated, for the WHOLE document; unset
+   *  keeps the template's own, which is what a section's Auto has always
+   *  meant. This is a DEFAULT, not an override: a section that set its own
+   *  headingStyle still wins. Restyling the headings of a nine-section
+   *  résumé through the gear alone measured 27 clicks and 9 hovers (driven
+   *  on the sample document, 2026-09-14); the only one-gesture route was the
+   *  style painter's "All", which clears all 16 style fields before it
+   *  paints and so takes every other per-section choice down with it. */
+  headingStyle: z.enum(HEADING_STYLES).optional(),
   /** air between a section title and its body, as a multiple of the gap the template draws (1 is what the page always drew) */
   headingGap: z.number().min(0.5).max(2).default(1),
   /** width of the rule under a section title, in px; unset keeps the template's own */
@@ -229,10 +258,12 @@ export const LayoutSchema = z.object({
         showLocation: z.boolean().optional(),
         showSummary: z.boolean().optional(),
         showKeywords: z.boolean().optional(),
-        /** per-section heading treatment (overrides the template's) */
-        headingStyle: z
-          .enum(['underline', 'rule-after', 'bar', 'boxed', 'lead-rule', 'badge', 'strike', 'plain'])
-          .optional(),
+        /** Per-section heading treatment. Beats the document's own default
+         *  (typography.headingStyle) where it is set; unset follows it, and
+         *  follows the template where that is unset too. Same vocabulary as
+         *  the document level (HEADING_STYLES), so neither level can offer a
+         *  style the other drops. */
+        headingStyle: z.enum(HEADING_STYLES).optional(),
         /** how the skills section displays its keywords (skills section only) */
         // 'stacked' puts the group name on its own line with the keyword
         // list beneath it, rather than running the list on after the name.

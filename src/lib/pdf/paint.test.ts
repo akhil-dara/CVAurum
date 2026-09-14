@@ -1506,6 +1506,53 @@ describe('assignOpsToPages — band assignment, offsets, chrome (task 3, native 
     expect(pages[2]).toEqual([{ ...ops[2], yPx: 350 - (300 - 25) }])
   })
 
+  describe('a tagged op that does NOT start at the document top is not the ground', () => {
+    // The marquee all-black export, in numbers. The strip's tail
+    // (artboard.css `.rm-footer::after`) is one page of the strip's colour
+    // hung below the strip so its ground reaches the paper's foot. On a
+    // 1150.6px document it is 1122.5px tall and starts at y = 1225.1, BELOW
+    // the document's own bottom — and 1122.5 >= 0.96 x 1150.6, so walk.ts's
+    // height-only heuristic tagged it as page chrome. It was then redrawn at
+    // full page height on every sheet and both exported pages came back
+    // solid #111111 with the text layer intact underneath.
+    const PAGE_H = 1122.5
+    const CUT = 861.6
+    const TOP_PAD = 75.6
+    const tail: DrawOp = {
+      ...rectOp(1225.1, PAGE_H, { fill: { r: 0.067, g: 0.067, b: 0.067, a: 1 } }),
+      pageChrome: true,
+    }
+
+    it('does not repeat on every page: the tail never touches page 1', () => {
+      const body = rectOp(400)
+      const pages = assignOpsToPages([body, tail], [CUT], TOP_PAD, PAGE_H)
+      expect(pages[0]).toEqual([body])
+    })
+
+    it('lands on the last page at its own offset position, not clamped to the full sheet', () => {
+      const pages = assignOpsToPages([tail], [CUT], TOP_PAD, PAGE_H)
+      // Ordinary band assignment: page-2 offset is cut - topPadding, and the
+      // tail keeps its own height so the sheet's edge is what cuts it.
+      expect(pages[1]).toEqual([{ ...tail, yPx: 1225.1 - (CUT - TOP_PAD) }])
+      expect(pages[1][0]).not.toMatchObject({ yPx: 0, hPx: PAGE_H })
+    })
+
+    it('a tagged rect that DOES start at the document top still repeats full-bleed', () => {
+      // The root's own background, the case the tag exists for — unchanged.
+      const ground: DrawOp = { ...rectOp(0, 1150.6, { fill: { r: 1, g: 0.97, b: 0.94, a: 1 } }), pageChrome: true }
+      const pages = assignOpsToPages([ground, tail], [CUT], TOP_PAD, PAGE_H)
+      expect(pages[0][0]).toEqual({ ...ground, yPx: 0, hPx: PAGE_H })
+      expect(pages[1][0]).toEqual({ ...ground, yPx: 0, hPx: PAGE_H })
+    })
+
+    it('one sub-pixel below the top is still the ground (1px of slack, measured)', () => {
+      const ground: DrawOp = { ...rectOp(0.4, 1150.6), pageChrome: true }
+      const pages = assignOpsToPages([ground], [CUT], TOP_PAD, PAGE_H)
+      expect(pages[0][0]).toEqual({ ...ground, yPx: 0, hPx: PAGE_H })
+      expect(pages[1][0]).toEqual({ ...ground, yPx: 0, hPx: PAGE_H })
+    })
+  })
+
   describe('task 6b — straddling decoration ops repeat on every band they intersect', () => {
     // Mirrors timeline's real defect: a tall thin decorative rail rect
     // straddles the cut, so the top-edge-only rule used to paint it ONLY on

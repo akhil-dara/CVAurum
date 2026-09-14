@@ -1623,9 +1623,37 @@
   background: var(--rm-bg);
   padding-right: 0.55em;
 }
+/* The numeral is knocked out of the rule the same way the words are. It used
+   to be left transparent, so the rule ran straight through it: Broadsheet's
+   PDF read "0̶1̶ SUMMARY". Its own margin keeps the rule showing between the
+   numeral and the label, which is the strike's point - the heading sits ON a
+   rule - but a struck numeral reads as a correction, not a style. No padding
+   here on purpose: padding would widen the heading, and the numeral already
+   carries the spacing.
+
+   `position: relative` is what makes the mask visible, not decoration: the
+   rule is an ABSOLUTELY positioned ::before, so it paints above every static
+   box in the heading. Measured with the background alone: the PDF came out
+   right (the painter walks the tree in order) and the preview still read
+   "0̶1̶" - the two trees disagreeing about one document. Relative lifts the
+   numeral into the positioned layer, above the rule, the same reason the two
+   rules below it are relative. */
+.rm-root .rm-section.sec-ov-strike .rm-section-number {
+  position: relative;
+  background: var(--rm-bg);
+}
 .rm-root .rm-col-aside .rm-section.sec-ov-strike .rm-section-title-text,
 .rm-root .rm-col-aside .rm-section.sec-ov-strike .rm-section-icon {
   background: var(--rm-sidebar-bg);
+}
+/* ...and in the FOOTER strip the same trade. The strip is its own ground -
+   Marquee's is rgb(17,17,17) under a rgb(255,248,240) cream page - so a mask
+   cut in the PAGE colour printed the heading in a glaring cream block on the
+   black strip. The fallback is the strip's own (`.rm-footer`'s background),
+   so a design that never sets --rm-footer-bg still matches. */
+.rm-root .rm-footer .rm-section.sec-ov-strike .rm-section-title-text,
+.rm-root .rm-footer .rm-section.sec-ov-strike .rm-section-icon {
+  background: var(--rm-footer-bg, var(--rm-text));
 }
 
 /* --- skills display overrides (view chips + live edit chips) --- */

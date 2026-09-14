@@ -193,15 +193,41 @@ export function headingAlignLocked(align: string, headsSide: boolean): boolean {
 }
 
 /**
+ * Which heading treatment this section draws: its own where it set one, else
+ * the document's default (typography.headingStyle), else none at all - and
+ * none at all is the template's own, which is what the gear's Auto has
+ * always meant. Both levels answer in one vocabulary (HEADING_STYLES), so
+ * the document's default paints through exactly the class a section's own
+ * choice paints through, and a section that disagrees still wins.
+ */
+export function headingStyleOf(
+  typo: { headingStyle?: string } | undefined,
+  ss: { headingStyle?: string } | undefined
+): string | undefined {
+  return ss?.headingStyle ?? typo?.headingStyle
+}
+
+/**
  * The per-section style overrides as scoped classes on the section element,
  * where the .rm-root-anchored rules in the stylesheets beat any template's
  * own. A setting the section never made adds no class, so the template's own
  * treatment stands.
+ *
+ * The heading treatment is the one axis with a document-wide default under
+ * it: `typo` is the document's typography, and a section that chose nothing
+ * takes the default from there. It lands as the SAME sec-ov-* class the gear
+ * writes rather than a root class of its own, so a document-wide choice draws
+ * exactly what setting every section by hand draws - the same selectors, the
+ * same weight against the template, in the sidebar and the footer strip too.
  */
-export function sectionOverrideClasses(ss: SectionSettings | undefined): string[] {
-  if (!ss) return []
+export function sectionOverrideClasses(
+  ss: SectionSettings | undefined,
+  typo?: { headingStyle?: string }
+): string[] {
+  const heading = headingStyleOf(typo, ss)
+  if (!ss) return heading ? [`sec-ov-${heading}`] : []
   return [
-    ss.headingStyle ? `sec-ov-${ss.headingStyle}` : '',
+    heading ? `sec-ov-${heading}` : '',
     ss.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '',
     ss.chipSize ? `chip-${ss.chipSize}` : '',
     ss.entryLayout ? `lay-ov-${ss.entryLayout}` : '',

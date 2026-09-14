@@ -12,6 +12,13 @@ import {
   BORDER_EDGES,
   buildDrawList,
   extractPageBlocks,
+  parseTransformMatrix,
+  parseRotateProp,
+  parseScaleProp,
+  parseTranslateProp,
+  composedTransform,
+  isAxisAligned,
+  transformedBoxPath,
 } from './walk'
 import type { DrawOp } from './types'
 
@@ -1355,6 +1362,253 @@ describe('boxOps/pseudoOps — radius-aware borders and pseudo borders (task 22)
 
     const ops = buildDrawList(root as unknown as HTMLElement)
     expect(ops.filter((o) => o.kind === 'roundedBorder' || o.kind === 'line').length).toBe(0)
+  })
+
+  // The 'badge' section-heading chip. Every number below was measured off a
+  // real export chip (aurum-editorial, sample document): a 20.9844px square
+  // carrying `rotate: 45deg; scale: 0.86` as INDIVIDUAL properties with only
+  // `matrix(1,0,0,1,0,-10.4922)` in `transform`, whose client rect comes back
+  // 25.5217px — the diagonal. The painter used to read `transform` alone, see
+  // no rotation, and fill that 25.52px rect as an axis-aligned rounded square,
+  // which sat on the heading's first letter ("UMMARY").
+  const BADGE_CHIP: Record<string, string> = {
+    backgroundColor: 'rgb(35, 33, 29)',
+    display: 'inline-flex',
+    boxSizing: 'border-box',
+    width: '20.9844px',
+    height: '20.9844px',
+    transform: 'matrix(1, 0, 0, 1, 0, -10.4922)',
+    rotate: '45deg',
+    scale: '0.86',
+    translate: 'none',
+    borderTopLeftRadius: '2.5px',
+    borderTopRightRadius: '2.5px',
+    borderBottomRightRadius: '2.5px',
+    borderBottomLeftRadius: '2.5px',
+  }
+
+  it('paints a 45deg-rotated chip as a diamond path, not an axis-aligned square (badge heading)', () => {
+    install()
+    // The client rect is the tilted square's bounding box, which is what the
+    // walker measures and where the diamond has to land.
+    const chip = makeEl({ left: 29.453125, top: 169.2415, width: 25.5217, height: 25.5217 }, BADGE_CHIP)
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [chip])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const fills = ops.filter((o) => o.kind === 'rect' && o.fill && o.fill.a > 0)
+    expect(fills.length).toBe(0) // the squared-off rect is gone
+
+    const svg = ops.find((o) => o.kind === 'svg') as Extract<DrawOp, { kind: 'svg' }>
+    expect(svg).toBeDefined()
+    // Exactly the chip's own measured box: an affine image of a rectangle is
+    // a parallelogram, and a parallelogram fills its own bounding box.
+    expect(svg.xPx).toBeCloseTo(29.453125, 3)
+    expect(svg.yPx).toBeCloseTo(169.2415, 3)
+    expect(svg.wPx).toBeCloseTo(25.5217, 3)
+    expect(svg.hPx).toBeCloseTo(25.5217, 3)
+    expect(svg.fill).toEqual({ r: 35 / 255, g: 33 / 255, b: 29 / 255, a: 1 })
+    // Corner arcs ride the scale: the CSS 2.5px radius at `scale: 0.86`.
+    expect(svg.d.includes('A 2.15 2.15 0 0 1')).toBe(true)
+    // The top vertex sits on the bounding box's top edge, half way across.
+    expect(svg.d.startsWith('M ')).toBe(true)
+    const firstY = Number(svg.d.split(' ')[2])
+    expect(firstY).toBeGreaterThan(0)
+    expect(firstY).toBeLessThan(2.2) // just past the rounded point, not at the corner
+  })
+
+  it('leaves an untilted chip on the plain rect path (no shape churn for the 45deg fix)', () => {
+    install()
+    const chip = makeEl({ left: 30, top: 40, width: 21, height: 21 }, { ...BADGE_CHIP, rotate: 'none' })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [chip])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    expect(ops.filter((o) => o.kind === 'svg').length).toBe(0)
+    const rect = ops.find((o) => o.kind === 'rect' && o.fill) as Extract<DrawOp, { kind: 'rect' }>
+    expect(rect.xPx).toBe(30)
+    expect(rect.wPx).toBe(21)
+    expect(rect.radii).toEqual({ tl: 2.5, tr: 2.5, br: 2.5, bl: 2.5 })
+  })
+
+  it("carries a tilted box's uniform border round the shape it actually is", () => {
+    install()
+    const chip = makeEl(
+      { left: 0, top: 0, width: 14.142, height: 14.142 },
+      {
+        ...BADGE_CHIP,
+        transform: 'none',
+        scale: 'none',
+        width: '10px',
+        height: '10px',
+        borderTopLeftRadius: '0px',
+        borderTopRightRadius: '0px',
+        borderBottomRightRadius: '0px',
+        borderBottomLeftRadius: '0px',
+        borderTopWidth: '2px',
+        borderTopStyle: 'solid',
+        borderTopColor: 'rgb(0, 0, 255)',
+        borderRightWidth: '2px',
+        borderRightStyle: 'solid',
+        borderRightColor: 'rgb(0, 0, 255)',
+        borderBottomWidth: '2px',
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'rgb(0, 0, 255)',
+        borderLeftWidth: '2px',
+        borderLeftStyle: 'solid',
+        borderLeftColor: 'rgb(0, 0, 255)',
+      }
+    )
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [chip])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    // No unrotated straight-line borders left behind.
+    expect(ops.filter((o) => o.kind === 'line' || o.kind === 'roundedBorder').length).toBe(0)
+    const stroked = ops.find((o) => o.kind === 'svg' && o.stroke) as Extract<DrawOp, { kind: 'svg' }>
+    expect(stroked).toBeDefined()
+    expect(stroked.strokeWidthPx).toBeCloseTo(2, 6)
+    // 10px box less one border width, rotated 45°: (10 - 2) * √2.
+    expect(stroked.wPx).toBeCloseTo(8 * Math.SQRT2, 3)
+  })
+
+  it('paints a rotated PSEUDO from its synthesized box, translation rotated with it (grid skills marker)', () => {
+    install()
+    // `.rm-chip::before`: 5px square, `transform: rotate(45deg) translateY(-1px)`.
+    // The computed matrix already carries the ROTATED translation, (0.7071,
+    // -0.7071), which is the centre shift — not the authored (0, -1).
+    const host = makeEl({ left: 100, top: 200, width: 60, height: 16 }, {}, [], {
+      content: '""',
+      width: '5px',
+      height: '5px',
+      backgroundColor: 'rgb(10, 20, 30)',
+      transform: 'matrix(0.707107, 0.707107, -0.707107, 0.707107, 0.707107, -0.707107)',
+    })
+    const root = makeEl({ left: 0, top: 0, width: 800, height: 1000 }, {}, [host])
+
+    const ops = buildDrawList(root as unknown as HTMLElement)
+    const svg = ops.find((o) => o.kind === 'svg') as Extract<DrawOp, { kind: 'svg' }>
+    expect(svg).toBeDefined()
+    expect(svg.wPx).toBeCloseTo(5 * Math.SQRT2, 3)
+    expect(svg.hPx).toBeCloseTo(5 * Math.SQRT2, 3)
+    // centre = pseudo box centre (102.5, 202.5) + the rotated translation.
+    expect(svg.xPx + svg.wPx / 2).toBeCloseTo(102.5 + 0.707107, 3)
+    expect(svg.yPx + svg.hPx / 2).toBeCloseTo(202.5 - 0.707107, 3)
+  })
+})
+
+describe('CSS transforms — the individual rotate/scale/translate properties (badge chip diamond)', () => {
+  it('reads the transform property matrix, 2D and 3D', () => {
+    expect(parseTransformMatrix('none')).toEqual({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    expect(parseTransformMatrix('')).toEqual({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
+    expect(parseTransformMatrix('matrix(1, 0, 0, 1, 0, -10.4922)')).toEqual({
+      a: 1,
+      b: 0,
+      c: 0,
+      d: 1,
+      e: 0,
+      f: -10.4922,
+    })
+    // matrix3d keeps only its 2D sub-matrix (m11 m12 m21 m22 m41 m42).
+    expect(parseTransformMatrix('matrix3d(2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 7, 8, 0, 1)')).toEqual({
+      a: 2,
+      b: 0,
+      c: 0,
+      d: 3,
+      e: 7,
+      f: 8,
+    })
+  })
+
+  it('reads the individual rotate property in every form Chromium serializes', () => {
+    expect(parseRotateProp('none')).toBe(0)
+    expect(parseRotateProp('45deg')).toBe(45) // the badge chip's own value
+    expect(parseRotateProp('z 45deg')).toBe(45)
+    expect(parseRotateProp('0 0 1 45deg')).toBe(45)
+    expect(parseRotateProp('0 0 -1 45deg')).toBe(-45)
+    expect(parseRotateProp('0.5turn')).toBe(180)
+    expect(parseRotateProp('200grad')).toBe(180)
+    expect(parseRotateProp('3.14159265rad')).toBeCloseTo(180, 5)
+    // Out-of-plane rotations foreshorten the box; a flat painter says 0.
+    expect(parseRotateProp('x 45deg')).toBe(0)
+    expect(parseRotateProp('1 0 0 45deg')).toBe(0)
+  })
+
+  it('reads the individual scale and translate properties', () => {
+    expect(parseScaleProp('none')).toEqual({ x: 1, y: 1 })
+    expect(parseScaleProp('0.86')).toEqual({ x: 0.86, y: 0.86 }) // the badge chip's own value
+    expect(parseScaleProp('2 3')).toEqual({ x: 2, y: 3 })
+    expect(parseScaleProp('2 3 4')).toEqual({ x: 2, y: 3 })
+
+    expect(parseTranslateProp('none', 40, 20)).toEqual({ x: 0, y: 0 })
+    expect(parseTranslateProp('10px', 40, 20)).toEqual({ x: 10, y: 0 })
+    expect(parseTranslateProp('10px 20px', 40, 20)).toEqual({ x: 10, y: 20 })
+    // Percentages stay percentages in the computed value and resolve against
+    // the element's own border box — width for x, height for y.
+    expect(parseTranslateProp('10% 25%', 40, 20)).toEqual({ x: 4, y: 5 })
+  })
+
+  it('composes translate, rotate, scale and transform in CSS order — measured, not assumed', () => {
+    // Chromium, 40x20 box, `transform: translateY(-10px); rotate: 45deg;
+    // scale: 0.5`: the painted box's centre moved by (+3.5355, -3.5355) and
+    // its bounding box came back 21.2132 square. That is rotate·scale applied
+    // to the transform's own (0, -10) — reading `transform` alone would have
+    // given (0, -10).
+    const cs = {
+      translate: 'none',
+      rotate: '45deg',
+      scale: '0.5',
+      transform: 'matrix(1, 0, 0, 1, 0, -10)',
+    } as unknown as CSSStyleDeclaration
+    const m = composedTransform(cs, 40, 20)
+    expect(m.e).toBeCloseTo(3.5355, 3)
+    expect(m.f).toBeCloseTo(-3.5355, 3)
+    expect(isAxisAligned(m)).toBe(false)
+    const path = transformedBoxPath(40, 20, { tl: 0, tr: 0, br: 0, bl: 0 }, m)!
+    expect(path.wPx).toBeCloseTo(21.2132, 3)
+    expect(path.hPx).toBeCloseTo(21.2132, 3)
+  })
+
+  it('leaves a plain translate axis-aligned so nothing else changes shape', () => {
+    const cs = {
+      translate: 'none',
+      rotate: 'none',
+      scale: 'none',
+      transform: 'matrix(1, 0, 0, 1, 0, -10.4922)',
+    } as unknown as CSSStyleDeclaration
+    const m = composedTransform(cs, 21, 21)
+    expect(isAxisAligned(m)).toBe(true)
+    expect(m.f).toBe(-10.4922)
+  })
+
+  it('traces a 45deg square as a diamond whose points touch its bounding box', () => {
+    const m = composedTransform(
+      { translate: 'none', rotate: '45deg', scale: 'none', transform: 'none' } as unknown as CSSStyleDeclaration,
+      10,
+      10
+    )
+    const path = transformedBoxPath(10, 10, { tl: 0, tr: 0, br: 0, bl: 0 }, m)!
+    expect(path.wPx).toBeCloseTo(10 * Math.SQRT2, 6)
+    const half = (10 * Math.SQRT2) / 2
+    // Four sharp vertices, each on an edge midpoint of the bounding box.
+    const pts = path.d
+      .replace(/[MLZ]/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .map(Number)
+    const xs = pts.filter((_, i) => i % 2 === 0)
+    const ys = pts.filter((_, i) => i % 2 === 1)
+    expect(Math.min(...xs)).toBeCloseTo(0, 3)
+    expect(Math.max(...xs)).toBeCloseTo(half * 2, 3)
+    expect(Math.min(...ys)).toBeCloseTo(0, 3)
+    expect(Math.max(...ys)).toBeCloseTo(half * 2, 3)
+  })
+
+  it('drops corner radii rather than faking ellipse arcs under a non-uniform scale', () => {
+    const m = composedTransform(
+      { translate: 'none', rotate: '30deg', scale: '2 1', transform: 'none' } as unknown as CSSStyleDeclaration,
+      10,
+      10
+    )
+    const path = transformedBoxPath(10, 10, { tl: 3, tr: 3, br: 3, bl: 3 }, m)!
+    expect(path.d).not.toContain('A')
   })
 })
 

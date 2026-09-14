@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { entryMetaOf, entryOrderOf, headingAlignLocked, keepEntriesOn, paintStyle, sectionOverrideClasses } from './sectionClasses'
+import { entryMetaOf, entryOrderOf, headingAlignLocked, headingStyleOf, keepEntriesOn, paintStyle, sectionOverrideClasses } from './sectionClasses'
 import { defaultMetadata } from '@/data/defaults'
 
 /**
@@ -30,6 +30,57 @@ describe('sectionOverrideClasses', () => {
       'score-ov-pill',
       'sec-align-center',
     ])
+  })
+})
+
+describe('headingStyleOf (the document default under a section\'s own)', () => {
+  // Three states, in the order they are asked: the section's own choice, the
+  // document's default, and nothing at all - which is the template's own,
+  // the meaning the gear's Auto has always had.
+  it('nothing set anywhere leaves the template alone', () => {
+    expect(headingStyleOf(undefined, undefined)).toBeUndefined()
+    expect(headingStyleOf({}, {})).toBeUndefined()
+  })
+
+  it('the document default reaches a section that decided nothing', () => {
+    expect(headingStyleOf({ headingStyle: 'boxed' }, undefined)).toBe('boxed')
+    expect(headingStyleOf({ headingStyle: 'boxed' }, {})).toBe('boxed')
+  })
+
+  it("a section's own beats the document default", () => {
+    expect(headingStyleOf({ headingStyle: 'boxed' }, { headingStyle: 'bar' })).toBe('bar')
+  })
+})
+
+describe('the document default lands as the class a section\'s own choice lands as', () => {
+  // Both levels paint through sec-ov-*, so a document-wide choice draws
+  // exactly what setting every section by hand draws: the same selectors,
+  // the same weight against the template, in the sidebar and strip as well.
+  it('a section with no settings at all still takes the document default', () => {
+    expect(sectionOverrideClasses(undefined, { headingStyle: 'lead-rule' })).toEqual(['sec-ov-lead-rule'])
+    expect(sectionOverrideClasses({}, { headingStyle: 'lead-rule' })).toEqual(['sec-ov-lead-rule'])
+  })
+
+  it('the section wins where it chose, and keeps its other classes either way', () => {
+    expect(sectionOverrideClasses({ headingStyle: 'bar', skillsStyle: 'chips' }, { headingStyle: 'boxed' })).toEqual([
+      'sec-ov-bar',
+      'skl-ov-chips',
+    ])
+    expect(sectionOverrideClasses({ skillsStyle: 'chips' }, { headingStyle: 'boxed' })).toEqual([
+      'sec-ov-boxed',
+      'skl-ov-chips',
+    ])
+  })
+
+  it('no document default is no class, so the template keeps its own headings', () => {
+    expect(sectionOverrideClasses(undefined, {})).toEqual([])
+    expect(sectionOverrideClasses({}, {})).toEqual([])
+    expect(sectionOverrideClasses({ skillsStyle: 'chips' }, {})).toEqual(['skl-ov-chips'])
+  })
+
+  it('reads the same as before when no document typography is passed at all', () => {
+    expect(sectionOverrideClasses({ headingStyle: 'bar' })).toEqual(['sec-ov-bar'])
+    expect(sectionOverrideClasses({})).toEqual([])
   })
 })
 

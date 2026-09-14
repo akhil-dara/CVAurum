@@ -593,6 +593,25 @@
   text-transform: none;
   font-variant-caps: normal;
 }
+/* The running number that opens a heading when layout.sectionNumbers is on.
+   Only the two numbered Signature designs styled it, so on the other 65 the
+   numeral had no spacing at all: measured 0px between the numeral and the
+   words on Atlas and Aurora - "01SUMMARY", "02EXPERIENCE" run together.
+   (Classic looked spaced only by accident: its heading style is a flex row,
+   so the row's gap fell between them.) A shared link or an imported JSON can
+   put any design in that state, so the spacing belongs here rather than in
+   the two designs that happened to ask for it. The accent tint is the other
+   half of reading as a folio rather than as part of the label; both
+   Signature designs set the same two properties and still override.
+
+   The accent is safe unqualified because the numeral only ever opens a
+   MAIN-column heading: Artboard passes a section its counting index in the
+   main column alone, so a sidebar and the footer strip never carry one and
+   this can't land accent-on-accent the way a coloured band would. */
+.rm-section-number {
+  margin-right: 0.6em;
+  color: var(--rm-primary);
+}
 /* Section-title icon chip (premium look). Inline so centered/serif headings keep working. */
 .rm-section-icon {
   display: inline-flex;
@@ -2268,6 +2287,21 @@
 .sec-boxed .rm-col-aside .rm-section-title {
   color: #fff;
 }
+/* The numeral reads ON the fill, like the label beside it. The title's own
+   `color:#fff` only INHERITS into the numeral, and a template's numeral rule
+   is a direct rule on that span, which beats inheritance whatever the
+   specificity: Broadsheet painted rgb(200,16,46) on a rgb(200,16,46) box and
+   Marquee rgb(255,90,31) on rgb(255,90,31) - measured, both times a coloured
+   pill reading "SUMMARY" with an unexplained hole where "01" should be.
+   `inherit` puts the numeral back on whatever ink the title carries - the
+   white above, or the band's own where a coloured sidebar tints the box
+   instead - and leaves the numeral alone in every other heading style. Both
+   spellings of the style are covered: the template-level class on the root,
+   and the per-section override. */
+.rm-root.sec-boxed .rm-section-number,
+.rm-root .rm-section.sec-ov-boxed .rm-section-number {
+  color: inherit;
+}
 
 /* heading in a left gutter — modern editorial single-column look */
 .sec-side .rm-col-main .rm-section {
@@ -2358,6 +2392,15 @@
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* A running section numeral is decoration - an aria-hidden outline with no
+   text to edit - so the pointer is the only sign the page can give that a
+   click on it leads somewhere: the Design panel's own switch for the
+   numbers (Artboard delegates the click from the heading). Editable preview
+   only; the export never reads this. */
+.mode-preview .rm-section-number {
+  cursor: pointer;
 }
 
 /* Inline bullet add/remove (editable preview only) */
@@ -3654,6 +3697,15 @@
    not pick it up either, so a copy of the page reads like its export. */
 .rm-deco {
   user-select: none;
+}
+/* A running section number needs air after it wherever it is drawn. Only the
+   two designs that ship numerals set a gap of their own, so a document that
+   ARRIVED with the flag on any other design printed "01SUMMARY" with the
+   numeral welded to the word (measured on Modern with the flag set, all nine
+   headings). Unscoped on purpose, one specificity class below those two, so
+   each keeps the gap it tuned. */
+.rm-section-number {
+  margin-right: 0.45em;
 }
 
 /* Chip handles float ABOVE the word, not on it.

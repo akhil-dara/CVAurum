@@ -127,6 +127,32 @@ describe('applyTemplateToMetadata keeps the heading spacing and rule width', () 
   })
 })
 
+describe('applyTemplateToMetadata keeps the document-wide heading style', () => {
+  // An author who set every section title to a filled block meant the
+  // résumé, not the design they happened to be on - the same way the heading
+  // case and the weights are theirs across a switch.
+  it('carries the style across a switch', () => {
+    const cur = MetadataSchema.parse({ template: 'modern', typography: { headingStyle: 'boxed' } })
+    expect(applyTemplateToMetadata(cur, defaultsFor('sapphire', 2)).typography.headingStyle).toBe('boxed')
+  })
+
+  it('an undecided style stays undecided, so the new template draws its own', () => {
+    const cur = MetadataSchema.parse({ template: 'modern' })
+    expect(applyTemplateToMetadata(cur, defaultsFor('aurum', 1)).typography.headingStyle).toBeUndefined()
+  })
+
+  it('a section that chose for itself still keeps its own choice across the switch', () => {
+    const cur = MetadataSchema.parse({
+      template: 'modern',
+      typography: { headingStyle: 'boxed' },
+      layout: { sectionSettings: { work: { headingStyle: 'bar' } } },
+    })
+    const next = applyTemplateToMetadata(cur, defaultsFor('sapphire', 2))
+    expect(next.typography.headingStyle).toBe('boxed')
+    expect(next.layout.sectionSettings.work.headingStyle).toBe('bar')
+  })
+})
+
 describe('applyTemplateToMetadata keeps the entry order and emphasis', () => {
   // Which field leads an entry and which is bold are per-section choices of
   // the author, carried with the rest of the section settings: a switch

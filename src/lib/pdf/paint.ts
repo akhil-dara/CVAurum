@@ -1493,6 +1493,54 @@ function cropOpToBand(op: Extract<DrawOp, { kind: 'rect' | 'line' }>, bandTopPx:
   return { ...op, yPx: topPx, hPx: Math.max(0, bottomPx - topPx) }
 }
 
+/**
+ * How far below the document's own top (y = 0, which is also `bandTops[0]`)
+ * a rect may begin and still be believed when it claims to be page chrome.
+ *
+ * Census behind the number: every template in the registry (58 of them) x
+ * three page margins x two document lengths produced 452 ops carrying
+ * walk.ts's `pageChrome` tag, and 450 of them sat at y = 0.0 EXACTLY — a
+ * ground rect is the root's own background, or a column band that starts
+ * where the artboard starts. The two exceptions were the marquee footer
+ * strip's tail, at y = 1160.6 and y = 1225.1. One pixel of slack for
+ * sub-pixel layout therefore sits three orders of magnitude clear of the
+ * nearest impostor.
+ */
+const CHROME_TOP_TOLERANCE_PX = 1
+
+/**
+ * True when a `pageChrome`-tagged op really IS the document's own ground —
+ * the thing that has earned the right to be redrawn edge-to-edge on every
+ * sheet — rather than merely a tall piece of decoration.
+ *
+ * walk.ts tags on HEIGHT alone: a background rect at least 96% of the
+ * document's content height. That says "tall", not "covers the document",
+ * and the two part company on any document only slightly longer than one
+ * page. Measured, on marquee: the strip's tail (artboard.css
+ * `.rm-footer::after` — one page's worth of the strip's colour hung below
+ * it so its ground reaches the paper's foot, sized by render.tsx) is
+ * 1122.5px tall and begins at y = 1225.1 on a 1150.6px document, i.e. BELOW
+ * the document's own bottom edge. 1122.5 >= 0.96 x 1150.6, so it was tagged;
+ * `clampChromeOpToPage` then discarded its y and painted it over the whole
+ * of BOTH sheets, and the export came back solid #111111 with the text layer
+ * intact underneath it. The window is contentHeight in (one page's budget,
+ * pageHeight / 0.96] — 1106.5 to 1169.3px on A4 — which is exactly why that
+ * document blacked out at 18-24mm margins and paginated cleanly at 26mm.
+ *
+ * This is a class, not a template: any full-bleed block about a page tall
+ * (footer strip, banner header, dark sidebar) does the same the moment the
+ * document lands in that window.
+ *
+ * Erring strict is the cheap direction. A ground rect wrongly demoted here
+ * falls through to ordinary band assignment, which still paints it in the
+ * right place on every page it spans — it merely stops at the artboard's top
+ * padding on a continuation page instead of bleeding to the sheet's edge.
+ * Erring lax loses the whole document under a rectangle.
+ */
+function isDocumentGround(op: DrawOp): boolean {
+  return op.kind === 'rect' && op.yPx <= CHROME_TOP_TOLERANCE_PX
+}
+
 /** A page-chrome op (walk.ts's `pageChrome: true` — the root's own full-
  *  height background, or a full-column band like a dark two-column sidebar)
  *  repeats on EVERY output page, resized to THAT page's own full height
@@ -1532,8 +1580,10 @@ export function clampChromeOpToPage(op: DrawOp, pageHeightPx: number, docYAtPage
  * its natural position; every later page's band is shifted up so its own
  * content starts exactly `pageTopPaddingPx` below that page's top, the same
  * visual margin page 1 already has built into its own natural layout).
- * `pageChrome` ops skip band assignment entirely and instead repeat, via
- * `clampChromeOpToPage`, on EVERY page.
+ * A `pageChrome` op that is really the document's ground (`isDocumentGround`
+ * — tagged AND starting at the document's top) skips band assignment
+ * entirely and instead repeats, via `clampChromeOpToPage`, on EVERY page;
+ * one that only carries the tag is assigned like any other op.
  *
  * Op order within each page's own list is preserved from `ops`' original
  * document order (a single left-to-right pass appends to whichever page
@@ -1578,7 +1628,9 @@ export function assignOpsToPages(
   }
 
   for (const op of ops) {
-    if (op.pageChrome) {
+    // The tag alone is not enough to earn the full-bleed repeat — the op has
+    // to start at the document's top as well. See `isDocumentGround`.
+    if (op.pageChrome && isDocumentGround(op)) {
       // Page i shows document y starting at its own band top (page 1 starts
       // at 0); that offset is what keeps a chrome gradient continuous.
       pages.forEach((pageOps, i) =>

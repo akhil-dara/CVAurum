@@ -125,6 +125,11 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       headingCase: cur.typography.headingCase,
       nameWeight: cur.typography.nameWeight,
       headingWeight: cur.typography.headingWeight,
+      // The document-wide heading treatment is the author's the same way the
+      // case and the weights are: an author who set every section title to a
+      // filled block meant the résumé, not the design they had at the time.
+      // Undecided stays undecided, and the new template's own stands.
+      headingStyle: cur.typography.headingStyle,
       // The air under a heading and the weight of its rule stay too; an
       // undecided rule width stays undecided.
       headingGap: cur.typography.headingGap,

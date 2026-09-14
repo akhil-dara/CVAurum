@@ -269,7 +269,38 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const bg = parseColor(cs.backgroundColor)
   const bgFill = bg && bg.a > 0 ? { ...bg, a: bg.a * opacityMul } : null
   const gradient = parseLinearGradient(cs.backgroundImage)
-  if (gradient) {
+
+  // A ROTATED or skewed element measures as the bounding box of its tilted
+  // shape, so painting `box` as a rect squares it back up AND inflates it by
+  // the tilt (the badge heading chip: a 20.98px square at 45° measures
+  // 25.52px, and that square landed on the heading's first letter). Its own
+  // border-box size plus the composed map give back the shape itself; the
+  // client rect still supplies the centre, which is exact whatever the
+  // transform-origin is, because an affine image of a rectangle is a
+  // parallelogram and a parallelogram's centre is its bounding box's.
+  //
+  // Untransformed elements — everything on the page but a handful of chips —
+  // skip the whole computation: `hasTransform` is four string reads against
+  // the computed style we already hold.
+  const tilt = hasTransform(cs) ? tiltOf(el, cs) : null
+  if (tilt) {
+    if (gradient && import.meta.env.DEV) {
+      console.warn('[pdf] rotated box has a gradient background, painting its solid fill only', el)
+    }
+    transformedBoxOps(
+      el,
+      cs,
+      box.xPx + box.wPx / 2,
+      box.yPx + box.hPx / 2,
+      tilt.size.wPx,
+      tilt.size.hPx,
+      radii,
+      tilt.m,
+      bgFill,
+      opacityMul,
+      ops
+    )
+  } else if (gradient) {
     // background-image paints OVER background-color in CSS paint order —
     // matched here by only emitting the gradient when both are present
     // (never happens in our own CSS today: `background: linear-gradient(…)`
@@ -283,7 +314,8 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill: bgFill, radii })
   }
 
-  borderOps(el, cs, box, radii, opacityMul, ops)
+  // A tilted box's borders went out with its fill, on the same traced path.
+  if (!tilt) borderOps(el, cs, box, radii, opacityMul, ops)
 
   if (el instanceof HTMLImageElement && el.src) {
     const isSvg = /^data:image\/svg\+xml/i.test(el.src)
@@ -600,14 +632,375 @@ export function pseudoBox(
  *  host box, which is where the content is inserted in normal flow. Native
  *  `<li>` bullets are a completely different mechanism (see markerOps) —
  *  browsers never surface those through ::before. */
-/** Rotation (deg) and the translation the computed `transform` matrix applies
- *  to the BOX CENTER (transform-origin defaults to the center, so rotation
- *  never moves it and the matrix translation column IS the center shift). */
-export function parseTransform(transform: string): { rotationDeg: number; dxPx: number; dyPx: number } {
-  const m = /^matrix\(([^)]+)\)$/.exec(transform || '')
-  if (!m) return { rotationDeg: 0, dxPx: 0, dyPx: 0 }
-  const [a, b, , , e, f] = m[1].split(',').map((v) => parseFloat(v.trim()))
-  return { rotationDeg: (Math.atan2(b, a) * 180) / Math.PI, dxPx: e || 0, dyPx: f || 0 }
+/**
+ * A 2D affine map in CSS px, columns first like CSS's own `matrix()`:
+ * `x' = a·x + c·y + e`, `y' = b·x + d·y + f`.
+ */
+export type Matrix2D = { a: number; b: number; c: number; d: number; e: number; f: number }
+
+const IDENTITY_2D: Matrix2D = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
+
+/** `m` then `n` — i.e. `n` applies to a point FIRST (m · n, as CSS composes). */
+function mul2D(m: Matrix2D, n: Matrix2D): Matrix2D {
+  return {
+    a: m.a * n.a + m.c * n.b,
+    b: m.b * n.a + m.d * n.b,
+    c: m.a * n.c + m.c * n.d,
+    d: m.b * n.c + m.d * n.d,
+    e: m.a * n.e + m.c * n.f + m.e,
+    f: m.b * n.e + m.d * n.f + m.f,
+  }
+}
+
+/** The computed `transform` property alone. Chromium always serializes it as
+ *  `none`, `matrix(...)` or `matrix3d(...)` — never as the author's function
+ *  list — so those three are the whole grammar to handle. A matrix3d keeps
+ *  only its 2D sub-matrix (m11/m12/m21/m22/m41/m42); a real perspective
+ *  transform has no flat equivalent and is not attempted. */
+export function parseTransformMatrix(transform: string): Matrix2D {
+  const s = (transform || '').trim()
+  const m = /^matrix(3d)?\(([^)]+)\)$/.exec(s)
+  if (!m) return IDENTITY_2D
+  const n = m[2].split(',').map((v) => parseFloat(v.trim()))
+  const pick = m[1] ? [n[0], n[1], n[4], n[5], n[12], n[13]] : [n[0], n[1], n[2], n[3], n[4], n[5]]
+  if (pick.some((v) => !Number.isFinite(v))) return IDENTITY_2D
+  return { a: pick[0], b: pick[1], c: pick[2], d: pick[3], e: pick[4], f: pick[5] }
+}
+
+/** One CSS `<angle>` in degrees; 0 for anything unitless or unparseable. */
+function parseAngleDeg(token: string): number {
+  const m = /^([+-]?[\d.eE+-]+)(deg|rad|grad|turn)$/.exec((token || '').trim())
+  if (!m) return 0
+  const n = parseFloat(m[1])
+  if (!Number.isFinite(n)) return 0
+  if (m[2] === 'rad') return (n * 180) / Math.PI
+  if (m[2] === 'grad') return n * 0.9
+  if (m[2] === 'turn') return n * 360
+  return n
+}
+
+/**
+ * The INDIVIDUAL `rotate` property, in degrees about z. This is the property
+ * the badge section-heading chip actually uses (`rotate: 45deg` in
+ * templates.css) — measured on a real export chip, its computed `transform`
+ * is a pure `matrix(1,0,0,1,0,-10.49)` translate and the whole 45° lives
+ * here, which is why the painter used to lose it and square the diamond off.
+ *
+ * Chromium serializes this as `none`, `<angle>`, `<axis-name> <angle>` or
+ * `<x> <y> <z> <angle>`. Only rotation about z stays in the page plane; a
+ * rotation about x or y foreshortens the box into something a flat painter
+ * has no honest answer for, so those report 0 (the box paints unrotated)
+ * rather than a wrong angle.
+ */
+export function parseRotateProp(rotate: string): number {
+  const t = (rotate || '').trim().split(/\s+/).filter(Boolean)
+  if (!t.length || t[0] === 'none') return 0
+  const deg = parseAngleDeg(t[t.length - 1])
+  if (t.length === 1) return deg
+  if (t.length === 2) return t[0] === 'z' ? deg : 0
+  if (t.length === 4) {
+    const [x, y, z] = t.slice(0, 3).map(Number)
+    return x === 0 && y === 0 && z !== 0 ? (z > 0 ? deg : -deg) : 0
+  }
+  return 0
+}
+
+/** The individual `scale` property: `none`, one value (both axes), or two/
+ *  three (the z factor is dropped — it changes nothing on a flat page). */
+export function parseScaleProp(scale: string): { x: number; y: number } {
+  const t = (scale || '').trim().split(/\s+/).filter(Boolean)
+  if (!t.length || t[0] === 'none') return { x: 1, y: 1 }
+  const num = (s: string): number => {
+    const n = s.endsWith('%') ? parseFloat(s) / 100 : parseFloat(s)
+    return Number.isFinite(n) ? n : 1
+  }
+  const x = num(t[0])
+  return { x, y: t.length > 1 ? num(t[1]) : x }
+}
+
+/** The individual `translate` property. Percentages are kept as percentages
+ *  by the computed value (verified against Chromium) and resolve against the
+ *  element's OWN border box — width for x, height for y, per the spec. */
+export function parseTranslateProp(translate: string, wPx: number, hPx: number): { x: number; y: number } {
+  const t = (translate || '').trim().split(/\s+/).filter(Boolean)
+  if (!t.length || t[0] === 'none') return { x: 0, y: 0 }
+  const len = (s: string, basisPx: number): number => {
+    const n = parseFloat(s)
+    if (!Number.isFinite(n)) return 0
+    return s.endsWith('%') ? (n / 100) * basisPx : n
+  }
+  return { x: len(t[0], wPx), y: t.length > 1 ? len(t[1], hPx) : 0 }
+}
+
+/**
+ * The element's FULL computed transform: the individual `translate`,
+ * `rotate` and `scale` properties composed with the `transform` property, in
+ * the order CSS Transforms Level 2 mandates — translate, then rotate, then
+ * scale, then `transform`, all about the same transform-origin.
+ *
+ * Order matters and is not a guess: measured on Chromium with a 40×20 box at
+ * `transform: translateY(-10px); rotate: 45deg; scale: 0.5`, the painted box
+ * centre moved by (+3.54, −3.54), which is `rotate·scale` applied to the
+ * transform's own (0, −10) — NOT (0, −10) itself. Reading `transform` alone
+ * (as this module used to) therefore gets both the angle AND the offset
+ * wrong the moment an individual property is in play.
+ */
+export function composedTransform(cs: CSSStyleDeclaration, wPx: number, hPx: number): Matrix2D {
+  const t = parseTranslateProp(cs.translate, wPx, hPx)
+  const deg = parseRotateProp(cs.rotate)
+  const s = parseScaleProp(cs.scale)
+  const rad = (deg * Math.PI) / 180
+  const cos = Math.cos(rad)
+  const sin = Math.sin(rad)
+  const T: Matrix2D = { ...IDENTITY_2D, e: t.x, f: t.y }
+  const R: Matrix2D = { a: cos, b: sin, c: -sin, d: cos, e: 0, f: 0 }
+  const S: Matrix2D = { ...IDENTITY_2D, a: s.x, d: s.y }
+  return mul2D(mul2D(mul2D(T, R), S), parseTransformMatrix(cs.transform))
+}
+
+/** True when the map leaves the box's edges parallel to the page's — the only
+ *  case in which an element's measured client rect IS the shape it paints,
+ *  and so the only case a plain `rect` op can express. */
+export function isAxisAligned(m: Matrix2D): boolean {
+  return Math.abs(m.b) < 1e-4 && Math.abs(m.c) < 1e-4
+}
+
+/** The uniform scale factor of a map that is a rotation times a scale and
+ *  nothing else, or null when it also skews or scales the two axes apart.
+ *  Circular corner arcs survive such a map unchanged except for that one
+ *  factor; under anything else they become ellipse arcs this module does not
+ *  attempt, and the corners are painted sharp instead. */
+function similarityScale(m: Matrix2D): number | null {
+  if (Math.abs(m.a - m.d) > 1e-4 || Math.abs(m.b + m.c) > 1e-4) return null
+  const k = Math.hypot(m.a, m.b)
+  return k > 0 ? k : null
+}
+
+const round4 = (n: number): number => Math.round(n * 1e4) / 1e4
+
+/** CSS's own overlapping-radii rule: if two radii on one edge together exceed
+ *  it, every radius shrinks by the same factor until none does. */
+function clampRadii(radii: CornerRadii, wPx: number, hPx: number): CornerRadii {
+  const f = Math.min(
+    1,
+    wPx / (radii.tl + radii.tr) || 1,
+    wPx / (radii.bl + radii.br) || 1,
+    hPx / (radii.tl + radii.bl) || 1,
+    hPx / (radii.tr + radii.br) || 1
+  )
+  const s = Number.isFinite(f) ? Math.max(0, Math.min(1, f)) : 1
+  return { tl: radii.tl * s, tr: radii.tr * s, br: radii.br * s, bl: radii.bl * s }
+}
+
+/**
+ * The path a `wPx × hPx` rounded box paints once `m`'s linear part has turned
+ * it — a diamond for the 45° badge chip, a parallelogram for a skew, the box
+ * itself for a plain scale. Returned in the coordinate space of the shape's
+ * own axis-aligned bounding box (origin at its top-left), together with where
+ * that bounding box sits relative to the shape's CENTRE, so a caller that
+ * knows the centre (a real element reads it off its client rect; a pseudo
+ * computes it) can place the op without repeating the geometry.
+ *
+ * Corner radii ride along whenever `m` is a rotation-and-uniform-scale, which
+ * keeps a circular arc circular: same sweep (a rotation never mirrors), only
+ * the radius scaled. Under a skew or an uneven scale they would become
+ * ellipse arcs of a different tilt, so the corners go sharp rather than
+ * wrong.
+ */
+export function transformedBoxPath(
+  wPx: number,
+  hPx: number,
+  radii: CornerRadii,
+  m: Matrix2D
+): { d: string; offsetXPx: number; offsetYPx: number; wPx: number; hPx: number } | null {
+  if (!(wPx > 0) || !(hPx > 0)) return null
+  const k = similarityScale(m)
+  const r = k === null ? { tl: 0, tr: 0, br: 0, bl: 0 } : clampRadii(radii, wPx, hPx)
+  const halfW = wPx / 2
+  const halfH = hPx / 2
+  // Local coordinates, origin at the box centre, y down (CSS px and svg user
+  // units agree on that, so the path needs no flip).
+  const p = (x: number, y: number): [number, number] => [m.a * x + m.c * y, m.b * x + m.d * y]
+  const corners: Array<[number, number]> = [
+    p(-halfW, -halfH),
+    p(halfW, -halfH),
+    p(halfW, halfH),
+    p(-halfW, halfH),
+  ]
+  // Rounding only ever cuts INTO the sharp box, so the four transformed
+  // corners still bound the rounded shape.
+  const minX = Math.min(...corners.map((c) => c[0]))
+  const minY = Math.min(...corners.map((c) => c[1]))
+  const maxX = Math.max(...corners.map((c) => c[0]))
+  const maxY = Math.max(...corners.map((c) => c[1]))
+  const at = (x: number, y: number): string => {
+    const [tx, ty] = p(x, y)
+    return `${round4(tx - minX)} ${round4(ty - minY)}`
+  }
+  const arc = (radiusPx: number, x: number, y: number): string =>
+    `A ${round4(radiusPx * (k ?? 1))} ${round4(radiusPx * (k ?? 1))} 0 0 1 ${at(x, y)}`
+
+  const d =
+    `M ${at(-halfW + r.tl, -halfH)} L ${at(halfW - r.tr, -halfH)} ` +
+    (r.tr > 0 ? `${arc(r.tr, halfW, -halfH + r.tr)} ` : '') +
+    `L ${at(halfW, halfH - r.br)} ` +
+    (r.br > 0 ? `${arc(r.br, halfW - r.br, halfH)} ` : '') +
+    `L ${at(-halfW + r.bl, halfH)} ` +
+    (r.bl > 0 ? `${arc(r.bl, -halfW, halfH - r.bl)} ` : '') +
+    `L ${at(-halfW, -halfH + r.tl)} ` +
+    (r.tl > 0 ? `${arc(r.tl, -halfW + r.tl, -halfH)} ` : '') +
+    'Z'
+  return { d, offsetXPx: minX, offsetYPx: minY, wPx: maxX - minX, hPx: maxY - minY }
+}
+
+/**
+ * Background and border for a box the page's transforms have ROTATED or
+ * SKEWED, painted as the shape it actually is. Everything else in this module
+ * draws boxes as axis-aligned `rect` ops, which is exactly right until a
+ * transform tilts one: the badge heading chip (`rotate: 45deg`) and the
+ * diamond monogram (`transform: rotate(45deg)`) are squares on their side,
+ * and a `rect` op squares them back up — bigger than the real chip by its
+ * diagonal, and over the heading's first letter (measured: a 20.98px chip
+ * painted as a 25.52px square sitting on the "S" of "Summary").
+ *
+ * `centreXPx/centreYPx` is where the SHAPE's centre lands on the page,
+ * `wPx/hPx` its UNtransformed border-box size. A single stroked-and-filled
+ * path carries both fill and border, so the border follows the tilt too;
+ * mixed per-edge borders have no one centreline to trace and are dropped with
+ * a dev warning rather than painted as four unrotated lines.
+ */
+function transformedBoxOps(
+  el: Element,
+  cs: CSSStyleDeclaration,
+  centreXPx: number,
+  centreYPx: number,
+  wPx: number,
+  hPx: number,
+  radii: CornerRadii,
+  m: Matrix2D,
+  fill: Rgba | null,
+  opacityMul: number,
+  ops: DrawOp[]
+): void {
+  const edges = BORDER_EDGES.map((edge) => readBorderEdge(cs, edge.side.toLowerCase()))
+  const first = edges[0]
+  const uniformBorder =
+    first &&
+    edges.every(
+      (e) =>
+        e &&
+        e.width === first.width &&
+        e.style === first.style &&
+        e.color.r === first.color.r &&
+        e.color.g === first.color.g &&
+        e.color.b === first.color.b &&
+        e.color.a === first.color.a
+    )
+      ? first
+      : null
+  if (!uniformBorder && edges.some(Boolean) && import.meta.env.DEV) {
+    console.warn('[pdf] rotated box has mixed per-edge borders, dropping them', el)
+  }
+
+  if (fill) {
+    const path = transformedBoxPath(wPx, hPx, radii, m)
+    if (path) {
+      ops.push({
+        kind: 'svg',
+        xPx: centreXPx + path.offsetXPx,
+        yPx: centreYPx + path.offsetYPx,
+        wPx: path.wPx,
+        hPx: path.hPx,
+        viewBox: [0, 0, path.wPx, path.hPx],
+        d: path.d,
+        fill,
+        stroke: undefined,
+        strokeWidthPx: 0,
+      })
+    }
+  }
+
+  if (!uniformBorder) return
+  // CSS paints a border INSIDE the box, pdf-lib strokes centred — so the
+  // stroked path is the box shrunk by one border width, exactly the width/2
+  // inset the straight-line border path uses (BORDER_EDGES).
+  const bw = uniformBorder.width
+  const k = similarityScale(m) ?? 1
+  const inset = bw / 2
+  const path = transformedBoxPath(
+    wPx - bw,
+    hPx - bw,
+    {
+      tl: Math.max(0, radii.tl - inset),
+      tr: Math.max(0, radii.tr - inset),
+      br: Math.max(0, radii.br - inset),
+      bl: Math.max(0, radii.bl - inset),
+    },
+    m
+  )
+  if (!path) return
+  ops.push({
+    kind: 'svg',
+    xPx: centreXPx + path.offsetXPx,
+    yPx: centreYPx + path.offsetYPx,
+    wPx: path.wPx,
+    hPx: path.hPx,
+    viewBox: [0, 0, path.wPx, path.hPx],
+    d: path.d,
+    fill: undefined,
+    // The path's own coordinates already carry `m`'s scale, so the stroke
+    // has to be scaled by hand to match what the browser draws.
+    stroke: { ...uniformBorder.color, a: uniformBorder.color.a * opacityMul },
+    strokeWidthPx: bw * k,
+  })
+}
+
+/** Whether ANY of the four transform properties is set — the cheap gate that
+ *  keeps every untransformed element on exactly the arithmetic it had before
+ *  individual `rotate`/`scale`/`translate` were honoured at all. */
+function hasTransform(cs: CSSStyleDeclaration): boolean {
+  const set = (v: string): boolean => !!v && v !== 'none'
+  return set(cs.transform) || set(cs.rotate) || set(cs.scale) || set(cs.translate)
+}
+
+/** The composed map and the element's own border-box size, but ONLY when the
+ *  map tilts the box off the page's axes — the one case an axis-aligned
+ *  `rect` op cannot express. Null otherwise, so the caller keeps its old
+ *  measured-rect path. */
+function tiltOf(el: Element, cs: CSSStyleDeclaration): { m: Matrix2D; size: { wPx: number; hPx: number } } | null {
+  const size = borderBoxSize(el, cs)
+  if (!(size.wPx > 0) || !(size.hPx > 0)) return null
+  const m = composedTransform(cs, size.wPx, size.hPx)
+  return isAxisAligned(m) ? null : { m, size }
+}
+
+/**
+ * The element's UNtransformed border-box size — what `getBoundingClientRect`
+ * would have reported with no transform on it. Needed because a rotated
+ * element's client rect is the bounding box of the TILTED shape (a 20.98px
+ * square at 45° measures 25.52px), so the rect alone cannot say how big the
+ * box itself is. Chromium resolves computed `width`/`height` to the border
+ * box under `box-sizing: border-box` and to the content box otherwise —
+ * verified against a real element both ways, not assumed. `auto` (an inline
+ * box, which CSS transforms do not apply to anyway) falls back to
+ * offsetWidth/offsetHeight.
+ */
+function borderBoxSize(el: Element, cs: CSSStyleDeclaration): { wPx: number; hPx: number } {
+  const declared = (v: string): number | null => {
+    const n = parseFloat(v)
+    return Number.isFinite(n) ? n : null
+  }
+  let w = declared(cs.width)
+  let h = declared(cs.height)
+  if (w === null || h === null) {
+    const he = el as HTMLElement
+    return { wPx: he.offsetWidth ?? 0, hPx: he.offsetHeight ?? 0 }
+  }
+  if (cs.boxSizing !== 'border-box') {
+    w += parsePx(cs.paddingLeft) + parsePx(cs.paddingRight) + parsePx(cs.borderLeftWidth) + parsePx(cs.borderRightWidth)
+    h += parsePx(cs.paddingTop) + parsePx(cs.paddingBottom) + parsePx(cs.borderTopWidth) + parsePx(cs.borderBottomWidth)
+  }
+  return { wPx: w, hPx: h }
 }
 
 function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::before' | '::after'): void {
@@ -637,55 +1030,49 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
     const baselineY = boxOf(el, root).yPx + hostLineH - hostFontPx * 0.435
     box.yPx = baselineY - box.hPx
   }
-  // The computed transform's center shift always applies (translateY(-1px)
-  // on the grid diamond); rotation is consumed below for the diamond shape.
-  const tf = parseTransform(cs.transform)
-  box.xPx += tf.dxPx
-  box.yPx += tf.dyPx
-
+  // A pseudo's box is SYNTHESIZED, never measured, so unlike a real element's
+  // client rect it carries NONE of the transform yet: the whole map applies
+  // here. The centre shift is the map's translation column (transform-origin
+  // defaults to the centre, and nothing a linear map does moves its own
+  // origin) — for the grid diamond's `rotate(45deg) translateY(-1px)` that is
+  // the rotated (0.71, −0.71), not the authored (0, −1).
   const radii = cornerRadii(cs)
+  const m = hasTransform(cs) ? composedTransform(cs, box.wPx, box.hPx) : IDENTITY_2D
+  box.xPx += m.e
+  box.yPx += m.f
   const bg = parseColor(cs.backgroundColor)
-  if (bg && bg.a > 0 && box.wPx > 0 && box.hPx > 0) {
-    // A square pseudo rotated ~45° is a DIAMOND (Grid skills marker) — the
-    // export used to drop the rotation and print an axis-aligned square.
-    // Emitted as an svg path so no rect-op rotation plumbing is needed;
-    // the path's bounding box is the rotated square's (diagonal-sized),
-    // centered where the unrotated box was.
-    if (Math.abs(Math.abs(tf.rotationDeg) - 45) < 8 && Math.abs(box.wPx - box.hPx) < 1) {
-      const cx = box.xPx + box.wPx / 2
-      const cy = box.yPx + box.hPx / 2
-      const r = (box.wPx * Math.SQRT2) / 2
-      ops.push({
-        kind: 'svg',
-        xPx: cx - r,
-        yPx: cy - r,
-        wPx: r * 2,
-        hPx: r * 2,
-        viewBox: [0, 0, 2, 2],
-        d: 'M 1 0 L 2 1 L 1 2 L 0 1 Z',
-        fill: { ...bg, a: bg.a * opacityMul },
-        stroke: undefined,
-        strokeWidthPx: 0,
-      })
-    } else {
-      ops.push({
-        kind: 'rect',
-        xPx: box.xPx,
-        yPx: box.yPx,
-        wPx: box.wPx,
-        hPx: box.hPx,
-        fill: { ...bg, a: bg.a * opacityMul },
-        radii,
-      })
+  const fill = bg && bg.a > 0 ? { ...bg, a: bg.a * opacityMul } : null
+
+  if (!isAxisAligned(m) && box.wPx > 0 && box.hPx > 0) {
+    // Tilted: background and border both trace the real shape (a diamond for
+    // the badge heading's plain ::before, for the Grid skills marker, …).
+    const cx = box.xPx + box.wPx / 2
+    const cy = box.yPx + box.hPx / 2
+    transformedBoxOps(el, cs, cx, cy, box.wPx, box.hPx, radii, m, fill, opacityMul, ops)
+  } else {
+    // Axis-aligned: the map can still SCALE a synthesized box about its own
+    // centre, which a real element's measured rect would already carry. Left
+    // strictly untouched at scale 1 so every pseudo that has no scale keeps
+    // the exact same arithmetic — and the same last-bit rounding — as before.
+    const sx = Math.abs(m.a)
+    const sy = Math.abs(m.d)
+    if (sx !== 1 || sy !== 1) {
+      box.xPx += (box.wPx * (1 - sx)) / 2
+      box.yPx += (box.hPx * (1 - sy)) / 2
+      box.wPx *= sx
+      box.hPx *= sy
     }
+    if (fill && box.wPx > 0 && box.hPx > 0) {
+      ops.push({ kind: 'rect', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, fill, radii })
+    }
+    // Pseudo-elements previously got NO border handling at all (task 22) — a
+    // `::before`/`::after` with a `border` (e.g. .tpl-timeline's circular
+    // marker: `border-radius: 50%`, `border: 2px solid`) silently vanished
+    // from the export. Same box-size guard as the background rect above: a
+    // pseudo's box is SYNTHESIZED (pseudoBox), not measured, and can come out
+    // zero/negative for a degenerate host, unlike boxOps's real elements.
+    if (box.wPx > 0 && box.hPx > 0) borderOps(el, cs, box, radii, opacityMul, ops)
   }
-  // Pseudo-elements previously got NO border handling at all (task 22) — a
-  // `::before`/`::after` with a `border` (e.g. .tpl-timeline's circular
-  // marker: `border-radius: 50%`, `border: 2px solid`) silently vanished
-  // from the export. Same box-size guard as the background rect above: a
-  // pseudo's box is SYNTHESIZED (pseudoBox), not measured, and can come out
-  // zero/negative for a degenerate host, unlike boxOps's real elements.
-  if (box.wPx > 0 && box.hPx > 0) borderOps(el, cs, box, radii, opacityMul, ops)
 
   const text = pseudoContentText(cs.content)
   if (!text) return
