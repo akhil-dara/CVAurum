@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * A fourth-year transactional associate who came to law from finance. The
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Naomi Brandt',
       label: 'Corporate M&A Associate',
-      image: '',
+      image: portrait('Naomi Brandt'),
       email: 'naomi.brandt@example.com',
       phone: '+1 (555) 0163',
       url: 'https://naomibrandt.example.com',

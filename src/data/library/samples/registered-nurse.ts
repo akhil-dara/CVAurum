@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content, monogram } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * Critical care, including a year of agency contracts. The licence and the
@@ -20,7 +21,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Alyssa Corbin',
       label: 'Registered Nurse, Medical ICU',
-      image: '',
+      image: portrait('Alyssa Corbin'),
       email: 'alyssa.corbin@example.com',
       phone: '+1 (555) 0173',
       url: 'https://alyssacorbin.example.com',

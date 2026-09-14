@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content, monogram } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * A designer who arrived from front-end engineering. The career change is
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Maya Thornbury',
       label: 'Product Designer',
-      image: '',
+      image: portrait('Maya Thornbury'),
       email: 'maya.thornbury@example.com',
       phone: '+1 (555) 0137',
       url: 'https://mayathornbury.example.com',

@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content, monogram } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * An MBA student is a student with a career behind them. The degree leads
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Ishita Bhandari',
       label: 'MBA Candidate, Class of 2027',
-      image: '',
+      image: portrait('Ishita Bhandari'),
       email: 'ishita.bhandari@example.com',
       phone: '+91 12345 70244',
       url: '',

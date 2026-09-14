@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * The first year of practice, where there is no deal sheet yet. Moot results,
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Tanvi Raikar',
       label: 'Legal Trainee, Corporate Advisory',
-      image: '',
+      image: portrait('Tanvi Raikar'),
       email: 'tanvi.raikar@example.com',
       phone: '+91 12345 84937',
       url: '',

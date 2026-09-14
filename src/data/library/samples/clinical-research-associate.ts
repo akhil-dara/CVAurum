@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * A site coordinator who became a monitor. The measures are the ones a sponsor
@@ -28,7 +29,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Bethany Kohl',
       label: 'Senior Clinical Research Associate',
-      image: '',
+      image: portrait('Bethany Kohl'),
       email: 'bethany.kohl@example.com',
       phone: '+1 (555) 0188',
       url: 'https://bethanykohl.example.com',

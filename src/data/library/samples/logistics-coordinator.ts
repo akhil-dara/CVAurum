@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content, monogram } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * Entry level, India. Two years is not much history, so the sample earns its
@@ -28,7 +29,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Rhea Kulkarni',
       label: 'Logistics Coordinator',
-      image: '',
+      image: portrait('Rhea Kulkarni'),
       email: 'rhea.kulkarni@example.com',
       phone: '+91 12345 60418',
       url: '',

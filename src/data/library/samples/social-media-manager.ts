@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * Early-career social, where the temptation is to list platforms. This one
@@ -29,7 +30,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Camila Restrepo',
       label: 'Social Media Manager',
-      image: '',
+      image: portrait('Camila Restrepo'),
       email: 'camila.restrepo@example.com',
       phone: '+1 (555) 0198',
       url: 'https://camilarestrepo.example.com',

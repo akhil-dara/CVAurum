@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * Broadcast promos, then three years of contract work, then in-house product
@@ -26,7 +27,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Theo Marchetti',
       label: 'Motion Designer',
-      image: '',
+      image: portrait('Theo Marchetti'),
       email: 'theo.marchetti@example.com',
       phone: '+1 (555) 0173',
       url: 'https://theomarchetti.example.com',

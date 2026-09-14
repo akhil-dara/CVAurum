@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * Senior, India. A warehouse is one of the few jobs where every claim already
@@ -28,7 +29,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Arvind Deshpande',
       label: 'Warehouse Manager',
-      image: '',
+      image: portrait('Arvind Deshpande'),
       email: 'arvind.deshpande@example.com',
       phone: '+91 12345 71460',
       url: '',

@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * A sophomore-to-junior applying for next summer. One prior internship, a
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Theo Brandt',
       label: 'Mechanical Engineering Student',
-      image: '',
+      image: portrait('Theo Brandt'),
       email: 'theo.brandt@example.com',
       phone: '+1 (555) 0126',
       url: 'https://theobrandt.example.com',

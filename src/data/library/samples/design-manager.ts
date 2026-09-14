@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * A manager's résumé has to answer two questions at once: what the team
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Lena Quintero',
       label: 'Director of Design',
-      image: '',
+      image: portrait('Lena Quintero'),
       email: 'lena.quintero@example.com',
       phone: '+1 (555) 0188',
       url: 'https://lenaquintero.example.com',

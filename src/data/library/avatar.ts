@@ -54,12 +54,18 @@ function hairPath(kind: number, colour: string): string {
  */
 export function portrait(name: string): string {
   const h = hash(name)
+  // Unsigned shifts throughout. `>>` first coerces to a SIGNED 32-bit integer,
+  // so every hash above 2^31 - about half of them - shifted to a negative
+  // number, `% length` stayed negative, the lookup returned undefined, and the
+  // SVG fell back to black: a black disc with a floating face, hair and
+  // shoulders swallowed whole. Six of the first twenty-four names in the
+  // library were drawn that way.
   const skin = SKIN[h % SKIN.length]
-  const hair = HAIR[(h >> 3) % HAIR.length]
-  const shirt = CLOTHES[(h >> 6) % CLOTHES.length]
-  const back = BACKDROP[(h >> 9) % BACKDROP.length]
-  const kind = (h >> 12) % 6
-  const glasses = ((h >> 15) & 7) < 2
+  const hair = HAIR[(h >>> 3) % HAIR.length]
+  const shirt = CLOTHES[(h >>> 6) % CLOTHES.length]
+  const back = BACKDROP[(h >>> 9) % BACKDROP.length]
+  const kind = (h >>> 12) % 6
+  const glasses = ((h >>> 15) & 7) < 2
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">` +
     `<rect width="64" height="64" fill="${back}"/>` +

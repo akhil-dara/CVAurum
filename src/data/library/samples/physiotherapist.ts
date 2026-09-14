@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * A newly qualified Band 5 in the NHS. Pre-registration placements carry the
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Nadia Osman',
       label: 'Band 5 Rotational Physiotherapist',
-      image: '',
+      image: portrait('Nadia Osman'),
       email: 'nadia.osman@example.com',
       phone: '+44 7700 900191',
       url: 'https://nadiaosman.example.com',

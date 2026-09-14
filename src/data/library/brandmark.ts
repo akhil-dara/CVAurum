@@ -67,7 +67,9 @@ function device(kind: number, dark: string, light: string): string {
 export function brandmark(company: string): string {
   const h = hash(company)
   const [dark, light] = PALETTE[h % PALETTE.length]
-  const kind = (h >> 5) % 8
+  // Unsigned: `>>` coerces to a signed int32 first, and a hash above 2^31
+  // would index the list backwards into undefined (see avatar.ts).
+  const kind = (h >>> 5) % 8
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">` +
     `<rect width="64" height="64" rx="14" fill="#ffffff"/>` +

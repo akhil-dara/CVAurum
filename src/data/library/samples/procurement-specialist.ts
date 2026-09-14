@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * Mid level, UK, British spelling throughout. A nine-month fixed-term contract
@@ -28,7 +29,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Imogen Farrell',
       label: 'Procurement Specialist (Indirect)',
-      image: '',
+      image: portrait('Imogen Farrell'),
       email: 'imogen.farrell@example.com',
       phone: '+44 7700 900198',
       url: '',

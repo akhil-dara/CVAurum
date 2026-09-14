@@ -1,5 +1,6 @@
 import type { LibrarySample } from '../types'
 import { content } from '../types'
+import { portrait } from '../avatar'
 
 /**
  * An Indian disputes lawyer six years into practice. Written the way a
@@ -27,7 +28,7 @@ export const sample: LibrarySample = {
     basics: {
       name: 'Aparna Sathe',
       label: 'Senior Associate, Dispute Resolution',
-      image: '',
+      image: portrait('Aparna Sathe'),
       email: 'aparna.sathe@example.com',
       phone: '+91 12345 60418',
       url: '',
