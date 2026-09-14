@@ -936,7 +936,10 @@ export async function paintOps(
       // ~1.8pt vs drift cases' ~0.9-1.0pt at same font size) safely clears
       // the check and is left exactly where the browser put it.
       let snappedToChain = false
-      if (prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
+      // An extract-only twin draws nothing, so there is no drawn end for it
+      // to meet and nothing of its own to nudge: it sits exactly where the
+      // mark it stands under sits.
+      if (!run.invisible && prevRealEnd && Math.abs(run.baselinePx - prevRealEnd.baselinePx) <= 0.5) {
         const spaceWidthPt = safeWidthPt(font, ' ', sizePt, sizePt * 0.25)
         const chainWidthPt = prevRealEnd.endXPt - prevRealEnd.chainStartXPt
         const negAllowancePt = Math.max(spaceWidthPt, DRIFT_FRACTION * chainWidthPt)
@@ -1019,6 +1022,9 @@ export async function paintOps(
         if (tzPct !== 100) {
           page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(tzPct)]))
         }
+        // An extract-only run draws nothing: the visible mark beside it is
+        // already on the page as a vector. Reset in the finally, like Tz.
+        if (run.invisible) page.pushOperators(setTextRenderingMode(TextRenderingMode.Invisible))
         try {
           const yPt = flipY(pxToPt(run.baselinePx), pageHeightPt)
           const style = {
@@ -1056,6 +1062,7 @@ export async function paintOps(
           // resume. See the note on the invisible layer for the whole story.
           console.warn('[pdf] could not shape a run; it is omitted from the page', e)
         } finally {
+          if (run.invisible) page.pushOperators(setTextRenderingMode(TextRenderingMode.Fill))
           if (tzPct !== 100) {
             page.pushOperators(PDFOperator.of(PDFOperatorNames.SetTextHorizontalScaling, [PDFNumber.of(100)]))
           }
@@ -1098,11 +1105,15 @@ export async function paintOps(
         }
       }
 
-      const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
-      prevRealEnd = {
-        baselinePx: run.baselinePx,
-        endXPt: xPt + advanceWidthPt * (tzPct / 100),
-        chainStartXPt: nextChainStartXPt,
+      // ...and it must not become the chain's end either, or the next real
+      // run would snap to a mark nobody can see.
+      if (!run.invisible) {
+        const nextChainStartXPt: number = snappedToChain ? prevRealEnd!.chainStartXPt : xPt
+        prevRealEnd = {
+          baselinePx: run.baselinePx,
+          endXPt: xPt + advanceWidthPt * (tzPct / 100),
+          chainStartXPt: nextChainStartXPt,
+        }
       }
       if (mark) tagSink?.end(page, mark)
       continue

@@ -1108,6 +1108,46 @@ function listStyleGlyph(listStyleType: string): string {
  * align it against the li's left edge with a small gap, which is what
  * "outside" looks like in every browser.
  */
+/**
+ * What a list marker READS as, once it is text rather than a shape.
+ *
+ * The geometric kinds are drawn by the browser as UA shapes with no glyph
+ * behind them, so there is nothing to copy from; the bullet character is the
+ * plain-text name for all three. A custom string marker already is its own
+ * text. Kept deliberately to characters an ATS and a plain-text paste both
+ * handle - the mark on the page can be as ornamental as the design likes.
+ */
+const PLAIN_MARKERS = /^[ -~\u00b7\u2013\u2014\u2022\u203a]+$/
+
+function markerPlainText(kind: string, explicitText: string): string {
+  const literal = explicitText.trim()
+  if (literal) return PLAIN_MARKERS.test(literal) ? literal : '\u2022'
+  if (kind === 'disc' || kind === 'circle' || kind === 'square') return '\u2022'
+  return ''
+}
+
+/**
+ * The marker's extractable twin: invisible, at the mark's own position, on
+ * the item's first baseline so an extractor joins it to the line that
+ * follows. Without it a copied list is a run of sentences with no
+ * boundaries - measured at zero marker items in the file, for every one of
+ * the seven bullet styles.
+ */
+function markerTextTwin(
+  markerCs: CSSStyleDeclaration,
+  text: string,
+  xPx: number,
+  topPx: number,
+  ops: DrawOp[]
+): void {
+  if (!text) return
+  const run = styledTextRun(markerCs, text, xPx, topPx)
+  if (!run) return
+  run.isDecorative = false
+  run.invisible = true
+  ops.push({ kind: 'text', run })
+}
+
 function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const cs = getComputedStyle(el)
   if (cs.display !== 'list-item') return
@@ -1153,6 +1193,7 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
       fill: color,
       radiusPx: kind === 'square' ? 0 : d,
     })
+    markerTextTwin(markerCs, markerPlainText(kind, explicitText), box.xPx - gapPx - d, box.yPx, ops)
     return
   }
 
@@ -1163,6 +1204,11 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const gapPx = run.sizePx * 0.35
   run.xPx = box.xPx - gapPx - measureTextWidthPx(text, font)
   ops.push({ kind: 'text', run })
+  // A tick or a lozenge is an ornament the body fonts have no glyph for, so
+  // a twin carrying one is dropped at paint time and the list loses its
+  // boundaries again. Anything outside the plain set reads as a bullet,
+  // which is what it means.
+  markerTextTwin(markerCs, markerPlainText(kind, text), run.xPx, box.yPx, ops)
 }
 
 /**

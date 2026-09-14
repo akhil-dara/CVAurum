@@ -54,6 +54,17 @@ export interface TextRun {
    * is always `false` — never touch this rule for actual résumé content.
    */
   isDecorative: boolean
+  /**
+   * Painted with the text-rendering mode set to invisible: in the file, in
+   * the reading order, extractable and copyable, but drawing nothing.
+   *
+   * The visible half is somebody else's job. Used for list markers, whose
+   * mark IS drawn - as a UA-shaped vector dot, or as glyph outlines for the
+   * custom string styles - but which carried no text at all, so a copied
+   * bullet list arrived with no markers and no item boundaries. Same
+   * two-layer shape `paintTrackedHeading` uses for letter-spaced headings.
+   */
+  invisible?: boolean
 }
 
 /**
