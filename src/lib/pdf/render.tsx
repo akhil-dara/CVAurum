@@ -36,8 +36,7 @@ import { fitRulesOf } from '@/lib/fitReadout'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
-import { keepHyphenatedWordsWhole } from './hyphens'
-import { substituteUnsupportedChars } from './charFallback'
+import { preparePrintTree } from './prepareTree'
 import { visualLines } from './text'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
@@ -187,10 +186,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
      * which React reconciles without touching the mutated text nodes. */
     {
       const sheetEarly = container.firstElementChild as HTMLElement | null
-      if (sheetEarly) {
-        substituteUnsupportedChars(sheetEarly)
-        keepHyphenatedWordsWhole(sheetEarly)
-      }
+      preparePrintTree(sheetEarly)
     }
 
     if (doc.metadata.page.autoFit) {
@@ -280,8 +276,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // cannot draw for equivalents they can. A non-breaking hyphen - what a
     // paste from Word carries - was being dropped outright, so a certificate
     // named "... (PL-300)" reached the text layer as "(PL300)".
-    substituteUnsupportedChars(sheet)
-    keepHyphenatedWordsWhole(sheet)
+    preparePrintTree(sheet)
     // Always computed (cheap: one getComputedStyle on `.rm-col-main`) — only
     // ever CONSUMED when pagination actually runs (assignOpsToPages' single-
     // page shortcut ignores it entirely), so this has zero effect on the

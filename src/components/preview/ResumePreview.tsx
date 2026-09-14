@@ -53,6 +53,7 @@ import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
 import { measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
+import { preparePrintTree } from '@/lib/pdf/prepareTree'
 import { suggestFits } from '@/lib/fitSuggest'
 import { FitChip } from './FitChip'
 
@@ -318,6 +319,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           measure: async (f) => {
             setTrialFit(f)
             await raf2()
+            preparePrintTree(trialRef.current?.querySelector('.rm-root'))
             return trialRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
           },
           subsequentPageH: ph - marginMm * MM_TO_PX * 2,
@@ -494,6 +496,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             if (cancelled || myReq !== fitReq.current || !measureRef.current) return Number.POSITIVE_INFINITY
             setMeasureFit(f)
             await raf2()
+            preparePrintTree(measureRef.current?.querySelector('.rm-root'))
             const h = measureRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
             if (import.meta.env.DEV) (window.__cvaFitTrace ??= []).push({ fit: f, h, fs: measureRef.current?.querySelector<HTMLElement>('.rm-root') ? getComputedStyle(measureRef.current.querySelector<HTMLElement>('.rm-root')!).getPropertyValue('--rm-fs') : '' })
             return h
@@ -510,7 +513,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             try {
               const pad = findMainColumnPaddingPx(printRoot)
               const n = paginate({
-                blocks: extractPageBlocks(printRoot, computeUsablePageHeightPx(pageH, pad)),
+                blocks: (preparePrintTree(printRoot), extractPageBlocks(printRoot, computeUsablePageHeightPx(pageH, pad))),
                 contentHeightPx: printRoot.getBoundingClientRect().height,
                 usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
                 firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
@@ -632,6 +635,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         // The page height goes in because the keep rules are bounded by it
         // (walk.ts / sectionKeep.ts): without it this overlay would draw cuts
         // inside sections and entries the export holds whole.
+        preparePrintTree(printRoot)
         const combinedBlocks = extractPageBlocks(printRoot, usablePageHeightPx)
         const result = paginate({
           blocks: combinedBlocks,

@@ -1,4 +1,5 @@
 import { extractPageBlocks } from './walk'
+import { preparePrintTree } from './prepareTree'
 import { paginate } from './paginate'
 import { computeUsablePageHeightPx, computeFirstPageUsablePageHeightPx, findMainColumnPaddingPx, exceedsOnePage } from './metrics'
 
@@ -17,6 +18,10 @@ export interface PageMeasure {
  *  The preview's overlay, its readout and Magic fit's trials all read this
  *  one routine, so none of them can disagree with the PDF on a page count. */
 export function measurePages(printRoot: HTMLElement, pageH: number, marginMm: number, forcedCutsPx: number[] = []): PageMeasure {
+  // The painter draws a tree whose unsupported characters are substituted and
+  // whose hyphenated words are held whole; both change where lines wrap, so a
+  // measurement taken before them describes a different document.
+  preparePrintTree(printRoot)
   const padding = findMainColumnPaddingPx(printRoot)
   const usable = computeUsablePageHeightPx(pageH, padding)
   const first = computeFirstPageUsablePageHeightPx(pageH, padding)
