@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, AlertTriangle, XCircle, Target, FileText, PenLine, Sparkles } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
-import { analyzeResume, type CheckStatus } from '@/lib/ats'
+import { ATS_CATEGORY_LABELS, analyzeResume, type AtsCategory, type AtsMeasurement, type CheckStatus } from '@/lib/ats'
+import { fitSizesPt } from '@/lib/fitReadout'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
 import { SemanticMatchCard } from './SemanticMatch'
@@ -184,7 +185,30 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
     []
   )
 
-  const report = useMemo(() => analyzeResume(doc), [doc])
+  // What the preview measured about the rendered document: how many pages it
+  // really came to, and the body size Magic fit really settled on. Without
+  // these the analysis estimates the page count from the word count, which
+  // called a full one-page résumé two pages often enough to matter.
+  const fitResult = useEditorStore((s) => s.fitResult)
+  const measured = useMemo<AtsMeasurement>(
+    () => (fitResult ? { pages: fitResult.pages, bodyPt: fitSizesPt(doc.metadata, fitResult.fit).body } : {}),
+    [fitResult, doc.metadata]
+  )
+  const report = useMemo(() => analyzeResume(doc, measured), [doc, measured])
+
+  // Worst first inside each group: the first row a reader sees should be the
+  // one worth their next five minutes.
+  const grouped = useMemo(() => {
+    const rank: Record<string, number> = { fail: 0, warn: 1, pass: 2 }
+    return (Object.keys(ATS_CATEGORY_LABELS) as AtsCategory[])
+      .map((category) => ({
+        category,
+        checks: report.checks
+          .filter((c) => c.category === category)
+          .sort((a, b) => rank[a.status] - rank[b.status] || b.weight - a.weight),
+      }))
+      .filter((g) => g.checks.length)
+  }, [report.checks])
 
   return (
     <div className="space-y-5">
@@ -196,7 +220,13 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
             {report.score >= 80 ? 'Strong — ATS-ready' : report.score >= 60 ? 'Good, a few fixes' : 'Needs work'}
           </p>
           <p className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> {report.wordCount} words · ~{report.pages} page{report.pages > 1 ? 's' : ''}</span>
+            <span className="inline-flex items-center gap-1">
+              <FileText className="h-3.5 w-3.5" /> {report.wordCount} words ·{' '}
+              {/* "~2 pages" was a guess from the word count. When the preview
+                  has measured the real document there is nothing to hedge. */}
+              {fitResult ? '' : '~'}
+              {report.pages} page{report.pages > 1 ? 's' : ''}
+            </span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">{report.quantifiedCount}/{report.bulletCount} bullets quantified</p>
         </div>
@@ -206,18 +236,33 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
 
       <SkimCard />
 
-      {/* checks */}
-      <div className="space-y-1.5">
-        {report.checks.map((c) => {
-          const Icon = STATUS_ICON[c.status]
+      {/* checks, under the three questions they answer */}
+      <div className="space-y-4">
+        {grouped.map(({ category, checks }) => {
+          const failed = checks.filter((c) => c.status !== 'pass').length
           return (
-            <div key={c.id} className="flex gap-2.5 rounded-lg border border-border bg-surface p-2.5">
-              <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_COLOR[c.status])} />
-              <div className="min-w-0">
-                <p className="text-[13px] font-medium">{c.label}</p>
-                <p className="text-xs leading-snug text-muted-foreground">{c.detail}</p>
+            <section key={category} className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {ATS_CATEGORY_LABELS[category]}
+                </h3>
+                <span className="text-[11px] tabular-nums text-muted-foreground">
+                  {checks.length - failed}/{checks.length}
+                </span>
               </div>
-            </div>
+              {checks.map((c) => {
+                const Icon = STATUS_ICON[c.status]
+                return (
+                  <div key={c.id} className="flex gap-2.5 rounded-lg border border-border bg-surface p-2.5">
+                    <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_COLOR[c.status])} />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium">{c.label}</p>
+                      <p className="text-xs leading-snug text-muted-foreground">{c.detail}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </section>
           )
         })}
       </div>

@@ -10,12 +10,46 @@ import { getTemplate } from '@/templates/registry'
 import { sectionHasContent } from '@/lib/sections'
 
 export type CheckStatus = 'pass' | 'warn' | 'fail'
+
+/**
+ * Which question a check answers, so the report can be read in three passes
+ * instead of as one flat list of twenty-one rows: is the right material on the
+ * page, is it written well, and is it set so a parser can read it.
+ */
+export type AtsCategory = 'content' | 'writing' | 'format'
+
+export const ATS_CATEGORY_LABELS: Record<AtsCategory, string> = {
+  content: 'What is on the page',
+  writing: 'How it is written',
+  format: 'How it is set',
+}
+
 export interface AtsCheck {
   id: string
   label: string
   status: CheckStatus
   detail: string
   weight: number
+  category: AtsCategory
+  /** The entry a failing check is about, so a panel can offer to jump there. */
+  where?: { section: string; entry?: number }
+}
+
+/**
+ * What the app measured about the rendered document, when it has.
+ *
+ * Two of the rules worth checking are about the PAGE rather than the text, and
+ * the page is something this product renders itself: the paginator knows how
+ * many there are, and Magic fit knows the size the body text actually came out
+ * at, which is not the size the author set. Without these the analysis falls
+ * back to estimating from the word count, which is what it used to do — and
+ * which called a one-page résumé two pages often enough to be worth fixing.
+ */
+export interface AtsMeasurement {
+  /** Real page count, from the preview's own pagination. */
+  pages?: number
+  /** The body size the reader actually gets after the fit, in points. */
+  bodyPt?: number
 }
 export interface JdKeyword {
   term: string
@@ -136,7 +170,7 @@ export function extractKeywords(text: string, max = 24): string[] {
     .slice(0, max)
 }
 
-export function analyzeResume(doc: ResumeDocument): AtsReport {
+export function analyzeResume(doc: ResumeDocument, measured: AtsMeasurement = {}): AtsReport {
   const c = doc.content
   const text = extractResumeText(doc)
   const words = text.split(/\s+/).filter(Boolean)
@@ -146,8 +180,15 @@ export function analyzeResume(doc: ResumeDocument): AtsReport {
   const tpl = getTemplate(doc.metadata.template)
 
   const checks: AtsCheck[] = []
-  const push = (id: string, label: string, status: CheckStatus, detail: string, weight = 1) =>
-    checks.push({ id, label, status, detail, weight })
+  const push = (
+    id: string,
+    label: string,
+    status: CheckStatus,
+    detail: string,
+    weight = 1,
+    category: AtsCategory = 'content',
+    where?: AtsCheck['where']
+  ) => checks.push({ id, label, status, detail, weight, category, ...(where ? { where } : {}) })
 
   // contact
   const hasEmail = !!c.basics.email
@@ -157,14 +198,15 @@ export function analyzeResume(doc: ResumeDocument): AtsReport {
     'Contact details',
     hasEmail && hasPhone ? 'pass' : hasEmail || hasPhone ? 'warn' : 'fail',
     hasEmail && hasPhone ? 'Email and phone are present.' : 'Add both an email and a phone number so recruiters can reach you.',
-    2
+    2,
+    'content'
   )
 
-  push('summary', 'Professional summary', sectionHasContent('summary', c) ? 'pass' : 'warn', sectionHasContent('summary', c) ? 'A summary helps recruiters and ATS keyword-match instantly.' : 'Add a 2–3 line summary with your title and top skills.', 1)
+  push('summary', 'Professional summary', sectionHasContent('summary', c) ? 'pass' : 'warn', sectionHasContent('summary', c) ? 'A summary helps recruiters and ATS keyword-match instantly.' : 'Add a 2–3 line summary with your title and top skills.', 1, 'content')
 
-  push('work', 'Work experience', c.work.length ? 'pass' : 'fail', c.work.length ? `${c.work.length} role(s) listed.` : 'Add at least one work experience entry.', 2)
-  push('education', 'Education', c.education.length ? 'pass' : 'warn', c.education.length ? 'Education is present.' : 'Most ATS expect an education section.', 1)
-  push('skills', 'Skills section', c.skills.length ? 'pass' : 'warn', c.skills.length ? 'Skills present — great for keyword matching.' : 'Add a skills section; ATS keyword-match heavily on it.', 1.5)
+  push('work', 'Work experience', c.work.length ? 'pass' : 'fail', c.work.length ? `${c.work.length} role(s) listed.` : 'Add at least one work experience entry.', 2, 'content')
+  push('education', 'Education', c.education.length ? 'pass' : 'warn', c.education.length ? 'Education is present.' : 'Most ATS expect an education section.', 1, 'content')
+  push('skills', 'Skills section', c.skills.length ? 'pass' : 'warn', c.skills.length ? 'Skills present — great for keyword matching.' : 'Add a skills section; ATS keyword-match heavily on it.', 1.5, 'content')
 
   // quantified achievements
   const quantRate = bullets.length ? quantified / bullets.length : 0
@@ -173,7 +215,8 @@ export function analyzeResume(doc: ResumeDocument): AtsReport {
     'Quantified impact',
     bullets.length === 0 ? 'warn' : quantRate >= 0.4 ? 'pass' : quantRate >= 0.2 ? 'warn' : 'fail',
     bullets.length === 0 ? 'Add bullet points describing your achievements.' : `${quantified} of ${bullets.length} bullets include a number or metric. Aim for ~50%.`,
-    1.5
+    1.5,
+    'writing'
   )
 
   // action verbs
@@ -188,7 +231,8 @@ export function analyzeResume(doc: ResumeDocument): AtsReport {
       'Strong action verbs',
       weakStarts === 0 ? 'pass' : weakStarts <= 2 ? 'warn' : 'fail',
       weakStarts === 0 ? `${strongStarts} bullets start with strong verbs.` : `${weakStarts} bullet(s) start with weak phrases like "responsible for". Lead with action verbs.`,
-      1
+      1,
+      'writing'
     )
   }
 
@@ -199,7 +243,8 @@ export function analyzeResume(doc: ResumeDocument): AtsReport {
     'Length',
     idealLen ? 'pass' : wordCount < 200 ? 'fail' : 'warn',
     `${wordCount} words. Aim for ~400–800 for a focused 1–2 page resume.`,
-    1
+    1,
+    'content'
   )
 
   // ATS-safe template
@@ -208,27 +253,224 @@ export function analyzeResume(doc: ResumeDocument): AtsReport {
     'ATS-safe layout',
     tpl.atsSafe ? 'pass' : 'warn',
     tpl.atsSafe ? `“${tpl.name}” parses cleanly in ATS.` : `“${tpl.name}” is visually rich; some strict ATS may misread it. Prefer an ATS-safe template if applying to large companies.`,
-    1.5
+    1.5,
+    'format'
   )
 
   // photo warning (some ATS choke on images / headshots)
   if (doc.metadata.layout.showPhoto && c.basics.image) {
-    push('photo', 'Photo', 'warn', 'A photo can confuse some ATS and invite bias screening in the US/UK. Consider hiding it for ATS-heavy applications.', 0.5)
+    push('photo', 'Photo', 'warn', 'A photo can confuse some ATS and invite bias screening in the US/UK. Consider hiding it for ATS-heavy applications.', 0.5, 'format')
   }
 
   // custom (non-standard) section names
   const renamed = Object.keys(doc.metadata.layout.headings ?? {}).length
   if (renamed) {
-    push('headings', 'Standard headings', 'warn', 'You renamed some section headings. Keep standard names (Experience, Education, Skills) so ATS recognises them.', 0.5)
+    push('headings', 'Standard headings', 'warn', 'You renamed some section headings. Keep standard names (Experience, Education, Skills) so ATS recognises them.', 0.5, 'format')
+  }
+
+  /* ---------------------------------------------------------------- format
+   * Two rules about the PAGE rather than the words. This product renders the
+   * document itself, so both can be answered exactly instead of estimated:
+   * the paginator counts the pages, and Magic fit knows the size the body
+   * text actually came out at. `measured` carries them when the preview has
+   * run; the fallbacks below are what this used to do on its own.
+   */
+  const estimatedPages = Math.max(1, Math.round(wordCount / 520) || 1)
+  const pages = measured.pages ?? estimatedPages
+  // Two pages are right for a long career and wrong for a short one. The
+  // signal is the history, not the word count: three roles and a decade is a
+  // two-page résumé; one role over two pages is padding.
+  const longCareer = c.work.length >= 4 || wordCount > 750
+  push(
+    'pages',
+    'Page count',
+    pages === 1 ? 'pass' : pages === 2 ? (longCareer ? 'pass' : 'warn') : 'fail',
+    pages === 1
+      ? 'One page — what most recruiters prefer, and what every parser handles.'
+      : pages === 2
+        ? longCareer
+          ? 'Two pages, which a history this long earns.'
+          : 'Two pages for a shorter history. Magic fit (Design → Page) can bring this back to one.'
+        : `${pages} pages. Almost no recruiter reads past the second — cut, or let Magic fit tighten it.`,
+    1.5,
+    'format'
+  )
+
+  const bodyPt = measured.bodyPt ?? doc.metadata.typography.fontSize
+  const bodyRounded = Math.round(bodyPt * 10) / 10
+  push(
+    'bodySize',
+    'Body text size',
+    bodyPt >= 9.5 && bodyPt <= 12 ? 'pass' : bodyPt >= 8.5 ? 'warn' : 'fail',
+    bodyPt >= 9.5 && bodyPt <= 12
+      ? `${bodyRounded}pt — comfortable in print and on screen.`
+      : bodyPt < 8.5
+        ? `${bodyRounded}pt is below what a printed résumé should use. Cut a little content instead of shrinking further.`
+        : `${bodyRounded}pt is on the edge of readable. 10–11pt is the range to aim for.`,
+    1,
+    'format'
+  )
+
+  /* --------------------------------------------------------------- content */
+
+  // Bullets per role: too few says nothing about the job, too many stop being
+  // read. Only roles that carry bullets at all are judged - a career break on
+  // the page to explain a gap is not a role with nothing to say about it.
+  const BREAK = /\b(break|leave|carer|caregiving|sabbatical)\b/i
+  const roleBulletProblems = c.work
+    .map((w, i) => ({ i, w, n: w.highlights.filter((h) => htmlToText(h).trim()).length }))
+    .filter(({ w }) => !BREAK.test(w.position ?? ''))
+    .filter(({ n }) => n < 2 || n > 6)
+  if (c.work.length) {
+    const worst = roleBulletProblems[0]
+    push(
+      'bulletsPerRole',
+      'Bullets per role',
+      roleBulletProblems.length === 0 ? 'pass' : roleBulletProblems.length <= 1 ? 'warn' : 'fail',
+      roleBulletProblems.length === 0
+        ? 'Every role carries between two and six bullets.'
+        : worst && worst.n < 2
+          ? `“${worst.w.position || 'A role'}” has ${worst.n === 0 ? 'no bullets' : 'one bullet'}. Two to four say what the job actually was.`
+          : `“${worst?.w.position || 'A role'}” has ${worst?.n} bullets. Past six they stop being read — keep the ones with numbers in them.`,
+      1,
+      'content',
+      worst ? { section: 'work', entry: worst.i } : undefined
+    )
+  }
+
+  // A dateless entry is the one thing every parser trips on, and the one thing
+  // a reader assumes the worst about.
+  const undated = [
+    ...c.work.map((w, i) => ({ section: 'work', i, ok: !!w.startDate })),
+    ...c.education.map((e, i) => ({ section: 'education', i, ok: !!e.startDate || !!e.endDate })),
+  ].filter((x) => !x.ok)
+  if (c.work.length || c.education.length) {
+    push(
+      'dates',
+      'Dates on every entry',
+      undated.length === 0 ? 'pass' : 'fail',
+      undated.length === 0
+        ? 'Every role and course is dated.'
+        : `${undated.length} entr${undated.length === 1 ? 'y has' : 'ies have'} no date. A parser reads an undated role as no role at all.`,
+      1.5,
+      'content',
+      undated[0] ? { section: undated[0].section, entry: undated[0].i } : undefined
+    )
+  }
+
+  // Where the job was. Recruiters filter on it, and a remote role that does not
+  // say "Remote" reads as a gap in the geography.
+  const located = c.work.filter((w) => (w.location ?? '').trim()).length
+  if (c.work.length) {
+    push(
+      'entryLocation',
+      'Location on each role',
+      located === c.work.length ? 'pass' : located >= c.work.length / 2 ? 'warn' : 'fail',
+      located === c.work.length
+        ? 'Every role says where it was.'
+        : `${c.work.length - located} of ${c.work.length} roles have no location. Add the city, or “Remote”.`,
+      0.75,
+      'content'
+    )
+  }
+
+  // A summary that is one line says nothing; one that runs six is an essay
+  // nobody reads. Two to three lines is about 25-60 words.
+  const summaryWords = htmlToText(c.basics.summary ?? '').split(/\s+/).filter(Boolean).length
+  if (summaryWords) {
+    push(
+      'summaryLength',
+      'Summary length',
+      summaryWords >= 25 && summaryWords <= 65 ? 'pass' : summaryWords < 15 || summaryWords > 95 ? 'fail' : 'warn',
+      summaryWords >= 25 && summaryWords <= 65
+        ? `${summaryWords} words — two or three lines, which is what gets read.`
+        : summaryWords < 25
+          ? `${summaryWords} words is too short to say what you do and what you are best at. Aim for 25–60.`
+          : `${summaryWords} words. A summary past about 60 is skipped — the detail belongs in the bullets.`,
+      0.75,
+      'content'
+    )
+  }
+
+  // Thirty skills in one list is a list nobody reads; three named groups is a
+  // reader finding the one they came for.
+  const namedGroups = c.skills.filter((g) => (g.name ?? '').trim()).length
+  const biggestGroup = c.skills.reduce((m, g) => Math.max(m, g.keywords?.length ?? 0), 0)
+  if (c.skills.length) {
+    const grouped = namedGroups === c.skills.length && biggestGroup <= 12
+    push(
+      'skillGroups',
+      'Skills grouped',
+      grouped ? 'pass' : 'warn',
+      grouped
+        ? `${c.skills.length} named group${c.skills.length === 1 ? '' : 's'}.`
+        : namedGroups < c.skills.length
+          ? 'Some skill groups have no name. A parser reads the name as the category.'
+          : `One group holds ${biggestGroup} skills. Split it — a reader scans for a category, not a paragraph.`,
+      0.75,
+      'content'
+    )
+  }
+
+  // The profile link recruiters actually click, in the short form that fits on
+  // one line and survives being printed.
+  const linkedin = c.basics.profiles?.find((pr) => /linkedin/i.test(`${pr.network} ${pr.url}`))
+  const linkedinUrl = linkedin?.url ?? ''
+  const shortForm = /linkedin\.com\/in\/[^/?#]+\/?$/i.test(linkedinUrl)
+  push(
+    'linkedin',
+    'LinkedIn profile',
+    !linkedin ? 'warn' : shortForm ? 'pass' : 'warn',
+    !linkedin
+      ? 'No LinkedIn profile. It is the first thing most recruiters look for after the résumé itself.'
+      : shortForm
+        ? 'Linked in the short form recruiters expect.'
+        : 'Trim the address to linkedin.com/in/your-name — the tracking tail after it is noise on a printed page.',
+    0.5,
+    'content'
+  )
+
+  /* --------------------------------------------------------------- writing */
+
+  // A bullet of five words is a label, not an achievement; the reader learns
+  // nothing from "Improved performance."
+  const stubs = bullets.filter((b) => b.trim().length < 40)
+  if (bullets.length) {
+    push(
+      'bulletDepth',
+      'Bullets that say something',
+      stubs.length === 0 ? 'pass' : stubs.length <= 2 ? 'warn' : 'fail',
+      stubs.length === 0
+        ? 'No bullet is too short to carry a result.'
+        : `${stubs.length} bullet${stubs.length === 1 ? ' is' : 's are'} a fragment — e.g. “${stubs[0].trim().slice(0, 48)}”. Say what changed, and by how much.`,
+      0.75,
+      'writing'
+    )
+  }
+
+  // Either every bullet ends with a full stop or none does. Half and half is
+  // the thing a reader notices without knowing why.
+  const ended = bullets.filter((b) => /[.!?]$/.test(b.trim())).length
+  if (bullets.length >= 3) {
+    const consistent = ended === 0 || ended === bullets.length
+    push(
+      'punctuation',
+      'Consistent punctuation',
+      consistent ? 'pass' : ended > bullets.length * 0.8 || ended < bullets.length * 0.2 ? 'warn' : 'fail',
+      consistent
+        ? ended === 0
+          ? 'No bullet ends in a full stop — consistent.'
+          : 'Every bullet ends in a full stop — consistent.'
+        : `${ended} of ${bullets.length} bullets end in a full stop. Pick one and use it throughout.`,
+      0.5,
+      'writing'
+    )
   }
 
   // score
   const totalWeight = checks.reduce((s, c2) => s + c2.weight, 0)
   const earned = checks.reduce((s, c2) => s + c2.weight * (c2.status === 'pass' ? 1 : c2.status === 'warn' ? 0.55 : 0), 0)
   const score = Math.round((earned / Math.max(1, totalWeight)) * 100)
-
-  // page estimate (rough): ~520 words/page at default density.
-  const pages = Math.max(1, Math.round(wordCount / 520) || 1)
 
   // JD analysis
   let jd: JdAnalysis | undefined
