@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, Camera, ImagePlus, X } from 'lucide-react'
+import { ChevronRight, Plus, Trash2, Camera, ImagePlus, X } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import { uid } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
@@ -134,35 +134,49 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
         }
         placeholder="https://yoursite.com"
       />
-      <div>
-        <label className="label">Website icon</label>
-        <select
-          className="input w-full"
-          value={b.urlIcon ?? ''}
-          aria-label="Website icon"
-          onChange={(e) =>
-            update((c) => {
-              c.basics.urlIcon = e.target.value
-            })
-          }
-        >
-          {CONTACT_ICON_CHOICES.map((o) => (
-            <option key={o.v || 'auto'} value={o.v}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <TextField
-        label="Website shown as"
-        value={b.urlLabel ?? ''}
-        onChange={(v) =>
-          update((c) => {
-            c.basics.urlLabel = v
-          })
-        }
-        placeholder="Leave empty to show the address"
-      />
+      {/* How the website LOOKS, as opposed to where it goes. Two full-width
+          rows at the same weight as the address itself, on a block that was
+          already fifteen fields long — and both are refinements almost nobody
+          changes. They fold, and the summary says when one is set so a changed
+          value is never hidden. */}
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 py-0.5 text-[11px] text-muted-foreground transition hover:text-foreground">
+          <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+          How the website is shown
+          {(b.urlIcon || b.urlLabel) && <span className="text-primary">· changed</span>}
+        </summary>
+        <div className="mt-2 space-y-3">
+          <div>
+            <label className="label">Website icon</label>
+            <select
+              className="input w-full"
+              value={b.urlIcon ?? ''}
+              aria-label="Website icon"
+              onChange={(e) =>
+                update((c) => {
+                  c.basics.urlIcon = e.target.value
+                })
+              }
+            >
+              {CONTACT_ICON_CHOICES.map((o) => (
+                <option key={o.v || 'auto'} value={o.v}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <TextField
+            label="Website shown as"
+            value={b.urlLabel ?? ''}
+            onChange={(v) =>
+              update((c) => {
+                c.basics.urlLabel = v
+              })
+            }
+            placeholder="Leave empty to show the address"
+          />
+        </div>
+      </details>
 
       <Profiles doc={doc} />
 
@@ -288,14 +302,22 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 its own placeholder read "Shown" - the same crowding that had
                 made the address unreadable. Three short controls share the top
                 row; the two long values each get a line. */}
-            {/* The same two words the link card uses - Shown as, Goes to - so
-                the panel and the popover describe a link in one vocabulary.
-                Bare placeholder-only inputs here read as mystery fields. */}
-            <label className="block">
-              <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Shown as</span>
+            {/* "Shown as" is a refinement of a link whose address is the point,
+                and it cost a full-width row per profile on a block that was
+                already the longest in the panel. It folds, and says when it
+                carries a value, so nothing set is ever out of sight. The words
+                are the link card's own - Shown as, Goes to - so the panel and
+                the popover describe a link in one vocabulary. */}
+            <details className="group/label">
+              <summary className="flex cursor-pointer list-none items-center gap-1.5 py-0.5 text-[11px] text-muted-foreground transition hover:text-foreground">
+                <ChevronRight className="h-3 w-3 transition-transform group-open/label:rotate-90" />
+                Shown as
+                {p.label ? <span className="truncate text-foreground">· {p.label}</span> : null}
+              </summary>
               <input
-                className="input w-full"
+                className="input mt-1.5 w-full"
                 value={p.label ?? ''}
+                aria-label="Shown as"
                 placeholder="Leave empty to show the address"
                 onChange={(e) =>
                   update((c) => {
@@ -303,7 +325,7 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                   })
                 }
               />
-            </label>
+            </details>
             {/* The ADDRESS gets a line to itself. It is far the longest value
                 here, and sharing a row with the other two left it about three
                 characters wide - unreadable, and reported as such. The two
