@@ -17,6 +17,27 @@ import { TEMPLATES, TEMPLATE_MAP, galleryOrder } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
+import { orderedSampleSlugs as librarySlugs } from '@/lib/seoLibrary'
+import { SAMPLE_COUNT } from '@/data/library/count'
+
+/**
+ * The example library's own pages, re-exported so the build step keeps loading
+ * ONE module. They live apart because they are a different collection with a
+ * different shape, and this file was already long.
+ */
+export {
+  EXAMPLES_INTRO,
+  examplesItemListJsonLd,
+  examplesMarkdown,
+  examplesPageMeta,
+  examplesStaticHtml,
+  isSampleSlug,
+  orderedSampleSlugs,
+  sampleBreadcrumbJsonLd,
+  sampleMarkdown,
+  samplePageMeta,
+  sampleStaticHtml,
+} from '@/lib/seoLibrary'
 
 /** Canonical host. Also written in index.html, robots.txt and the sitemap. */
 export const SITE = 'https://cvaurum.com'
@@ -371,11 +392,14 @@ export function sitemapXml(today: string): string {
     urlEntry(`${SITE}/`, today, 'weekly', '1.0'),
     urlEntry(`${SITE}/templates`, today, 'weekly', '0.8', ORDERED),
     ...ORDERED.map((t) => urlEntry(`${SITE}/templates/${t.id}`, today, 'monthly', '0.6', [t])),
+    urlEntry(`${SITE}/examples`, today, 'weekly', '0.8'),
+    ...librarySlugs().map((slug) => urlEntry(`${SITE}/examples/${slug}`, today, 'monthly', '0.6')),
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <!--
-    The landing page, the template gallery, and one page per design. /app,
+    The landing page, the template gallery and one page per design, then the
+    example library and one page per sample. /app,
     /tracker, /resume/:id and /print/:id are private, account-free shells with
     no shareable content and are deliberately excluded (and Disallowed in
     robots.txt). Generated — see src/lib/seoPages.ts and the SEO plugin in
@@ -528,6 +552,7 @@ function pagesBlock(): string {
   return [
     `- [Home](${SITE}/): what CVAurum is, how it compares with other résumé builders, the three steps, privacy, questions and answers.`,
     `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page.`,
+    `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example résumés for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
     `- [The app](${SITE}/app): the résumé dashboard and the editor. Nothing to sign up for; the page is private to the visitor's browser and not indexed.`,
     `- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.`,
   ].join('\n')
@@ -535,10 +560,10 @@ function pagesBlock(): string {
 
 function resourcesBlock(): string {
   return [
-    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design).`,
+    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example).`,
     `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
     `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file.`,
-    `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md and ${SITE}/templates/<id>.md, linked from the page as its text/markdown alternate.`,
+    `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/examples.md and ${SITE}/examples/<slug>.md, linked from the page as its text/markdown alternate.`,
     `- [API catalog](${SITE}/.well-known/api-catalog) (RFC 9727): says plainly that there is no HTTP API; the site itself is the service.`,
     `- [Skills index](${SITE}/.well-known/agent-skills/index.json) and [SKILL.md](${SITE}/skills/cvaurum/SKILL.md): how an assistant can help a person use CVAurum, with the in-page WebMCP tools it can call.`,
     `- [auth.md](${SITE}/auth.md): there are no accounts, keys or registration, for people or for agents.`,
@@ -549,7 +574,15 @@ function resourcesBlock(): string {
 
 /** Every public URL, in sitemap order: home, gallery, then each design. */
 export function siteUrls(): string[] {
-  return [`${SITE}/`, `${SITE}/templates`, ...ORDERED.map((t) => `${SITE}/templates/${t.id}`)]
+  return [
+    `${SITE}/`,
+    `${SITE}/templates`,
+    ...ORDERED.map((t) => `${SITE}/templates/${t.id}`),
+    // The library's shelf, not each of its pages: this block is read whole by
+    // an assistant, and a hundred more lines of example URLs would crowd out
+    // everything the file is for. The sitemap and examples.md carry them all.
+    `${SITE}/examples`,
+  ]
 }
 
 function sitemapBlock(): string {

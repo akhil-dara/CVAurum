@@ -9,8 +9,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AlignLeft, ArrowRight, Github, Plus, Search } from 'lucide-react'
-import { useAppStore } from '@/store/useAppStore'
+import { AlignLeft, ArrowRight, Plus, Search } from 'lucide-react'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { TEMPLATES, galleryOrder } from '@/templates/registry'
@@ -20,9 +19,7 @@ import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 import { useLazyMount } from '@/components/preview/lazyMount'
-import { Logo } from '@/components/ui/Logo'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { InstallButton } from '@/components/ui/InstallButton'
+import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
 import { useCanonical } from '@/lib/useCanonical'
@@ -37,8 +34,6 @@ import {
   templateFilterParams,
   type TemplateFilter,
 } from '@/lib/templateFilter'
-
-const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** This page's own URL - index.html's head names the home page on every route. */
 const CANONICAL = 'https://cvaurum.com/templates'
@@ -64,7 +59,6 @@ export function Templates() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
-  const library = useAppStore((s) => s.library)
   const { create, importFile, importPdf } = useResumeActions()
   const fileRef = useRef<HTMLInputElement>(null)
   const pdfRef = useRef<HTMLInputElement>(null)
@@ -115,54 +109,17 @@ export function Templates() {
         onChange={(e) => importPdf(e.target.files?.[0])}
       />
 
-      {/* nav - the landing page's chrome in its off-hero (theme glass) state,
-          which is the only state a page without a dark hero ever has */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
-          <Logo to="/" />
-          {/* The landing sections are fragment targets, and a client-side
-              navigation to another route's fragment does not scroll to it -
-              only a real one does. These are plain anchors so the section a
-              reader asked for is the section they land on. */}
-          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-            <a className="transition hover:text-foreground" href="/#how">
-              How it works
-            </a>
-            <span className="font-medium text-foreground" aria-current="page">
-              Templates
+      <SiteHeader
+        current="templates"
+        action={
+          <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
+            <Plus className="h-4 w-4" />
+            <span>
+              Create<span className="hidden sm:inline"> resume</span>
             </span>
-            <a className="transition hover:text-foreground" href="/#compare">
-              Compare
-            </a>
-            <a className="transition hover:text-foreground" href="/#privacy">
-              Privacy
-            </a>
-          </nav>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <a
-              className="btn-ghost btn-sm hidden sm:inline-flex"
-              href={REPO_URL}
-              target="_blank"
-              rel="noreferrer"
-              title="View source on GitHub"
-            >
-              <Github className="h-4 w-4" /> GitHub
-            </a>
-            <InstallButton />
-            <ThemeToggle />
-            <Link className={library.length ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'} to="/app">
-              <span className="sm:hidden">Resumes</span>
-              <span className="hidden sm:inline">My resumes{library.length ? ` (${library.length})` : ''}</span>
-            </Link>
-            <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-              <Plus className="h-4 w-4" />
-              <span>
-                Create<span className="hidden sm:inline"> resume</span>
-              </span>
-            </button>
-          </div>
-        </div>
-      </header>
+          </button>
+        }
+      />
 
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -211,22 +168,7 @@ export function Templates() {
         )}
       </main>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-muted-foreground sm:flex-row">
-          <span className="inline-flex items-center gap-1.5">
-            <Logo compact to="/" /> · Built for everyone job hunting.
-          </span>
-          <span className="inline-flex items-center gap-3">
-            <Link className="transition hover:text-foreground" to="/">
-              Home
-            </Link>
-            <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
-              GitHub
-            </a>
-            <span>100% local · MIT licensed</span>
-          </span>
-        </div>
-      </footer>
+      <SiteFooter />
 
       {chooser && (
         <NewResumeModal

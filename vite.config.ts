@@ -166,6 +166,19 @@ function seoPages(): Plugin {
         )
       }
 
+      // The example library: the shelf, then one page per sample. These carry
+      // the most content of any page on the site - a whole resume in readable
+      // HTML - which is the only reason a search for "data analyst resume
+      // example" can land anywhere but the homepage.
+      write('examples', pageHtml(shell, seo.SITE, seo.examplesPageMeta(), seo.examplesStaticHtml(), seo.examplesItemListJsonLd()))
+      const slugs = seo.orderedSampleSlugs()
+      for (const slug of slugs) {
+        write(
+          path.join('examples', slug),
+          pageHtml(shell, seo.SITE, seo.samplePageMeta(slug), seo.sampleStaticHtml(slug), seo.sampleBreadcrumbJsonLd(slug))
+        )
+      }
+
       // The app routes get content-free shells (their own title, noindex),
       // and public/_redirects sends /resume/* and /print/* to the plain
       // shell, so the landing block below never flashes inside the app.
@@ -194,6 +207,8 @@ function seoPages(): Plugin {
       writeText('index.md', seo.landingMarkdown())
       writeText('templates.md', seo.galleryMarkdown())
       for (const id of ids) writeText(path.join('templates', `${id}.md`), seo.templateMarkdown(id))
+      writeText('examples.md', seo.examplesMarkdown())
+      for (const slug of slugs) writeText(path.join('examples', `${slug}.md`), seo.sampleMarkdown(slug))
 
       // Agent discovery, truthful for a site with no server: an API catalog
       // that points at the description, a skill file with its digest, and
@@ -209,7 +224,7 @@ function seoPages(): Plugin {
 
       console.log(
         `\nSEO: wrote ${written.length} pre-rendered pages (dist/${written[0]} … dist/${written[written.length - 1]}) ` +
-          `and dist/sitemap.xml with ${ids.length + 2} URLs (lastmod ${today})`
+          `and dist/sitemap.xml with ${ids.length + slugs.length + 3} URLs (lastmod ${today})`
       )
     },
   }
@@ -228,6 +243,7 @@ function machineReadersDev(): Plugin {
     '/llms-full.txt': (seo) => seo.llmsFullTxt(),
     '/index.md': (seo) => seo.landingMarkdown(),
     '/templates.md': (seo) => seo.galleryMarkdown(),
+    '/examples.md': (seo) => seo.examplesMarkdown(),
     '/auth.md': (seo) => seo.authMd(),
     '/.well-known/api-catalog': (seo) => seo.apiCatalogJson(),
     '/skills/cvaurum/SKILL.md': (seo) => seo.skillMd(),

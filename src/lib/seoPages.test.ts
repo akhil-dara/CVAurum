@@ -18,6 +18,7 @@ import {
   llmsTxt,
   llmsFullTxt,
   siteUrls,
+  orderedSampleSlugs,
 } from '@/lib/seoPages'
 import { SITE as COPY } from '@/data/siteCopy'
 
@@ -135,25 +136,35 @@ describe('the HTML a crawler reads without running the app', () => {
 describe('the sitemap', () => {
   const xml = sitemapXml('2026-09-08')
 
-  it('lists the landing page, the gallery and every design', () => {
+  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 3
+
+  it('lists the landing page, both collections and every page in them', () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
-    expect(locs).toHaveLength(TEMPLATES.length + 2)
+    expect(locs).toHaveLength(TOTAL)
     expect(locs[0]).toBe('https://cvaurum.com/')
     expect(locs[1]).toBe('https://cvaurum.com/templates')
-    expect(locs.slice(2)).toEqual(allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`))
+    const designs = allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`)
+    expect(locs.slice(2, 2 + designs.length)).toEqual(designs)
+    expect(locs[2 + designs.length]).toBe('https://cvaurum.com/examples')
+    expect(locs.slice(3 + designs.length)).toEqual(
+      orderedSampleSlugs().map((slug) => `https://cvaurum.com/examples/${slug}`)
+    )
   })
 
   it('stamps every entry with the day it was generated', () => {
     const stamps = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1])
-    expect(stamps).toHaveLength(TEMPLATES.length + 2)
+    expect(stamps).toHaveLength(TOTAL)
     expect(new Set(stamps)).toEqual(new Set(['2026-09-08']))
   })
 
-  it('ranks the landing page above the gallery above a single design', () => {
+  it('ranks the landing page above a collection above a single page in one', () => {
     const p = [...xml.matchAll(/<priority>([^<]+)<\/priority>/g)].map((m) => m[1])
     expect(p[0]).toBe('1.0')
+    // Both collection pages rank above the pages inside them.
     expect(p[1]).toBe('0.8')
-    expect(new Set(p.slice(2))).toEqual(new Set(['0.6']))
+    expect(p[2 + TEMPLATES.length]).toBe('0.8')
+    const inner = p.filter((_, i) => i !== 0 && i !== 1 && i !== 2 + TEMPLATES.length)
+    expect(new Set(inner)).toEqual(new Set(['0.6']))
   })
 })
 
@@ -221,7 +232,9 @@ describe('llms.txt', () => {
     for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
     expect(t).toContain('https://cvaurum.com/sitemap.xml')
     expect(t).toContain('https://cvaurum.com/robots.txt')
-    expect(siteUrls()).toHaveLength(TEMPLATES.length + 2)
+    // Home, the gallery, one line per design, and the library's shelf - the
+    // library's own pages live in the sitemap and examples.md, not here.
+    expect(siteUrls()).toHaveLength(TEMPLATES.length + 3)
     for (const u of siteUrls()) expect(t).toContain(`- ${u}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
   })

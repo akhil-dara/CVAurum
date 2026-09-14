@@ -26,6 +26,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { TEMPLATE_COUNT, getTemplate } from '@/templates/registry'
+import { SAMPLE_COUNT } from '@/data/library/count'
 import { SITE } from '@/data/siteCopy'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
@@ -127,7 +128,10 @@ export function Landing() {
             <Link to="/templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Templates
             </Link>
-            <a href="#compare" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <Link to="/examples" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+              Examples
+            </Link>
+            <a href="#compare" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Compare
             </a>
             <a href="#privacy" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
@@ -236,7 +240,11 @@ export function Landing() {
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Start from a recruiter-ready template</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Click any design to start editing — switch anytime, your content stays.
+                Click any design to start editing — switch anytime, your content stays. Not sure what to write?{' '}
+                <Link className="text-primary underline-offset-2 hover:underline" to="/examples">
+                  Read {SAMPLE_COUNT} full examples
+                </Link>
+                .
               </p>
             </div>
             <Link className="btn-ghost btn-sm hidden sm:inline-flex" to="/templates">
@@ -410,6 +418,9 @@ export function Landing() {
           <span className="inline-flex items-center gap-3">
             <Link className="transition hover:text-foreground" to="/templates">
               Templates
+            </Link>
+            <Link className="transition hover:text-foreground" to="/examples">
+              Examples
             </Link>
             <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
               GitHub
