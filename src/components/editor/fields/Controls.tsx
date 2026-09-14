@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { commitTyped } from '@/lib/designRanges'
 
@@ -225,11 +226,73 @@ function normalizeHex(v: string): string {
   return /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#000000'
 }
 
-export function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+/** Where a group's open/closed state is kept, so folding one away sticks. */
+const GROUP_KEY = 'cvaurum:panel-group:'
+
+function readOpen(title: string, fallback: boolean): boolean {
+  try {
+    const v = localStorage.getItem(GROUP_KEY + title)
+    return v === null ? fallback : v === '1'
+  } catch {
+    // Private mode, or storage blocked. The panel still has to open.
+    return fallback
+  }
+}
+
+/**
+ * One titled group of controls, foldable.
+ *
+ * The Design panel is seven of these and about a thousand lines of controls —
+ * the layout group alone is longer than a screen twice over — so finding the
+ * one setting you came for meant scrolling past every setting you did not.
+ * Each group now folds, and remembers: fold away the ones your résumé is done
+ * with and they stay folded next time.
+ *
+ * `defaultOpen` false is for the refinements (per-element colour overrides,
+ * date formats, link styling) — everything a first-time visitor needs is open
+ * on a fresh browser, because a control nobody can find is a control that does
+ * not exist.
+ */
+export function FieldGroup({
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  title: string
+  children: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(() => readOpen(title, defaultOpen))
+  const toggle = () => {
+    setOpen((v) => {
+      try {
+        localStorage.setItem(GROUP_KEY + title, v ? '0' : '1')
+      } catch {
+        /* nothing to remember it with; the session still works */
+      }
+      return !v
+    })
+  }
+  const id = `group-${title.replace(/\s+/g, '-').toLowerCase()}`
   return (
     <section className="space-y-3">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-      {children}
+      <h3>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          aria-controls={id}
+          className="group -mx-1 flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+        >
+          <span>{title}</span>
+          <ChevronDown
+            className={cn('h-3.5 w-3.5 shrink-0 opacity-50 transition-transform group-hover:opacity-100', !open && '-rotate-90')}
+          />
+        </button>
+      </h3>
+      <div id={id} className={cn('space-y-3', !open && 'hidden')}>
+        {children}
+      </div>
     </section>
   )
 }

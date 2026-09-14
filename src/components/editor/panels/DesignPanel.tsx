@@ -134,6 +134,9 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateMetadata)
   const m = doc.metadata
   const twoCol = m.layout.columns === 2
+  // Does the chosen design draw a numeral in front of each heading? Only two
+  // style one, so only those two are offered the switch.
+  const numbersDesign = getTemplate(m.template).defaults.layout.sectionNumbers === true
 
   return (
     <div className="space-y-6">
@@ -217,7 +220,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         )}
       </FieldGroup>
 
-      <FieldGroup title="Element colors">
+      <FieldGroup title="Element colors" defaultOpen={false}>
         {ELEMENT_COLOR_ROWS.map((r) => (
           <ColorField
             key={r.key}
@@ -543,7 +546,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         </div>
       </FieldGroup>
 
-      <FieldGroup title="Dates">
+      <FieldGroup title="Dates" defaultOpen={false}>
         <div>
           <label className="label">Month</label>
           <Segmented
@@ -839,6 +842,26 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
+        {/* Two Signature designs number their sections — 01 SUMMARY, 02
+            EXPERIENCE. The setting has always existed, round-tripped through
+            import and export and survived a template change; nothing in the
+            app ever set it, so choosing one of those designs meant keeping the
+            numbers for good.
+            Gated on the DESIGN rather than on the current value: a switch that
+            disappeared the moment it was turned off could never be turned back
+            on. Only these two style the numeral, so on any other design the
+            row would offer something the page cannot draw. */}
+        {numbersDesign && (
+          <Toggle
+            label="Number the sections"
+            checked={m.layout.sectionNumbers}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.sectionNumbers = v
+              })
+            }
+          />
+        )}
         <div>
           <label className="label">Between contacts</label>
           <Segmented
@@ -1007,7 +1030,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         </p>
       </FieldGroup>
 
-      <FieldGroup title="Links">
+      <FieldGroup title="Links" defaultOpen={false}>
         <div>
           <label className="label">Link style</label>
           <Segmented
