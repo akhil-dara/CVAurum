@@ -1215,7 +1215,7 @@ export const TEMPLATES: TemplateConfig[] = [
     sectionIcons: false,
     defaults: defs(
       'beacon',
-      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      { primary: '#3c78d8', text: '#2e3d50', muted: '#5b6675' },
       {
         fontFamily: 'Source Sans 3',
         headingFamily: 'Source Sans 3',
@@ -1281,7 +1281,7 @@ export const TEMPLATES: TemplateConfig[] = [
     sectionIcons: false,
     defaults: defs(
       'signal',
-      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#999999', name: '#4d70eb', headings: '#2e3d50' },
       {
         fontFamily: 'Source Sans 3',
         headingFamily: 'Source Sans 3',
@@ -1314,7 +1314,7 @@ export const TEMPLATES: TemplateConfig[] = [
     sectionIcons: false,
     defaults: defs(
       'marker',
-      { primary: '#2e3d50', text: '#2e3d50', muted: '#5b6675' },
+      { primary: '#2f6fd0', text: '#2e3d50', muted: '#5b6675' },
       {
         fontFamily: 'Lato',
         headingFamily: 'Lato',
