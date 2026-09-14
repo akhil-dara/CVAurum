@@ -20,8 +20,10 @@
  *
  * JPEG, deliberately, though every measurement says lossless WebP is smaller
  * and exact for a résumé page (see scripts/make-page-images.cjs): this file is
- * an og:image, and LinkedIn documents JPG/PNG/GIF only, Facebook documents
- * jpeg/gif/png, and Slack has been measured showing nothing for a WebP card.
+ * an og:image, and the link-preview readers do not take WebP. Between them
+ * they document JPG, PNG and GIF, and one of the big ones has been measured
+ * showing nothing at all for a WebP card.
+ *
  * The card also downscales the page about three times before encoding, which
  * averages away the block noise that makes JPEG the wrong choice at full size.
  *

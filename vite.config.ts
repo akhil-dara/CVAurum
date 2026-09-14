@@ -88,8 +88,8 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   // Only ever .jpg or .png reaches here, and it has to stay that way: og:image
   // is JPEG on purpose. The page images are lossless WebP (under half the bytes
   // of JPEG q82 for a full résumé page, and bit-exact), but the share-card
-  // consumers do not take it — LinkedIn documents JPG/PNG/GIF, Facebook
-  // jpeg/gif/png, and Slack has been measured failing on WebP outright. A
+  // consumers do not take it: between them the big link-preview readers
+  // document JPG, PNG and GIF, and one has been measured failing on WebP. A
   // .webp here would also be announced as image/png, which is worse than the
   // wrong format: it is a lie about it.
   html = setMeta(html, 'property', 'og:image:type', image.endsWith('.jpg') ? 'image/jpeg' : 'image/png')
