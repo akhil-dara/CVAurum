@@ -701,9 +701,9 @@ function HeroCinema({
             .
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/65">
-            {TEMPLATE_COUNT} designer templates you can restyle <em className="not-italic text-white/90">section by section</em>, a
-            built-in ATS check with a parser&apos;s-eye view, PDF import with on-device OCR, exports whose links still
-            click — and not a single byte of your career story sent to any server.
+            {TEMPLATE_COUNT} designer templates you can restyle <em className="not-italic text-white/90">section by section</em>,{' '}
+            {SAMPLE_COUNT} complete examples to start from, a built-in ATS check with a parser&apos;s-eye view, PDF
+            import with on-device OCR — and not a single byte of your career story sent to any server.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button

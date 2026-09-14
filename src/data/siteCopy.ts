@@ -1,4 +1,5 @@
 import { TEMPLATE_COUNT } from '@/templates/registry'
+import { SAMPLE_COUNT } from '@/data/library/count'
 
 /**
  * The landing page's words, in one place.
@@ -31,7 +32,7 @@ export interface SiteCopy {
 
 export const SITE: SiteCopy = {
   name: 'CVAurum',
-  oneLiner: `CVAurum is a free, open-source (MIT) résumé builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
+  oneLiner: `CVAurum is a free, open-source (MIT) résumé builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, ${SAMPLE_COUNT} complete example résumés, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
   hero: 'A resume this beautiful never leaves your browser.',
   steps: [
     {
@@ -154,7 +155,11 @@ export const SITE: SiteCopy = {
     { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 50 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
     { label: 'ATS', value: 'a deterministic score, a job-description keyword match, a parser’s-eye text view, a simulation of five applicant-tracking systems, a rule-based writing coach and a recruiter skim heatmap; optional on-device semantic matching' },
     { label: 'Import', value: 'PDF (text-based, or scanned with on-device OCR) and JSON Resume' },
-    { label: 'Editing', value: 'on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); six example résumés to start from; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better' },
+    {
+      label: 'Examples',
+      value: `${SAMPLE_COUNT} complete résumés across twelve fields, five career stages and three countries, each on its own page and openable in the editor in one click; every person, employer and figure in them is invented`,
+    },
+    { label: 'Editing', value: 'on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); ${SAMPLE_COUNT} complete example résumés to start from, searchable by field, career stage and country; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better' },
     { label: 'Scripts', value: 'Latin with accents, Cyrillic, Greek and Vietnamese, on the page and in every export; a font that lacks a script falls back to a bundled one of the same kind' },
     { label: 'Offline', value: 'installs as a web app and works with no connection: the app, its Latin fonts and the colour profile are saved on the device at install, and each résumé\u2019s export fonts are saved quietly while you are online, so it exports with no connection too. Every font is bundled with the app, so no third-party server is ever contacted' },
     { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },
