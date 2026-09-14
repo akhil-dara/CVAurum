@@ -592,6 +592,17 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
               }
               format={(v) => `${v.toFixed(2)}em`}
             />
+            <Slider
+              label="Bullet size"
+              value={m.typography.bulletSize}
+              {...DESIGN_RANGES.bulletSize}
+              onChange={(v) =>
+                update((md) => {
+                  md.typography.bulletSize = v
+                })
+              }
+              format={(v) => `${Math.round(v * 100)}%`}
+            />
           </div>
           <p className="-mt-1 text-[11px] text-muted-foreground">
             How far bullets sit in, and the air between them.

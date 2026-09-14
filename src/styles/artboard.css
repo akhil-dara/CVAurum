@@ -1214,6 +1214,9 @@
 }
 .rm-bullets li::marker {
   color: var(--rm-bullet-color, var(--rm-primary));
+  /* Scales the UA-drawn disc as well as a custom string marker, and the
+     painter reads the same computed size - see Artboard's useVars. */
+  font-size: var(--rm-bullet-size, 1em);
 }
 
 /* ---- how the running text is set (typography.align) ----

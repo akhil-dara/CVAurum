@@ -29,6 +29,7 @@ export const DESIGN_RANGES = {
   headingGap: range(TypographySchema.shape.headingGap, 0.05),
   bulletIndent: range(TypographySchema.shape.bulletIndent, 0.05),
   bulletGap: range(TypographySchema.shape.bulletGap, 0.02),
+  bulletSize: range(TypographySchema.shape.bulletSize, 0.05),
   sectionGap: range(LayoutSchema.shape.sectionGap, 1),
   itemGap: range(LayoutSchema.shape.itemGap, 1),
   sidebarWidth: range(LayoutSchema.shape.sidebarWidth, 0.01),

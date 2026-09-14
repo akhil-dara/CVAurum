@@ -195,6 +195,9 @@ export const TypographySchema = z.object({
   bulletIndent: z.number().min(0.5).max(2.5).default(1.05),
   /** vertical space between two bullets, in em of the base size */
   bulletGap: z.number().min(0).max(1).default(0.2),
+  /** how big the mark itself is drawn, as a multiple of the body size; 1 is
+   *  the size the browser draws for the text it sits beside */
+  bulletSize: z.number().min(0.6).max(1.8).default(1),
   /** how skill/language proficiency ratings render (dots/bars/stars meter, plain text, or hidden) */
   proficiency: z.enum(['dots', 'bars', 'stars', 'text', 'none']).default('dots'),
 })

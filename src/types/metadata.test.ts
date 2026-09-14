@@ -58,3 +58,18 @@ describe('a heading style the whole document can set', () => {
     expect(() => TypographySchema.parse({ headingStyle: 'bordered' })).toThrow()
   })
 })
+
+describe('the bullet mark has a size of its own', () => {
+  // Style, indent and spacing were all the author's; how big the mark itself
+  // is drawn was the browser's, whatever the body size happened to be.
+  it('defaults to the size the browser draws beside the text', () => {
+    expect(TypographySchema.parse({}).bulletSize).toBe(1)
+  })
+
+  it('takes a multiple of the body size, and refuses one that would not read', () => {
+    expect(TypographySchema.parse({ bulletSize: 1.8 }).bulletSize).toBe(1.8)
+    expect(TypographySchema.parse({ bulletSize: 0.6 }).bulletSize).toBe(0.6)
+    expect(() => TypographySchema.parse({ bulletSize: 3 })).toThrow()
+    expect(() => TypographySchema.parse({ bulletSize: 0.2 })).toThrow()
+  })
+})

@@ -192,6 +192,10 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
       // Both in em so they ride the base size and the one-page fit with it.
       '--rm-bullet-indent': `${t.bulletIndent}em`,
       '--rm-bullet-gap': `${t.bulletGap}em`,
+      // On the MARKER's own font-size, not a painter constant: that is the
+      // one number the browser's disc and our painter's disc both read, so
+      // the page and the export cannot disagree about it.
+      '--rm-bullet-size': `${t.bulletSize}em`,
       // The headline and contact scales, the two weights, and the multiplier
       // a template's own section-title ratio rides on (typeStyle.ts).
       ...typeScaleVars(t),

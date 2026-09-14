@@ -113,6 +113,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       bulletIndent: cur.typography.bulletIndent,
       bulletGap: cur.typography.bulletGap,
       proficiency: cur.typography.proficiency,
+      bulletSize: cur.typography.bulletSize,
       // How the prose is set is the author's call about their own words, not
       // part of a template's identity, so it survives a switch.
       align: cur.typography.align,
