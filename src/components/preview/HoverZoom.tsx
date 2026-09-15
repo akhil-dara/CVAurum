@@ -2,6 +2,7 @@ import { startTransition, useEffect, useRef, useState, type ReactNode } from 're
 import { createPortal } from 'react-dom'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS } from '@/types/metadata'
+import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { PreviewThumb } from './PreviewThumb'
 
 /** Can this device hover at all? (touch screens get taps, not flyouts) */
@@ -9,27 +10,36 @@ const canHover = () =>
   typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
 /**
- * Wraps a template card; after a short dwell on desktop it floats a LARGE
- * render of the same document beside the card so the design can actually be
- * judged — thumbnails are too small to read.
+ * Wraps a card; after a short dwell on desktop it floats a LARGER view of the
+ * same page beside it, because a grid thumbnail is too small to judge a design.
+ *
+ * Two ways to say what to float, and which one a caller can use is decided by
+ * what the card is showing:
+ *
+ *  - `doc` renders the résumé live. The editor's own template gallery needs
+ *    this: it previews the document being edited, which no file on disk
+ *    knows about. It costs a 200-350ms mount per hover, which is why the pop
+ *    is a transition — as an urgent update it froze the pointer for that long.
+ *  - `src` + `height` float the page PICTURE the card is already showing. The
+ *    public walls use this: the file is in the browser's cache by the time
+ *    anyone dwells on the card, so the flyout costs a decode.
  */
-export function HoverZoom({
-  doc,
-  label,
-  children,
-  width = 380,
-}: {
-  doc: ResumeDocument
-  label?: string
-  children: ReactNode
-  width?: number
-}) {
+type HoverZoomProps = { label?: string; children: ReactNode; width?: number } & (
+  | { doc: ResumeDocument; src?: never; height?: never }
+  | { src: string; height: number; doc?: never }
+)
+
+export function HoverZoom({ doc, src, height, label, children, width = 380 }: HoverZoomProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const timer = useRef<number>()
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
-  const { w: pageW, h: pageH } = PAGE_DIMENSIONS[doc.metadata.page.format]
-  const previewH = (width * pageH) / pageW + (label ? 30 : 0)
+  // A picture carries its own shape; a document's comes from its page format.
+  const ratio = doc
+    ? PAGE_DIMENSIONS[doc.metadata.page.format].h / PAGE_DIMENSIONS[doc.metadata.page.format].w
+    : (height as number) / PAGE_IMAGE_WIDTH
+  const pageH = width * ratio
+  const previewH = pageH + (label ? 30 : 0)
 
   const show = () => {
     if (!canHover() || !wrapRef.current) return
@@ -37,11 +47,10 @@ export function HoverZoom({
     const fitsRight = r.right + 12 + width < window.innerWidth
     const left = fitsRight ? r.right + 12 : Math.max(8, r.left - width - 12)
     const top = Math.min(Math.max(8, r.top - 40), Math.max(8, window.innerHeight - previewH - 8))
-    // The flyout is a full-resume render (~200-350ms). As an urgent update it
-    // froze the pointer for that long; as a transition, React yields to input
-    // and the pop lands a frame or two later - which a 220ms dwell already
-    // made imperceptible.
-    startTransition(() => setPos({ top, left }))
+    // See the note above: only the live path is expensive, and only it needs
+    // React to yield to the pointer before the pop lands.
+    if (doc) startTransition(() => setPos({ top, left }))
+    else setPos({ top, left })
   }
   const onEnter = () => {
     timer.current = window.setTimeout(show, 220)
@@ -71,8 +80,12 @@ export function HoverZoom({
             style={{ top: pos.top, left: pos.left, width }}
             aria-hidden
           >
-            <div style={{ height: (width * pageH) / pageW }} className="overflow-hidden">
-              <PreviewThumb doc={doc} width={width} />
+            <div style={{ height: pageH }} className="overflow-hidden">
+              {doc ? (
+                <PreviewThumb doc={doc} width={width} />
+              ) : (
+                <img src={src} width={PAGE_IMAGE_WIDTH} height={height} alt="" decoding="async" style={{ width, height: pageH }} />
+              )}
             </div>
             {label && (
               <div className="border-t border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground">{label}</div>

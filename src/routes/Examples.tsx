@@ -1,19 +1,21 @@
 /**
  * The example library (/examples).
  *
- * Every sample résumé in the collection, each shown as the document it really
- * is rather than a picture of one, with a search and three facets whose state
- * lives in the query string — a filtered shelf is a link someone can send, and
- * the back button walks it.
+ * Every sample résumé in the collection, with a search and three facets whose
+ * state lives in the query string — a filtered shelf is a link someone can
+ * send, and the back button walks it.
  *
- * A card previews the same document "Use this example" starts, because both
- * come from `sampleDoc`.
+ * A card shows the PICTURE of that sample's exported page, not a live render
+ * of it: 108 live résumés cost 10.5s of main-thread task time to browse and
+ * still left 61 of the cards as grey sketches (measured on the production
+ * build, 2026-09-15). See PagePicture for the whole measurement. The picture
+ * is made from the same sample "Use this example" starts, so the two still
+ * agree — and clicking it opens the page full size.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronDown, Plus, Search, SlidersHorizontal, Wand2, X } from 'lucide-react'
 import { LIBRARY } from '@/data/library'
-import { sampleDoc } from '@/data/library/doc'
 import {
   CATEGORY_LABELS,
   LIBRARY_CATEGORIES,
@@ -33,9 +35,9 @@ import {
   toggleFacet,
   type LibraryFilter,
 } from '@/lib/libraryFilter'
-import { PreviewThumb } from '@/components/preview/PreviewThumb'
-import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
-import { useLazyMount } from '@/components/preview/lazyMount'
+import { PagePicture } from '@/components/preview/PagePicture'
+import { PageLightbox, type LightboxItem } from '@/components/preview/PageLightbox'
+import { samplePageImage, samplePageImageHeight, sampleImageAlt } from '@/lib/seoLibrary'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
@@ -85,6 +87,10 @@ export function Examples() {
   // between the heading and the first example, which began two screens down.
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [sort, setSort] = useState<SortKey>('shelf')
+  /** Which card is open full size, as an index into what is currently shown —
+   *  prev/next walk the filtered shelf, not the whole library, because that is
+   *  the collection the reader is actually looking through. */
+  const [bigIndex, setBigIndex] = useState<number | null>(null)
 
   const [params, setParams] = useSearchParams()
   // Keyed on the query STRING: the params object is fresh every render, so
@@ -99,6 +105,29 @@ export function Examples() {
     const matched = filterLibrary(LIBRARY, filter)
     return sort === 'az' ? [...matched].sort((a, b) => a.role.localeCompare(b.role)) : matched
   }, [filter, sort])
+  // Filtering while a card is open would leave the index pointing at a
+  // different résumé than the one being read; close instead.
+  useEffect(() => setBigIndex(null), [shown])
+
+  const big: LightboxItem[] = useMemo(
+    () =>
+      shown.map((s) => {
+        const tpl = getTemplate(s.template)
+        return {
+          src: samplePageImage(s.slug),
+          height: samplePageImageHeight(s.slug),
+          alt: sampleImageAlt(s.slug),
+          title: s.role,
+          caption: `${SENIORITY_LABELS[s.seniority]} · written for ${REGION_LABELS[s.region]} · set in the ${tpl.name} design`,
+          aboutHref: `/examples/${s.slug}`,
+          aboutLabel: 'Read it in full',
+          useLabel: 'Use this example',
+          onUse: () => create(true, s.template, s.content, s.tweaks, `${s.role} resume`),
+        }
+      }),
+    [shown, create]
+  )
+
   const active = isLibraryFilterActive(filter)
   const chosenCount = filter.categories.length + filter.seniorities.length + filter.regions.length
   const counts = useMemo(
@@ -320,10 +349,12 @@ export function Examples() {
               </div>
             ) : (
               <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-                {shown.map((s) => (
+                {shown.map((s, i) => (
                   <SampleCard
                     key={s.slug}
                     sample={s}
+                    eager={i < 4}
+                    onOpen={() => setBigIndex(i)}
                     onPick={() => create(true, s.template, s.content, s.tweaks, `${s.role} resume`)}
                   />
                 ))}
@@ -355,6 +386,9 @@ export function Examples() {
           }}
           onClose={() => setChooser(false)}
         />
+      )}
+      {bigIndex !== null && big[bigIndex] && (
+        <PageLightbox items={big} index={bigIndex} onIndex={setBigIndex} onClose={() => setBigIndex(null)} />
       )}
       {sampleOpen && (
         <SamplePicker
@@ -435,26 +469,51 @@ function FacetGroup<T extends string>({
 }
 
 /**
- * One example. The thumbnail is a real résumé render, so a hundred of them
- * mounting at once would cost a hundred layouts — `useLazyMount` holds each
- * one until it is nearly on screen and a skeleton stands in until then.
+ * One example. The picture is the file (see PagePicture); the card's own
+ * behaviours are unchanged — the hover/focus actions, the title link, the
+ * facts line — with one gained: the picture itself now opens the page full
+ * size, which is the only "see it big" a phone has ever been offered here.
  *
- * Both ways in live on the card: reading it in full and starting from it are
- * different intentions, and a card offering only one made the reader guess
+ * Both ways in still live on the card: reading it in full and starting from it
+ * are different intentions, and a card offering only one made the reader guess
  * which one the whole card did.
  */
-function SampleCard({ sample, onPick }: { sample: LibrarySample; onPick: () => void }) {
-  const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
-  // Built only once the card is worth rendering: a document per sample up
-  // front is a hundred documents nobody has scrolled to yet.
-  const doc = useMemo(() => (seen ? sampleDoc(sample) : null), [seen, sample])
+function SampleCard({
+  sample,
+  onPick,
+  onOpen,
+  eager,
+}: {
+  sample: LibrarySample
+  onPick: () => void
+  onOpen: () => void
+  eager?: boolean
+}) {
   const accent = getTemplate(sample.template).defaults.theme.primary
   const facts = [CATEGORY_LABELS[sample.category], SENIORITY_LABELS[sample.seniority], REGION_LABELS[sample.region]]
 
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft transition hover:border-primary/50 hover:shadow-card">
-      <div ref={thumbRef} className="relative aspect-[1/1.294] w-full overflow-hidden border-b border-border bg-white">
-        {doc ? <PreviewThumb doc={doc} width={260} /> : <ThumbSkeleton accent={accent} />}
+      <div className="relative border-b border-border">
+        {/* A picture that opens a picture: a button, so a keyboard reaches it
+            and a screen reader is told what it does. The overlay below sits on
+            top of it and passes clicks through everywhere but its own two
+            controls, so the whole card face stays one target. */}
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`See the ${sample.role} example full size`}
+          className="block w-full cursor-zoom-in"
+        >
+          <PagePicture
+            src={samplePageImage(sample.slug)}
+            height={samplePageImageHeight(sample.slug)}
+            alt={sampleImageAlt(sample.slug)}
+            accent={accent}
+            eager={eager}
+            className="w-full"
+          />
+        </button>
         {/* Revealed by a pointer, and revealed by a keyboard too: the actions
             are real controls, not a hover-only secret. `group-focus-within`
             is what makes tabbing to them show them. */}

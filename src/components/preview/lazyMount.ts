@@ -110,6 +110,38 @@ export function enqueueMount(fn: () => void, inView?: () => boolean) {
 export function useLazyMount<T extends Element>(
   marginPx = typeof window !== 'undefined' && window.innerWidth < 640 ? 150 : 400
 ) {
+  return useNearby<T>(marginPx, true)
+}
+
+/**
+ * The same viewport test WITHOUT the idle queue: true as soon as this element
+ * is near the viewport, on the next frame.
+ *
+ * For a static picture, which is what the public walls show now, the queue is
+ * the wrong instrument. It exists to stop expensive MOUNTS from landing inside
+ * scroll frames, and it holds everything back until 100ms after the last
+ * scroll event — with an <img> that means a reader dragging down the page sees
+ * only grey until they stop, which is the complaint the pictures were meant to
+ * end. An <img> costs a decode off the main thread; there is nothing to queue.
+ *
+ * The gate is still needed, and not as a duplicate of loading="lazy": measured
+ * on the production build (2026-09-15, both headless Chromium and a full
+ * Chrome), every one of /examples' 108 pictures downloaded on first paint —
+ * 10.7 MB — with loading="lazy" set on 104 of them. The route is served with a
+ * pre-rendered crawler list inside #root that names the same 108 files, and
+ * while React is replacing that list with this grid the browser abandons the
+ * deferral. With the crawler list stripped out by an interceptor the same grid
+ * fetched 40; with the grid's URLs redirected instead, the crawler list fetched
+ * 3. Neither half is expensive alone. Until the pre-rendered list changes, this
+ * is what keeps the first view to the cards a reader can see.
+ */
+export function useNearViewport<T extends Element>(
+  marginPx = typeof window !== 'undefined' && window.innerWidth < 640 ? 500 : 800
+) {
+  return useNearby<T>(marginPx, false)
+}
+
+function useNearby<T extends Element>(marginPx: number, queue: boolean) {
   const ref = useRef<T | null>(null)
   const [seen, setSeen] = useState(false)
   const queued = useRef(false)
@@ -132,6 +164,10 @@ export function useLazyMount<T extends Element>(
       // scroll rather than declaring it off-screen forever.
       if (r.height > 0 && r.bottom > -marginPx && r.top < window.innerHeight + marginPx && !queued.current) {
         queued.current = true
+        if (!queue) {
+          setSeen(true)
+          return
+        }
         enqueueMount(
           () => {
             if (alive.current) setSeen(true)
@@ -158,6 +194,6 @@ export function useLazyMount<T extends Element>(
       window.removeEventListener('resize', schedule)
       unwatchLayout()
     }
-  }, [seen, marginPx])
+  }, [seen, marginPx, queue])
   return [ref, seen] as const
 }

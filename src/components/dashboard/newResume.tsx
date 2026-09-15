@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, FileText, FilePlus2, FileUp, Search, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, FileText, FilePlus2, FileUp, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
@@ -14,13 +14,11 @@ import { getTemplate } from '@/templates/registry'
 import { saveDoc } from '@/lib/storage'
 import { importDocumentFromFile } from '@/lib/io'
 import { CATEGORY_LABELS, LIBRARY_CATEGORIES, type LibraryCategory, type LibrarySample } from '@/data/library/types'
-import { sampleDoc } from '@/data/library/doc'
 import { EMPTY_LIBRARY_FILTER, filterLibrary, toggleFacet } from '@/lib/libraryFilter'
 import { cn } from '@/lib/utils'
-import { PreviewThumb } from '@/components/preview/PreviewThumb'
+import { PagePicture } from '@/components/preview/PagePicture'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import type { ResumeContent } from '@/types/document'
-import { useLazyMount } from '@/components/preview/lazyMount'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 
 /** Create/import a resume and land the user in the editor. */
@@ -196,14 +194,24 @@ export interface PickedSample {
  */
 export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) => void; onClose: () => void }) {
   const [library, setLibrary] = useState<readonly LibrarySample[] | null>(null)
+  /** Where each sample's page picture lives, and what to call it — loaded WITH
+   *  the library rather than imported at the top of this file, because
+   *  lib/seoLibrary imports the library itself and every page that can open
+   *  this dialog (the landing page among them) would then carry all 108. */
+  const [pics, setPics] = useState<SamplePictures | null>(null)
   const [query, setQuery] = useState('')
   const [categories, setCategories] = useState<readonly LibraryCategory[]>([])
+  // Twelve field chips stood between the search box and the first example on a
+  // 375px phone; the public shelves already fold theirs.
+  const [chipsOpen, setChipsOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let alive = true
-    void import('@/data/library').then((m) => {
-      if (alive) setLibrary(m.LIBRARY)
+    void Promise.all([import('@/data/library'), import('@/lib/seoLibrary')]).then(([lib, seo]) => {
+      if (!alive) return
+      setLibrary(lib.LIBRARY)
+      setPics(seo)
     })
     return () => {
       alive = false
@@ -237,7 +245,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
         role="dialog"
         aria-modal="true"
         aria-label="Pick a starting example"
-        className="relative z-10 flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-border bg-surface p-6 shadow-float"
+        className="relative z-10 flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-border bg-surface p-4 shadow-float sm:p-6"
       >
         <div className="mb-1 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Pick a starting example</h2>
@@ -263,7 +271,24 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
               className="input h-9 w-full pl-9 pr-3 text-sm"
             />
           </label>
-          <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className="btn-outline btn-sm w-full justify-between sm:hidden"
+            aria-expanded={chipsOpen}
+            onClick={() => setChipsOpen((v) => !v)}
+          >
+            <span className="inline-flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              Fields
+              {categories.length > 0 && (
+                <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
+                  {categories.length}
+                </span>
+              )}
+            </span>
+            <ChevronDown className={cn('h-4 w-4 transition-transform', chipsOpen && 'rotate-180')} />
+          </button>
+          <div className={cn('flex-wrap gap-1.5 sm:flex', chipsOpen ? 'flex' : 'hidden')}>
             {LIBRARY_CATEGORIES.map((c) => {
               const on = categories.includes(c)
               return (
@@ -307,9 +332,13 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
             </p>
           </div>
         ) : (
-          <div className="panel-scroll grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden pr-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-            {library
-              ? shown.map((sample) => <SampleCard key={sample.slug} sample={sample} onPick={onPick} />)
+          // Two per row at 375px, not one: a single column of page-shaped cards
+          // put the second example a full screen below the first.
+          <div className="panel-scroll grid grid-cols-2 gap-3 overflow-y-auto overflow-x-hidden pr-1 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+            {library && pics
+              ? shown.map((sample, i) => (
+                  <SampleCard key={sample.slug} sample={sample} pics={pics} eager={i < 6} onPick={onPick} />
+                ))
               : // Placeholders at the shape of the cards, so the dialog does not
                 // jump the moment the library lands.
                 Array.from({ length: 12 }, (_, i) => (
@@ -328,42 +357,60 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
   )
 }
 
-function SampleCard({ sample, onPick }: { sample: LibrarySample; onPick: (p: PickedSample) => void }) {
-  // Every full résumé here used to mount synchronously the moment the modal
-  // opened. Each card now waits for its idle grant like every other
-  // thumbnail; the aspect box holds the layout meanwhile.
-  const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
-  const doc = useMemo(() => (seen ? sampleDoc(sample) : null), [seen, sample])
+/** The three things this dialog needs to show a sample's picture. Named as a
+ *  type so the dynamic import's shape is checked, not cast. */
+type SamplePictures = {
+  samplePageImage: (slug: string) => string
+  samplePageImageHeight: (slug: string) => number
+  sampleImageAlt: (slug: string) => string
+}
+
+function SampleCard({
+  sample,
+  pics,
+  onPick,
+  eager,
+}: {
+  sample: LibrarySample
+  pics: SamplePictures
+  onPick: (p: PickedSample) => void
+  eager?: boolean
+}) {
+  // Every full résumé here used to mount live — four at once when the dialog
+  // opened, then one per idle grant. Opening the dialog and browsing it cost
+  // 9.7s of main-thread task time on a desk and 6.7s on a phone, and after
+  // nine seconds only 35 of the 108 cards had a résumé in them (production
+  // build, 2026-09-15). It is the picture of the exported page now.
   const pick = () => onPick({ template: sample.template, content: sample.content, tweaks: sample.tweaks, role: sample.role })
 
-  const card = (
-    <button
-      onClick={pick}
-      // The CARD follows the theme; only the thumbnail below is paper
-      // white. It used to be white throughout while its text used
-      // theme tokens, so in dark mode the title was light-on-white and
-      // effectively invisible (2026-08-25 report).
-      className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
-      title={`Start from the ${sample.role} example`}
+  return (
+    <HoverZoom
+      src={pics.samplePageImage(sample.slug)}
+      height={pics.samplePageImageHeight(sample.slug)}
+      label={`${sample.role} example`}
     >
-      <div ref={thumbRef} className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
-        {doc ? <PreviewThumb doc={doc} width={210} /> : <ThumbSkeleton />}
-      </div>
-      <div className="p-3">
-        <div className="text-sm font-semibold text-foreground">{sample.role}</div>
-        <div className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{sample.blurb}</div>
-      </div>
-    </button>
-  )
-
-  // The zoom needs the document; before the card has mounted one there is
-  // nothing to zoom into, and the plain card stands in.
-  return doc ? (
-    <HoverZoom doc={doc} label={`${sample.role} example`}>
-      {card}
+      <button
+        onClick={pick}
+        // The CARD follows the theme; only the thumbnail below is paper
+        // white. It used to be white throughout while its text used
+        // theme tokens, so in dark mode the title was light-on-white and
+        // effectively invisible (2026-08-25 report).
+        className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
+        title={`Start from the ${sample.role} example`}
+      >
+        <PagePicture
+          src={pics.samplePageImage(sample.slug)}
+          height={pics.samplePageImageHeight(sample.slug)}
+          alt={pics.sampleImageAlt(sample.slug)}
+          eager={eager}
+          className="w-full border-b border-border"
+        />
+        <div className="p-2.5 sm:p-3">
+          <div className="text-[13px] font-semibold leading-snug text-foreground sm:text-sm">{sample.role}</div>
+          <div className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{sample.blurb}</div>
+        </div>
+      </button>
     </HoverZoom>
-  ) : (
-    card
   )
 }
 
