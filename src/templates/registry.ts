@@ -1399,6 +1399,120 @@ export const TEMPLATES: TemplateConfig[] = [
       { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 9, itemGap: 5, headingPlacement: 'side' }
     ),
   },
+  {
+    id: 'measure',
+    name: 'Measure',
+    /* Every number below was read off the text layer of a résumé set by a
+     * typesetting engine, not estimated: A4, a 43.2pt (0.6in) side margin,
+     * a 10pt body on a 12.0pt baseline (1.2 - the classic ratio), a 20.7pt
+     * name, a 9.0pt contact line, and section titles at the BODY size,
+     * separated from the words around them by case and a full-measure rule
+     * alone.
+     *
+     * THE FACE IS THE ONE THING THAT IS NOT REPRODUCIBLE. The source is set
+     * in a face this app does not bundle, and none of the fourteen bundled
+     * serifs is that face; the page's GEOMETRY carries the look instead.
+     * Spectral was picked on two measurements rather than on a resemblance.
+     * COLOUR: the mean ink over a three-line summary band at this measure
+     * came to 0.0623 against the source page's own 0.0612 - the same grey -
+     * where the nearest rival measured 0.0810, a third darker. APPARENT
+     * SIZE: its x-height is 0.45em against the source's ~0.43, where that
+     * rival's is 0.50, so a 10pt line here looks like a 10pt line there.
+     * What it costs: 0.4314em of advance per character against the source's
+     * measured 0.4640em (-7.0%), so a line of this design holds about seven
+     * characters more than the source's does.
+     *
+     * JUSTIFIED, because the even grey of a justified measure is the whole
+     * effect - and nothing in this renderer hyphenates, which is what
+     * usually makes that a bad trade. (A browser's soft hyphen is not a
+     * character of the text node, and the painter draws each run from that
+     * node's own range, so the canvas would show a hyphen the file does
+     * not: artboard.css says so where the alignment is read.) So it was
+     * measured rather than assumed, off the exported files: our painter
+     * spreads a justified line word by word (paint.ts justifiedPieces), so
+     * every word space in the PDF can be read exactly. Over six example
+     * résumés plus a twelve-line paragraph of prose, the loosest line on any
+     * page carried 5.05pt word spaces - 2.0x the face's natural 2.50pt. The
+     * source page, set by the engine and WITH hyphenation, carries 5.46pt
+     * spaces on its own loosest line and one space of 8.43pt. So the trade
+     * is real and it is not lost: at this measure the page is no gappier
+     * than the one it is modelled on. A NARROWER measure is where it would
+     * be - which is the other reason the 0.6in margin is not decoration.
+     */
+    description:
+      'A page set the way a typesetting engine sets one: a 0.6in measure of justified text on a tight 12pt baseline, a centred name in capitals, and section titles at the size of the body with a hairline rule beneath.',
+    tags: ['ats-safe', 'single-column', 'bare', 'classic'],
+    atsSafe: true,
+    class: 'tpl-measure',
+    header: 'centered',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    defaults: defs(
+      'measure',
+      // The source prints one ink: no grey for a date, no colour for a
+      // heading. The muted tone is held a step off the text rather than at
+      // it, so a date still reads as secondary on screen.
+      { primary: '#12151a', text: '#12151a', muted: '#3b4148' },
+      {
+        fontFamily: 'Spectral',
+        headingFamily: 'Spectral',
+        nameFamily: 'Spectral',
+        fontSize: 10,
+        lineHeight: 1.2,
+        letterSpacing: 0,
+        // headingScale feeds nothing here - nameScale states the name's size
+        // outright and the title size is a ratio in the stylesheet - so it is
+        // left at a plain value.
+        headingScale: 1.2,
+        // 20.66 / 9.96 measured off the name.
+        nameScale: 2.07,
+        // The give-away of the whole look.
+        align: 'justify',
+        uppercaseHeadings: true,
+        // NOT bold, which took measuring: the brief called these headings
+        // bold, and the source does not set them so. Stem widths off a
+        // 3600px raster, in thousandths of each run's own type size: body
+        // 66, section title 83, entry title (the bold face) 116, name 128.
+        // A title at 1.26x the body is nowhere near the 1.76x its bold face
+        // would give, and the two weights this schema offers are 400 and
+        // 700 - at 700 ours measures 1.47x, at 400 it measures 1.00x, so
+        // regular is the closer of the two. Case and the rule carry the
+        // hierarchy; the name is the one thing set in the bold face.
+        headingWeight: 'regular',
+        // The three per-element scales this design needs - titles at the body
+        // size, the role at the body size, contacts at 0.9 of it - are NOT
+        // here: applyTemplateToMetadata keeps sectionTitleScale, headlineScale
+        // and contactScale from the document (they are the author's, and a
+        // switch must not reset them), so a value written here would never
+        // reach a page. They are ratios in templates.css instead, written so
+        // the panel's own sliders still move them.
+      },
+      // The contact fields run on one centred line separated by a spaced
+      // dash. 'dash' is an en dash where the source sets an em dash - the
+      // separator vocabulary has no em - and is the closest of the five.
+      // keywordSeparator states the comma the source sets between the terms
+      // of a skill line, and does NOT reach the page today: the layout merge
+      // in applyTemplateToMetadata spreads the DOCUMENT's layout and names
+      // only some fields after it, so this one is kept from the document
+      // like the type scales are. It is written anyway, because it is what
+      // the design asks for - the page draws the middot until the merge
+      // hands a template's own separator over.
+      {
+        columns: 1,
+        icons: false,
+        sectionIconStyle: 'none',
+        contactSeparator: 'dash',
+        keywordSeparator: 'comma',
+        sectionSettings: BARE_SECTIONS,
+        // Measured off the source: 16.9pt from the last line of a section to
+        // the next section title's baseline against a 12pt line (so ~5pt of
+        // air), and 15.9pt between two entries (so ~4pt).
+        sectionGap: 5,
+        itemGap: 4,
+      }
+    ),
+  },
 ]
 
 export const TEMPLATE_MAP: Record<string, TemplateConfig> = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]))

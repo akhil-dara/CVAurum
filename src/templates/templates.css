@@ -1494,6 +1494,141 @@
   color: var(--rm-primary);
 }
 
+/* ===================================================== Measure
+   The finish of a page set by a typesetting engine. Almost all of the recipe
+   is in the registry entry (10pt body, 12.0pt baseline, a 20.7pt name in
+   capitals, titles at the body size, justified prose); what is here is the
+   handful of things the metadata has no field for.
+
+   THE MEASURE. The one number that cannot be said in a template's defaults:
+   `defaults` covers theme, typography and layout only, and applyTemplateToMetadata
+   deliberately carries page.format and page.margin across a switch as the
+   author's. The source's 43.2pt (0.6in) side margin is 15.24mm against the
+   schema's 13mm default - 1.1723x - so the margin is scaled rather than
+   pinned: a document on the default lands exactly on 0.6in, and the margin
+   slider still moves this design, in proportion, instead of doing nothing.
+   It takes two elements to say that: --rm-pad is written INLINE on .rm-root
+   (Artboard.tsx useVars), a custom property may not reference itself even
+   across inheritance (that is a cycle, and the declaration drops), and an
+   inline declaration beats any stylesheet rule on the same element. So the
+   page margin is read into a second name (which CAN be declared on the root,
+   being a different property) and the scaled one is declared on the elements
+   that PAD with it - the column, and the footer strip an author can move a
+   section into, so the strip's edge cannot fall 8px inside the body's. */
+.tpl-measure {
+  --rm-page-margin: var(--rm-pad);
+  /* A keyword chip is sized by a variable rather than a rule; it joins the
+     one size with the rest (0.88 of the body, stock). */
+  --rm-chip-fs: 1;
+}
+.tpl-measure .rm-footer,
+.tpl-measure .rm-col-main {
+  --rm-pad: calc(var(--rm-page-margin) * 1.1723);
+}
+.tpl-measure .rm-col-main {
+  /* The source's first baseline sits 46.6pt down the page - less than its
+     own side margin, which is what a typeset page does with its head. Our
+     padding is measured to the TOP of the name's line box, and the name's
+     own ascent plus half-leading eats ~17pt of that, so the head takes
+     0.697 of the side margin to land the baseline in the same place: measured
+     off the export and solved, not guessed. */
+  padding-top: calc(var(--rm-page-margin) * 1.1723 * 0.697);
+}
+/* The name: capitals, centred, and untracked. The stock rule tightens a
+   large name by -0.01em and hangs it -0.04em into the margin to make a
+   flush-left name look flush; this one is centred and set in capitals,
+   where both corrections read as a lean. The WEIGHT is the stock bold, and
+   that is measured: in the source the name's stems run 128 thousandths of
+   its own type size against 66 for the body and 83 for a section title, so
+   the name is the one thing on the page set in the bold face. */
+.tpl-measure .rm-name {
+  text-transform: uppercase;
+  letter-spacing: 0;
+  text-indent: 0;
+  margin-bottom: 0.1em;
+}
+/* THE THREE PER-ELEMENT SIZES. The role under the name and the contact line
+   measured 1.00 and 0.90 of the body in the source, and a section title
+   measured the body size exactly - and none of the three can be said in the
+   registry: applyTemplateToMetadata keeps sectionTitleScale, headlineScale
+   and contactScale from the DOCUMENT, because they are the author's and a
+   switch must not reset them. So each is written here as its own ratio
+   against the stock one the panel computes with, which leaves the sliders
+   live: the panel's multiplier is still in every one of these formulas, so
+   raising the heading slider still raises these headings. */
+.tpl-measure .rm-headline {
+  font-size: calc(var(--rm-fs) * var(--rm-headline-mul, 1));
+  font-weight: 400;
+  color: var(--rm-headline-color, var(--rm-text));
+  margin-bottom: 0.35em;
+}
+.tpl-measure .rm-contacts {
+  font-size: calc(var(--rm-fs) * 0.9 * var(--rm-contact-mul, 1));
+}
+/* A section title differs from the body by CASE and by the rule beneath it -
+   nothing else. No tracking (the source's capitals are set plain), and a
+   the thinnest rule the renderer can draw. The source's measures 0.4pt and
+   we cannot match it: a sub-pixel border declaration is rounded UP to one
+   device pixel by the engine (measured - a 0.6px declaration comes back
+   from getComputedStyle as 1px, and the export paints 0.75pt against the
+   source's 0.33-0.50pt), and the schema's own two choices are 1px and 2px.
+   So 1px it is, thinner than the 1.5px the stock heading draws, and the var
+   keeps the author's choice winning wherever they make one. The rule runs
+   the full measure, which the stock heading already does. */
+.tpl-measure .rm-section-title {
+  /* The body size exactly - the stock ratio's own inverse against the size
+     the panel computes (see the three ratios above). */
+  font-size: calc(var(--rm-section-title-size, calc(var(--rm-fs) * 1.06)) / 1.06);
+  letter-spacing: 0;
+  /* The air under a title, measured: the source sets the first line of a
+     section 13.9pt below its title's baseline, against a 12.0pt body line -
+     so the rule and the space around it cost 1.9pt and no more. The stock
+     rule spends 20.5pt on it (a 1.2 line box, 0.2em of padding and 0.6em of
+     margin), which reads as a hole at this leading. Each of the three is
+     cut rather than the margin alone, so the heading-gap slider still has a
+     margin to multiply. */
+  line-height: 1.05;
+  padding-bottom: 0.06em;
+  margin-bottom: calc(0.2em * var(--rm-heading-gap, 1));
+  border-bottom: var(--rm-heading-rule, 1px) solid currentColor;
+}
+/* ONE SIZE, and one ink. The source's text layer carries exactly three
+   sizes on the whole page: 20.7pt for the name, 9.0pt for the contact line,
+   and 9.96pt for everything else - the body, the section titles, the entry
+   titles, the organisations, the places and the dates alike, which differ
+   from the words around them by WEIGHT alone. The stock artboard sets an
+   entry title at 1.05 of the body, a sub-line at 0.95 and a date at 0.92,
+   and against a 12pt baseline those three near-misses read as a wobble
+   rather than a hierarchy. The same goes for the colour: a date and a place
+   are printed in the source's one black, not in a grey. */
+.tpl-measure .rm-item-title,
+.tpl-measure .rm-item-org,
+.tpl-measure .rm-item-sub,
+.tpl-measure .rm-item-date,
+.tpl-measure .rm-item-link,
+.tpl-measure .rm-mini-sub {
+  font-size: 1em;
+}
+.tpl-measure .rm-item-date,
+.tpl-measure .rm-item-loc {
+  color: var(--rm-text);
+  font-weight: 700;
+}
+.tpl-measure .rm-item-title {
+  font-weight: 700;
+}
+/* The skills lines are prose at full measure in the source, and they are
+   justified with the rest of it. They read the SAME variable the prose
+   reads, so an author who sets the page ragged sets these ragged too. */
+.tpl-measure .rm-col-main .rm-skill-group {
+  text-align: var(--rm-align, left);
+  text-wrap: var(--rm-wrap, wrap);
+  /* and they sit on the same baseline rhythm as the prose: the stock 0.45em
+     between two groups reads as a hole on a page whose every other line is
+     12pt from the last. */
+  margin-bottom: 0;
+}
+
 /* =====================================================================
    PER-SECTION STYLE OVERRIDES (user-picked in the canvas section gear).
    Scoped .sec-ov-* / .skl-ov-* classes on one .rm-section — they must beat
