@@ -375,7 +375,7 @@ function decodeSvgDataUri(src: string): string | null {
  * parse falls through to the ordinary (silently-skipped) image op, so this
  * is never worse than the status quo.
  */
-function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: DrawOp[]): boolean {
+export function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: DrawOp[]): boolean {
   const xml = decodeSvgDataUri(el.src)
   if (!xml) return false
 
@@ -396,27 +396,59 @@ function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: Dr
   const scaleX = box.wPx / vbW
   const scaleY = box.hPx / vbH
 
-  const rectEl = svg.querySelector('rect')
-  const textEl = svg.querySelector('text')
-  if (!rectEl && !textEl) return false
-
-  if (rectEl) {
-    const fill = parseHexColor(rectEl.getAttribute('fill') || '')
-    const wPx = parseFloat(rectEl.getAttribute('width') || '0') * scaleX
-    const hPx = parseFloat(rectEl.getAttribute('height') || '0') * scaleY
-    if (fill && wPx > 0 && hPx > 0) {
-      const radiusPx = parseFloat(rectEl.getAttribute('rx') || rectEl.getAttribute('ry') || '0') * scaleX
-      ops.push({
-        kind: 'rect',
-        xPx: box.xPx + (parseFloat(rectEl.getAttribute('x') || '0') - vbX) * scaleX,
-        yPx: box.yPx + (parseFloat(rectEl.getAttribute('y') || '0') - vbY) * scaleY,
-        wPx,
-        hPx,
-        fill,
-        radiusPx,
-      })
+  // Every shape the mark is made of, in document order, each as one svg op in
+  // the viewBox's own units - the same contract the section-icon chips use,
+  // so paint.ts scales the path and its stroke width together. This used to
+  // read the FIRST rect and stop: the library's brandmarks are a white square,
+  // a tinted overlay and a device of paths, circles and stroked bars, and the
+  // painter drew the square alone. Thirty-four example pages exported every
+  // employer as an empty box while the preview showed the mark.
+  let drewShape = false
+  const alphaOf = (el: Element, ...names: string[]): number => {
+    let a = 1
+    for (const n of names) {
+      const v = el.getAttribute(n)
+      if (v !== null) {
+        const f = parseFloat(v)
+        if (Number.isFinite(f)) a *= Math.max(0, Math.min(1, f))
+      }
     }
+    return a
   }
+  for (const child of Array.from(svg.children)) {
+    const tag = child.tagName.toLowerCase()
+    if (!/^(?:rect|circle|path|line|polygon|polyline)$/.test(tag)) continue
+    const d = svgShapeToPathD(tag, (name) => child.getAttribute(name))
+    if (!d) continue
+    const fillAttr = child.getAttribute('fill')
+    // SVG's default fill is black; only an explicit "none" means no fill.
+    const fillBase = fillAttr === null ? { r: 0, g: 0, b: 0, a: 1 } : fillAttr === 'none' ? null : parseHexColor(fillAttr)
+    const fill = fillBase ? { ...fillBase, a: fillBase.a * alphaOf(child, 'opacity', 'fill-opacity') } : undefined
+    const strokeAttr = child.getAttribute('stroke')
+    const strokeBase = strokeAttr && strokeAttr !== 'none' ? parseHexColor(strokeAttr) : null
+    const strokeWidth = parseFloat(child.getAttribute('stroke-width') || '1')
+    const stroke =
+      strokeBase && Number.isFinite(strokeWidth) && strokeWidth > 0
+        ? { ...strokeBase, a: strokeBase.a * alphaOf(child, 'opacity', 'stroke-opacity') }
+        : undefined
+    if (!fill && !stroke) continue
+    ops.push({
+      kind: 'svg',
+      xPx: box.xPx,
+      yPx: box.yPx,
+      wPx: box.wPx,
+      hPx: box.hPx,
+      viewBox: [vbX, vbY, vbW, vbH],
+      d,
+      fill,
+      stroke,
+      strokeWidthPx: stroke ? strokeWidth : 0,
+    })
+    drewShape = true
+  }
+
+  const textEl = svg.querySelector('text')
+  if (!drewShape && !textEl) return false
 
   const label = textEl?.textContent?.trim()
   if (textEl && label) {
