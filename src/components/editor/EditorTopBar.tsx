@@ -1,28 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from 'zustand'
-import {
-  Undo2,
-  Redo2,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  Download,
-  FileJson,
-  FileDown,
-  FileText,
-  Check,
-  Cloud,
-  ChevronDown,
-  HelpCircle,
-  ScanText,
-  Eye,
-  PencilLine,
-  Command,
-  Share2,
-  MoreVertical,
-  Moon,
-  Sun,
-} from 'lucide-react'
+import { Check, ChevronDown, ClipboardCopy, Cloud, Command, Download, Eye, FileDown, FileJson, FileText, HelpCircle, Maximize, Moon, MoreVertical, PencilLine, Redo2, ScanText, Share2, Sun, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -57,11 +35,45 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const theme = useAppStore((s) => s.settings.theme)
   const updateSettings = useAppStore((s) => s.updateSettings)
+  const toast = useAppStore((s) => s.toast)
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches)
 
   const chooseExport = (fmt: ExportFormat) => {
     setExportOpen(false)
     setExportFmt(fmt)
+  }
+
+  /**
+   * The résumé as running text, on the clipboard.
+   *
+   * Copying from the PDF gives a line per line of the PAGE, because that is
+   * what a page is - paste it into an application form and every sentence
+   * arrives broken. The same document reflowed into paragraphs is something
+   * this app already computes for the ATS panel, and which now matches the
+   * exported file word for word, so it is the same résumé either way.
+   *
+   * Falls back to a hidden textarea and execCommand where the async clipboard
+   * is refused: a permission prompt is not worth a copy button.
+   */
+  const copyPlainText = async () => {
+    setExportOpen(false)
+    const d = useResumeStore.getState().doc ?? doc
+    const { resumeToAtsText } = await import('@/lib/atsText')
+    const text = resumeToAtsText(d)
+    try {
+      await navigator.clipboard.writeText(text)
+      toast('Résumé copied as plain text')
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.setAttribute('readonly', '')
+      ta.style.cssText = 'position:fixed;top:0;left:-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      const ok = document.execCommand('copy')
+      ta.remove()
+      toast(ok ? 'Résumé copied as plain text' : 'Could not reach the clipboard')
+    }
   }
   // PDF is generated in-app by the native renderer (crisp, selectable, exact -
   // same DOM/CSS as the preview), multi-page included. It is the ONLY engine:
@@ -225,6 +237,10 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                 <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('docx')}>
                   <span className="flex items-center gap-2 font-medium"><FileText className="h-4 w-4 shrink-0 text-primary" /> Download Word (.docx)</span>
                   <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Editable, ATS-friendly text that mirrors your template</span>
+                </button>
+                <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={copyPlainText}>
+                  <span className="flex items-center gap-2 font-medium"><ClipboardCopy className="h-4 w-4 shrink-0 text-primary" /> Copy as plain text</span>
+                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Whole paragraphs, for pasting into an application form</span>
                 </button>
                 <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('json')}>
                   <span className="flex items-center gap-2 font-medium"><FileJson className="h-4 w-4 shrink-0 text-primary" /> Export JSON Resume</span>
