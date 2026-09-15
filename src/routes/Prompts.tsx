@@ -11,10 +11,20 @@
  * The prompts themselves live in src/lib/seoPages.ts, not here, because the
  * pre-rendered HTML and the Markdown twin have to be the same text as the
  * page. This file is only how a person reads and copies them.
+ *
+ * SHAPE, and why it changed (2026-09-15). The page used to open with two
+ * paragraphs, a three-step strip, a paragraph about the schema and an on-page
+ * index before the first prompt, then print all six in full: 7791px on a
+ * 375x812 phone, with the first thing you could press 536px down. It now
+ * leads with the one line that says what to do, lists the six as a stack of
+ * plain titles, and opens ONE at a time. Every prompt still renders into the
+ * DOM — the closed ones are `hidden`, not absent — so what a crawler is
+ * served, what the Markdown twin says and what a person can read are one
+ * text, which is the rule this page has always been held to.
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ClipboardPaste, Copy, FileJson, Plus } from 'lucide-react'
+import { ArrowDown, Check, ChevronDown, ClipboardPaste, Copy, FileJson, Plus } from 'lucide-react'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/dashboard/newResume'
 import { PROMPTS, PROMPTS_INTRO, SCHEMA_DOC, SITE, promptsPageMeta, type PromptEntry } from '@/lib/seoPages'
@@ -23,6 +33,9 @@ import { cn } from '@/lib/utils'
 
 /** How long the button says "Copied" before going back to "Copy". */
 const COPIED_MS = 1800
+
+/** Where the paste box lives, so a prompt can send you straight to it. */
+const PASTE_ID = 'paste-the-answer'
 
 /**
  * Put text on the clipboard.
@@ -61,17 +74,38 @@ export function Prompts() {
     image: `${SITE}${meta.image}`,
     url: `${SITE}${meta.path}`,
   })
-  // Arriving from a link halfway down another page keeps that page's scroll
-  // position, and this one is tall enough to hold one.
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [])
 
   const { create, importFile, importPdf } = useResumeActions()
   const fileRef = useRef<HTMLInputElement>(null)
   const pdfRef = useRef<HTMLInputElement>(null)
   const [chooser, setChooser] = useState(false)
   const [sampleOpen, setSampleOpen] = useState(false)
+
+  /**
+   * Which prompt is open. One at a time: six prompts opened at once is the
+   * page this one replaced. None is open on arrival, which is what makes the
+   * first screen a list you can read — six titles and the paste box all fit
+   * above the fold on a 375x812 phone, where the old page needed 536px of
+   * scrolling before the first thing you could press.
+   */
+  const [open, setOpen] = useState<string>('')
+
+  // A link into one prompt (the Markdown twin and the pre-rendered HTML both
+  // carry the fragments, and so does the index further down) has to OPEN that
+  // prompt, or it lands on a closed row and looks broken.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.replace(/^#/, ''))
+    const hit = PROMPTS.find((p) => p.id === id)
+    if (hit) {
+      setOpen(hit.id)
+      // After the panel is in the DOM, not before it.
+      requestAnimationFrame(() => document.getElementById(hit.id)?.scrollIntoView())
+      return
+    }
+    // Arriving from a link halfway down another page keeps that page's scroll
+    // position.
+    window.scrollTo(0, 0)
+  }, [])
 
   return (
     <div className="min-h-full bg-background">
@@ -105,27 +139,31 @@ export function Prompts() {
       {/* The header's own row is max-w-6xl, so the page sits in one too and
           keeps its prose to max-w-3xl inside it — centring a 3xl column in the
           viewport instead put the h1 well to the right of the logo. */}
-      <main className="mx-auto max-w-6xl px-4 py-9 sm:px-6 sm:py-10">
+      <main className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
         <div className="max-w-3xl">
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.4rem] sm:leading-[1.12]">
-            {PROMPTS.length} prompts for the assistant you already use
+          {/* Smaller than the other pages' h1 on a phone on purpose: at
+              text-3xl this heading took three lines and 120px of the first
+              screen before a word of instruction. */}
+          <h1 className="text-[1.6rem] font-semibold leading-[1.15] tracking-tight sm:text-[2.4rem] sm:leading-[1.12]">
+            {PROMPTS.length} prompts for your AI assistant
           </h1>
-          <p className="mt-3.5 text-sm leading-relaxed text-muted-foreground">{PROMPTS_INTRO}</p>
+          <p className="mt-3 text-[15px] leading-relaxed text-foreground">{PROMPTS_INTRO}</p>
 
-          <ol className="mt-6 flex flex-col gap-1.5 border-y border-border py-5 text-sm sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-2">
-            <li className="text-muted-foreground">
-              <span className="mr-1.5 font-semibold text-foreground">1</span>Copy a prompt
-            </li>
-            <li className="text-muted-foreground">
-              <span className="mr-1.5 font-semibold text-foreground">2</span>Paste it into your assistant, with your own
-              material
-            </li>
-            <li className="text-muted-foreground">
-              <span className="mr-1.5 font-semibold text-foreground">3</span>Paste the answer back here
-            </li>
-          </ol>
+          <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
+            {PROMPTS.map((p, i) => (
+              <PromptRow
+                key={p.id}
+                prompt={p}
+                n={i + 1}
+                open={open === p.id}
+                onToggle={() => setOpen((cur) => (cur === p.id ? '' : p.id))}
+              />
+            ))}
+          </div>
 
-          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+          <PasteAnswer onImport={importFile} />
+
+          <p className="mt-7 text-sm leading-relaxed text-muted-foreground">
             Every prompt asks for{' '}
             <a
               className="text-primary hover:underline"
@@ -135,43 +173,17 @@ export function Prompts() {
             >
               JSON Resume
             </a>
-            , the open format this app reads and writes — a file exported here <em>is</em> a JSON Resume document. The
-            field names an assistant needs are published at{' '}
+            , the open format this app reads and writes, and sends the assistant to{' '}
             <a className="text-primary hover:underline" href="/skills/cvaurum/SKILL.md">
-              /skills/cvaurum/SKILL.md
-            </a>
-            , generated from the schemas the importer validates against, so a prompt can never send it after a field
-            that no longer exists. Import drops a field it cannot read rather than the whole file, so an imperfect
-            answer still arrives as most of a résumé.
+              the field list
+            </a>{' '}
+            rather than letting it guess.
           </p>
 
-          {/* A short index: six long prompts are a long page, and someone who
-            came for one of them should not have to scroll past five. */}
-          <nav aria-label="The prompts" className="mt-7 rounded-xl border border-border bg-surface p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">On this page</p>
-            <ul className="mt-2.5 flex flex-col gap-1.5">
-              {PROMPTS.map((p) => (
-                <li key={p.id}>
-                  <a className="text-sm text-foreground transition hover:text-primary" href={`#${p.id}`}>
-                    {p.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <div className="mt-8 flex flex-col gap-8">
-            {PROMPTS.map((p) => (
-              <PromptCard key={p.id} prompt={p} />
-            ))}
-          </div>
-
-          <PasteAnswer onImport={importFile} />
-
-          <p className="mt-8 text-sm leading-relaxed text-muted-foreground">
-            Nothing on this page is sent anywhere: the copying, the pasting and the import all happen in your browser.
-            What you type into someone else's assistant is between you and them — so leave out anything you would not
-            want stored there, and put it in the editor instead.
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Nothing here is sent anywhere: the copying, the pasting and the import all happen in your browser. What you
+            type into someone else's assistant is between you and them — leave out anything you would not want stored
+            there, and put it in the editor instead.
           </p>
 
           <p className="mt-6 text-sm text-muted-foreground">
@@ -226,8 +238,15 @@ export function Prompts() {
   )
 }
 
-/** One prompt: what it is for, the text, and what to do with the answer. */
-function PromptCard({ prompt }: { prompt: PromptEntry }) {
+/**
+ * One row of the stack: a title you can press, and the prompt underneath it.
+ *
+ * The panel is rendered whether or not it is open and hidden with the `hidden`
+ * attribute. Unmounting it would be cheaper, but it would also take the prompt
+ * out of the page a crawler and an assistant read — and the whole argument for
+ * this page is that the six prompts ARE its content.
+ */
+function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: number; open: boolean; onToggle: () => void }) {
   const [state, setState] = useState<'idle' | 'done' | 'failed'>('idle')
 
   useEffect(() => {
@@ -239,42 +258,82 @@ function PromptCard({ prompt }: { prompt: PromptEntry }) {
   const copy = async () => setState((await copyText(prompt.prompt)) ? 'done' : 'failed')
 
   return (
-    // `scroll-mt` so the index's jump links do not land the heading under the
-    // sticky header.
-    <section id={prompt.id} className="scroll-mt-20">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold leading-snug text-foreground">{prompt.title}</h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{prompt.when}</p>
-        </div>
+    // `scroll-mt` so a fragment link does not land the title under the sticky
+    // header.
+    <section id={prompt.id} className="scroll-mt-16 border-b border-border last:border-b-0">
+      <h2>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls={`${prompt.id}-panel`}
+          // min-h-[56px]: the whole row is the target, not the chevron. A
+          // 32px row was what the copy buttons measured on the old page.
+          className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+        >
+          <span
+            className={cn(
+              'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold tabular-nums',
+              open ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+            )}
+            aria-hidden
+          >
+            {n}
+          </span>
+          <span className="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-foreground">{prompt.title}</span>
+          <ChevronDown
+            className={cn('h-5 w-5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+            aria-hidden
+          />
+        </button>
+      </h2>
+
+      <div id={`${prompt.id}-panel`} hidden={!open} className="border-t border-border bg-background px-4 pb-5 pt-4">
+        <p className="text-sm leading-relaxed text-muted-foreground">{prompt.when}</p>
+
         <button
           type="button"
           onClick={copy}
-          // The copy button sits above the block on a phone, where the heading
-          // takes the full width; keeping it a real button (not an icon on the
-          // block's corner) is what makes it reachable with a thumb.
-          className={cn('btn-outline btn-sm shrink-0', state === 'done' && 'border-success/50 text-success')}
+          // Full width and 44px tall on a phone: this is the button the whole
+          // page exists for, and the old one was 83x32.
+          className={cn(
+            'btn-primary mt-3.5 h-11 w-full sm:w-auto sm:px-6',
+            state === 'done' && 'bg-success text-white'
+          )}
           aria-label={`Copy the prompt: ${prompt.title}`}
         >
           {state === 'done' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {state === 'done' ? 'Copied' : state === 'failed' ? 'Select it instead' : 'Copy'}
+          {state === 'done' ? 'Copied' : state === 'failed' ? 'Select it instead' : 'Copy this prompt'}
         </button>
+
+        <pre
+          // `whitespace-pre-wrap` and `break-words`: the prompts hold lines far
+          // wider than a 375px phone, and a <pre> that does not wrap is the
+          // classic way a page ends up scrolling sideways.
+          className="mt-3.5 max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-xl border border-border bg-muted/40 p-3.5 font-mono text-[12.5px] leading-relaxed text-foreground sm:p-4"
+        >
+          {prompt.prompt}
+        </pre>
+
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">What to do with the answer: </span>
+          {prompt.after}
+        </p>
+
+        {/* The other half of the loop is a long prompt away once this panel is
+            open, so the panel carries its own way back to it. */}
+        <a
+          href={`#${PASTE_ID}`}
+          className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowDown className="h-4 w-4" aria-hidden />
+          Paste the answer
+        </a>
+
+        <span aria-live="polite" className="sr-only">
+          {state === 'done' ? 'Prompt copied to the clipboard' : ''}
+        </span>
       </div>
-      <pre
-        // `whitespace-pre-wrap` and `break-words`: the prompts hold lines far
-        // wider than a 375px phone, and a <pre> that does not wrap is the
-        // classic way a page ends up scrolling sideways.
-        className="mt-3 max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-xl border border-border bg-muted/40 p-4 font-mono text-[12.5px] leading-relaxed text-foreground"
-      >
-        {prompt.prompt}
-      </pre>
-      <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-        <span className="font-medium text-foreground">What to do with the answer: </span>
-        {prompt.after}
-      </p>
-      <span aria-live="polite" className="sr-only">
-        {state === 'done' ? 'Prompt copied to the clipboard' : ''}
-      </span>
     </section>
   )
 }
@@ -302,14 +361,13 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
   }
 
   return (
-    <section className="mt-12 rounded-2xl border border-border bg-surface p-5">
-      <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-foreground">
+    <section id={PASTE_ID} className="mt-6 scroll-mt-16 rounded-2xl border border-border bg-surface p-4 shadow-soft sm:p-5">
+      <h2 className="inline-flex items-center gap-2 text-[15px] font-semibold text-foreground sm:text-lg">
         <ClipboardPaste className="h-4 w-4 text-primary" />
-        Paste the answer
+        Paste the answer here
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        Drop the JSON your assistant gave you in here and it opens as a résumé you can edit. The code fence around it is
-        fine to leave on. Nothing is uploaded — the file is built and read in this browser.
+        It opens as a résumé you can edit. Leaving the code fence on is fine.
       </p>
       <textarea
         value={text}
@@ -321,9 +379,9 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
         // `textarea`, not `input`: the latter is a fixed 36px row, which
         // squashed a five-row box down to one line and hid all but the first
         // brace of the placeholder.
-        className="textarea mt-3.5 min-h-[9rem] w-full p-3 font-mono text-[12.5px]"
+        className="textarea mt-3 min-h-[7.5rem] w-full p-3 font-mono text-[12.5px]"
       />
-      <button type="button" className="btn-primary btn-sm mt-3" disabled={!body} onClick={go}>
+      <button type="button" className="btn-primary mt-3 h-11 w-full sm:w-auto sm:px-6" disabled={!body} onClick={go}>
         <FileJson className="h-4 w-4" />
         Open it as a résumé
       </button>

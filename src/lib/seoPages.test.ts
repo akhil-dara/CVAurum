@@ -30,6 +30,7 @@ import {
   orderedSampleSlugs,
   PROMPTS,
   PROMPTS_INTRO,
+  PROMPTS_SCHEMA_NOTE,
   SCHEMA_DOC,
   documentSections,
   documentShape,
@@ -542,3 +543,43 @@ describe('the prompt library', () => {
     expect(sitemapXml('2026-09-08')).toContain('<loc>https://cvaurum.com/prompts</loc>')
   })
 })
+  /**
+   * The page leads with ONE line. It used to lead with four sentences, a
+   * three-step strip and a paragraph about the schema, which on a 375x812
+   * phone put the first thing a reader could press 536px down the page.
+   * The line is short enough to be the head's description whole, so the
+   * sentence a person reads first and the sentence a search result shows are
+   * the same sentence rather than one being a truncation of the other.
+   */
+  it('leads with one line, short enough to be the description uncut', () => {
+    expect(PROMPTS_INTRO.length).toBeLessThanOrEqual(DESC_MAX)
+    expect(promptsPageMeta().description).toBe(PROMPTS_INTRO)
+    expect(PROMPTS_INTRO).not.toContain('…')
+    // The loop, in the order it is walked: copy, paste it there, paste it back.
+    expect(PROMPTS_INTRO).toMatch(/copy.+paste.+paste/i)
+  })
+
+  // The schema is a footnote, not the opening. One sentence, in both twins,
+  // pointing at the generated field list rather than spelling fields out.
+  it('says the format once, at the foot, in both twins', () => {
+    expect(PROMPTS_SCHEMA_NOTE.split('. ').length).toBeLessThanOrEqual(2)
+    expect(promptsStaticHtml()).toContain(htmlEscape(PROMPTS_SCHEMA_NOTE))
+    expect(promptsMarkdown()).toContain(PROMPTS_SCHEMA_NOTE)
+    expect(promptsMarkdown()).toContain(SCHEMA_DOC)
+  })
+
+  // The page is a list of six titles you open one at a time; the crawler's
+  // block and the Markdown twin carry that list too, or the shape a person
+  // navigates and the shape a machine reads stop being the same page.
+  it('indexes the six titles before the six prompts', () => {
+    const html = promptsStaticHtml()
+    const md = promptsMarkdown()
+    PROMPTS.forEach((p, i) => {
+      expect(html, p.id).toContain(`<li><a href="#${p.id}">${htmlEscape(p.title)}</a></li>`)
+      expect(md, p.id).toContain(`${i + 1}. ${p.title}`)
+      // The index comes first, so a reader meets the titles before the walls
+      // of prompt text - which is the whole point of the change.
+      expect(html.indexOf(`href="#${p.id}"`), p.id).toBeLessThan(html.indexOf(`<section id="${p.id}"`))
+    })
+  })
+

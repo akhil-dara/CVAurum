@@ -539,7 +539,21 @@ export interface PromptEntry {
 }
 
 export const PROMPTS_INTRO =
-  'Prompts to hand to whatever assistant you already use. Each one asks for JSON Resume — the open format this app reads and writes — so the answer comes back as a file you can import and edit here. None of them will invent a job, a date or a number you did not give it.'
+  'Copy a prompt, paste it into the assistant you already use, then paste the answer back here — it opens as a résumé you can edit.'
+
+/** The same footnote on the page, in the crawler's HTML and in the Markdown
+ *  twin. One sentence, because the schema is not what anyone came for. */
+export const PROMPTS_SCHEMA_NOTE =
+  'Every prompt asks for JSON Resume, the open format this app reads and writes, and sends the assistant to the generated field list rather than letting it guess; none of them will invent a job, a date or a number you did not give it.'
+/**
+ * The one line the page leads with, and the head's description.
+ *
+ * It used to be four sentences, and on a phone it cost six lines of the first
+ * screen before a reader learned that there was anything to press. What a
+ * first-time visitor needs is the loop — copy, paste, paste back — and the
+ * rest (the format, the refusal to invent) is a sentence at the foot of the
+ * page, where someone who wants it will look.
+ */
 
 export const PROMPTS: readonly PromptEntry[] = [
   {
@@ -676,28 +690,38 @@ export function promptsPageMeta(): PageMeta {
 
 /** The HTML a crawler reads: every prompt in full, because the prompts ARE
  *  the page's content — a list of titles would be nothing to rank and
- *  nothing for an assistant to quote. */
+ *  nothing for an assistant to quote.
+ *
+ *  Same shape as the page a person gets: the one-line loop, the six titles as
+ *  a list, then the six prompts. The page opens one prompt at a time but
+ *  renders all six into the DOM, so this is not a second, fuller document —
+ *  it is the same one, unfolded. */
 export function promptsStaticHtml(): string {
   const blocks = PROMPTS.map(
     (p) => `    <section id="${p.id}">
+  const index = PROMPTS.map((p) => `      <li><a href="#${p.id}">${htmlEscape(p.title)}</a></li>`).join('\n')
       <h2>${htmlEscape(p.title)}</h2>
       <p>${htmlEscape(p.when)}</p>
       <pre>${htmlEscape(p.prompt)}</pre>
-      <p>${htmlEscape(p.after)}</p>
+      <p>What to do with the answer: ${htmlEscape(p.after)}</p>
     </section>`
   ).join('\n')
   return `<main class="seo-static">
     <h1>${PROMPTS.length} résumé prompts for an AI assistant</h1>
     <p>${htmlEscape(PROMPTS_INTRO)}</p>
-    <p>Every prompt asks for <a href="https://jsonresume.org/schema">JSON Resume</a>, the open format CVAurum imports and exports; the field names an assistant needs are published at <a href="/skills/cvaurum/SKILL.md">/skills/cvaurum/SKILL.md</a> and generated from the schemas the importer validates against, so they cannot drift from the code.</p>
+    <ol>
+${index}
+    </ol>
 ${blocks}
     <p><a href="/app">Import an answer and start editing</a> · <a href="/templates">Browse the ${TEMPLATES.length} résumé templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete examples</a></p>
   </main>`
+    <p>${htmlEscape(PROMPTS_SCHEMA_NOTE)} The field names are at <a href="/skills/cvaurum/SKILL.md">/skills/cvaurum/SKILL.md</a>, generated from the schemas the importer validates against, so they cannot drift from the code.</p>
 }
 
 export function promptsMarkdown(): string {
   const blocks = PROMPTS.map(
     (p) => `## ${p.title}
+  const index = PROMPTS.map((p, i) => `${i + 1}. ${p.title}`).join('\n')
 
 ${p.when}
 
@@ -705,13 +729,15 @@ ${p.when}
 ${p.prompt}
 \`\`\`
 
-${p.after}`
+What to do with the answer: ${p.after}`
   ).join('\n\n')
   return `# ${PROMPTS.length} résumé prompts for an AI assistant
 
 ${PROMPTS_INTRO}
 
-Every prompt asks for JSON Resume (https://jsonresume.org/schema), the open format CVAurum imports and exports. The field names are published at ${SCHEMA_DOC}, generated from the schemas the importer validates against.
+${index}
+
+${PROMPTS_SCHEMA_NOTE} The field names are at ${SCHEMA_DOC}, generated from the schemas the importer validates against.
 
 ${blocks}
 
