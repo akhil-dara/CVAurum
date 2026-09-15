@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { TEMPLATES, TEMPLATE_MAP, getTemplate } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
-import { samplePageImage } from '@/lib/seoLibrary'
+import { examplesPageMeta, samplePageImage } from '@/lib/seoLibrary'
 import {
   DESC_MAX,
   allTemplateIds,
@@ -315,9 +315,10 @@ describe('the two pictures each design has', () => {
   })
 
   it('publishes one share card per design, and no orphan', () => {
-    // public/og holds the designs' cards only; the library's live one folder
-    // deeper, and the site's own default is /og.png.
-    expect(published('og', '.jpg')).toEqual(new Set(allTemplateIds()))
+    // public/og holds the designs' cards and the two collection cards; the
+    // library's per-example cards live one folder deeper, and the site's own
+    // default is /og.png.
+    expect(published('og', '.jpg')).toEqual(new Set([...allTemplateIds(), 'templates', 'examples']))
   })
 
   it('keeps the share card a JPEG — og:image is never a WebP', () => {
@@ -330,6 +331,71 @@ describe('the two pictures each design has', () => {
       expect(fs.existsSync(path.join(PUBLIC, image.slice(1))), tpl.id).toBe(true)
     }
     expect(galleryPageMeta().image.endsWith('.webp')).toBe(false)
+  })
+})
+
+/**
+ * The three cards that are not about one design or one example: the site card
+ * and the two collections. /examples and /templates both used to fall back to
+ * the site card, which was a drawing that predated the example library, named
+ * a template count in typed text, and went stale the moment a design was
+ * added. They are built by scripts/make-og.cjs now, from the real page images
+ * and the real counts, and these are the checks that file cannot make itself.
+ */
+describe('the cards the site itself unfurls into', () => {
+  /** Pixel size straight out of the file header - PNG IHDR, JPEG SOFn - so
+   *  the test measures the shipped card rather than trusting what wrote it. */
+  const imageSize = (rel: string): { w: number; h: number; kb: number } => {
+    const b = fs.readFileSync(path.join(PUBLIC, rel))
+    const kb = b.length / 1024
+    if (b.subarray(0, 4).toString('hex') === '89504e47') return { w: b.readUInt32BE(16), h: b.readUInt32BE(20), kb }
+    for (let i = 2; i < b.length; ) {
+      if (b[i] !== 0xff) {
+        i++
+        continue
+      }
+      const marker = b[i + 1]
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7), kb }
+      }
+      i += 2 + b.readUInt16BE(i + 2)
+    }
+    throw new Error(`neither PNG nor JPEG: ${rel}`)
+  }
+
+  it('gives each collection its own card instead of the site-wide one', () => {
+    expect(galleryPageMeta().image).toBe('/og/templates.jpg')
+    expect(examplesPageMeta().image).toBe('/og/examples.jpg')
+  })
+
+  it('ships all three at the 1200x630 every unfurler crops to, inside the card budget', () => {
+    // The per-design and per-example cards keep 90 KB with one page on them;
+    // these carry four page pictures, a gradient and the glow, and 150 KB is
+    // a fifth of what the hand-drawn card weighed. Over it is a composition
+    // mistake, not a compression one.
+    for (const rel of ['og.png', 'og/templates.jpg', 'og/examples.jpg']) {
+      const { w, h, kb } = imageSize(rel)
+      expect([rel, w, h]).toEqual([rel, 1200, 630])
+      expect(kb, rel).toBeLessThan(150)
+    }
+  })
+
+  it('keeps the head pointing at the site card it actually ships', () => {
+    const head = fs.readFileSync(path.join(PUBLIC, '..', 'index.html'), 'utf8')
+    const meta = (prop: string) => head.match(new RegExp(`<meta property="${prop}" content="([^"]*)"`))?.[1]
+    expect(meta('og:image')).toBe('https://cvaurum.com/og.png')
+    expect(meta('og:image:secure_url')).toBe('https://cvaurum.com/og.png')
+    expect(meta('og:image:type')).toBe('image/png')
+    // The declared box has to be the real one: an unfurler that trusts these
+    // and gets a different picture crops it itself.
+    const { w, h } = imageSize('og.png')
+    expect(meta('og:image:width')).toBe(String(w))
+    expect(meta('og:image:height')).toBe(String(h))
+    expect(head).toContain('<meta name="twitter:image" content="https://cvaurum.com/og.png" />')
+    // Never WebP, on any of the three, for the reason above.
+    for (const m of head.matchAll(/(og:image|twitter:image)" content="([^"]*)"/g)) {
+      expect(m[2].endsWith('.webp'), m[0]).toBe(false)
+    }
   })
 })
 

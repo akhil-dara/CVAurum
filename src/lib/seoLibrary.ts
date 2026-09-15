@@ -173,7 +173,9 @@ export function examplesPageMeta(): SamplePageMeta {
     path: '/examples',
     title: `${LIBRARY.length} Résumé Examples for Real Jobs — Free to Copy · CVAurum`,
     description: trim(EXAMPLES_INTRO),
-    image: '/og.png',
+    // The library's own card - a fan of real example pages with the count on
+    // it. It fell back to the site card, which says nothing about examples.
+    image: '/og/examples.jpg',
   }
 }
 

@@ -134,7 +134,9 @@ export function galleryPageMeta(): PageMeta {
     path: '/templates',
     title: `All ${TEMPLATES.length} Résumé Templates — Free & ATS-Ready · CVAurum`,
     description: trimToWords(GALLERY_INTRO),
-    image: '/og.png',
+    // The gallery's own card - a fan of real design pages with the count on
+    // it. It fell back to the site card, which shows one design and no count.
+    image: '/og/templates.jpg',
   }
 }
 

@@ -51,6 +51,16 @@ describe('the picture an example page points at', () => {
     expect(examplesPageMeta().image.endsWith('.webp')).toBe(false)
   })
 
+  it('gives the shelf itself a card about examples, not the site-wide one', () => {
+    // /examples used to fall back to /og.png, a drawing made before the
+    // example library existed: the card a link to the shelf showed said
+    // nothing about examples and carried no count.
+    const { image } = examplesPageMeta()
+    expect(image).toBe('/og/examples.jpg')
+    expect(fs.existsSync(path.join(PUBLIC, image.slice(1)))).toBe(true)
+    expect(fs.statSync(path.join(PUBLIC, image.slice(1))).size / 1024).toBeLessThan(90)
+  })
+
   it('shows the page itself, at the width it was rendered', () => {
     for (const slug of SLUGS) {
       expect(samplePageImage(slug), slug).toBe(`/img/examples/${slug}.webp`)
