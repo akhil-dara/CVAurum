@@ -1409,35 +1409,76 @@ export const TEMPLATES: TemplateConfig[] = [
      * separated from the words around them by case and a full-measure rule
      * alone.
      *
-     * THE FACE IS THE ONE THING THAT IS NOT REPRODUCIBLE. The source is set
-     * in a face this app does not bundle, and none of the fourteen bundled
-     * serifs is that face; the page's GEOMETRY carries the look instead.
-     * Spectral was picked on two measurements rather than on a resemblance.
-     * COLOUR: the mean ink over a three-line summary band at this measure
-     * came to 0.0623 against the source page's own 0.0612 - the same grey -
-     * where the nearest rival measured 0.0810, a third darker. APPARENT
-     * SIZE: its x-height is 0.45em against the source's ~0.43, where that
-     * rival's is 0.50, so a 10pt line here looks like a 10pt line there.
-     * What it costs: 0.4314em of advance per character against the source's
-     * measured 0.4640em (-7.0%), so a line of this design holds about seven
-     * characters more than the source's does.
+     * THE FACE IS NOW THE SOURCE'S OWN. This design used to be set in the
+     * nearest bundled serif, because the face the source is set in was not
+     * in the registry; it is now (see 'Latin Modern Roman' in
+     * src/data/fonts.ts, which is BUILT rather than fetched). The face is
+     * the OpenType redrawing of the one the source's own font dictionary
+     * names, outline-compatible with it, so this is the thing itself rather
+     * than a resemblance - and the page's geometry no longer has to carry
+     * the look alone.
+     *
+     * Measured on the real exported PDF against the source's text layer,
+     * comparing the width the SOURCE sets a word at to the width OUR
+     * embedded font would set that same word at (single-word runs only: a
+     * justified line stretches its spaces, so anything containing one
+     * measures the justification, not the face):
+     *   body roman   source/ours 0.9899  (-1.0%)   was -3.4% in the old face
+     *   bold         source/ours 1.0002  (+0.0%)   was +11.0%
+     * The bold is now the source's bold to within two parts in ten thousand.
+     *
+     * Stem widths off a 3600px raster of each exported page, in thousandths
+     * of each run's own type size - the same measurement, run on both pages:
+     *                    source   ours
+     *   body               66      66
+     *   section title      83      83
+     *   entry title (bold)116     116
+     *   name              128     136
+     * Three of the four are now exact. THE NAME IS THE ONE THAT IS NOT, and
+     * the reason is optical size: the source sets its name in a 12pt cut of
+     * the family, which is lighter at a given size than the 10pt cut we
+     * ship, so ours comes out 6% heavier in the stem. We deliberately ship
+     * ONE optical size - matching the source's CMR10/CMR9, CMBX10/CMBX12
+     * switching would be a registry design of its own - and this is the
+     * visible price of that decision. It is a stem 8/1000 em thick.
+     *
+     * WHAT IS STILL NOT THE SOURCE: its section titles are set in a
+     * caps-and-small-caps cut of the family that we do not bundle. Ours are
+     * the roman in capitals, and measure 8.0% narrower than the source's
+     * titles at the same size. The stem weight matches (83 against 83); it
+     * is the set width that differs.
      *
      * JUSTIFIED, because the even grey of a justified measure is the whole
-     * effect - and nothing in this renderer hyphenates, which is what
-     * usually makes that a bad trade. (A browser's soft hyphen is not a
-     * character of the text node, and the painter draws each run from that
-     * node's own range, so the canvas would show a hyphen the file does
-     * not: artboard.css says so where the alignment is read.) So it was
+     * effect. This paragraph was written when nothing in this renderer
+     * hyphenated, which is what usually makes that a bad trade; the renderer
+     * hyphenates for itself now, and a page exported today breaks words at
+     * the measure. (The reason it had to be our own: a browser's soft hyphen
+     * is not a character of the text node, and the painter draws each run
+     * from that node's own range, so the canvas would show a hyphen the file
+     * does not - artboard.css says so where the alignment is read.) So it was
      * measured rather than assumed, off the exported files: our painter
      * spreads a justified line word by word (paint.ts justifiedPieces), so
      * every word space in the PDF can be read exactly. Over six example
      * résumés plus a twelve-line paragraph of prose, the loosest line on any
-     * page carried 5.05pt word spaces - 2.0x the face's natural 2.50pt. The
-     * source page, set by the engine and WITH hyphenation, carries 5.46pt
-     * spaces on its own loosest line and one space of 8.43pt. So the trade
-     * is real and it is not lost: at this measure the page is no gappier
-     * than the one it is modelled on. A NARROWER measure is where it would
-     * be - which is the other reason the 0.6in margin is not decoration.
+     * page carried 5.05pt word spaces - 2.0x the then-face's natural 2.50pt.
+     * The source page, set by the engine and WITH hyphenation, carries
+     * 5.46pt spaces on its own loosest line and one space of 8.43pt. So the
+     * trade is real and it is not lost: at this measure the page is no
+     * gappier than the one it is modelled on. A NARROWER measure is where it
+     * would be - which is the other reason the 0.6in margin is not
+     * decoration.
+     *
+     * THE FACE CHANGE MOVED THESE NUMBERS, because this face sets the widest
+     * word space in the registry: 333/1000 em against the old face's 250, so
+     * 3.33pt natural at a 10pt body rather than 2.50pt. Re-measured on the
+     * engineer example's exported page (ONE page, not the six-résumé corpus
+     * the 5.05pt above came from - so the two are not strictly comparable):
+     * 61 word spaces, median 4.31pt, loosest 8.50pt. That loosest space is
+     * 2.6x the natural one, and it lands within 0.07pt of the single 8.43pt
+     * space the source's own page carries. The page is looser than it was
+     * and it is loose in the same way, and to the same degree, as the page
+     * it is modelled on - which is the point. It is also why the hyphenation
+     * this renderer now does is load-bearing here rather than a nicety.
      */
     description:
       'A page set the way a typesetting engine sets one: a 0.6in measure of justified text on a tight 12pt baseline, a centred name in capitals, and section titles at the size of the body with a hairline rule beneath.',
@@ -1455,9 +1496,9 @@ export const TEMPLATES: TemplateConfig[] = [
       // it, so a date still reads as secondary on screen.
       { primary: '#12151a', text: '#12151a', muted: '#3b4148' },
       {
-        fontFamily: 'Spectral',
-        headingFamily: 'Spectral',
-        nameFamily: 'Spectral',
+        fontFamily: 'Latin Modern Roman',
+        headingFamily: 'Latin Modern Roman',
+        nameFamily: 'Latin Modern Roman',
         fontSize: 10,
         lineHeight: 1.2,
         letterSpacing: 0,
@@ -1471,13 +1512,17 @@ export const TEMPLATES: TemplateConfig[] = [
         align: 'justify',
         uppercaseHeadings: true,
         // NOT bold, which took measuring: the brief called these headings
-        // bold, and the source does not set them so. Stem widths off a
-        // 3600px raster, in thousandths of each run's own type size: body
-        // 66, section title 83, entry title (the bold face) 116, name 128.
-        // A title at 1.26x the body is nowhere near the 1.76x its bold face
-        // would give, and the two weights this schema offers are 400 and
-        // 700 - at 700 ours measures 1.47x, at 400 it measures 1.00x, so
-        // regular is the closer of the two. Case and the rule carry the
+        // bold, and the source does not set them so. Source stem widths off
+        // a 3600px raster, in thousandths of each run's own type size: body
+        // 66, section title 83, entry title (the bold face) 116, name 128 -
+        // so its title stem is 1.25x its body stem, where its own bold face
+        // is 1.75x. RE-MEASURED in the new face on the real export, since
+        // the earlier figures here were taken in the face this design used
+        // before: at 400 our title measures 83, i.e. 1.25x our body's 66 -
+        // the source's ratio exactly, and the whole of it is the capitals,
+        // not weight. At 700 it would go past the 1.75x of the bold face.
+        // Regular is not merely the closer of the two weights this schema
+        // offers; in this face it is right. Case and the rule carry the
         // hierarchy; the name is the one thing set in the bold face.
         headingWeight: 'regular',
         // The three per-element scales this design needs - titles at the body

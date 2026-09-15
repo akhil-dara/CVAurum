@@ -7377,3 +7377,45 @@
   src: url(/fonts/meow-script-0FlQVPqanlaJrtr8AnJ0ERcm2fw.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+/* ===== BUILT FACES (scripts/make-built-fonts.py owns this region) ===== */
+/* Built from OpenType sources by scripts/make-built-fonts.py, not fetched.
+   fetch-fonts.cjs preserves this region verbatim when it regenerates the
+   rest of this file. Licence and change log: public/fonts/LICENCE. */
+
+/* Latin Modern Roman 400 */
+@font-face {
+  font-family: 'Latin Modern Roman';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/latin-modern-roman-400.woff2) format('woff2');
+}
+
+/* Latin Modern Roman 700 */
+@font-face {
+  font-family: 'Latin Modern Roman';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/latin-modern-roman-700.woff2) format('woff2');
+}
+
+/* Latin Modern Roman 400 italic */
+@font-face {
+  font-family: 'Latin Modern Roman';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/latin-modern-roman-400-italic.woff2) format('woff2');
+}
+
+/* Latin Modern Roman 700 italic */
+@font-face {
+  font-family: 'Latin Modern Roman';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/latin-modern-roman-700-italic.woff2) format('woff2');
+}
+/* ===== END BUILT FACES ===== */

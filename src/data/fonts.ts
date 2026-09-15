@@ -62,6 +62,29 @@ export const FONTS: FontDef[] = [
   { name: 'Cormorant Garamond', category: 'serif', weights: [400, 500, 600, 700] },
   { name: 'Libre Baskerville', category: 'serif', weights: [400, 700] },
   { name: 'Spectral', category: 'serif' },
+  // The one family here that is BUILT rather than fetched: its publisher ships
+  // OpenType files, not a stylesheet, so scripts/make-built-fonts.py downloads
+  // and converts it (CFF -> quadratic glyf) instead of scripts/fetch-fonts.cjs
+  // querying for it. Licence and change log: public/fonts/LICENCE.
+  //
+  // Two weights only, like PT Serif and Tinos: the family has a regular and a
+  // bold and nothing between. resolveFontKey snaps a design asking for 600 to
+  // the nearest, so 700 is what it gets.
+  //
+  // LOCA HEADROOM, measured on the built files, not estimated: short loca can
+  // address 131,070 bytes of glyf, and these land at 112,150 (400) and 106,116
+  // (700) — 18,920 B / 14.4% and 24,954 B / 19.0% under the ceiling, keeping
+  // latin, greek, cyrillic and vietnamese. That is the narrowest margin of any
+  // family here, so a tighter cu2qu tolerance or a wider kept script set could
+  // tip the regular over into long loca, which fontkit subsets into BLANK
+  // GLYPHS (see src/lib/pdf/fontsLoca.test.ts). The web woff2 is deliberately
+  // untrimmed — a browser reads long loca fine, and the trim costs the italics
+  // ễ and ắ.
+  //
+  // No SCRIPT_FALLBACKS entry: it is a Latin face (no Cyrillic at all, 24 of
+  // 57 Greek letters), so the serif chain below carries what it lacks, exactly
+  // as it does for Lato, Volkhov and the two Garamonds.
+  { name: 'Latin Modern Roman', category: 'serif', weights: [400, 700], italic: true },
 
   // — Mono —
   { name: 'JetBrains Mono', category: 'mono' },

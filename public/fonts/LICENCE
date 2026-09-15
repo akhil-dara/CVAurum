@@ -1,0 +1,125 @@
+Licence and change log for the built font files in this directory
+=================================================================
+
+Every other file in public/fonts/ is fetched unmodified and carries its own
+upstream terms. These four are DERIVED WORKS that we build ourselves, so this
+notice is required to travel with them:
+
+    latin-modern-roman-400.woff2
+    latin-modern-roman-700.woff2
+    latin-modern-roman-400-italic.woff2
+    latin-modern-roman-700-italic.woff2
+
+and the two files built from the same sources for PDF embedding:
+
+    ../fonts-pdf/latin-modern-roman-400.ttf
+    ../fonts-pdf/latin-modern-roman-700.ttf
+
+They are built from Latin Modern Roman 10, version 2.005, by
+scripts/make-built-fonts.py and scripts/make-pdf-fonts.py.
+
+The original work is stated by its own README to be:
+
+    Copyright 2003--2021 by B. Jackowski and J.M. Nowacki
+    (on behalf of TeX Users Groups).
+    This work is released under the GUST Font License.
+
+and that README further records that the Type 1 outlines the original work was
+derived from were placed in the public domain by the American Mathematical
+Society. The GUST Font License is reproduced in full in section 3 below; it
+puts the work under the LaTeX Project Public License version 1.3c, whose
+clause 6 governs the derived files listed above.
+
+
+1. The original work, and how to obtain a complete unmodified copy
+------------------------------------------------------------------
+
+Required by LPPL 1.3c clause 6d. The unmodified OpenType sources are:
+
+    https://mirrors.ctan.org/fonts/lm/fonts/opentype/public/lm/lmroman10-regular.otf
+    https://mirrors.ctan.org/fonts/lm/fonts/opentype/public/lm/lmroman10-bold.otf
+    https://mirrors.ctan.org/fonts/lm/fonts/opentype/public/lm/lmroman10-italic.otf
+    https://mirrors.ctan.org/fonts/lm/fonts/opentype/public/lm/lmroman10-bolditalic.otf
+
+The whole package, including its own README and licence:
+
+    https://mirrors.ctan.org/fonts/lm/
+
+The exact bytes we built from, verified by scripts/make-built-fonts.py on every
+run (SHA-256):
+
+    1aa18cfefa58132c52ce5de70db1fd1154201c19cd2b2cdaffba4906a33e6852  lmroman10-regular.otf
+    102fe06c430a8b681b2bf6876b7cd967ae4d47b4b6b41d915eb7913b726d9fb1  lmroman10-bold.otf
+    c1fce25075567bb8dbf2151658c3b442690041db17a2d49fc9e55905ea5b7169  lmroman10-italic.otf
+    c37a28eed7a6e03f792b98b5e5f637b2fcda378bb4855f99284f1a88fe35f124  lmroman10-bolditalic.otf
+
+
+2. Complete and accurate log of the changes
+--------------------------------------------
+
+Required by LPPL 1.3c clause 6b. Nothing was drawn, redrawn or renamed; the
+changes are entirely a change of container, plus one subsetting step forced by
+a PDF-library constraint.
+
+  a. CFF (cubic Bezier) outlines converted to a quadratic TrueType `glyf`
+     table with fontTools' cu2qu, at a maximum error of 1 unit per 1000 em
+     (fontmake's default; 0.0105 pt at a 10.5 pt body). The `CFF ` table was
+     removed and `maxp` promoted from version 0.5 to 1.0 as that format
+     requires. No outline was otherwise altered.
+
+  b. The four web files were then repackaged as woff2. No glyph was removed:
+     each keeps the full 794-codepoint character map of its source.
+
+  c. The two PDF files (../fonts-pdf/) were additionally subset to the Latin,
+     Greek, Cyrillic and Vietnamese ranges, leaving 581 codepoints, because
+     the PDF library we embed with mis-renders a font whose glyph-offset table
+     exceeds 131,070 bytes. The dropped codepoints are typesetting-engine
+     specific ones the application never sets. No italic is built for PDF.
+
+  d. No change was made to any name record. The families still identify
+     themselves as Latin Modern Roman. The GUST Font License requests (clause
+     1, and it states it is not legally required) that a derived work be
+     renamed; we have not renamed, so that the face remains recognisable to
+     the person choosing it, and this notice records the fact.
+
+We are not affiliated with, and are not endorsed by, the authors of the
+original work. Nothing in this product should be read as their having
+supported or approved this build (LPPL 1.3c clause 6c).
+
+
+3. The licence, reproduced verbatim
+------------------------------------
+
+The full text of the LaTeX Project Public License version 1.3c, referenced
+below, is at https://www.latex-project.org/lppl/lppl-1-3c.txt
+
+-----------------------------------------------------------------------------
+% This is version 1.0, dated 22 June 2009, of the GUST Font License.
+% (GUST is the Polish TeX Users Group, http://www.gust.org.pl)
+%
+% For the most recent version of this license see
+% http://www.gust.org.pl/fonts/licenses/GUST-FONT-LICENSE.txt
+% or
+% http://tug.org/fonts/licenses/GUST-FONT-LICENSE.txt
+%
+% This work may be distributed and/or modified under the conditions
+% of the LaTeX Project Public License, either version 1.3c of this
+% license or (at your option) any later version.
+%
+% Please also observe the following clause:
+% 1) it is requested, but not legally required, that derived works be
+%    distributed only after changing the names of the fonts comprising this
+%    work and given in an accompanying "manifest", and that the
+%    files comprising the Work, as listed in the manifest, also be given
+%    new names. Any exceptions to this request are also given in the
+%    manifest.
+%
+%    We recommend the manifest be given in a separate file named
+%    MANIFEST-<fontid>.txt, where <fontid> is some unique identification
+%    of the font family. If a separate "readme" file accompanies the Work,
+%    we recommend a name of the form README-<fontid>.txt.
+%
+% The latest version of the LaTeX Project Public License is in
+% http://www.latex-project.org/lppl.txt and version 1.3c or later
+% is part of all distributions of LaTeX version 2006/05/20 or later.
+-----------------------------------------------------------------------------
