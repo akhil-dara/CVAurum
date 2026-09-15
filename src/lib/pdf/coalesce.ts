@@ -26,6 +26,12 @@ function sameStyle(a: TextRun, b: TextRun): boolean {
     a.letterSpacingPx === b.letterSpacingPx &&
     a.smallCapsScale === b.smallCapsScale &&
     a.isDecorative === b.isDecorative &&
+    // An extract-only run draws nothing and the run beside it draws
+    // everything, so merging them would hide whichever came second: the
+    // hyphenation tail sits flush against the text after it, which is exactly
+    // the seam this function joins on, and the merged run would have taken
+    // the tail's invisible flag and swallowed the rest of the line.
+    !!a.invisible === !!b.invisible &&
     // Decoration is RULED by the painter rather than drawn by the font, so two
     // runs differing only in underline or strike look identical to every other
     // test here. Merging them keeps the first run's flags and silently drops
