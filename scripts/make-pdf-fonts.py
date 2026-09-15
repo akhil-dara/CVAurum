@@ -23,6 +23,7 @@ Usage:  python scripts/make-pdf-fonts.py
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import re
 import sys
@@ -37,6 +38,14 @@ from fontTools.varLib import instancer
 CSS = pathlib.Path("src/styles/fonts.css")
 PUBLIC = pathlib.Path("public")
 OUT = pathlib.Path("public/fonts-pdf")
+
+# A generated directory should be verifiable: rebuild it, and an empty diff
+# should mean nothing changed. Without this, every rebuild rewrites the `head`
+# table's build timestamp in all 158 files and git reports 158 modifications
+# that mean nothing - noise a real change can hide in, which is how a broken
+# short-loca trim once got through. fontTools reads this variable for that
+# timestamp. The value is arbitrary and fixed; only its constancy matters.
+os.environ.setdefault("SOURCE_DATE_EPOCH", "1700000000")
 
 FONT_FACE_RE = re.compile(r"@font-face\s*\{([^}]*)\}", re.DOTALL)
 FAMILY_RE = re.compile(r"font-family:\s*'([^']*)'")
@@ -174,7 +183,16 @@ def to_short_loca(font: TTFont, label: str) -> TTFont:
     loses coverage only when its own outlines leave no choice, and the script
     fallback chain (src/data/fonts.ts) carries anything dropped.
     """
-    if font["head"].indexToLocFormat == 0:
+    # Bake before believing it. `indexToLocFormat` is recalculated when the
+    # glyf table is COMPILED, so a merged font reports whatever its source
+    # carried until it is written - and a font that reports 0 here can still
+    # land on disk as 1. Asking the in-memory value let this exit fire on
+    # fourteen families that then shipped long loca. Same round trip the loop
+    # below uses, for the same reason.
+    probe = TTFont(BytesIO(_as_bytes(font)))
+    already_short = probe["head"].indexToLocFormat == 0
+    probe.close()
+    if already_short:
         return font
     covered = set(font.getBestCmap().keys())
     for name, pred in SCRIPT_SETS:
