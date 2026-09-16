@@ -7,6 +7,7 @@ import { PDFDict, PDFDocument, PDFName } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import {
+  textInk,
   paintOps,
   paintPages,
   assignOpsToPages,
@@ -2211,5 +2212,22 @@ describe('rasterSize / needsReshape - when original bytes are the wrong picture'
     // A square photo tagged "turn it" has nothing to crop and is still wrong.
     expect(needsReshape({ w: 400, h: 400, orientation: 6 }, { wPx: 134, hPx: 134, fit: 'cover' })).toBe(true)
     expect(needsReshape({ w: 400, h: 400, orientation: 3 }, { wPx: 134, hPx: 134 })).toBe(true)
+  })
+})
+
+describe('textInk - pure white is written one level off pure (ATS white-on-white rule)', () => {
+  // Checkers count every text show filled #FFFFFF as hidden text and cannot
+  // see the dark band it sits on; measured on 12 of 102 exports, all of them
+  // light text on a coloured strip.
+  it('moves exact white to 254/255 on every channel', () => {
+    const ink = textInk({ r: 1, g: 1, b: 1 })
+    expect(ink.red).toBeCloseTo(254 / 255, 6)
+    expect(ink.green).toBeCloseTo(254 / 255, 6)
+    expect(ink.blue).toBeCloseTo(254 / 255, 6)
+  })
+  it('leaves every other colour exactly as it came', () => {
+    expect(textInk({ r: 0.2, g: 0.4, b: 0.6 })).toMatchObject({ red: 0.2, green: 0.4, blue: 0.6 })
+    expect(textInk({ r: 0.99, g: 1, b: 1 })).toMatchObject({ red: 0.99, green: 1, blue: 1 })
+    expect(textInk({ r: 0, g: 0, b: 0 })).toMatchObject({ red: 0, green: 0, blue: 0 })
   })
 })
