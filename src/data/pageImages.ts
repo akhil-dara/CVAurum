@@ -155,6 +155,7 @@ export const PAGE_IMAGE_HEIGHT: Record<string, number> = {
   'templates/margin': 1697,
   'templates/marker': 1697,
   'templates/marquee': 1697,
+  'templates/measure': 1697,
   'templates/mercury': 1697,
   'templates/minimal': 1697,
   'templates/modern': 1697,
