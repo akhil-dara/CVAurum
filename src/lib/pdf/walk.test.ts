@@ -19,6 +19,7 @@ import {
   composedTransform,
   isAxisAligned,
   transformedBoxPath,
+  contentBoxOf,
 } from './walk'
 import type { DrawOp } from './types'
 
@@ -3243,5 +3244,35 @@ describe('buildDrawList - decorative text (signature collection, task 2)', () =>
     expect(decoOp?.role).toBe('Artifact')
     expect(realOp?.run.isDecorative).toBe(false)
     expect(realOp?.role).toBe('P')
+  })
+})
+
+describe('contentBoxOf - a picture is painted inside the padding (entry logo size, 2026-09-15)', () => {
+  // The entry logo is an <img> with 0.08em of padding on a white card. The
+  // painter drew the mark into the BORDER box, so every mark in the file
+  // measured 8.5% larger than the one on the page (28.88px against 26.63px).
+  const cs = (o: Record<string, string>) => ({ paddingLeft: '0px', paddingRight: '0px', paddingTop: '0px', paddingBottom: '0px', borderLeftWidth: '0px', borderRightWidth: '0px', borderTopWidth: '0px', borderBottomWidth: '0px', ...o }) as unknown as CSSStyleDeclaration
+  const box = { xPx: 100, yPx: 200, wPx: 28.88, hPx: 28.88 }
+
+  it('insets the box by the padding on every side', () => {
+    const inner = contentBoxOf(box, cs({ paddingLeft: '1.1256px', paddingRight: '1.1256px', paddingTop: '1.1256px', paddingBottom: '1.1256px' }))
+    expect(inner.xPx).toBeCloseTo(101.1256, 4)
+    expect(inner.yPx).toBeCloseTo(201.1256, 4)
+    expect(inner.wPx).toBeCloseTo(26.6288, 4)
+    expect(inner.hPx).toBeCloseTo(26.6288, 4)
+  })
+
+  it('counts a border as well, since CSS paints the picture inside it too', () => {
+    const inner = contentBoxOf(box, cs({ borderLeftWidth: '2px', borderTopWidth: '1px' }))
+    expect(inner).toEqual({ xPx: 102, yPx: 201, wPx: 26.88, hPx: 27.88 })
+  })
+
+  it('returns the same box when there is nothing to inset - the common case, untouched', () => {
+    expect(contentBoxOf(box, cs({}))).toBe(box)
+  })
+
+  it('never goes negative', () => {
+    const inner = contentBoxOf({ xPx: 0, yPx: 0, wPx: 4, hPx: 4 }, cs({ paddingLeft: '3px', paddingRight: '3px' }))
+    expect(inner.wPx).toBe(0)
   })
 })

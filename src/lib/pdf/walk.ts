@@ -318,15 +318,38 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   if (!tilt) borderOps(el, cs, box, radii, opacityMul, ops)
 
   if (el instanceof HTMLImageElement && el.src) {
+    // The picture is painted inside the padding and the border, as CSS
+    // paints a replaced element's content; the background and the border
+    // above already took the whole box. An entry logo carries 0.08em of
+    // padding on its white card, and drawing the mark into the border box
+    // made every mark in the file 8.5% larger than the one on the page
+    // (measured: border box 28.88px, content box 26.63px).
+    const inner = contentBoxOf(box, cs)
     const isSvg = /^data:image\/svg\+xml/i.test(el.src)
-    if (!isSvg || !svgLogoOps(el, box, ops)) {
+    if (!isSvg || !svgLogoOps(el, inner, ops)) {
       // The element's own object-fit travels with the op: a source the
       // painter has to re-encode is drawn into the box the same way the
       // canvas draws it (paint.ts), rather than always stretched.
       const fit = cs.objectFit === 'cover' || cs.objectFit === 'contain' ? cs.objectFit : undefined
-      ops.push({ kind: 'image', xPx: box.xPx, yPx: box.yPx, wPx: box.wPx, hPx: box.hPx, src: el.src, radii, fit })
+      ops.push({ kind: 'image', xPx: inner.xPx, yPx: inner.yPx, wPx: inner.wPx, hPx: inner.hPx, src: el.src, radii, fit })
     }
   }
+}
+
+/** The box inside an element's border and padding: where CSS paints a
+ *  replaced element's picture. Exported so the arithmetic can be pinned
+ *  against a plain computed-style record without a DOM. A box that padding
+ *  would turn inside out collapses to zero rather than to a negative size. */
+export function contentBoxOf(
+  box: { xPx: number; yPx: number; wPx: number; hPx: number },
+  cs: CSSStyleDeclaration
+): { xPx: number; yPx: number; wPx: number; hPx: number } {
+  const l = parsePx(cs.paddingLeft) + parsePx(cs.borderLeftWidth)
+  const r = parsePx(cs.paddingRight) + parsePx(cs.borderRightWidth)
+  const t = parsePx(cs.paddingTop) + parsePx(cs.borderTopWidth)
+  const b = parsePx(cs.paddingBottom) + parsePx(cs.borderBottomWidth)
+  if (l + r + t + b === 0) return box
+  return { xPx: box.xPx + l, yPx: box.yPx + t, wPx: Math.max(0, box.wPx - l - r), hPx: Math.max(0, box.hPx - t - b) }
 }
 
 /** #rgb / #rrggbb — the only color form our own SVG "logo" marks (see
