@@ -203,6 +203,7 @@ export function Examples() {
 
       <SiteHeader
         current="examples"
+        onCreate={() => setChooser(true)}
         action={
           <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
             <Plus className="h-4 w-4" />

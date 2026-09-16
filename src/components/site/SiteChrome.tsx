@@ -13,6 +13,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { InstallButton } from '@/components/ui/InstallButton'
+import { SiteMenuButton } from './SiteMenu'
 import { cn } from '@/lib/utils'
 
 export const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
@@ -34,7 +35,17 @@ function NavLink({ to, label, active }: { to: string; label: string; active: boo
   )
 }
 
-export function SiteHeader({ current = null, action }: { current?: SiteSection; action?: ReactNode }) {
+export function SiteHeader({
+  current = null,
+  action,
+  onCreate,
+}: {
+  current?: SiteSection
+  action?: ReactNode
+  /** What the header's own Create button does, so the phone menu can offer
+   *  the same thing as a row. Pass it wherever `action` is that button. */
+  onCreate?: () => void
+}) {
   const library = useAppStore((s) => s.library)
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
@@ -78,11 +89,17 @@ export function SiteHeader({ current = null, action }: { current?: SiteSection; 
           </a>
           <InstallButton />
           <ThemeToggle />
-          <Link className={cn('btn-sm', library.length ? 'btn-outline' : 'btn-ghost')} to="/app">
-            <span className="sm:hidden">Resumes</span>
-            <span className="hidden sm:inline">My resumes{library.length ? ` (${library.length})` : ''}</span>
+          {/* Below sm this chip gives its 87px to the menu button, which lists
+              "My resumes" as a row: measured at 375px, the row had 18px of
+              slack left and a 44px target needs 50 of them. */}
+          <Link
+            className={cn('btn-sm hidden sm:inline-flex', library.length ? 'btn-outline' : 'btn-ghost')}
+            to="/app"
+          >
+            My resumes{library.length ? ` (${library.length})` : ''}
           </Link>
           {action}
+          <SiteMenuButton current={current} repoUrl={REPO_URL} onCreate={onCreate} />
         </div>
       </div>
     </header>

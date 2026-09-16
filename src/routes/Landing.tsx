@@ -31,6 +31,7 @@ import { SITE } from '@/data/siteCopy'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { Logo } from '@/components/ui/Logo'
+import { SiteMenuButton } from '@/components/site/SiteMenu'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
@@ -150,9 +151,13 @@ export function Landing() {
             </a>
             <InstallButton />
             <ThemeToggle />
-            <Link className={hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'} to="/app">
-              <span className="sm:hidden">Resumes</span>
-              <span className="hidden sm:inline">My resumes{hasResumes ? ` (${library.length})` : ''}</span>
+            {/* Below sm this chip gives its room to the menu button, which
+                lists "My resumes" as a row — see SiteMenu.tsx. */}
+            <Link
+              className={`hidden sm:inline-flex ${hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'}`}
+              to="/app"
+            >
+              My resumes{hasResumes ? ` (${library.length})` : ''}
             </Link>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
               <Plus className="h-4 w-4" />
@@ -160,6 +165,7 @@ export function Landing() {
                 Create<span className="hidden sm:inline"> resume</span>
               </span>
             </button>
+            <SiteMenuButton current="home" repoUrl={REPO_URL} onCreate={() => setChooser(true)} />
           </div>
         </div>
       </header>
