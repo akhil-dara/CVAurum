@@ -540,13 +540,6 @@ export interface PromptEntry {
   after: string
 }
 
-export const PROMPTS_INTRO =
-  'Copy a prompt, paste it into the assistant you already use, then paste the answer back here — it opens as a résumé you can edit.'
-
-/** The same footnote on the page, in the crawler's HTML and in the Markdown
- *  twin. One sentence, because the schema is not what anyone came for. */
-export const PROMPTS_SCHEMA_NOTE =
-  'Every prompt asks for JSON Resume, the open format this app reads and writes, and sends the assistant to the generated field list rather than letting it guess; none of them will invent a job, a date or a number you did not give it.'
 /**
  * The one line the page leads with, and the head's description.
  *
@@ -556,6 +549,13 @@ export const PROMPTS_SCHEMA_NOTE =
  * rest (the format, the refusal to invent) is a sentence at the foot of the
  * page, where someone who wants it will look.
  */
+export const PROMPTS_INTRO =
+  'Copy a prompt, paste it into the assistant you already use, then paste the answer back here — it opens as a résumé you can edit.'
+
+/** The same footnote on the page, in the crawler's HTML and in the Markdown
+ *  twin. One sentence, because the schema is not what anyone came for. */
+export const PROMPTS_SCHEMA_NOTE =
+  'Every prompt asks for JSON Resume, the open format this app reads and writes, and sends the assistant to the generated field list rather than letting it guess; none of them will invent a job, a date or a number you did not give it.'
 
 export const PROMPTS: readonly PromptEntry[] = [
   {
@@ -699,9 +699,9 @@ export function promptsPageMeta(): PageMeta {
  *  renders all six into the DOM, so this is not a second, fuller document —
  *  it is the same one, unfolded. */
 export function promptsStaticHtml(): string {
+  const index = PROMPTS.map((p) => `      <li><a href="#${p.id}">${htmlEscape(p.title)}</a></li>`).join('\n')
   const blocks = PROMPTS.map(
     (p) => `    <section id="${p.id}">
-  const index = PROMPTS.map((p) => `      <li><a href="#${p.id}">${htmlEscape(p.title)}</a></li>`).join('\n')
       <h2>${htmlEscape(p.title)}</h2>
       <p>${htmlEscape(p.when)}</p>
       <pre>${htmlEscape(p.prompt)}</pre>
@@ -715,15 +715,15 @@ export function promptsStaticHtml(): string {
 ${index}
     </ol>
 ${blocks}
+    <p>${htmlEscape(PROMPTS_SCHEMA_NOTE)} The field names are at <a href="/skills/cvaurum/SKILL.md">/skills/cvaurum/SKILL.md</a>, generated from the schemas the importer validates against, so they cannot drift from the code.</p>
     <p><a href="/app">Import an answer and start editing</a> · <a href="/templates">Browse the ${TEMPLATES.length} résumé templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete examples</a></p>
   </main>`
-    <p>${htmlEscape(PROMPTS_SCHEMA_NOTE)} The field names are at <a href="/skills/cvaurum/SKILL.md">/skills/cvaurum/SKILL.md</a>, generated from the schemas the importer validates against, so they cannot drift from the code.</p>
 }
 
 export function promptsMarkdown(): string {
+  const index = PROMPTS.map((p, i) => `${i + 1}. ${p.title}`).join('\n')
   const blocks = PROMPTS.map(
     (p) => `## ${p.title}
-  const index = PROMPTS.map((p, i) => `${i + 1}. ${p.title}`).join('\n')
 
 ${p.when}
 

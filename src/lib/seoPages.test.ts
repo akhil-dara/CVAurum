@@ -602,13 +602,6 @@ describe('the prompt library', () => {
     expect(html).not.toMatch(/<script/i)
   })
 
-  it('is listed among the pages and in the sitemap a machine reader is given', () => {
-    const t = llmsTxt()
-    expect(t).toContain('https://cvaurum.com/prompts')
-    expect(siteUrls()).toContain('https://cvaurum.com/prompts')
-    expect(sitemapXml('2026-09-08')).toContain('<loc>https://cvaurum.com/prompts</loc>')
-  })
-})
   /**
    * The page leads with ONE line. It used to lead with four sentences, a
    * three-step strip and a paragraph about the schema, which on a 375x812
@@ -649,3 +642,10 @@ describe('the prompt library', () => {
     })
   })
 
+  it('is listed among the pages and in the sitemap a machine reader is given', () => {
+    const t = llmsTxt()
+    expect(t).toContain('https://cvaurum.com/prompts')
+    expect(siteUrls()).toContain('https://cvaurum.com/prompts')
+    expect(sitemapXml('2026-09-08')).toContain('<loc>https://cvaurum.com/prompts</loc>')
+  })
+})
