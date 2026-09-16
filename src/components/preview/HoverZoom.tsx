@@ -22,14 +22,25 @@ const canHover = () =>
  *    is a transition — as an urgent update it froze the pointer for that long.
  *  - `src` + `height` float the page PICTURE the card is already showing. The
  *    public walls use this: the file is in the browser's cache by the time
- *    anyone dwells on the card, so the flyout costs a decode.
+ *    anyone dwells on the card, so the flyout costs a decode — which is only
+ *    true while it is the SAME file, so the walls pass their 520px grid twin
+ *    here too and `srcWidth` says so. A flyout is 380 CSS px wide; fetching
+ *    the 1200px picture for it would put a 100 KB download on a hover.
  */
 type HoverZoomProps = { label?: string; children: ReactNode; width?: number } & (
-  | { doc: ResumeDocument; src?: never; height?: never }
-  | { src: string; height: number; doc?: never }
+  | { doc: ResumeDocument; src?: never; height?: never; srcWidth?: never }
+  | { src: string; height: number; srcWidth?: number; doc?: never }
 )
 
-export function HoverZoom({ doc, src, height, label, children, width = 380 }: HoverZoomProps) {
+export function HoverZoom({
+  doc,
+  src,
+  height,
+  srcWidth = PAGE_IMAGE_WIDTH,
+  label,
+  children,
+  width = 380,
+}: HoverZoomProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const timer = useRef<number>()
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
@@ -37,7 +48,7 @@ export function HoverZoom({ doc, src, height, label, children, width = 380 }: Ho
   // A picture carries its own shape; a document's comes from its page format.
   const ratio = doc
     ? PAGE_DIMENSIONS[doc.metadata.page.format].h / PAGE_DIMENSIONS[doc.metadata.page.format].w
-    : (height as number) / PAGE_IMAGE_WIDTH
+    : (height as number) / srcWidth
   const pageH = width * ratio
   const previewH = pageH + (label ? 30 : 0)
 
@@ -84,7 +95,7 @@ export function HoverZoom({ doc, src, height, label, children, width = 380 }: Ho
               {doc ? (
                 <PreviewThumb doc={doc} width={width} />
               ) : (
-                <img src={src} width={PAGE_IMAGE_WIDTH} height={height} alt="" decoding="async" style={{ width, height: pageH }} />
+                <img src={src} width={srcWidth} height={height} alt="" decoding="async" style={{ width, height: pageH }} />
               )}
             </div>
             {label && (

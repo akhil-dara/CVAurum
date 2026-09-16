@@ -361,6 +361,13 @@ export default defineConfig({
           // every install for a while.
           'img/templates/*.webp',
           'img/examples/*.webp',
+          // And their 520px grid twins (176 files, 5.9 MB), for the same
+          // reason. A separate line because a `*` does not cross a slash: the
+          // two patterns above match nothing inside thumb/, so without these
+          // the cheap files the grids were given would install on every first
+          // visit — the whole saving, handed back at install time.
+          'img/templates/thumb/*.webp',
+          'img/examples/thumb/*.webp',
           ...nonLatinFontFiles(),
         ],
         // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
@@ -384,14 +391,20 @@ export default defineConfig({
           // (/og/examples/<slug>.jpg) nor the page images at all — both would
           // have been refetched on every visit and missing offline.
           //
-          // maxEntries 400: the pattern can match 350 files in total (67 + 108
-          // page images, 67 + 108 share cards). Anything smaller is an LRU
+          // The `.+` crosses slashes, so it also covers the 520px grid twins
+          // under /img/<kind>/thumb/ — the files the three grids actually
+          // load. They are the ones a second visit most wants to find here.
+          //
+          // maxEntries 600: the pattern can match 528 files in total (176 page
+          // images, 176 twins, 176 share cards). Anything smaller is an LRU
           // ceiling someone can actually hit — 283 would start dropping the
           // template previews partway through a browse of the 108-example
-          // library, which is exactly the case this cache exists for. 400 means
-          // eviction by count never happens; the bound is only a guard against
-          // unbounded growth, the same one the font cache uses. Worst case is
-          // ~20 MB, and only for someone who has opened every page on the site.
+          // library, which is exactly the case this cache exists for, and 400
+          // (the bound before the twins existed) is now inside the reachable
+          // set. 600 means eviction by count never happens; the bound is only a
+          // guard against unbounded growth, the same one the font cache uses.
+          // Worst case is ~30 MB, and only for someone who has opened every
+          // picture on the site at full size.
           {
             urlPattern: /\/(img|og)\/.+\.(webp|jpg)$/,
             handler: 'CacheFirst',
@@ -401,7 +414,7 @@ export default defineConfig({
             // CacheFirst would have kept the seven designs whose pictures were
             // taken while the renderer was dropping its glyphs on returning
             // visitors' machines until 2027.
-            options: { cacheName: 'cvaurum-previews', expiration: { maxEntries: 400, maxAgeSeconds: 30 * 24 * 3600 } },
+            options: { cacheName: 'cvaurum-previews', expiration: { maxEntries: 600, maxAgeSeconds: 30 * 24 * 3600 } },
           },
           // The opt-in semantic model (34 MB) is downloaded only by someone
           // who turns it on; keeping what they downloaded is what makes the

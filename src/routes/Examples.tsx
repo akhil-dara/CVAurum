@@ -11,6 +11,10 @@
  * build, 2026-09-15). See PagePicture for the whole measurement. The picture
  * is made from the same sample "Use this example" starts, so the two still
  * agree — and clicking it opens the page full size.
+ *
+ * A card loads the 520px twin (sampleThumbImage), not the 1200px file: 3.90 MB
+ * for all 108 against 10.74 MB, for cards 172 CSS px wide on a phone. The
+ * lightbox below still opens the big one.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -37,7 +41,14 @@ import {
 } from '@/lib/libraryFilter'
 import { PagePicture } from '@/components/preview/PagePicture'
 import { PageLightbox, type LightboxItem } from '@/components/preview/PageLightbox'
-import { samplePageImage, samplePageImageHeight, sampleImageAlt } from '@/lib/seoLibrary'
+import {
+  samplePageImage,
+  samplePageImageHeight,
+  sampleImageAlt,
+  sampleThumbImage,
+  sampleThumbHeight,
+} from '@/lib/seoLibrary'
+import { PAGE_THUMB_WIDTH } from '@/data/pageThumbs'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
@@ -506,8 +517,9 @@ function SampleCard({
           className="block w-full cursor-zoom-in"
         >
           <PagePicture
-            src={samplePageImage(sample.slug)}
-            height={samplePageImageHeight(sample.slug)}
+            src={sampleThumbImage(sample.slug)}
+            width={PAGE_THUMB_WIDTH}
+            height={sampleThumbHeight(sample.slug)}
             alt={sampleImageAlt(sample.slug)}
             accent={accent}
             eager={eager}

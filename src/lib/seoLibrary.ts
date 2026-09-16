@@ -20,6 +20,7 @@ import { TEMPLATE_MAP } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
+import { pageThumbHeight } from '@/data/pageThumbs'
 
 /** Canonical host — the same one siteCopy names, so there is one to change. */
 export const HOST = COPY.links.site
@@ -130,6 +131,21 @@ export function samplePageImage(slug: string): string {
  *  that declares the wrong one reserves the wrong box. */
 export function samplePageImageHeight(slug: string): number {
   return PAGE_IMAGE_HEIGHT[`examples/${slug}`] ?? FALLBACK_HEIGHT
+}
+
+/**
+ * The grid twin of that picture: the same page at 520px, lossy (see
+ * data/pageThumbs). A card on /examples or in the starting-example picker
+ * loads THIS file; the 1200px one above stays the indexable picture and the
+ * one the lightbox opens. Never name the thumb in anything a crawler reads.
+ */
+export function sampleThumbImage(slug: string): string {
+  return `/img/examples/thumb/${slug}.webp`
+}
+
+/** Its own intrinsic height — the twin's, not the 1200px picture's. */
+export function sampleThumbHeight(slug: string): number {
+  return pageThumbHeight(samplePageImageHeight(slug))
 }
 
 /** The link-preview card. JPEG, always — see the note above. */

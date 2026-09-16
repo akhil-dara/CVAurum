@@ -31,11 +31,33 @@
  * also simply the right display size: the example page shows the picture at
  * about 560 CSS px, which a retina screen wants at 1120.
  *
+ * THE GRID TWIN. Both rules above are about ONE picture shown big. A grid card
+ * is a different job and wants a different file, so every picture also gets a
+ * thumb/<id>.webp beside it: 520px wide, LOSSY WebP at quality 75.
+ *
+ * - 520 is the widest a card is ever painted. The widest grid card is 260 CSS
+ *   px (/templates on a desk), which a DPR-2 screen wants at 520; a 375px phone
+ *   card is 172 CSS px, so 344 at DPR 2 and 516 at DPR 3. Anything above 520 is
+ *   bytes no screen can show.
+ * - LOSSY here, lossless above, and both are measured: rule 1 holds at 1200px,
+ *   where the ink is a crisp two-tone edge a predictor codes almost for free.
+ *   Resized to 520 that edge is a grey ramp - exactly what a lossless coder
+ *   pays per value for and a DCT gets cheap. Measured over 12 real pictures:
+ *   520px q75 is ~39 KB against ~97 KB for the same page lossless at 1200.
+ *   A full scroll of /examples moved 11.07 MB of pictures before this file
+ *   existed; the same scroll is about 4.1 MB with it.
+ * - Resized FROM the big lossless file, never re-rendered: the 1200px raster is
+ *   already bit-exact, so no browser is needed and the two can never disagree.
+ *   Rule 2 above does not apply - it is about what a LOSSLESS coder pays for a
+ *   resampled ramp, and this coder is the one that likes them.
+ *
  * Needs the dev server (it imports the app's own modules to render). Usage:
  *   node scripts/make-page-images.cjs
  *   ONLY=atlas,broadsheet node scripts/make-page-images.cjs
  *   KIND=examples node scripts/make-page-images.cjs
  *   CVA_URL=http://localhost:5199 node scripts/make-page-images.cjs
+ *   THUMBS_ONLY=1 node scripts/make-page-images.cjs   (no browser, no render:
+ *                 rebuilds every thumb from the big files already on disk)
  */
 const fs = require('fs')
 const path = require('path')
@@ -61,6 +83,30 @@ const W = 1200
  * bit-exact everywhere, is worth a megabyte.
  */
 const MAX_KB = 360
+
+/** The grid twin: see THE GRID TWIN above for why 520 and why lossy. */
+const THUMB_W = 520
+const THUMB_Q = 75
+/** A thumb over this is worth looking at. The whole set lands between 14 and
+ *  52 KB; the tail is the same handful of gradient-heavy designs that make the
+ *  big files large, and 60 leaves them room without hiding a regression. */
+const THUMB_MAX_KB = 60
+
+/**
+ * Write the grid twin of one page picture, from the big file's own bytes.
+ *
+ * The ONE encode in this script: the loop below calls it right after writing a
+ * picture, and THUMBS_ONLY calls it with the same picture read back off disk,
+ * so a thumb rebuilt months later is byte-for-byte the one the render made.
+ */
+async function writeThumb(big, kind, id) {
+  const buf = await sharp(big)
+    .resize({ width: THUMB_W, kernel: 'lanczos3' })
+    .webp({ quality: THUMB_Q, effort: 6 })
+    .toBuffer()
+  fs.writeFileSync(path.join(OUT, kind, 'thumb', `${id}.webp`), buf)
+  return buf
+}
 
 /** Ids straight out of the registry - a new design gets a picture without
  *  this script being edited. */
@@ -121,7 +167,33 @@ const RASTER = async ({ kind, id, width }) => {
   if (kinds.includes('examples')) for (const slug of sampleSlugs()) jobs.push({ kind: 'examples', id: slug })
   const todo = jobs.filter((j) => !only || only.includes(j.id))
 
-  for (const k of kinds) fs.mkdirSync(path.join(OUT, k), { recursive: true })
+  for (const k of kinds) {
+    fs.mkdirSync(path.join(OUT, k), { recursive: true })
+    fs.mkdirSync(path.join(OUT, k, 'thumb'), { recursive: true })
+  }
+
+  // Rebuilding the twins costs a resize, not a render: no dev server, no
+  // browser, no PDF. This is the path to run after changing THUMB_W or
+  // THUMB_Q, and the one that repairs a thumb folder someone has deleted.
+  if (process.env.THUMBS_ONLY) {
+    const sizes = []
+    for (const j of todo) {
+      const file = path.join(OUT, j.kind, `${j.id}.webp`)
+      if (!fs.existsSync(file)) throw new Error(`no page picture to resize: ${file}`)
+      const buf = await writeThumb(fs.readFileSync(file), j.kind, j.id)
+      sizes.push({ key: `${j.kind}/${j.id}`, kb: buf.length / 1024 })
+      process.stdout.write(`${`${j.kind}/${j.id}`.padEnd(46)} thumb ${THUMB_W}px  ${(buf.length / 1024).toFixed(1)} KB\n`)
+    }
+    const sum = sizes.reduce((a, b) => a + b.kb, 0)
+    const big = sizes.slice().sort((a, b) => b.kb - a.kb)[0]
+    console.log(`${sizes.length} thumbs, ${(sum / 1024).toFixed(2)} MB total, largest ${big.key} at ${big.kb.toFixed(1)} KB`)
+    const over = sizes.filter((m) => m.kb > THUMB_MAX_KB)
+    if (over.length) {
+      console.error(`THUMB OVER ${THUMB_MAX_KB} KB: ${over.map((m) => `${m.key} (${m.kb.toFixed(1)})`).join(', ')}`)
+      process.exit(1)
+    }
+    return
+  }
 
   const browser = await chromium.launch({ headless: true })
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 } })
@@ -140,9 +212,15 @@ const RASTER = async ({ kind, id, width }) => {
     const buf = await sharp(raw).flatten({ background: '#ffffff' }).webp({ lossless: true, effort: 6 }).toBuffer()
     const file = path.join(OUT, j.kind, `${j.id}.webp`)
     fs.writeFileSync(file, buf)
+    // The twin is written here, from these same bytes, so the two files can
+    // never drift apart - a picture that was redrawn without its thumb is a
+    // card showing the old design.
+    const thumb = await writeThumb(buf, j.kind, j.id)
     const meta = await sharp(buf).metadata()
-    made.push({ key: `${j.kind}/${j.id}`, h: meta.height, kb: buf.length / 1024, pages })
-    process.stdout.write(`${`${j.kind}/${j.id}`.padEnd(46)} ${meta.width}x${meta.height}  ${(buf.length / 1024).toFixed(1)} KB\n`)
+    made.push({ key: `${j.kind}/${j.id}`, h: meta.height, kb: buf.length / 1024, thumbKb: thumb.length / 1024, pages })
+    process.stdout.write(
+      `${`${j.kind}/${j.id}`.padEnd(46)} ${meta.width}x${meta.height}  ${(buf.length / 1024).toFixed(1)} KB  + thumb ${(thumb.length / 1024).toFixed(1)} KB\n`
+    )
   }
   await browser.close()
 
@@ -175,9 +253,19 @@ ${lines.join('\n')}
   const total = made.reduce((a, b) => a + b.kb, 0)
   const worst = made.slice().sort((a, b) => b.kb - a.kb)[0]
   console.log(`${made.length} images, ${(total / 1024).toFixed(1)} MB total, largest ${worst.key} at ${worst.kb.toFixed(1)} KB`)
+  const thumbTotal = made.reduce((a, b) => a + b.thumbKb, 0)
+  const worstThumb = made.slice().sort((a, b) => b.thumbKb - a.thumbKb)[0]
+  console.log(
+    `${made.length} thumbs, ${(thumbTotal / 1024).toFixed(2)} MB total, largest ${worstThumb.key} at ${worstThumb.thumbKb.toFixed(1)} KB`
+  )
   const over = made.filter((m) => m.kb > MAX_KB)
   if (over.length) {
     console.error(`OVER ${MAX_KB} KB: ${over.map((m) => `${m.key} (${m.kb.toFixed(1)})`).join(', ')}`)
+    process.exit(1)
+  }
+  const overThumb = made.filter((m) => m.thumbKb > THUMB_MAX_KB)
+  if (overThumb.length) {
+    console.error(`THUMB OVER ${THUMB_MAX_KB} KB: ${overThumb.map((m) => `${m.key} (${m.thumbKb.toFixed(1)})`).join(', ')}`)
     process.exit(1)
   }
 })().catch((e) => {

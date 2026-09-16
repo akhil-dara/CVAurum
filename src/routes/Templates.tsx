@@ -7,7 +7,9 @@
  * Each card is the PICTURE of that design's exported page (see PagePicture),
  * not a live render of one: 68 live résumés cost 7.7s of main-thread task time
  * to browse on a desk and 9.9s on a phone, measured on the production build,
- * 2026-09-15. Clicking the picture opens it full size, where "Use this design"
+ * 2026-09-15. A card loads the 520px twin of that picture (pageThumb below),
+ * not the 1200px file: 2.03 MB for the whole wall against 6.50 MB.
+ * Clicking the picture opens it full size, where "Use this design"
  * is one of the two actions; the "Use" button beside the name is unchanged and
  * still starts a résumé in one click.
  */
@@ -20,6 +22,7 @@ import { PagePicture } from '@/components/preview/PagePicture'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { PageLightbox, type LightboxItem } from '@/components/preview/PageLightbox'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
+import { PAGE_THUMB_WIDTH, pageThumbHeight as thumbHeight } from '@/data/pageThumbs'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
@@ -64,6 +67,16 @@ export const pageImage = (tpl: TemplateConfig) => `/img/templates/${tpl.id}.webp
 /** A4 at 1200px wide, for a design whose entry the generated map is missing. */
 const FALLBACK_HEIGHT = Math.round((PAGE_IMAGE_WIDTH * 297) / 210)
 export const pageImageHeight = (tpl: TemplateConfig) => PAGE_IMAGE_HEIGHT[`templates/${tpl.id}`] ?? FALLBACK_HEIGHT
+/**
+ * The twin the CARDS load: the same page at 520px, lossy (see data/pageThumbs
+ * for the width and scripts/make-page-images.cjs for the format). The 1200px
+ * file above is still what the lightbox opens and what this design's own page
+ * shows. Spelled out here for the same reason `pageImage` is — lib/seoPages
+ * says exactly this, and reaching it would pull the 108-résumé library into
+ * this route; if one side moves, move both.
+ */
+export const pageThumb = (tpl: TemplateConfig) => `/img/templates/thumb/${tpl.id}.webp`
+export const pageThumbHeight = (tpl: TemplateConfig) => thumbHeight(pageImageHeight(tpl))
 const tagWords = (tpl: TemplateConfig) => tpl.tags.filter((t) => t !== STRICT_TAG).map(tagLabel).join(' · ')
 export const pageImageAlt = (tpl: TemplateConfig) => {
   const tags = tagWords(tpl).toLowerCase()
@@ -407,11 +420,13 @@ function TemplateCard({
   onOpen: () => void
   eager?: boolean
 }) {
-  const src = pageImage(tpl)
-  const height = pageImageHeight(tpl)
+  // The card and its flyout load the 520px twin; the lightbox (`big` above)
+  // keeps the 1200px picture, which is the one worth a full-screen look.
+  const src = pageThumb(tpl)
+  const height = pageThumbHeight(tpl)
 
   return (
-    <HoverZoom src={src} height={height} label={tpl.name}>
+    <HoverZoom src={src} height={height} srcWidth={PAGE_THUMB_WIDTH} label={tpl.name}>
       <div className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-card">
         {/* The preview is the sample resume's text, which is not this page's
             content - keep it out of search snippets, as the landing strip does.
@@ -424,7 +439,14 @@ function TemplateCard({
           title={`See ${tpl.name} full size`}
           className="block w-full shrink-0 cursor-zoom-in border-b border-border"
         >
-          <PagePicture src={src} height={height} alt={pageImageAlt(tpl)} accent={tpl.defaults.theme.primary} eager={eager} />
+          <PagePicture
+            src={src}
+            width={PAGE_THUMB_WIDTH}
+            height={height}
+            alt={pageImageAlt(tpl)}
+            accent={tpl.defaults.theme.primary}
+            eager={eager}
+          />
         </button>
         <div className="flex flex-1 flex-col gap-2 p-3">
           <div className="flex items-center justify-between gap-2">

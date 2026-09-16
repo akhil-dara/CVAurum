@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { LIBRARY } from '@/data/library'
-import { samplePageImage, samplePageImageHeight, sampleImageAlt } from '@/lib/seoLibrary'
+import { samplePageImage, samplePageImageHeight, sampleImageAlt, sampleThumbImage } from '@/lib/seoLibrary'
 import { PAGE_IMAGE_HEIGHT } from '@/data/pageImages'
 
 /**

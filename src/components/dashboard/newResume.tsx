@@ -18,6 +18,7 @@ import { EMPTY_LIBRARY_FILTER, filterLibrary, toggleFacet } from '@/lib/libraryF
 import { cn } from '@/lib/utils'
 import { PagePicture } from '@/components/preview/PagePicture'
 import { HoverZoom } from '@/components/preview/HoverZoom'
+import { PAGE_THUMB_WIDTH } from '@/data/pageThumbs'
 import type { ResumeContent } from '@/types/document'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 
@@ -358,10 +359,16 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
 }
 
 /** The three things this dialog needs to show a sample's picture. Named as a
- *  type so the dynamic import's shape is checked, not cast. */
+ *  type so the dynamic import's shape is checked, not cast.
+ *
+ *  The THUMB, not the 1200px page image: this grid is six cards to a row on a
+ *  wide screen, so a card here is narrower than anywhere else on the site, and
+ *  opening the dialog used to pull the big files (10.74 MB for the library
+ *  against 3.90 MB of twins). Nothing in this dialog opens a picture full
+ *  size, so the big file has no reader here at all. */
 type SamplePictures = {
-  samplePageImage: (slug: string) => string
-  samplePageImageHeight: (slug: string) => number
+  sampleThumbImage: (slug: string) => string
+  sampleThumbHeight: (slug: string) => number
   sampleImageAlt: (slug: string) => string
 }
 
@@ -385,8 +392,9 @@ function SampleCard({
 
   return (
     <HoverZoom
-      src={pics.samplePageImage(sample.slug)}
-      height={pics.samplePageImageHeight(sample.slug)}
+      src={pics.sampleThumbImage(sample.slug)}
+      height={pics.sampleThumbHeight(sample.slug)}
+      srcWidth={PAGE_THUMB_WIDTH}
       label={`${sample.role} example`}
     >
       <button
@@ -399,8 +407,9 @@ function SampleCard({
         title={`Start from the ${sample.role} example`}
       >
         <PagePicture
-          src={pics.samplePageImage(sample.slug)}
-          height={pics.samplePageImageHeight(sample.slug)}
+          src={pics.sampleThumbImage(sample.slug)}
+          width={PAGE_THUMB_WIDTH}
+          height={pics.sampleThumbHeight(sample.slug)}
           alt={pics.sampleImageAlt(sample.slug)}
           eager={eager}
           className="w-full border-b border-border"

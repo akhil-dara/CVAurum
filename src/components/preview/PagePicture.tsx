@@ -23,6 +23,13 @@
  * nothing is cropped and nothing shifts as the file lands. The accent sketch
  * stays underneath until the decode finishes: a white gap reads as a card that
  * failed, a sketch reads as one arriving.
+ *
+ * A GRID card is given the 520px lossy twin, not the 1200px picture (see
+ * data/pageThumbs): the big file is the one the lightbox opens, and a card is
+ * at most 260 CSS px. Scrolling /examples to the bottom on a phone moved
+ * 11.07 MB of pictures while the cards pointed at the big files, and 3.90 MB
+ * of the twins buys the same 108 cards. Whichever it is given, the width and
+ * height below are that FILE's, so nothing is described as a size it is not.
  */
 import { useEffect, useRef, useState } from 'react'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
@@ -32,6 +39,7 @@ import { cn } from '@/lib/utils'
 
 export function PagePicture({
   src,
+  width = PAGE_IMAGE_WIDTH,
   height,
   alt,
   accent,
@@ -39,7 +47,10 @@ export function PagePicture({
   className,
 }: {
   src: string
-  /** The picture's intrinsic height at PAGE_IMAGE_WIDTH — A4 and US Letter are
+  /** The file's intrinsic width. Defaults to the big picture's; a grid passes
+   *  PAGE_THUMB_WIDTH with the twin, so the <img> declares what it loads. */
+  width?: number
+  /** The picture's intrinsic height at `width` — A4 and US Letter are
    *  different shapes, and a box built for the wrong one crops or letterboxes. */
   height: number
   alt: string
@@ -71,7 +82,7 @@ export function PagePicture({
     <div
       ref={box}
       className={cn('relative overflow-hidden bg-white', className)}
-      style={{ aspectRatio: `${PAGE_IMAGE_WIDTH} / ${height}` }}
+      style={{ aspectRatio: `${width} / ${height}` }}
     >
       {!loaded && (
         <div className="absolute inset-0">
@@ -82,7 +93,7 @@ export function PagePicture({
         <img
           ref={ref}
           src={src}
-          width={PAGE_IMAGE_WIDTH}
+          width={width}
           height={height}
           alt={alt}
           loading={eager ? 'eager' : 'lazy'}
