@@ -1257,6 +1257,13 @@
 .rm-skill-group-name {
   font-weight: 700;
   color: var(--rm-text);
+  /* A group label is a sub-heading, and it must never be set larger than the
+     section title above it. It used to be the body size, full stop, while the
+     title follows the document's heading size - so a smaller heading size
+     left "Brand" and "Packaging" in bold at 14px under a 11px SKILLS
+     (reported on the portrait design's sidebar). Capped at 95% of the title
+     the document set, and never above the body size it always had. */
+  font-size: min(1em, calc(var(--rm-section-title-size, calc(var(--rm-fs) * 1.05)) * 0.95));
 }
 .rm-skill-inline {
   color: var(--rm-muted);

@@ -481,6 +481,12 @@
   letter-spacing: 0.16em;
   color: var(--rm-heading-color, var(--rm-primary));
 }
+/* The title is a small tracked label here, so the group labels under it
+   follow it down: a sub-heading set larger than its heading reads upside
+   down (measured 14.7px bold under a 12.7px title). */
+.tpl-aside .rm-skill-group-name {
+  font-size: calc(var(--rm-fs) * 0.86 * var(--rm-section-title-mul, 1) * 0.95);
+}
 
 /* ===================================================== Compact */
 .tpl-compact .rm-bullets {
@@ -653,6 +659,9 @@
   font-size: calc(var(--rm-fs) * 0.86 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
+.tpl-verdant .rm-skill-group-name {
+  font-size: calc(var(--rm-fs) * 0.86 * var(--rm-section-title-mul, 1) * 0.95);
+}
 .tpl-verdant .rm-col-aside .rm-chip {
   background: color-mix(in srgb, var(--rm-primary) 14%, transparent);
   color: var(--rm-primary);
@@ -775,6 +784,9 @@
   font-size: calc(var(--rm-fs) * 0.88 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
 }
+.tpl-halcyon .rm-skill-group-name {
+  font-size: calc(var(--rm-fs) * 0.88 * var(--rm-section-title-mul, 1) * 0.95);
+}
 .tpl-halcyon .rm-chip {
   border-radius: 9999px;
 }
@@ -857,6 +869,9 @@
   color: var(--rm-heading-color, var(--rm-primary));
   font-size: calc(var(--rm-fs) * 0.88 * var(--rm-section-title-mul, 1));
   letter-spacing: 0.14em;
+}
+.tpl-opal .rm-skill-group-name {
+  font-size: calc(var(--rm-fs) * 0.88 * var(--rm-section-title-mul, 1) * 0.95);
 }
 .tpl-opal .rm-chip {
   border-radius: 9999px;
