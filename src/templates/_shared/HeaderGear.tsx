@@ -14,6 +14,7 @@ import { ArtBandRow, HEADER_STYLES, HeaderMini } from './headerStyles'
 import { StatTilesEditor } from './StatTilesEditor'
 import { FONTS } from '@/data/fonts'
 import { usePopoverA11y } from './popoverA11y'
+import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
 
 /** Curated accent palette — enough range for any industry, all print-safe. */
 const ACCENTS = [
@@ -56,7 +57,11 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
             aria-checked={value === o.v}
             title={o.title || o.label}
             onClick={() => set(o.v)}
-            className={`min-w-0 flex-1 truncate rounded-md border px-1 py-1 text-[11px] font-medium transition ${
+            // min-w-fit, not min-w-0 + truncate: the row shares its width
+            // equally, and at the popover's width "Space" (41px) got 37px
+            // and read "Sp…" - a label a reader cannot use. Every option is
+            // now at least its own word wide, the rest of the row is shared.
+            className={`min-w-fit flex-1 whitespace-nowrap rounded-md border px-1 py-1 text-[11px] font-medium transition ${
               value === o.v
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:border-primary/50'
@@ -150,10 +155,47 @@ function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: 
       </div>
       {current === 'photo' && !hasImage && (
         <p className="mt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
-          No photo uploaded yet — add one under Content → Personal details. Nothing prints until you do (no placeholder,
-          ever).
+          No photo yet — use <strong>Add photo…</strong> just below. Nothing prints until you do (no placeholder, ever).
         </p>
       )}
+    </div>
+  )
+}
+
+/**
+ * The picture itself, where the author came looking for it.
+ *
+ * "Style" is where someone goes to change how the header looks, and the
+ * identity mark row above can say PHOTO without there being any way, from
+ * here, to say WHICH photo. This row is that way — the same file → crop →
+ * save flow as the panel and the canvas, plus the one destructive option,
+ * which clears the picture and stops the layout asking for one (a cleared
+ * image with `showPhoto` still on leaves the header silently empty).
+ */
+function PhotoRow({ doc }: { doc: ResumeDocument }) {
+  const picker = usePhotoPicker()
+  const hasImage = !!doc.content.basics.image
+  return (
+    <div className="px-2 pb-1.5">
+      <div className="flex gap-1">
+        <button
+          type="button"
+          onClick={picker.open}
+          className="flex-1 rounded-md border border-border px-1.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+        >
+          {hasImage ? 'Change photo…' : 'Add photo…'}
+        </button>
+        {hasImage ? (
+          <button
+            type="button"
+            onClick={picker.remove}
+            className="flex-1 rounded-md border border-border px-1.5 py-1 text-[11px] font-medium text-danger transition hover:border-danger/60 hover:bg-danger/10"
+          >
+            Remove photo
+          </button>
+        ) : null}
+      </div>
+      {picker.ui}
     </div>
   )
 }
@@ -316,6 +358,10 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                 Identity mark
               </div>
               <IdentityMarkPicker doc={doc} editMeta={editMeta} />
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Photo <span className="font-normal normal-case">— the picture itself</span>
+              </div>
+              <PhotoRow doc={doc} />
               <div className="mx-2 my-1 border-t border-border" />
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Contact line

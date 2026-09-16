@@ -4123,3 +4123,122 @@
     transform-origin: top left;
   }
 }
+
+/* ==========================================================================
+   Canvas photo: changing the picture where you SEE it   (added block — keep
+   together; edits above this line belong to other rules)
+   --------------------------------------------------------------------------
+   The picture was changeable only from the form panel, so on the canvas there
+   was "no option to change the thing or pic". Now the mark itself is the
+   button, and a labelled chip beside the hide cross is what says so — a
+   clickable picture with no affordance is a feature nobody finds.
+   ========================================================================== */
+
+/* The mark reads as clickable. Scoped to the editable canvas (the wrapper is
+   edit-only anyway) so no print path can inherit a pointer. */
+.mode-preview .rm-visual-wrap .rm-photo,
+.mode-preview .rm-visual-wrap .rm-monogram {
+  cursor: pointer;
+}
+
+/* "Change" / "Add photo": a pill on the same line as the hide cross, just to
+   its left. Geometry is written in the chip's OWN em (font-size 0.62em), so
+   every number below is the parent-em value ÷ 0.62 — the hide cross is
+   1.425 parent em tall and its left edge sits 1.0 parent em in from the
+   wrapper's right edge. */
+.rm-visual-swap {
+  position: absolute;
+  top: -0.69em; /* -0.4275 parent em — the hide cross's own top */
+  right: 2.01em; /* clears the cross (1.0) plus a 0.25 parent-em gap */
+  height: 2.3em; /* 1.425 parent em — the cross's height, so they align */
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.75em;
+  border-radius: 9999px;
+  /* Opaque backing + border: a revealed glyph drawn in the page's own ink
+     over transparency is invisible even at opacity 1 (measured). */
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #475569;
+  font-family: var(--rm-font-body);
+  font-size: 0.62em;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  /* Inert at rest. Opacity alone leaves a control fully hit-testable, and an
+     invisible pill lying over the photo's corner would eat the very click it
+     advertises. Revealed by the PARENT's hover, never by its own, so this is
+     safe (a control whose own :hover reveals it must never do this). */
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.rm-visual-wrap:hover .rm-visual-swap,
+.rm-visual-wrap:focus-within .rm-visual-swap,
+.rm-visual-swap:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.rm-visual-swap:hover,
+.rm-visual-swap:focus-visible {
+  color: var(--rm-primary);
+  border-color: var(--rm-primary);
+}
+.mode-print .rm-visual-swap,
+.mode-thumbnail .rm-visual-swap {
+  display: none;
+}
+
+/* The hide cross was revealed by hover alone and stayed hit-testable while
+   invisible — harmless while nothing else wanted that corner, and a click
+   thief now that the photo underneath it is a button. Same discipline as the
+   chip, plus the focus twin it never had (tabbing used to land on an
+   opacity-0 control). */
+.rm-visual-hide {
+  pointer-events: none;
+}
+.rm-visual-wrap:hover .rm-visual-hide,
+.rm-visual-wrap:focus-within .rm-visual-hide,
+.rm-visual-hide:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (pointer: coarse) {
+  /* A finger has no hover to reveal anything with, so both controls stand
+     open the whole time the canvas is editable. */
+  .mode-preview .rm-visual-swap,
+  .mode-preview .rm-visual-hide {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* The chip hangs outside the flow, so growing it moves nothing on the page
+     or in the PDF. It grows towards a finger in SCREEN pixels: its drawn
+     height is about 21 layout px, so 2.1 layout px per screen px of zoom puts
+     it at 44 — a finger's width — from 100% zoom upward. Anchored at the
+     corner it hangs from, it grows DOWN and LEFT: down into the picture,
+     whose own tap does the same thing, and never rightward over the cross.
+     Capped at 2.6, which is exactly what a tablet's fit zoom (0.82) asks for;
+     a phone at its fit zoom (0.40) is looking at the page, not editing it,
+     and gets a 53x22 chip it can still hit dead centre — it zooms in to work,
+     and there the chip is finger-sized. */
+  .mode-preview .rm-visual-swap {
+    transform: scale(clamp(1, calc(2.1 / var(--rm-zoom, 1)), 2.6));
+    transform-origin: top right;
+  }
+  /* A transform makes the chip a stacking context, and the shared hit-area
+     pseudo (z-index:-1) is then trapped INSIDE it — painted above everything
+     outside instead of below the flow. Measured: the cross's trapped area
+     covered the right half of the chip, and a tap dead on the chip's centre
+     reached nothing but a 16px-wide strip. The chip's own scaled box is the
+     hit area now; the cross keeps the shared one, which is why the cross must
+     NOT be given a transform of its own. */
+  .rm-visual-swap::after {
+    content: none;
+  }
+}

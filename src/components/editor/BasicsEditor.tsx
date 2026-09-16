@@ -1,47 +1,25 @@
-import { useState } from 'react'
 import { ChevronRight, Plus, Trash2, Camera, ImagePlus, X } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import { uid } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
 import { TextField, Row, Labeled } from './fields/Inputs'
 import { CONTACT_ICON_CHOICES } from '@/templates/_shared/atoms'
-import { ImageCropper } from './ImageCropper'
+import { usePhotoPicker } from './usePhotoPicker'
 
 export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateContent)
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const b = doc.content.basics
   const showPhoto = doc.metadata.layout.showPhoto
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-
-  // Picking a file opens the cropper; saving the crop sets the image + shows it.
-  const onPhoto = (file?: File) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setCropSrc(String(reader.result))
-    reader.readAsDataURL(file)
-  }
-  const onCropSave = (url: string) => {
-    updateDoc((d) => {
-      d.content.basics.image = url
-      d.metadata.layout.showPhoto = true
-    })
-    setCropSrc(null)
-  }
+  // The file input, the cropper and the write into the document are shared
+  // with the canvas and the header's Style popover — one flow, three doors.
+  const photo = usePhotoPicker()
 
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
         <div>
-          <PhotoPicker
-            image={b.image}
-            onPick={onPhoto}
-            onClear={() =>
-              update((c) => {
-                c.basics.image = ''
-              })
-            }
-          />
+          <PhotoPicker image={b.image} onPick={photo.open} onClear={photo.remove} />
           {b.image && (
             <button
               type="button"
@@ -180,17 +158,20 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
 
       <Profiles doc={doc} />
 
-      {cropSrc && <ImageCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={onCropSave} />}
+      {photo.ui}
     </div>
   )
 }
 
-function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: (f?: File) => void; onClear: () => void }) {
+function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: () => void; onClear: () => void }) {
   return (
     <div className="relative shrink-0">
-      <label
+      <button
+        type="button"
+        onClick={onPick}
         className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-input bg-muted text-muted-foreground transition-colors hover:border-primary hover:text-primary"
         title="Upload a profile photo"
+        aria-label={image ? 'Change photo' : 'Add photo'}
       >
         {image ? (
           <>
@@ -205,8 +186,7 @@ function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: (f?: 
             <span className="text-[10px] font-medium">Add photo</span>
           </div>
         )}
-        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
-      </label>
+      </button>
       {image && (
         <button
           type="button"

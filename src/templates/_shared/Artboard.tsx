@@ -29,6 +29,7 @@ import { ART_BAND_GROUNDS, artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionNumeral } from './sectionNumeral'
 import { useEditorStore } from '@/store/useEditorStore'
+import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
 
@@ -501,6 +502,65 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   )
 }
 
+/**
+ * The edit-only cluster that hangs off the header's identity mark.
+ *
+ * The picture itself is the button — a click on it opens the same
+ * file → crop → save flow the panel uses — and the labelled chip beside the
+ * hide cross is what SAYS so, because a clickable picture with no affordance
+ * is a feature nobody finds (reported: "here on the canvas, no option to
+ * change the thing or pic"). The chip is also the keyboard route: an <img>
+ * with a click handler is reachable by no key, a <button> with a label is.
+ *
+ * Both controls are `no-print` and absolutely positioned, so the edit tree
+ * still measures exactly like the export tree.
+ */
+function EditableVisual({
+  kind,
+  children,
+  onHide,
+}: {
+  kind: 'photo' | 'monogram'
+  /** The mark itself, given the opener so the picture can carry the click. */
+  children: (openPicker: () => void) => ReactNode
+  onHide: () => void
+}) {
+  const picker = usePhotoPicker()
+  const add = kind === 'monogram'
+  return (
+    <span className="rm-visual-wrap">
+      {children(picker.open)}
+      <button
+        type="button"
+        className="rm-visual-swap no-print"
+        contentEditable={false}
+        title={add ? 'Add a photo in place of the monogram' : 'Change this photo'}
+        aria-label={add ? 'Add photo' : 'Change photo'}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={picker.open}
+      >
+        {add ? 'Add photo' : 'Change'}
+      </button>
+      <button
+        type="button"
+        className="rm-visual-hide no-print"
+        contentEditable={false}
+        title={
+          add
+            ? 'Hide monogram (turn back on via the header’s Style button)'
+            : 'Hide photo (turn back on via the header’s Style button)'
+        }
+        aria-label={add ? 'Hide monogram' : 'Hide photo'}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onHide}
+      >
+        ×
+      </button>
+      {picker.ui}
+    </span>
+  )
+}
+
 function Photo({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaEditFn }) {
   const { showPhoto, photoShape } = doc.metadata.layout
   const img = doc.content.basics.image
@@ -512,24 +572,25 @@ function Photo({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaEditFn }
   const photo = <img className={`rm-photo ${photoShape}`} src={img} alt={doc.content.basics.name} />
   if (!editMeta) return photo
   return (
-    <span className="rm-visual-wrap">
-      {photo}
-      <button
-        type="button"
-        className="rm-visual-hide no-print"
-        contentEditable={false}
-        title="Hide photo (turn back on via the header's Style button)"
-        aria-label="Hide photo"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() =>
-          editMeta((m) => {
-            m.layout.showPhoto = false
-          })
-        }
-      >
-        ×
-      </button>
-    </span>
+    <EditableVisual
+      kind="photo"
+      onHide={() =>
+        editMeta((m) => {
+          m.layout.showPhoto = false
+        })
+      }
+    >
+      {(open) => (
+        <img
+          className={`rm-photo ${photoShape}`}
+          src={img}
+          alt={doc.content.basics.name}
+          title="Click to change this photo"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={open}
+        />
+      )}
+    </EditableVisual>
   )
 }
 
@@ -551,24 +612,26 @@ function Monogram({ doc, editMeta }: { doc: ResumeDocument; editMeta?: MetaEditF
   )
   if (!editMeta) return mark
   return (
-    <span className="rm-visual-wrap">
-      {mark}
-      <button
-        type="button"
-        className="rm-visual-hide no-print"
-        contentEditable={false}
-        title="Hide monogram (turn back on via the header's Style button)"
-        aria-label="Hide monogram"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() =>
-          editMeta((m) => {
-            m.layout.monogram = false
-          })
-        }
-      >
-        ×
-      </button>
-    </span>
+    <EditableVisual
+      kind="monogram"
+      onHide={() =>
+        editMeta((m) => {
+          m.layout.monogram = false
+        })
+      }
+    >
+      {(open) => (
+        <div
+          className={`rm-monogram ${photoShape}`}
+          aria-hidden
+          title="Click to add a photo instead"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={open}
+        >
+          <span>{initials}</span>
+        </div>
+      )}
+    </EditableVisual>
   )
 }
 
