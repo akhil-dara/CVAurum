@@ -326,7 +326,12 @@ function boxOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
     // (measured: border box 28.88px, content box 26.63px).
     const inner = contentBoxOf(box, cs)
     const isSvg = /^data:image\/svg\+xml/i.test(el.src)
-    if (!isSvg || !svgLogoOps(el, inner, ops)) {
+    // A rounded <img> clips its picture to the element's own BORDER box (the
+    // photo slot's default shape is a full circle), so the vector path carries
+    // that same rounded box along as a clip. The raster path below already
+    // clips on `radii` inside paint.ts.
+    const clip = hasAnyRadius(radii) ? { ...box, radii } : undefined
+    if (!isSvg || !svgLogoOps(el, inner, ops, clip)) {
       // The element's own object-fit travels with the op: a source the
       // painter has to re-encode is drawn into the box the same way the
       // canvas draws it (paint.ts), rather than always stretched.
@@ -384,21 +389,355 @@ function decodeSvgDataUri(src: string): string | null {
 }
 
 /**
- * A tiny "logo" `<img>` whose src is an inline SVG data URI can't be
- * embedded as a raster image the way boxOps normally handles `<img>` — pdf-
- * lib's embedPng/embedJpg only accept real PNG/JPEG bytes, so paint.ts's
- * fetch-and-embed silently no-ops on SVG bytes (confirmed by instrumenting
- * it: the fetch succeeds, the bytes start with `<svg`, and neither magic
- * check matches, so `paintOps` just draws nothing for that op). Rasterising
- * the source to fix that would break the "images embed original bytes,
- * never rasterise" rule for exactly the wrong reason — an SVG source is
- * already vector. Instead, parse the shapes our own sample-data marks
- * actually use (samples.ts's `mark()`: a rounded `<rect>` + a centered
- * `<text>` letter) into native rect/text ops. Anything we can't confidently
- * parse falls through to the ordinary (silently-skipped) image op, so this
- * is never worse than the status quo.
+ * The little of one SVG element the shape walk below needs, with no DOM in it.
+ * `svgLogoOps` adapts a parsed `Element` to this shape, which leaves the walk
+ * itself a pure function a unit test can drive under vitest's plain `node`
+ * environment (no jsdom in this repo — see vitest.config.ts).
  */
-export function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, ops: DrawOp[]): boolean {
+export type SvgNode = { tag: string; attr: (name: string) => string | null; text: string; children: SvgNode[] }
+
+/** One shape the walk resolved: path data in the svg's own user units, with
+ *  its paint already resolved through every ancestor `<g>` and any transform
+ *  already baked into the coordinates. */
+export type SvgResolvedShape = { d: string; fill?: Rgba; stroke?: Rgba; strokeWidthPx: number }
+
+/** Presentation state as it cascades down the tree. `fill`/`stroke`/
+ *  `strokeWidth` are the raw attribute strings (null = never specified, which
+ *  for fill means SVG's own black default); the two *-opacity values are
+ *  inherited properties; `opacity` is a GROUP compositing factor that does not
+ *  inherit but is multiplied down anyway — an approximation that is exact for
+ *  every non-overlapping mark we ship and never silently drops ink. */
+type SvgPaintState = {
+  fill: string | null
+  stroke: string | null
+  strokeWidth: string | null
+  fillOpacity: number
+  strokeOpacity: number
+  opacity: number
+  m: Matrix2D
+}
+
+/** Shapes `svgShapeToPathD` converts. */
+const SVG_LOGO_SHAPES = new Set(['rect', 'circle', 'ellipse', 'path', 'line', 'polygon', 'polyline'])
+/** Metadata-only children: they paint nothing, so skipping them is not a
+ *  partial drawing. */
+const SVG_LOGO_IGNORED = new Set(['title', 'desc', 'metadata'])
+/** Attributes that change what an element paints in ways this painter does not
+ *  reproduce. Their presence refuses the WHOLE image rather than painting a
+ *  shape without them. */
+const SVG_LOGO_REFUSED_ATTRS = [
+  'style',
+  'clip-path',
+  'mask',
+  'filter',
+  'fill-rule',
+  'stroke-dasharray',
+  'marker-start',
+  'marker-mid',
+  'marker-end',
+]
+
+const isIdentity2D = (m: Matrix2D): boolean =>
+  Math.abs(m.a - 1) < 1e-9 &&
+  Math.abs(m.b) < 1e-9 &&
+  Math.abs(m.c) < 1e-9 &&
+  Math.abs(m.d - 1) < 1e-9 &&
+  Math.abs(m.e) < 1e-9 &&
+  Math.abs(m.f) < 1e-9
+
+/**
+ * One SVG `transform` ATTRIBUTE (not the CSS property — that grammar is
+ * `parseTransformMatrix`'s) as a matrix, or null when it is anything this
+ * painter cannot bake into path coordinates.
+ *
+ * Supported: `translate`, `scale`, `matrix`, in any order and any number,
+ * composed left-to-right the way SVG applies them. The composed result must
+ * come out DIAGONAL (no rotation, no skew): only then does every path command
+ * — including arcs, whose radii are axis-aligned — survive being rewritten
+ * coordinate by coordinate. A rotate/skew (or a `matrix` that amounts to one)
+ * returns null, which sends the whole image to the raster path rather than
+ * painting it un-rotated.
+ */
+export function parseSvgTransform(value: string): Matrix2D | null {
+  const s = (value || '').trim()
+  if (!s) return IDENTITY_2D
+  const fn = /([a-zA-Z]+)\s*\(([^)]*)\)/g
+  let m = IDENTITY_2D
+  let seen = 0
+  let consumed = 0
+  for (let hit = fn.exec(s); hit; hit = fn.exec(s)) {
+    // Anything between two function calls that is not a separator means the
+    // attribute is not the simple list this understands.
+    if (s.slice(consumed, hit.index).trim() !== '') return null
+    consumed = hit.index + hit[0].length
+    seen++
+    const name = hit[1].toLowerCase()
+    const args = hit[2]
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map(Number)
+    if (args.some((n) => !Number.isFinite(n))) return null
+    let next: Matrix2D | null = null
+    if (name === 'translate' && (args.length === 1 || args.length === 2))
+      next = { ...IDENTITY_2D, e: args[0], f: args[1] ?? 0 }
+    else if (name === 'scale' && (args.length === 1 || args.length === 2))
+      next = { ...IDENTITY_2D, a: args[0], d: args[1] ?? args[0] }
+    else if (name === 'matrix' && args.length === 6)
+      next = { a: args[0], b: args[1], c: args[2], d: args[3], e: args[4], f: args[5] }
+    if (!next) return null
+    m = mul2D(m, next)
+  }
+  if (!seen || s.slice(consumed).trim() !== '') return null
+  if (Math.abs(m.b) > 1e-9 || Math.abs(m.c) > 1e-9) return null
+  if (!Number.isFinite(m.a) || !Number.isFinite(m.d) || m.a === 0 || m.d === 0) return null
+  return m
+}
+
+/** Command letter -> how many numbers one of its argument groups takes. */
+const SVG_PATH_ARGC: Record<string, number> = { m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7, z: 0 }
+
+/**
+ * Rewrites a path's `d` with a DIAGONAL map baked into its coordinates, so the
+ * emitted op needs no transform of its own (the `svg` DrawOp carries none —
+ * see types.ts). Relative commands stay relative and take only the map's
+ * SCALE; absolute commands take scale and translation both, which is why a
+ * leading lowercase `m` — absolute per the SVG grammar despite its case — must
+ * be normalised by `absolutizeLeadingMoveto` before this sees it.
+ *
+ * Arc radii are axis-aligned lengths, so they scale per axis; a negative scale
+ * mirrors the shape and therefore flips the sweep flag. An arc carrying its own
+ * x-axis-rotation under a NON-uniform scale becomes an ellipse of a different
+ * tilt, which this does not attempt: null, and the caller falls back.
+ *
+ * Returns null for a `d` it cannot lex (an unknown command letter, a truncated
+ * argument group) rather than emitting a half-transformed path.
+ */
+export function transformPathD(pathD: string, m: Matrix2D): string | null {
+  if (Math.abs(m.b) > 1e-9 || Math.abs(m.c) > 1e-9) return null
+  const sx = m.a
+  const sy = m.d
+  if (!Number.isFinite(sx) || !Number.isFinite(sy) || sx === 0 || sy === 0) return null
+  // expandArcFlags first: SVG lets an arc's two 0/1 flags pack against the next
+  // number with no separator, and a generic number lexer reads `011.5` as one.
+  const tokens = expandArcFlags(pathD).match(/[MmLlHhVvCcSsQqTtAaZz]|[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/g)
+  if (!tokens || !tokens.length) return null
+  const isLetter = (t: string): boolean => /^[A-Za-z]$/.test(t)
+  const n4 = (v: number): string => String(Math.round(v * 1e4) / 1e4)
+  const out: string[] = []
+  let cmd = ''
+  let i = 0
+  while (i < tokens.length) {
+    if (isLetter(tokens[i])) {
+      cmd = tokens[i]
+      out.push(cmd)
+      i++
+      if (cmd === 'z' || cmd === 'Z') continue
+    } else {
+      // An implicit repeat of the previous command; after a moveto the
+      // repeats are linetos, of the same case.
+      if (!cmd) return null
+      if (cmd === 'M') cmd = 'L'
+      else if (cmd === 'm') cmd = 'l'
+      if (cmd === 'z' || cmd === 'Z') return null
+    }
+    const key = cmd.toLowerCase()
+    const argc = SVG_PATH_ARGC[key]
+    if (argc === undefined) return null
+    if (argc === 0) continue
+    const args: number[] = []
+    for (let k = 0; k < argc; k++) {
+      const t = tokens[i + k]
+      if (t === undefined || isLetter(t) || !Number.isFinite(Number(t))) return null
+      args.push(Number(t))
+    }
+    i += argc
+    const rel = cmd === key
+    const X = (v: number): number => (rel ? sx * v : sx * v + m.e)
+    const Y = (v: number): number => (rel ? sy * v : sy * v + m.f)
+    if (key === 'h') out.push(n4(X(args[0])))
+    else if (key === 'v') out.push(n4(Y(args[0])))
+    else if (key === 'a') {
+      const [rx, ry, rot, laf, sf, x, y] = args
+      if (rot !== 0 && Math.abs(Math.abs(sx) - Math.abs(sy)) > 1e-9) return null
+      const mirrored = sx * sy < 0
+      out.push(
+        n4(Math.abs(sx) * rx),
+        n4(Math.abs(sy) * ry),
+        n4(rot),
+        laf ? '1' : '0',
+        (mirrored ? !sf : !!sf) ? '1' : '0',
+        n4(X(x)),
+        n4(Y(y))
+      )
+    } else {
+      for (let k = 0; k < argc; k += 2) out.push(n4(X(args[k])), n4(Y(args[k + 1])))
+    }
+  }
+  return out.join(' ')
+}
+
+/** SVG paint resolved to a colour, to "paints nothing", or to a refusal. */
+type SvgPaintResult = { ok: false } | { ok: true; color: Rgba | null }
+
+/** `#rgb`/`#rrggbb`, `none`/`transparent`, or — for a value this painter has
+ *  no honest answer for (a gradient `url(#id)`, `currentColor`, a CSS colour
+ *  keyword) — a refusal, which sends the whole image to the raster path. */
+function svgPaintColor(value: string | null, alphaMul: number, defaultsToBlack: boolean): SvgPaintResult {
+  const raw = value === null ? (defaultsToBlack ? '#000000' : null) : value.trim()
+  if (raw === null || raw === '' || /^(none|transparent)$/i.test(raw)) return { ok: true, color: null }
+  const c = parseHexColor(raw)
+  if (!c) return { ok: false }
+  return { ok: true, color: { ...c, a: Math.max(0, Math.min(1, c.a * alphaMul)) } }
+}
+
+/** The child's own presentation attributes cascaded onto the parent's state,
+ *  or null when one of them is unusable. */
+function inheritSvgPaint(parent: SvgPaintState, node: SvgNode): SvgPaintState | null {
+  const unitInterval = (name: string, fallback: number): number | null => {
+    const v = node.attr(name)
+    if (v === null) return fallback
+    const n = parseFloat(v)
+    if (!Number.isFinite(n)) return null
+    return Math.max(0, Math.min(1, n))
+  }
+  const fillOpacity = unitInterval('fill-opacity', parent.fillOpacity)
+  const strokeOpacity = unitInterval('stroke-opacity', parent.strokeOpacity)
+  const own = unitInterval('opacity', 1)
+  if (fillOpacity === null || strokeOpacity === null || own === null) return null
+  const t = node.attr('transform')
+  let m = parent.m
+  if (t !== null) {
+    const mine = parseSvgTransform(t)
+    if (!mine) return null
+    m = mul2D(parent.m, mine)
+  }
+  return {
+    fill: node.attr('fill') ?? parent.fill,
+    stroke: node.attr('stroke') ?? parent.stroke,
+    strokeWidth: node.attr('stroke-width') ?? parent.strokeWidth,
+    fillOpacity,
+    strokeOpacity,
+    opacity: parent.opacity * own,
+    m,
+  }
+}
+
+/**
+ * Every paintable shape under an `<svg>`, in document order, with `<g>`
+ * inheritance and transforms resolved — or NULL when the tree contains
+ * anything this painter does not fully reproduce.
+ *
+ * All-or-nothing is the whole point. The previous version walked only the
+ * svg's DIRECT children and only six shape kinds, then returned "drawn" if it
+ * had recognised ANY of them: the library's drawn portraits (avatar.ts) are an
+ * `<ellipse>` head and a `<g>` of glasses among ordinary paths and circles, so
+ * every example résumé that shows a face exported the backdrop, the hair and
+ * the eyes with no head under them. A partial drawing is the worst outcome
+ * available — it looks like ink to every gate that only asks whether the box
+ * is empty — so anything unrecognised now refuses the image outright and
+ * paint.ts redraws the source through a canvas instead (`transcodeBytes`).
+ */
+export function svgShapeWalk(root: SvgNode): { shapes: SvgResolvedShape[]; texts: SvgNode[] } | null {
+  const shapes: SvgResolvedShape[] = []
+  const texts: SvgNode[] = []
+  const visit = (node: SvgNode, inherited: SvgPaintState): boolean => {
+    for (const child of node.children) {
+      const tag = child.tag.toLowerCase()
+      if (SVG_LOGO_IGNORED.has(tag)) continue
+      for (const name of SVG_LOGO_REFUSED_ATTRS) if (child.attr(name) !== null) return false
+      const state = inheritSvgPaint(inherited, child)
+      if (!state) return false
+      if (tag === 'g') {
+        if (!visit(child, state)) return false
+        continue
+      }
+      if (tag === 'text') {
+        // The mark's monogram letter, drawn by the caller with the DOCUMENT's
+        // own font. One, untransformed, is the whole of what is supported.
+        if (texts.length || !isIdentity2D(state.m)) return false
+        texts.push(child)
+        continue
+      }
+      if (!SVG_LOGO_SHAPES.has(tag)) return false
+      const raw = svgShapeToPathD(tag, (name) => child.attr(name))
+      // A shape with no usable geometry (r=0, a `<path>` with no `d`) paints
+      // nothing in a browser either, so skipping it loses no ink.
+      if (!raw) continue
+      const fill = svgPaintColor(state.fill, state.opacity * state.fillOpacity, true)
+      if (!fill.ok) return false
+      const stroke = svgPaintColor(state.stroke, state.opacity * state.strokeOpacity, false)
+      if (!stroke.ok) return false
+      const widthAttr = state.strokeWidth === null ? 1 : parseFloat(state.strokeWidth)
+      if (!Number.isFinite(widthAttr) || widthAttr < 0) return false
+      // A stroke under a non-uniform scale is an elliptical pen, which a
+      // single PDF line width cannot express.
+      if (stroke.color && widthAttr > 0 && Math.abs(Math.abs(state.m.a) - Math.abs(state.m.d)) > 1e-9) return false
+      const strokeColor = stroke.color && widthAttr > 0 ? stroke.color : undefined
+      if (!fill.color && !strokeColor) continue
+      let d = raw
+      if (!isIdentity2D(state.m)) {
+        const baked = transformPathD(absolutizeLeadingMoveto(raw), state.m)
+        if (!baked) return false
+        d = baked
+      }
+      shapes.push({
+        d,
+        fill: fill.color ?? undefined,
+        stroke: strokeColor,
+        strokeWidthPx: strokeColor ? widthAttr * Math.abs(state.m.a) : 0,
+      })
+    }
+    return true
+  }
+  const base: SvgPaintState = {
+    fill: null,
+    stroke: null,
+    strokeWidth: null,
+    fillOpacity: 1,
+    strokeOpacity: 1,
+    opacity: 1,
+    m: IDENTITY_2D,
+  }
+  const rootState = inheritSvgPaint(base, root)
+  if (!rootState) return null
+  for (const name of SVG_LOGO_REFUSED_ATTRS) if (root.attr(name) !== null) return null
+  if (!visit(root, rootState)) return null
+  return { shapes, texts }
+}
+
+/** Adapts a parsed SVG `Element` tree to the DOM-free shape `svgShapeWalk`
+ *  takes. */
+function elementToSvgNode(el: Element): SvgNode {
+  return {
+    tag: el.tagName.toLowerCase(),
+    attr: (name) => el.getAttribute(name),
+    text: el.textContent ?? '',
+    children: Array.from(el.children).map(elementToSvgNode),
+  }
+}
+
+/**
+ * A "logo" or portrait `<img>` whose src is an inline SVG data URI can't be
+ * embedded as a raster image the way boxOps normally handles `<img>` — pdf-
+ * lib's embedPng/embedJpg only accept real PNG/JPEG bytes. Rather than
+ * rasterise an already-vector source, the shapes are walked into native `svg`
+ * ops (one per shape, in the viewBox's own units, so paint.ts scales the path
+ * and its stroke width together) plus one optional text op for a monogram
+ * letter.
+ *
+ * Returns false — and paints NOTHING — for any source it does not fully
+ * reproduce, so boxOps falls through to the ordinary image op and paint.ts
+ * redraws the source through a canvas (`transcodeBytes`, which decodes an
+ * SVG data URI with no external references perfectly well). See
+ * `svgShapeWalk` for why all-or-nothing is the only safe contract here.
+ */
+export function svgLogoOps(
+  el: HTMLImageElement,
+  box: ReturnType<typeof boxOf>,
+  ops: DrawOp[],
+  clip?: { xPx: number; yPx: number; wPx: number; hPx: number; radii: CornerRadii }
+): boolean {
   const xml = decodeSvgDataUri(el.src)
   if (!xml) return false
 
@@ -419,63 +758,33 @@ export function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, 
   const scaleX = box.wPx / vbW
   const scaleY = box.hPx / vbH
 
-  // Every shape the mark is made of, in document order, each as one svg op in
-  // the viewBox's own units - the same contract the section-icon chips use,
-  // so paint.ts scales the path and its stroke width together. This used to
-  // read the FIRST rect and stop: the library's brandmarks are a white square,
-  // a tinted overlay and a device of paths, circles and stroked bars, and the
-  // painter drew the square alone. Thirty-four example pages exported every
-  // employer as an empty box while the preview showed the mark.
-  let drewShape = false
-  const alphaOf = (el: Element, ...names: string[]): number => {
-    let a = 1
-    for (const n of names) {
-      const v = el.getAttribute(n)
-      if (v !== null) {
-        const f = parseFloat(v)
-        if (Number.isFinite(f)) a *= Math.max(0, Math.min(1, f))
-      }
-    }
-    return a
-  }
-  for (const child of Array.from(svg.children)) {
-    const tag = child.tagName.toLowerCase()
-    if (!/^(?:rect|circle|path|line|polygon|polyline)$/.test(tag)) continue
-    const d = svgShapeToPathD(tag, (name) => child.getAttribute(name))
-    if (!d) continue
-    const fillAttr = child.getAttribute('fill')
-    // SVG's default fill is black; only an explicit "none" means no fill.
-    const fillBase = fillAttr === null ? { r: 0, g: 0, b: 0, a: 1 } : fillAttr === 'none' ? null : parseHexColor(fillAttr)
-    const fill = fillBase ? { ...fillBase, a: fillBase.a * alphaOf(child, 'opacity', 'fill-opacity') } : undefined
-    const strokeAttr = child.getAttribute('stroke')
-    const strokeBase = strokeAttr && strokeAttr !== 'none' ? parseHexColor(strokeAttr) : null
-    const strokeWidth = parseFloat(child.getAttribute('stroke-width') || '1')
-    const stroke =
-      strokeBase && Number.isFinite(strokeWidth) && strokeWidth > 0
-        ? { ...strokeBase, a: strokeBase.a * alphaOf(child, 'opacity', 'stroke-opacity') }
-        : undefined
-    if (!fill && !stroke) continue
-    ops.push({
+  const walked = svgShapeWalk(elementToSvgNode(svg))
+  if (!walked) return false
+  const textEl = walked.texts[0]
+  const label = textEl?.text.trim() ?? ''
+  if (!walked.shapes.length && !label) return false
+
+  // Nothing is pushed onto the caller's list until the whole image is known to
+  // be reproducible: a half-painted mark is worse than a redrawn one.
+  const drawn: DrawOp[] = []
+  for (const shape of walked.shapes) {
+    drawn.push({
       kind: 'svg',
       xPx: box.xPx,
       yPx: box.yPx,
       wPx: box.wPx,
       hPx: box.hPx,
       viewBox: [vbX, vbY, vbW, vbH],
-      d,
-      fill,
-      stroke,
-      strokeWidthPx: stroke ? strokeWidth : 0,
+      d: shape.d,
+      fill: shape.fill,
+      stroke: shape.stroke,
+      strokeWidthPx: shape.strokeWidthPx,
+      clip,
     })
-    drewShape = true
   }
 
-  const textEl = svg.querySelector('text')
-  if (!drewShape && !textEl) return false
-
-  const label = textEl?.textContent?.trim()
   if (textEl && label) {
-    const sizePx = parseFloat(textEl.getAttribute('font-size') || '0') * scaleY
+    const sizePx = parseFloat(textEl.attr('font-size') || '0') * scaleY
     if (sizePx > 0) {
       // Draw with the DOCUMENT's own font, not the SVG's declared one (our
       // marks say Arial) — only the résumé's chosen fonts get embedded in
@@ -483,21 +792,21 @@ export function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, 
       // export time (PdfFontMissingError) instead of just looking slightly
       // off.
       const family = getComputedStyle(el).fontFamily
-      const weight = parseFontWeight(textEl.getAttribute('font-weight') || '400')
+      const weight = parseFontWeight(textEl.attr('font-weight') || '400')
       const font = `${weight} ${sizePx}px ${family}`
       const width = measureTextWidthPx(label, font)
-      const cx = box.xPx + (parseFloat(textEl.getAttribute('x') || '0') - vbX) * scaleX
-      const anchor = textEl.getAttribute('text-anchor')
+      const cx = box.xPx + (parseFloat(textEl.attr('x') || '0') - vbX) * scaleX
+      const anchor = textEl.attr('text-anchor')
       const xPx = anchor === 'middle' ? cx - width / 2 : anchor === 'end' ? cx - width : cx
-      const baselinePx = box.yPx + (parseFloat(textEl.getAttribute('y') || '0') - vbY) * scaleY
-      const fill = parseHexColor(textEl.getAttribute('fill') || '') || { r: 1, g: 1, b: 1, a: 1 }
+      const baselinePx = box.yPx + (parseFloat(textEl.attr('y') || '0') - vbY) * scaleY
+      const fill = parseHexColor(textEl.attr('fill') || '') || { r: 1, g: 1, b: 1, a: 1 }
       // DECORATIVE: this is the logo mark's monogram letter, not résumé
       // content — paint.ts draws it as vector glyph outlines so it can't
       // leak into the extractable text layer (see types.ts's TextRun.isDecorative).
       // widthPx: 0 — no measured DOM rect backs this synthesized run (see
       // types.ts's TextRun.widthPx); it's also isDecorative so paint.ts's
       // Tz scaling never looks at it anyway.
-      ops.push({
+      drawn.push({
         kind: 'text',
         run: {
           text: label,
@@ -516,6 +825,8 @@ export function svgLogoOps(el: HTMLImageElement, box: ReturnType<typeof boxOf>, 
     }
   }
 
+  if (!drawn.length) return false
+  ops.push(...drawn)
   return true
 }
 
@@ -1312,6 +1623,22 @@ export function svgShapeToPathD(tag: string, attr: (name: string) => string | nu
       // SVG arc commands instead of a radius clamp.
       return `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`
     }
+    case 'ellipse': {
+      // Same two-arc trace as `circle`, with the two radii kept apart. The
+      // library's drawn portraits build every head out of one of these
+      // (avatar.ts), and an unconverted ellipse used to leave the face with
+      // no head under the hair and eyes in every exported example résumé.
+      // SVG 2's `auto` (one radius standing in for the other) is honoured
+      // because a missing attribute is what `auto` means.
+      const cx = num('cx'),
+        cy = num('cy')
+      const rxAttr = attr('rx'),
+        ryAttr = attr('ry')
+      const rx = rxAttr !== null ? num('rx') : num('ry')
+      const ry = ryAttr !== null ? num('ry') : num('rx')
+      if (rx <= 0 || ry <= 0) return null
+      return `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`
+    }
     case 'rect': {
       const x = num('x'),
         y = num('y'),
@@ -1446,7 +1773,7 @@ export function expandArcFlags(d: string): string {
   return out
 }
 
-const SVG_SHAPE_TAGS = new Set(['path', 'line', 'polyline', 'polygon', 'circle', 'rect'])
+const SVG_SHAPE_TAGS = new Set(['path', 'line', 'polyline', 'polygon', 'circle', 'ellipse', 'rect'])
 // Purely structural SVG wrappers our own icon sets never emit shapes inside
 // of directly but that legitimately appear (querySelectorAll('*') walks
 // through them) without themselves being a shape to warn about.

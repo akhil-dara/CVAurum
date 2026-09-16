@@ -1489,8 +1489,44 @@ export async function paintOps(
             svgOpts.borderOpacity = op.stroke.a
             svgOpts.borderLineCap = LineCapStyle.Round // lucide's own strokeLinecap/strokeLinejoin: round
           }
-          if (svgOpts.color || svgOpts.borderColor) {
+          if (!svgOpts.color && !svgOpts.borderColor) break
+          // A rounded `<img>` clips its picture: a drawn portrait paints a
+          // backdrop rect over its whole viewBox, and the photo slot is a
+          // circle, so without this the file showed a square of backdrop
+          // where the page shows a disc. Same clamped bezier corner math and
+          // the same tl<->bl / tr<->br vertical-mirror swap as the raster
+          // `image` case below — see its comment for why that swap is needed
+          // in a y-up local frame.
+          const clip = op.clip
+          const clipR = clip ? radiiToPt(clip.radii) : null
+          const clipping = !!clipR && (clipR.tl > 0.5 || clipR.tr > 0.5 || clipR.br > 0.5 || clipR.bl > 0.5)
+          if (clipping && clip && clipR) {
+            const cxPt = pxToPt(clip.xPx)
+            const cyPt = flipY(pxToPt(clip.yPx + clip.hPx), pageHeightPt) // bottom-left, page space
+            page.pushOperators(
+              pushGraphicsState(),
+              concatTransformationMatrix(1, 0, 0, 1, cxPt, cyPt),
+              ...roundedRectOperators(pxToPt(clip.wPx), pxToPt(clip.hPx), {
+                tl: clipR.bl,
+                tr: clipR.br,
+                br: clipR.tr,
+                bl: clipR.tl,
+              }),
+              PDFOperator.of(PDFOperatorNames.ClipNonZero),
+              PDFOperator.of(PDFOperatorNames.EndPath)
+            )
+            // The local frame's origin is now the clip box's own bottom-left,
+            // so the path's y-down anchor moves with it.
+            svgOpts.x = pxToPt(op.xPx) - cxPt
+            svgOpts.y = flipY(pxToPt(op.yPx), pageHeightPt) - cyPt
+          }
+          try {
             page.drawSvgPath(op.d, svgOpts)
+          } finally {
+            // Balanced q/Q whatever drawSvgPath does: paintOps' per-op catch
+            // swallows a throw, and an unmatched clip would silently apply to
+            // every op painted after this one.
+            if (clipping) page.pushOperators(popGraphicsState())
           }
           break
         }

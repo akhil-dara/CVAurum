@@ -20,6 +20,10 @@ import {
   isAxisAligned,
   transformedBoxPath,
   contentBoxOf,
+  parseSvgTransform,
+  transformPathD,
+  svgShapeWalk,
+  svgLogoOps,
 } from './walk'
 import type { DrawOp } from './types'
 
@@ -193,8 +197,292 @@ describe('svgShapeToPathD (task 13 — inline lucide icon painting)', () => {
     expect(svgShapeToPathD('rect', attrs({ x: '0', y: '0', width: '0', height: '14' }))).toBeNull()
   })
 
+  it('converts an ellipse to a two-arc path (the library portraits head, avatar.ts)', () => {
+    // Same trace as `circle`, with the two radii kept apart. Every drawn
+    // portrait's head is one of these; while it was unsupported the exported
+    // face had hair and eyes and no head under them.
+    expect(svgShapeToPathD('ellipse', attrs({ cx: '32', cy: '30', rx: '13', ry: '15' }))).toBe(
+      'M 19 30 A 13 15 0 1 0 45 30 A 13 15 0 1 0 19 30 Z'
+    )
+  })
+  it('lets one ellipse radius stand in for a missing other (SVG 2 auto)', () => {
+    expect(svgShapeToPathD('ellipse', attrs({ cx: '4', cy: '4', rx: '2' }))).toBe(
+      'M 2 4 A 2 2 0 1 0 6 4 A 2 2 0 1 0 2 4 Z'
+    )
+  })
+  it('returns null for a zero/negative-radius ellipse', () => {
+    expect(svgShapeToPathD('ellipse', attrs({ cx: '1', cy: '1', rx: '0', ry: '1' }))).toBeNull()
+  })
+
   it('returns null for an unsupported shape kind (caller dev-warns and skips it)', () => {
-    expect(svgShapeToPathD('ellipse', attrs({ cx: '1', cy: '1', rx: '1', ry: '1' }))).toBeNull()
+    expect(svgShapeToPathD('use', attrs({ href: '#a' }))).toBeNull()
+    expect(svgShapeToPathD('image', attrs({ href: 'x.png' }))).toBeNull()
+  })
+})
+
+describe('parseSvgTransform (SVG transform ATTRIBUTE, baked into path coordinates)', () => {
+  it('reads a translate, with an implied zero y', () => {
+    expect(parseSvgTransform('translate(10 4)')).toEqual({ a: 1, b: 0, c: 0, d: 1, e: 10, f: 4 })
+    expect(parseSvgTransform('translate(10)')).toEqual({ a: 1, b: 0, c: 0, d: 1, e: 10, f: 0 })
+  })
+  it('reads a one-value scale as both axes', () => {
+    expect(parseSvgTransform('scale(2)')).toEqual({ a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 })
+  })
+  it('composes a list left-to-right, the way SVG applies it', () => {
+    // translate THEN scale: the translation is not scaled, the geometry is.
+    expect(parseSvgTransform('translate(10 4) scale(2)')).toEqual({ a: 2, b: 0, c: 0, d: 2, e: 10, f: 4 })
+  })
+  it('refuses anything that rotates or skews — those cannot be baked in', () => {
+    expect(parseSvgTransform('rotate(45)')).toBeNull()
+    expect(parseSvgTransform('skewX(10)')).toBeNull()
+    expect(parseSvgTransform('matrix(0.7 0.7 -0.7 0.7 0 0)')).toBeNull()
+  })
+  it('refuses a degenerate scale and unparseable junk', () => {
+    expect(parseSvgTransform('scale(0)')).toBeNull()
+    expect(parseSvgTransform('translate(a b)')).toBeNull()
+    expect(parseSvgTransform('wibble')).toBeNull()
+  })
+})
+
+describe('transformPathD (a transform baked into the emitted coordinates)', () => {
+  const T = (e: number, f: number) => ({ a: 1, b: 0, c: 0, d: 1, e, f })
+  it('adds a translate to absolute coordinates and leaves relative ones alone', () => {
+    expect(transformPathD('M 8 64 L 10 12', T(5, 3))).toBe('M 13 67 L 15 15')
+    // a relative lineto is a DELTA: a translate must not move it
+    expect(transformPathD('M 0 0 l 10 4', T(5, 3))).toBe('M 5 3 l 10 4')
+  })
+  it('scales relative deltas but does not translate them', () => {
+    expect(transformPathD('M 1 1 l 4 2', { a: 2, b: 0, c: 0, d: 3, e: 10, f: 20 })).toBe('M 12 23 l 8 6')
+  })
+  it('keeps implicit repeat groups (a moveto followed by bare pairs)', () => {
+    expect(transformPathD('M 1 1 2 2 3 3', T(10, 0))).toBe('M 11 1 12 2 13 3')
+  })
+  it('carries h/v and a closepath through', () => {
+    expect(transformPathD('M 1 1 H 5 V 9 h 2 v 3 Z', { a: 2, b: 0, c: 0, d: 2, e: 1, f: 1 })).toBe(
+      'M 3 3 H 11 V 19 h 4 v 6 Z'
+    )
+  })
+  it('scales an arc radius per axis and keeps its flags', () => {
+    expect(transformPathD('M 0 4 A 4 4 0 1 0 8 4', { a: 2, b: 0, c: 0, d: 3, e: 0, f: 0 })).toBe(
+      'M 0 12 A 8 12 0 1 0 16 12'
+    )
+  })
+  it('refuses a rotating map and a truncated argument group', () => {
+    expect(transformPathD('M 0 0 L 1 1', { a: 0.7, b: 0.7, c: -0.7, d: 0.7, e: 0, f: 0 })).toBeNull()
+    expect(transformPathD('M 0 0 L 1', T(1, 1))).toBeNull()
+    expect(transformPathD('Q 1 2 3', T(1, 1))).toBeNull()
+  })
+})
+
+describe('svgShapeWalk (portrait/logo sources: <g> inheritance, all-or-nothing)', () => {
+  type Attrs = Record<string, string>
+  type TNode = { tag: string; attr: (name: string) => string | null; text: string; children: TNode[] }
+  const node = (tag: string, attrs: Attrs = {}, children: TNode[] = [], text = ''): TNode => ({
+    tag,
+    attr: (name: string) => (name in attrs ? attrs[name] : null),
+    text,
+    children,
+  })
+
+  it('inherits fill, stroke and stroke-width from a <g> onto its children', () => {
+    // The glasses of a drawn portrait: <g stroke fill="none" stroke-width>
+    // with bare circles inside (avatar.ts). Walking only the svg's direct
+    // children dropped the whole group.
+    const walked = svgShapeWalk(
+      node('svg', {}, [
+        node('g', { stroke: '#33353a', 'stroke-width': '1.2', fill: 'none' }, [
+          node('circle', { cx: '27', cy: '31', r: '4.2' }),
+          node('path', { d: 'M31.2 31h1.6' }),
+        ]),
+      ])
+    )
+    expect(walked).not.toBeNull()
+    expect(walked!.shapes).toHaveLength(2)
+    for (const shape of walked!.shapes) {
+      expect(shape.fill).toBeUndefined() // fill="none" inherited
+      expect(shape.stroke).toEqual({ r: 0x33 / 255, g: 0x35 / 255, b: 0x3a / 255, a: 1 })
+      expect(shape.strokeWidthPx).toBeCloseTo(1.2, 6)
+    }
+  })
+
+  it("lets a child override the group's fill, and multiplies the group's opacity in", () => {
+    const walked = svgShapeWalk(
+      node('svg', {}, [
+        node('g', { fill: '#ff0000', opacity: '0.5' }, [
+          node('rect', { width: '4', height: '4' }),
+          node('rect', { width: '4', height: '4', fill: '#0000ff' }),
+        ]),
+      ])
+    )
+    expect(walked!.shapes[0].fill).toEqual({ r: 1, g: 0, b: 0, a: 0.5 })
+    expect(walked!.shapes[1].fill).toEqual({ r: 0, g: 0, b: 1, a: 0.5 })
+  })
+
+  it("defaults an unspecified fill to SVG's own black", () => {
+    const walked = svgShapeWalk(node('svg', {}, [node('rect', { width: '4', height: '4' })]))
+    expect(walked!.shapes[0].fill).toEqual({ r: 0, g: 0, b: 0, a: 1 })
+  })
+
+  it("bakes a group's translate into the child's coordinates", () => {
+    const walked = svgShapeWalk(
+      node('svg', {}, [node('g', { transform: 'translate(10 5)' }, [node('line', { x1: '0', y1: '0', x2: '4', y2: '4' })])])
+    )
+    expect(walked!.shapes[0].d).toBe('M 10 5 L 14 9')
+  })
+
+  it('returns null for an element it does not paint — no partial drawing', () => {
+    // A <use>, an <image>, a <defs> gradient: the caller falls through to the
+    // raster path, which redraws the whole source, rather than shipping the
+    // shapes it happened to recognise.
+    expect(svgShapeWalk(node('svg', {}, [node('rect', { width: '4', height: '4' }), node('use', { href: '#a' })]))).toBeNull()
+    expect(svgShapeWalk(node('svg', {}, [node('image', { href: 'x.png' })]))).toBeNull()
+    expect(
+      svgShapeWalk(node('svg', {}, [node('defs', {}, [node('linearGradient', { id: 'g' })]), node('rect', { width: '4', height: '4' })]))
+    ).toBeNull()
+  })
+
+  it('returns null for paint it cannot resolve (a gradient reference, currentColor)', () => {
+    expect(svgShapeWalk(node('svg', {}, [node('rect', { width: '4', height: '4', fill: 'url(#g)' })]))).toBeNull()
+    expect(svgShapeWalk(node('svg', {}, [node('circle', { cx: '2', cy: '2', r: '2', fill: 'currentColor' })]))).toBeNull()
+  })
+
+  it('returns null for attributes that change what is painted (style, clip-path, mask, filter)', () => {
+    for (const bad of ['style', 'clip-path', 'mask', 'filter', 'fill-rule', 'stroke-dasharray']) {
+      expect(svgShapeWalk(node('svg', {}, [node('rect', { width: '4', height: '4', [bad]: 'x' })]))).toBeNull()
+    }
+  })
+
+  it('returns null for a rotate/skew transform rather than painting it square', () => {
+    expect(
+      svgShapeWalk(node('svg', {}, [node('g', { transform: 'rotate(45)' }, [node('rect', { width: '4', height: '4' })])]))
+    ).toBeNull()
+  })
+
+  it('keeps one monogram <text> aside, and refuses a second', () => {
+    const one = svgShapeWalk(node('svg', {}, [node('rect', { width: '64', height: '64' }), node('text', { x: '32' }, [], 'AM')]))
+    expect(one!.texts).toHaveLength(1)
+    expect(one!.texts[0].text).toBe('AM')
+    expect(
+      svgShapeWalk(node('svg', {}, [node('text', { x: '1' }, [], 'A'), node('text', { x: '2' }, [], 'B')]))
+    ).toBeNull()
+  })
+
+  it('skips a degenerate shape without refusing the image (it paints nothing either way)', () => {
+    const walked = svgShapeWalk(
+      node('svg', {}, [node('circle', { cx: '2', cy: '2', r: '0' }), node('rect', { width: '4', height: '4' })])
+    )
+    expect(walked!.shapes).toHaveLength(1)
+  })
+
+  it('walks the real library portrait: head ellipse and glasses group both survive', () => {
+    // Trimmed but verbatim shapes from avatar.ts's portrait().
+    const walked = svgShapeWalk(
+      node('svg', {}, [
+        node('rect', { width: '64', height: '64', fill: '#e8eef6' }),
+        node('path', { d: 'M8 64c0-12 10-19 24-19s24 7 24 19z', fill: '#2f3e56' }),
+        node('ellipse', { cx: '32', cy: '30', rx: '13', ry: '15', fill: '#f3d3bd' }),
+        node('circle', { cx: '19', cy: '31', r: '2.6', fill: '#f3d3bd' }),
+        node('path', {
+          d: 'M28.5 37.5c1.6 1.6 5.4 1.6 7 0',
+          stroke: '#2a2320',
+          'stroke-width': '1.3',
+          fill: 'none',
+          'stroke-linecap': 'round',
+        }),
+        node('g', { stroke: '#33353a', 'stroke-width': '1.2', fill: 'none' }, [
+          node('circle', { cx: '27', cy: '31', r: '4.2' }),
+          node('circle', { cx: '37', cy: '31', r: '4.2' }),
+          node('path', { d: 'M31.2 31h1.6' }),
+        ]),
+      ])
+    )
+    expect(walked).not.toBeNull()
+    expect(walked!.shapes).toHaveLength(8)
+    // the head — the shape the old painter dropped
+    expect(walked!.shapes[2].d).toBe('M 19 30 A 13 15 0 1 0 45 30 A 13 15 0 1 0 19 30 Z')
+    expect(walked!.shapes[2].fill).toEqual({ r: 0xf3 / 255, g: 0xd3 / 255, b: 0xbd / 255, a: 1 })
+    // the mouth is stroked, not filled
+    expect(walked!.shapes[4].fill).toBeUndefined()
+    expect(walked!.shapes[4].strokeWidthPx).toBeCloseTo(1.3, 6)
+  })
+})
+
+describe('svgLogoOps (the DOM entry point: all-or-nothing, and the rounded clip)', () => {
+  // This suite runs under vitest's plain 'node' environment (vitest.config.ts
+  // — no jsdom), so DOMParser is stubbed with a tree the test builds itself,
+  // the same stub-just-the-entry-point pattern the buildDrawList suite uses.
+  const g = globalThis as unknown as { DOMParser?: unknown }
+  const originalDOMParser = g.DOMParser
+  afterEach(() => {
+    g.DOMParser = originalDOMParser
+  })
+
+  type FakeEl = {
+    tagName: string
+    nodeName: string
+    getAttribute: (n: string) => string | null
+    textContent: string
+    children: FakeEl[]
+    querySelector: (s: string) => null
+  }
+  const el = (tag: string, attrs: Record<string, string> = {}, children: FakeEl[] = [], text = ''): FakeEl => ({
+    tagName: tag,
+    nodeName: tag,
+    getAttribute: (n: string) => (n in attrs ? attrs[n] : null),
+    textContent: text,
+    children,
+    querySelector: () => null,
+  })
+  const install = (tree: FakeEl) => {
+    g.DOMParser = class {
+      parseFromString() {
+        return { documentElement: tree }
+      }
+    }
+  }
+  const img = { src: 'data:image/svg+xml;utf8,%3Csvg%3E%3C/svg%3E' } as unknown as HTMLImageElement
+  const box = { xPx: 10, yPx: 20, wPx: 80, hPx: 80 }
+
+  it('emits one svg op per shape, including the ones inside a <g>', () => {
+    install(
+      el('svg', { viewBox: '0 0 64 64' }, [
+        el('rect', { width: '64', height: '64', fill: '#e8eef6' }),
+        el('ellipse', { cx: '32', cy: '30', rx: '13', ry: '15', fill: '#f3d3bd' }),
+        el('g', { stroke: '#33353a', 'stroke-width': '1.2', fill: 'none' }, [
+          el('circle', { cx: '27', cy: '31', r: '4.2' }),
+        ]),
+      ])
+    )
+    const ops: DrawOp[] = []
+    expect(svgLogoOps(img, box, ops)).toBe(true)
+    expect(ops).toHaveLength(3)
+    expect(ops.every((o) => o.kind === 'svg')).toBe(true)
+    const head = ops[1] as Extract<DrawOp, { kind: 'svg' }>
+    expect(head.d).toBe('M 19 30 A 13 15 0 1 0 45 30 A 13 15 0 1 0 19 30 Z')
+    expect(head.viewBox).toEqual([0, 0, 64, 64])
+    expect(head.clip).toBeUndefined()
+  })
+
+  it('returns FALSE and pushes NOTHING when any element is unsupported', () => {
+    // The whole point: a partial drawing reads as ink to any gate that only
+    // asks whether the box is empty.
+    install(
+      el('svg', { viewBox: '0 0 64 64' }, [
+        el('rect', { width: '64', height: '64', fill: '#ffffff' }),
+        el('image', { href: 'photo.png' }),
+      ])
+    )
+    const ops: DrawOp[] = []
+    expect(svgLogoOps(img, box, ops)).toBe(false)
+    expect(ops).toHaveLength(0)
+  })
+
+  it("carries the element's rounded border box onto every op as a clip", () => {
+    install(el('svg', { viewBox: '0 0 64 64' }, [el('rect', { width: '64', height: '64', fill: '#e8eef6' })]))
+    const ops: DrawOp[] = []
+    const clip = { xPx: 10, yPx: 20, wPx: 80, hPx: 80, radii: { tl: 40, tr: 40, br: 40, bl: 40 } }
+    expect(svgLogoOps(img, box, ops, clip)).toBe(true)
+    expect((ops[0] as Extract<DrawOp, { kind: 'svg' }>).clip).toEqual(clip)
   })
 })
 

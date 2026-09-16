@@ -258,6 +258,17 @@ export type DrawOp = DrawOpChrome &
         fill?: Rgba
         strokeWidthPx: number
         viewBox: [number, number, number, number]
+        /**
+         * A rounded box the path is clipped to, in the same root-relative
+         * CSS-px space as `xPx/yPx` — the `<img>`'s own BORDER box when it
+         * carries a border-radius (walk.ts's `svgLogoOps`). A drawn portrait
+         * fills its whole viewBox with a background rect, and the photo slot's
+         * default shape is a full circle: without the clip the file showed a
+         * square of backdrop where the page shows a disc. Absent for every
+         * unrounded source, which keeps the common case on exactly the
+         * operators it had before.
+         */
+        clip?: { xPx: number; yPx: number; wPx: number; hPx: number; radii: CornerRadii }
       }
     | {
         kind: 'text'
