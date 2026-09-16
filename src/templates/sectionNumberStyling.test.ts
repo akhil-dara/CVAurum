@@ -7,12 +7,13 @@ import { TEMPLATES } from './registry'
  * A numbered heading needs two halves that agree: a design whose defaults turn
  * `layout.sectionNumbers` on, and a rule that says how its numeral is set.
  *
- * The Design panel offers the switch on exactly the designs whose defaults
- * carry the first half. If a design turned numbers on without the second, the
- * switch would offer to draw an unstyled span; if a design styled a numeral it
- * never shows, the rule would be dead. Both halves are checked here so the
- * panel's rule stays true of the registry rather than of two ids someone
- * remembered.
+ * The switch itself is no longer gated on either half - the base stylesheet
+ * sets the numeral on every design, so Design offers the row everywhere and
+ * the document decides. What is checked here is the pairing inside the
+ * registry: a design that ships numbering with no rule of its own would be
+ * saying nothing about a numeral it puts on every heading, and a design that
+ * styles a numeral it never shows carries a dead rule. Both are held against
+ * the registry rather than against two ids someone remembered.
  */
 
 const CSS = readFileSync(join(__dirname, 'templates.css'), 'utf8')
@@ -36,7 +37,7 @@ describe('numbered section headings', () => {
     expect(withRule.filter((id) => !numbersOn(id))).toEqual([])
   })
 
-  it('agrees with itself, so the panel can gate the switch on the design', () => {
+  it('agrees with itself, so a shipped numeral and its rule name the same designs', () => {
     expect([...withNumbers].sort()).toEqual([...withRule].sort())
   })
 })

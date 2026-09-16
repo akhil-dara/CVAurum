@@ -155,9 +155,6 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateMetadata)
   const m = doc.metadata
   const twoCol = m.layout.columns === 2
-  // Does the chosen design draw a numeral in front of each heading? Only two
-  // style one, so only those two are offered the switch.
-  const numbersDesign = getTemplate(m.template).defaults.layout.sectionNumbers === true
 
   // A click on a running numeral on the canvas asks for this row by name
   // (Artboard openSectionNumbers). The panel is long, so the row is scrolled
@@ -839,40 +836,62 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             Beside the content, a section title keeps to a column of its own on the left.
           </p>
         </div>
-        {/* The running numerals before section titles. The row shows when the
-            design ships them OR the document has them on. Gating on the
-            design alone is what the first condition still does, and it is
-            there for the reason it was written: a switch that vanished the
-            moment it was turned off could never be turned back on, so on the
-            two designs that draw numerals the row stays put in both states.
-            The second condition adds the case that had no switch anywhere -
-            a file arriving with the flag on any of the other 56 designs drew
-            numerals nobody could remove - and it cannot strand anyone: it
-            only ever appears while the numerals are being drawn, and turning
-            them off lands the page on the design's own answer, which is the
-            state that design offers in the first place. */}
-        {(getTemplate(m.template).defaults.layout.sectionNumbers === true || m.layout.sectionNumbers) && (
-          <div
-            ref={numbersRef}
-            className={cn(
-              '-mx-1 rounded-md px-1 py-1 transition-colors',
-              numbersFlash && 'bg-primary/10 ring-1 ring-primary'
-            )}
-          >
-            <Toggle
-              label="Number the sections"
-              checked={m.layout.sectionNumbers}
-              onChange={(v) =>
-                update((md) => {
-                  md.layout.sectionNumbers = v
-                })
-              }
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              01, 02, 03 before each section title — decoration only, never in the text a parser reads.
-            </p>
-          </div>
-        )}
+        {/* The running numerals before section titles, offered on EVERY
+            design. The row used to be gated - first on the design, then on
+            the design OR the current value - because only the two designs
+            that ship numerals styled one, so anywhere else the switch would
+            have drawn an unspaced, untinted span. The base stylesheet sets
+            the numeral on all of them now (artboard.css), so the reason for
+            the gate is gone and the answer is the same everywhere: numbering
+            is a choice about the résumé, not a property of the design.
+            A second, older copy of this same switch sat further down the
+            group under its own gate. One field written from two rows meant
+            the panel offered the identical switch twice on the two numbered
+            designs; that copy is gone. */}
+        <div
+          ref={numbersRef}
+          className={cn(
+            '-mx-1 rounded-md px-1 py-1 transition-colors',
+            numbersFlash && 'bg-primary/10 ring-1 ring-primary'
+          )}
+        >
+          <Toggle
+            label="Number the sections"
+            checked={m.layout.sectionNumbers}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.sectionNumbers = v
+              })
+            }
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            A running numeral before each section title — decoration only, never in the text a parser reads.
+          </p>
+          {/* ...and in what figures. Not everyone who wants their sections
+              counted wants the two-digit folio: the same switch now covers a
+              plain figure, a numbered-list full stop and roman capitals.
+              Inside the switch's own branch, because a style picker above a
+              switch that is off would style nothing. */}
+          {m.layout.sectionNumbers && (
+            <div className="mt-2">
+              <label className="label">Numeral style</label>
+              <Segmented
+                value={m.layout.sectionNumberStyle}
+                options={[
+                  { value: 'padded', label: '01' },
+                  { value: 'plain', label: '1' },
+                  { value: 'dot', label: '1.' },
+                  { value: 'roman', label: 'I' },
+                ]}
+                onChange={(v) =>
+                  update((md) => {
+                    md.layout.sectionNumberStyle = v
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
         <div>
           <label className="label">Columns</label>
           <Segmented
@@ -961,26 +980,6 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             })
           }
         />
-        {/* Two Signature designs number their sections — 01 SUMMARY, 02
-            EXPERIENCE. The setting has always existed, round-tripped through
-            import and export and survived a template change; nothing in the
-            app ever set it, so choosing one of those designs meant keeping the
-            numbers for good.
-            Gated on the DESIGN rather than on the current value: a switch that
-            disappeared the moment it was turned off could never be turned back
-            on. Only these two style the numeral, so on any other design the
-            row would offer something the page cannot draw. */}
-        {numbersDesign && (
-          <Toggle
-            label="Number the sections"
-            checked={m.layout.sectionNumbers}
-            onChange={(v) =>
-              update((md) => {
-                md.layout.sectionNumbers = v
-              })
-            }
-          />
-        )}
         <div>
           <label className="label">Between contacts</label>
           <Segmented

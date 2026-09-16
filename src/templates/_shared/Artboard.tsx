@@ -27,6 +27,7 @@ import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
 import { ART_BAND_GROUNDS, artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
+import { sectionNumeral } from './sectionNumeral'
 import { useEditorStore } from '@/store/useEditorStore'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { FolioIcon, folioIconKind } from './folioIcons'
@@ -932,7 +933,13 @@ function Section({
   // in page order. It is decorative text (the Deco atom): the painter draws
   // it as outlines with no text layer, and Word and the ATS text never see
   // it, so a parser reads the heading's own words alone.
-  const number = doc.metadata.layout.sectionNumbers && index !== undefined ? String(index + 1).padStart(2, '0') : null
+  // What SHAPE it takes - 01, 1, 1. or I - is the document's own choice, and
+  // it is asked of the shared formatter rather than spelled here, so the
+  // preview tree and the export tree cannot disagree about one document.
+  const number =
+    doc.metadata.layout.sectionNumbers && index !== undefined
+      ? sectionNumeral(index, doc.metadata.layout.sectionNumberStyle)
+      : null
   return (
     <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}

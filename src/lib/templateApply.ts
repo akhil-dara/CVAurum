@@ -199,6 +199,13 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // turned on is the previous template's, not the author's.
       stats: chosen(cur.layout.stats, prev.stats, defaults.layout.stats),
       sectionNumbers: chosen(cur.layout.sectionNumbers, prev.sectionNumbers, defaults.layout.sectionNumbers),
+      // ...but the SHAPE of that numeral is not a structural choice at all,
+      // so it does not go through chosen(): it is the author's the way the
+      // heading style and the date format are, and it simply travels. Stated
+      // rather than left to the spread above because the line beside it is
+      // the opposite rule, and the two read as a pair: a design may decide
+      // whether to number, never in what figures.
+      sectionNumberStyle: cur.layout.sectionNumberStyle,
       sectionSettings: seedSectionSettings(defaults.layout.sectionSettings, cur.layout.sectionSettings),
       headings: cur.layout.headings,
     },

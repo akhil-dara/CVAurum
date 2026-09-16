@@ -162,6 +162,7 @@ interface TemplateConfig {
       footer: string[];          // section keys that render in the strip at the foot of the page
       stats: boolean;            // a row of numbers derived from the content under the header
       sectionNumbers: boolean;   // a running number opens every section heading in the body
+      sectionNumberStyle: 'padded' | 'plain' | 'dot' | 'roman'; // in what figures that numeral is set
     };
   };
 }
@@ -255,7 +256,8 @@ this.
 | `headerStyle` | The author's own header composition, any of the `header` values above; unset draws the template's. Kept across template switches |
 | `footer` | Section keys that leave the body and render in a full-width strip at the foot of the last page, in a compact row form (one line per skill group, one for the languages). The order resolver reads the strip last, so the ATS text and the Word file list those sections last too. A template that ships a strip seats its sections there where the author has moved none; an author's own strip stays across a switch |
 | `stats` | `true` draws a row of up to four numbers derived from the content (years of experience, companies, skills, a headline number from a project) under the header - in the `band` header's own slot, or directly under any other header. Decorative text: outlines in the PDF, absent from Word and the ATS text. Stays once chosen; a template that ships it turns it on |
-| `sectionNumbers` | `true` opens every section heading in the body with a running two-digit number (`01`, `02`, ...) counted in page order; the strip and the sidebar are never numbered. Decorative text, like the stats. Stays once chosen; a template that ships it turns it on |
+| `sectionNumbers` | `true` opens every section heading in the body with a running number counted in page order; the strip and the sidebar are never numbered. Decorative text, like the stats. Stays once chosen; a template that ships it turns it on. The base stylesheet spaces and tints the numeral on every design, so the switch is offered everywhere - a design only decides whether to ship it on |
+| `sectionNumberStyle` | In what figures that numeral is set: `'padded'` (default, the two-digit folio `01`, `02`), `'plain'` (`1`, `2`), `'dot'` (`1.`, `2.`, which reads as a list) or `'roman'` (`I`, `II`, `III`). Formatted by `templates/_shared/sectionNumeral.ts`, which the preview and the export both call, so the two trees cannot draw a different numeral for one document. Decoration in every style. Unlike the switch, it is the author's alone: no template ships one, and it travels across a switch untouched |
 | `metaColumn` | `'gutter'` gives every entry a tinted column on the left holding its opening year over a short word, both decorative, while the entry keeps its own real date line; `'margin'` gives it a narrower column on the right holding the entry's real date and location, which leave the head row and print once. `'none'` (default) leaves every entry as it was. Kept across switches |
 | `headingPlacement` | `'side'` seats every body section's title in a column of its own on the left, right-aligned against the content and one line above it; `'above'` (default) leaves it over its content. Kept across switches |
 | `sectionFrame` | `none` (default) or `tile`. Accepted by the schema and kept across switches now; drawn by a later batch |
@@ -307,7 +309,7 @@ guarantees them, so style against them freely.
 | `.rm-contacts` | The contact row/list (email, phone, links, location). |
 | `.rm-section` | One section wrapper (Experience, Education, …). |
 | `.rm-section-title` | The section heading text. |
-| `.rm-section-number` | The running number ahead of the heading's words, with `layout.sectionNumbers`. Carries `.rm-deco`. |
+| `.rm-section-number` | The running number ahead of the heading's words, with `layout.sectionNumbers`, set in the figures `layout.sectionNumberStyle` names. Carries `.rm-deco`. |
 | `.rm-deco` | Decorative text, marked `aria-hidden` and `data-deco="1"`: a section number, a stat, a ring's level. The painter draws it as outlines with no text layer, and Word and the ATS text never carry it. Style it; never put a word a reader needs in it. |
 | `.rm-stats` / `.rm-stat` / `.rm-stat-value` / `.rm-stat-label` | The stats row and its tiles, with `layout.stats`. |
 | `.rm-rings` / `.rm-ring` / `.rm-ring-track` / `.rm-ring-arc` | The rings skills style: the row, one ring, its track circle and its arc, each svg with one fill. |

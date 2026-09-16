@@ -59,6 +59,29 @@ describe('a heading style the whole document can set', () => {
   })
 })
 
+describe('the running section numeral has a style of its own', () => {
+  // The numerals were always "01, 02": one shape, take it or leave it. The
+  // switch stays a switch; how the numeral is SET is a separate choice, so a
+  // document that wants plain figures or roman numerals does not have to
+  // give up the numbering to escape the zero.
+  it('defaults to the padded figures every numbered design already drew', () => {
+    expect(LayoutSchema.parse({}).sectionNumberStyle).toBe('padded')
+  })
+
+  it('takes every style it offers', () => {
+    for (const style of ['padded', 'plain', 'dot', 'roman'] as const) {
+      expect(LayoutSchema.parse({ sectionNumberStyle: style }).sectionNumberStyle).toBe(style)
+    }
+  })
+
+  it('refuses a value it does not know rather than dropping it silently', () => {
+    // Same rule as headingStyle: a value quietly stripped would leave the
+    // page drawing something the file never asked for, with nothing to say
+    // why. An unknown style fails the whole parse.
+    expect(() => LayoutSchema.parse({ sectionNumberStyle: 'letters' })).toThrow()
+  })
+})
+
 describe('the bullet mark has a size of its own', () => {
   // Style, indent and spacing were all the author's; how big the mark itself
   // is drawn was the browser's, whatever the body size happened to be.

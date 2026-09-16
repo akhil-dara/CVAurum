@@ -233,6 +233,17 @@ export const LayoutSchema = z.object({
     .optional(),
   /** Decorative running numbers before section titles (01, 02, ...). */
   sectionNumbers: z.boolean().default(false),
+  /** How that running numeral is SET, once it is drawn. The switch above
+   *  says whether to number the sections at all; this says in what figures.
+   *  'padded' is the two-digit folio every numbered design has always drawn
+   *  (01, 02), and is the default so an existing file is unchanged; 'plain'
+   *  is the bare figure (1, 2); 'dot' is the figure with a full stop after
+   *  it (1., 2.), which reads as a list rather than as a folio; 'roman' is
+   *  upper-case roman (I, II, III), which several designs' capital headings
+   *  were already set for. Decoration in every style - the painter draws it
+   *  as outlines and the Word file and the ATS text never carry it - so the
+   *  choice cannot change a word a parser reads. */
+  sectionNumberStyle: z.enum(['padded', 'plain', 'dot', 'roman']).default('padded'),
   /** which side the sidebar sits on (only used when columns === 2) */
   sidebar: z.enum(['left', 'right']).default('left'),
   /** sidebar width as a fraction of content width (0.28 - 0.42) */

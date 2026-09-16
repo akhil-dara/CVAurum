@@ -234,6 +234,7 @@ describe('applyTemplateToMetadata keeps the signature layout choices', () => {
     doc.metadata.layout.footer = ['languages']
     doc.metadata.layout.stats = true
     doc.metadata.layout.sectionNumbers = true
+    doc.metadata.layout.sectionNumberStyle = 'roman'
     doc.metadata.theme.artBand = 'emerald'
     const next = applyTemplateToMetadata(doc.metadata, getTemplate('clarity').defaults)
     expect(next.layout.metaColumn).toBe('margin')
@@ -243,6 +244,20 @@ describe('applyTemplateToMetadata keeps the signature layout choices', () => {
     expect(next.layout.stats).toBe(true)
     expect(next.layout.sectionNumbers).toBe(true)
     expect(next.theme.artBand).toBe('emerald')
+  })
+
+  // Whether to number at all is the template's to offer; what the numeral
+  // LOOKS like is nobody's but the author's. No design ships a style of its
+  // own, so there is nothing for a switch to overwrite it with - it simply
+  // travels, the way the date format and the link style do.
+  it('keeps the numeral style across a template switch, in both directions', () => {
+    const cur = MetadataSchema.parse({ template: 'broadsheet', layout: { sectionNumberStyle: 'roman' } })
+    expect(applyTemplateToMetadata(cur, getTemplate('modern').defaults).layout.sectionNumberStyle).toBe('roman')
+    expect(applyTemplateToMetadata(cur, getTemplate('marquee').defaults).layout.sectionNumberStyle).toBe('roman')
+    // An author who never chose still lands on the figures every numbered
+    // design has always drawn.
+    const plain = MetadataSchema.parse({ template: 'modern' })
+    expect(applyTemplateToMetadata(plain, getTemplate('broadsheet').defaults).layout.sectionNumberStyle).toBe('padded')
   })
 
   it('lets a template that ships its own art band light it up when the author chose none', () => {
