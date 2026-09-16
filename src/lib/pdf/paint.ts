@@ -313,6 +313,105 @@ export function coverCrop(
   return { sx: (srcW - sw) / 2, sy: (srcH - sh) / 2, sw, sh }
 }
 
+/** A raster's size AS A READER WOULD SHOW IT, read straight off the bytes.
+ *
+ *  Needed because the shape of the source decides whether its original bytes
+ *  can go into the file untouched (see `embedImage`), and asking the browser
+ *  to decode every image just to learn its width would put a decode on the
+ *  fast path for every photo and logo in the document. PNG carries width and
+ *  height in the IHDR chunk, which is always first; JPEG carries them in its
+ *  frame header, and the EXIF `Orientation` tag can say the stored pixels are
+ *  turned - a phone photo is stored landscape and tagged "turn it", and every
+ *  browser (and this function) reports the TURNED size, while pdf-lib embeds
+ *  the stored one. Measured against sharp on nine real files, progressive
+ *  (SOF2) and CMYK (4-component) JPEGs included: all nine agree.
+ *
+ *  Returns null for anything that is not a PNG or a JPEG, or a JPEG with no
+ *  frame header - callers then fall back to decoding. */
+export function rasterSize(b: Uint8Array): { w: number; h: number; orientation: number } | null {
+  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    const rd = (o: number) => ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0
+    const w = rd(16)
+    const h = rd(20)
+    return w && h ? { w, h, orientation: 1 } : null
+  }
+  if (!(b.length > 4 && b[0] === 0xff && b[1] === 0xd8)) return null
+  let i = 2
+  let orientation = 1
+  let w = 0
+  let h = 0
+  while (i + 3 < b.length) {
+    if (b[i] !== 0xff) {
+      i++
+      continue
+    }
+    const m = b[i + 1]
+    // Standalone markers carry no length word.
+    if (m === 0xd8 || m === 0x01 || m === 0xff || (m >= 0xd0 && m <= 0xd7)) {
+      i += 2
+      continue
+    }
+    if (m === 0xda || m === 0xd9) break // start of scan / end: past every header
+    const len = (b[i + 2] << 8) | b[i + 3]
+    if (len < 2) break
+    const seg = i + 4
+    // SOF0..SOF15 are frame headers except C4 (Huffman tables), C8 (JPEG
+    // extensions) and CC (arithmetic tables), which share the number space.
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc && !w) {
+      h = (b[seg + 1] << 8) | b[seg + 2]
+      w = (b[seg + 3] << 8) | b[seg + 4]
+    }
+    if (m === 0xe1 && b[seg] === 0x45 && b[seg + 1] === 0x78 && b[seg + 2] === 0x69 && b[seg + 3] === 0x66) {
+      const t = seg + 6 // TIFF header: "Exif\0\0" then II/MM
+      const le = b[t] === 0x49
+      const u16 = (o: number) => (le ? b[o] | (b[o + 1] << 8) : (b[o] << 8) | b[o + 1])
+      const u32 = (o: number) =>
+        le
+          ? ((b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0)
+          : (((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0)
+      const ifd = t + u32(t + 4)
+      if (ifd + 2 < b.length) {
+        const n = u16(ifd)
+        for (let k = 0; k < n && ifd + 2 + k * 12 + 12 <= b.length; k++) {
+          const e = ifd + 2 + k * 12
+          if (u16(e) === 0x0112) orientation = u16(e + 8)
+        }
+      }
+    }
+    i += 2 + len
+  }
+  if (!w || !h) return null
+  // 5..8 are the quarter-turn orientations, which swap the sides.
+  return orientation >= 5 && orientation <= 8 ? { w: h, h: w, orientation } : { w, h, orientation }
+}
+
+/** True when this source cannot go into the file as it stands, because the box
+ *  it is drawn into would show a DIFFERENT picture from the one the page
+ *  shows.
+ *
+ *  `page.drawImage` fills the box with the whole source: it has no `object-fit`
+ *  and no idea about EXIF. So original bytes are only right when the source
+ *  already has the box's shape (nothing to crop or letterbox) and is stored the
+ *  way up it is shown. Measured, on a document whose photo came in through the
+ *  JSON import rather than the cropper: a 600x400 photo in a square frame
+ *  exported as a squashed oval where the page showed a circle, and a phone
+ *  photo tagged orientation 6 exported lying on its side. The cropper's own
+ *  output is square and untagged, which is why the upload path never showed
+ *  this and the import path always did. */
+export function needsReshape(
+  src: { w: number; h: number; orientation: number },
+  box: { wPx: number; hPx: number; fit?: 'cover' | 'contain' }
+): boolean {
+  if (src.orientation > 1) return true
+  // No object-fit: the DOM stretches the source into the box, and so does
+  // drawImage - the two agree whatever the shapes are.
+  if (box.fit !== 'cover' && box.fit !== 'contain') return false
+  if (!src.w || !src.h || !box.wPx || !box.hPx) return false
+  // 1% of aspect is well under a pixel on a 29px logo; it keeps a source that
+  // is square bar a rounding error on the cheap path.
+  return Math.abs(src.w / src.h - box.wPx / box.hPx) > 0.01 * (box.wPx / box.hPx)
+}
+
 /** Twice the drawn size is enough resolution for print without paying for
  *  the source's own: an art band decodes at 1200x300 and is drawn about a
  *  third of that wide. */
@@ -380,8 +479,36 @@ async function transcodeBytes(
     }
     const drawW = Math.max(1, Math.round(box.wPx * SUPERSAMPLE))
     const drawH = Math.max(1, Math.round(box.hPx * SUPERSAMPLE))
-    if (!opaque || box.fit === 'contain' || !drawW || !drawH) {
-      const bytes = dataUriToBytes(natural.toDataURL('image/png'))
+    // A JPEG cannot carry the see-through part of a mark, nor the see-through
+    // letterbox a `contain` fit leaves around one, so those keep the PNG path.
+    if (!opaque || box.fit === 'contain') {
+      // A source that already has the box's shape is written at its own size,
+      // exactly as it always was: nothing to crop or letterbox, and paying a
+      // resample for that would only cost the mark its edges.
+      if (!needsReshape({ w, h, orientation: 1 }, box)) {
+        const bytes = dataUriToBytes(natural.toDataURL('image/png'))
+        return bytes ? { bytes, jpeg: false } : null
+      }
+      const shaped = document.createElement('canvas')
+      shaped.width = drawW
+      shaped.height = drawH
+      const sctx = shaped.getContext('2d')
+      if (!sctx) return null
+      // Nothing is painted behind: a canvas is born transparent, and the
+      // letterbox a `contain` fit leaves has to STAY see-through - whatever
+      // shows through it is the element's own background, which the page has
+      // already painted underneath.
+      sctx.imageSmoothingQuality = 'high'
+      if (box.fit === 'contain') {
+        // The whole image, centred, nothing cut off - what the element's own
+        // background shows around is the page's, not ours to invent.
+        const s = Math.min(drawW / w, drawH / h)
+        sctx.drawImage(img, (drawW - w * s) / 2, (drawH - h * s) / 2, w * s, h * s)
+      } else {
+        const { sx, sy, sw, sh } = coverCrop(w, h, box.wPx, box.hPx)
+        sctx.drawImage(img, sx, sy, sw, sh, 0, 0, drawW, drawH)
+      }
+      const bytes = dataUriToBytes(shaped.toDataURL('image/png'))
       return bytes ? { bytes, jpeg: false } : null
     }
     const canvas = document.createElement('canvas')
@@ -404,11 +531,15 @@ async function transcodeBytes(
   }
 }
 
-/** Fetches the op's source, embeds its ORIGINAL bytes (no re-encode/resize),
- *  once per source and drawn size; non-PNG/JPEG formats the browser can
- *  decode are re-encoded (see transcodeBytes) instead of silently skipped.
- *  The drawn size is part of the key because a re-encoded source is written
- *  at the size it is drawn - the same picture in two boxes is two pictures. */
+/** Fetches the op's source and embeds its ORIGINAL bytes (no re-encode/resize)
+ *  once per source and drawn size - measured: every photo and logo the cropper
+ *  writes goes into the file byte for byte. Two kinds of source do NOT: a
+ *  format pdf-lib cannot read (webp/gif/avif), and one whose shape or stored
+ *  rotation would make the box show a different picture from the page (see
+ *  `needsReshape`). Both are re-encoded by `transcodeBytes` rather than
+ *  silently skipped or silently wrong. The drawn size is part of the key
+ *  because a re-encoded source is written at the size it is drawn - the same
+ *  picture in two boxes is two pictures. */
 async function embedImage(
   page: PDFPage,
   op: { src: string; wPx: number; hPx: number; fit?: 'cover' | 'contain' },
@@ -429,8 +560,17 @@ async function embedImage(
           if (!res.ok) return null
           bytes = new Uint8Array(await res.arrayBuffer())
         }
-        if (hasMagic(bytes, PNG_MAGIC)) return await page.doc.embedPng(bytes)
-        if (hasMagic(bytes, JPEG_MAGIC)) return await page.doc.embedJpg(bytes)
+        // Original bytes, but only when they land in the box as the picture
+        // the page shows. pdf-lib fills the box with the whole source and
+        // knows nothing of object-fit or EXIF, so a source whose shape or
+        // stored rotation disagrees with the box is redrawn instead - see
+        // `needsReshape`, and the import-path photos it was measured on.
+        const size = rasterSize(bytes)
+        const reshape = !!size && needsReshape(size, op)
+        if (!reshape) {
+          if (hasMagic(bytes, PNG_MAGIC)) return await page.doc.embedPng(bytes)
+          if (hasMagic(bytes, JPEG_MAGIC)) return await page.doc.embedJpg(bytes)
+        }
         const transcoded = await transcodeBytes(src, op)
         if (transcoded)
           return transcoded.jpeg ? await page.doc.embedJpg(transcoded.bytes) : await page.doc.embedPng(transcoded.bytes)

@@ -12,6 +12,8 @@ import {
   glyphPathToDrawPath,
   roundedRectPath,
   dataUriToBytes,
+  rasterSize,
+  needsReshape,
   DRIFT_FRACTION,
 } from './paint'
 import { PdfFontCache } from './fonts'
@@ -2027,12 +2029,144 @@ describe('paintOps - an opaque source is re-encoded at the size it is drawn', ()
     expect(sy).toBe(0)
   })
 
-  it('leaves a source with transparency on the PNG path, at its natural size', async () => {
+  it('leaves a source with transparency on the PNG path', async () => {
     // The identity marks and logos ride on their alpha; a JPEG has none.
     reset(false)
     const pdf = await savedPdf([bandOp({ src: 'https://example.test/mark.webp' })])
     expect(asked).toEqual(['image/png'])
-    expect(boxes[0]).toEqual({ w: 1200, h: 300 })
     expect(pdf).not.toContain('DCTDecode')
+  })
+
+  it('crops a see-through source the way the page crops it, too', async () => {
+    // It used to be written at its NATURAL size and then stretched into the
+    // box by the draw - the same "two outputs, two pictures" the opaque path
+    // above was fixed for, still happening to every mark that carries alpha.
+    reset(false)
+    await savedPdf([bandOp({ src: 'https://example.test/mark.webp' })])
+    const crop = draws.find((d) => d.args.length === 8)
+    expect(crop, 'the see-through source was drawn without a crop rectangle').toBeDefined()
+    const [sx, sy, sw, sh] = crop!.args
+    expect(sh).toBe(300)
+    expect(sw).toBeCloseTo(650, 0)
+    expect(sx).toBeCloseTo(275, 0)
+    expect(sy).toBe(0)
+    expect(boxes[0].w).toBeGreaterThanOrEqual(260)
+    expect(boxes[0].h / boxes[0].w).toBeCloseTo(120 / 260, 2)
+  })
+
+  it('keeps a see-through source that already fits the box at its natural size', async () => {
+    // Nothing to crop, so nothing is resampled: a mark that is drawn in a box
+    // of its own shape must not lose its edges to a round trip.
+    reset(false)
+    await savedPdf([bandOp({ src: 'https://example.test/mark.webp', wPx: 400, hPx: 100 })])
+    expect(boxes[0]).toEqual({ w: 1200, h: 300 })
+    expect(draws.every((d) => d.args.length !== 8)).toBe(true)
+  })
+
+  it('letterboxes a contain source instead of stretching it', async () => {
+    // `object-fit: contain` is what an entry logo uses. The whole mark, centred
+    // in the box's own shape, with see-through space around it - a 1200x300
+    // mark in a square box used to arrive squashed to a quarter of its height.
+    reset(true)
+    await savedPdf([bandOp({ wPx: 200, hPx: 200, fit: 'contain' })])
+    expect(asked).toEqual(['image/png']) // a letterbox cannot be a JPEG
+    expect(boxes[0].w).toBe(boxes[0].h)
+    const fit = draws.find((d) => d.args.length === 4)
+    expect(fit, 'the contain source was not drawn as a fitted rectangle').toBeDefined()
+    const [dx, dy, dw, dh] = fit!.args
+    // 1200x300 into a square: full width, a quarter of the height, centred.
+    expect(dw).toBeCloseTo(boxes[0].w, 0)
+    expect(dh).toBeCloseTo(boxes[0].w / 4, 0)
+    expect(dx).toBeCloseTo(0, 0)
+    expect(dy).toBeCloseTo((boxes[0].h - dh) / 2, 0)
+  })
+})
+
+/**
+ * What can go into the file untouched.
+ *
+ * `page.drawImage` fills the box with the whole source - no object-fit, no
+ * EXIF - so the original bytes are only the right answer when the source
+ * already has the box's shape and is stored the way up it is shown. Measured
+ * on the JSON-import path, which (unlike the cropper) hands the painter the
+ * file exactly as the author had it: a 600x400 photo in a round frame exported
+ * as a squashed oval where the page showed a circle, and a photo tagged
+ * orientation 6 exported lying on its side.
+ *
+ * `rasterSize` reads that off the bytes rather than paying for a decode. It
+ * was checked against sharp on nine real files - transparent and opaque PNG,
+ * baseline, progressive (SOF2), CMYK (4-component), EXIF-tagged and 4000px
+ * JPEG - and agreed on every one.
+ */
+describe('rasterSize / needsReshape - when original bytes are the wrong picture', () => {
+  const png = (w: number, h: number) => {
+    const b = new Uint8Array(33)
+    b.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0)
+    b.set([0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52], 8) // length + "IHDR"
+    b.set([(w >> 24) & 255, (w >> 16) & 255, (w >> 8) & 255, w & 255], 16)
+    b.set([(h >> 24) & 255, (h >> 16) & 255, (h >> 8) & 255, h & 255], 20)
+    return b
+  }
+  /** FFD8, an optional EXIF APP1 carrying `orientation`, then a frame header. */
+  const jpeg = (w: number, h: number, orientation = 0, sof = 0xc0) => {
+    const out: number[] = [0xff, 0xd8]
+    if (orientation) {
+      const tiff = [
+        0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, // II, 42, IFD0 at +8
+        0x01, 0x00, // one entry
+        0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, orientation, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, // no next IFD
+      ]
+      const payload = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00, ...tiff] // "Exif\0\0"
+      const len = payload.length + 2
+      out.push(0xff, 0xe1, (len >> 8) & 255, len & 255, ...payload)
+    }
+    out.push(0xff, sof, 0x00, 0x11, 0x08, (h >> 8) & 255, h & 255, (w >> 8) & 255, w & 255, 0x03)
+    out.push(...new Array(6).fill(0), 0xff, 0xda)
+    return new Uint8Array(out)
+  }
+
+  it('reads a PNG size out of its IHDR', () => {
+    expect(rasterSize(png(600, 400))).toEqual({ w: 600, h: 400, orientation: 1 })
+  })
+
+  it('reads a baseline and a PROGRESSIVE JPEG the same way', () => {
+    expect(rasterSize(jpeg(600, 400))).toEqual({ w: 600, h: 400, orientation: 1 })
+    // SOF2 is the progressive frame header; a scan for SOF0 alone misses it.
+    expect(rasterSize(jpeg(600, 400, 0, 0xc2))).toEqual({ w: 600, h: 400, orientation: 1 })
+  })
+
+  it('reports the TURNED size for a quarter-turn EXIF tag, as a browser does', () => {
+    // Stored 400 wide, tagged "turn it": every reader shows 600x400, and so
+    // must this - otherwise the shape it is compared against is the wrong one.
+    expect(rasterSize(jpeg(400, 600, 6))).toEqual({ w: 600, h: 400, orientation: 6 })
+    expect(rasterSize(jpeg(600, 400, 1))).toEqual({ w: 600, h: 400, orientation: 1 })
+  })
+
+  it('returns null for bytes that are neither', () => {
+    expect(rasterSize(new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4]))).toBeNull()
+  })
+
+  it('keeps the original bytes when the source already has the box shape', () => {
+    const square = { w: 360, h: 360, orientation: 1 }
+    expect(needsReshape(square, { wPx: 134, hPx: 134, fit: 'cover' })).toBe(false)
+    expect(needsReshape(square, { wPx: 29, hPx: 29, fit: 'contain' })).toBe(false)
+  })
+
+  it('redraws a source whose shape disagrees with the box', () => {
+    const wide = { w: 600, h: 400, orientation: 1 }
+    expect(needsReshape(wide, { wPx: 134, hPx: 134, fit: 'cover' })).toBe(true)
+    expect(needsReshape(wide, { wPx: 29, hPx: 29, fit: 'contain' })).toBe(true)
+  })
+
+  it('leaves a source with no object-fit alone, whatever its shape', () => {
+    // The DOM stretches that one into the box as well, so the two agree.
+    expect(needsReshape({ w: 600, h: 400, orientation: 1 }, { wPx: 134, hPx: 134 })).toBe(false)
+  })
+
+  it('redraws anything carrying a rotation tag, even into a box of its own shape', () => {
+    // A square photo tagged "turn it" has nothing to crop and is still wrong.
+    expect(needsReshape({ w: 400, h: 400, orientation: 6 }, { wPx: 134, hPx: 134, fit: 'cover' })).toBe(true)
+    expect(needsReshape({ w: 400, h: 400, orientation: 3 }, { wPx: 134, hPx: 134 })).toBe(true)
   })
 })
