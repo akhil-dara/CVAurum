@@ -13,6 +13,7 @@ import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
 import { getTemplate } from '@/templates/registry'
+import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
 
 const BULLET_OPTIONS = [
   ['disc', '●'],
@@ -875,14 +876,13 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
           {m.layout.sectionNumbers && (
             <div className="mt-2">
               <label className="label">Numeral style</label>
+              {/* The styles and their figures come from the formatter that
+                  draws them (sectionNumeral.ts), because the section Style
+                  sheet offers the same four and two hand-written copies of
+                  the list would drift. */}
               <Segmented
                 value={m.layout.sectionNumberStyle}
-                options={[
-                  { value: 'padded', label: '01' },
-                  { value: 'plain', label: '1' },
-                  { value: 'dot', label: '1.' },
-                  { value: 'roman', label: 'I' },
-                ]}
+                options={SECTION_NUMBER_STYLES}
                 onChange={(v) =>
                   update((md) => {
                     md.layout.sectionNumberStyle = v

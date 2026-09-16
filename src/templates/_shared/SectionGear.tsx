@@ -21,6 +21,7 @@ import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LINK, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
+import { SECTION_NUMBER_STYLES } from './sectionNumeral'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -527,6 +528,27 @@ export function SectionGear({
   const setIconSize = (v: Metadata['layout']['sectionIconSize']) =>
     editMeta((m) => {
       m.layout.sectionIconSize = v
+    })
+
+  // The running numerals are one choice for the whole page too - on or off,
+  // and in what figures - so the row says "all sections" like the two above
+  // it. It is offered HERE because this sheet is where a person went looking
+  // for the way to drop the numbering from a numbered design: the switch
+  // lived only in the Design panel's Layout group, and "Style" is the button
+  // on the heading that carries the numeral.
+  const numbersOn = layout.sectionNumbers
+  const numberStyle = layout.sectionNumberStyle
+  // Off writes the switch alone: the chosen figures stay on the document, so
+  // turning the numbering back on restores the style that was showing rather
+  // than snapping every author back to the two-digit folio.
+  const setNumbering = (v: Metadata['layout']['sectionNumberStyle'] | 'off') =>
+    editMeta((m) => {
+      if (v === 'off') {
+        m.layout.sectionNumbers = false
+        return
+      }
+      m.layout.sectionNumbers = true
+      m.layout.sectionNumberStyle = v
     })
 
   // Keep the panel usable if the window changes underneath it.
@@ -1070,6 +1092,35 @@ export function SectionGear({
                       Headings sit beside the content, so titles keep to the right edge of their own column.
                     </p>
                   )}
+                </Group>
+
+                {/* The running numeral that opens a heading - off, or in one
+                    of the four figures the formatter draws. Document-wide,
+                    like the two badge rows under it, and labelled the way
+                    they are. The figures come from sectionNumeral.ts, which
+                    is what the page actually draws with, so this row and the
+                    Design panel's cannot come to offer different ones. */}
+                <Group label="Numbering (all sections)">
+                  <div className="grid grid-cols-5 gap-1">
+                    <ChipBtn
+                      label="Off"
+                      title="No numeral before the section titles"
+                      on={!numbersOn}
+                      onClick={() => setNumbering('off')}
+                    />
+                    {SECTION_NUMBER_STYLES.map((s) => (
+                      <ChipBtn
+                        key={s.value}
+                        label={s.label}
+                        title={s.title}
+                        on={numbersOn && numberStyle === s.value}
+                        onClick={() => setNumbering(s.value)}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+                    Counts every section in the main column — decoration only, never in the text a parser reads.
+                  </p>
                 </Group>
 
                 {/* Section badge - style and size are document-wide, unlike

@@ -3,6 +3,22 @@ import type { Metadata } from '@/types/metadata'
 /** The four shapes a running section numeral can take (layout.sectionNumberStyle). */
 export type SectionNumberStyle = Metadata['layout']['sectionNumberStyle']
 
+/**
+ * The shapes on offer, each labelled with the figure it actually draws.
+ *
+ * ONE list, beside the formatter that gives those figures their meaning: the
+ * choice is offered in two places now - the Design panel's Layout group and
+ * the section Style sheet, where a person looking to switch the numbering off
+ * went first - and two hand-written copies of four value/label pairs is
+ * exactly the kind of pair that drifts a label at a time.
+ */
+export const SECTION_NUMBER_STYLES: { value: SectionNumberStyle; label: string; title: string }[] = [
+  { value: 'padded', label: '01', title: 'Two-figure folio (01, 02, 03)' },
+  { value: 'plain', label: '1', title: 'A plain figure (1, 2, 3)' },
+  { value: 'dot', label: '1.', title: 'A figure and a full stop (1., 2., 3.)' },
+  { value: 'roman', label: 'I', title: 'Roman capitals (I, II, III)' },
+]
+
 /** Value, numeral - largest first, subtractive pairs included, so the walk
  *  below emits ordinary roman (IV, not IIII; XL, not XXXX). */
 const ROMAN: ReadonlyArray<readonly [number, string]> = [
