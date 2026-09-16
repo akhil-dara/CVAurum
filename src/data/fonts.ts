@@ -131,10 +131,30 @@ export const SCRIPT_FALLBACKS: Record<FontCategory, string[]> = {
   handwriting: ['Inter'],
 }
 
+/**
+ * The bundled MARKS family — four bullet glyphs (◦ U+25E6, ▪ U+25AA, ✓ U+2713,
+ * ◆ U+25C6) that NO bundled family carries: measured across all 158 PDF faces
+ * and all 257 web-font subset files, 0 of each. Generated outright by
+ * scripts/make-marks-font.py, so its licence is this repository's own.
+ *
+ * It is deliberately NOT in `FONTS` — nobody should be able to set a résumé in
+ * it — and NOT in `SCRIPT_FALLBACKS`, which is about scripts and whose members
+ * must draw Cyrillic, Greek and Vietnamese. It is appended to every chain
+ * below instead, so it is the LAST thing tried: the bullet, en dash and angle
+ * quote every family already has keep coming from the résumé's own face, and
+ * only the four marks nothing has fall through to this.
+ *
+ * Both sides read the chain: the browser through `fontStack` (the CSS the
+ * canvas draws with) and the painter through `PdfFontCache.coverage`. Before
+ * it existed, a ✓ or ◆ bullet was drawn on the canvas from whatever system
+ * font the reader happened to have, and dropped from the PDF entirely.
+ */
+export const MARKS_FAMILY = 'CVAurum Marks'
+
 /** The fallback families for `name`, in order, never naming `name` itself. */
 export function scriptFallbacks(name?: string): string[] {
   const def = name ? FONT_MAP[name] : undefined
-  const chain = SCRIPT_FALLBACKS[def?.category ?? 'sans']
+  const chain = [...SCRIPT_FALLBACKS[def?.category ?? 'sans'], MARKS_FAMILY]
   return chain.filter((f) => f !== name)
 }
 

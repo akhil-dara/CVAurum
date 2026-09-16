@@ -119,10 +119,20 @@ describe('PdfFontCache.coverage: the script-fallback chain', () => {
     doc.registerFontkit(fontkit)
     const fonts = new PdfFontCache(doc, REAL_INDEX_ALL)
     const chain = await fonts.coverage('"Bebas Neue", "Oswald", "Inter", ui-sans-serif, system-ui, sans-serif', 400)
-    expect(chain.map((c) => c.family.split(',')[0].replace(/"/g, ''))).toEqual(['Bebas Neue', 'Oswald', 'Inter'])
+    // ...and the bundled marks family last, which is where a bullet glyph no
+    // text family has (◦ ▪ ✓ ◆) comes from - see src/data/fonts.ts.
+    expect(chain.map((c) => c.family.split(',')[0].replace(/"/g, ''))).toEqual([
+      'Bebas Neue',
+      'Oswald',
+      'Inter',
+      'CVAurum Marks',
+    ])
     const cyrillicD = 'Д'.codePointAt(0)!
     expect(chain[0].has(cyrillicD)).toBe(false)
     expect(chain[1].has(cyrillicD)).toBe(true)
+    const check = '✓'.codePointAt(0)!
+    expect(chain.slice(0, 3).some((c) => c.has(check))).toBe(false)
+    expect(chain[3].has(check)).toBe(true)
   })
 
   it('a Latin-only family reports no missing Cyrillic, because the chain has it', async () => {

@@ -20,6 +20,7 @@ import {
   isAxisAligned,
   transformedBoxPath,
   contentBoxOf,
+  markerOriginX,
   parseSvgTransform,
   transformPathD,
   svgShapeWalk,
@@ -3562,5 +3563,51 @@ describe('contentBoxOf - a picture is painted inside the padding (entry logo siz
   it('never goes negative', () => {
     const inner = contentBoxOf({ xPx: 0, yPx: 0, wPx: 4, hPx: 4 }, cs({ paddingLeft: '3px', paddingRight: '3px' }))
     expect(inner.wPx).toBe(0)
+  })
+})
+
+describe('markerOriginX - an outside marker is right-aligned on the content edge (2026-09-16)', () => {
+  // `list-style-position: outside` right-aligns the WHOLE marker string -
+  // trailing spaces included (Artboard.tsx's BULLET_TYPE is '"•  "') -
+  // against the li's content-box left edge. Nothing else is added: the gap
+  // between the mark and the first word IS those two spaces.
+  //
+  // This used to add another 0.35 em of its own, from the days when a marker
+  // was a shape with no string to supply a gap. Measured on the /print page
+  // against the exported file, that drew every mark 0.34-0.43 em (3.5 pt)
+  // left of the one the canvas draws, on both marquee and harvard and on all
+  // seven bullet styles.
+  const cs = (o: Record<string, string> = {}) =>
+    ({
+      paddingLeft: '0px',
+      paddingRight: '0px',
+      paddingTop: '0px',
+      paddingBottom: '0px',
+      borderLeftWidth: '0px',
+      borderRightWidth: '0px',
+      borderTopWidth: '0px',
+      borderBottomWidth: '0px',
+      ...o,
+    }) as unknown as CSSStyleDeclaration
+  // marquee's first bullet, measured live: a 13.33px body, a marker box the
+  // browser lays out at 1.0501 em, an li whose content edge is at 294.922.
+  const li = { xPx: 294.922, yPx: 100, wPx: 300, hPx: 16 }
+
+  it('puts the pen exactly one marker-string width left of the content edge', () => {
+    expect(markerOriginX(li, cs(), 14.0)).toBeCloseTo(280.922, 6)
+  })
+
+  it('adds no gap of its own - the whole offset is the measured width', () => {
+    const sizePx = 13.33
+    const withGap = markerOriginX(li, cs(), 14.0) - sizePx * 0.35
+    expect(markerOriginX(li, cs(), 14.0) - withGap).toBeCloseTo(4.6655, 4)
+  })
+
+  it('measures from the CONTENT edge, so an li with padding hangs its mark further right', () => {
+    expect(markerOriginX(li, cs({ paddingLeft: '6px', borderLeftWidth: '2px' }), 14.0)).toBeCloseTo(288.922, 6)
+  })
+
+  it('a zero-width measurement leaves the pen on the content edge rather than guessing', () => {
+    expect(markerOriginX(li, cs(), 0)).toBeCloseTo(294.922, 6)
   })
 })

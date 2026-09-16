@@ -97,6 +97,10 @@ REQUIRED_CHARS = (
 )
 
 
+# Static outputs this script does not build itself, by index key.
+EXTRA_STATIC = {"cvaurum-marks|400": "cva-marks-400.ttf"}
+
+
 def coverage(font: TTFont) -> int:
     try:
         cmap = font.getBestCmap()
@@ -331,6 +335,18 @@ def main() -> int:
         print(f"\n{len(merge_failures)} family/weight pair(s) fell back to single-subset (latin-ext dropped):")
         for label in merge_failures:
             print(f"  - {label}")
+
+    # The marks font is not instanced from a web font - it is generated
+    # outright by scripts/make-marks-font.py, because the four bullet glyphs
+    # it carries (U+25E6 white bullet, U+25AA small square, U+2713 check,
+    # U+25C6 diamond) are in NONE of the bundled families. Named here so the
+    # index finds it and the stale sweep below leaves it alone.
+    for key, name in EXTRA_STATIC.items():
+        if (OUT / name).exists():
+            index[key] = name
+            seen_static.add(name)
+        else:
+            print(f"  WARNING {name} missing - run scripts/make-marks-font.py")
 
     # Drop stale outputs from earlier runs so the directory always matches the
     # index exactly (family slugs can change as the generator improves).

@@ -4,7 +4,7 @@ import { mainColumnTextFirst } from './readingOrder'
 import { keepFlagsForParagraph, KEEP_WHOLE_MAX_LINES, KEEP_WHOLE_MAX_LINES_TWO_COL } from './widows'
 import { coalesceTextOps } from './coalesce'
 import { collectLinkOps } from './links'
-import { ascentPx, extractRuns, layoutMetricsFor, measureTextWidthPx, textNodeLineSegments } from './text'
+import { ascentPx, extractRuns, measureLaidOutWidthPx, measureTextWidthPx, textNodeLineSegments } from './text'
 import type { CornerRadii, DrawOp, LinearGradient, TextRun } from './types'
 import { combineColumns, type PageBlock } from './paginate'
 import { keepShortSectionsWhole, keepEntryWhole } from './sectionKeep'
@@ -1450,70 +1450,71 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
     })
 }
 
-/** Bullet glyph implied by `list-style-type`, for marker kinds that are
- *  genuinely TEXT — a custom marker declared as a CSS string (our
- *  dash/arrow/check/diamond bullet styles: `list-style-type: '›  '`) reuses
- *  the same quoted-string parsing as ::before/::after content. disc/circle/
- *  square are handled separately in markerOps: browsers draw those as UA
- *  geometric shapes, not as glyphs from the current font. */
+/** Bullet glyph implied by `list-style-type`: every one of our seven bullet
+ *  styles is declared as a CSS STRING (`list-style-type: "›  "` —
+ *  Artboard.tsx's BULLET_TYPE), so unwrapping it reuses the same quoted-string
+ *  parsing as ::before/::after content. A `list-style-type` KEYWORD
+ *  (disc/circle/square/decimal/…) unwraps to '' and paints nothing — see
+ *  markerOps. */
 function listStyleGlyph(listStyleType: string): string {
   return pseudoContentText(listStyleType)
+}
+
+/**
+ * Where the browser puts an `outside` marker's text origin, in the same
+ * root-relative px the rest of the draw list is in.
+ *
+ * `list-style-position: outside` puts the marker in its own box OUTSIDE the
+ * li's principal box, RIGHT-ALIGNED against the li's CONTENT-box left edge —
+ * so the marker string's pen starts exactly one string width left of that
+ * edge, and nothing else is added. The gap between the mark and the first
+ * word is not layout: it is the marker string's own two TRAILING SPACES
+ * (Artboard.tsx's BULLET_TYPE), so `measuredWidthPx` has to be measured WITH
+ * them — which is why `markerWidthPx` below measures under `white-space: pre`
+ * (text.ts) rather than letting normal white-space processing eat them.
+ *
+ * This used to add another `0.35em` on top, from the days when a marker had
+ * no string to supply its own gap. Measured on the /print page against the
+ * exported file, that put every mark 0.34-0.43 em left of where the canvas
+ * draws it - about 3 pt at body size, on both marquee and harvard and on all
+ * seven bullet styles - far enough that marquee's disc hung outside the body
+ * margin in the file while the canvas kept it inside.
+ *
+ * Exported so the arithmetic can be pinned without a DOM (markerOps itself
+ * needs real getComputedStyle/::marker access).
+ */
+export function markerOriginX(box: Box, cs: CSSStyleDeclaration, measuredWidthPx: number): number {
+  return contentBoxOf(box, cs).xPx - measuredWidthPx
+}
+
+/**
+ * The marker string's width, measured the way the browser lays it out.
+ *
+ * A canvas context carries only a font shorthand, so it misses `font-variant`
+ * — and Chromium's UA stylesheet puts `font-variant-numeric: tabular-nums` on
+ * every `::marker`, so an ordered list's numbers line up. In Work Sans `tnum`
+ * re-cuts the SPACE, and a "•  " marker measures 1.1124 em without it against
+ * 1.0350 em with it: 0.077 em of the marker box, enough to put every marquee
+ * bullet visibly left of the one on the page. The layout probe (text.ts)
+ * reproduces the marker's own typography; the canvas measurement stays as the
+ * fallback for a document with no usable DOM behind it.
+ */
+function markerWidthPx(text: string, markerCs: CSSStyleDeclaration, cssFont: string): number {
+  return measureLaidOutWidthPx(text, markerCs) || measureTextWidthPx(text, cssFont)
 }
 
 /**
  * Native `<li>::marker` bullets (used by every template's achievement/detail
  * lists). `getComputedStyle(el, '::marker').content` is only ever something
  * other than `normal` when a stylesheet explicitly sets `::marker { content:
- * ... }` — ours never do; the bullet is driven by `list-style-type` instead
- * (disc/circle/square, or a quoted custom string for the dash/arrow/check/
- * diamond bullet styles).
+ * ... }` — ours never do; the bullet is driven by `list-style-type` instead,
+ * which every one of our seven bullet styles sets to a quoted STRING.
  *
- * `list-style-position: outside` renders the marker OUTSIDE (to the left of)
- * the li's own box, in space reserved by the list's `padding-left` — there's
- * no DOM box for the marker itself to read a position from, so we right-
- * align it against the li's left edge with a small gap, which is what
- * "outside" looks like in every browser.
+ * The mark is REAL content, not decoration: it is drawn once, visibly, as
+ * text, and it is the only thing telling a reader where one item ends and the
+ * next begins. (A marker painted as a vector outline used to be
+ * `isDecorative`, with an invisible twin beside it carrying the text.)
  */
-/**
- * What a list marker READS as, once it is text rather than a shape.
- *
- * The geometric kinds are drawn by the browser as UA shapes with no glyph
- * behind them, so there is nothing to copy from; the bullet character is the
- * plain-text name for all three. A custom string marker already is its own
- * text. Kept deliberately to characters an ATS and a plain-text paste both
- * handle - the mark on the page can be as ornamental as the design likes.
- */
-const PLAIN_MARKERS = /^[ -~\u00b7\u2013\u2014\u2022\u203a]+$/
-
-function markerPlainText(kind: string, explicitText: string): string {
-  const literal = explicitText.trim()
-  if (literal) return PLAIN_MARKERS.test(literal) ? literal : '\u2022'
-  if (kind === 'disc' || kind === 'circle' || kind === 'square') return '\u2022'
-  return ''
-}
-
-/**
- * The marker's extractable twin: invisible, at the mark's own position, on
- * the item's first baseline so an extractor joins it to the line that
- * follows. Without it a copied list is a run of sentences with no
- * boundaries - measured at zero marker items in the file, for every one of
- * the seven bullet styles.
- */
-function markerTextTwin(
-  markerCs: CSSStyleDeclaration,
-  text: string,
-  xPx: number,
-  topPx: number,
-  ops: DrawOp[]
-): void {
-  if (!text) return
-  const run = styledTextRun(markerCs, text, xPx, topPx)
-  if (!run) return
-  run.isDecorative = false
-  run.invisible = true
-  ops.push({ kind: 'text', run })
-}
-
 function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const cs = getComputedStyle(el)
   if (cs.display !== 'list-item') return
@@ -1529,52 +1530,29 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   if (sizePx <= 0) return
   const font = `${markerCs.fontStyle} ${markerCs.fontWeight} ${markerCs.fontSize} ${markerCs.fontFamily}`
 
-  // Chromium draws disc/circle/square markers as small UA-generated shapes,
-  // not as glyphs from the current font — drawing the Unicode bullet/square
-  // characters instead looked visibly wrong (a tiny, font-dependent, baseline-
-  // hugging mark instead of a round dot centred on the line). Reuse the
-  // rounded-rect vector primitive defect 1 added to paint.ts: a square rect
-  // with radiusPx = its own size collapses to a perfect circle.
-  //
-  // GEOMETRY (2026-08-17 user report "points not aligned", calibrated
-  // against pixel measurement of Chromium's own rendering): the dot centers
-  // on the FIRST LINE BOX (computed line-height / 2 below the li top —
-  // measured 8.80px vs Chromium's true 8.51px on the harvard/Source Serif 4
-  // case, sub-half-pixel), and its diameter is ceil(fontSize / 3) (5px,
-  // exact match). The previous font-bounding-box arithmetic placed the dot
-  // 2px low and 0.5px small (measured 10.52px/4.5px) — and canvas font
-  // metrics additionally RACE font loading (first measurement caches
-  // fallback-font numbers), which line-height arithmetic is immune to.
-  if (!explicitText && (kind === 'disc' || kind === 'circle' || kind === 'square')) {
-    const d = Math.ceil(sizePx / 3)
-    const gapPx = sizePx * 0.4
-    const lineHeightPx = parsePx(cs.lineHeight) || layoutMetricsFor(font).heightPx || sizePx * 1.2
-    const centerYPx = box.yPx + lineHeightPx / 2
-    ops.push({
-      kind: 'rect',
-      xPx: box.xPx - gapPx - d,
-      yPx: centerYPx - d / 2,
-      wPx: d,
-      hPx: d,
-      fill: color,
-      radiusPx: kind === 'square' ? 0 : d,
-    })
-    markerTextTwin(markerCs, markerPlainText(kind, explicitText), box.xPx - gapPx - d, box.yPx, ops)
-    return
-  }
-
+  // Every bullet style reaches here as a STRING marker. Chromium still draws
+  // disc/circle/square as UA shapes if a stylesheet asks for those keywords,
+  // and this deliberately does not reproduce them any more: a shape carries no
+  // text, and a marker the file can only show by hiding text under it is the
+  // thing this whole path exists to stop being. Ours ask for characters
+  // instead (Artboard.tsx), so the branch below is the only one there is.
+  // The drawn string and the extracted string are one string — the mark a
+  // reader sees is the mark an extractor reads.
   const text = explicitText || listStyleGlyph(kind)
   if (!text) return
   const run = styledTextRun(markerCs, text, 0, box.yPx)
   if (!run) return
-  const gapPx = run.sizePx * 0.35
-  run.xPx = box.xPx - gapPx - measureTextWidthPx(text, font)
+  const widthPx = markerWidthPx(text, markerCs, font)
+  run.xPx = markerOriginX(box, cs, widthPx)
+  // A REAL measured width, unlike every other synthesized run's (see
+  // types.ts's TextRun.widthPx): the marker box is one laid-out string, and
+  // handing paint.ts the browser's own width for it lets the same Tz fit that
+  // every DOM run gets absorb the difference between the embedded face's
+  // advances and the ones the features on the page produced — so the word
+  // after the mark starts exactly where the canvas starts it.
+  run.widthPx = widthPx
+  run.isDecorative = false
   ops.push({ kind: 'text', run })
-  // A tick or a lozenge is an ornament the body fonts have no glyph for, so
-  // a twin carrying one is dropped at paint time and the list loses its
-  // boundaries again. Anything outside the plain set reads as a bullet,
-  // which is what it means.
-  markerTextTwin(markerCs, markerPlainText(kind, text), run.xPx, box.yPx, ops)
 }
 
 /**
@@ -1969,8 +1947,12 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
       // - was extracted in front of the job title, so an ATS read the position
       // as "T Data Analyst" rather than "Data Analyst".
       const decorative = isAriaHidden((n as Text).parentElement, root)
+      // The ROW this text was laid out in, so paint.ts can tell two pieces of
+      // one visual line from two pieces that merely sit at the same height in
+      // different columns. See `lineBoxId`.
+      const box = lineBoxId((n as Text).parentElement, root)
       for (const run of extractRuns(n as Text, root)) {
-        const r = decorative ? { ...run, isDecorative: true } : run
+        const r = decorative ? { ...run, isDecorative: true, lineBoxId: box } : { ...run, lineBoxId: box }
         ops.push({ kind: 'text', run: r, role: r.isDecorative ? 'Artifact' : role, column, blockId })
       }
     }
@@ -2297,6 +2279,63 @@ function logicalBlockId(from: Element | null, root: Element): number | undefined
     el = el.parentElement
   }
   return undefined
+}
+
+/**
+ * A stable id for the LINE BOX a text node sits in — the row the browser laid
+ * it out in, which is not the same thing as the block it belongs to.
+ *
+ * Start at the nearest block-level ancestor (inline ancestors are transparent,
+ * exactly as in `logicalBlockId`), then climb ONE more level when that
+ * ancestor is a flex or grid ITEM: a flex item does not own the row it sits
+ * on, its container does. Measured against the real DOM — an entry's title is
+ * `div.rm-item-title[block]` and its date `div.rm-item-date[block]`, both flex
+ * items of `div.rm-item-head[flex]`; a contact is `span.rm-contact[flex]`, a
+ * flex item of `div.rm-contacts[flex]`. Those are precisely the two rows that
+ * have to come out as one line.
+ *
+ * The climb is CLAMPED inside the run's own column: the id must be a strict
+ * descendant of `.rm-col-main`/`.rm-col-aside` (or of the artboard root in a
+ * layout with neither). Without that clamp a text node parented directly by a
+ * column could climb to the flex row that holds BOTH columns, and a sidebar
+ * term level with a main-column bullet would share a line box - which is the
+ * one thing paint.ts's bridging must never be allowed to merge.
+ */
+const lineBoxIds = new WeakMap<Element, number>()
+let nextLineBoxId = 1
+function lineBoxId(from: Element | null, root: Element): number | undefined {
+  if (!from) return undefined
+  const column = from.closest('.rm-col-main, .rm-col-aside') ?? root
+  let el: Element | null = from
+  while (el && el !== column && el !== root.parentElement) {
+    const display = getComputedStyle(el).display
+    if (display !== 'inline' && display !== 'contents') break
+    el = el.parentElement
+  }
+  if (!el || el === column || el === root.parentElement) return undefined
+  // Climb while the box is an item of a ROW — a flex container laid out
+  // across, or any grid. `.rm-contact` is a flex item of `.rm-contacts` and is
+  // itself a flex container the link inside it is an item of, so one step is
+  // not enough; four is past anything the templates nest.
+  for (let depth = 0; depth < 4; depth++) {
+    const parent: Element | null = el.parentElement
+    if (!parent || parent === column || !column.contains(parent)) break
+    const pcs = getComputedStyle(parent)
+    const row =
+      ((pcs.display === 'flex' || pcs.display === 'inline-flex') && !pcs.flexDirection.startsWith('column')) ||
+      pcs.display === 'grid' ||
+      pcs.display === 'inline-grid'
+    // A flex COLUMN stacks its items, so each of them is its own row - which
+    // is what `.rm-bullets` is, and why one bullet is never joined to the next.
+    if (!row) break
+    el = parent
+  }
+  let id = lineBoxIds.get(el)
+  if (id === undefined) {
+    id = nextLineBoxId++
+    lineBoxIds.set(el, id)
+  }
+  return id
 }
 
 const TITLE_ROW_CLASSES = ['rm-section-title', 'rm-item-head', 'rm-level', 'rm-skill-group-name', 'rm-mini-title']

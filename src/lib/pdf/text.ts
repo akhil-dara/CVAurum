@@ -253,6 +253,67 @@ export function measureTextWidthPx(text: string, cssFont: string): number {
   return measureCtx!.measureText(text).width
 }
 
+let layoutWidthProbe: HTMLSpanElement | null = null
+
+/**
+ * The width the LAYOUT ENGINE gives `text`, set exactly as `cs` sets it.
+ *
+ * `measureTextWidthPx` above asks a canvas context, and a canvas context
+ * carries only the `font` shorthand: it knows nothing about `font-variant`,
+ * `font-feature-settings`, `letter-spacing` or `word-spacing`, all of which
+ * the real engine applies. That is not a rounding difference. Chromium's UA
+ * stylesheet gives every `::marker` `font-variant-numeric: tabular-nums` (so
+ * that an ordered list's numbers line up), and in Work Sans `tnum` re-cuts the
+ * SPACE — measured on marquee's own bullet, the string "•  " lays out at
+ * 1.1124 em with the property off and 1.0350 em with it on, and switching each
+ * of the eleven copied properties one at a time showed `font-variant` is the
+ * only one that moves it. Measured on canvas, the marker box therefore came
+ * out 0.077 em too wide, and every marquee bullet was drawn that far left of
+ * the mark on the page.
+ *
+ * `white-space: pre` because the strings this measures (a marker's "•  ")
+ * carry meaningful trailing spaces that normal white-space processing would
+ * collapse away.
+ *
+ * Returns 0 when there is no usable DOM — callers fall back to the canvas
+ * measurement, which is close for a face whose features leave its spaces
+ * alone.
+ */
+export function measureLaidOutWidthPx(text: string, cs: CSSStyleDeclaration): number {
+  if (!text) return 0
+  try {
+    if (typeof document === 'undefined' || !document.body) return 0
+    if (!layoutWidthProbe) {
+      const span = document.createElement('span')
+      span.setAttribute('aria-hidden', 'true')
+      span.style.position = 'fixed'
+      span.style.left = '-100000px'
+      span.style.top = '0'
+      span.style.whiteSpace = 'pre'
+      document.body.appendChild(span)
+      layoutWidthProbe = span
+    }
+    const s = layoutWidthProbe.style
+    s.fontFamily = cs.fontFamily
+    s.fontSize = cs.fontSize
+    s.fontWeight = cs.fontWeight
+    s.fontStyle = cs.fontStyle
+    s.fontStretch = cs.fontStretch
+    s.fontKerning = cs.fontKerning
+    s.fontFeatureSettings = cs.fontFeatureSettings
+    s.fontVariationSettings = cs.fontVariationSettings
+    s.fontVariant = cs.fontVariant
+    s.letterSpacing = cs.letterSpacing
+    s.wordSpacing = cs.wordSpacing
+    layoutWidthProbe.textContent = text
+    const w = layoutWidthProbe.getBoundingClientRect().width
+    layoutWidthProbe.textContent = ''
+    return Number.isFinite(w) ? w : 0
+  } catch {
+    return 0
+  }
+}
+
 /** A plain (non-DOMRect) rect for one visually-wrapped line segment of a text
  *  node — deliberately NOT a real DOMRect so callers (and their tests) can
  *  work with it without a real DOM. */
@@ -391,48 +452,28 @@ export function textNodeLineSegments(node: Text): TextLineSegment[] {
  * (the whole reason justification was making our pages worse than ragged
  * ones). When one of them breaks, the engine DRAWS a hyphen - but that hyphen
  * is not a character of the text node, and the two halves of the word are.
- * Painted naively, a reader copying the file gets "Experi" and "enced" on two
- * lines and the guarantee that our text layer matches the "what an ATS sees"
- * panel word for word (gate-ats-truth, 67/67) is gone.
  *
- * So the export does not paint the break the way the screen shows it:
- *   - the line that BROKE carries the whole word. Its own glyphs are drawn as
- *     real text ("...Experi"), and the missing tail ("enced") follows as an
- *     extract-only run sitting under the drawn hyphen, so the characters run
- *     "...Experienced" with nothing between them.
- *   - the line that CONTINUES draws its leading fragment as vector outlines
- *     (an Artifact, exactly like a list marker's mark) and starts its real
- *     text after it. The fragment is on the page, and in the text layer
- *     exactly once - on the line above.
- *   - the hyphen itself is drawn as an Artifact too. It is typography, not
- *     content: an ATS searching for "Experienced" must not have to know that.
+ * The export used to hide the break rather than write it: the line that BROKE
+ * carried the whole word (its own glyphs as real text, then the missing tail
+ * as an INVISIBLE run squeezed under the drawn hyphen), the hyphen was a
+ * vector outline, and the line that CONTINUED drew its leading fragment as
+ * outlines too so the word could not be read twice. Every extractor then read
+ * "Experienced" whole, and the panel-vs-file comparison matched word for word
+ * without anything having to know about hyphenation.
  *
- * `visualLines` reports the same division, because it is the DOM side of the
- * line-level gate and the two must be describing the same document.
+ * It also put characters in the file that draw nothing, which is what an ATS
+ * scanner means by "text drawn invisibly" - so the file now writes the break
+ * the way every typeset document writes it. The line that breaks ends with a
+ * real, visible hyphen; the line that continues opens with the rest of the
+ * word, as real, visible text; nothing is drawn twice and nothing is hidden.
+ *
+ * Rejoining the halves is the READER's job, and it is a convention every
+ * de-hyphenating reader already implements: a letter, a hyphen, a line end, a
+ * letter is one word. _local/gate-ats-truth.cjs and _local/gate-line-1to1.cjs
+ * do exactly that before they compare (each says so in its own header), and
+ * `visualLines` below reports the same two lines the page draws, because it is
+ * the DOM side of the line-level gate and the two must describe one document.
  */
-
-/** Offset (exclusive) of the end of the word continuing at `i`. A break hands
- *  everything up to here back to the line it broke from. */
-export function wordEndFrom(data: string, i: number): number {
-  let j = i
-  while (j < data.length && !/\s/.test(data[j])) j++
-  return j
-}
-
-/** How many characters at the head of segment `si` a previous line's break
- *  already carried into the text layer - drawn here, extracted there. */
-export function carriedHeadLength(data: string, segments: TextLineSegment[], si: number): number {
-  if (si === 0) return 0
-  const prev = segments[si - 1]
-  const seg = segments[si]
-  // Only the line immediately above can owe this one anything: a word that
-  // runs across three lines broke at the end of each of them, so the line
-  // above always carries the break that reaches here.
-  if (data[prev.end - 1] !== SOFT_HYPHEN) return 0
-  const reach = wordEndFrom(data, prev.end)
-  if (reach <= seg.start) return 0
-  return Math.min(reach, seg.end) - seg.start
-}
 
 /** One rendered line of the print DOM: what it says, and where it sits. */
 export interface VisualLine {
@@ -493,17 +534,18 @@ export function visualLines(root: HTMLElement): VisualLine[] {
     const segs = textNodeLineSegments(t)
     for (let si = 0; si < segs.length; si++) {
       const seg = segs[si]
-      // A line the hyphenator broke owes its own line the REST of the word:
-      // the export carries "Experienced" whole at the end of the line it
-      // starts on, and the fragment that follows is drawn but not extractable
-      // (see extractRuns). Saying the same thing here keeps this function the
-      // ground truth the line-level gate compares the file against, instead
-      // of describing a split the file deliberately does not make.
-      const carried = carriedHeadLength(t.data, segs, si)
+      // A line the hyphenator broke ends with a drawn HYPHEN, and the rest of
+      // the word is on the line below - which is what the browser draws and,
+      // since the invisible tail went away, what the file says too. This used
+      // to report the whole word up here and nothing of it down there, to
+      // match a file that carried "Experienced" whole at the end of the line
+      // it started on; both sides say the plain thing now, and the gates
+      // rejoin the two halves before comparing (see gate-line-1to1.cjs).
       const broke = si < segs.length - 1 && t.data[seg.end - 1] === SOFT_HYPHEN
-      const raw = t.data.slice(seg.start + carried, seg.end) + (broke ? t.data.slice(seg.end, wordEndFrom(t.data, seg.end)) : '')
-      const text = applyTextTransform(collapseWhitespace(stripSoftHyphens(raw), cs.whiteSpace), cs.textTransform)
+      const raw = t.data.slice(seg.start, seg.end)
+      let text = applyTextTransform(collapseWhitespace(stripSoftHyphens(raw), cs.whiteSpace), cs.textTransform)
       if (!text.trim()) continue
+      if (broke) text += '-'
       out.push({
         topPx: seg.rect.top - rootRect.top,
         bottomPx: seg.rect.bottom - rootRect.top,
@@ -691,88 +733,61 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   for (let si = 0; si < segments.length; si++) {
     const seg = segments[si]
     const broke = hasSoftHyphen && si < segments.length - 1 && data[seg.end - 1] === SOFT_HYPHEN
-    const carried = hasSoftHyphen ? carriedHeadLength(data, segments, si) : 0
-    const bodyStart = seg.start + carried
+    const bodyStart = seg.start
     const bodyEnd = broke ? seg.end - 1 : seg.end
     const baselinePx = halfLeadingBaselinePx(seg.rect.top, rootRect.top, seg.rect.bottom - seg.rect.top, metrics)
 
-    // The fragment the line above already handed to the text layer. It is on
-    // the page - drawn as outlines, like a list marker's mark - and in the
-    // text exactly once, up there.
-    if (carried > 0) {
-      const head = shaped(data.slice(seg.start, bodyStart))
-      if (head) {
-        runs.push({
-          ...style,
-          text: head,
-          xPx: rectOf(seg.start, bodyStart, seg.rect.top).left - rootRect.left,
-          widthPx: 0,
-          baselinePx,
-          // A rule is painted against a run's advance and only for real text
-          // runs, so an underline would be lost on this fragment and drawn
-          // twice under the tail below. Neither carries one.
-          underline: false,
-          lineThrough: false,
-          isDecorative: true,
-        })
-      }
-    }
-
     let text = shaped(data.slice(bodyStart, bodyEnd))
     if (text.trim() !== '') {
-      const box = carried > 0 || broke ? rectOf(bodyStart, bodyEnd, seg.rect.top) : seg.rect
+      const box = broke ? rectOf(bodyStart, bodyEnd, seg.rect.top) : seg.rect
       // Absorb the preceding space: starting the run at the space's own left
       // edge leaves every glyph exactly where it was - the space advances the
       // pen by precisely the width it occupies on screen.
-      const absorb = lead && si === 0 && carried === 0 && Math.abs(lead.top - seg.rect.top) <= 1
+      const absorb = lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1
       if (absorb) text = ' ' + text
       const left = absorb ? lead!.left : box.left
       runs.push({ ...style, text, xPx: left - rootRect.left, widthPx: box.right - left, baselinePx, isDecorative: false })
     }
 
     if (broke) {
-      // Where this line's letters stop. The engine put its hyphen here and
-      // justified the line so that the hyphen, not the last letter, meets the
-      // margin - so the body run's width above deliberately excludes it.
+      // The line-end hyphen: REAL, VISIBLE text, exactly as every typeset
+      // document in the world writes it.
+      //
+      // It used to be drawn as a vector outline (an Artifact, on the argument
+      // that nobody typed it) with the rest of the word laid INVISIBLY after
+      // it, squeezed to the hyphen's own width, so that an extractor read
+      // "Experienced" whole at the end of the line it started on. That did
+      // extract beautifully, and it is also precisely the shape an ATS scanner
+      // reports as "text drawn invisibly": characters in the file that draw
+      // nothing.
+      //
+      // So the file now says what the page says - "...Experi-" here, "enced"
+      // at the head of the next line - and the comparison moves to where the
+      // convention already lives: _local/gate-ats-truth.cjs and
+      // _local/gate-line-1to1.cjs rejoin a word broken across a line end
+      // before they compare, which is what every de-hyphenating reader does.
+      // `resumeToAtsText` (the app's own "Copy as plain text") never had a
+      // line break to put a hyphen at and is untouched.
       const inkEnd = (bodyEnd > seg.start ? rectOf(seg.start, bodyEnd, seg.rect.top) : seg.rect).right
       const xPx = inkEnd - rootRect.left
       const hyphenBox = rectOf(seg.end - 1, seg.end, seg.rect.top)
       const drawnHyphenPx = hyphenBox.right - hyphenBox.left
       const hyphenWidthPx = drawnHyphenPx > 0.01 ? drawnHyphenPx : measureTextWidthPx('-', font)
-      // The hyphen: an Artifact. It is a consequence of where the line broke,
-      // not a character anyone typed, and a reader searching for the word
-      // must not have to know it is there.
-      runs.push({ ...style, text: '-', xPx, widthPx: 0, baselinePx, underline: false, lineThrough: false, isDecorative: true })
-
-      const tail = stripSoftHyphens(data.slice(seg.end, wordEndFrom(data, seg.end)))
-      if (tail) {
-        // The rest of the word, extract-only, directly after the last letter:
-        // no gap, so a reader joins "...Experi" and "enced" into one word.
-        // Sized down to the hyphen it sits under rather than left at the
-        // body's size - it draws nothing, so its size is purely the advance
-        // it advertises, and at full size that advance would hang a selection
-        // box out past the margin and (on a two-column page) into the gutter
-        // the ATS gates require to stay empty.
-        const natural = measureTextWidthPx(tail, font)
-        const squeeze = natural > 0.01 ? Math.min(1, Math.max(0.05, hyphenWidthPx / natural)) : 1
-        runs.push({
-          ...style,
-          // Tracking or small caps would route this through the two-layer
-          // heading path, which draws VISIBLE outlines. An extract-only run
-          // must draw nothing at all.
-          letterSpacingPx: 0,
-          smallCapsScale: 0,
-          underline: false,
-          lineThrough: false,
-          sizePx: sizePx * squeeze,
-          text: applyTextTransform(tail, cs.textTransform),
-          xPx,
-          widthPx: hyphenWidthPx,
-          baselinePx,
-          isDecorative: false,
-          invisible: true,
-        })
-      }
+      runs.push({
+        ...style,
+        text: '-',
+        xPx,
+        // The width the engine actually drew it at, so the painter fits the
+        // glyph to it the way it fits every other run.
+        widthPx: hyphenWidthPx,
+        baselinePx,
+        // A rule is painted against a run's own advance, and the body run
+        // above already spans the letters this hyphen follows; carrying the
+        // decoration here too would draw it twice over the same pixels.
+        underline: false,
+        lineThrough: false,
+        isDecorative: false,
+      })
     }
   }
 

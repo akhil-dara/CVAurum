@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseLayout, parseSimpleList, parseSkills, splitSections } from './parse'
+import { parseLayout, parseSimpleList, parseSkills, sectionLeftX, splitSections } from './parse'
 import type { Item, LayoutGraph, Line } from './layoutGraph'
 
 // Minimal Line factory — only the fields parseSimpleList reads (text, bold)
@@ -1008,5 +1008,54 @@ describe('work entries — a short line carrying a date RANGE is a header (2026-
     )
     expect(r.content.work).toHaveLength(2)
     expect(r.content.work[0].highlights.join(' ')).toContain('migration of the billing platform')
+  })
+})
+
+describe('sectionLeftX - a hanging bullet mark is not the section margin (2026-09-16)', () => {
+  // `list-style-position: outside` hangs the mark LEFT of the text it belongs
+  // to, and the exporter now writes that mark as real, visible text - so the
+  // leftmost thing in a bulleted section is the marker rail, not the margin.
+  // Taking the raw minimum made every ordinary line look indented past it, and
+  // the indent test downstream reads "indented" as "bullet": measured on the
+  // `measure` design, the volunteer entry's organisation "Open Source Aid" (x
+  // 43.2, rail at 35.7) imported as a second highlight and the organisation
+  // came back empty.
+  const item = (str: string, x: number): Item =>
+    ({ str, x, top: 0, width: 10, height: 10, bold: false, page: 1, col: 0, aside: false }) as Item
+  const bulleted = (mark: string, markX: number, text: string, textX: number): Line => ({
+    ...line(mark + ' ' + text, false),
+    x: markX,
+    items: [item(mark + '  ', markX), item(text, textX)],
+  })
+
+  it('measures a bulleted line from its first WORD, not from the mark', () => {
+    expect(sectionLeftX([bulleted('•', 35.7, 'Mentored new contributors', 43.2)])).toBeCloseTo(43.2, 4)
+  })
+
+  it('does the same for every mark the exporter can write', () => {
+    for (const mark of ['•', '◦', '▪', '–', '›', '✓', '◆']) {
+      expect(sectionLeftX([bulleted(mark, 35.7, 'Mentored new contributors', 43.2)])).toBeCloseTo(43.2, 4)
+    }
+  })
+
+  it('leaves a plain line at its own left edge', () => {
+    expect(sectionLeftX([{ ...line('Open Source Aid', false), x: 43.2 }])).toBeCloseTo(43.2, 4)
+  })
+
+  it('takes the leftmost of the two, so a real outdent still counts', () => {
+    expect(
+      sectionLeftX([
+        bulleted('•', 35.7, 'Mentored new contributors', 43.2),
+        { ...line('Open Source Aid', false), x: 40 },
+      ])
+    ).toBeCloseTo(40, 4)
+  })
+
+  it('falls back to the line left when the mark is all a bulleted line carries', () => {
+    expect(sectionLeftX([{ ...line('•', false), x: 35.7, items: [item('•  ', 35.7)] }])).toBeCloseTo(35.7, 4)
+  })
+
+  it('is 0 for an empty section', () => {
+    expect(sectionLeftX([])).toBe(0)
   })
 })

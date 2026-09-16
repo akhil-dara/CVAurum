@@ -178,11 +178,44 @@ function collapseTracking(text: string): string {
 }
 
 /**
+ * The items on a page that carry RUNNING TEXT - the population the gutter scan
+ * below measures a page's density against.
+ *
+ * pdf.js hands back one item per text-showing operator, which means the count
+ * moves whenever the file's text layer is cut differently even though the page
+ * reads the same. Two kinds of item are not running text and should not be
+ * counted as if they were:
+ *   - nothing at all. A whitespace-only item paints no ink; our own exporter
+ *     writes one wherever a visible space bridges a gap between two runs on one
+ *     row (paint.ts's bridgeGapWithSpace, which is what makes a title/date row
+ *     extract as a single line).
+ *   - a single character. A list marker is one ("•"), and so is every
+ *     letter or digit pdf.js splits off on its own where a bold word or a
+ *     tracked figure changes the font mid-line.
+ *
+ * Measured, on the gate's own rich `measure` document, whose pages 2 and 3 are
+ * ONE column with a date rail down the right: page 2 carries 212 items, 23 of
+ * them a single character (11 of those the bullet marks the exporter now draws
+ * as real text). Its best gutter candidate is crossed by 6 items - all of them
+ * main-column prose lines running under the rail. Counted against all 212, the
+ * 3% cap is 6.36 and the rail is accepted as a sidebar: three of eight work
+ * entries were lost on import. Counted against the 189 that carry running
+ * text, the cap is 5.67 and the rail is rejected, which is the right answer and
+ * the one the page gave before its text layer was recut.
+ *
+ * So the denominator stops moving when the file's text layer changes shape,
+ * which is what a proportional cap needs from it - and no document has to live
+ * with a cap lowered on its behalf.
+ */
+const runningTextItems = (items: Item[]): Item[] => items.filter((it) => it.str.trim().length > 1)
+
+/**
  * Find a clean vertical gutter that splits a page's items into two columns.
  * A good gutter has (almost) no item straddling it and substantial text on both
  * sides. Returns the x position, or null for single-column pages.
  */
-function detectGutter(items: Item[], width: number): number | null {
+function detectGutter(all: Item[], width: number): number | null {
+  const items = runningTextItems(all)
   if (items.length < 20 || width <= 0) return null
   let best: number | null = null
   let bestStraddle = Infinity
@@ -302,7 +335,10 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
       let straddle = 0
       let left = 0
       let right = 0
-      for (const it of pageItems) {
+      // Running text only, for the same reason detectGutter weighs running
+      // text only: a bridging space or a lone bullet mark crosses a gutter
+      // without meaning anything by it.
+      for (const it of runningTextItems(pageItems)) {
         if (it.x < prevGutter - 2 && it.x + it.width > prevGutter + 2) straddle++
         else if (it.x + it.width <= prevGutter) left++
         else right++

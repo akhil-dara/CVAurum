@@ -331,7 +331,13 @@ export default defineConfig({
         // .icc: the 3KB sRGB profile embedded as every export's PDF/A
         // OutputIntent — precached so an OFFLINE export is still PDF/A
         // (without it the fetch fails and conformance silently drops).
-        globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,woff,woff2,icc,webp,json}'],
+        // .ttf: only ONE file under /fonts/ is a ttf - the 1.6 KB generated
+        // marks font (scripts/make-marks-font.py), which draws four bullet
+        // glyphs no other bundled family has. Without it in the precache an
+        // offline first visit draws a check or diamond bullet from a system
+        // font, or from nothing. The 158 PDF instances under /fonts-pdf/ are
+        // .ttf too and stay held back by the globIgnore below.
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,woff,woff2,ttf,icc,webp,json}'],
         // OCR engine assets (tesseract worker/core/traineddata, ~10MB) are only
         // needed when a user imports a scanned PDF — keep them OUT of the precache
         // so first load stays lean; they fetch on demand, same-origin, from /ocr/.

@@ -22,22 +22,51 @@ describe('segmentByCoverage', () => {
     expect(segmentByCoverage('Senior Engineer', [latin, cyrillic])).toEqual([{ text: 'Senior Engineer', font: 0 }])
   })
   it('hands a Cyrillic run to the first font that has it', () => {
-    expect(segmentByCoverage('Даниил Гогов', [latin, cyrillic])).toEqual([{ text: 'Даниил Гогов', font: 1 }])
-  })
-  it('splits a mixed run where the script changes, spaces following the text before them', () => {
-    expect(segmentByCoverage('Работа в Google Inc.', [latin, cyrillic])).toEqual([
-      { text: 'Работа в ', font: 1 },
-      { text: 'Google Inc.', font: 0 },
+    expect(segmentByCoverage('Даниил Гогов', [latin, cyrillic])).toEqual([
+      { text: 'Даниил', font: 1 },
+      { text: ' ', font: 0 },
+      { text: 'Гогов', font: 1 },
     ])
   })
-  it('leading whitespace takes the first visible character’s font', () => {
-    expect(segmentByCoverage('  Гогов', [latin, cyrillic])).toEqual([{ text: '  Гогов', font: 1 }])
+  it('splits a mixed run where the script changes', () => {
+    // A SPACE is matched through the chain from the start like any other
+    // character, because that is what CSS font matching does - so it comes
+    // from the primary family even between two Cyrillic words. It matters
+    // because a space is not the same width in every family: see the marker
+    // case in the module's own comment.
+    expect(segmentByCoverage('Работа в Google Inc.', [latin, cyrillic])).toEqual([
+      { text: 'Работа', font: 1 },
+      { text: ' ', font: 0 },
+      { text: 'в', font: 1 },
+      { text: ' Google Inc.', font: 0 },
+    ])
+  })
+  it('leading whitespace takes the first font that has it, not the text’s', () => {
+    expect(segmentByCoverage('  Гогов', [latin, cyrillic])).toEqual([
+      { text: '  ', font: 0 },
+      { text: 'Гогов', font: 1 },
+    ])
+  })
+  it('a space only the fallback family has still comes from that family', () => {
+    // The bundled marks family carries a space of its own (0.26 em); a
+    // Latin-only primary that somehow lacked one would hand the space on
+    // down the chain exactly as the browser does.
+    const noSpace = (cp: number) => cp !== 0x20 && cp < 0x0250
+    expect(segmentByCoverage('a b', [noSpace, cyrillic])).toEqual([
+      { text: 'a', font: 0 },
+      { text: ' ', font: 1 },
+      { text: 'b', font: 0 },
+    ])
   })
   it('marks characters no font has with -1 so the painter can drop and report them', () => {
     expect(segmentByCoverage('అఖిల్ Rao', [latin, cyrillic])).toEqual([
-      { text: 'అఖిల్ ', font: -1 },
-      { text: 'Rao', font: 0 },
+      { text: 'అఖిల్', font: -1 },
+      { text: ' Rao', font: 0 },
     ])
+  })
+  it('a neutral no chain font has follows its neighbour rather than being dropped', () => {
+    const noTab = (cp: number) => cp !== 9 && cp < 0x0250
+    expect(segmentByCoverage('a	b', [noTab])).toEqual([{ text: 'a	b', font: 0 }])
   })
   it('an all-whitespace run takes the primary font', () => {
     expect(segmentByCoverage('   ', [latin, cyrillic])).toEqual([{ text: '   ', font: 0 }])

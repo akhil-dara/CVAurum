@@ -309,8 +309,18 @@ function pullDates(text: string): { start: string; end: string; present: boolean
 }
 
 const cleanEdge = (s: string) => s.replace(/^[\s|·•,–—-]+|[\s|·•,–—-]+$/g, '').trim()
-const isBullet = (s: string) => /^[•‣▪●■·⁃∙*\-–—►▸]\s+/.test(s) || /^[•‣▪●■·⁃∙►▸]/.test(s)
-const stripBullet = (s: string) => s.replace(/^[•‣▪●■·⁃∙*►▸]+\s*|^[-–—]\s+/, '').trim()
+// The mark a bullet can start with. The second class is the one that needs
+// no space after it, so it stays to characters that are never anything but a
+// mark; a dash or a guillemet has to be followed by space to count.
+//
+// ◦ ◆ ✓ › are here because our own exporter can write any of them: the
+// seven bullet styles are all real characters now (Artboard.tsx's
+// BULLET_TYPE), where four of them used to reach the file as a vector dot
+// with an invisible • underneath, so every export read as a • whatever the
+// page showed.
+const isBullet = (s: string) =>
+  /^[•‣▪◦●■·⁃∙◆✓›*\-–—►▸]\s+/.test(s) || /^[•‣▪◦●■·⁃∙◆✓►▸]/.test(s)
+const stripBullet = (s: string) => s.replace(/^[•‣▪◦●■·⁃∙◆✓*►▸]+\s*|^[-–—›]\s+/, '').trim()
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 // Multi-word city prefixes so "San Francisco" / "New York" stay whole.
@@ -557,7 +567,33 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
 
 /* ------------------------------------------------------------- entry grouping */
 
-const sectionLeftX = (lines: Line[]): number => (lines.length ? Math.min(...lines.map((l) => l.x)) : 0)
+/**
+ * The section's own left margin — where its TEXT starts.
+ *
+ * A bullet marker hangs OUTSIDE the text it belongs to (CSS calls it
+ * `list-style-position: outside`), so its glyph sits left of every other line
+ * in the section. Taking the raw minimum makes the margin the marker rail and
+ * every ordinary line "indented", which the indent test below then reads as a
+ * bullet: measured on the `measure` design, "Open Source Aid" - the volunteer
+ * entry's organisation, at x 43.2 against a marker rail at 35.7 - was imported
+ * as a second highlight and the organisation came back empty.
+ *
+ * It only began to bite when the exporter started writing the marker as real,
+ * visible text rather than a vector dot with an invisible twin, and a wider
+ * marker string hangs further out. But the left edge of a hanging marker was
+ * never the section's margin, whoever drew it, so the fix is to measure from
+ * where a bulleted line's WORDS start instead.
+ *
+ * Exported so the rule can be pinned against plain lines, without a PDF.
+ */
+export const sectionLeftX = (lines: Line[]): number => {
+  const xs = lines.map((l) => {
+    if (!isBullet(l.text)) return l.x
+    const word = l.items.find((i) => i.str.trim() && !isBullet(i.str) && stripBullet(i.str) !== '')
+    return word ? word.x : l.x
+  })
+  return xs.length ? Math.min(...xs) : 0
+}
 
 /**
  * A line is a highlight (bullet) if it carries a bullet glyph OR is indented past

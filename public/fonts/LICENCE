@@ -123,3 +123,27 @@ below, is at https://www.latex-project.org/lppl/lppl-1-3c.txt
 % http://www.latex-project.org/lppl.txt and version 1.3c or later
 % is part of all distributions of LaTeX version 2006/05/20 or later.
 -----------------------------------------------------------------------------
+
+
+The marks font
+=============================================================================
+
+    cva-marks.ttf
+    ../fonts-pdf/cva-marks-400.ttf
+
+These two files are the SAME 1.6 KB font, built by scripts/make-marks-font.py.
+
+It carries four glyphs and nothing else — U+25E6 white bullet, U+25AA small
+square, U+2713 check mark, U+25C6 black diamond — plus a space and .notdef.
+Measured over the whole bundle on 2026-09-16: none of the 158 PDF instances in
+../fonts-pdf/ carries any of the four, and of the 257 web-font subset files
+here only four carry the white bullet. So the four bullet styles that need
+them had nowhere to come from: the canvas drew two of them as UA list-marker
+shapes (no glyph, no text at all) and the other two from whatever font the
+reader's own machine happened to have, and the PDF carried none of them.
+
+Every outline in it is constructed by that script out of plain arithmetic —
+two circles, a square, a diamond, and a polyline stroked to a width. No font
+data, outline or metric is read, copied or derived from any other font. It is
+therefore an original work of this repository and is covered by this
+repository's own licence (see ../../LICENSE), like any other file we write.

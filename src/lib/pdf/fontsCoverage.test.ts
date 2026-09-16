@@ -11,7 +11,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as fontkitNs from '@pdf-lib/fontkit'
-import { SCRIPT_FALLBACKS } from '@/data/fonts'
+import { MARKS_FAMILY, SCRIPT_FALLBACKS } from '@/data/fonts'
 
 const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? fontkitNs) as {
   create(data: Uint8Array): { hasGlyphForCodePoint(cp: number): boolean }
@@ -30,11 +30,18 @@ const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 const load = (file: string) => fontkit.create(new Uint8Array(fs.readFileSync(path.join(DIR, file))))
 const covers = (font: { hasGlyphForCodePoint(cp: number): boolean }, s: string) =>
   [...s].filter((ch) => ch !== ' ').every((ch) => font.hasGlyphForCodePoint(ch.codePointAt(0) ?? 0))
-const families = [...new Set(Object.keys(INDEX).map((k) => k.split('|')[0]))]
+// The marks family is four bullet glyphs and a space (scripts/make-marks-font.py)
+// - it exists precisely because no TEXT family carries them, and it is never
+// set as a resume's font. It is in the index so the painter can reach it
+// through the fallback chain, and it is excluded from the text-coverage
+// expectations below for the same reason it exists.
+const MARKS = 'cvaurum-marks'
+const families = [...new Set(Object.keys(INDEX).map((k) => k.split('|')[0]))].filter((f) => f !== MARKS)
 
 describe('the bundled PDF fonts', () => {
   it('every script-fallback family draws Cyrillic, Greek and Vietnamese, at every weight it ships', () => {
     const fallbacks = new Set(Object.values(SCRIPT_FALLBACKS).flat())
+    expect(fallbacks.has(MARKS_FAMILY), 'the marks font is not a script fallback').toBe(false)
     for (const family of fallbacks) {
       const keys = Object.keys(INDEX).filter((k) => k.startsWith(`${slug(family)}|`))
       expect(keys.length, `${family} has static fonts`).toBeGreaterThan(0)
@@ -70,6 +77,22 @@ describe('the bundled PDF fonts', () => {
     // Latin alone. Losing Cyrillic in two display serifs, where the fallback
     // chain steps in, buys back every Latin glyph in seven templates.
     expect(cyrillic).toBeGreaterThanOrEqual(22)
+  })
+
+  it('ships the four bullet marks no text family has, in the marks font', () => {
+    // Measured 2026-09-16 over this whole directory: 0 of 158 instances carry
+    // any of these four, which is why the marks font is bundled at all.
+    const marks = '◦▪✓◆'
+    const key = Object.keys(INDEX).find((k) => k.startsWith(`${MARKS}|`))
+    expect(key, 'the marks font is indexed').toBeTruthy()
+    expect(covers(load(INDEX[key!]), marks)).toBe(true)
+    for (const family of families) {
+      const font = load(INDEX[Object.keys(INDEX).find((k) => k.startsWith(`${family}|`))!])
+      expect(covers(font, marks), `${family} does NOT carry the marks`).toBe(false)
+      // ...while the three that every family does have stay universal, which
+      // is why those bullet styles keep using the resume's own face.
+      expect(covers(font, '•–›'), `${family} carries bullet/dash/angle`).toBe(true)
+    }
   })
 
   it('kept every script on the long-loca families whose outlines left room', () => {

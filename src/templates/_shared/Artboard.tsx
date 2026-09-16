@@ -83,10 +83,31 @@ const PT_TO_PX = 96 / 72
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
 /** CSS `list-style-type` values per bullet style (string markers need quoting). */
+/**
+ * Every bullet style is a STRING marker — a real character the browser draws
+ * from a real font.
+ *
+ * disc/circle/square used to be the UA keywords, which Chromium draws as
+ * generated SHAPES with no glyph and no text behind them. That cost the export
+ * twice over: the painter had to reproduce each shape as a vector, and then
+ * hide an invisible "•" underneath it so a copied list still had item
+ * boundaries — which is exactly the "text drawn invisibly" an ATS scanner
+ * flags. As characters, the same marks are drawn once, from the same outlines,
+ * on the canvas and in the file, and an extractor reads what the reader sees.
+ *
+ * • – › are in every bundled family (measured: 158/158 PDF instances), so
+ * those three come from the résumé's own face. ◦ ▪ ✓ ◆ are in none of them and
+ * come from the bundled marks family at the end of every stack
+ * (src/data/fonts.ts, scripts/make-marks-font.py) — before that, ✓ and ◆ were
+ * drawn from whatever font the reader's machine happened to have.
+ *
+ * The two trailing spaces are the gap between the mark and the text, and are
+ * part of the marker string on every style so they all indent alike.
+ */
 const BULLET_TYPE: Record<string, string> = {
-  disc: 'disc',
-  circle: 'circle',
-  square: 'square',
+  disc: '"•  "',
+  circle: '"◦  "',
+  square: '"▪  "',
   dash: '"–  "',
   arrow: '"›  "',
   check: '"✓  "',
