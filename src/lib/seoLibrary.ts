@@ -281,7 +281,7 @@ export function sampleStaticHtml(slug: string): string {
     ${figure(slug, true)}
     <p>${htmlEscape(s.blurb)}</p>
     <p>Written for ${htmlEscape(REGION_LABELS[s.region])}, at ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, in the ${htmlEscape(CATEGORY_LABELS[s.category].toLowerCase())} field${tpl ? `, shown in the <a href="/templates/${s.template}">${htmlEscape(tpl.name)}</a> design` : ''}. Every name, employer, address and number below is invented.</p>
-    <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} résumé examples</a></p>
+    <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} résumé examples</a> · <a href="/templates">Browse the résumé templates</a></p>
     <article>
 ${resumeHtml(s)}
     </article>
@@ -301,8 +301,10 @@ export function examplesStaticHtml(): string {
     items: ORDERED_SAMPLES.filter((s) => s.category === category),
   })).filter((g) => g.items.length)
   return `<main class="seo-static">
+    <p><a href="/">CVAurum</a> › Résumé examples</p>
     <h1>${LIBRARY.length} résumé examples, written out in full</h1>
     <p>${htmlEscape(EXAMPLES_INTRO)}</p>
+    <p><a href="/app">Start a résumé</a> · <a href="/templates">Browse the résumé templates</a> · <a href="/prompts">Prompts for an AI assistant</a></p>
 ${groups
   .map(
     (g) => `    <section>
@@ -439,11 +441,10 @@ export function sampleBreadcrumbJsonLd(slug: string): string {
   })
 }
 
-/** The library as an ItemList, so a results page can show it as a collection
- *  rather than one blue link. */
-export function examplesItemListJsonLd(): string {
-  return JSON.stringify({
-    '@context': 'https://schema.org',
+/** The library as an ItemList node, so a results page can show it as a
+ *  collection rather than one blue link. */
+function examplesItemList(): Record<string, unknown> {
+  return {
     '@type': 'ItemList',
     name: 'Résumé examples',
     numberOfItems: LIBRARY.length,
@@ -456,6 +457,44 @@ export function examplesItemListJsonLd(): string {
       // described with the same pictures the page carries.
       image: `${HOST}${samplePageImage(s.slug)}`,
     })),
+  }
+}
+
+/** That list on its own, as the shelf used to publish it. */
+export function examplesItemListJsonLd(): string {
+  return JSON.stringify({ '@context': 'https://schema.org', ...examplesItemList() })
+}
+
+/**
+ * Everything the shelf declares: what the page is, the trail back up, and the
+ * list of what is on it.
+ *
+ * The ItemList shipped alone, so the page that carries 108 résumés had no
+ * crumb trail at all while every page inside it did — the collection was
+ * reachable in the markup but never described.
+ */
+export function examplesJsonLd(): string {
+  const url = `${HOST}/examples`
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        name: `${LIBRARY.length} résumé examples`,
+        description: trim(EXAMPLES_INTRO),
+        isPartOf: { '@type': 'WebSite', '@id': `${HOST}/`, url: `${HOST}/`, name: 'CVAurum' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${HOST}/` },
+          { '@type': 'ListItem', position: 2, name: 'Résumé examples', item: url },
+        ],
+      },
+      examplesItemList(),
+    ],
   })
 }
 

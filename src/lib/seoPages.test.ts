@@ -38,6 +38,11 @@ import {
   promptsMarkdown,
   promptsPageMeta,
   promptsStaticHtml,
+  promptsJsonLd,
+  galleryJsonLd,
+  lastmodEntry,
+  publicUrlPaths,
+  publicUrls,
   skillMd,
 } from '@/lib/seoPages'
 import { ResumeContentSchema } from '@/types/document'
@@ -182,10 +187,28 @@ describe('the sitemap', () => {
     expect(locs[locs.length - 1]).toBe('https://cvaurum.com/prompts')
   })
 
-  it('stamps every entry with the day it was generated', () => {
+  /**
+   * It used to stamp the day of the build on all 180 URLs, which tells a
+   * crawler that every page changed every deploy — and a lastmod that always
+   * moves is one that stops being read. Each entry now carries the day THAT
+   * page's sources last changed (src/data/lastmod.json, kept honest by
+   * src/data/lastmod.test.ts); the argument is only the fallback for a URL
+   * with no entry yet.
+   */
+  it('gives every entry the day its own sources last changed', () => {
     const stamps = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1])
     expect(stamps).toHaveLength(TOTAL)
-    expect(new Set(stamps)).toEqual(new Set(['2026-09-08']))
+    expect(stamps).toEqual(publicUrlPaths().map((p) => lastmodEntry(p)!.lastmod))
+    for (const s of stamps) expect(s).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('does not reach for the day of the build while every URL has an entry', () => {
+    expect(sitemapXml('2099-12-31')).not.toContain('<lastmod>2099-12-31</lastmod>')
+  })
+
+  it('walks the same URL list the lastmod file and IndexNow walk', () => {
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
+    expect(locs).toEqual(publicUrlPaths().map((p) => `https://cvaurum.com${p}`))
   })
 
   /** The <image:loc> values of each <url> block, in document order. */
@@ -647,5 +670,132 @@ describe('the prompt library', () => {
     expect(t).toContain('https://cvaurum.com/prompts')
     expect(siteUrls()).toContain('https://cvaurum.com/prompts')
     expect(sitemapXml('2026-09-08')).toContain('<loc>https://cvaurum.com/prompts</loc>')
+  })
+})
+
+/**
+ * The hubs used to be the weak link in the markup: every design page declared
+ * a crumb trail and a picture while the page that lists all 68 declared
+ * nothing at all, and the prompt library declared nothing either. A collection
+ * page that says nothing about itself is 68 unrelated documents to a results
+ * page.
+ */
+describe('the collection pages describe themselves', () => {
+  const graphOf = (json: string) => JSON.parse(json)['@graph'] as Record<string, unknown>[]
+  const node = (json: string, type: string) => graphOf(json).find((n) => n['@type'] === type) as Record<string, any>
+
+  it('says what the gallery is, where it sits and what is on it', () => {
+    const page = node(galleryJsonLd(), 'CollectionPage')
+    expect(page.url).toBe('https://cvaurum.com/templates')
+    expect(page.name).toBe(`${TEMPLATES.length} résumé templates`)
+    expect(page.description.length).toBeLessThanOrEqual(DESC_MAX)
+
+    const crumbs = node(galleryJsonLd(), 'BreadcrumbList').itemListElement
+    expect(crumbs.map((c: { item: string }) => c.item)).toEqual([
+      'https://cvaurum.com/',
+      'https://cvaurum.com/templates',
+    ])
+    expect(crumbs.map((c: { position: number }) => c.position)).toEqual([1, 2])
+
+    const list = node(galleryJsonLd(), 'ItemList')
+    expect(list.numberOfItems).toBe(TEMPLATES.length)
+    expect(list.itemListElement).toHaveLength(TEMPLATES.length)
+    // Each entry names the design's own page picture, not the share card, so
+    // the collection is described with the pictures the page carries.
+    expect(list.itemListElement.map((i: { url: string }) => i.url)).toEqual(
+      allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`)
+    )
+    expect(list.itemListElement.map((i: { image: string }) => i.image)).toEqual(
+      allTemplateIds().map((id) => `https://cvaurum.com${templatePageImage(id)}`)
+    )
+  })
+
+  it('says the same for the prompt library, without claiming a picture it has none of', () => {
+    const page = node(promptsJsonLd(), 'CollectionPage')
+    expect(page.url).toBe('https://cvaurum.com/prompts')
+    expect(page.description.length).toBeLessThanOrEqual(DESC_MAX)
+    expect(promptsJsonLd()).not.toContain('primaryImageOfPage')
+    expect(promptsJsonLd()).not.toContain('.jpg')
+
+    expect(node(promptsJsonLd(), 'BreadcrumbList').itemListElement.map((c: { item: string }) => c.item)).toEqual([
+      'https://cvaurum.com/',
+      'https://cvaurum.com/prompts',
+    ])
+    const list = node(promptsJsonLd(), 'ItemList')
+    expect(list.numberOfItems).toBe(PROMPTS.length)
+    // Each prompt is addressable on the page it lives on.
+    expect(list.itemListElement.map((i: { url: string }) => i.url)).toEqual(
+      PROMPTS.map((p) => `https://cvaurum.com/prompts#${p.id}`)
+    )
+  })
+
+  it('is valid JSON on both, with the context declared once', () => {
+    for (const json of [galleryJsonLd(), promptsJsonLd()]) {
+      const parsed = JSON.parse(json)
+      expect(parsed['@context']).toBe('https://schema.org')
+      expect(Array.isArray(parsed['@graph'])).toBe(true)
+      // One <script> carries the lot, so the context belongs to the document,
+      // not to each node in it.
+      expect(json.match(/@context/g)).toHaveLength(1)
+    }
+  })
+})
+
+/**
+ * A crawler that runs no JavaScript walks <a href> and nothing else. Every
+ * public page has to be reachable that way, and the collections have to reach
+ * each other — /examples and its 108 pages were once only reachable from the
+ * landing page by way of /prompts.
+ */
+describe('the crawl path without JavaScript', () => {
+  const links = (html: string) => new Set([...html.matchAll(/<a\s+href="([^"]+)"/g)].map((m) => m[1]))
+
+  it('reaches every collection from the landing page in one hop', () => {
+    const l = links(landingStaticHtml())
+    for (const hub of ['/templates', '/examples', '/prompts', '/app']) expect(l.has(hub), hub).toBe(true)
+  })
+
+  it('reaches every design from the gallery in one hop', () => {
+    const l = links(galleryStaticHtml())
+    for (const id of allTemplateIds()) expect(l.has(`/templates/${id}`), id).toBe(true)
+  })
+
+  it('links the gallery sideways to the other collections', () => {
+    const l = links(galleryStaticHtml())
+    expect(l.has('/')).toBe(true)
+    expect(l.has('/examples')).toBe(true)
+    expect(l.has('/prompts')).toBe(true)
+  })
+
+  it('links every design page up, sideways and across', () => {
+    for (const id of allTemplateIds().slice(0, 5)) {
+      const l = links(staticHtml(id))
+      expect(l.has('/templates'), id).toBe(true)
+      expect(l.has('/examples'), id).toBe(true)
+      // …and to every other design, which is what makes 68 pages one set.
+      expect(templateLinks(staticHtml(id)), id).toHaveLength(TEMPLATES.length - 1)
+    }
+  })
+
+  it('links the prompt library back to the pages it sends people to', () => {
+    const l = links(promptsStaticHtml())
+    for (const hub of ['/', '/app', '/templates', '/examples']) expect(l.has(hub), hub).toBe(true)
+  })
+})
+
+describe('the one list of public URLs', () => {
+  it('is the sitemap order, as paths and as absolute URLs', () => {
+    const paths = publicUrlPaths()
+    expect(paths[0]).toBe('/')
+    expect(paths[1]).toBe('/templates')
+    expect(paths[paths.length - 1]).toBe('/prompts')
+    expect(paths).toHaveLength(TEMPLATES.length + orderedSampleSlugs().length + 4)
+    expect(publicUrls()).toEqual(paths.map((p) => `https://cvaurum.com${p}`))
+  })
+
+  it('holds no duplicate and no private route', () => {
+    const paths = publicUrlPaths()
+    expect(new Set(paths).size).toBe(paths.length)
+    for (const p of paths) expect(/^\/(app|tracker|resume|print|r)\b/.test(p), p).toBe(false)
   })
 })

@@ -8,6 +8,7 @@ import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { TEMPLATE_MAP } from '@/templates/registry'
 import {
   examplesItemListJsonLd,
+  examplesJsonLd,
   examplesPageMeta,
   examplesStaticHtml,
   orderedSampleSlugs,
@@ -226,5 +227,68 @@ describe('the Markdown twin', () => {
   it('shows the same picture the page does, with the same words', () => {
     const slug = SLUGS[0]
     expect(sampleMarkdown(slug)).toContain(`![${sampleImageAlt(slug)}](https://cvaurum.com${samplePageImage(slug)})`)
+  })
+})
+
+/**
+ * The shelf carries 108 complete résumés and used to declare only an ItemList
+ * — no crumb trail, nothing saying what the page itself is. Every page INSIDE
+ * it declared both, so the collection was the one page in the set a results
+ * page could not place.
+ */
+describe('what the shelf declares about itself', () => {
+  const graph = () => JSON.parse(examplesJsonLd())['@graph'] as Record<string, any>[]
+  const node = (type: string) => graph().find((n) => n['@type'] === type)!
+
+  it('is one graph under one context, as a single script tag', () => {
+    const parsed = JSON.parse(examplesJsonLd())
+    expect(parsed['@context']).toBe('https://schema.org')
+    expect(examplesJsonLd().match(/@context/g)).toHaveLength(1)
+    expect(graph().map((n) => n['@type'])).toEqual(['CollectionPage', 'BreadcrumbList', 'ItemList'])
+  })
+
+  it('names the page, its URL and a description a result can show', () => {
+    const page = node('CollectionPage')
+    expect(page.url).toBe('https://cvaurum.com/examples')
+    expect(page['@id']).toBe('https://cvaurum.com/examples')
+    expect(page.name).toBe(`${LIBRARY.length} résumé examples`)
+    expect(page.description.length).toBeLessThanOrEqual(155)
+  })
+
+  it('walks back up to the home page', () => {
+    expect(node('BreadcrumbList').itemListElement).toEqual([
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://cvaurum.com/' },
+      { '@type': 'ListItem', position: 2, name: 'Résumé examples', item: 'https://cvaurum.com/examples' },
+    ])
+  })
+
+  it('carries the same list it always did, unchanged', () => {
+    expect(node('ItemList').itemListElement).toEqual(JSON.parse(examplesItemListJsonLd()).itemListElement)
+    expect(node('ItemList').numberOfItems).toBe(LIBRARY.length)
+  })
+})
+
+describe('the crawl path out of the library', () => {
+  const links = (html: string) => new Set([...html.matchAll(/<a\s+href="([^"]+)"/g)].map((m) => m[1]))
+
+  it('reaches every example from the shelf in one hop', () => {
+    const l = links(examplesStaticHtml())
+    for (const slug of SLUGS) expect(l.has(`/examples/${slug}`), slug).toBe(true)
+  })
+
+  it('links the shelf sideways to the other collections and home', () => {
+    const l = links(examplesStaticHtml())
+    for (const hub of ['/', '/app', '/templates', '/prompts']) expect(l.has(hub), hub).toBe(true)
+  })
+
+  it('links every example page up to both collections and to its own design', () => {
+    for (const slug of SLUGS.slice(0, 6)) {
+      const l = links(sampleStaticHtml(slug))
+      expect(l.has('/examples'), slug).toBe(true)
+      expect(l.has('/templates'), slug).toBe(true)
+      expect(l.has('/app'), slug).toBe(true)
+      const sample = LIBRARY.find((s) => s.slug === slug)!
+      expect(l.has(`/templates/${sample.template}`), slug).toBe(true)
+    }
   })
 })

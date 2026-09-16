@@ -119,8 +119,13 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   // Same reason for the no-script fallback: it is the landing page's pitch,
   // heading and all, and it would put a second <h1> — the same second <h1> —
   // on every page in the set. Each page now carries its own copy in #root.
+  // Anchored on the <main> inside it, NOT on the first <noscript> in the file:
+  // the head carries a one-line <noscript><style> that hides the boot splash
+  // when scripts are off, and a looser pattern ate that instead, leaving every
+  // generated page with the splash over its content and the landing pitch
+  // underneath.
   html = html.replace(
-    /<noscript>[\s\S]*?<\/noscript>/,
+    /<noscript>\s*<main[\s\S]*?<\/noscript>/,
     `<noscript><p style="max-width:760px;margin:0 auto;padding:24px 20px;font-family:system-ui,sans-serif">CVAurum needs JavaScript to edit and export a résumé. <a href="/">About CVAurum</a> · <a href="/templates">All templates</a></p></noscript>`
   )
   // The shell ships #root empty; fill it for whoever does not run scripts.
@@ -164,7 +169,10 @@ function seoPages(): Plugin {
         fs.writeFileSync(target, text)
       }
 
-      write('templates', pageHtml(shell, seo.SITE, seo.galleryPageMeta(), seo.galleryStaticHtml()))
+      // The gallery declares itself too: what the page is, the trail back up
+      // and an ItemList of the designs. It used to declare nothing at all
+      // while every page inside it declared a breadcrumb and a picture.
+      write('templates', pageHtml(shell, seo.SITE, seo.galleryPageMeta(), seo.galleryStaticHtml(), seo.galleryJsonLd()))
       const ids = seo.allTemplateIds()
       for (const id of ids) {
         write(
@@ -177,8 +185,8 @@ function seoPages(): Plugin {
       // the most content of any page on the site - a whole resume in readable
       // HTML - which is the only reason a search for "data analyst resume
       // example" can land anywhere but the homepage.
-      write('examples', pageHtml(shell, seo.SITE, seo.examplesPageMeta(), seo.examplesStaticHtml(), seo.examplesItemListJsonLd()))
-      write('prompts', pageHtml(shell, seo.SITE, seo.promptsPageMeta(), seo.promptsStaticHtml()))
+      write('examples', pageHtml(shell, seo.SITE, seo.examplesPageMeta(), seo.examplesStaticHtml(), seo.examplesJsonLd()))
+      write('prompts', pageHtml(shell, seo.SITE, seo.promptsPageMeta(), seo.promptsStaticHtml(), seo.promptsJsonLd()))
       const slugs = seo.orderedSampleSlugs()
       for (const slug of slugs) {
         write(
@@ -228,12 +236,20 @@ function seoPages(): Plugin {
       writeText(path.join('.well-known', 'agent-skills', 'index.json'), seo.agentSkillsIndex(createHash('sha256').update(skill).digest('hex')))
       writeText('auth.md', seo.authMd())
 
+      // Only the fallback: each <lastmod> is the day THAT page's sources last
+      // changed, recorded in src/data/lastmod.json (scripts/make-lastmod.cjs,
+      // guarded by src/data/lastmod.test.ts). A sitemap that stamped the build
+      // day on all 180 URLs told a crawler every page changed every deploy,
+      // which is how the field stops being read.
       const today = new Date().toISOString().slice(0, 10)
       fs.writeFileSync(path.join(OUT, 'sitemap.xml'), seo.sitemapXml(today))
+      const urls = seo.publicUrlPaths()
+      const dates = new Set(urls.map((u) => seo.lastmodFor(u, today)))
 
       console.log(
         `\nSEO: wrote ${written.length} pre-rendered pages (dist/${written[0]} … dist/${written[written.length - 1]}) ` +
-          `and dist/sitemap.xml with ${ids.length + slugs.length + 3} URLs (lastmod ${today})`
+          `and dist/sitemap.xml with ${urls.length} URLs ` +
+          `(${dates.size} distinct lastmod: ${[...dates].sort().join(', ')})`
       )
     },
   }

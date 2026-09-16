@@ -21,6 +21,7 @@ import { ResumeContentSchema } from '@/types/document'
 import { orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLibrary'
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
+import LASTMOD from '@/data/lastmod.json'
 
 /**
  * The example library's own pages, re-exported so the build step keeps loading
@@ -30,6 +31,7 @@ import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 export {
   EXAMPLES_INTRO,
   examplesItemListJsonLd,
+  examplesJsonLd,
   examplesMarkdown,
   examplesPageMeta,
   examplesStaticHtml,
@@ -241,7 +243,7 @@ export function staticHtml(id: string): string {
     ${figure(tpl, true)}
     <p>${htmlEscape(tpl.description)}</p>
     <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
-    <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} résumé templates</a></p>
+    <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} résumé templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete résumé examples</a></p>
     <nav aria-label="Every other résumé template">
       <h2>The other ${others.length} designs</h2>
       <ul>
@@ -254,8 +256,10 @@ ${linkList(others)}
 /** The same crawler-readable block for the gallery itself. */
 export function galleryStaticHtml(): string {
   return `<main class="seo-static">
+    <p><a href="/">CVAurum</a> › Résumé templates</p>
     <h1>${TEMPLATES.length} résumé templates, all free</h1>
     <p>${htmlEscape(GALLERY_INTRO)}</p>
+    <p><a href="/app">Start a résumé</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete résumé examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a></p>
     <nav aria-label="Every résumé template">
       <h2>Every design</h2>
       <ul class="seo-cards">
@@ -709,6 +713,7 @@ export function promptsStaticHtml(): string {
     </section>`
   ).join('\n')
   return `<main class="seo-static">
+    <p><a href="/">CVAurum</a> › Résumé prompts</p>
     <h1>${PROMPTS.length} résumé prompts for an AI assistant</h1>
     <p>${htmlEscape(PROMPTS_INTRO)}</p>
     <ol>
@@ -773,10 +778,62 @@ function urlEntry(loc: string, lastmod: string, changefreq: string, priority: st
   </url>`
 }
 
+/* ------------------------------------------------------------- lastmod
+ * A <lastmod> that reads as "today" on every deploy is a <lastmod> a crawler
+ * learns to ignore: it says the page changed when only the build did. So the
+ * date is not read from the clock here. src/data/lastmod.json holds, per
+ * public URL, a hash of the sources that page is made from and the day that
+ * hash last changed; scripts/make-lastmod.cjs updates it, and
+ * src/data/lastmod.test.ts fails the suite if a source moved without the
+ * script being run. See docs/SEO.md.
+ */
+
+export interface LastmodEntry {
+  /** Hash of the sources the page is built from — see src/lib/lastmodHash.ts. */
+  hash: string
+  /** YYYY-MM-DD: the day that hash last changed. */
+  lastmod: string
+}
+
+const LASTMOD_MAP = LASTMOD as Record<string, LastmodEntry>
+
+/** Every public URL as a site-root-relative path, in sitemap order. The one
+ *  list the sitemap, the lastmod file and the IndexNow submission all walk. */
+export function publicUrlPaths(): string[] {
+  return [
+    '/',
+    '/templates',
+    ...ORDERED.map((t) => `/templates/${t.id}`),
+    '/examples',
+    ...librarySlugs().map((slug) => `/examples/${slug}`),
+    '/prompts',
+  ]
+}
+
+/** The same list as absolute URLs — what IndexNow and a sitemap want. */
+export function publicUrls(): string[] {
+  return publicUrlPaths().map((p) => `${SITE}${p}`)
+}
+
+/** What the file records for one page, or null if it has no entry yet. */
+export function lastmodEntry(path: string): LastmodEntry | null {
+  return LASTMOD_MAP[path] ?? null
+}
+
+/**
+ * The day this page's sources last changed. `fallback` is used only for a URL
+ * the file has no entry for — a page added since the script was last run,
+ * which the test catches before it can ship.
+ */
+export function lastmodFor(path: string, fallback: string): string {
+  return LASTMOD_MAP[path]?.lastmod ?? fallback
+}
+
 /**
  * Every public URL the site has: the landing page, the gallery, and one entry
  * per design. `today` is passed in (rather than read from the clock) so the
- * function stays pure and the file it writes is reproducible.
+ * function stays pure and the file it writes is reproducible; it is now only
+ * the fallback for a URL with no recorded lastmod.
  */
 export function sitemapXml(today: string): string {
   // Absolute URLs, computed once: a collection page declares every picture it
@@ -784,15 +841,16 @@ export function sitemapXml(today: string): string {
   const designs = ORDERED.map((t) => `${SITE}${templatePageImage(t.id)}`)
   const slugs = librarySlugs()
   const samples = slugs.map((slug) => `${SITE}${samplePageImage(slug)}`)
+  const mod = (path: string) => lastmodFor(path, today)
   const entries = [
-    urlEntry(`${SITE}/`, today, 'weekly', '1.0'),
-    urlEntry(`${SITE}/templates`, today, 'weekly', '0.8', designs),
-    ...ORDERED.map((t, i) => urlEntry(`${SITE}/templates/${t.id}`, today, 'monthly', '0.6', [designs[i]])),
-    urlEntry(`${SITE}/examples`, today, 'weekly', '0.8', samples),
-    ...slugs.map((slug, i) => urlEntry(`${SITE}/examples/${slug}`, today, 'monthly', '0.6', [samples[i]])),
+    urlEntry(`${SITE}/`, mod('/'), 'weekly', '1.0'),
+    urlEntry(`${SITE}/templates`, mod('/templates'), 'weekly', '0.8', designs),
+    ...ORDERED.map((t, i) => urlEntry(`${SITE}/templates/${t.id}`, mod(`/templates/${t.id}`), 'monthly', '0.6', [designs[i]])),
+    urlEntry(`${SITE}/examples`, mod('/examples'), 'weekly', '0.8', samples),
+    ...slugs.map((slug, i) => urlEntry(`${SITE}/examples/${slug}`, mod(`/examples/${slug}`), 'monthly', '0.6', [samples[i]])),
     // A collection too, of prompts rather than designs; it carries no picture
     // of its own, so it declares none.
-    urlEntry(`${SITE}/prompts`, today, 'weekly', '0.8'),
+    urlEntry(`${SITE}/prompts`, mod('/prompts'), 'weekly', '0.8'),
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -803,6 +861,10 @@ export function sitemapXml(today: string): string {
     no shareable content and are deliberately excluded (and Disallowed in
     robots.txt). Generated — see src/lib/seoPages.ts and the SEO plugin in
     vite.config.ts; edit those, not this file.
+
+    Each <lastmod> is the day THAT page's sources last changed, recorded in
+    src/data/lastmod.json by scripts/make-lastmod.cjs — not the day of the
+    build. A date that moved is a page that moved.
   -->
 ${entries.join('\n')}
 </urlset>
@@ -837,13 +899,102 @@ export function breadcrumbJsonLd(id: string): string {
           caption: imageAlt(tpl),
         },
       },
+      breadcrumbList([
+        { name: 'Home', path: '/' },
+        { name: 'Résumé templates', path: '/templates' },
+        { name: `${tpl.name} résumé template`, path: `/templates/${tpl.id}` },
+      ]),
+    ],
+  })
+}
+
+/**
+ * A crumb trail as schema.org writes one. Every public page gets the same
+ * shape, so a results page can show the path to it rather than a bare URL.
+ */
+export function breadcrumbList(trail: readonly { name: string; path: string }[]): Record<string, unknown> {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((step, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: step.name,
+      item: `${SITE}${step.path}`,
+    })),
+  }
+}
+
+/**
+ * The gallery's own structured data.
+ *
+ * It had none: every design page declared its trail and its picture while the
+ * page that lists all 68 declared nothing at all, so the collection was 68
+ * unrelated documents to a results page. This says what the page is (a
+ * collection), how to walk back up, and — as an ItemList, the way the example
+ * shelf already does it — what is on it and which picture stands for each.
+ */
+export function galleryJsonLd(): string {
+  const url = `${SITE}/templates`
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
       {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE}/` },
-          { '@type': 'ListItem', position: 2, name: 'Résumé templates', item: `${SITE}/templates` },
-          { '@type': 'ListItem', position: 3, name: `${tpl.name} résumé template`, item: url },
-        ],
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        name: `${TEMPLATES.length} résumé templates`,
+        description: trimToWords(GALLERY_INTRO),
+        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
+      },
+      breadcrumbList([
+        { name: 'Home', path: '/' },
+        { name: 'Résumé templates', path: '/templates' },
+      ]),
+      {
+        '@type': 'ItemList',
+        name: 'Résumé templates',
+        numberOfItems: ORDERED.length,
+        itemListElement: ORDERED.map((t, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: `${t.name} résumé template`,
+          url: `${SITE}/templates/${t.id}`,
+          image: `${SITE}${templatePageImage(t.id)}`,
+        })),
+      },
+    ],
+  })
+}
+
+/** The prompt library's, for the same reason: a collection of six documents
+ *  that said nothing about itself. No picture — the page carries none. */
+export function promptsJsonLd(): string {
+  const url = `${SITE}/prompts`
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        name: `${PROMPTS.length} résumé prompts for an AI assistant`,
+        description: trimToWords(PROMPTS_INTRO),
+        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
+      },
+      breadcrumbList([
+        { name: 'Home', path: '/' },
+        { name: 'Résumé prompts', path: '/prompts' },
+      ]),
+      {
+        '@type': 'ItemList',
+        name: 'Résumé prompts',
+        numberOfItems: PROMPTS.length,
+        itemListElement: PROMPTS.map((p, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: p.title,
+          url: `${url}#${p.id}`,
+        })),
       },
     ],
   })
@@ -900,7 +1051,7 @@ export function landingStaticHtml(): string {
   return `<main class="seo-static">
     <h1>${esc(COPY.hero)}</h1>
     <p>${esc(COPY.oneLiner)}</p>
-    <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
+    <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} résumé examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
     <h2>Three steps</h2>
     <ol>
 ${steps}
@@ -931,6 +1082,8 @@ ${faq}
 ${signature}
     </ul>
     <p><a href="${COPY.links.gallery}">Every template, rendered on the same example résumé</a>.</p>
+    <h2>Examples</h2>
+    <p>${SAMPLE_COUNT} complete résumés for named jobs, each written out in full on its own page and filterable by field, career stage and the country it is written for — <a href="/examples">read the ${SAMPLE_COUNT} résumé examples</a>. Every person, employer, address and figure in them is invented.</p>
     <h2>Prompts</h2>
     <p>${PROMPTS.length} copy-ready prompts for whatever AI assistant you already use — <a href="/prompts">start from your own history instead of a blank page</a>. Each asks for JSON Resume, which this app imports, and none of them will invent experience you do not have.</p>
     <p>CVAurum is open source under the MIT licence: <a href="${COPY.links.repo}">${COPY.links.repo}</a>.</p>

@@ -28,7 +28,7 @@
          Cloudflare Pages). If the domain changes, update it in index.html,
          public/robots.txt and public/sitemap.xml. -->
     <title>Free Open-Source ATS Resume Builder — CVAurum</title>
-    <meta name="description" content="Build an ATS-ready resume free, right in your browser — no sign-up, no server, open-source. 68 premium templates, PDF résumé import, and vector PDF / Word / JSON export. Your data never leaves your device." />
+    <meta name="description" content="Build an ATS-ready résumé free in your browser — no sign-up, no server, open source. 68 templates, 108 examples, PDF import, PDF/Word/JSON export." />
     <meta name="keywords" content="free resume builder, open source resume builder, private resume builder, offline resume builder, ATS resume builder, resume builder no sign up, local resume builder, JSON Resume" />
     <meta name="author" content="Akhil Dara" />
     <meta name="application-name" content="CVAurum" />
@@ -48,7 +48,7 @@
     <!-- Open Graph (link previews) -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
-    <meta property="og:description" content="Build an ATS-ready resume free, right in your browser — no sign-up, no server, open-source. 68 premium templates, PDF résumé import, and vector PDF / Word / JSON export. Your data never leaves your device." />
+    <meta property="og:description" content="Build an ATS-ready résumé free in your browser — no sign-up, no server, open source. 68 templates, 108 examples, PDF import, PDF/Word/JSON export." />
     <meta property="og:url" content="https://cvaurum.com/" />
     <meta property="og:image" content="https://cvaurum.com/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -62,11 +62,18 @@
     <link rel="alternate" hreflang="en" href="https://cvaurum.com/" />
     <link rel="alternate" hreflang="x-default" href="https://cvaurum.com/" />
     <meta name="format-detection" content="telephone=no" />
+    <!-- The boot splash is a fixed, full-screen overlay that React removes on
+         mount. With no JavaScript nothing ever removes it, so it sat on top of
+         the <noscript> block and of the pre-rendered HTML in #root — a reader
+         without scripts saw "Loading CVAurum…" and nothing else, for ever.
+         (A crawler that does not run scripts parses rather than paints, so this
+         never affected indexing; a person without them saw a blank screen.) -->
+    <noscript><style>#boot-splash{display:none !important}</style></noscript>
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
-    <meta name="twitter:description" content="Build an ATS-ready resume free, right in your browser — no sign-up, no server, open-source. 68 premium templates, PDF résumé import, and vector PDF / Word / JSON export. Your data never leaves your device." />
+    <meta name="twitter:description" content="Build an ATS-ready résumé free in your browser — no sign-up, no server, open source. 68 templates, 108 examples, PDF import, PDF/Word/JSON export." />
     <meta name="twitter:image" content="https://cvaurum.com/og.png" />
     <meta name="twitter:image:alt" content="The CVAurum mark and name, the words no account, no server, no tracking, the line: a resume this beautiful never leaves your browser, the number of designs and example resumes, and four real resume pages fanned beside them." />
 
@@ -90,7 +97,7 @@
       "codeRepository": "https://github.com/akhil-dara/cvaurum",
       "softwareHelp": "https://github.com/akhil-dara/cvaurum",
       "featureList": [
-        "67 premium resume templates",
+        "68 premium templates",
         "Built-in deterministic ATS check with job-description keyword matching",
         "Import an existing PDF résumé, read on your own device",
         "Export to crisp vector PDF, Word (.docx) and JSON Resume",
@@ -203,7 +210,7 @@
         <p>CVAurum is a 100% client-side resume studio. Build a beautiful, ATS-ready resume with live WYSIWYG editing, score it against any job description, and export a crisp vector PDF, a WYSIWYG Word document, or JSON Resume — all without an account, a server, or a single tracking pixel. Your data never leaves your device. Free, forever, and MIT-licensed open source.</p>
         <h2>100% private and local-first</h2>
         <p>No account, no sign-up, no server, no analytics. Every resume lives in your browser's storage on your own machine. Back up and restore your whole library to a single file whenever you like.</p>
-        <h2>67 premium, data-driven templates</h2>
+        <h2>68 premium templates</h2>
         <p>Choose from 68 professionally designed templates and edit directly on the page — what you see is exactly what you export.</p>
         <h2>Import your existing PDF résumé</h2>
         <p>Already have a resume? Drop in the PDF and CVAurum rebuilds it into editable sections right in your browser — nothing is uploaded. Scanned or image-only PDFs are read with on-device OCR.</p>
