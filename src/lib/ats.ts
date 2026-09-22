@@ -8,6 +8,7 @@ import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { htmlToText } from '@/lib/utils'
 import { getTemplate } from '@/templates/registry'
 import { sectionHasContent } from '@/lib/sections'
+import { visibleDocument } from '@/lib/atsScope'
 import { LEGIBLE_BODY_PT } from '@/lib/fitReadout'
 
 export type CheckStatus = 'pass' | 'warn' | 'fail'
@@ -117,8 +118,16 @@ const WEAK_STARTS = new Set(
   `responsible worked helped assisted participated involved tasked duties handled various dealt`.split(/\s+/)
 )
 
-/** Plain text of the whole resume, for keyword matching & counts. */
-export function extractResumeText(doc: ResumeDocument): string {
+/**
+ * Plain text of the resume THE PAGE DRAWS, for keyword matching & counts.
+ *
+ * Narrowed through `visibleDocument` first: a section the author hid is not on
+ * the page, not in the PDF, and so has no business raising a word count or
+ * satisfying a job description's keyword. This used to walk `doc.content`
+ * whole, which is why a removed skill group kept matching a JD term.
+ */
+export function extractResumeText(input: ResumeDocument): string {
+  const doc = visibleDocument(input)
   const c = doc.content
   const parts: string[] = []
   const b = c.basics
@@ -340,7 +349,12 @@ export function extractKeywords(text: string, max = 24): string[] {
     .slice(0, max)
 }
 
-export function analyzeResume(doc: ResumeDocument, measured: AtsMeasurement = {}): AtsReport {
+export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = {}): AtsReport {
+  // Every rule below reads the document the PAGE shows, not the one the store
+  // holds. Hidden sections are dropped once, here, so no individual check has
+  // to remember to ask - and so the score, the checks, the counts and the JD
+  // match are all claims about the same résumé the export produces.
+  const doc = visibleDocument(input)
   const c = doc.content
   const text = extractResumeText(doc)
   const words = text.split(/\s+/).filter(Boolean)

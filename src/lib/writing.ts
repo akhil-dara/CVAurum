@@ -9,6 +9,7 @@
  */
 import type { ResumeDocument } from '@/types/document'
 import { htmlToText } from '@/lib/utils'
+import { visibleDocument } from '@/lib/atsScope'
 
 export type WritingSeverity = 'strong' | 'suggestion' | 'warning'
 
@@ -231,7 +232,11 @@ function analyzeText(text: string, opts: { requireMetric: boolean }): WritingIss
   return issues
 }
 
-export function analyzeWriting(doc: ResumeDocument): WritingReport {
+export function analyzeWriting(input: ResumeDocument): WritingReport {
+  // Coach the résumé the author can SEE. This used to walk the whole content
+  // model, so it went on quoting a bullet from a section the page no longer
+  // draws - advice about a line the reader cannot find, let alone fix.
+  const doc = visibleDocument(input)
   const bullets: BulletAnalysis[] = []
   const push = (section: string, where: string, html: string, requireMetric: boolean) => {
     const text = htmlToText(html)

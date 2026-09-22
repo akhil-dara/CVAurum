@@ -9,6 +9,7 @@
  */
 import type { ResumeDocument } from '@/types/document'
 import { htmlToText } from '@/lib/utils'
+import { visibleDocument } from '@/lib/atsScope'
 
 const ENABLE_KEY = 'cvaurum:semantic:v1'
 
@@ -95,9 +96,15 @@ async function embed(texts: string[]): Promise<{ data: Float32Array; dim: number
 
 const clean = (s: string) => s.replace(/\s+/g, ' ').trim()
 
-/** The résumé as a list of meaning-bearing lines (what a reader would take in). */
-export function collectResumeLines(doc: ResumeDocument): string[] {
-  const c = doc.content
+/**
+ * The résumé as a list of meaning-bearing lines (what a reader would take in).
+ *
+ * Narrowed to the sections the page draws first: a requirement should not come
+ * back "covered" by a bullet that lives in a section the author removed, which
+ * is the most misleading answer this card can give.
+ */
+export function collectResumeLines(input: ResumeDocument): string[] {
+  const c = visibleDocument(input).content
   const lines: string[] = []
   const push = (s?: string) => {
     let t = clean(htmlToText(s || ''))

@@ -4,6 +4,8 @@ import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { ATS_CATEGORY_LABELS, analyzeResume, type AtsCategory, type AtsCheck, type AtsMeasurement, type CheckStatus } from '@/lib/ats'
 import { fitSizesPt } from '@/lib/fitReadout'
+import { visibleSectionKeys } from '@/lib/atsScope'
+import { sectionHasContent } from '@/lib/sections'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
 import { SemanticMatchCard } from './SemanticMatch'
@@ -292,6 +294,19 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
   )
   const report = useMemo(() => analyzeResume(doc, measured), [doc, measured])
 
+  // What this analysis is ABOUT, said out loud.
+  //
+  // Everything above reads the document the page draws, never the whole store
+  // (see lib/atsScope). That is the right answer, but it is invisible: a
+  // reader who hides a section and watches the score drop has no way to tell
+  // whether the tool understood them. So the panel names its own scope - how
+  // many sections it read, and how many it deliberately left out.
+  const scope = useMemo(() => {
+    const visible = visibleSectionKeys(doc)
+    const excluded = doc.metadata.layout.hidden.filter((k) => sectionHasContent(k, doc.content))
+    return { sections: visible.size, excluded: excluded.length }
+  }, [doc])
+
   // `analyzeResume` already returns the checks worst-first, heaviest-first;
   // filter preserves that order, so each group opens on the row worth the
   // reader's next five minutes.
@@ -322,6 +337,12 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
             </span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">{report.quantifiedCount}/{report.bulletCount} bullets quantified</p>
+          <p className="mt-1 text-xs text-muted-foreground" data-ats-scope>
+            Analysing {scope.sections} visible section{scope.sections === 1 ? '' : 's'}
+            {scope.excluded > 0 && (
+              <> · {scope.excluded} hidden section{scope.excluded === 1 ? '' : 's'} excluded</>
+            )}
+          </p>
         </div>
       </div>
 

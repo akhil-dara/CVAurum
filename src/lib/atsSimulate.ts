@@ -18,6 +18,7 @@
  */
 import type { ResumeDocument } from '@/types/document'
 import { resolveOrder, sectionLabel, DEFAULT_LABELS } from '@/lib/sections'
+import { visibleDocument } from '@/lib/atsScope'
 import { htmlToText } from '@/lib/utils'
 import { cleanEmail } from '@/templates/_shared/atoms'
 
@@ -78,7 +79,14 @@ interface Signals {
 
 const STANDARD = new Set(['work', 'education', 'skills', 'projects', 'summary', 'languages', 'certificates', 'awards', 'publications', 'volunteer', 'interests', 'references', 'profiles'])
 
-function collectSignals(doc: ResumeDocument): Signals {
+function collectSignals(input: ResumeDocument): Signals {
+  // The structural signals below already read `resolveOrder`, so they always
+  // described the visible page. The CONTENT signals did not: a hidden skills
+  // group still raised `skillKeywordCount`, so the "what this parser extracts"
+  // readout credited the applicant with skills no parser would ever see
+  // (measured: 15 skill keywords reported from a section the page had
+  // dropped). Narrowing the document once here makes both halves agree.
+  const doc = visibleDocument(input)
   const c = doc.content
   const layout = doc.metadata.layout
   const { main, aside, footer } = resolveOrder(doc)
