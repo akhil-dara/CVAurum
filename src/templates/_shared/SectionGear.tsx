@@ -693,11 +693,48 @@ export function SectionGear({
       setOpen(true)
       return
     }
-    const maxH = Math.min(620, vh - 16)
-    // Sit in the page's right margin, level with the gear — the section stays
-    // visible while its styles change live. Clamped fully on-screen.
-    const left = Math.max(8, Math.min(r.right + 12, vw - POP_W - 8))
-    const top = Math.max(8, Math.min(r.top - 4, vh - maxH - 8))
+    // Sit beside the gear — the section stays visible while its styles change
+    // live. Right of it by preference; on the far side when the right margin
+    // cannot hold the whole panel, rather than sliding back OVER the control
+    // that opened it (the old clamp did exactly that on a gear near the right
+    // edge).
+    const left =
+      r.right + 12 + POP_W <= vw - 8
+        ? r.right + 12
+        : r.left - 12 - POP_W >= 8
+          ? r.left - 12 - POP_W
+          : Math.max(8, Math.min(r.right + 12, vw - POP_W - 8))
+    // ANCHORED to the gear by one of its own edges, never floated to a fixed
+    // line. The old rule asked for a 620px panel and then clamped its top to
+    // `vh - maxH - 8`, so every gear below that line - two thirds of the
+    // sections on a full page - opened a sheet whose header sat hundreds of
+    // pixels ABOVE the control, level with some other section: measured at
+    // -490px for Education and -600px for Certifications on a 1000px viewport,
+    // with the sheet's box covering a section it does not edit in 12 of the 19
+    // sections measured. Nothing was mis-routed (the sheet always edited the clicked key),
+    // but a sheet that opens level with the section above the one it names is
+    // read as belonging to that section, which is the shape of the report that
+    // the control "targets the next section".
+    //
+    // So: top-aligned with the gear while the space below it can hold a usable
+    // panel, otherwise BOTTOM-aligned to the gear the way any dropdown opens
+    // upward. Either way one of the panel's edges is level with the control,
+    // and the header that names the section is within a panel's height of it.
+    const room = 8
+    const minH = Math.min(320, vh - room * 2)
+    const topAligned = Math.max(room, r.top - 4)
+    // A gear scrolled part-way off the bottom would otherwise anchor the panel
+    // off-screen; the anchor never leaves the viewport.
+    const anchorBottom = Math.min(r.bottom, vh - room)
+    let top: number
+    let maxH: number
+    if (vh - room - topAligned >= minH) {
+      top = topAligned
+      maxH = Math.min(620, vh - room - top)
+    } else {
+      maxH = Math.min(620, Math.max(minH, anchorBottom - room))
+      top = Math.max(room, anchorBottom - maxH)
+    }
     setPos({ top, left, maxH, sheet: false })
     setOpen(true)
   }
@@ -737,8 +774,17 @@ export function SectionGear({
           contentEditable={false}
           onMouseDown={(e) => e.preventDefault()}
           onClick={openPopover}
-          title="Style & settings for this section"
-          aria-label="Section style and settings"
+          // NAMED for the section it edits, not "this section". Every design
+          // puts this pill in the page's own margin - in a side column it
+          // floats in the gap ABOVE its own heading, two pixels clear of it
+          // and twenty below the section before it - so which section a given
+          // pill belongs to is decided by a couple of pixels. The tooltip and
+          // the accessible name now say it outright, and the sheet's header
+          // repeats it. (It also ends a real accessibility defect: a
+          // twelve-section page carried twelve buttons whose accessible name
+          // was the identical "Section style and settings".)
+          title={`Style & settings — ${sectionLabel(sectionKey, doc)}`}
+          aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}
         >
           <Settings2 /> Style
         </button>
