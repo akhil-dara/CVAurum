@@ -32,6 +32,7 @@ import {
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata, Typography } from '@/types/metadata'
 import { resolveOrder, sectionLabel } from '@/lib/sections'
+import { withoutSeeded } from '@/data/defaults'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { entryMetaOf, entryOrderOf, keepEntriesOn, linkStyleOf, LOCATION_DATE_SEPARATOR } from '@/templates/_shared/sectionClasses'
 import {
@@ -1058,6 +1059,10 @@ function buildFooter(keys: string[], doc: ResumeDocument, C: Ctx, width: number)
 /** The Word document itself, before packing - built from the document's own
  *  metrics (docxMetrics) so a test can open it and read them back. */
 export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
+  // The Word file leaves the app the same way the JSON does: a value an
+  // example seeded into a field the page never shows is not the author's, and
+  // here it would reach the reader as a live hyperlink on their job title.
+  doc = withoutSeeded(doc)
   const { metadata } = doc
   LINKS_LIVE = metadata.links?.clickable !== false
   JUSTIFY = metadata.typography.align === 'justify'

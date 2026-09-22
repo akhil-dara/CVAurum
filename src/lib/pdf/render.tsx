@@ -48,6 +48,7 @@ import { createTagSink, writeStructTree } from './structure'
 import { applyPdfMetadata, buildDocInfo } from './metadata'
 import { applyPdfAConformance, loadSrgbProfile, setPdfVersion, stampPdfVersion, PDFA_CLAIM, PDFUA_CLAIM } from './pdfa'
 import type { DecoBox } from './types'
+import { withoutSeeded } from '@/data/defaults'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
 // = true` BEFORE calling `renderResumePdf`, and reads `window.__cvaLastDecoBoxes`
@@ -138,6 +139,14 @@ function raf2(): Promise<void> {
 }
 
 export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> {
+  // An example seeds a few fields whose value the page never prints - an
+  // entry's `url` is the only one - so an author can carry the example's for
+  // months without ever seeing it. The JSON and Word exports already drop
+  // them; the PDF did not, and a seeded address rode out as a live link
+  // annotation over the employer's name, clickable and invisible. Nothing
+  // drawn changes: the URL was never drawn, only wrapped around words that
+  // were.
+  doc = withoutSeeded(doc)
   const fmt = doc.metadata.page.format === 'Letter' ? 'Letter' : 'A4'
   const { w: pageWpx, h: pageHpx } = PAGE_DIMENSIONS[fmt]
 

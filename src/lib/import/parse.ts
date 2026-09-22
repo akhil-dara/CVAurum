@@ -296,16 +296,44 @@ function normDate(tok: string): string {
   return mm >= 1 && mm <= 12 ? `${year}-${String(mm).padStart(2, '0')}` : year
 }
 
-/** Extract a date range from a string; returns the residual text too. */
-function pullDates(text: string): { start: string; end: string; present: boolean; rest: string } {
+/**
+ * Extract a date range from a string; returns the residual text too.
+ *
+ * ONE DATE IS NOT A RANGE. A lone date used to land in `startDate` with the
+ * end left empty, and an empty end is exactly how this model spells "still
+ * going": a degree that read "Aug 2019" in the source printed
+ * "Aug 2019 — Present" on the page, turning a graduation into an enrolment
+ * nobody wrote down. So a single date is reported as `single`, filling the END
+ * (a date on its own is a date something HAPPENED), and each section decides
+ * what that means for it. An ongoing range is only ever inferred from an
+ * explicit present/current word in the source — either at the far side of a
+ * range, or anywhere in a line that carries just the one date.
+ */
+function pullDates(text: string): { start: string; end: string; present: boolean; single: boolean; rest: string } {
   const m = text.match(RANGE_RE)
   if (m) {
     const present = new RegExp(PRESENT, 'i').test(m[2])
-    return { start: normDate(m[1]), end: present ? '' : normDate(m[2]), present, rest: text.replace(m[0], '').trim() }
+    return {
+      start: normDate(m[1]),
+      end: present ? '' : normDate(m[2]),
+      present,
+      single: false,
+      rest: text.replace(m[0], '').trim(),
+    }
   }
   const s = text.match(SINGLE_DATE_RE)
-  if (s) return { start: normDate(s[0]), end: '', present: false, rest: text.replace(s[0], '').trim() }
-  return { start: '', end: '', present: false, rest: text }
+  if (s) {
+    const rest = text.replace(s[0], '').trim()
+    const date = normDate(s[0])
+    // "Present — Mar 2021": the word is there on its own, so the date is a
+    // beginning and the entry is open-ended. Deliberately strict — "now" and
+    // "current" are ordinary words, and a bullet that happens to contain one
+    // must not turn a finished job into a running one.
+    const bare = rest.replace(/^[\s|·•,–—-]+|[\s|·•,–—-]+$/g, '')
+    if (new RegExp(`^${PRESENT}$`, 'i').test(bare)) return { start: date, end: '', present: true, single: false, rest: '' }
+    return { start: '', end: date, present: false, single: true, rest }
+  }
+  return { start: '', end: '', present: false, single: false, rest: text }
 }
 
 const cleanEdge = (s: string) => s.replace(/^[\s|·•,–—-]+|[\s|·•,–—-]+$/g, '').trim()
@@ -814,8 +842,12 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
           continue
         }
         const d = pullDates(line.text)
-        if (d.start && !start) {
-          start = d.start
+        if ((d.start || d.end) && !start && !end) {
+          // A role dated with a single year ("Contract engagement, 2019") is
+          // stored start === end, which is how this model spells a one-off
+          // engagement and how every surface prints it: once. Leaving the end
+          // empty would have claimed the job is still running.
+          start = d.single ? d.end : d.start
           end = d.end
         }
         let rest = d.rest
@@ -888,6 +920,11 @@ function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education
         area: degreeLine ? degreeLine.replace(GPA_RE, '').trim() : '',
         studyType: '',
         location: loc,
+        // A degree dated with one date is dated by when it FINISHED - that is
+        // what a resume prints beside a school - so the single date lands on
+        // the end and the start stays empty (pullDates already puts it there).
+        // It used to land on the start, and an empty end reads as "Present":
+        // every single-dated degree imported as a course still in progress.
         startDate: d.start,
         endDate: d.end,
         score: gpa ? `${gpa} GPA` : '',
@@ -1081,8 +1118,9 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
           continue
         }
         const d = pullDates(line.text)
-        if (d.start && !start) {
-          start = d.start
+        if ((d.start || d.end) && !start && !end) {
+          // Same as a role: one date is the whole of it, not an open end.
+          start = d.single ? d.end : d.start
           end = d.end
         }
         let rest = d.rest

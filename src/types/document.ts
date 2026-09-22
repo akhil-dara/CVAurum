@@ -49,6 +49,20 @@ export const ResumeDocumentSchema = z.object({
   jobDescription: z.string().optional().default(''),
   content: ResumeContentSchema,
   metadata: MetadataSchema,
+  /**
+   * Provenance for values that came from an EXAMPLE rather than from the
+   * author: a map of field path -> the value the example seeded there. It is
+   * written once, when a resume is started from an example (see
+   * `markSeeded`), and it only covers the quiet fields — the ones no design
+   * prints as readable text, so the author never sees them and never thinks
+   * to correct them.
+   *
+   * A mark is a claim about a VALUE, so it stops applying the moment the
+   * author edits that field: nothing has to remember to clear it. Exporters
+   * drop a still-seeded value (see `withoutSeeded`), and the map itself lives
+   * outside `content`/`metadata` so no export can ever carry it.
+   */
+  seeded: z.record(z.string()).optional(),
 })
 
 export type ResumeDocument = z.infer<typeof ResumeDocumentSchema>
@@ -64,6 +78,17 @@ export interface JsonResumeExport extends Omit<ResumeContent, 'custom'> {
     canonical?: string
     version?: string
     lastModified?: string
-    cvaurum?: Metadata & { title?: string; jobDescription?: string }
+    cvaurum?: Metadata & {
+      title?: string
+      jobDescription?: string
+      /**
+       * The rich-text ORIGINAL of every field whose top-level value had to be
+       * flattened to plain text for the JSON Resume consumer: field path ->
+       * the sanitized HTML the editor holds. Re-importing restores it, so the
+       * round trip is exact, while a plain JSON Resume reader still sees the
+       * words and nothing else.
+       */
+      rich?: Record<string, string>
+    }
   }
 }

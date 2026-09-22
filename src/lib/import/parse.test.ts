@@ -1059,3 +1059,97 @@ describe('sectionLeftX - a hanging bullet mark is not the section margin (2026-0
     expect(sectionLeftX([])).toBe(0)
   })
 })
+
+describe('one date is not a range (2026-09-22)', () => {
+  // An outside review imported a resume whose degree carried a single date
+  // and the page printed "Aug 2019 — Present": the importer had put the lone
+  // date in startDate, and an empty end is how this model spells "still
+  // going". A date on its own says when something HAPPENED; only an explicit
+  // present/current word in the source may open a range.
+  const at = (text: string, x: number, top: number, h = 8.9): Line => {
+    const l = line(text, false, h, top)
+    l.x = x
+    l.items = [{ str: text, x, top, width: text.length * 4, height: h, bold: false, page: 1, col: 0, aside: false }]
+    return l
+  }
+  const g = (lines: Line[]): LayoutGraph => ({
+    lines,
+    bodySize: 8.2,
+    lineGap: 11,
+    pageCount: 1,
+    charCount: lines.reduce((n, l) => n + l.text.length, 0),
+    twoColumn: false,
+    ocrPages: [],
+    ocrEngineFailed: false,
+  })
+
+  const edu = (dateLine: string) =>
+    parseLayout(
+      g([
+        at('Alex Morgan', 40, 40, 14),
+        at('alex@example.com', 40, 56),
+        { ...at('EDUCATION', 40, 90, 12.7), upper: true },
+        at('University of California, Berkeley', 65, 110, 10.8),
+        at('B.S. Computer Science', 65, 124),
+        at(dateLine, 65, 138, 7.6),
+      ])
+    ).content.education
+
+  it('EDUCATION: a single date is the END date, and the start stays empty', () => {
+    const [e] = edu('Aug 2019')
+    expect(e.endDate).toBe('2019-08')
+    expect(e.startDate).toBe('')
+  })
+
+  it('EDUCATION: a bare year on its own is an end date too', () => {
+    const [e] = edu('2019')
+    expect(e.endDate).toBe('2019')
+    expect(e.startDate).toBe('')
+  })
+
+  it('EDUCATION: a real range still fills both ends', () => {
+    const [e] = edu('Aug 2015 - May 2019')
+    expect(e.startDate).toBe('2015-08')
+    expect(e.endDate).toBe('2019-05')
+  })
+
+  it('EDUCATION: an explicit "Present" is the ONLY thing that opens the range', () => {
+    const [e] = edu('Aug 2019 - Present')
+    expect(e.startDate).toBe('2019-08')
+    expect(e.endDate).toBe('')
+  })
+
+  const work = (dateLine: string) =>
+    parseLayout(
+      g([
+        at('Alex Morgan', 40, 40, 14),
+        at('alex@example.com', 40, 56),
+        { ...at('EXPERIENCE', 40, 90, 12.7), upper: true },
+        at('Platform Engineer', 65, 110, 10.8),
+        at('Vertex Labs  |  ' + dateLine, 65, 124),
+        at('\u2022 Rebuilt the billing platform and cut payment failures by a third.', 68, 158),
+        at('Software Engineer', 65, 190, 10.8),
+        at('Northwind Software  |  Jun 2018 - Feb 2021', 65, 204),
+        at('\u2022 Built the design-system component library adopted by nine teams.', 68, 238),
+      ])
+    ).content.work
+
+  it('EXPERIENCE: a single date is stored start === end, never as an open range', () => {
+    const [w] = work('Mar 2021')
+    expect(w.startDate).toBe('2021-03')
+    expect(w.endDate).toBe('2021-03')
+    expect(w.endDate).not.toBe('')
+  })
+
+  it('EXPERIENCE: an explicit "Present" still opens the range', () => {
+    const [w] = work('Mar 2021 - Present')
+    expect(w.startDate).toBe('2021-03')
+    expect(w.endDate).toBe('')
+  })
+
+  it('EXPERIENCE: a real range is untouched', () => {
+    const [w] = work('Mar 2021 - Feb 2023')
+    expect(w.startDate).toBe('2021-03')
+    expect(w.endDate).toBe('2023-02')
+  })
+})

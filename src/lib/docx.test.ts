@@ -11,7 +11,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Packer } from 'docx'
 import JSZip from 'jszip'
 import { buildDocx, docxMetrics, loadArtBandImage, setArtBandImage } from './docx'
-import { defaultMetadata } from '@/data/defaults'
+import { createDocument, defaultMetadata } from '@/data/defaults'
+import { SAMPLE_CONTENT } from '@/data/sample'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import type { MetadataOverrides } from '@/data/defaults'
@@ -1013,5 +1014,58 @@ describe('the Word export drops a project address the section does not print', (
     const all = texts((await unpack(linkDoc('none'))).body).join('\n')
     expect(all).toContain('Ledger')
     expect(all).not.toContain('github.com')
+  })
+})
+
+describe('the Word export carries no value the author never typed (2026-09-22)', () => {
+  /** The relationship part is where a hyperlink's TARGET lives in a package. */
+  async function targets(doc: ResumeDocument): Promise<string> {
+    const buf = await Packer.toBuffer(buildDocx(doc))
+    const zip = await JSZip.loadAsync(buf)
+    const rels = zip.file('word/_rels/document.xml.rels')
+    return rels ? await rels.async('string') : ''
+  }
+
+  /** The example, with its rich text removed: the Word builder reads HTML
+   *  through a DOM the node environment does not have (see the mock above),
+   *  and what these assertions are about is the LINK target, not the prose. */
+  const fromExample = () => {
+    const doc = createDocument({ sample: true, content: structuredClone(SAMPLE_CONTENT), title: 'T' })
+    for (const list of Object.values(doc.content) as unknown[]) {
+      if (!Array.isArray(list)) continue
+      for (const it of list as Array<Record<string, unknown>>) {
+        if (!it || typeof it !== 'object') continue
+        for (const k of ['summary', 'description']) if (typeof it[k] === 'string') it[k] = ''
+        if (Array.isArray(it.highlights)) it.highlights = []
+      }
+    }
+    doc.content.basics.summary = ''
+    return doc
+  }
+
+  it('an example’s company link is not a hyperlink in the file', async () => {
+    const doc = fromExample()
+    const seeded = doc.content.work[0].url
+    expect(seeded).toBeTruthy()
+    expect(await targets(doc)).not.toContain(seeded)
+  })
+
+  it('the link the AUTHOR typed is still a live hyperlink', async () => {
+    const doc = fromExample()
+    doc.content.work[0].url = 'https://my-own-employer.example'
+    expect(await targets(doc)).toContain('my-own-employer.example')
+  })
+
+  it('no seeded value survives once the author clears the visible fields', async () => {
+    const doc = fromExample()
+    for (const w of doc.content.work) {
+      w.summary = ''
+      w.highlights = []
+      w.name = ''
+      w.position = ''
+      w.location = ''
+    }
+    const xml = await targets(doc)
+    for (const seed of Object.values(doc.seeded ?? {})) expect(xml).not.toContain(seed)
   })
 })
