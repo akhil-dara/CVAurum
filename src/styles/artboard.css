@@ -1243,7 +1243,13 @@
   list-style-position: outside;
 }
 .rm-bullets li::marker {
-  color: var(--rm-bullet-color, var(--rm-primary));
+  /* The marker is real text now - a glyph an extractor reads, not a shape the
+     browser draws - so it is held to the contrast a word is held to, and the
+     accent is set as ink here exactly as it is in a heading. Nine of these on
+     a page were the whole of what an accessibility checker still faulted
+     after the headings were fixed: a marker is a pseudo-element, so the
+     measurement that walks text nodes never saw one. */
+  color: var(--rm-bullet-color, var(--rm-primary-ink, var(--rm-primary)));
   /* Scales the UA-drawn disc as well as a custom string marker, and the
      painter reads the same computed size - see Artboard's useVars. */
   font-size: var(--rm-bullet-size, 1em);
