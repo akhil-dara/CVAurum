@@ -1,0 +1,23 @@
+# Continuous integration: typecheck + the full vitest suite on every push to
+# main and every pull request. This is the "automated gate" the README
+# promises — a template (or any other change) that breaks the typecheck or a
+# test cannot land silently.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test

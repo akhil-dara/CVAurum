@@ -15,7 +15,7 @@
 
 ---
 
-CVAurum is a beautiful, privacy-first resume builder that runs entirely in your browser. Pick from 67 premium templates — six of them a **Signature collection**, where each design is a different page _structure_ rather than a recolour — edit right on the page, get instant ATS feedback, tailor your resume to a job description, **import an existing PDF résumé**, and export a crisp PDF (drawn by CVAurum's own vector engine, byte-for-byte the page you were looking at) or an ATS-friendly Word document — all without an account, a server, or a single byte of tracking. Install it as an app and it works fully offline. Your data lives in your browser's IndexedDB and never leaves your machine unless **you** send it somewhere.
+CVAurum is a beautiful, privacy-first resume builder that runs entirely in your browser. Pick from 68 premium templates — six of them a **Signature collection**, where each design is a different page _structure_ rather than a recolour — edit right on the page, get instant ATS feedback, tailor your resume to a job description, **import an existing PDF résumé**, and export a crisp PDF (drawn by CVAurum's own vector engine, byte-for-byte the page you were looking at) or an ATS-friendly Word document — all without an account, a server, or a single byte of tracking. Install it as an app and it works fully offline. Your data lives in your browser's IndexedDB and never leaves your machine unless **you** send it somewhere.
 
 ```bash
 npm install && npm run dev
@@ -29,7 +29,7 @@ That's the entire setup. No Docker, no Postgres, no Redis, no headless Chromium.
 
 A resume tool should be beautiful, private, and instant — without asking you to sign up, pay, or trust a server with your career history. CVAurum is built around four ideas:
 
-- **🎨 Design-first.** 67 hand-crafted templates — including a six-design **Signature collection** where the page itself is rebuilt (a numbered running head, a poster block, a band of figures read from your own content, a year rail, a date margin, headings set beside their words) — with real typographic hierarchy, folio section badges (a folded-corner paper chip, with classic icon chips a click away), per-section style switching, and **Magic fit**, which sizes type and spacing to your page target inside rules you set, says exactly what it chose, and can measure a few moves that fit better.
+- **🎨 Design-first.** 68 hand-crafted templates — including a six-design **Signature collection** where the page itself is rebuilt (a numbered running head, a poster block, a band of figures read from your own content, a year rail, a date margin, headings set beside their words) — with real typographic hierarchy, folio section badges (a folded-corner paper chip, with classic icon chips a click away), per-section style switching, and **Magic fit**, which sizes type and spacing to your page target inside rules you set, says exactly what it chose, and can measure a few moves that fit better.
 - **🔒 Private by architecture.** There is no backend. Your data lives only in your browser. Nothing is ever uploaded, logged, or tracked — and even sharing is an **AES-256 encrypted link** that never touches a server.
 - **⚡ Instant, keyboard-first.** One command to start. Edit directly on the resume, drive everything from a **⌘K command palette**, type `/` for quick inserts, and watch a live ATS score update as you type.
 - **📄 Archival-grade, accessible PDFs.** Every PDF is drawn by CVAurum's own vector engine — the only export path there is, with no print-dialog fallback behind it — and every export is **PDF/A-2B** (archival) and **PDF/UA-1** (accessibility) conformant, tagged for screen readers and validated with the veraPDF reference validator on every release.
@@ -62,7 +62,7 @@ A resume tool should be beautiful, private, and instant — without asking you t
 
 ### 🎨 Templates & Design
 
-- **67 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Amethyst, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono and Opal, plus the six **Signature** designs below — each with folio or icon-chip section headings in three sizes and a refined type scale.
+- **68 premium, data-driven templates** — Clarity, Obsidian, Onyx Noir, Cascade, Sapphire, Garnet, Initials, Emblem, Verde, Onyx Gold, Pinnacle, Crest, Ribbon, Orchid, Aurum, Aurum Editorial, Swiss Aurum, Atelier, Harvard, Garamond, Aria, Oxford, Cambridge, Vector, Frost, Sterling, Vertex, Apex, Prism, Linen, Quartz, Lumière, Editorial, Amethyst, Terminal, Nova, Scholar, Onyx, Cobalt, Academia, Verdant, Sienna, Newton, Deedy, Slate, Mercury, Halcyon, Graphite, Portrait, Spotlight, Mono and Opal, plus the six **Signature** designs below — each with folio or icon-chip section headings in three sizes and a refined type scale.
 - Most templates are **ATS-safe** and flagged with a shield so you know which ones parse cleanly.
 - **A public gallery at [`/templates`](https://cvaurum.com/templates)** — every design rendered live on the same example résumé, searchable and filterable by tag, with the Signature collection leading the wall. The editor's own picker uses the same order.
 - **An example library at [`/examples`](https://cvaurum.com/examples)** — 108 complete résumés for named jobs across twelve fields, five career stages and three countries (37 written for India, 24 for the UK), each one written out in full rather than sketched, each on its own page, and each openable in the editor in one click. Every person, employer, address and figure in them is invented; the writing rules they are held to are checked in CI, not trusted. The in-app picker browses the same library.
@@ -169,7 +169,7 @@ The structures they introduce are editable, not fixed decoration — see the num
 <p align="center"><em>The Signature collection, first pages straight out of the PDF engine: Broadsheet's numbered running heads · Marquee's poster block and footer strip · Atlas's numbers band · Chronicle's year rail · Folio Noir's date margin · Terrace's side headings.</em></p>
 
 <p align="center">
-  <img src="docs/screenshots/templates.png" alt="The public gallery at /templates — 67 designs rendered live on the same example résumé, Signature first" width="100%" />
+  <img src="docs/screenshots/templates.png" alt="The public gallery at /templates — 68 designs rendered live on the same example résumé, Signature first" width="100%" />
 </p>
 
 ---
@@ -221,7 +221,7 @@ Everything in them is invented: the people, the employers, the addresses, the ph
 
 ### Templates
 
-Choose from **67 templates** and switch between them at any time — your content stays put while the design changes. Browse the whole wall at **[cvaurum.com/templates](https://cvaurum.com/templates)**, where every design is rendered live on the same example résumé and the six **Signature** designs lead the list; the editor's picker shows them in the same order. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
+Choose from **68 templates** and switch between them at any time — your content stays put while the design changes. Browse the whole wall at **[cvaurum.com/templates](https://cvaurum.com/templates)**, where every design is rendered live on the same example résumé and the six **Signature** designs lead the list; the editor's picker shows them in the same order. ATS-safe templates are marked with a **shield** so you can pick a layout that parses cleanly through applicant tracking systems. Fine-tune fonts, colors, spacing, margins, and page size to make any template your own.
 
 The Signature designs go further than a palette swap: switching to one changes how the page is built (a numbered running head, a poster block, a band of figures, a year rail, a date margin, headings beside their content), and the structures it introduces come with their own controls — see [the Signature collection](#the-signature-collection).
 
@@ -313,7 +313,7 @@ src/
 ├── lib/pdf/      the native vector PDF engine — render.tsx, paginate.ts, paint.ts,
 │                 text.ts, links.ts, tagging.ts (PDF/UA), pdfa.ts (PDF/A), export.ts
 ├── templates/    rendering engine (_shared/Artboard + section renderers),
-│                 registry.ts (67 template configs), templates.css (per-template styling),
+│                 registry.ts (68 template configs), templates.css (per-template styling),
 │                 TemplateRenderer
 ├── components/   editor/ (panels, field editors, dnd), preview/, ui/
 ├── app/          router
@@ -333,7 +333,7 @@ Planned and under consideration:
 - **Style painter** (copy a section's look onto others) and **version history** with visual diff _(planned)_
 - **More Signature structures** — the collection is six designs deep; the engine's structural primitives can carry more _(ongoing)_
 
-✅ **Shipped:** 67 templates, including the six-design **Signature collection** (Broadsheet · Marquee · Atlas · Chronicle · Folio Noir · Terrace) · a public template gallery at `/templates` · per-section style switching · numbers-band and year-rail controls · per-entry logos (editable right on the canvas) · recruiter skim heatmap · opt-in on-device semantic JD matching (MiniLM) · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · **native vector PDF as the only export path** & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
+✅ **Shipped:** 68 templates, including the six-design **Signature collection** (Broadsheet · Marquee · Atlas · Chronicle · Folio Noir · Terrace) · a public template gallery at `/templates` · per-section style switching · numbers-band and year-rail controls · per-entry logos (editable right on the canvas) · recruiter skim heatmap · opt-in on-device semantic JD matching (MiniLM) · ⌘K command palette · slash commands · focus mode · per-ATS parse simulation (Workday/Greenhouse/Lever/Taleo/iCIMS) · on-device writing coach · local PDF résumé import (text + on-device OCR) · **native vector PDF as the only export path** & Word (.docx) export · AES-256 encrypted share links · full offline PWA.
 
 Have an idea? Open an issue and let's talk.
 
