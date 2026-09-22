@@ -1,10 +1,28 @@
-# Cloudflare Pages / Netlify rewrites.
+# Cloudflare redirect rules, in order; the first match wins.
 #
-# dist/index.html carries the landing page's content in its HTML (for
-# readers that do not run scripts), and it is also what the host serves for
-# every unknown path. The two dynamic app routes would show that content for
-# the moment the bundle takes to load, so they are served the plain shell
-# instead. /, /templates and /templates/<id> are real files with their own
-# content; /app, /tracker and /r have their own content-free shells.
-/resume/*  /shell.html  200
-/print/*   /shell.html  200
+# THE TRAILING SLASH IS NOT CANONICAL. Every page is a real file, so the host
+# answers /templates/classic from templates/classic.html and every canonical
+# link, sitemap entry and internal href is written without a slash. It also
+# answers /templates/classic/ - with its own default, a 307 - and a crawler
+# that meets the slashed form keeps it as a second address for the same page:
+# 57 URLs sat in the index as "alternative page with proper canonical tag",
+# which is crawl budget spent on duplicates. A 301 says the slashed form is
+# not coming back, which is the truth: it has never been a page of this site.
+/templates/          /templates          301
+/examples/           /examples           301
+/prompts/            /prompts            301
+/templates/:id/      /templates/:id      301
+/examples/:slug/     /examples/:slug     301
+
+# The app's own routes are NOT listed here, and the reason is worth keeping.
+# They used to be rewritten to the content-free shell (`/resume/*
+# /shell.html 200`) so the landing copy inside index.html could not flash
+# while the bundle loaded. This host does not implement the 200 rewrite - it
+# serves only real redirects - so it turned each rule into a 307 to /shell,
+# and every saved résumé's own URL answered with the 404 page. Reloading the
+# editor, sharing a link to a résumé and the print route were all broken in
+# production by a rule meant to smooth a flash.
+#
+# Without them the host's single-page-application fallback serves index.html
+# for those paths, which is what a router needs, and the boot splash covers
+# the pre-rendered landing copy until React replaces it.
