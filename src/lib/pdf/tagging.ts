@@ -20,6 +20,7 @@
  * heading is whatever the résumé renders as a heading, on all 52 templates.
  */
 import type { TagRole } from './types'
+import { linkTarget } from './links'
 
 /** Class names the templates use, mapped to the structure type they mean. */
 const ROLE_BY_CLASS: { cls: string; role: TagRole }[] = [
@@ -41,6 +42,13 @@ export function roleForElement(el: Element | null, root: Element | null = null):
   for (let cur: Element | null = el; cur && cur !== root?.parentElement; cur = cur.parentElement) {
     const list = cur.classList
     for (const { cls, role } of ROLE_BY_CLASS) if (list.contains(cls)) return role
+    // A hyperlink's visible text is a Link, not a paragraph: validators
+    // require the link's TEXT to sit inside the /Link structure element
+    // next to the annotation's OBJR (0008). Only an anchor that actually
+    // becomes an annotation qualifies — links.ts's linkTarget is the same
+    // filter collectLinkOps applies — so a bare <a name> keeps its block
+    // role instead of minting a Link element no annotation can pair with.
+    if (cur.tagName === 'A' && linkTarget(cur.getAttribute('href'))) return 'Link'
     if (cur.tagName === 'LI') return 'LI'
     if (cur.tagName === 'H1') return 'H1'
     if (cur.tagName === 'H2') return 'H2'
@@ -56,11 +64,21 @@ export interface TaggedMark {
   role: TagRole
   /** Alternate text — required on Figure, ignored elsewhere. */
   alt?: string
+  /**
+   * Normalized hyperlink destination (links.ts `linkTarget`), set exactly
+   * when `role` is 'Link'. structure.ts pairs the link's text marks with
+   * the Link annotation carrying the same URL.
+   */
+  linkUrl?: string
   /** Column of origin; drives logical ordering (see `buildStructure`). */
   column?: 'main' | 'aside'
   /** The logical block (paragraph, bullet, heading) this mark belongs to.
    *  Shared by every visual line of that block - see `buildStructure`. */
   blockId?: number
+  /** Visible text of a heading mark — feeds the document outline
+   *  (bookmarks). Set only for H1/H2/H3; a wrapped heading arrives as one
+   *  mark per line and the lines are joined when the marks merge. */
+  text?: string
 }
 
 /** A structure element ready to be written: its type, page, and the marks it
@@ -71,7 +89,27 @@ export interface StructNode {
   pageIndex: number
   mcids: number[]
   alt?: string
+  /** Hyperlink destination, carried over from the marks (see TaggedMark). */
+  linkUrl?: string
   children?: StructNode[]
+  /** Heading text for the document outline (bookmarks); see TaggedMark. */
+  title?: string
+}
+
+/**
+ * Normalized hyperlink destination for the nearest ancestor-or-self anchor
+ * that becomes a real annotation (links.ts `linkTarget`), or null when the
+ * element is not inside such an anchor. walk.ts stamps this onto link text
+ * ops so structure.ts can pair them with their annotations.
+ */
+export function linkUrlForElement(el: Element | null, root: Element | null = null): string | null {
+  for (let cur: Element | null = el; cur && cur !== root?.parentElement; cur = cur.parentElement) {
+    if (cur.tagName === 'A') {
+      const url = linkTarget(cur.getAttribute('href'))
+      if (url) return url
+    }
+  }
+  return null
 }
 
 /**
@@ -152,6 +190,13 @@ export function buildStructure(marks: TaggedMark[]): StructNode[] {
     // Merging stops at a page boundary because a structure element names ONE
     // page (/Pg) and MCIDs are numbered per page, and at a role change so a
     // heading never absorbs the text beneath it.
+    //
+    // Heading text merges too, so the document outline (0007) reads the
+    // whole heading even when it wraps across lines.
+    //
+    // Link text merges only within one hyperlink: two adjacent links (the
+    // contact line's email, phone and LinkedIn share one blockId) must stay
+    // separate elements, because each pairs with its own annotation's OBJR.
     const prev = out[out.length - 1]
     if (
       prev &&
@@ -159,13 +204,15 @@ export function buildStructure(marks: TaggedMark[]): StructNode[] {
       lastBlockId === m.blockId &&
       prev.role === m.role &&
       prev.pageIndex === m.pageIndex &&
-      !prev.children
+      !prev.children &&
+      (m.role !== 'Link' || (m.linkUrl !== undefined && prev.linkUrl === m.linkUrl))
     ) {
       prev.mcids.push(m.mcid)
+      if (m.text) prev.title = prev.title ? `${prev.title} ${m.text}` : m.text
       continue
     }
     lastBlockId = m.blockId
-    out.push({ role: m.role, pageIndex: m.pageIndex, mcids: [m.mcid], alt: m.alt })
+    out.push({ role: m.role, pageIndex: m.pageIndex, mcids: [m.mcid], alt: m.alt, title: m.text, linkUrl: m.linkUrl })
   }
   return out
 }

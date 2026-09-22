@@ -1,5 +1,5 @@
 import { parseColor, parseFontWeight, parsePx, type Rgba } from './style'
-import { roleForElement } from './tagging'
+import { roleForElement, linkUrlForElement } from './tagging'
 import { mainColumnTextFirst } from './readingOrder'
 import { keepFlagsForParagraph, KEEP_WHOLE_MAX_LINES, KEEP_WHOLE_MAX_LINES_TWO_COL } from './widows'
 import { coalesceTextOps } from './coalesce'
@@ -1938,6 +1938,11 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
       // run came from, so a heading is whatever the template renders as one
       // (tagging.ts). Decorative runs are artifacts a reader skips.
       const role = roleForElement((n as Text).parentElement, root)
+      // Pairing key for the link-text/annotation merge in structure.ts
+      // (0008): the normalized URL of the anchor this text belongs to.
+      // Computed only when the role is Link — roleForElement already
+      // verified the anchor has a real target, so this re-derives it.
+      const linkUrl = role === 'Link' ? linkUrlForElement((n as Text).parentElement, root) ?? undefined : undefined
       const column: 'main' | 'aside' = (n as Text).parentElement?.closest('.rm-col-aside') ? 'aside' : 'main'
       const blockId = logicalBlockId((n as Text).parentElement, root)
       // `aria-hidden` is the document saying this text is decoration, not
@@ -1953,7 +1958,7 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
       const box = lineBoxId((n as Text).parentElement, root)
       for (const run of extractRuns(n as Text, root)) {
         const r = decorative ? { ...run, isDecorative: true, lineBoxId: box } : { ...run, lineBoxId: box }
-        ops.push({ kind: 'text', run: r, role: r.isDecorative ? 'Artifact' : role, column, blockId })
+        ops.push({ kind: 'text', run: r, role: r.isDecorative ? 'Artifact' : role, column, blockId, linkUrl: r.isDecorative ? undefined : linkUrl })
       }
     }
   }

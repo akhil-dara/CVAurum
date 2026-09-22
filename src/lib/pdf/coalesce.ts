@@ -45,6 +45,11 @@ function sameStyle(a: TextRun, b: TextRun): boolean {
 
 function joinable(prev: TextOp, next: TextOp): boolean {
   if (prev.role !== next.role || prev.column !== next.column || prev.blockId !== next.blockId) return false
+  // Link text carries its destination URL as identity: two adjacent Link
+  // runs with different URLs (email next to phone on the contact line) must
+  // never become one run, or the structure tree could not pair each link's
+  // text with its own annotation (0008).
+  if (prev.linkUrl !== next.linkUrl) return false
   const a = prev.run
   const b = next.run
   if (Math.abs(a.baselinePx - b.baselinePx) > 0.1) return false

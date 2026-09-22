@@ -77,3 +77,19 @@ describe('coalesceTextOps — decoration is part of a run style', () => {
     expect(texts(out)).toEqual(['underlined'])
   })
 })
+
+describe('0008: linkUrl is part of a run’s identity', () => {
+  it('never joins adjacent Link runs with different destinations', () => {
+    const a = op('a@b.c', 0, 30, {}, { role: 'Link', linkUrl: 'mailto:a@b.c' })
+    const b = op('+15550128', 32, 50, {}, { role: 'Link', linkUrl: 'tel:+15550128' })
+    expect(texts(coalesceTextOps([a, b]))).toEqual(['a@b.c', '+15550128'])
+  })
+
+  it('still joins one hyperlink’s flush runs and keeps its URL', () => {
+    const a = op('long-', 0, 30, {}, { role: 'Link', linkUrl: 'https://w.example/' })
+    const b = op('link', 30, 25, {}, { role: 'Link', linkUrl: 'https://w.example/' })
+    const out = coalesceTextOps([a, b])
+    expect(texts(out)).toEqual(['long-link'])
+    expect((out[0] as Extract<DrawOp, { kind: 'text' }>).linkUrl).toBe('https://w.example/')
+  })
+})

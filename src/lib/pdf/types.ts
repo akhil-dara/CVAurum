@@ -4,7 +4,7 @@
  * (rules, backgrounds, decorative glyphs), which is just as important for
  * accessibility as tagging the real content.
  */
-export type TagRole = 'H1' | 'H2' | 'H3' | 'P' | 'L' | 'LI' | 'Figure' | 'Artifact'
+export type TagRole = 'H1' | 'H2' | 'H3' | 'P' | 'L' | 'LI' | 'Link' | 'Figure' | 'Artifact'
 
 import type { Rgba } from './style'
 
@@ -315,6 +315,17 @@ export type DrawOp = DrawOpChrome &
          * line break mid-sentence at every wrap.
          */
         blockId?: number
+        /**
+         * Normalized hyperlink destination (links.ts `linkTarget`) for the
+         * anchor this run's text belongs to. Set exactly when `role` is
+         * 'Link': structure.ts pairs the link's TEXT with its Link
+         * annotation by this URL, so the annotation's OBJR lands in the
+         * SAME /Link structure element as the text — the pairing
+         * accessibility validators require. Two adjacent Link runs with
+         * different URLs must never coalesce, so coalesce.ts treats this
+         * as part of a run's identity.
+         */
+        linkUrl?: string
       }
     | {
         /**

@@ -5,7 +5,7 @@
  * _local/gate-pdfa.cjs.
  */
 import { describe, it, expect } from 'vitest'
-import { roleForElement, buildStructure, type TaggedMark } from './tagging'
+import { roleForElement, linkUrlForElement, buildStructure, type TaggedMark } from './tagging'
 
 /** Minimal element stub — roleForElement only reads classList/tagName/parent. */
 function el(spec: string, parent: Element | null = null): Element {
@@ -233,5 +233,68 @@ describe('buildStructure — one LI per BULLET, not per line (2026-08-23)', () =
   it('starts a new list item on a new page, since an element names one page', () => {
     const nodes = buildStructure([li(0, 9, 0), li(1, 9, 1)])
     expect(nodes.flatMap((n) => n.children!.map((c) => `${c.pageIndex}:${c.mcids.join(',')}`))).toEqual(['0:0', '1:1'])
+  })
+})
+
+describe('0008: link text tagging', () => {
+  /** Element stub with attributes — roleForElement also reads getAttribute. */
+  function aEl(href: string | null, parent: Element | null = null): Element {
+    return {
+      tagName: 'A',
+      classList: { contains: (_c: string) => false },
+      parentElement: parent,
+      getAttribute: (n: string) => (n === 'href' ? href : null),
+    } as unknown as Element
+  }
+  function spanEl(parent: Element | null = null): Element {
+    return {
+      tagName: 'SPAN',
+      classList: { contains: (_c: string) => false },
+      parentElement: parent,
+      getAttribute: (_n: string) => null,
+    } as unknown as Element
+  }
+
+  it('maps a real hyperlink’s text to the Link role', () => {
+    expect(roleForElement(aEl('mailto:grant.halloway@example.com'))).toBe('Link')
+    expect(roleForElement(aEl('https://linkedin.com/in/granthalloway'))).toBe('Link')
+    expect(roleForElement(aEl('tel:+15550128'))).toBe('Link')
+  })
+
+  it('resolves through inline markup nested inside the anchor', () => {
+    const anchor = aEl('https://example.com/')
+    expect(roleForElement(spanEl(anchor))).toBe('Link')
+  })
+
+  it('does not mint Link elements for anchors that become no annotation', () => {
+    // Bare <a name> and dangerous hrefs produce no link op (links.ts).
+    expect(roleForElement(aEl(null))).toBe('P')
+    expect(roleForElement(aEl('javascript:alert(1)'))).toBe('P')
+    expect(roleForElement(aEl(''))).toBe('P')
+  })
+
+  it('linkUrlForElement returns the normalized destination or null', () => {
+    expect(linkUrlForElement(aEl('grant.halloway@example.com'))).toBe('mailto:grant.halloway@example.com')
+    expect(linkUrlForElement(aEl('linkedin.com/in/granthalloway'))).toBe('https://linkedin.com/in/granthalloway')
+    expect(linkUrlForElement(spanEl(aEl('tel:+15550128')))).toBe('tel:+15550128')
+    expect(linkUrlForElement(aEl(null))).toBeNull()
+    expect(linkUrlForElement(spanEl(null))).toBeNull()
+  })
+
+  it('keeps adjacent links as separate elements even when they share a block', () => {
+    const mark = (mcid: number, linkUrl: string): TaggedMark => ({ pageIndex: 0, mcid, role: 'Link', blockId: 7, linkUrl })
+    const nodes = buildStructure([mark(0, 'mailto:a@b.c'), mark(1, 'tel:+15550128')])
+    expect(nodes.length).toBe(2)
+    expect(nodes[0].mcids).toEqual([0])
+    expect(nodes[0].linkUrl).toBe('mailto:a@b.c')
+    expect(nodes[1].mcids).toEqual([1])
+    expect(nodes[1].linkUrl).toBe('tel:+15550128')
+  })
+
+  it('merges one hyperlink’s wrapped lines into a single element', () => {
+    const mark = (mcid: number): TaggedMark => ({ pageIndex: 0, mcid, role: 'Link', blockId: 7, linkUrl: 'https://w.example/' })
+    const nodes = buildStructure([mark(0), mark(1)])
+    expect(nodes.length).toBe(1)
+    expect(nodes[0].mcids).toEqual([0, 1])
   })
 })
