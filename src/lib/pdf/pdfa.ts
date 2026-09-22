@@ -24,12 +24,25 @@
  *
  * The profile is `sRGB2014.icc` from the ICC's own registry
  * (registry.color.org) — ICC v2, display class, freely redistributable —
- * served from our own origin like every font, so an export still makes zero
- * external requests.
+ * INLINED into the bundle at build time (Vite `?inline` turns the file into
+ * a data: URI string, see the import below), so an export carries its own
+ * OutputIntent profile and can never lose PDF/A conformance to a missing
+ * asset, an offline first run, or a deploy that forgot `public/color`. The
+ * 3 KB profile rides inside the lazily-loaded PDF chunk. A same-origin copy
+ * is still served at `/color/sRGB2014.icc` as a belt-and-braces fallback.
  */
 import { PDFDocument, PDFName, PDFNumber, PDFString, PDFArray, PDFHexString } from 'pdf-lib'
 
-/** Same-origin path — served by us, exactly like `/fonts-pdf/*`. */
+/**
+ * Build-time-inlined ICC profile (see the module doc above): a data: URI
+ * string at runtime, decoded once to bytes below. Keeping the import next
+ * to its only consumer means the profile can never drift out of sync with
+ * the code that embeds it.
+ */
+import iccDataUri from './sRGB2014.icc?inline'
+
+/** Same-origin path — the fallback the inlined profile degrades to, never
+ *  the first try. */
 export const SRGB_PROFILE_URL = '/color/sRGB2014.icc'
 /** What the OutputIntent advertises as its destination condition. */
 export const OUTPUT_CONDITION = 'sRGB IEC61966-2.1'
@@ -83,23 +96,47 @@ export const PDFUA_CLAIM: { part: string; rev?: string } = TARGET.ua
 /** Structure namespace URI, or null when the target predates namespaces. */
 export const STRUCT_NAMESPACE: string | null = TARGET.structNamespace
 
+/** Decodes the build-time-inlined profile to bytes. Null when the import did
+ *  not resolve to a usable data: URI (a bundler change, never a runtime
+ *  condition) — the caller then falls back to the same-origin fetch. */
+function decodeInlinedProfile(): Uint8Array | null {
+  try {
+    const comma = iccDataUri.indexOf(',')
+    const bin = atob(comma >= 0 ? iccDataUri.slice(comma + 1) : iccDataUri)
+    const out = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+    return out
+  } catch {
+    return null
+  }
+}
+
+let inlinedProfile: Uint8Array | null | undefined
 let profilePromise: Promise<Uint8Array | null> | null = null
 
 /**
- * Fetches (once per session) the embedded sRGB profile. Returns null rather
- * than throwing if it is unavailable: a résumé that exports without an
- * OutputIntent is a normal, readable PDF that simply is not PDF/A — far
- * better than an export that fails outright over a colour profile.
+ * The sRGB profile for the PDF/A OutputIntent: the build-time-inlined copy
+ * first (no network, no failure mode), the same-origin fetch only if that
+ * ever stops resolving. Returns null rather than throwing when neither is
+ * available: a résumé that exports without an OutputIntent is a normal,
+ * readable PDF that simply is not PDF/A — far better than an export that
+ * fails outright over a colour profile.
  */
 export function loadSrgbProfile(): Promise<Uint8Array | null> {
   if (!profilePromise) {
-    profilePromise = fetch(SRGB_PROFILE_URL)
-      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((b) => new Uint8Array(b))
-      .catch((e) => {
+    profilePromise = (async () => {
+      if (inlinedProfile === undefined) inlinedProfile = decodeInlinedProfile()
+      if (inlinedProfile && isIccProfile(inlinedProfile)) return inlinedProfile
+      try {
+        const r = await fetch(SRGB_PROFILE_URL)
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const b = new Uint8Array(await r.arrayBuffer())
+        return isIccProfile(b) ? b : null
+      } catch (e) {
         if (import.meta.env.DEV) console.warn('[pdf] sRGB profile unavailable; export will not be PDF/A', e)
         return null
-      })
+      }
+    })()
   }
   return profilePromise
 }

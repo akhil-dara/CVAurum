@@ -298,6 +298,11 @@ function machineReadersDev(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // `.icc` is not one of Vite's built-in asset types: without this, the
+  // build-time `?inline` import of the sRGB profile in `src/lib/pdf/pdfa.ts`
+  // fails import analysis ("invalid JS syntax"). Listed once, inlined
+  // everywhere it is imported with `?inline`.
+  assetsInclude: ['**/*.icc'],
   plugins: [
     react(),
     seoPages(),

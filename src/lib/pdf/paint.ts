@@ -50,6 +50,54 @@ function hasMagic(bytes: Uint8Array, magic: number[]): boolean {
   return magic.every((b, i) => bytes[i] === b)
 }
 
+/** How many colour components a JPEG's frame header declares: 1 (grey), 3
+ *  (YCC/RGB), 4 (YCCK/CMYK). Walks the marker segments the same way
+ *  `rasterSize` does, stopping at the first Start-Of-Frame header; the
+ *  component count is the byte right after the frame's width and height
+ *  (SOF layout: precision(1) height(2) width(2) components(1)).
+ *
+ *  A 4-component source must never take `embedImage`'s `embedJpg`
+ *  passthrough: pdf-lib writes it with a /DeviceCMYK colour space, which a
+ *  file whose OutputIntent names sRGB must not contain (PDF/A-2B §6.2.3 —
+ *  a hard pdfforge failure, not a warning). Four components are YCCK or
+ *  CMYK, never display RGB, so this is a reliable screen whatever the
+ *  file's APP14 Adobe-transform flag says. Returns null for anything that
+ *  is not a JPEG with a readable frame header — callers then keep the old
+ *  behavior. Exported for the parser regression tests. */
+export function jpegColorComponents(b: Uint8Array): number | null {
+  if (!(b.length > 4 && b[0] === 0xff && b[1] === 0xd8)) return null
+  let i = 2
+  while (i + 3 < b.length) {
+    if (b[i] !== 0xff) {
+      i++
+      continue
+    }
+    const m = b[i + 1]
+    // Standalone markers carry no length word.
+    if (m === 0xd8 || m === 0x01 || m === 0xff || (m >= 0xd0 && m <= 0xd7)) {
+      i += 2
+      continue
+    }
+    if (m === 0xda || m === 0xd9) break // start of scan / end: past every header
+    const len = (b[i + 2] << 8) | b[i + 3]
+    if (len < 2) break
+    const seg = i + 4
+    // SOF0..SOF15 are frame headers except C4 (Huffman tables), C8 (JPEG
+    // extensions) and CC (arithmetic tables), which share the number space
+    // — the same set `rasterSize` uses.
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) {
+      // The component-count byte is at seg+5 (right after width's two
+      // bytes). seg+6 would be the first component's ID byte — reading it
+      // instead silently misclassifies real CMYK files (e.g. returns 67 for
+      // an Adobe CMYK JPEG whose first component ID is 'C').
+      if (seg + 5 >= b.length) return null
+      return b[seg + 5]
+    }
+    i += 2 + len
+  }
+  return null
+}
+
 /** Clamps a single corner radius against the SHORTER of the box's two
  *  half-dimensions — same guard `roundedRectPath`/`roundedRectOperators`
  *  always applied for a uniform radius, now per corner: each corner is
@@ -583,7 +631,12 @@ async function embedImage(
         const reshape = !!size && needsReshape(size, op)
         if (!reshape) {
           if (hasMagic(bytes, PNG_MAGIC)) return await page.doc.embedPng(bytes)
-          if (hasMagic(bytes, JPEG_MAGIC)) return await page.doc.embedJpg(bytes)
+          // A 4-component (CMYK/YCCK) JPEG must NOT take the passthrough:
+          // pdf-lib would embed it as /DeviceCMYK under an sRGB
+          // OutputIntent. It falls through to `transcodeBytes` instead,
+          // whose canvas re-encode is sRGB — the picture browsers show.
+          if (hasMagic(bytes, JPEG_MAGIC) && jpegColorComponents(bytes) !== 4)
+            return await page.doc.embedJpg(bytes)
         }
         const transcoded = await transcodeBytes(src, op)
         if (transcoded)
@@ -1576,6 +1629,11 @@ export async function paintOps(
             Rect: [x1, y1, x2, y2],
             Border: [0, 0, 0],
             F: 4, // print the annotation, per the PDF spec's flag bit 3
+            // PDF/UA-1 §7.18.4: every annotation needs alternate text so an
+            // assistive reader can announce the link's destination. The URL
+            // is the honest description here — it is exactly where the
+            // annotation goes.
+            Contents: PDFString.of(op.url),
             A: ctx.obj({ Type: 'Action', S: 'URI', URI: PDFString.of(op.url) }),
           })
           const existing = page.node.get(PDFName.of('Annots'))
@@ -1807,7 +1865,7 @@ function cropOpToBand(op: Extract<DrawOp, { kind: 'rect' | 'line' }>, bandTopPx:
  * How far below the document's own top (y = 0, which is also `bandTops[0]`)
  * a rect may begin and still be believed when it claims to be page chrome.
  *
- * Census behind the number: every template in the registry (58 of them) x
+ * Census behind the number: every template in the registry (68 of them) x
  * three page margins x two document lengths produced 452 ops carrying
  * walk.ts's `pageChrome` tag, and 450 of them sat at y = 0.0 EXACTLY — a
  * ground rect is the root's own background, or a column band that starts

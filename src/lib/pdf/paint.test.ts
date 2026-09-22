@@ -16,6 +16,7 @@ import {
   dataUriToBytes,
   rasterSize,
   needsReshape,
+  jpegColorComponents,
   DRIFT_FRACTION,
 } from './paint'
 import { PdfFontCache } from './fonts'
@@ -1867,8 +1868,11 @@ describe('paintOps — tagged PDF marked content', () => {
     ])
     expect(stream).toContain('/H2 <</MCID 0>> BDC')
     expect(stream).toContain('/Artifact BMC')
-    // Only the tagged content is recorded for the structure tree.
-    expect(marks).toEqual([{ pageIndex: 0, mcid: 0, role: 'H2' }])
+    // Only the tagged content is recorded for the structure tree. Headings
+    // also carry their text (0007: document outline).
+    expect(marks).toEqual([
+      { pageIndex: 0, mcid: 0, role: 'H2', column: undefined, blockId: undefined, text: 'Experience' },
+    ])
   })
 
   it('numbers MCIDs from zero on every page', async () => {
@@ -2229,5 +2233,40 @@ describe('textInk - pure white is written one level off pure (ATS white-on-white
     expect(textInk({ r: 0.2, g: 0.4, b: 0.6 })).toMatchObject({ red: 0.2, green: 0.4, blue: 0.6 })
     expect(textInk({ r: 0.99, g: 1, b: 1 })).toMatchObject({ red: 0.99, green: 1, blue: 1 })
     expect(textInk({ r: 0, g: 0, b: 0 })).toMatchObject({ red: 0, green: 0, blue: 0 })
+  })
+})
+
+describe('jpegColorComponents — JPEG frame-header component count (CMYK screen)', () => {
+  // Builds a minimal JPEG: SOI, optional leading segments, then one SOF0
+  // frame header declaring `components` components. The 4-component case
+  // uses Adobe-style component IDs ('C','M','Y','K') so a parser reading
+  // the wrong byte (seg+6, the first component ID) returns 67 instead of 4
+  // — the exact defect this guards against.
+  function jpegBytes(components: number, leading: number[][] = []): Uint8Array {
+    const compIds = [0x43, 0x4d, 0x59, 0x4b] // C M Y K
+    const entries: number[] = []
+    for (let c = 0; c < components; c++) entries.push(compIds[c] ?? c + 1, 0x11, 0x00)
+    const sofLen = 8 + entries.length
+    const sof = [0xff, 0xc0, (sofLen >> 8) & 0xff, sofLen & 0xff, 0x08, 0x00, 0x10, 0x00, 0x10, components, ...entries]
+    return new Uint8Array([0xff, 0xd8, ...leading.flat(), ...sof, 0xff, 0xd9])
+  }
+  // A real Adobe APP14 segment, the kind that precedes SOF in CMYK files
+  // written by Photoshop-class encoders.
+  const APP14 = [0xff, 0xee, 0x00, 0x0e, 0x41, 0x64, 0x6f, 0x62, 0x65, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  it('returns 4 for a 4-component (CMYK) frame, even with an APP14 segment first', () => {
+    expect(jpegColorComponents(jpegBytes(4, [APP14]))).toBe(4)
+  })
+  it('returns 3 for an RGB frame', () => {
+    expect(jpegColorComponents(jpegBytes(3))).toBe(3)
+  })
+  it('returns 1 for a grayscale frame', () => {
+    expect(jpegColorComponents(jpegBytes(1))).toBe(1)
+  })
+  it('returns null for non-JPEG bytes', () => {
+    expect(jpegColorComponents(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]))).toBeNull()
+  })
+  it('returns null for a truncated header with no frame', () => {
+    expect(jpegColorComponents(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBeNull()
   })
 })

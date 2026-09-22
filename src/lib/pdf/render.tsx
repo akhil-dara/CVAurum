@@ -365,10 +365,12 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
     // Document properties (Info dict + XMP + /Lang + DisplayDocTitle) and
-    // PDF/A-2B conformance. The colour profile is fetched from our own origin
-    // and may legitimately be unavailable (offline first paint, asset not
-    // deployed): the export then simply is not PDF/A, which the XMP must not
-    // claim either — hence one `pdfaConforming` flag driving both.
+    // PDF/A-2B conformance. The colour profile is inlined into the bundle at
+    // build time (`loadSrgbProfile`); the same-origin fetch is only a
+    // belt-and-braces fallback, so an export stays PDF/A even on an offline
+    // first run. When neither yields a profile the export simply is not
+    // PDF/A, which the XMP must not claim either — hence one `pdfaConforming`
+    // flag driving both.
     setPdfVersion(pdfDoc)
     const docInfo = buildDocInfo(doc)
     const icc = await loadSrgbProfile()
