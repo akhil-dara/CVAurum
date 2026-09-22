@@ -207,7 +207,10 @@
 .rm-headline {
   font-size: calc(var(--rm-fs) * 1.15 * var(--rm-headline-mul, 1));
   font-weight: 500;
-  color: var(--rm-headline-color, var(--rm-primary));
+  /* The author's colour first, then the accent AS INK (Artboard.tsx useVars):
+     a headline is small text, and a pale accent set as a word failed AA on
+     eighteen designs. The accent itself is unchanged - only this word. */
+  color: var(--rm-headline-color, var(--rm-primary-ink, var(--rm-primary)));
   margin-bottom: 0.55em;
   line-height: 1.2;
 }
@@ -585,7 +588,10 @@
   font-family: var(--rm-font-heading);
   font-size: var(--rm-section-title-size, calc(var(--rm-fs) * 1.05));
   font-weight: var(--rm-heading-weight, 700);
-  color: var(--rm-heading-color, var(--rm-primary));
+  /* The accent as ink, not the accent: a section title is set small enough
+     to be small text, and its rule below takes currentColor with it, which
+     only ever helps a hairline. */
+  color: var(--rm-heading-color, var(--rm-primary-ink, var(--rm-primary)));
   /* The air under the title rides the document's heading-gap multiplier and
      the rule takes the chosen width (2026-09-04); every template's own
      margin and rule read the same two variables, so one slider moves them
@@ -1181,7 +1187,7 @@
 /* Project / item link line — a visible, clickable URL (shows in print & PDF). */
 .rm-item-link {
   font-size: calc(var(--rm-fs) * 0.92);
-  color: var(--rm-link-color, var(--rm-primary));
+  color: var(--rm-link-color, var(--rm-primary-ink, var(--rm-primary)));
   margin-bottom: 0.22em;
   word-break: break-word;
 }
@@ -1305,7 +1311,12 @@
    generous padding on top of that reads as bulky. */
 .rm-chip {
   background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
-  color: var(--rm-primary);
+  /* The ground is 12% of the accent, so the words are derived against THAT
+     ground, not the page: the tint costs about half a point of ratio, which
+     is the difference between a chip that reads and one that does not. The
+     tint itself is unchanged (Artboard.tsx CHIP_TINT derives the ink from
+     the same 12%). */
+  color: var(--rm-primary-ink-on-chip, var(--rm-primary));
   border-radius: 0.3em;
   padding: var(--rm-chip-pad-y, 0.1em) var(--rm-chip-pad-x, 0.45em);
   font-size: calc(var(--rm-fs) * var(--rm-chip-fs, 0.88));
@@ -1529,6 +1540,13 @@
 }
 
 /* aside variant: lighten rules/headers against dark sidebar */
+/* The band is a second paper. Any rule inside it that sets words in the
+   accent takes the ink derived against the BAND's own ground rather than the
+   page's - on a pale band the page's ink is a shade too light, and on a dark
+   band it is moved in exactly the wrong direction (Artboard.tsx useVars). */
+.rm-col-aside {
+  --rm-primary-ink: var(--rm-primary-ink-on-band, var(--rm-primary));
+}
 .rm-col-aside .rm-section-title {
   color: inherit;
   border-color: color-mix(in srgb, currentColor 35%, transparent);
@@ -1543,10 +1561,19 @@
 .rm-col-aside .rm-item-date,
 .rm-col-aside .rm-mini-sub,
 .rm-col-aside .rm-skill-inline {
-  color: color-mix(in srgb, currentColor 75%, transparent);
+  /* 85%, not 75%: these are the sidebar's small lines - a date, a level, a
+     sub-title - and a quarter of the band's ink taken out of them dropped
+     them under 4.5:1 on every mid-tone sidebar (measured floor 78-81%
+     across the double-coloured, creative, verdant and halcyon bands). They
+     still read as the quieter half of the column. */
+  color: color-mix(in srgb, currentColor 85%, transparent);
 }
 .rm-col-aside .rm-chip {
-  background: color-mix(in srgb, currentColor 22%, transparent);
+  /* The chip's ground is the band's own ink, and at 22% it came close
+     enough to the words standing on it to fail (2.88:1 on the teal band).
+     15% is the most that reads on every band we ship; the border carries
+     the chip's shape from here. */
+  background: color-mix(in srgb, currentColor 15%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   color: inherit;
 }
@@ -1585,10 +1612,15 @@
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.18); /* keeps the name crisp on mid-tone banners */
 }
 .rm-root .rm-header-banner .rm-headline {
-  color: var(--rm-headline-color, rgba(255, 255, 255, 0.94));
+  /* Full white, not 94%: the banner is the accent itself, and the six
+     hundredths bought nothing but a headline under 4.5:1 on the lighter
+     end of a gradient band. */
+  color: var(--rm-headline-color, #fff);
 }
 .rm-root .rm-header-banner .rm-contacts {
-  color: var(--rm-contact-color, rgba(255, 255, 255, 0.88));
+  /* Full white for the same reason, and the contact line is smaller than
+     the headline, so it needed it more. */
+  color: var(--rm-contact-color, #fff);
 }
 .rm-header-banner .rm-contact a {
   color: inherit;
@@ -3666,6 +3698,9 @@
   border-left: 2px solid var(--rm-primary);
   border-radius: 0;
   background: var(--rm-folio-paper);
+  /* The tag's own paper is the gold-tinted folio paper, darker than the page,
+     so the words on it take the ink derived against that paper. */
+  color: var(--rm-link-color, var(--rm-primary-ink-on-folio, var(--rm-primary)));
   text-decoration: none;
   line-height: 1.35;
   vertical-align: baseline;
@@ -3722,6 +3757,9 @@
   background: var(--rm-folio-paper);
   border-color: var(--rm-folio-line);
   border-left-color: var(--rm-sidebar-text);
+  /* This tag stands on the BAND's paper, not the page's, so the page's ink
+     says nothing about it: the words keep the colour they have. */
+  color: var(--rm-link-color, var(--rm-primary));
 }
 .links-tag .rm-col-aside .rm-verify-link {
   color: inherit;

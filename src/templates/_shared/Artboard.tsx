@@ -12,7 +12,7 @@ import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
 import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
-import { elementColorVars, lighten, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
+import { darkenToContrast, elementColorVars, lighten, mix, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
 import { resolveStatTiles } from '@/lib/stats'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitLineHeight } from '@/lib/fitOnePage'
@@ -115,6 +115,22 @@ const BULLET_TYPE: Record<string, string> = {
   none: 'none',
 }
 
+/* The two tinted grounds the accent is set on as TEXT, restated here from
+ * artboard.css so the ink is derived against the ground the page actually
+ * paints: a chip's 12% wash of the accent (.rm-chip) and the gold-tinted
+ * paper a folio chip and a link tag stand on (--rm-folio-paper). Change one
+ * of these and change the other. */
+const CHIP_TINT = 0.12
+const FOLIO_GOLD = '#c8941f'
+const FOLIO_TINT = 0.08
+/* The ink is derived a twentieth of a point above the 4.5:1 the words are
+ * held to. Two of the three grounds are the STYLESHEET's mixes recomputed
+ * here in whole channels, and the browser's own rounding of the same mix can
+ * land a channel away - which is the difference between 4.50 and 4.49 on a
+ * chip. The headroom costs nothing anyone can see and never leaves a word one
+ * rounding short. */
+const INK_RATIO = 4.55
+
 function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
   const { theme, typography: t, layout, page } = doc.metadata
   const lock = page.fit?.lock ?? {}
@@ -149,6 +165,40 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
       '--rm-text': theme.text,
       '--rm-muted': theme.muted,
       '--rm-primary': theme.primary,
+      // The accent as INK, three grounds deep (elementColors.ts
+      // darkenToContrast). An accent is chosen to be a COLOUR - a rule, a
+      // band, a chip's ground - and 23 of the designs set that same colour
+      // as small text at under 4.5:1. The accent itself never moves; these
+      // do, by the smallest hundredth that reads, and only the rules where
+      // the accent is TEXT read them. Derived here rather than written into
+      // the designs so an accent chosen in the Design panel is corrected
+      // exactly as a design's own is.
+      '--rm-primary-ink': darkenToContrast(theme.primary, theme.background || '#ffffff', INK_RATIO),
+      // On a chip the accent is drawn on 12% of itself (artboard.css
+      // .rm-chip), which costs about half a point of ratio - so the chip's
+      // words are derived against the ground they actually sit on.
+      '--rm-primary-ink-on-chip': darkenToContrast(
+        theme.primary,
+        mix(theme.primary, theme.background || '#ffffff', CHIP_TINT),
+        INK_RATIO
+      ),
+      // A sidebar is a second paper, and the page's ink says nothing about
+      // it: on a pale band the page ink is a shade too light, and on a dark
+      // one it is darkened in exactly the wrong direction. artboard.css
+      // hands this to every rule inside .rm-col-aside.
+      '--rm-primary-ink-on-band': darkenToContrast(
+        theme.primary,
+        theme.sidebar || theme.background || '#ffffff',
+        INK_RATIO
+      ),
+      // The folio tag a named link wears stands on the gold-tinted paper
+      // (artboard.css --rm-folio-paper), darker than the page by a little
+      // and enough to matter at these sizes.
+      '--rm-primary-ink-on-folio': darkenToContrast(
+        theme.primary,
+        mix(FOLIO_GOLD, theme.background || '#ffffff', FOLIO_TINT),
+        INK_RATIO
+      ),
       // The band header's second gradient stop, and the colour a block or
       // band header sets its text in: the author's own when chosen, else
       // derived from the accent alone (elementColors.ts).
@@ -260,7 +310,12 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
                 ? contactIcon(undefined, c.icon)
                 : Globe
               : contactIcon(c.network, c.icon)
-    return { icon: <Icon />, text: c.text, href: c.href }
+    // aria-hidden: the icon REPEATS the words beside it - the envelope sits
+    // immediately before the address it marks - so a reader that speaks the
+    // page would say each row twice, and a PDF/UA checker asks every graphic
+    // to be either described or marked decorative. The portrait is the one
+    // graphic on the artboard that carries meaning, and it keeps its alt.
+    return { icon: <Icon aria-hidden="true" />, text: c.text, href: c.href }
   })
 }
 
@@ -356,7 +411,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   return (
     <div className={cls} data-contacts={4 + (b.profiles?.length ?? 0)}>
       {field(
-        <Mail />,
+        <Mail aria-hidden="true" />,
         <Ed
           edit={edit}
           value={cleanEmail(b.email)}
@@ -372,7 +427,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         cleanEmail(b.email) ? 'auto' : undefined
       )}
       {field(
-        <Phone />,
+        <Phone aria-hidden="true" />,
         <Ed
           edit={edit}
           value={b.phone}
@@ -386,7 +441,7 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         b.phone ? 'auto' : undefined
       )}
       {field(
-        <MapPin />,
+        <MapPin aria-hidden="true" />,
         <Ed
           edit={edit}
           value={loc}
@@ -402,7 +457,14 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           straight to basics.url, so giving a link custom text destroyed the
           link - the display and the destination were the same field. */}
       {field(
-        b.urlIcon ? (() => { const I = contactIcon(undefined, b.urlIcon); return <I /> })() : <Globe />,
+        b.urlIcon ? (
+          (() => {
+            const I = contactIcon(undefined, b.urlIcon)
+            return <I aria-hidden="true" />
+          })()
+        ) : (
+          <Globe aria-hidden="true" />
+        ),
         <Ed
           edit={edit}
           value={b.urlLabel?.trim() || prettyUrl(b.url)}

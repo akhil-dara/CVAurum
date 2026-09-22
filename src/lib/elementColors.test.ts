@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ELEMENT_COLORS, elementColorVars, lighten, readableOn, veilAlpha } from './elementColors'
+import { ELEMENT_COLORS, darkenToContrast, elementColorVars, lighten, mix, readableOn, veilAlpha } from './elementColors'
 import { ART_BANDS, ART_BAND_GROUNDS } from '@/templates/_shared/headerStyles'
 import { MetadataSchema } from '@/types/metadata'
 
@@ -264,5 +264,112 @@ describe('the art wash is strong enough to read the words through', () => {
   it('names a light and a dark extreme for every band the picker offers', () => {
     for (const band of ART_BANDS.filter((b) => b.value !== 'none'))
       expect(ART_BAND_GROUNDS[band.value], band.value).toHaveLength(2)
+  })
+})
+
+/**
+ * The accent as INK.
+ *
+ * An accent is chosen to be a COLOUR - a rule, a band, a chip's ground - and
+ * every design's accent was picked for that job. Set as small TEXT it has a
+ * second job, and 23 of the 68 designs failed it: the same #0ea5e9 that
+ * reads as a confident line reads at 2.46:1 as a word. So the accent itself
+ * is never touched; a derived ink is, and only where the accent is text.
+ */
+describe('darkenToContrast', () => {
+  const ratio = (a: string, b: string) => {
+    const lum = (h: string) => {
+      const c = [1, 3, 5].map((i) => parseInt(h.replace('#', '').slice(i - 1, i + 1), 16))
+      const lin = (v: number) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : Math.pow((v / 255 + 0.055) / 1.055, 2.4))
+      return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2])
+    }
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+
+  it('leaves a colour that already reads exactly as it was', () => {
+    // Forty-five of the sixty-eight designs are in this case, and none of
+    // them may move a single channel.
+    expect(darkenToContrast('#1d4ed8', '#ffffff')).toBe('#1d4ed8')
+    expect(darkenToContrast('#111111', '#ffffff')).toBe('#111111')
+  })
+
+  it('moves a pale accent toward black on a light page, until it reads', () => {
+    const ink = darkenToContrast('#0ea5e9', '#ffffff')
+    expect(ink).not.toBe('#0ea5e9')
+    expect(ratio(ink, '#ffffff')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('moves toward white on a dark page instead', () => {
+    const ink = darkenToContrast('#1d4ed8', '#111827')
+    expect(ratio(ink, '#111827')).toBeGreaterThanOrEqual(4.5)
+    // Lighter than it started, not darker: the only direction a dark page has.
+    expect(parseInt(ink.slice(1, 3), 16)).toBeGreaterThan(0x1d)
+  })
+
+  it('moves the SMALLEST step that reads - one step back fails', () => {
+    // The whole point: a design keeps as much of its colour as AA allows.
+    // One hundredth of the way back toward the accent has to fail, or the
+    // search stepped further than the words needed and the design lost
+    // colour for nothing.
+    const chan = (h: string, i: number) => parseInt(h.replace('#', '').slice(i * 2, i * 2 + 2), 16)
+    const stepBack = (ink: string, accent: string, target: string) =>
+      '#' +
+      [0, 1, 2]
+        .map((i) => Math.round(chan(ink, i) + 0.01 * (chan(accent, i) - chan(target, i))))
+        .map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'))
+        .join('')
+    for (const [accent, page, target] of [
+      ['#0ea5e9', '#ffffff', '#000000'],
+      ['#ff5a1f', '#fff8f0', '#000000'],
+      ['#8b5cf6', '#ffffff', '#000000'],
+      ['#d9531e', '#ffffff', '#000000'],
+      ['#1d4ed8', '#111827', '#ffffff'],
+    ] as const) {
+      const ink = darkenToContrast(accent, page)
+      expect(ratio(ink, page), `${accent} on ${page}`).toBeGreaterThanOrEqual(4.5)
+      expect(ratio(stepBack(ink, accent, target), page), `${accent} on ${page} one step back`).toBeLessThan(4.5)
+    }
+  })
+
+  it('honours a ratio other than the small-text one', () => {
+    const large = darkenToContrast('#0ea5e9', '#ffffff', 3)
+    const small = darkenToContrast('#0ea5e9', '#ffffff', 4.5)
+    expect(ratio(large, '#ffffff')).toBeGreaterThanOrEqual(3)
+    expect(ratio(large, '#ffffff')).toBeLessThan(4.5)
+    expect(ratio(small, '#ffffff')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('always answers a six-digit hex', () => {
+    expect(darkenToContrast('#0ea5e9', '#ffffff')).toMatch(/^#[0-9a-f]{6}$/)
+    expect(darkenToContrast('#abc', '#ffffff')).toMatch(/^#[0-9a-f]{6}$/)
+  })
+
+  it('hands back anything that is not a hex colour untouched', () => {
+    expect(darkenToContrast('rebeccapurple', '#ffffff')).toBe('rebeccapurple')
+    expect(darkenToContrast('#0ea5e9', 'var(--x)')).toBe('#0ea5e9')
+  })
+
+  it('goes all the way to the extreme on a ground no ink can reach', () => {
+    // Every ground carries one extreme at 4.5:1, so this needs a harder
+    // ratio to reach: a mid grey carries neither black nor white at 7:1.
+    // The answer is then the best either direction can do, not a colour
+    // that quietly fails.
+    expect(darkenToContrast('#0ea5e9', '#767676', 7)).toBe('#000000')
+  })
+})
+
+describe('mix', () => {
+  it('reads as CSS color-mix in srgb does', () => {
+    // The chip's ground is exactly this mix (artboard.css .rm-chip), so the
+    // ink derived against it has to be derived against the same maths.
+    expect(mix('#2563eb', '#ffffff', 0.12)).toBe('#e5ecfd')
+    expect(mix('#c8941f', '#ffffff', 0.08)).toBe('#fbf6ed')
+    expect(mix('#000000', '#ffffff', 0)).toBe('#ffffff')
+    expect(mix('#000000', '#ffffff', 1)).toBe('#000000')
+  })
+
+  it('hands back anything that is not a hex colour untouched', () => {
+    expect(mix('currentColor', '#ffffff', 0.5)).toBe('currentColor')
   })
 })

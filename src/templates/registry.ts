@@ -118,7 +118,13 @@ export const TEMPLATES: TemplateConfig[] = [
     skills: 'chips',
     defaults: defs(
       'cascade',
-      { primary: '#0d9488', text: '#1f2933', muted: '#5b6776', sidebar: '#0d9488', sidebarText: '#ecfeff' },
+      // The sidebar is a shade deeper than the accent it used to match: at
+      // #0d9488 the band's own near-white text read at 3.60:1 and no CSS
+      // could rescue it. #09655c carries that text at 6.67:1, its quieter
+      // 85% lines at 5.32:1 and its chips at 4.62:1; the accent itself is
+      // untouched, so every rule,
+      // chip and spine on the white column is the teal it always was.
+      { primary: '#0d9488', text: '#1f2933', muted: '#5b6776', sidebar: '#09655c', sidebarText: '#ecfeff' },
       { fontFamily: 'Inter', headingFamily: 'Inter', nameFamily: 'Inter', fontSize: 9.7, lineHeight: 1.4, letterSpacing: 0, headingScale: 1.5, uppercaseHeadings: true, proficiency: 'bars' },
       { columns: 2, sidebar: 'left', sidebarWidth: 0.34, showPhoto: true, photoShape: 'circle' }
     ),
@@ -941,7 +947,9 @@ export const TEMPLATES: TemplateConfig[] = [
     sectionIcons: false,
     defaults: defs(
       'mono',
-      { primary: '#111111', text: '#111111', muted: '#777777' },
+      // #767676 rather than #777777: one channel, and the difference
+      // between 4.48:1 and 4.55:1 on white.
+      { primary: '#111111', text: '#111111', muted: '#767676' },
       { fontFamily: 'Inter', headingFamily: 'Inter', fontSize: 9.7, lineHeight: 1.4, headingScale: 1.4, uppercaseHeadings: true },
       { columns: 1, icons: false, sectionGap: 14 }
     ),
@@ -1281,7 +1289,9 @@ export const TEMPLATES: TemplateConfig[] = [
     sectionIcons: false,
     defaults: defs(
       'signal',
-      { primary: '#2e3d50', text: '#2e3d50', muted: '#999999', name: '#4d70eb', headings: '#2e3d50' },
+      // The muted grey was #999999 - 2.85:1 on white, the palest muted we
+      // shipped. #767676 is the lightest grey that reads at 4.5:1.
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#767676', name: '#4d70eb', headings: '#2e3d50' },
       {
         fontFamily: 'Source Sans 3',
         headingFamily: 'Source Sans 3',

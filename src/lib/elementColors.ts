@@ -56,6 +56,18 @@ export function lighten(hex: string, amount: number): string {
   return `#${c.map((v) => channelHex(v + (255 - v) * t)).join('')}`
 }
 
+/** `a` mixed into `b` by `amount` (0 is all `b`, 1 all `a`) - the same maths
+ *  CSS `color-mix(in srgb, a <amount>, b)` does, so a ground the stylesheet
+ *  mixes and a ground this file mixes are the same colour. A value that is
+ *  not a hex colour comes back as it was. */
+export function mix(a: string, b: string, amount: number): string {
+  const ca = hexChannels(a)
+  const cb = hexChannels(b)
+  if (!ca || !cb) return a
+  const t = Math.min(1, Math.max(0, amount))
+  return `#${ca.map((v, i) => channelHex(v * t + cb[i] * (1 - t))).join('')}`
+}
+
 /** The colour as an `rgba()` at `alpha`: the wash a header lays over its art
  *  band, written in the one translucent form the painter reads back from the
  *  computed style (walk.ts parseColor). A value that is not a hex colour
@@ -120,6 +132,48 @@ export function veilAlpha(page: string, text: string, grounds: string[]): number
   // ends at 0.99 rather than erasing the art altogether.
   for (let step = Math.round(VEIL_FLOOR * 100); step < 100; step++) if (reads(step / 100)) return step / 100
   return 0.99
+}
+
+/** The contrast a word is held to: small text, so 4.5:1 - the same target
+ *  the wash above derives against. */
+const INK_TARGET = VEIL_TARGET
+
+/**
+ * The accent as INK.
+ *
+ * An accent is chosen to be a COLOUR - a rule, a band, a chip's ground, a
+ * spine - and every design's accent was picked for that job. Set as small
+ * TEXT it has a second job, and it is the job it keeps failing: the same
+ * sky blue that reads as a confident hairline reads at 2.46:1 as a word.
+ *
+ * So the accent itself is never touched. This derives the ink the words are
+ * set in: `color` moved toward black on a light `background`, or toward
+ * white on a dark one, by the SMALLEST hundredth of the way that reaches
+ * `ratio`. A colour that already reads comes back exactly as it was, which
+ * is most of them - the ink is a correction, not a restyling.
+ *
+ * Both ends are considered, so a dark page lightens rather than darkening
+ * into its own ground; and because the search runs at render time the ink
+ * follows an accent chosen in the Design panel as readily as a design's own.
+ */
+export function darkenToContrast(color: string, background: string, ratio: number = INK_TARGET): string {
+  const ink = hexChannels(color)
+  const ground = hexChannels(background)
+  if (!ink || !ground) return color
+  const lg = luminance(ground)
+  if (contrast(luminance(ink), lg) >= ratio) return color
+  // Whichever extreme this ground can carry further: black on a light page,
+  // white on a dark one. At 4.5:1 one of the two always reaches.
+  const target: [number, number, number] = contrast(0, lg) >= contrast(1, lg) ? [0, 0, 0] : [255, 255, 255]
+  // A hundredth at a time, and the channels are ROUNDED before the ratio is
+  // read: the page is painted in whole channels, so a step that only reads
+  // before rounding is a step that does not read.
+  for (let step = 1; step <= 100; step++) {
+    const t = step / 100
+    const mixed = ink.map((v, i) => Math.round(v + (target[i] - v) * t)) as [number, number, number]
+    if (contrast(luminance(mixed), lg) >= ratio) return `#${mixed.map(channelHex).join('')}`
+  }
+  return `#${target.map(channelHex).join('')}`
 }
 
 export function readableOn(bg: string, dark: string = '#1a1a1a'): string {
