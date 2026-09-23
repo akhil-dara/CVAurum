@@ -5,7 +5,7 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { ResumeDocument } from '@/types/document'
-import { contactLines } from './contacts'
+import { contactLabel, contactLines, contactsInSidebar, type ContactLine } from './contacts'
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
@@ -43,13 +43,14 @@ import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionNumeral } from './sectionNumeral'
 import { useEditorStore } from '@/store/useEditorStore'
 import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
-import { sectionIconFor } from '@/components/icons/sectionIcons'
-import { FolioIcon, folioIconKind } from './folioIcons'
+import { iconForKind } from '@/components/icons/sectionIcons'
+import { FolioIcon, type FolioIconKind } from './folioIcons'
+import { sectionIconKind } from './sectionIconChoice'
 
 /** Traditional templates render headings without icon chips. */
 const NO_SECTION_ICONS = new Set(['classic', 'ivy', 'academic', 'elegant', 'minimal', 'executive', 'sienna'])
 
-function SectionIcon({ sectionKey, style }: { sectionKey: string; style: string }) {
+function SectionIcon({ kind, style }: { kind: FolioIconKind; style: string }) {
   if (style === 'folio') {
     // The folio chip: a solid glyph (sibling svgs, one fill each - the PDF
     // painter reads one fill per <svg> root) and two fold triangles, a light
@@ -58,7 +59,7 @@ function SectionIcon({ sectionKey, style }: { sectionKey: string; style: string 
     // and unknown sections take the set's fallback glyph.
     return (
       <span className="rm-section-icon" aria-hidden>
-        <FolioIcon kind={folioIconKind(sectionKey)} />
+        <FolioIcon kind={kind} />
         <svg className="rm-folio-fold rm-folio-fold-lt" viewBox="0 0 8 8" aria-hidden focusable="false">
           <polygon points="0,0 8,0 8,8" />
         </svg>
@@ -68,7 +69,7 @@ function SectionIcon({ sectionKey, style }: { sectionKey: string; style: string 
       </span>
     )
   }
-  const Icon = sectionIconFor(sectionKey)
+  const Icon = iconForKind(kind)
   return (
     <span className="rm-section-icon" aria-hidden>
       <Icon />
@@ -576,7 +577,7 @@ function useVars(doc: ResumeDocument, fit: FitVector, headerStyle?: string): CSS
       // The glyph itself, as a CSS `content` string. Written as real
       // characters rather than escapes: this value is handed to CSS verbatim.
       '--rm-contact-sep': (
-        { none: '""', dot: '"·"', pipe: '"|"', slash: '"/"', dash: '"–"' } as Record<string, string>
+        { none: '""', dot: '"·"', pipe: '"|"', slash: '"/"', dash: '"–"', node: '"•"' } as Record<string, string>
       )[layout.contactSeparator ?? 'none'],
       '--rm-photo-align':
         layout.photoAlign === 'left' ? 'flex-start' : layout.photoAlign === 'right' ? 'flex-end' : 'center',
@@ -636,6 +637,8 @@ interface ContactEntry {
   icon: ReactNode
   text: string
   href?: string
+  kind: ContactLine['kind']
+  label: string
 }
 
 /** The shared list, wearing icons. Which rows there are, in which order and
@@ -661,7 +664,7 @@ function buildContacts(doc: ResumeDocument): ContactEntry[] {
     // page would say each row twice, and a PDF/UA checker asks every graphic
     // to be either described or marked decorative. The portrait is the one
     // graphic on the artboard that carries meaning, and it keeps its alt.
-    return { icon: <Icon aria-hidden="true" />, text: c.text, href: c.href }
+    return { icon: <Icon aria-hidden="true" />, text: c.text, href: c.href, kind: c.kind, label: contactLabel(c) }
   })
 }
 
@@ -705,25 +708,75 @@ function IconPicker({ value, onPick }: { value?: string; onPick: (v: string) => 
 }
 
 /** The classes that carry the author's contact-line choices. */
-function contactsClass(doc: ResumeDocument): string {
-  const { contactStyle, contactSeparator } = doc.metadata.layout
-  return `rm-contacts${contactStyle === 'stacked' ? ' rm-contacts-stacked' : ''}${
-    contactSeparator && contactSeparator !== 'none' ? ' rm-contacts-sep' : ''
-  }`
+function contactsClass(doc: ResumeDocument, inSidebar = false): string {
+  const { contactStyle, contactSeparator, contactLinks } = doc.metadata.layout
+  // In the sidebar the details are always one per row: a strip or a run of
+  // pills has no width to stand in there.
+  const style = inSidebar ? 'stacked' : (contactStyle ?? 'inline')
+  const full = doc.metadata.links?.display === 'full'
+  const lined = style === 'inline'
+  // How many cells a strip row holds. Three where the header has the page's
+  // width; two where it shares the page with a sidebar (three cells there
+  // are narrower than an email address), or where whole links asked for two.
+  const stripCols = (full && contactLinks === 'columns') || doc.metadata.layout.columns === 2 ? 2 : 3
+  return [
+    'rm-contacts',
+    style === 'stacked' ? 'rm-contacts-stacked' : '',
+    style === 'strip' ? `rm-contacts-strip rm-strip-${stripCols}${full ? ` rm-links-${contactLinks ?? 'ledger'}` : ''}` : '',
+    style === 'pills' ? 'rm-contacts-pills' : '',
+    lined && contactSeparator && contactSeparator !== 'none' ? 'rm-contacts-sep' : '',
+    lined && contactSeparator === 'node' ? 'rm-contacts-node' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+/** Does the contact line wear labels over its details? */
+const isStrip = (cls: string) => cls.includes('rm-contacts-strip')
+
+/**
+ * A whole address, as the reader sees it: the protocol stepped back so the
+ * part that differs carries the weight, and - where the strip wraps a long
+ * address - each segment a box of its own so a line breaks at a slash and
+ * never inside a word. The characters, and so the text layer, are exactly
+ * the address.
+ */
+function AddressText({ text, wrap }: { text: string; wrap: boolean }) {
+  const m = /^(https?:\/\/(?:www\.)?)(.+)$/i.exec(text)
+  if (!m) return <>{text}</>
+  const rest = wrap
+    ? m[2].split(/(?<=\/)/).map((seg, i) => (
+        <span className="rm-contact-seg" key={i}>
+          {seg}
+        </span>
+      ))
+    : m[2]
+  return (
+    <>
+      <span className="rm-contact-proto">{m[1]}</span>
+      {rest}
+    </>
+  )
 }
 
 function Contacts({ entries, icons, cls }: { entries: ContactEntry[]; icons: boolean; cls: string }) {
   if (!entries.length) return null
+  const strip = isStrip(cls)
+  const wrap = cls.includes('rm-links-wrap')
   // How many there are, for a header that lays them out by count (the band
   // stands a few in one column and splits more into columns).
   return (
     <div className={cls} data-contacts={entries.length}>
-      {entries.map((e, i) => (
-        <span className="rm-contact" key={i}>
-          {icons ? e.icon : null}
-          {e.href ? <a href={e.href}>{e.text}</a> : <span>{e.text}</span>}
-        </span>
-      ))}
+      {entries.map((e, i) => {
+        const link = e.kind === 'url' || e.kind === 'profile'
+        const value = link ? <AddressText text={e.text} wrap={wrap} /> : e.text
+        return (
+          <span className={`rm-contact${link ? ' rm-contact-link' : ''}`} key={i}>
+            {strip ? <Deco className="rm-contact-label">{e.label}</Deco> : icons ? e.icon : null}
+            {e.href ? <a href={e.href}>{value}</a> : <span>{value}</span>}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -733,8 +786,19 @@ function Contacts({ entries, icons, cls }: { entries: ContactEntry[]; icons: boo
  * the canvas (empty ones show placeholders so they're discoverable). Profiles
  * (LinkedIn, GitHub…) stay as links — they're URL-backed, managed in the panel.
  */
-function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: EditFn; icons: boolean }) {
-  const cls = contactsClass(doc)
+function EditableContacts({
+  doc,
+  edit,
+  icons,
+  inSidebar = false,
+}: {
+  doc: ResumeDocument
+  edit: EditFn
+  icons: boolean
+  inSidebar?: boolean
+}) {
+  const cls = contactsClass(doc, inSidebar)
+  const strip = isStrip(cls)
   const b = doc.content.basics
   const { Mail, Phone, Globe, MapPin } = ContactIcons
   const loc = [b.location?.city, b.location?.region].filter(Boolean).join(', ')
@@ -744,12 +808,20 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
   // mailto:/tel: on their own. They join the underline parity (print
   // underlines them when underlining is on) but not the dotted link X-ray,
   // which marks the words an author attached an address to.
-  const field = (icon: ReactNode, el: ReactNode, key: string, after?: ReactNode, linked?: boolean | 'auto') => (
+  const field = (
+    icon: ReactNode,
+    el: ReactNode,
+    key: string,
+    after?: ReactNode,
+    linked?: boolean | 'auto',
+    label?: string,
+    link?: boolean
+  ) => (
     <span
-      className={`rm-contact${linked ? ' rm-contact-linked' : ''}${linked === 'auto' ? ' rm-contact-auto' : ''}`}
+      className={`rm-contact${link ? ' rm-contact-link' : ''}${linked ? ' rm-contact-linked' : ''}${linked === 'auto' ? ' rm-contact-auto' : ''}`}
       key={key}
     >
-      {icons ? icon : null}
+      {strip ? <Deco className="rm-contact-label">{label ?? ''}</Deco> : icons ? icon : null}
       {el}
       {after}
     </span>
@@ -770,7 +842,8 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         undefined,
         // These flags mirror buildContacts exactly: the rows that print as
         // anchors are the rows the underline switch must reach on the canvas.
-        cleanEmail(b.email) ? 'auto' : undefined
+        cleanEmail(b.email) ? 'auto' : undefined,
+        'Email'
       )}
       {field(
         <Phone aria-hidden="true" />,
@@ -784,7 +857,8 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
         />,
         'ph',
         undefined,
-        b.phone ? 'auto' : undefined
+        b.phone ? 'auto' : undefined,
+        'Phone'
       )}
       {field(
         <MapPin aria-hidden="true" />,
@@ -797,7 +871,10 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
           }}
           placeholder="City, Region"
         />,
-        'loc'
+        'loc',
+        undefined,
+        undefined,
+        'Location'
       )}
       {/* Typing here sets the LABEL, not the address. It used to write
           straight to basics.url, so giving a link custom text destroyed the
@@ -856,7 +933,9 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
             })
           }
         />,
-        !!b.url
+        !!b.url,
+        'Website',
+        true
       )}
       {(b.profiles ?? []).map((p, i) => {
         const Icon = contactIcon(p.network, p.icon)
@@ -923,7 +1002,9 @@ function EditableContacts({ doc, edit, icons }: { doc: ResumeDocument; edit: Edi
                   })
                 }
               />,
-              !!p.url?.trim()
+              !!p.url?.trim(),
+              contactLabel({ kind: 'profile', network: p.network }),
+              true
             )
           : null
       })}
@@ -1121,7 +1202,9 @@ function Header({
   const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} editMeta={editMeta} />
   // On-canvas gear to recompose the header (edit mode only).
   const Gear = editMeta ? <HeaderGear doc={doc} editMeta={editMeta} /> : null
-  const ContactsEl = edit ? (
+  // Contacts placed in the sidebar are drawn there (Artboard's AsideCol),
+  // and the header leaves them out.
+  const ContactsEl = contactsInSidebar(doc) ? null : edit ? (
     <EditableContacts doc={doc} edit={edit} icons={icons} />
   ) : (
     <Contacts entries={entries} icons={icons} cls={contactsClass(doc)} />
@@ -1392,6 +1475,9 @@ function Section({
   // Per-section style overrides (user picks in the section gear) — scoped classes
   // that beat the template's root-level sec-*/skl-* defaults.
   const ss = doc.metadata.layout.sectionSettings?.[sectionKey]
+  // The badge's glyph: the section's own pick, else what its title suggests
+  // (custom sections), else the glyph it always had.
+  const iconKind = showIcon ? sectionIconKind(sectionKey, sectionLabel(sectionKey, doc), ss?.icon) : 'none'
   // A section whose entries must not be torn across a page break says so on
   // the element itself: the paginator reads the policy off the rendered page
   // (walk.ts), so the export and the preview overlay can never disagree about
@@ -1405,7 +1491,7 @@ function Section({
     // default: sectionOverrideClasses resolves section-over-document, so one
     // choice in Design restyles every heading and a section that decided for
     // itself still wins.
-    ...sectionOverrideClasses(ss, doc.metadata.typography),
+    ...sectionOverrideClasses(ss, doc.metadata.typography, doc.metadata.layout.dateAlign),
     ...(keepEntries ? ['rm-keep-entries'] : []),
     ...(compact ? ['rm-section-compact'] : []),
   ].join(' ')
@@ -1454,7 +1540,7 @@ function Section({
             : undefined
         }
       >
-        {showIcon ? <SectionIcon sectionKey={sectionKey} style={iconStyle} /> : null}
+        {iconKind !== 'none' ? <SectionIcon kind={iconKind} style={iconStyle} /> : null}
         {number ? <Deco className="rm-section-number">{number}</Deco> : null}
         {/* A linked heading points where the author says, and the exporter
             turns any anchor into a clickable region, so it is live in the PDF
@@ -1615,6 +1701,15 @@ export function Artboard({
     `skl-${config.skills}`,
     `mode-${mode}`,
     `side-${doc.metadata.layout.sidebar}`,
+    // Where the contact line sits in the header (the sidebar placement is
+    // drawn by the sidebar itself, so it takes no class here).
+    !contactsInSidebar(doc) && (doc.metadata.layout.contactPlacement ?? 'below') !== 'below'
+      ? `cpos-${doc.metadata.layout.contactPlacement}`
+      : '',
+    // How a heading set beside its content is drawn.
+    doc.metadata.layout.headingPlacement === 'side' ? `shs-${doc.metadata.layout.sideHeadingStyle ?? 'rail'}` : '',
+    // Where a language's level sits.
+    (doc.metadata.layout.levelPlacement ?? 'end') !== 'end' ? `lvl-${doc.metadata.layout.levelPlacement}` : '',
     // The page seats a footer strip at its foot (artboard.css).
     footer.length ? 'rm-has-footer' : '',
     // An entry's dates can have a column of their own: a gutter of
@@ -1652,6 +1747,15 @@ export function Artboard({
         <Photo doc={doc} editMeta={editMeta} />
       ) : doc.metadata.layout.monogram ? (
         <Monogram doc={doc} editMeta={editMeta} />
+      ) : null}
+      {contactsInSidebar(doc) ? (
+        <div className="rm-aside-contacts">
+          {edit ? (
+            <EditableContacts doc={doc} edit={edit} icons={doc.metadata.layout.icons} inSidebar />
+          ) : (
+            <Contacts entries={buildContacts(doc)} icons={doc.metadata.layout.icons} cls={contactsClass(doc, true)} />
+          )}
+        </div>
       ) : null}
       {aside.map((key) => (
         <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} noMeta />

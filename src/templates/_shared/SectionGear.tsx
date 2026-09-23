@@ -22,6 +22,8 @@ import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LINK, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import { SECTION_NUMBER_STYLES } from './sectionNumeral'
+import { ICON_KINDS, sectionIconKind, suggestedIcons } from './sectionIconChoice'
+import { iconForKind } from '@/components/icons/sectionIcons'
 import type { MetaEditFn } from './Editable'
 
 type ToggleField =
@@ -50,8 +52,10 @@ const LOCATION_PLACEMENTS: { label: string; value: string; title: string }[] = [
 
 /** Which edge of the title row the date sits on ('' = the right, as always). */
 const DATE_ALIGNS: { label: string; value: string; title: string }[] = [
-  { label: 'Right', value: '', title: 'At the right edge of the title row' },
+  { label: 'Right', value: 'right', title: 'At the right edge of the title row' },
   { label: 'Left', value: 'left', title: 'Ahead of the title, in a column of its own' },
+  { label: 'After title', value: 'title', title: 'Straight after the title, on the same row' },
+  { label: 'Company line', value: 'inline', title: 'At the end of the line under the title' },
 ]
 
 /** Whether a page break may fall inside one of this section's entries.
@@ -586,7 +590,8 @@ export function SectionGear({
       | 'meterStyle'
       | 'badgeSize'
       | 'badgeShape'
-      | 'keepTogether',
+      | 'keepTogether'
+      | 'icon',
     value?: string | boolean
   ) =>
     editMeta((m) => {
@@ -1169,6 +1174,21 @@ export function SectionGear({
                   </p>
                 </Group>
 
+                {/* This section's own glyph: suggested first (from a custom
+                    section's title, or the section's usual glyph), then the
+                    whole set, then Auto and none. The badge style below
+                    decides how the glyph is drawn. */}
+                {iconStyle !== 'none' ? (
+                  <Group label="This section's icon">
+                    <IconChoice
+                      sectionKey={sectionKey}
+                      title={sectionLabel(sectionKey, doc)}
+                      value={opts.icon}
+                      onPick={(v) => setStyle('icon', v)}
+                    />
+                  </Group>
+                ) : null}
+
                 {/* Section badge - style and size are document-wide, unlike
                     every row above, and the labels say so. */}
                 <Group label="Section icons (all sections)">
@@ -1273,11 +1293,16 @@ export function SectionGear({
                     <div className="grid grid-cols-2 gap-1">
                       {DATE_ALIGNS.map((d) => (
                         <ChipBtn
-                          key={d.value || 'right'}
+                          key={d.value}
                           label={d.label}
                           title={d.title}
-                          on={(opts.dateAlign === 'left' ? 'left' : '') === d.value}
-                          onClick={() => setStyle('dateAlign', d.value || undefined)}
+                          // What is in effect: the section's own choice, else the
+                          // document's (Design, Dates). Picking the one the
+                          // document already gives clears the section's own.
+                          on={(opts.dateAlign ?? layout.dateAlign ?? 'right') === d.value}
+                          onClick={() =>
+                            setStyle('dateAlign', d.value === (layout.dateAlign ?? 'right') ? undefined : d.value)
+                          }
                         />
                       ))}
                     </div>
@@ -1452,6 +1477,69 @@ export function SectionGear({
 }
 
 /** A labeled cluster of controls — consistent rhythm instead of one long list. */
+/**
+ * A section's glyph, chosen the way the canvas shows it: the few the title
+ * suggests as large labelled buttons, every glyph as a compact grid, and the
+ * two answers that are not a glyph - Auto (the suggestion) and No icon.
+ */
+function IconChoice({
+  sectionKey,
+  title,
+  value,
+  onPick,
+}: {
+  sectionKey: string
+  title: string
+  value?: string
+  onPick: (v: string | undefined) => void
+}) {
+  const current = sectionIconKind(sectionKey, title, value)
+  const suggested = suggestedIcons(title, sectionKey)
+  const labelOf = (k: string) => ICON_KINDS.find((x) => x.kind === k)?.label ?? k
+  const cell = (k: string, big: boolean) => {
+    const Icon = iconForKind(k)
+    const on = value !== undefined && current === k
+    return (
+      <button
+        key={k}
+        type="button"
+        aria-pressed={on}
+        title={labelOf(k)}
+        aria-label={`${labelOf(k)} icon`}
+        onClick={() => onPick(k)}
+        className={`flex flex-col items-center justify-center gap-1 rounded-md border transition ${
+          big ? 'h-14 px-1' : 'h-9'
+        } ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/50'}`}
+      >
+        <Icon className={big ? 'h-4 w-4' : 'h-3.5 w-3.5'} aria-hidden />
+        {big ? <span className="text-[10px] leading-none">{labelOf(k)}</span> : null}
+      </button>
+    )
+  }
+  return (
+    <div className="space-y-1.5">
+      {suggested.length ? (
+        <>
+          <p className="px-1 text-[10px] leading-tight text-muted-foreground">
+            {sectionKey.startsWith('custom-') ? `Suggested for “${title}”` : 'Suggested'}
+          </p>
+          <div className="grid grid-cols-4 gap-1">{suggested.map((k) => cell(k, true))}</div>
+        </>
+      ) : null}
+      <div className="grid grid-cols-6 gap-1">{ICON_KINDS.map((k) => cell(k.kind, false))}</div>
+      <div className="grid grid-cols-2 gap-1">
+        <ChipBtn
+          label="Auto"
+          title={`The glyph this section's title suggests (${labelOf(sectionIconKind(sectionKey, title))})`}
+          on={value === undefined}
+          onClick={() => onPick(undefined)}
+        />
+        <ChipBtn label="No icon" title="No badge on this section's heading" on={value === 'none'} onClick={() => onPick('none')} />
+      </div>
+    </div>
+  )
+}
+
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="px-1 pb-2 pt-1">

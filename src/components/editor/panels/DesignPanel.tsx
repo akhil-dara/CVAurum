@@ -653,9 +653,49 @@ note={notes[r.key]}
             How the 0–5 rating on skills &amp; languages is shown.
           </p>
         </div>
+        <div>
+          <label className="label">Language level</label>
+          <Segmented
+            value={m.layout.levelPlacement ?? 'end'}
+            options={[
+              { value: 'end', label: 'At the end' },
+              { value: 'inline', label: 'After the name' },
+              { value: 'cards', label: 'Cards' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.levelPlacement = v
+              })
+            }
+          />
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            Where a language's level sits: across the row, right after the language, or each language as a small card.
+          </p>
+        </div>
       </FieldGroup>
 
       <FieldGroup title="Dates" defaultOpen={false}>
+        <div>
+          <label className="label">Where dates sit</label>
+          <Segmented
+            wrap
+            value={m.layout.dateAlign ?? 'right'}
+            options={[
+              { value: 'right', label: 'Right edge' },
+              { value: 'title', label: 'After title' },
+              { value: 'inline', label: 'Company line' },
+              { value: 'left', label: 'Left column' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.dateAlign = v === 'right' ? undefined : v
+              })
+            }
+          />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            For every section; a section's own Style sheet can still choose for itself. A date column in Layout takes precedence.
+          </p>
+        </div>
         <div>
           <label className="label">Month</label>
           <Segmented
@@ -863,6 +903,27 @@ note={notes[r.key]}
             Beside the content, a section title keeps to a column of its own on the left.
           </p>
         </div>
+        {(m.layout.headingPlacement ?? 'above') === 'side' ? (
+          <div>
+            <label className="label">Side heading style</label>
+            <Segmented
+              value={m.layout.sideHeadingStyle ?? 'rail'}
+              options={[
+                { value: 'rail', label: 'Rail' },
+                { value: 'hanging', label: 'Hanging' },
+                { value: 'tick', label: 'Tick' },
+              ]}
+              onChange={(v) =>
+                update((md) => {
+                  md.layout.sideHeadingStyle = v
+                })
+              }
+            />
+            <p className="-mt-0 text-[11px] text-muted-foreground">
+              Rail runs a thin line between titles and content; Hanging hangs each title under a hairline; Tick marks it with a short accent stroke.
+            </p>
+          </div>
+        ) : null}
         {/* The running numerals before section titles, offered on EVERY
             design. The row used to be gated - first on the design, then on
             the design OR the current value - because only the two designs
@@ -1007,11 +1068,77 @@ note={notes[r.key]}
           }
         />
         <div>
+          <label className="label">Contact line</label>
+          <Segmented
+            value={m.layout.contactStyle ?? 'inline'}
+            options={[
+              { value: 'inline', label: 'Inline' },
+              { value: 'stacked', label: 'Stacked' },
+              { value: 'strip', label: 'Strip' },
+              { value: 'pills', label: 'Pills' },
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.contactStyle = v
+              })
+            }
+          />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            Strip sets each detail under a small label (EMAIL, PHONE, LINKEDIN) in a ruled row; Pills gives each its own capsule.
+          </p>
+        </div>
+        <div>
+          <label className="label">Contact position</label>
+          <Segmented
+            value={m.layout.contactPlacement === 'sidebar' && !twoCol ? 'below' : (m.layout.contactPlacement ?? 'below')}
+            options={[
+              { value: 'below', label: 'Below name' },
+              { value: 'beside', label: 'Beside' },
+              { value: 'above', label: 'Above' },
+              ...(twoCol ? [{ value: 'sidebar' as const, label: 'Sidebar' }] : []),
+            ]}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.contactPlacement = v
+              })
+            }
+          />
+          <p className="-mt-0 text-[11px] text-muted-foreground">
+            {m.layout.contactPlacement === 'sidebar' && twoCol
+              ? 'At the top of the sidebar. The file reads the main column first, so parsers meet your contacts after it; Below name keeps them first.'
+              : 'Where your details sit around your name. The reading order stays name, headline, contacts.'}
+          </p>
+        </div>
+        {m.layout.contactStyle === 'strip' && m.links?.display === 'full' ? (
+          <div>
+            <label className="label">Whole links in the strip</label>
+            <Segmented
+              value={m.layout.contactLinks ?? 'ledger'}
+              options={[
+                { value: 'ledger', label: 'Ledger' },
+                { value: 'columns', label: 'Two columns' },
+                { value: 'wrap', label: 'Wrap' },
+              ]}
+              onChange={(v) =>
+                update((md) => {
+                  md.layout.contactLinks = v
+                })
+              }
+            />
+            <p className="-mt-0 text-[11px] text-muted-foreground">
+              {m.layout.contactLinks === 'wrap'
+                ? 'Wrap breaks a long address at its slashes, and a parser reads a broken address as two pieces; Ledger and Two columns keep every address whole.'
+                : 'Ledger lists each link on its own row under the strip; Two columns gives each address room for one line.'}
+            </p>
+          </div>
+        ) : null}
+        <div>
           <label className="label">Between contacts</label>
           <Segmented
             value={m.layout.contactSeparator ?? 'none'}
             options={[
               { value: 'none', label: 'Space' },
+              { value: 'node', label: '●' },
               { value: 'dot', label: '·' },
               { value: 'pipe', label: '|' },
               { value: 'slash', label: '/' },

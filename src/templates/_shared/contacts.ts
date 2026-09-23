@@ -1,6 +1,7 @@
 import type { ResumeDocument } from '@/types/document'
 import { safeHref } from '@/lib/utils'
 import { cleanEmail, prettyUrl } from './atoms'
+import { resolveOrder } from '@/lib/sections'
 
 /**
  * The contact block, as ONE list that both readers walk.
@@ -29,6 +30,34 @@ export interface ContactLine {
   network?: string
   icon?: string
   kind: 'email' | 'phone' | 'location' | 'url' | 'profile'
+}
+
+/** Are the contact details printed at the top of the sidebar? Only a page
+ *  that DRAWS a sidebar can put them there: two columns with no section in
+ *  the sidebar is drawn as one, and the contacts would have nowhere to go -
+ *  so they stay under the name, where the page and the ATS text both put
+ *  them. */
+export function contactsInSidebar(doc: ResumeDocument): boolean {
+  return (
+    doc.metadata.layout.contactPlacement === 'sidebar' &&
+    doc.metadata.layout.columns === 2 &&
+    resolveOrder(doc).aside.length > 0
+  )
+}
+
+/**
+ * The word a labelled contact strip prints over a contact: EMAIL, PHONE,
+ * LINKEDIN. Drawn as decoration (the value says what it is; a parser that
+ * met the label as text would read a word the author never wrote), so it is
+ * named here only so the page and anything else that labels contacts agree.
+ */
+export function contactLabel(line: Pick<ContactLine, 'kind' | 'network'>): string {
+  if (line.kind === 'email') return 'Email'
+  if (line.kind === 'phone') return 'Phone'
+  if (line.kind === 'location') return 'Location'
+  if (line.kind === 'url') return 'Website'
+  const n = (line.network || '').trim()
+  return n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Profile'
 }
 
 /**

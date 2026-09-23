@@ -39,7 +39,10 @@ const ACCENTS = [
  * get it. These are presentation choices, not template identity.
  */
 function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
-  const { contactStyle, contactSeparator, icons } = doc.metadata.layout
+  const { contactStyle, contactSeparator, icons, contactPlacement, contactLinks, columns } = doc.metadata.layout
+  const fullLinks = doc.metadata.links?.display === 'full'
+  const strip = contactStyle === 'strip'
+  const lined = contactStyle !== 'stacked' && contactStyle !== 'strip' && contactStyle !== 'pills'
   const row = <T extends string>(
     name: string,
     value: T,
@@ -75,33 +78,69 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
   )
   return (
     <div className="px-2 pb-1.5">
-      {row<'inline' | 'stacked'>(
+      {row<'inline' | 'stacked' | 'strip' | 'pills'>(
         'Arrange',
         contactStyle ?? 'inline',
         [
           { v: 'inline', label: 'Inline', title: 'All on one wrapping line' },
           { v: 'stacked', label: 'Stacked', title: 'One detail per row - reads better in a narrow sidebar' },
+          { v: 'strip', label: 'Strip', title: 'A ruled strip of labelled cells: EMAIL, PHONE, LINKEDIN over each detail' },
+          { v: 'pills', label: 'Pills', title: 'Each detail in its own soft pill, with its icon' },
         ],
         (v) =>
           editMeta((m) => {
             m.layout.contactStyle = v
           })
       )}
-      {row<'none' | 'dot' | 'pipe' | 'slash' | 'dash'>(
-        'Between',
-        contactSeparator ?? 'none',
+      {row<'below' | 'beside' | 'above' | 'sidebar'>(
+        'Position',
+        contactPlacement === 'sidebar' && columns !== 2 ? 'below' : (contactPlacement ?? 'below'),
         [
-          { v: 'none', label: 'Space', title: 'Spacing only' },
-          { v: 'dot', label: '·', title: 'Middle dot' },
-          { v: 'pipe', label: '|', title: 'Vertical bar' },
-          { v: 'slash', label: '/', title: 'Slash' },
-          { v: 'dash', label: '–', title: 'En dash' },
+          { v: 'below', label: 'Below', title: 'Under the name and headline' },
+          { v: 'beside', label: 'Beside', title: 'A column to the right of the name' },
+          { v: 'above', label: 'Above', title: 'A line over the name, like a letterhead' },
+          ...(columns === 2
+            ? [{ v: 'sidebar' as const, label: 'Sidebar', title: 'At the top of the sidebar, one detail per row' }]
+            : []),
         ],
         (v) =>
           editMeta((m) => {
-            m.layout.contactSeparator = v
+            m.layout.contactPlacement = v
           })
       )}
+      {lined
+        ? row<'none' | 'dot' | 'pipe' | 'slash' | 'dash' | 'node'>(
+            'Between',
+            contactSeparator ?? 'none',
+            [
+              { v: 'none', label: 'Space', title: 'Spacing only' },
+              { v: 'node', label: '●', title: 'A small dot in the accent colour' },
+              { v: 'dot', label: '·', title: 'Middle dot' },
+              { v: 'pipe', label: '|', title: 'Vertical bar' },
+              { v: 'slash', label: '/', title: 'Slash' },
+              { v: 'dash', label: '–', title: 'En dash' },
+            ],
+            (v) =>
+              editMeta((m) => {
+                m.layout.contactSeparator = v
+              })
+          )
+        : null}
+      {strip && fullLinks
+        ? row<'ledger' | 'columns' | 'wrap'>(
+            'Links',
+            contactLinks ?? 'ledger',
+            [
+              { v: 'ledger', label: 'Ledger', title: 'Short details in the strip, whole links listed under it' },
+              { v: 'columns', label: '2 cols', title: 'The strip in two wider columns, so a whole link fits' },
+              { v: 'wrap', label: 'Wrap', title: 'Three columns; a long link breaks at its slashes - a parser then reads it as two pieces' },
+            ],
+            (v) =>
+              editMeta((m) => {
+                m.layout.contactLinks = v
+              })
+          )
+        : null}
       {row<'on' | 'off'>(
         'Icons',
         icons === false ? 'off' : 'on',
@@ -114,8 +153,10 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
             m.layout.icons = v === 'on'
           })
       )}
-      {contactStyle === 'stacked' ? (
-        <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">Stacked rows never take a separator.</p>
+      {!lined ? (
+        <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+          {strip ? 'The strip’s rules do the separating.' : contactStyle === 'pills' ? 'Each pill is its own separator.' : 'Stacked rows never take a separator.'}
+        </p>
       ) : null}
     </div>
   )

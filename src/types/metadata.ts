@@ -212,6 +212,18 @@ export const LayoutSchema = z.object({
   metaColumn: z.enum(['none', 'gutter', 'margin']).default('none'),
   /** Section titles above their content, or beside it in a left cell. */
   headingPlacement: z.enum(['above', 'side']).default('above'),
+  /** How a heading set beside its content is drawn: against a thin rail
+   *  with a node at each section, as a left-aligned hanging label under a
+   *  hairline, or with a short accent tick under it. Only read while
+   *  headingPlacement is 'side'. */
+  sideHeadingStyle: z.enum(['rail', 'hanging', 'tick']).default('rail'),
+  /** Where every entry's date sits unless a section says otherwise: the
+   *  row's right edge, a leading column, straight after the title, or at
+   *  the end of the company line. Unset is the right edge. */
+  dateAlign: z.enum(['right', 'left', 'title', 'inline']).optional(),
+  /** Where a language's level (and a skill's) sits: at the far end of the
+   *  row, right after the name, or each language as a small card in a grid. */
+  levelPlacement: z.enum(['end', 'inline', 'cards']).default('end'),
   /** Every section as a rounded tile on a tinted page. */
   sectionFrame: z.enum(['none', 'tile']).default('none'),
   /** A band of numbers derived from the content (years, companies, skills,
@@ -335,7 +347,11 @@ export const LayoutSchema = z.object({
         locationPlacement: z.enum(['subline', 'with-date']).optional(),
         /** Which edge of the head row the date sits on. Unset is the right,
          *  as the page always drew it. */
-        dateAlign: z.enum(['right', 'left']).optional(),
+        dateAlign: z.enum(['right', 'left', 'title', 'inline']).optional(),
+        /** The heading badge's glyph, by name ('none' for no badge on this
+         *  section). Unset takes the glyph the section's kind or title
+         *  suggests. */
+        icon: z.string().max(40).optional(),
         /** Whether a page break may fall inside one of this section's
          *  entries. Unset follows the document (page.keepEntriesWhole), so a
          *  section can hold its entries whole while the rest of the page
@@ -352,11 +368,19 @@ export const LayoutSchema = z.object({
   icons: z.boolean().default(true),
   /** How the contact line is arranged. A narrow sidebar reads far better with
    *  one contact per row than with a wrapping run of them. */
-  contactStyle: z.enum(['inline', 'stacked']).default('inline'),
+  contactStyle: z.enum(['inline', 'stacked', 'strip', 'pills']).default('inline'),
+  /** Where the contact line sits in the header: under the name, beside it
+   *  (a right-hand column), above it, or at the top of the sidebar on a
+   *  two-column page. */
+  contactPlacement: z.enum(['below', 'beside', 'above', 'sidebar']).default('below'),
+  /** How the labelled strip holds whole addresses (links shown in full):
+   *  a ledger of links under the short contacts, two wider columns, or three
+   *  columns that wrap an address at its slashes. */
+  contactLinks: z.enum(['ledger', 'columns', 'wrap']).default('ledger'),
   /** What sits between contacts on an inline row. Templates used to hard-code
    *  this, so an author who wanted dots between their details - or nothing at
    *  all - had to change template to get them. */
-  contactSeparator: z.enum(['none', 'dot', 'pipe', 'slash', 'dash']).default('none'),
+  contactSeparator: z.enum(['none', 'dot', 'pipe', 'slash', 'dash', 'node']).default('none'),
   /**
    * How a section heading's icon is presented. The badge is one of the
    * loudest stylistic choices on the page, so it is worth a real control:

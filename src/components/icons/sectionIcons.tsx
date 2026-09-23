@@ -32,6 +32,12 @@ const MAP: Record<string, LucideIcon> = {
   references: Quote,
 }
 
+/** The line icon for a glyph kind (sectionIconChoice.ts): the same twelve
+ *  the folio badge draws, so a choice made once reads in every badge style. */
+export function iconForKind(kind: string): LucideIcon {
+  return MAP[kind] ?? Folder
+}
+
 export function sectionIconFor(key: string): LucideIcon {
   if (key.startsWith('custom-')) return Sparkles
   return MAP[key] ?? Folder

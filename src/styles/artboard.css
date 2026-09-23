@@ -277,6 +277,209 @@
   margin-right: 0.5em;
   opacity: 0.5;
 }
+
+/* ---- the contact line's other arrangements (layout.contactStyle) --------
+   A QUIET colour here - a muted label, a muted protocol, an accent dot - is
+   only ever used on a header that stands on the page itself. On a banner, a
+   band, a block or art the header derives its own ink for its own ground,
+   and every part of the line inherits it: a muted label measured against the
+   page and printed on a navy band is a label nobody can read. */
+
+/* The labelled strip: a ruled row of cells, each detail under a small tracked
+   label. The labels are decoration (atoms.tsx Deco): the value says what it
+   is, and a parser that met EMAIL as text would read a word nobody wrote. The
+   rules do the separating, so the strip never takes a separator glyph. */
+.rm-contacts.rm-contacts-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 0.55em;
+  border-top: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  color: var(--rm-contact-color, var(--rm-text));
+}
+.rm-contacts-strip .rm-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05em;
+  min-width: 0;
+  padding: 0.42em 0.9em;
+  border-left: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+}
+.rm-contacts-strip.rm-strip-3 .rm-contact:nth-child(3n + 1),
+.rm-contacts-strip.rm-strip-2 .rm-contact:nth-child(2n + 1) {
+  border-left: none;
+  padding-left: 0;
+}
+/* A row of cells, not a row of words: every row after the first is ruled off
+   from the one above. */
+.rm-contacts-strip.rm-strip-3 .rm-contact:nth-child(n + 4),
+.rm-contacts-strip.rm-strip-2 .rm-contact:nth-child(n + 3) {
+  border-top: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+}
+/* A detail never breaks inside itself: an email split across two lines
+   comes back from the file as two words, neither of them an address. A whole
+   link in the wrap arrangement breaks between its own segments instead. */
+.rm-contacts-strip .rm-contact > a,
+.rm-contacts-strip .rm-contact > span:not(.rm-contact-label) {
+  white-space: nowrap;
+}
+.rm-contacts-strip.rm-links-wrap .rm-contact-link > a,
+.rm-contacts-strip.rm-links-wrap .rm-contact-link > span:not(.rm-contact-label) {
+  white-space: normal;
+}
+.rm-contact-label {
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: inherit;
+}
+.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split):not(.rm-header-art)
+  .rm-contacts-strip .rm-contact-label,
+.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split):not(.rm-header-art)
+  .rm-contact-proto {
+  color: var(--rm-muted);
+}
+/* A whole address in a strip that lists links in a ledger: the short details
+   keep their cells, and each link takes a full row - its label, then the
+   address on one line. */
+.rm-contacts-strip.rm-links-ledger .rm-contact-link {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.14em 0;
+  border-left: none;
+  border-top: none;
+}
+.rm-contacts-strip.rm-links-ledger .rm-contact:not(.rm-contact-link) + .rm-contact-link {
+  border-top: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  padding-top: 0.4em;
+}
+.rm-contacts-strip.rm-links-ledger .rm-contact-link:last-child {
+  padding-bottom: 0.4em;
+}
+.rm-contacts-strip.rm-links-ledger .rm-contact-link .rm-contact-label {
+  flex: 0 0 7.5em;
+}
+.rm-contacts-strip.rm-strip-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* Wrap: three columns kept, and a long address breaks only between its own
+   segments (Artboard.tsx AddressText boxes each one), never inside a word. */
+.rm-contacts-strip.rm-links-wrap .rm-contact-seg {
+  display: inline-block;
+}
+
+/* Pills: each detail in its own soft capsule. Filled only where the header
+   stands on the page, and the words take the body ink there, not the muted
+   one - a muted grey on its own tint is a pair that falls short. Anywhere
+   else the pill is an outline, which leaves the ground the header derived its
+   ink against exactly as it was. */
+.rm-contacts.rm-contacts-pills {
+  gap: 0.4em 0.4em;
+}
+.rm-contacts-pills .rm-contact {
+  padding: 0.16em 0.72em 0.16em 0.58em;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 34%, transparent);
+}
+.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split):not(.rm-header-art)
+  .rm-contacts-pills {
+  color: var(--rm-contact-color, var(--rm-text));
+}
+.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split):not(.rm-header-art)
+  .rm-contacts-pills .rm-contact {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--rm-text) 6%, var(--rm-bg));
+}
+
+/* The accent node: a bullet glyph in the accent between contacts, where the
+   header stands on the page; on a painted header it takes the header's ink. */
+.rm-contacts.rm-contacts-node .rm-contact + .rm-contact::before {
+  opacity: 1;
+  font-size: 0.8em;
+  margin-right: 0.7em;
+}
+.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split):not(.rm-header-art)
+  .rm-contacts-node .rm-contact + .rm-contact::before {
+  color: var(--rm-contact-color, var(--rm-primary-ink, var(--rm-primary)));
+}
+
+/* A strip, and a column beside the name, are measured against the WHOLE
+   text column: the header's main block otherwise shrinks to its longest
+   line, and a strip stopped short of the page's right edge while the column
+   beside the name stood right up against the name. */
+.rm-root.cpos-beside .rm-header-main,
+.rm-header-main:has(> .rm-contacts-strip) {
+  flex: 1 1 auto;
+}
+
+/* ---- where the contact line sits (layout.contactPlacement) ------------- */
+/* Beside the name: the name and headline keep the left, the contacts stand
+   in a right-hand column, one per row. The reading order is untouched -
+   name, headline, then contacts - only where they are drawn moves. */
+.rm-root.cpos-beside .rm-header-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 2em;
+  align-items: end;
+}
+.rm-root.cpos-beside .rm-header-main > :not(.rm-contacts) {
+  grid-column: 1;
+}
+.rm-root.cpos-beside .rm-header-main > .rm-contacts {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25em;
+  text-align: right;
+}
+.rm-root.cpos-beside .rm-header-main > .rm-contacts .rm-contact + .rm-contact::before {
+  content: none;
+}
+.rm-root.cpos-beside .rm-header-main > .rm-contacts.rm-contacts-strip {
+  display: flex;
+  margin-top: 0;
+  border: none;
+}
+.rm-root.cpos-beside .rm-header-main > .rm-contacts.rm-contacts-strip .rm-contact {
+  align-items: flex-end;
+  padding: 0;
+  border: none;
+}
+/* Above the name, like a letterhead: a quieter, smaller row across the full
+   width, closed off from the name by a hairline - the name is the page's
+   title, and the details are the paper it is printed on. */
+.rm-root.cpos-above .rm-header-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+.rm-root.cpos-above .rm-header-main > .rm-contacts {
+  order: -1;
+  font-size: calc(var(--rm-fs) * 0.86 * var(--rm-contact-mul, 1));
+  gap: 0.25em 1.3em;
+  margin: 0 0 0.95em;
+  padding-bottom: 0.6em;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+.rm-root.cpos-above .rm-header-main > .rm-contacts.rm-contacts-strip {
+  padding-bottom: 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+}
+/* At the top of the sidebar: one per row, before the sidebar's sections. */
+.rm-aside-contacts {
+  margin-bottom: 1.3em;
+}
+.rm-aside-contacts .rm-contacts {
+  color: inherit;
+}
 .rm-photo {
   flex: none;
   display: block;
@@ -1201,6 +1404,64 @@
   white-space: normal;
   margin-left: calc(-1 * (var(--rm-date-col) + var(--rm-head-gap)));
 }
+/* Date after the title (dateAlign 'title'): the date follows the title on the
+   head row instead of being pushed to the far edge, so a short title and its
+   date read as one line with no stretch of paper between them. */
+.rm-root .rm-section.sec-date-title .rm-item-head {
+  justify-content: flex-start;
+}
+.rm-root .rm-section.sec-date-title .rm-item-head > .rm-item-date {
+  margin-left: 0.9em;
+}
+/* Date in the company line (dateAlign 'inline'): sections.tsx SubDate closes
+   the sub-line with it, in the date's own quiet style. */
+.rm-sub-date {
+  color: var(--rm-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* The sub-line spaces its items 0.85em apart, and the separator carries a
+     space of its own; pulled back so the dot sits a word-space from what it
+     follows, as it would in a sentence. */
+  margin-left: -0.6em;
+}
+.rm-sub-date .rm-meta-sep {
+  white-space: pre;
+}
+
+/* ---- where a language's level sits (layout.levelPlacement) -------------
+   Inline: the level follows the name ("Spanish  Professional") rather than
+   standing at the far edge of the row with the width of the column between
+   them. Meter rows already sit together; this is the worded level. */
+.rm-root.lvl-inline [data-section='languages'] .rm-mini .rm-item-head {
+  justify-content: flex-start;
+  gap: 0.6em;
+}
+.rm-root.lvl-inline [data-section='languages'] .rm-mini .rm-item-head > .rm-mini-sub {
+  margin-left: 0;
+}
+/* Cards: each language a small outlined card in a grid - name, then its
+   level. Outlined, never filled, so the ground under the words is the ground
+   every ink on the page was derived against. */
+.rm-root.lvl-cards [data-section='languages']:not(.rm-section-compact) .rm-section-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr));
+  gap: 0.5em;
+}
+.rm-root.lvl-cards [data-section='languages']:not(.rm-section-compact) .rm-mini {
+  margin: 0;
+  padding: 0.45em 0.65em;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.45em;
+}
+.rm-root.lvl-cards [data-section='languages']:not(.rm-section-compact) .rm-mini .rm-item-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1em;
+}
+.rm-root.lvl-cards [data-section='languages']:not(.rm-section-compact) .rm-mini .rm-level {
+  justify-content: space-between;
+}
+
 /* Education score (GPA/CGPA): placement is the USER'S choice per section —
    inline by default; 'right' / 'pill' variants live in templates.css. */
 .rm-item-sub .rm-item-score {
@@ -4300,6 +4561,99 @@
 .rm-root.heads-side.rm-icons.rm-single .rm-col-main {
   padding-left: var(--rm-pad);
 }
+/* ---- how a side heading is drawn (layout.sideHeadingStyle) -------------
+   In every one of the three, the heading's own rule goes: drawn under a
+   150px title column it underlined empty paper, and read as a line from the
+   margin to the title rather than something the title owns. */
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section-title,
+.rm-root.heads-side.shs-hanging .rm-col-main .rm-section-title,
+.rm-root.heads-side.shs-tick .rm-col-main .rm-section-title {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section .rm-section-title::before,
+.rm-root.heads-side.shs-hanging .rm-col-main .rm-section .rm-section-title::before,
+.rm-root.heads-side.shs-tick .rm-col-main .rm-section .rm-section-title::before,
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section .rm-section-title::after,
+.rm-root.heads-side.shs-hanging .rm-col-main .rm-section .rm-section-title::after {
+  content: none;
+  flex: 0 0 auto;
+}
+
+/* Rail: the titles stay against the content, and a thin line in a tint of the
+   accent runs down between the two columns, with a ring on it where each
+   section begins. The line is continuous down the page - each section's
+   stretch reaches into the gap below it - and stops at the last one. */
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section {
+  border-top: none;
+  padding-top: 0.25em;
+}
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section-title {
+  padding-right: 0.55em;
+}
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--rm-heads-w) + 0.7em - 1px);
+  top: 0.75em;
+  bottom: calc(-1 * var(--rm-section-gap));
+  width: 2px;
+  background: color-mix(in srgb, var(--rm-heading-color, var(--rm-primary)) 26%, var(--rm-bg));
+}
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section:last-child::after {
+  bottom: 0;
+}
+.rm-root.heads-side.shs-rail .rm-col-main .rm-section::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--rm-heads-w) + 0.7em - 0.34em);
+  top: 0.48em;
+  width: 0.68em;
+  height: 0.68em;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--rm-heading-color, var(--rm-primary-ink, var(--rm-primary)));
+  background: var(--rm-bg);
+}
+
+/* Hanging label: the title reads from the left of its column, under a
+   hairline that crosses the whole section - the label hangs off the line
+   rather than standing on a rule of its own. */
+.rm-root.heads-side.shs-hanging .rm-col-main .rm-section-title {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* Tick: the title from the left, and a short accent tick under it in place of
+   a rule - the heading keeps an underline the length of a word, not a
+   column. No hairline between sections: the space does that. */
+.rm-root.heads-side.shs-tick .rm-col-main .rm-section {
+  border-top: none;
+  padding-top: 0.25em;
+}
+.rm-root.heads-side.shs-tick .rm-col-main .rm-section-title {
+  text-align: left;
+  justify-content: flex-start;
+  position: relative;
+  margin-bottom: calc(0.55em * var(--rm-heading-gap, 1));
+}
+/* Positioned against the title rather than laid out in its row: a title that
+   is a flex row would otherwise seat the tick beside the words, and the
+   exporter places a positioned pseudo exactly where the browser does. */
+.rm-root.heads-side.shs-tick .rm-col-main .rm-section .rm-section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.5em;
+  width: 1.9em;
+  height: var(--rm-heading-rule, 3px);
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: var(--rm-heading-color, var(--rm-primary));
+  opacity: 1;
+}
+
 /* Under a gutter the title is already inset by a column of its own; the
    gutter's inset would push it a second time, out of the page.
 

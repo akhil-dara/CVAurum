@@ -193,6 +193,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       contactSeparator: chosen(cur.layout.contactSeparator, prev.contactSeparator, defaults.layout.contactSeparator),
       metaColumn: chosen(cur.layout.metaColumn, prev.metaColumn, defaults.layout.metaColumn),
       headingPlacement: chosen(cur.layout.headingPlacement, prev.headingPlacement, defaults.layout.headingPlacement),
+      sideHeadingStyle: chosen(cur.layout.sideHeadingStyle, prev.sideHeadingStyle, defaults.layout.sideHeadingStyle),
       sectionFrame: chosen(cur.layout.sectionFrame, prev.sectionFrame, defaults.layout.sectionFrame),
       footer,
       // The two switches follow the same rule: what the previous template

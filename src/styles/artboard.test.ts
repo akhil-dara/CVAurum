@@ -198,7 +198,11 @@ describe('a side heading keeps its own line', () => {
     )
 
   it('lays the section out as a column for the title and a column for the body', () => {
-    const section = rules.filter((r) => r.selector.split(',').map(subject).some((s) => /^\.rm-section$/.test(s)))
+    // The rule that LAYS the section out - the side-heading styles add rules
+    // of their own on the section (a rail, a hairline), none of them a layout.
+    const section = rules.filter(
+      (r) => r.selector.split(',').map(subject).some((s) => /^\.rm-section$/.test(s)) && declared(r.body, 'display').length > 0
+    )
     expect(section.length).toBe(1)
     expect(declared(section[0].body, 'display')).toEqual(['grid'])
     expect(declared(section[0].body, 'grid-template-columns').length).toBe(1)
@@ -236,11 +240,20 @@ describe('a side heading keeps its own line', () => {
     // position flex items, so on those the words sat at the LEFT edge of
     // the title column - the far side from the content they label - and
     // the popover's own note said the opposite of what the page drew.
+    // The layout's own alignment - the one every side-heading style starts
+    // from, and the rail keeps. The hanging and tick styles set their titles
+    // from the left on purpose, each in a rule scoped to that style alone.
     const titles = rules.filter((r) => r.selector.split(',').map(subject).some((s) => /^\.rm-section-title$/.test(s)))
     const aligning = titles.filter((r) => declared(r.body, 'text-align').length > 0)
-    expect(aligning.length).toBe(1)
-    expect(declared(aligning[0].body, 'text-align')).toEqual(['right'])
-    expect(declared(aligning[0].body, 'justify-content')).toEqual(['flex-end'])
+    const base = aligning.filter((r) => !/\.shs-/.test(r.selector))
+    expect(base.length).toBe(1)
+    expect(declared(base[0].body, 'text-align')).toEqual(['right'])
+    expect(declared(base[0].body, 'justify-content')).toEqual(['flex-end'])
+    for (const r of aligning.filter((x) => /\.shs-/.test(x.selector))) {
+      expect(r.selector).toMatch(/\.shs-(hanging|tick)/)
+      expect(declared(r.body, 'text-align')).toEqual(['left'])
+      expect(declared(r.body, 'justify-content')).toEqual(['flex-start'])
+    }
   })
 
   it('stops a heading rule growing across the title column', () => {

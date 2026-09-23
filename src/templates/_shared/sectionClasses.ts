@@ -133,12 +133,23 @@ export const LOCATION_DATE_SEPARATOR = ' | '
  * alike, so the two place the pair the same way.
  */
 export function entryMetaOf(
-  ss: { locationPlacement?: string; dateAlign?: string } | undefined
+  ss: { locationPlacement?: string; dateAlign?: string } | undefined,
+  docDateAlign?: string
 ): { locWithDate: boolean; dateLeft: boolean } {
   return {
     locWithDate: ss?.locationPlacement === 'with-date',
-    dateLeft: ss?.dateAlign === 'left',
+    dateLeft: dateAlignOf(ss, docDateAlign) === 'left',
   }
+}
+
+/**
+ * Where this section's dates sit: its own choice, else the document's
+ * (layout.dateAlign), else the right edge. The same resolution the heading
+ * style has, so one choice in Design moves every date and a section that
+ * decided for itself still wins.
+ */
+export function dateAlignOf(ss: { dateAlign?: string } | undefined, docDateAlign?: string): string | undefined {
+  return ss?.dateAlign ?? docDateAlign
 }
 
 /**
@@ -222,10 +233,12 @@ export function headingStyleOf(
  */
 export function sectionOverrideClasses(
   ss: SectionSettings | undefined,
-  typo?: { headingStyle?: string }
+  typo?: { headingStyle?: string },
+  docDateAlign?: string
 ): string[] {
   const heading = headingStyleOf(typo, ss)
-  if (!ss) return heading ? [`sec-ov-${heading}`] : []
+  const date = dateAlignOf(ss, docDateAlign)
+  if (!ss) return [heading ? `sec-ov-${heading}` : '', date ? `sec-date-${date}` : ''].filter(Boolean)
   return [
     heading ? `sec-ov-${heading}` : '',
     ss.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '',
@@ -236,7 +249,7 @@ export function sectionOverrideClasses(
     entryEmphasisOnSub(ss) ? 'sec-emph-sub' : '',
     // Which edge the date sits on is ink, so it travels as a class. Where
     // the location prints is a different slot in the markup, so it does not.
-    ss.dateAlign ? `sec-date-${ss.dateAlign}` : '',
+    date ? `sec-date-${date}` : '',
     // tagStyle adds nothing here: a section can hold both skill chips and
     // entry tags, so the tag look rides on the tag container itself
     // (rm-tags-*) and cannot reach the section's other chips by mistake.

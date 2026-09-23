@@ -112,6 +112,7 @@ const CONTACT_SEPARATOR: Record<string, string> = {
   pipe: '   |   ',
   slash: '   /   ',
   dash: '   –   ',
+  node: '   •   ',
 }
 
 // Half-point sizes from the base size, with the ratios the canvas applies: the
@@ -603,7 +604,7 @@ function buildSections(keys: string[], doc: ResumeDocument, C: Ctx, width: numbe
     // Where the location prints and which side the date sits on. With the
     // two sharing the head row the location leads the tabbed string, exactly
     // as it leads the date slot on the page, and it leaves the sub-line.
-    const meta = entryMetaOf(settings)
+    const meta = entryMetaOf(settings, doc.metadata.layout.dateAlign)
     // A right margin holds the date out at the page's right edge, so the
     // Word file uses the right tab it has always had for it - the same
     // reading - whatever side the section would otherwise have picked. A

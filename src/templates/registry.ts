@@ -1415,7 +1415,7 @@ export const TEMPLATES: TemplateConfig[] = [
         contactScale: 1,
         proficiency: 'none',
       },
-      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 9, itemGap: 5, headingPlacement: 'side' }
+      { columns: 1, icons: false, sectionIconStyle: 'none', keywordSeparator: 'comma', sectionSettings: BARE_SECTIONS, sectionGap: 9, itemGap: 5, headingPlacement: 'side', sideHeadingStyle: 'hanging' }
     ),
   },
   {

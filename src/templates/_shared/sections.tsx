@@ -19,7 +19,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { CanvasDate, type RailValue } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
-import { entryMetaOf, entryOrderOf, linkStyleOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
+import { dateAlignOf, entryMetaOf, entryOrderOf, linkStyleOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
 import { keywordChunks } from '@/lib/keywordChunks'
 
 /**
@@ -694,6 +694,26 @@ function CanvasLogo({
   )
 }
 
+/**
+ * Does this section print an entry's date at the end of its sub-line - the
+ * company line - rather than on the head row? Only where no date column has
+ * taken the date: a gutter or a margin column holds it already.
+ */
+function dateInSub(opts?: SecOpts): boolean {
+  return opts?.dateAlign === 'inline' && metaColumnOf(opts) === 'none'
+}
+
+/** The date, closing the sub-line after a middle dot. The dot is real text,
+ *  so the file reads "Vertex Labs · San Francisco · Mar 2021 - Present". */
+function SubDate({ children }: { children: ReactNode }) {
+  return (
+    <span className="rm-sub-date">
+      <span className="rm-meta-sep"> · </span>
+      {children}
+    </span>
+  )
+}
+
 function ItemHead({
   title,
   date,
@@ -1323,6 +1343,29 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
             placeholder="Company — e.g. Acme Corp"
           />
         )
+        // Resolved once: the head row draws it, unless the section puts
+        // dates at the end of the sub-line (dateAlign inline).
+        const when = rangeDate(
+          edit,
+          show(opts?.showDates),
+          w.startDate,
+          w.endDate,
+          (c, v) => {
+            c.work[i].startDate = v
+          },
+          (c, v) => {
+            c.work[i].endDate = v
+          },
+          spanOpts(opts),
+          {
+            on: metaColumnOf(opts) === 'gutter',
+            sectionKey: 'work',
+            value: w.rail,
+            apply: (c, r) => {
+              c.work[i].rail = r
+            },
+          }
+        )
         return (
           <article
             className={`rm-item rm-keep${markClass(w.logo, entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`}
@@ -1345,31 +1388,12 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               }}
               title={orgFirst ? company() : position()}
               loc={withDate ? place : undefined}
-              date={rangeDate(
-                edit,
-                show(opts?.showDates),
-                w.startDate,
-                w.endDate,
-                (c, v) => {
-                  c.work[i].startDate = v
-                },
-                (c, v) => {
-                  c.work[i].endDate = v
-                },
-                spanOpts(opts),
-                {
-                  on: metaColumnOf(opts) === 'gutter',
-                  sectionKey: 'work',
-                  value: w.rail,
-                  apply: (c, r) => {
-                    c.work[i].rail = r
-                  },
-                }
-              )}
+              date={dateInSub(opts) ? undefined : when}
             />
             <div className="rm-item-sub">
               {orgFirst ? position('rm-item-org') : company('rm-item-org')}
               {withDate ? null : place}
+              {dateInSub(opts) && when ? <SubDate>{when}</SubDate> : null}
             </div>
             {show(opts?.showSummary) && (has(w.summary) || edit) ? (
               <div className="rm-item-summary">
@@ -1512,6 +1536,30 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             placeholder="School — e.g. State University"
           />
         )
+        // Resolved once: the head row draws it, unless the section puts
+        // dates at the end of the sub-line (dateAlign inline).
+        const when = rangeDate(
+          edit,
+          show(opts?.showDates),
+          e.startDate,
+          e.endDate,
+          (c, v) => {
+            c.education[i].startDate = v
+          },
+          (c, v) => {
+            c.education[i].endDate = v
+          },
+          progressOpts(opts, e.status),
+          {
+            on: metaColumnOf(opts) === 'gutter',
+            sectionKey: 'education',
+            status: e.status,
+            value: e.rail,
+            apply: (c, r) => {
+              c.education[i].rail = r
+            },
+          }
+        )
         return (
           <article
             className={`rm-item rm-keep${markClass(e.logo, entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`}
@@ -1534,28 +1582,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               }}
               title={orgFirst ? (headIsDegree ? degree : school()) : edit ? degreeFields : title}
               loc={withDate ? place : undefined}
-              date={rangeDate(
-                edit,
-                show(opts?.showDates),
-                e.startDate,
-                e.endDate,
-                (c, v) => {
-                  c.education[i].startDate = v
-                },
-                (c, v) => {
-                  c.education[i].endDate = v
-                },
-                progressOpts(opts, e.status),
-                {
-                  on: metaColumnOf(opts) === 'gutter',
-                  sectionKey: 'education',
-                  status: e.status,
-                  value: e.rail,
-                  apply: (c, r) => {
-                    c.education[i].rail = r
-                  },
-                }
-              )}
+              date={dateInSub(opts) ? undefined : when}
             />
             <div className="rm-item-sub">
               {orgFirst ? (
@@ -1580,6 +1607,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                   placeholder="GPA"
                 />
               ) : null}
+              {dateInSub(opts) && when ? <SubDate>{when}</SubDate> : null}
             </div>
             {has(e.summary) || edit ? (
               <Ed
@@ -2823,6 +2851,29 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
             placeholder="Organization"
           />
         )
+        // Resolved once: the head row draws it, unless the section puts
+        // dates at the end of the sub-line (dateAlign inline).
+        const when = rangeDate(
+          edit,
+          show(opts?.showDates),
+          v.startDate,
+          v.endDate,
+          (c, val) => {
+            c.volunteer[i].startDate = val
+          },
+          (c, val) => {
+            c.volunteer[i].endDate = val
+          },
+          spanOpts(opts),
+          {
+            on: metaColumnOf(opts) === 'gutter',
+            sectionKey: 'volunteer',
+            value: v.rail,
+            apply: (c, r) => {
+              c.volunteer[i].rail = r
+            },
+          }
+        )
         return (
           <article
             className={`rm-item rm-keep${markClass(v.logo, entryBadgeOn(v, opts) ? badgeLetter(v.organization || v.position) : undefined)}`}
@@ -2844,30 +2895,13 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.volunteer[i].logo = val
               }}
               title={orgFirst ? org() : role()}
-              date={rangeDate(
-                edit,
-                show(opts?.showDates),
-                v.startDate,
-                v.endDate,
-                (c, val) => {
-                  c.volunteer[i].startDate = val
-                },
-                (c, val) => {
-                  c.volunteer[i].endDate = val
-                },
-                spanOpts(opts),
-                {
-                  on: metaColumnOf(opts) === 'gutter',
-                  sectionKey: 'volunteer',
-                  value: v.rail,
-                  apply: (c, r) => {
-                    c.volunteer[i].rail = r
-                  },
-                }
-              )}
+              date={dateInSub(opts) ? undefined : when}
             />
-            {edit || (orgFirst ? v.position : v.organization) ? (
-              <div className="rm-item-sub">{orgFirst ? role('rm-item-org') : org('rm-item-org')}</div>
+            {edit || (orgFirst ? v.position : v.organization) || (dateInSub(opts) && when) ? (
+              <div className="rm-item-sub">
+                {orgFirst ? role('rm-item-org') : org('rm-item-org')}
+                {dateInSub(opts) && when ? <SubDate>{when}</SubDate> : null}
+              </div>
             ) : null}
             {has(v.summary) || edit ? (
               <Ed
@@ -3096,6 +3130,25 @@ function Custom({
             placeholder="Subtitle"
           />
         )
+        // Resolved once: the head row draws it, unless the section puts
+        // dates at the end of the sub-line (dateAlign inline).
+        const when = singleDate(
+          edit,
+          show(opts?.showDates),
+          it.date ?? '',
+          (c, v) => {
+            c.custom[secIndex].items[i].date = v
+          },
+          opts?.dates,
+          {
+            on: metaColumnOf(opts) === 'gutter',
+            sectionKey: 'custom',
+            value: it.rail,
+            apply: (c, r) => {
+              c.custom[secIndex].items[i].rail = r
+            },
+          }
+        )
         return (
           <article className="rm-item rm-keep" key={it.id} data-item-id={it.id}>
             <ItemHead
@@ -3112,28 +3165,13 @@ function Custom({
               edit={edit}
               title={orgFirst ? subtitle() : name()}
               loc={withDate ? place : undefined}
-              date={singleDate(
-                edit,
-                show(opts?.showDates),
-                it.date ?? '',
-                (c, v) => {
-                  c.custom[secIndex].items[i].date = v
-                },
-                opts?.dates,
-                {
-                  on: metaColumnOf(opts) === 'gutter',
-                  sectionKey: 'custom',
-                  value: it.rail,
-                  apply: (c, r) => {
-                    c.custom[secIndex].items[i].rail = r
-                  },
-                }
-              )}
+              date={dateInSub(opts) ? undefined : when}
             />
-            {edit || (orgFirst ? it.name : it.subtitle) || (!withDate && it.location) ? (
+            {edit || (orgFirst ? it.name : it.subtitle) || (!withDate && it.location) || (dateInSub(opts) && when) ? (
               <div className="rm-item-sub">
                 {orgFirst ? name('rm-item-org') : subtitle('rm-item-org')}
                 {withDate ? null : place}
+                {dateInSub(opts) && when ? <SubDate>{when}</SubDate> : null}
               </div>
             ) : null}
             {has(it.summary) ? (
@@ -3318,6 +3356,8 @@ export function SectionBody({
     : undefined
   const opts: SecOpts = {
     ...(saved ?? {}),
+    // The section's own date side, else the document's.
+    dateAlign: dateAlignOf(saved, doc.metadata.layout.dateAlign),
     setBadge,
     linksClickable: doc.metadata.links?.clickable !== false,
     dates: doc.metadata.dates,

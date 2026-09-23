@@ -14,11 +14,11 @@
  * content model the templates draw from, flattened to text.
  */
 import type { ResumeDocument } from '@/types/document'
-import { resolveOrder, sectionLabel } from '@/lib/sections'
+import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
 import { currentYearMonth, entryDateOptions, formatDate, formatDateRange, htmlToText, sectionDateOptions } from '@/lib/utils'
 import { cleanEmail, linkWords, prettyUrl } from '@/templates/_shared/atoms'
-import { contactLines, levelIsText } from '@/templates/_shared/contacts'
-import { entryMetaOf, entryOrderOf, linkStyleOf } from '@/templates/_shared/sectionClasses'
+import { contactLines, contactsInSidebar, levelIsText } from '@/templates/_shared/contacts'
+import { dateAlignOf, entryMetaOf, entryOrderOf, linkStyleOf } from '@/templates/_shared/sectionClasses'
 
 const line = (...parts: Array<string | undefined>) => parts.filter(Boolean).join('  ·  ')
 
@@ -62,13 +62,21 @@ function entryHead(
   date?: string,
   loc?: string,
   orgFirst = false,
-  locWithDate = false
+  locWithDate = false,
+  dateInSub = false,
+  /** What else the page prints on the sub-line after the location (an
+   *  education entry's score), so a date closing the line comes after it. */
+  subTail?: string
 ): string[] {
   const out: string[] = []
   const [first, second] = orgFirst ? [org, title] : [title, org]
-  const head = line(first, locWithDate ? line(loc, date) : date)
+  // With the date at the end of the sub-line, the head row keeps only what
+  // the page leaves on it, and the date closes the line under it.
+  const head = dateInSub ? line(first, locWithDate ? loc : undefined) : line(first, locWithDate ? line(loc, date) : date)
   if (head) out.push(head)
-  const sub = locWithDate ? second : line(second, loc)
+  const sub = dateInSub
+    ? line(second, locWithDate ? undefined : loc, subTail, date)
+    : line(locWithDate ? second : line(second, loc), subTail)
   if (sub) out.push(sub)
   return out
 }
@@ -90,6 +98,14 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
   // edge the date sits on is ink - a text file has no columns - so dateAlign
   // never reaches these lines.
   const locWithDate = entryMetaOf(settings).locWithDate
+  // Where the page puts the date decides where it falls in the reading:
+  // closing the sub-line when the section asks for that and no date column
+  // (which only the body's single flow opens) has taken it.
+  const inAside = resolveOrder(doc).aside.includes(key) && doc.metadata.layout.columns === 2
+  const dateInSub =
+    !compact &&
+    dateAlignOf(settings, doc.metadata.layout.dateAlign) === 'inline' &&
+    (inAside || metaColumnOn(doc.metadata, doc.content) === 'none')
   const out: string[] = []
   const push = (lines: string[]) => {
     if (lines.length) out.push(...heading(label), ...lines)
@@ -104,7 +120,7 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
     case 'work':
       push(
         c.work.flatMap((w) => [
-          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location, orgFirst, locWithDate),
+          ...entryHead(w.position, w.name, formatDateRange(w.startDate, w.endDate, dates), w.location, orgFirst, locWithDate, dateInSub),
           ...(htmlToText(w.summary) ? [htmlToText(w.summary)] : []),
           ...w.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -123,8 +139,10 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
             e.location,
             orgFirst,
             locWithDate,
+            dateInSub,
+            dateInSub ? e.score : undefined,
           ),
-          ...(e.score ? [e.score] : []),
+          ...(e.score && !dateInSub ? [e.score] : []),
           ...(htmlToText(e.summary) ? [htmlToText(e.summary)] : []),
           ...(e.courses?.length ? [e.courses.join(', ')] : []),
           '',
@@ -201,7 +219,7 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
     case 'volunteer':
       push(
         c.volunteer.flatMap((v) => [
-          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates), undefined, orgFirst, locWithDate),
+          ...entryHead(v.position, v.organization, formatDateRange(v.startDate, v.endDate, dates), undefined, orgFirst, locWithDate, dateInSub),
           ...(htmlToText(v.summary) ? [htmlToText(v.summary)] : []),
           ...v.highlights.map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
           '',
@@ -223,7 +241,7 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
         if (cs) {
           push(
             cs.items.flatMap((it) => [
-              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location, orgFirst, locWithDate),
+              ...entryHead(it.name, it.subtitle, formatDate(it.date, dates), it.location, orgFirst, locWithDate, dateInSub),
               ...(htmlToText(it.summary) ? [htmlToText(it.summary)] : []),
               ...(it.highlights ?? []).map((h) => ` - ${htmlToText(h)}`).filter((h) => h.trim() !== '-'),
               '',
@@ -262,12 +280,20 @@ export function resumeToAtsText(doc: ResumeDocument): string {
   // site, profiles. This block used to build a second one, which put the
   // location last and named links by a different rule, so the panel showed a
   // reading order the exported file does not have.
-  for (const c of contactLines(doc)) head.push(c.text)
+  //
+  // Contacts placed at the top of the SIDEBAR are read where the file writes
+  // them: the main column comes first, so they follow it and lead the sidebar.
+  const contacts = contactLines(doc).map((c) => c.text)
+  const inSidebar = contactsInSidebar(doc)
+  if (!inSidebar) head.push(...contacts)
 
   const order = atsSectionOrder(main, aside, twoCol, footer)
   // A section in the footer strip renders through the compact row, which
   // words its levels differently - the serializer has to know which it is.
-  const body = order.flatMap((key) => sectionText(key, doc, footer.includes(key)))
+  const text = (key: string) => sectionText(key, doc, footer.includes(key))
+  const body = inSidebar
+    ? [...main.flatMap(text), '', ...contacts, '', ...aside.flatMap(text), ...footer.flatMap(text)]
+    : order.flatMap(text)
 
   return [...head, ...body].join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
 }
