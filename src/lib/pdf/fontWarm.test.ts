@@ -25,6 +25,10 @@ async function freshModule() {
 
 describe('the PDF font warmer', () => {
   beforeEach(() => {
+    // A navigator of the test's own: Node has one only from version 21, so a
+    // test that reached for the runtime's failed on the CI runner (Node 20)
+    // while passing on a newer local Node.
+    vi.stubGlobal('navigator', {})
     online(true)
     vi.stubGlobal('fetch', okFetch())
   })
