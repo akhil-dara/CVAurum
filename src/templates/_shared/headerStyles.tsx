@@ -35,22 +35,89 @@ export const ART_BANDS: { label: string; value: string }[] = [
 export const artBandSrc = (band: string) => `/art/bands/${band}.webp`
 
 /**
- * The darkest and the lightest ground each band can put under a word, taken
- * from its palette (public/art/bands/README.md). The wash a header lays over
- * its art is derived from these: it has to be strong enough that the words
- * still read over EITHER extreme, so a near-black fold and a gold vein are
- * both accounted for (elementColors.ts veilAlpha). A new band belongs here
- * the day its image does.
+ * The darkest and the lightest ground each band can put under a word. The
+ * wash a header lays over its art is derived from these: it has to be strong
+ * enough that the words still read over EITHER extreme, so a near-black fold
+ * and a gold vein are both accounted for (elementColors.ts veilAlpha).
+ *
+ * MEASURED off the images, not read off the palette note beside them. Three
+ * of the four were written down by eye and three of the four were wrong at
+ * the light end - navy-gold said #d9a441, luminance 0.44, where the picture
+ * reaches 0.81 - so the wash derived from them was too weak and a sweep of
+ * every style choice caught white words at 4.42-4.49:1 over the bands that
+ * ship. The ground under a word is a local average, not a pixel: the contrast
+ * gate takes the modal colour in a glyph's box at 200 dpi, so these are the
+ * extremes of the image averaged in 8px blocks - about half a glyph's box, so
+ * the answer stays on the safe side of anything a word can sit on.
+ * _local/art-band-extremes.py prints exactly these lines; a new band belongs
+ * here the day its image does, from that script and not from the eye.
  */
 export const ART_BAND_GROUNDS: Record<string, string[]> = {
   // midnight navy, and the gold veining that runs through it
-  'navy-gold': ['#0b1020', '#d9a441'],
+  'navy-gold': ['#01010e', '#f7e8bc'],
   // copper contour lines on a warm cream ground
-  terracotta: ['#9a4a28', '#f4ece0'],
+  terracotta: ['#ce8d63', '#fefff0'],
   // ink black and chalk white blocks, the widest range of the four
-  cobalt: ['#0a0a0c', '#f2f0ea'],
+  cobalt: ['#070706', '#f4f1ed'],
   // deep emerald folds on near-black
-  emerald: ['#05120d', '#2f7d5e'],
+  emerald: ['#000400', '#065514'],
+}
+
+/**
+ * Designs that draw an art band as a STRIP across the top of the page and
+ * leave the header's words on the page below it, with no wash between
+ * (templates.css .tpl-folio-noir .rm-art-band / .rm-art-veil). Under a
+ * coloured header style their words stand on the page, not on an accent
+ * wash, so the header's ink is derived against the page. Derived against the
+ * wash those designs never paint, the name came out #424242 on the #0f1117
+ * page, 1.88:1. Change one and change the other.
+ */
+export const ART_STRIP_TEMPLATES = new Set(['folio-noir'])
+
+/**
+ * A template that paints its OWN header ground restates its stops here, as a
+ * mix of the accent with a named colour - exactly the color-mix the
+ * stylesheet draws - so the ink the header's words take is derived against
+ * the ground the header ACTUALLY paints rather than the raw accent.
+ *
+ * Two designs darken their banner from the accent until white reads on it
+ * (templates.css .tpl-creative, .tpl-spotlight). An ink derived against the
+ * raw accent is derived against a ground neither of them ever draws: on the
+ * lighter of the two it flipped to a near-black that then measured 4.2:1 on
+ * the stop the header does draw. Change one of these and change the other.
+ */
+export const HEADER_GROUNDS: Record<string, { with: string; amount: number }[]> = {
+  // the accent with four hundredths of black, fading into a darkened cyan
+  creative: [
+    { with: '#000000', amount: 0.96 },
+    { with: '#168b9d', amount: 0.55 },
+  ],
+  // the accent itself, fading into a pink mixed halfway out of it
+  spotlight: [
+    { with: '#ec4899', amount: 1 },
+    { with: '#ec4899', amount: 0.55 },
+  ],
+}
+
+/**
+ * And the same for a STEPPED header whose treads a template prints outright.
+ *
+ * The renderer grades the second and third treads out of the accent
+ * (Artboard.tsx STEP_2_LIGHTEN / STEP_3_LIGHTEN) and derives each tread's ink
+ * against the shade it made. A template that prints its own two shades
+ * instead leaves that derivation talking about a ground the header never
+ * draws: one design's treads are two fixed greens, and an ink derived against
+ * a LIGHTENED accent - which on a pale accent is nearly white, and on a dark
+ * one nearly black - landed on dark green at 1.98:1. Restated here, the
+ * shades the renderer writes and the shades the stylesheet draws are the same
+ * two colours, and every ink that stands on them is derived against them.
+ *
+ * Change one of these and change the matching --rm-step-2 / --rm-step-3 in
+ * templates.css.
+ */
+export const STEP_GROUNDS: Record<string, { step2: string; step3: string }> = {
+  // the two greens .tpl-terrace prints on its stepped header
+  terrace: { step2: '#1c5a44', step3: '#2a7a5c' },
 }
 
 /** The swatch of a band: the art itself, so the choice is what it shows. */

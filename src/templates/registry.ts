@@ -1291,7 +1291,16 @@ export const TEMPLATES: TemplateConfig[] = [
       'signal',
       // The muted grey was #999999 - 2.85:1 on white, the palest muted we
       // shipped. #767676 is the lightest grey that reads at 4.5:1.
-      { primary: '#2e3d50', text: '#2e3d50', muted: '#767676', name: '#4d70eb', headings: '#2e3d50' },
+      //
+      // The name's blue was #4d70eb, 4.35:1 on white: a colour that clears
+      // the bar for LARGE text only, and the name renders at 18.043pt - four
+      // hundredths of a point over the line where large text begins. Nine
+      // shipped choices push it under (Letter paper, a wider heading rule, a
+      // divided entry layout, a mosaic skills grid, the widest page margin,
+      // stats, tracking, a heavier heading) and it fails on every one. The
+      // margin was never real. #4b6de4 is the same blue three channels down,
+      // 4.56:1, and reads at any size the sliders reach.
+      { primary: '#2e3d50', text: '#2e3d50', muted: '#767676', name: '#4b6de4', headings: '#2e3d50' },
       {
         fontFamily: 'Source Sans 3',
         headingFamily: 'Source Sans 3',

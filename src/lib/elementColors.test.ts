@@ -2,7 +2,19 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ELEMENT_COLORS, darkenToContrast, elementColorVars, lighten, mix, readableOn, veilAlpha } from './elementColors'
+import {
+  ELEMENT_COLORS,
+  contrastOn,
+  darkenToContrast,
+  darkenToContrastAll,
+  elementColorVars,
+  gradientGrounds,
+  lighten,
+  mix,
+  readableOn,
+  readableOnAll,
+  veilAlpha,
+} from './elementColors'
 import { ART_BANDS, ART_BAND_GROUNDS } from '@/templates/_shared/headerStyles'
 import { MetadataSchema } from '@/types/metadata'
 
@@ -70,12 +82,23 @@ describe('every stylesheet rule that colours an element reads its variable', () 
   const chrome = /rm-title-link|rm-editable|mode-preview|no-print|rm-section-gear|rm-kw-|rm-chip-edit|::marker/
   const exempt = (selector: string) => chrome.test(selector) || /rm-col-aside|boxed/.test(selector)
 
+  // A rule may read the element's variable, pass the parent's colour on with
+  // `inherit`, or read the DERIVED twin of the element's variable - the one a
+  // coloured header takes, the author's colour carried onto the ground that
+  // header paints (Artboard.tsx --rm-name-on-primary and its siblings). The
+  // guarantee this audit exists for is that the author's colour is never
+  // silently dropped, and the derived twin keeps it: a colour that reads on
+  // the band comes through untouched, and one that does not is moved the
+  // smallest distance that makes it read rather than being thrown away. What
+  // the audit still forbids is a rule that names a colour of its own.
+  const honours = (c: string, cssVar: string) =>
+    c === 'inherit' || c.includes(`var(${cssVar}`) || c.includes(`var(${cssVar.replace(/-color$/, '')}-on-`)
   const audit = (name: string, matches: (s: string) => boolean, cssVar: string) => {
     it(`${name}: ${cssVar}`, () => {
       const hits = rules.filter((r) => matches(r.selector) && !exempt(r.selector))
       expect(hits.length).toBeGreaterThan(0)
       const offenders = hits
-        .filter((r) => r.colors.some((c) => c !== 'inherit' && !c.includes(`var(${cssVar}`)))
+        .filter((r) => r.colors.some((c) => !honours(c, cssVar)))
         .map((r) => `${r.sheet}: ${r.selector} => ${r.colors.join(' | ')}`)
       expect(offenders).toEqual([])
     })
@@ -242,8 +265,11 @@ describe('the art wash is strong enough to read the words through', () => {
       for (const grounds of Object.values(ART_BAND_GROUNDS)) {
         const a = veilAlpha(page.bg, page.text, grounds)
         if (a <= 0.35) continue // the floor, which is not derived
+        // 4.55, not 4.5: the wash is derived a twentieth of a point above the
+        // bar, because the composite is painted twice - once by the browser,
+        // once by the PDF painter - and each rounds its own way.
         const worst = Math.min(...grounds.map((g) => ratio(over(page.bg, g, a - 0.01), page.text)))
-        expect(worst).toBeLessThan(4.5)
+        expect(worst).toBeLessThan(4.55)
       }
     }
   })
@@ -371,5 +397,257 @@ describe('mix', () => {
 
   it('hands back anything that is not a hex colour untouched', () => {
     expect(mix('currentColor', '#ffffff', 0.5)).toBe('currentColor')
+  })
+})
+
+/** The accessibility contrast ratio, written out here so an assertion never
+ *  leans on the same private helper the code under test uses. */
+const contrastRatio = (a: string, b: string) => {
+  const lum = (h: string) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.replace('#', '').slice(i - 1, i + 1), 16))
+    const lin = (v: number) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : Math.pow((v / 255 + 0.055) / 1.055, 2.4))
+    return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2])
+  }
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/**
+ * Words that stand ON a colour.
+ *
+ * readableOn offers two candidates - white, and the document's own text
+ * colour - and takes the better of the two on the ground. Choosing the
+ * BETTER of two is not choosing one that READS, and that was the defect: on
+ * a light accent over a dark page both candidates are light, so the better
+ * of them was white on gold at 1.78:1. Eleven of the sixty-eight designs
+ * failed that way on a block, band or stepped header, seventeen on a filled
+ * heading or a banner, eight on the monogram badge.
+ */
+describe('readableOn', () => {
+  it('keeps white on a ground white reads on', () => {
+    // A deep accent carries white, and a coloured header has always drawn
+    // its words in white: nothing may move there.
+    expect(readableOn('#1d4ed8', '#1b1b1f')).toBe('#ffffff')
+    expect(readableOn('#7a1020', '#1b1b1f')).toBe('#ffffff')
+  })
+
+  it('keeps the document own ink where that is what reads', () => {
+    // A pale accent on a light page: the page's ink wins, unchanged, which
+    // is what keeps a warm near-black warm instead of flipping to flat black.
+    expect(readableOn('#e7c873', '#1b1b1f')).toBe('#1b1b1f')
+  })
+
+  it('reads on a ground where NEITHER candidate did', () => {
+    // A light accent with a light page ink - a dark design's gold - is the
+    // failing case: white measured 1.78:1 and the page's own ink no better.
+    const gold = '#e3bd6d'
+    const lightInk = '#eceef2'
+    expect(contrastRatio('#ffffff', gold)).toBeLessThan(4.5)
+    expect(contrastRatio(lightInk, gold)).toBeLessThan(4.5)
+    expect(contrastRatio(readableOn(gold, lightInk), gold)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('reads on every ground a colour can be', () => {
+    // The worst ground any colour can be sits at luminance 0.179, and still
+    // carries black at 4.59:1 - so this has no failing case, at any page ink.
+    for (let r = 0; r < 256; r += 17)
+      for (let g = 0; g < 256; g += 17)
+        for (const ink of ['#1b1b1f', '#eceef2', '#767676']) {
+          const bg = `#${[r, g, (r + g) % 256].map((v) => v.toString(16).padStart(2, '0')).join('')}`
+          expect(contrastRatio(readableOn(bg, ink), bg), `${bg} / ${ink}`).toBeGreaterThanOrEqual(4.5)
+        }
+  })
+
+  it('holds a harder ratio when one is asked for', () => {
+    expect(contrastRatio(readableOn('#e3bd6d', '#eceef2', 7), '#e3bd6d')).toBeGreaterThanOrEqual(7)
+  })
+
+  it('hands back white for a ground that is not a hex colour', () => {
+    expect(readableOn('var(--x)', '#1b1b1f')).toBe('#ffffff')
+  })
+})
+
+/**
+ * The stepped header's treads, the strip at the foot, the card and the band's
+ * own paper: the grounds a word can land on that are NOT the page. Each one's
+ * ink is derived against the ground the page actually paints there
+ * (Artboard.tsx useVars); the sweep found every one of them carrying an ink
+ * derived against the plain page instead.
+ */
+describe('the grounds that are not the page', () => {
+  /* The designs the sweep measured worst on each ground. */
+  const designs = [
+    { name: 'obsidian', primary: '#e3bd6d', text: '#eceef2', muted: '#98a1b0', bg: '#0e1014' },
+    { name: 'folio-noir', primary: '#c9a227', text: '#eae7e0', muted: '#9a958c', bg: '#12131a' },
+    { name: 'marquee', primary: '#ff5a1f', text: '#1a1a1a', muted: '#6b6b6b', bg: '#fff8f0' },
+    { name: 'measure', primary: '#12151a', text: '#12151a', muted: '#6a6f78', bg: '#ffffff' },
+    { name: 'cascade', primary: '#0b7970', text: '#1f2933', muted: '#66727f', bg: '#ffffff' },
+  ]
+
+  it('each tread of the stepped header carries an ink its own shade can hold', () => {
+    // The ink was derived against the accent while the ground was the accent
+    // LIGHTENED: twenty-eight designs failed on the third tread.
+    for (const d of designs)
+      for (const amount of [0.14, 0.28]) {
+        const tread = lighten(d.primary, amount)
+        expect(contrastRatio(readableOn(tread, d.text), tread), `${d.name} +${amount}`).toBeGreaterThanOrEqual(4.5)
+      }
+  })
+
+  it('the strip at the foot re-inks the page muted and the page accent', () => {
+    // The strip's ground is the page's own INK, which on a dark design is a
+    // LIGHT colour - so every colour the page chose for paper is the wrong
+    // way round inside it, and on the designs whose accent IS their text
+    // colour the title measured 1:1.
+    for (const d of designs) {
+      const strip = d.text
+      expect(contrastRatio(darkenToContrast(d.muted, strip, 4.55), strip), `${d.name} muted`).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio(darkenToContrast(d.primary, strip, 4.55), strip), `${d.name} title`).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio(readableOn(strip, d.text, 4.55), strip), `${d.name} body`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('a card is a ground, and the inks follow it there', () => {
+    // 4% of the page's ink laid under the entry's own words: enough to drop
+    // five designs sitting at 4.2-4.5:1 under the line.
+    for (const d of designs) {
+      const card = mix(d.text, d.bg, 0.04)
+      expect(contrastRatio(darkenToContrast(d.muted, card, 4.55), card), `${d.name} muted`).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio(darkenToContrast(d.primary, card, 4.55), card), `${d.name} accent`).toBeGreaterThanOrEqual(4.5)
+      const chip = mix(d.primary, card, 0.12)
+      expect(contrastRatio(darkenToContrast(d.primary, chip, 4.55), chip), `${d.name} chip`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('a link tag inside the band stands on the band own paper', () => {
+    // The one folio ground with no ink of its own: the raw accent there
+    // measured 1.01:1.
+    for (const d of designs)
+      for (const sidebar of ['#1f2933', '#e8eef2', '#7a8a99']) {
+        const paper = mix(d.text, sidebar, 0.16)
+        expect(
+          contrastRatio(darkenToContrast(d.primary, paper, 4.55), paper),
+          `${d.name} / ${sidebar}`
+        ).toBeGreaterThanOrEqual(4.5)
+      }
+  })
+})
+
+/**
+ * The accent wash over an art band. Its sibling --rm-art-veil was derived
+ * from the first; this one was a constant 0.55 while the words standing on it
+ * were white, and the composite ground was the one nothing checked -
+ * obsidian's banner over the navy band measured 1.38:1 and the contact line
+ * simply was not there.
+ */
+describe('the accent wash over the art', () => {
+  const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  const over = (wash: string, ground: string, a: number) => {
+    const [p, g] = [channels(wash), channels(ground)]
+    return `#${p
+      .map((v, i) =>
+        Math.round(a * v + (1 - a) * g[i])
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')}`
+  }
+  const accents = ['#e3bd6d', '#ff5a1f', '#1d4ed8', '#0b7970', '#c9a227']
+  const inks = ['#1b1b1f', '#eceef2']
+
+  it('carries the header own words over every ground each band shows', () => {
+    for (const accent of accents)
+      for (const ink of inks) {
+        // 4.55, the ratio the renderer derives this ink at: the wash is held
+        // to the same twentieth of a point above the bar, and a fully opaque
+        // wash IS the accent - so the two meeting at the same number is what
+        // makes the last hundredth an answer rather than a fallback.
+        const on = readableOn(accent, ink, 4.55)
+        for (const [band, grounds] of Object.entries(ART_BAND_GROUNDS)) {
+          const a = veilAlpha(accent, on, grounds, 0.55)
+          for (const g of grounds)
+            expect(
+              contrastRatio(over(accent, g, a), on),
+              `${band} / ${accent} / ${ink} (wash ${a})`
+            ).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+  })
+
+  it('never washes the art lighter than the strength it always had', () => {
+    for (const accent of accents)
+      for (const grounds of Object.values(ART_BAND_GROUNDS))
+        expect(veilAlpha(accent, readableOn(accent, '#1b1b1f', 4.55), grounds, 0.55)).toBeGreaterThanOrEqual(0.55)
+  })
+
+  it('leaves the page wash on its own floor, unchanged', () => {
+    // The default floor is not the accent wash's floor, and passing one must
+    // not have moved the other.
+    expect(veilAlpha('#ffffff', '#1b1b1f', [])).toBe(0.35)
+    expect(veilAlpha('#ffffff', '#1b1b1f', [], 0.55)).toBe(0.55)
+  })
+})
+
+describe('a derived ink is never worse than the ink it replaces', () => {
+  /* The one ground in the shipped set where NOTHING reaches the target: a
+     banner that fades from an accent with four hundredths of black in it to a
+     darkened cyan. White is worst at 4.517:1 over the fade, flat black at
+     4.526:1 - nine thousandths apart, and for those nine thousandths the
+     whole signature of the design flipped from white on purple to black on
+     purple, which then measured LOWER on the file than the white it
+     replaced. */
+  const fade = gradientGrounds(mix('#8b5cf6', '#000000', 0.96), mix('#8b5cf6', '#168b9d', 0.55))
+
+  it('holds the design own ink when nothing on the walk can reach the target', () => {
+    expect(contrastOn('#ffffff', fade)).toBeLessThan(4.55)
+    expect(contrastOn('#000000', fade)).toBeLessThan(4.55)
+    expect(contrastOn('#000000', fade) - contrastOn('#ffffff', fade)).toBeLessThan(0.05)
+    expect(readableOnAll(fade, '#27272a', 4.55)).toBe('#ffffff')
+  })
+
+  it('still takes a walked ink when the gain is one worth having', () => {
+    // A ground that carries white at 1.78:1 and has a real answer further on:
+    // the walk is a rescue here, and it is allowed to run.
+    const ink = readableOnAll(['#f7e8bc'], '#f7e8bc', 4.55)
+    expect(contrastOn(ink, ['#f7e8bc'])).toBeGreaterThanOrEqual(4.55)
+  })
+
+  it('never answers with an ink that measures worse than the one it started from', () => {
+    for (const a of ['#8b5cf6', '#f43f5e', '#0b1f3a', '#d9531e', '#ef4239', '#2e96a8']) {
+      for (const b of ['#168b9d', '#ec4899', '#0e7c86', '#ffffff', '#111111']) {
+        const g = gradientGrounds(a, b)
+        const ink = readableOnAll(g, '#1a1a1a', 4.55)
+        const best = Math.max(contrastOn('#ffffff', g), contrastOn('#1a1a1a', g))
+        expect(contrastOn(ink, g)).toBeGreaterThanOrEqual(Math.min(best, 4.55) - 1e-9)
+      }
+    }
+  })
+})
+
+describe('darkenToContrastAll: a colour chosen for the page, carried onto a band', () => {
+  it('leaves a colour that already reads on every ground exactly as it was', () => {
+    expect(darkenToContrastAll('#ffffff', ['#1c5a44', '#0f172a'], 4.55)).toBe('#ffffff')
+  })
+
+  it('moves a page colour the smallest distance that makes it read on the band', () => {
+    // signal name blue: right on white, 2.47:1 on a mid-tone band header.
+    const band = ['#2e3d50']
+    expect(contrastRatio('#4b6de4', band[0])).toBeLessThan(4.55)
+    const ink = darkenToContrastAll('#4b6de4', band, 4.55)
+    expect(contrastOn(ink, band)).toBeGreaterThanOrEqual(4.55)
+    // Still recognisably the same blue, not a flat white or black.
+    expect(ink).not.toBe('#ffffff')
+    expect(ink).not.toBe('#000000')
+  })
+
+  it('reads on EVERY stop of a fade, not only its ends', () => {
+    const fade = gradientGrounds('#0b1f3a', '#0e7c86')
+    const ink = darkenToContrastAll('#4b6de4', fade, 4.55)
+    expect(contrastOn(ink, fade)).toBeGreaterThanOrEqual(4.55)
+  })
+
+  it('hands back anything that is not a hex colour untouched', () => {
+    expect(darkenToContrastAll('currentColor', ['#ffffff'], 4.55)).toBe('currentColor')
+    expect(darkenToContrastAll('#4b6de4', [], 4.55)).toBe('#4b6de4')
   })
 })

@@ -79,8 +79,12 @@
   border-bottom: 2px solid var(--aurum-gold);
   padding-bottom: 0.55em;
 }
-.tpl-aurum .rm-contact a,
-.tpl-aurum .rm-contact span {
+/* On the page only. A coloured header style paints its own ground and
+   derives the contact ink against it (--rm-contact-on-header on the row);
+   colouring the row's children here would override that with the page's
+   ink - #23211d on a #1c1a17 banner, 1.08:1. */
+.tpl-aurum .rm-header-standard .rm-contact a,
+.tpl-aurum .rm-header-standard .rm-contact span {
   color: var(--rm-contact-color, var(--rm-text));
 }
 /* Section label: tracked caps over a short gold underline marker. */
@@ -176,7 +180,13 @@
   font-variant: small-caps;
   letter-spacing: 0.06em;
   font-weight: var(--rm-name-weight, 600);
-  color: var(--rm-name-color, var(--aurum-gold));
+  /* The gold as INK, not the gold of the rules: small caps set the name's
+     lower case at about 16.5pt, under the 18pt where large text begins, and
+     the rule gold #b07d1a measured 3.62:1 on the page there - at shipped
+     defaults, whatever the accent. 83% of the gold carried toward the page's
+     own ink is #986d1b, 4.63:1, still unmistakably the gold, and it moves
+     with the page's ink rather than being printed. */
+  color: var(--rm-name-color, color-mix(in srgb, var(--aurum-gold) 83%, var(--rm-text)));
 }
 .tpl-aurum-editorial .rm-headline {
   font-family: var(--rm-font-body);
@@ -313,7 +323,9 @@
 }
 .tpl-atelier .rm-item-title {
   font-weight: 700;
-  color: var(--rm-text);
+  /* `inherit`, not --rm-text: the same colour on the page, the band's own
+     ink inside the band. See the note on .tpl-measure's date below. */
+  color: inherit;
 }
 
 /* ===================================================== Garamond (SheetsResume-style classic) */
@@ -551,7 +563,11 @@
   letter-spacing: 0.14em;
 }
 .tpl-contemporary .rm-name {
-  color: var(--rm-name-color, var(--rm-primary));
+  /* The accent as INK, like the section titles above it. The design's own
+     crimson reads on the page as it is and comes back unmoved; a pale accent
+     chosen in the Design panel set the name at 2.18:1, under even the 3:1
+     large type is held to. */
+  color: var(--rm-name-color, var(--rm-primary-ink, var(--rm-primary)));
 }
 
 /* ============================== Amethyst (banner, id kept as 'polished') */
@@ -691,7 +707,12 @@
    accent reads on its own chip without being moved at all. */
 .tpl-verdant .rm-col-aside .rm-chip {
   background: color-mix(in srgb, var(--rm-primary) 10%, transparent);
-  color: var(--rm-primary);
+  /* The accent as the ink THIS ground can carry (Artboard.tsx
+     --rm-primary-ink-on-band-chip, derived against this same 10% over the
+     band). The design's own green comes back unmoved; an accent chosen in
+     the Design panel is carried the smallest step that reads, where the raw
+     accent measured 2.08:1 for a gold. */
+  color: var(--rm-primary-ink-on-band-chip, var(--rm-primary));
 }
 
 /* ===================================================== Sienna (warm serif) */
@@ -827,8 +848,8 @@
   letter-spacing: -0.02em;
 }
 .tpl-graphite .rm-chip {
-  background: color-mix(in srgb, var(--rm-text) 8%, transparent);
-  color: var(--rm-text);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: inherit;
   border: 1px solid color-mix(in srgb, var(--rm-text) 18%, transparent);
 }
 .tpl-graphite .rm-headline {
@@ -1007,27 +1028,51 @@
   font-weight: var(--rm-heading-weight, 700);
   letter-spacing: 0.22em;
 }
-/* every entry is a tactile card on the layered black */
+/* Every entry is a tactile card on the layered black - the page's own ink
+   laid over the page at the same 4% every other card uses, not the printed
+   #15171d it was (measured on this design's own colours: #15171d, the mix
+   #181a1e, a difference nobody sees). A printed ground is a ground the ink
+   derivation is not told about: --rm-primary-ink is derived against the
+   PAGE, so setting a light background left the org line at #867040 on a card
+   that stayed black. As a tint of the page the card follows wherever the
+   page goes, and the ink derived against that same tint follows it. */
 .tpl-obsidian .rm-section-body > .rm-item {
-  background: #15171d;
-  border: 1px solid #262a33;
+  --rm-primary-ink: var(--rm-primary-ink-on-card, var(--rm-primary));
+  --rm-primary-ink-on-chip: var(--rm-primary-ink-on-chip-card, var(--rm-primary));
+  --rm-muted: var(--rm-muted-on-card, var(--rm-muted));
+  background: color-mix(in srgb, var(--rm-text) 4%, var(--rm-bg));
+  /* The edge is the MUTED colour over the page, not the ink: the printed
+     #262a33 was a cool slate, and the page's neutral ink at any strength is
+     a grey that shifted every card's outline. 19% of this design's muted
+     slate is #272a30 - the edge it always had - and it still follows the
+     page wherever the page goes. An edge carries no words, so nothing is
+     derived against it. */
+  border: 1px solid color-mix(in srgb, var(--rm-muted) 19%, var(--rm-bg));
   border-radius: 12px;
   padding: 0.75em 0.95em;
 }
+/* `inherit`, for the same reason: on this design's colours it is #eceef2
+   where the printed value was #f4f5f8, and it is the page's own ink on any
+   other. */
 .tpl-obsidian .rm-item-title {
-  color: #f4f5f8;
+  color: inherit;
   font-weight: 700;
 }
 .tpl-obsidian .rm-item-org {
   color: var(--rm-primary-ink, var(--rm-primary));
 }
+/* The chip's words sit a step back from the entry's, as they always did:
+   the printed #cfd5e0 was this design's ink two thirds of the way toward its
+   muted slate, and written as that mix it stays that step on this page and
+   follows the page on any other - between two colours that both read, so it
+   reads. The edge is the muted slate for the reason the card's is. */
 .tpl-obsidian .rm-chip {
-  background: #191c23;
-  border-color: #2c313c;
-  color: #cfd5e0;
+  background: color-mix(in srgb, var(--rm-text) 6%, var(--rm-bg));
+  border-color: color-mix(in srgb, var(--rm-muted) 24%, var(--rm-bg));
+  color: color-mix(in srgb, currentColor 68%, var(--rm-muted));
 }
 .tpl-obsidian .rm-skill-group-name {
-  color: #f4f5f8;
+  color: inherit;
 }
 .tpl-obsidian .rm-dot.on,
 .tpl-obsidian .rm-level-fill {
@@ -1036,8 +1081,11 @@
 .tpl-obsidian .rm-dot {
   background: #262a33;
 }
+/* The marker takes the accent as INK like every other marker (artboard.css
+   .rm-bullets li::marker): a template repainting it in the raw accent is the
+   defect class that hid nine markers a page from a DOM-side measurement. */
 .tpl-obsidian .rm-bullets li::marker {
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
 }
 
 /* ===================================================== Onyx Noir (dark full-page) */
@@ -1061,7 +1109,7 @@
   opacity: 0.6;
 }
 :is(.tpl-onyx-noir, .tpl-onyx-gold) .rm-item-title {
-  color: var(--rm-text);
+  color: inherit;
   font-weight: 600;
 }
 /* chips read as soft glass on the dark page */
@@ -1134,7 +1182,7 @@
   gap: 0.3em 0.85em;
 }
 .tpl-broadsheet .rm-section-number {
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
   margin-right: 0.6em;
 }
 .tpl-broadsheet .rm-item-org {
@@ -1153,8 +1201,10 @@
   letter-spacing: 0.04em;
   border-bottom: var(--rm-heading-rule, 2px) solid var(--rm-text);
 }
+/* The numeral is a word on the page, so the accent as ink: shipped on by
+   default here, and the raw accent measured 2.96:1 at 10.6pt. */
 .tpl-marquee .rm-section-number {
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
   margin-right: 0.4em;
 }
 /* The group labels in the strip stay in the BODY face. In the heading face -
@@ -1168,7 +1218,9 @@
   font-size: 0.74em;
   font-weight: 600;
   letter-spacing: 0.16em;
-  color: var(--rm-primary);
+  /* Inside the strip --rm-primary-ink is the ink derived against the STRIP's
+     ground (artboard.css .rm-footer), not the page's. */
+  color: var(--rm-primary-ink, var(--rm-primary));
 }
 
 /* ===================================================== Atlas (dashboard)
@@ -1205,8 +1257,12 @@
 .tpl-atlas.sec-bar .rm-section-title {
   border-left-color: var(--rm-gradient-to);
 }
+/* The band's second stop AS INK, not the stop itself: the stop is a ground
+   and this is the one place the design sets it as a word. Raw it measured
+   3.61:1 on a sidebar and is derived against every ground it can land on
+   (Artboard.tsx --rm-gradient-to-ink). */
 .tpl-atlas .rm-item-date {
-  color: var(--rm-gradient-to);
+  color: var(--rm-gradient-to-ink, var(--rm-gradient-to));
   font-weight: 600;
 }
 .tpl-atlas .rm-ring > .rm-ring-arc {
@@ -1351,10 +1407,15 @@
 .rm-root.tpl-chronicle .rm-col-main .rm-item-date {
   font-size: calc(var(--rm-fs) * 0.82);
   font-weight: 400;
-  /* 92% of the muted colour: at 78% the step back went far enough to take
-     the date under 4.5:1 (3.56:1). It still steps back from the rail's
-     numeral, which is what the step was for. */
-  color: color-mix(in srgb, var(--rm-muted) 92%, var(--rm-bg));
+  /* The muted colour stepped back toward the paper - 8% of the way when the
+     paper can carry it, which is nearly always, and less when it cannot. It
+     was a flat 92% mixed toward --rm-bg, and --rm-bg is the PAGE: under the
+     card layout the paper beneath these words is lower than the page and the
+     same step measured 4.45:1 at 6.4pt. The strength is derived against the
+     ground now (Artboard.tsx --rm-muted-soft), and the card hands down its
+     own like every other ink. It still steps back from the rail's numeral,
+     which is what the step was for. */
+  color: var(--rm-muted-soft, var(--rm-muted));
   letter-spacing: 0.02em;
 }
 
@@ -1397,7 +1458,16 @@
 /* No `object-position` here, however tempting a lower slice of the marble
    looks: the browser honours it and the painter does not, so the canvas and
    the PDF cropped two different slices of the same image (the multi-page
-   gate's band diff caught it). The centred crop is the one both agree on. */
+   gate's band diff caught it). The centred crop is the one both agree on.
+
+   Both of these belong to THIS design's own header - the standard one, whose
+   words sit on the plain page below the picture. Unqualified they followed
+   the picture into a banner, a block or a band, where the words sit ON the
+   art and the wash is the only thing between them: the hairline below took
+   the wash's place, the name kept the ink a coloured header sets, and it
+   measured 1.88:1 on the page showing through. The page root is carried so
+   each one outranks the wash rule in artboard.css, which is written at the
+   same weight. */
 .tpl-folio-noir .rm-art-band {
   bottom: auto;
   height: var(--rm-folio-art);
@@ -1466,12 +1536,20 @@
   color: var(--rm-primary-ink, var(--rm-primary));
   font-style: italic;
 }
+/* A tint of the page rather than a printed near-black, so the ink derived
+   against the page still knows the ground under the chip's words - and the
+   SAME tint a card is drawn in, so the ink derived against a card is the one
+   this chip's words can take. The stock chip ink is derived against a wash of
+   the ACCENT, which is not what this design paints: set the accent to a mid
+   grey and the chip's words measured 4.38:1 on a ground the derivation had
+   never been told about. */
 .tpl-folio-noir .rm-chip {
-  background: #191c25;
-  border-color: #2a2d38;
+  --rm-primary-ink-on-chip: var(--rm-primary-ink-on-card, var(--rm-primary));
+  background: color-mix(in srgb, var(--rm-text) 4%, var(--rm-bg));
+  border-color: color-mix(in srgb, var(--rm-text) 13%, var(--rm-bg));
 }
 .tpl-folio-noir .rm-bullets li::marker {
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
 }
 
 /* ===================================================== Terrace (three steps)
@@ -1488,6 +1566,14 @@
 .tpl-terrace .rm-header-stepped {
   --rm-step-2: #1c5a44;
   --rm-step-3: #2a7a5c;
+  /* These same two greens are restated to the renderer in headerStyles.tsx
+     STEP_GROUNDS, so the ink that stands on each tread is derived against the
+     tread this sheet actually draws rather than against the accent lightened.
+     Change one and change the other. They used to be answered here with a
+     printed white, which is right for the header's own words and says nothing
+     about a colour an AUTHOR sets: derived against a lightened accent, a
+     headline colour landed on the dark green at 1.98:1 on five of the accents
+     the Design panel offers. Derived against the green, it reads. */
 }
 .rm-root.tpl-terrace .rm-name {
   font-weight: var(--rm-name-weight, 700);
@@ -1533,11 +1619,10 @@
   color: #1c5a44;
 }
 .tpl-terrace .rm-item-date {
-  color: var(--rm-muted);
   font-variant-numeric: tabular-nums;
 }
 .tpl-terrace .rm-bullets li::marker {
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
 }
 
 /* ===================================================== Measure
@@ -1655,10 +1740,20 @@
 .tpl-measure .rm-mini-sub {
   font-size: 1em;
 }
+/* The date and the place read at full strength here rather than muted,
+   printed in the source's one black. Inside a sidebar that black is the
+   SIDEBAR's ink, not the page's: --rm-text on a dark band is near-black on
+   the band, which measured 3.37:1 the moment this design was set to two
+   columns. (Not `inherit`: the place sits in the muted sub-line and would
+   take the muted ink.) */
 .tpl-measure .rm-item-date,
 .tpl-measure .rm-item-loc {
   color: var(--rm-text);
   font-weight: 700;
+}
+.tpl-measure .rm-col-aside .rm-item-date,
+.tpl-measure .rm-col-aside .rm-item-loc {
+  color: var(--rm-sidebar-text);
 }
 .tpl-measure .rm-item-title {
   font-weight: 700;
@@ -1693,6 +1788,18 @@
   align-items: center;
   gap: 0.45em;
 }
+/* The reset takes the fill away, so it takes away the ink chosen FOR the
+   fill too. On a design whose titles are boxed (Marker), the title carries
+   the ink the accent can hold - white - and a section set to any other style
+   kept it on the bare page: eight titles #fefefe on #ffffff. Back to the
+   title ink the page gives any unboxed heading, in the column and in the
+   sidebar, and only where the fill was removed. */
+.rm-root.sec-boxed .rm-section[class*='sec-ov-']:not(.sec-ov-boxed) .rm-section-title {
+  color: var(--rm-heading-color, var(--rm-primary-ink, var(--rm-primary)));
+}
+.rm-root.sec-boxed .rm-col-aside .rm-section[class*='sec-ov-']:not(.sec-ov-boxed) .rm-section-title {
+  color: inherit;
+}
 .rm-root .rm-section[class*='sec-ov-'] .rm-section-title::before,
 .rm-root .rm-section[class*='sec-ov-'] .rm-section-title::after {
   content: none;
@@ -1720,7 +1827,9 @@
 .rm-root .rm-section.sec-ov-boxed .rm-section-title {
   border-bottom: none;
   background: var(--rm-primary);
-  color: #fff;
+  /* Words ON the accent take the ink the accent can carry, as .sec-boxed
+     does: a printed white measured 1.77:1 on the darkest of five designs. */
+  color: var(--rm-on-primary, #fff);
   padding: 3px 9px;
   border-radius: 4px;
   display: inline-flex;
@@ -1753,7 +1862,7 @@
 .rm-root .rm-section.sec-ov-badge .rm-section-icon {
   display: inline-flex;
   background: var(--rm-primary);
-  color: #fff;
+  color: var(--rm-on-primary, #fff);
   border: none;
   border-radius: 2.5px;
   width: 1.5em;
@@ -1954,8 +2063,20 @@
   --rm-mark-left: 1.25em;
   padding-left: calc(1.25em + var(--rm-badge-size, 1.65em) + 0.5em);
 }
-/* cards: each entry on its own soft card (adapts to light & dark pages) */
+/* cards: each entry on its own soft card (adapts to light & dark pages).
+   The card is a GROUND, 4% of the page's ink laid under the entry's own
+   words, and every ink the renderer derived was derived against the plain
+   page: five designs sitting at 4.2-4.5:1 dropped under the line the moment
+   a section was set to cards. The card names its own three inks, derived
+   against the card in Artboard.tsx, so every rule inside it follows without
+   being listed - the same one-declaration handover .rm-col-aside and
+   .rm-footer use. */
 .rm-root .rm-section.lay-ov-cards .rm-section-body > .rm-item {
+  --rm-muted: var(--rm-muted-on-card, var(--rm-text));
+  --rm-primary-ink: var(--rm-primary-ink-on-card, var(--rm-primary));
+  --rm-primary-ink-on-chip: var(--rm-primary-ink-on-chip-card, var(--rm-primary));
+  --rm-gradient-to-ink: var(--rm-gradient-to-ink-on-card, var(--rm-gradient-to));
+  --rm-muted-soft: var(--rm-muted-soft-on-card, var(--rm-muted));
   background: color-mix(in srgb, var(--rm-text) 4%, transparent);
   border: 1px solid color-mix(in srgb, var(--rm-text) 11%, transparent);
   border-radius: 10px;
@@ -2009,6 +2130,12 @@
   box-shadow: 0 0 0 2px var(--rm-sidebar-bg);
 }
 .rm-root .rm-col-aside .rm-section.lay-ov-cards .rm-section-body > .rm-item {
+  /* A card inside the band is the BAND tinted toward white, not the page
+     tinted toward its ink: the pair above would be derived against the
+     wrong paper, so the band's own is restated here. */
+  --rm-primary-ink: var(--rm-primary-ink-on-band-card, var(--rm-primary));
+  --rm-primary-ink-on-chip: var(--rm-primary-ink-on-band-card, var(--rm-primary));
+  color: var(--rm-sidebar-text-on-card, inherit);
   background: color-mix(in srgb, #fff 9%, transparent);
   border-color: color-mix(in srgb, #fff 22%, transparent);
 }

@@ -120,6 +120,15 @@
    edges now share ONE gutter instead; outer edges keep the page margin. */
 .rm-body:not(.rm-single) {
   --rm-gutter: calc(var(--rm-pad) * 0.8);
+  /* How far a full-bleed header may lap OVER the band beside it, past the
+     column's own edge where the two meet. The designs that round a banner's
+     corners were drawn with that lap and it is theirs to keep; what it must
+     never do is reach the band's own WORDS. The narrowest band the sliders
+     reach keeps 2.5 body sizes of inner padding (.rm-col-aside
+     --rm-aside-pad-r, at the smallest sidebar width), so 2.4 stops short of
+     every one of them - and never more than the page's own margin, because a
+     header cannot lap further in than the margin it is pulling out of. */
+  --rm-header-lap: min(calc(var(--rm-fs) * 2.4), var(--rm-pad));
 }
 /* Scoped to TWO-COLUMN bodies only. The .side-* class lives on .rm-root and
    is present even for single-column templates, so an unscoped rule here fed
@@ -133,8 +142,15 @@
 .side-left .rm-body:not(.rm-single) > .rm-col-aside {
   padding-right: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
+/* The inner padding is named as well as set, because a full-bleed header has
+   to pull back out by exactly this much to reach the band beside it and no
+   further (see .rm-col-aside + .rm-col-main > .rm-header below). --rm-fs
+   rather than an em so the length is the same wherever it is read: the
+   header's font-size is the column's today, and this does not depend on
+   that staying true. */
 .side-left .rm-body:not(.rm-single) > .rm-col-main {
-  padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  --rm-col-pad-l: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  padding-left: var(--rm-col-pad-l);
 }
 /* Templates with icon chips HANG the icon in the column's left margin so the
    heading text keeps one clean left edge (see .rm-icons below). On a
@@ -144,13 +160,15 @@
    user report). The inner padding now reserves at least the icon's own width,
    and stays the gutter value whenever that is already wider. */
 .rm-icons.side-left .rm-body:not(.rm-single) > .rm-col-main {
-  padding-left: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), 2.8em);
+  --rm-col-pad-l: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), calc(var(--rm-fs) * 2.8));
+  padding-left: var(--rm-col-pad-l);
 }
 .side-right .rm-body:not(.rm-single) > .rm-col-aside {
   padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
 .side-right .rm-body:not(.rm-single) > .rm-col-main {
-  padding-right: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  --rm-col-pad-r: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  padding-right: var(--rm-col-pad-r);
 }
 .rm-col-aside {
   flex: 0 0 var(--rm-aside-w, 34%);
@@ -301,7 +319,11 @@
   align-items: center;
   justify-content: center;
   background: var(--rm-primary);
-  color: #fff;
+  /* The initials stand ON the accent, so they take the ink the accent can
+     carry rather than a printed white: on eight designs - a pale gold, a
+     light sky - white on the badge measured 1.86:1 (Artboard.tsx
+     --rm-on-primary, elementColors.ts readableOn). */
+  color: var(--rm-on-primary, #fff);
   font-family: var(--rm-font-name);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -634,13 +656,16 @@
    half of reading as a folio rather than as part of the label; both
    Signature designs set the same two properties and still override.
 
-   The accent is safe unqualified because the numeral only ever opens a
-   MAIN-column heading: Artboard passes a section its counting index in the
-   main column alone, so a sidebar and the footer strip never carry one and
-   this can't land accent-on-accent the way a coloured band would. */
+   The numeral only ever opens a MAIN-column heading - Artboard passes a
+   section its counting index in the main column alone - so it cannot land
+   accent-on-accent the way a coloured band would. That was the whole of the
+   old argument, and it asked the wrong question: it never asked whether the
+   accent reads ON THE PAGE. It does not, on the design that ships numerals
+   on by default - #ff5a1f on #fff8f0 is 2.96:1 at 10.6pt. A numeral is a
+   word here, so it takes the accent as ink like every other word. */
 .rm-section-number {
   margin-right: 0.6em;
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
 }
 /* Section-title icon chip (premium look). Inline so centered/serif headings keep working. */
 .rm-section-icon {
@@ -1219,7 +1244,9 @@
   padding-left: 1.1em;
 }
 .rm-rich a {
-  color: var(--rm-link-color, var(--rm-primary));
+  /* The accent as ink, exactly as .rm-item-link above: this was the one
+     link rule that still took the raw accent. */
+  color: var(--rm-link-color, var(--rm-primary-ink, var(--rm-primary)));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1323,6 +1350,16 @@
      tint itself is unchanged (Artboard.tsx CHIP_TINT derives the ink from
      the same 12%). */
   color: var(--rm-primary-ink-on-chip, var(--rm-primary));
+  /* A chip can never be wider than the column it is in. Without this a term
+     too long for a narrow column did not wrap, it OVERFLOWED: on the widest
+     page margin a two-column design's sidebar narrows to about fifty points
+     and its chips ran out of the band and stood on the header beside it -
+     the band's own ink, on the header's ground, at 4.19:1, which is a word
+     on the wrong paper rather than a colour chosen badly. `break-word`
+     rather than `anywhere` so the min-content width the flex row measures is
+     unchanged and a chip that already fits wraps exactly where it did. */
+  max-width: 100%;
+  overflow-wrap: break-word;
   border-radius: 0.3em;
   padding: var(--rm-chip-pad-y, 0.1em) var(--rm-chip-pad-x, 0.45em);
   font-size: calc(var(--rm-fs) * var(--rm-chip-fs, 0.88));
@@ -1552,6 +1589,12 @@
    band it is moved in exactly the wrong direction (Artboard.tsx useVars). */
 .rm-col-aside {
   --rm-primary-ink: var(--rm-primary-ink-on-band, var(--rm-primary));
+  /* And the band header's second stop as ink, for the one design that sets
+     it as a word: derived against the page, a teal chosen to close a navy
+     fade measured 3.61:1 on the navy band. Named here rather than in that
+     design's own rule so the rule stays a rule about a colour and the band
+     stays the thing that says what its own paper can carry. */
+  --rm-gradient-to-ink: var(--rm-gradient-to-ink-on-band, var(--rm-gradient-to));
 }
 .rm-col-aside .rm-section-title {
   color: inherit;
@@ -1560,7 +1603,12 @@
 .rm-col-aside .rm-item-title,
 .rm-col-aside .rm-item-org,
 .rm-col-aside .rm-skill-group-name,
-.rm-col-aside .rm-mini-title {
+.rm-col-aside .rm-mini-title,
+/* A ring's figure and its label name the PAGE's ink outright, which inside
+   the band is the wrong ink twice over - dark labels on a dark band measured
+   1.91:1. They belong in this list with every other line the band re-inks. */
+.rm-col-aside .rm-ring-value,
+.rm-col-aside .rm-ring-label {
   color: inherit;
 }
 .rm-col-aside .rm-item-sub,
@@ -1578,13 +1626,83 @@
   /* The chip's ground is the band's own ink, and at 22% it came close
      enough to the words standing on it to fail (2.88:1 on the teal band).
      15% is the most that reads on every band we ship; the border carries
-     the chip's shape from here. */
+     the chip's shape from here.
+
+     And the border is a ground too. A measurement does not know a hairline
+     from a wall: at 200 dpi a glyph's box takes in the line beside it, and
+     on the widest page margin - where the one-page fitter takes the type to
+     6.7pt - the modal colour in that box was the border rather than the
+     fill, so a chip whose fill reads 4.94:1 measured 4.19:1 on the file. The
+     ink cannot move to meet it - it is the ink every other line in the
+     column is set in - so the strength of the EDGE is derived instead, the
+     most of this 30% the band can carry (Artboard.tsx --rm-chip-line-band).
+     Most bands keep all of it; the few that cannot lose the rim, not the
+     words. */
   background: color-mix(in srgb, currentColor 15%, transparent);
-  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor var(--rm-chip-line-band, 30%), transparent);
   color: inherit;
 }
 .rm-col-aside .rm-bullets li::marker {
   color: currentColor;
+}
+
+/* THE COLOUR ALONE, one weight higher - and it is not decoration.
+   Written at two classes the handover above TIES with a template's own
+   `.tpl-x .rm-<part>`, and templates.css is imported second
+   (TemplateRenderer.tsx), so every tie went to the template and its colour
+   walked into the band on top of whatever the band is painted. That is one
+   defect class, not one design: a design's middle green stood on its navy
+   sidebar at 2.21:1 for every title in the column, and two designs' gold chip
+   ink at 2.41:1 for every keyword in it. A colour a design chose for its PAGE
+   is not a colour it chose for its BAND.
+
+   Only `color`, and only these parts. The rules above also carry a chip's
+   fill and a title's rule, and those are a design's SHAPE - lifted with the
+   colour they took one design's underlined tags and boxed them. A template
+   that means a colour in the band still says so, by naming the band in its
+   own selector, where the meaning is explicit.
+
+   Only on a PAINTED band (Artboard.tsx marks it): a pale sidebar is the
+   page's paper tinted, and there the design's accent headings were chosen to
+   read and do - 5.73:1 on one design's lilac rail - so they stand. */
+.rm-root .rm-col-aside.rm-aside-painted :is(.rm-section-title, .rm-item-title, .rm-item-org, .rm-skill-group-name, .rm-mini-title, .rm-ring-value, .rm-ring-label, .rm-chip) {
+  color: inherit;
+}
+
+/* The header lives inside the MAIN column (Artboard.tsx), and a full-bleed
+   composition - banner, block, band, stepped - pulls itself out by a whole
+   page margin on each side to reach the paper's edge. Beside a sidebar there
+   is no margin on that side to pull into: there is the SIDEBAR. On the widest
+   page margin that pull is 113pt, and a banner ran a hundred points over the
+   band and painted its own ground under the band's words - a chip that had
+   not moved a channel measured 4.19:1, because it was standing on the header.
+
+   So on that side the pull is BOUNDED instead of removed: the column's own
+   padding, which is what carries the header out to meet the band, plus the
+   lap over it the design was drawn with (--rm-header-lap) - and never more
+   than the page margin, which is all it ever pulled. At every margin the
+   designs ship the bound is the looser of the two and nothing moves a pixel;
+   it bites only where the margin runs away from the type, which is the one
+   place the header was running over words. Removing the pull altogether was
+   the other error: it left a stripe of bare page where a purple sidebar and a
+   purple banner used to touch. Written once, above the variants, so a
+   composition added later inherits the rule rather than having to remember
+   it.
+
+   Named to the four compositions that HAVE a ground, because a header without
+   one has no bleed to bound: written for every header it handed a negative
+   margin to a standard or a split header that never had one, and half the
+   contact line went out over the sidebar. */
+.rm-body:not(.rm-single)
+  > .rm-col-aside
+  + .rm-col-main
+  > :is(.rm-header-banner, .rm-header-block, .rm-header-band, .rm-header-stepped) {
+  margin-left: calc(-1 * min(var(--rm-pad), calc(var(--rm-col-pad-l, var(--rm-pad)) + var(--rm-header-lap, 0px))));
+}
+.rm-body:not(.rm-single)
+  > .rm-col-main:has(+ .rm-col-aside)
+  > :is(.rm-header-banner, .rm-header-block, .rm-header-band, .rm-header-stepped) {
+  margin-right: calc(-1 * min(var(--rm-pad), calc(var(--rm-col-pad-r, var(--rm-pad)) + var(--rm-header-lap, 0px))));
 }
 
 /* ============================================ header variants */
@@ -1608,25 +1726,31 @@
 
 .rm-header-banner {
   background: var(--rm-primary);
-  color: #fff;
+  /* The ink THIS HEADER's ground can carry, not a printed white: on seventeen
+     of the designs white on the banner measured under 4.5:1, worst 1.78:1.
+     --rm-on-header, not --rm-on-primary: four designs repaint this element's
+     background below and the renderer knows what they paint
+     (headerStyles.tsx HEADER_GROUNDS), so the two answers are not always the
+     same colour and this is the one that belongs to the header. */
+  color: var(--rm-on-header, var(--rm-on-primary, #fff));
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
   padding: var(--rm-pad);
   align-items: center;
 }
 .rm-root .rm-header-banner .rm-name {
-  color: var(--rm-name-color, #fff);
+  color: var(--rm-name-on-header, var(--rm-on-header, #fff));
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.18); /* keeps the name crisp on mid-tone banners */
 }
 .rm-root .rm-header-banner .rm-headline {
   /* Full white, not 94%: the banner is the accent itself, and the six
      hundredths bought nothing but a headline under 4.5:1 on the lighter
      end of a gradient band. */
-  color: var(--rm-headline-color, #fff);
+  color: var(--rm-headline-on-header, var(--rm-on-header, #fff));
 }
 .rm-root .rm-header-banner .rm-contacts {
   /* Full white for the same reason, and the contact line is smaller than
      the headline, so it needed it more. */
-  color: var(--rm-contact-color, #fff);
+  color: var(--rm-contact-on-header, var(--rm-on-header, #fff));
 }
 .rm-header-banner .rm-contact a {
   color: inherit;
@@ -1677,9 +1801,13 @@
    Structure only; a template colours them through the tokens. Every rule
    that colours the name, the headline or the contact line reads the
    element's own variable first (elementColors.ts), so an author's colour
-   still wins on a coloured block. On a block or band the text takes
-   --rm-on-primary: white or the text colour, whichever reads better on the
-   accent (Artboard.tsx useVars). */
+   still wins on a coloured block - carried onto the header's own ground
+   first, where it has to read (Artboard.tsx --rm-name-on-header). On a block
+   or band the text takes --rm-on-header: white or the text colour, whichever
+   reads better on every colour THAT COMPOSITION paints, which is the accent
+   alone only when the design paints nothing of its own (Artboard.tsx
+   useVars). Words that stand on the raw accent - a monogram, a boxed heading,
+   a badge - take --rm-on-primary instead. */
 
 /* display: the name is the layout; a dateline of contacts between rules */
 .rm-header-display {
@@ -1704,7 +1832,7 @@
   font-weight: 600;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--rm-headline-color, var(--rm-primary));
+  color: var(--rm-headline-color, var(--rm-primary-ink, var(--rm-primary)));
   /* Air enough to be a LINE, not only to look like one. A PDF stores no
      lines: text extraction infers them from how far the next run's baseline
      dropped, and a drop under half the previous run's type size reads as the
@@ -1773,7 +1901,7 @@
   align-items: flex-end;
   gap: calc(var(--rm-name-size) * 1.15) 1.5em;
   background: var(--rm-primary);
-  color: var(--rm-on-primary, #fff);
+  color: var(--rm-on-header, var(--rm-on-primary, #fff));
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
   padding: calc(var(--rm-pad) * 0.72) var(--rm-pad);
 }
@@ -1804,7 +1932,7 @@
   margin: 0;
   text-indent: 0;
   overflow-wrap: anywhere;
-  color: var(--rm-name-color, var(--rm-on-primary, #fff));
+  color: var(--rm-name-on-header, var(--rm-on-header, #fff));
 }
 .rm-root .rm-header-block .rm-headline {
   flex: 0 1 auto;
@@ -1812,7 +1940,7 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   margin-bottom: 0;
-  color: var(--rm-headline-color, var(--rm-on-primary, #fff));
+  color: var(--rm-headline-on-header, var(--rm-on-header, #fff));
 }
 .rm-root .rm-header-block .rm-contacts {
   /* Always its own line under the role, however few contacts there are, so
@@ -1829,7 +1957,7 @@
      between a foot and a stranded corner. */
   font-size: 0.88em;
   gap: 0.3em 0.8em;
-  color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+  color: var(--rm-contact-on-header, var(--rm-on-header, #fff));
 }
 .rm-header-block .rm-contact a {
   color: inherit;
@@ -1846,7 +1974,7 @@
   align-items: center;
   gap: 1.5em;
   background: linear-gradient(100deg, var(--rm-primary), var(--rm-gradient-to, var(--rm-primary)));
-  color: var(--rm-on-primary, #fff);
+  color: var(--rm-on-header, var(--rm-on-primary, #fff));
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
   padding: var(--rm-band-inset) var(--rm-pad);
 }
@@ -1897,11 +2025,11 @@
 }
 .rm-root .rm-header-band .rm-name {
   text-indent: 0;
-  color: var(--rm-name-color, var(--rm-on-primary, #fff));
+  color: var(--rm-name-on-header, var(--rm-on-header, #fff));
 }
 .rm-root .rm-header-band .rm-headline {
   margin-bottom: 0;
-  color: var(--rm-headline-color, var(--rm-on-primary, #fff));
+  color: var(--rm-headline-on-header, var(--rm-on-header, #fff));
 }
 /* Contacts sit BESIDE the name, not stacked into a tall right-hand column:
    six of them in one column made the band twice as tall as the name needed
@@ -1922,7 +2050,7 @@
   align-content: center;
   gap: 0.3em 1.6em;
   text-align: left;
-  color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+  color: var(--rm-contact-on-header, var(--rm-on-header, #fff));
 }
 /* How many contacts there are decides the columns: up to five stand in one
    column, so the name keeps the width (a 16-letter name beside a two-column
@@ -1957,7 +2085,7 @@
   align-items: stretch;
   gap: 0;
   background: var(--rm-primary);
-  color: var(--rm-on-primary, #fff);
+  color: var(--rm-on-header, var(--rm-on-primary, #fff));
   margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) var(--rm-section-gap);
 }
 .rm-header-stepped .rm-step {
@@ -1976,7 +2104,15 @@
   padding-top: calc(var(--rm-pad) * 0.66);
   padding-bottom: 0.46em;
 }
+/* A tread is LIGHTER than the accent, and the ink was derived against the
+   accent: the second and third treads were the one pair on the page where a
+   ground moved and its ink did not. On twenty-eight designs the third
+   tread's contact line measured under 4.5:1, obsidian at 1.51. */
 .rm-header-stepped .rm-step-role {
+  --rm-on-header: var(--rm-on-step-2, #fff);
+  /* And the element colour with it: a headline colour chosen for the page is
+     re-derived against THIS tread, not against the accent above it. */
+  --rm-headline-on-header: var(--rm-headline-on-step-2, var(--rm-on-step-2, #fff));
   background: var(--rm-step-2, var(--rm-primary));
   padding-top: 0.44em;
   padding-bottom: 0.44em;
@@ -1988,6 +2124,8 @@
    details themselves pushed the last one onto a second row and left half a
    step of empty colour beside it. */
 .rm-header-stepped .rm-step-contacts {
+  --rm-on-header: var(--rm-on-step-3, #fff);
+  --rm-contact-on-header: var(--rm-contact-on-step-3, var(--rm-on-step-3, #fff));
   background: var(--rm-step-3, var(--rm-primary));
   padding-top: 0.62em;
   padding-bottom: 0.62em;
@@ -2003,17 +2141,17 @@
   margin: 0;
   text-indent: 0;
   overflow-wrap: anywhere;
-  color: var(--rm-name-color, var(--rm-on-primary, #fff));
+  color: var(--rm-name-on-header, var(--rm-on-header, #fff));
 }
 .rm-root .rm-header-stepped .rm-headline {
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--rm-headline-color, var(--rm-on-primary, #fff));
+  color: var(--rm-headline-on-header, var(--rm-on-header, #fff));
 }
 .rm-root .rm-header-stepped .rm-contacts {
-  color: var(--rm-contact-color, var(--rm-on-primary, #fff));
+  color: var(--rm-contact-on-header, var(--rm-on-header, #fff));
   /* Spread across the step rather than bunched at its left edge: the row is
      the full width of the page and six details set a stock word-space apart
      read as one long string. */
@@ -2148,7 +2286,7 @@
   font-weight: 800;
   font-size: calc(var(--rm-fs) * 2.4);
   line-height: 1;
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
 }
 .rm-stat-label {
   font-size: calc(var(--rm-fs) * 0.85);
@@ -2183,7 +2321,18 @@
 .rm-has-footer > .rm-body > .rm-col-aside {
   padding-bottom: 1.2em;
 }
+/* The strip is a third paper. Its ground is the theme's footer colour, and
+   by default the page's own INK - which on a dark design is a LIGHT colour,
+   so every colour the page chose for paper is the wrong way round inside
+   it. The quiet lines measured 2.24:1 there and the titles, on the designs
+   whose accent is their text colour, 1:1. Both are re-derived against this
+   ground in Artboard.tsx and handed down here, exactly as .rm-col-aside
+   hands the band's ink to the sidebar - one declaration each, so every rule
+   that names --rm-muted or --rm-primary-ink inside the strip follows
+   without being listed. */
 .rm-footer {
+  --rm-muted: var(--rm-muted-on-footer, var(--rm-on-footer));
+  --rm-primary-ink: var(--rm-primary-ink-on-footer, var(--rm-on-footer));
   margin: 0 0 calc(-1 * var(--rm-pad));
   padding: 1.15em var(--rm-pad) var(--rm-pad);
   background: var(--rm-footer-bg, var(--rm-text));
@@ -2230,9 +2379,14 @@
 }
 /* The strip's titles take the accent, whatever the template draws its
    titles in: the strip's ground is dark by default and a template's title
-   colour was chosen for paper. An element colour the author set still wins. */
+   colour was chosen for paper. An element colour the author set still wins.
+   The accent as INK, and the strip's own redefinition above means the ink is
+   the one derived against the STRIP's ground, not the page's. A design that
+   names its own heading colour named it for the PAGE - folio-noir's gold
+   measured 1.75:1 on the strip - so that colour is re-derived against this
+   ground too, and only here. */
 .rm-root .rm-footer .rm-section-title {
-  color: var(--rm-heading-color, var(--rm-primary));
+  color: var(--rm-heading-ink-on-footer, var(--rm-heading-color, var(--rm-primary-ink, var(--rm-primary))));
 }
 /* Group to group. Every label used to land nearer the keywords ABOVE it than
    its own, so each one read as a title for the line it followed. What makes
@@ -2353,14 +2507,17 @@
 .sec-boxed .rm-section-title {
   border-bottom: none;
   background: var(--rm-primary);
-  color: #fff;
+  /* The title stands ON the accent: the ink the accent can carry, not a
+     printed white, which measured 1.77:1 on the darkest of the seventeen
+     designs whose accent is pale. */
+  color: var(--rm-on-primary, #fff);
   padding: 3px 9px;
   border-radius: 4px;
   display: inline-block;
 }
 .rm-col-aside.sec-boxed .rm-section-title,
 .sec-boxed .rm-col-aside .rm-section-title {
-  color: #fff;
+  color: var(--rm-on-primary, #fff);
 }
 /* The numeral reads ON the fill, like the label beside it. The title's own
    `color:#fff` only INHERITS into the numeral, and a template's numeral rule
@@ -2942,8 +3099,13 @@
   width: var(--rm-badge-size, 1.65em);
   height: var(--rm-badge-size, 1.65em);
   border-radius: var(--rm-badge-radius, 0.4em);
-  background: color-mix(in srgb, var(--rm-primary) 13%, transparent);
-  color: var(--rm-primary);
+  /* 12%, the chip's wash, not the 13% this drew: the badge's ground is a
+     wash of the accent exactly as a chip's is, and the one point between
+     them is a point nobody can see and the difference between 4.46:1 and
+     4.55:1 on three designs. One tint, one ink - the raw accent on its own
+     wash is the pairing .rm-chip stopped drawing. */
+  background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
+  color: var(--rm-primary-ink-on-chip, var(--rm-primary));
   font-weight: 700;
   font-size: calc(var(--rm-fs) * 0.95);
   /* NO margin: .rm-item-head's flex gap is the single source of spacing. */
@@ -3764,8 +3926,10 @@
   border-color: var(--rm-folio-line);
   border-left-color: var(--rm-sidebar-text);
   /* This tag stands on the BAND's paper, not the page's, so the page's ink
-     says nothing about it: the words keep the colour they have. */
-  color: var(--rm-link-color, var(--rm-primary));
+     says nothing about it - and neither does the folio ink, derived against
+     the gold-tinted paper of the page's own tag. Its own ground, its own
+     ink: the raw accent here measured 1.01:1 on the worst of seventeen. */
+  color: var(--rm-link-color, var(--rm-primary-ink-on-band-folio, var(--rm-primary)));
 }
 .links-tag .rm-col-aside .rm-verify-link {
   color: inherit;
@@ -3863,6 +4027,17 @@
 .rm-root.meta-gutter .rm-col-main .rm-item > :not(.rm-meta-cell) {
   grid-column: 2;
 }
+/* A block of prose (the summary, a free-text section) is an .rm-item with no
+   date to hold, and its text is NOT wrapped in a child: made a grid, every run
+   of text and every inline span inside it became a grid cell of its own. The
+   print tree wraps a hyphenated word in a no-break span (atoms.tsx
+   noBreakCompoundsHtml), so "full-time" and "donor-retention" were lifted out
+   of the sentence into a column of their own. It stays a block, inset by the
+   column the grid would have given it, so the text keeps the same measure. */
+.rm-root.meta-gutter .rm-col-main .rm-item.rm-rich {
+  display: block;
+  padding-left: var(--rm-meta-w);
+}
 /* On the canvas the rail's cell is a button for the entry's date control;
    it says so on hover the way every other quiet affordance on the sheet
    does, and costs no layout. */
@@ -3884,6 +4059,12 @@
   align-items: flex-end;
   padding: 0.05em 1.2em 0.5em 0.4em;
   position: relative;
+  /* The rail is a ground of its own - a 7% wash of the accent - so the two
+     colours standing on it are the ones derived against it, handed down here
+     in one declaration each (Artboard.tsx --rm-*-on-gutter). A template that
+     paints its own rail can restate them beside its --rm-gutter-bg. */
+  --rm-primary-ink: var(--rm-primary-ink-on-gutter, var(--rm-primary));
+  --rm-muted: var(--rm-muted-on-gutter, var(--rm-muted));
   background: var(--rm-gutter-bg, color-mix(in srgb, var(--rm-primary) 7%, var(--rm-bg)));
   border-right: 2px solid var(--rm-primary);
 }
@@ -3903,7 +4084,7 @@
   font-size: calc(var(--rm-fs) * 3.2);
   font-weight: 700;
   line-height: 0.9;
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink-on-gutter-large, var(--rm-primary-ink, var(--rm-primary)));
 }
 .rm-root.meta-gutter .rm-year-sub {
   font-size: calc(var(--rm-fs) * 0.8);
@@ -3923,6 +4104,11 @@
 .rm-root.meta-margin .rm-col-main .rm-item > :not(.rm-meta-cell) {
   grid-column: 1;
 }
+/* Prose stays a block here too - see the note on the gutter above. */
+.rm-root.meta-margin .rm-col-main .rm-item.rm-rich {
+  display: block;
+  padding-right: calc(var(--rm-margin-w) + 1.2em);
+}
 .rm-root.meta-margin .rm-col-main .rm-meta-cell {
   grid-column: 2;
   grid-row: 1 / span 20;
@@ -3940,7 +4126,7 @@
   text-transform: uppercase;
   /* the date and the place are bare text in this cell, one line each */
   white-space: nowrap;
-  color: var(--rm-primary);
+  color: var(--rm-primary-ink, var(--rm-primary));
   font-variant-numeric: tabular-nums;
 }
 /* The margin's own lines drop the styling they carried in the head row -
@@ -4094,8 +4280,13 @@
    column - so it would sit an inch clear of the right-aligned words it
    belongs to. Inline it keeps them, exactly as it does under the heading
    styles that own their own left treatment. */
+/* Relative, not static: in place exactly as static would leave it, but still
+   the box the folio badge's own layers (its ink and its folds, absolute)
+   are placed in. Static handed them the whole title column, and the glyph
+   landed a badge-width to the right of its paper, on the heading's first
+   letter. */
 .rm-root.heads-side.rm-icons .rm-col-main .rm-section-icon {
-  position: static;
+  position: relative;
   right: auto;
   top: auto;
   transform: none;
@@ -4110,8 +4301,20 @@
   padding-left: var(--rm-pad);
 }
 /* Under a gutter the title is already inset by a column of its own; the
-   gutter's inset would push it a second time, out of the page. */
+   gutter's inset would push it a second time, out of the page.
+
+   And the rail is a GROUND under it. The rail's inks were handed to
+   .rm-meta-cell alone, because that is the only thing standing on the rail
+   in every other layout - here the title has a column of its own on the same
+   side, and a design that draws its rail across the whole section draws it
+   under that column too. The title kept the ink derived against the PAGE and
+   measured 4.21:1 on the tint, on every heading of the document. The same
+   two declarations the meta cell takes, and safe where no rail reaches this
+   column: an ink derived against the tint is the darker of the two, so on
+   bare paper it reads better still. */
 .rm-root.heads-side.meta-gutter .rm-col-main .rm-section-title {
+  --rm-primary-ink: var(--rm-primary-ink-on-gutter, var(--rm-primary));
+  --rm-muted: var(--rm-muted-on-gutter, var(--rm-muted));
   margin-left: 0;
 }
 

@@ -12,7 +12,20 @@ import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
 import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
 import { safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
-import { darkenToContrast, elementColorVars, lighten, mix, readableOn, veilAlpha, withAlpha } from '@/lib/elementColors'
+import {
+  darkenToContrast,
+  darkenToContrastAll,
+  elementColorVars,
+  lighten,
+  mix,
+  contrastOn,
+  contrastRatio,
+  gradientGrounds,
+  readableOn,
+  readableOnAll,
+  veilAlpha,
+  withAlpha,
+} from '@/lib/elementColors'
 import { resolveStatTiles } from '@/lib/stats'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitLineHeight } from '@/lib/fitOnePage'
@@ -25,7 +38,7 @@ import { Ed, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
-import { ART_BAND_GROUNDS, artBandSrc } from './headerStyles'
+import { ART_BAND_GROUNDS, ART_STRIP_TEMPLATES, HEADER_GROUNDS, STEP_GROUNDS, artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionNumeral } from './sectionNumeral'
 import { useEditorStore } from '@/store/useEditorStore'
@@ -123,6 +136,59 @@ const BULLET_TYPE: Record<string, string> = {
 const CHIP_TINT = 0.12
 const FOLIO_GOLD = '#c8941f'
 const FOLIO_TINT = 0.08
+/* Three more grounds, restated from the stylesheets for the same reason.
+ * A card is the page's own ink at 4% over the page (templates.css
+ * .lay-ov-cards), and inside a sidebar it is white at 9% over the band
+ * (.rm-col-aside .lay-ov-cards). The link tag inside a sidebar stands on the
+ * band's paper, the band tinted a sixth of the way toward its own ink
+ * (artboard.css .links-tag .rm-col-aside .rm-tag-link --rm-folio-paper). */
+const CARD_TINT = 0.04
+/* The rail the gutter meta-column draws: a 7% wash of the accent over the
+ * page (artboard.css .meta-gutter .rm-meta-cell). */
+const GUTTER_TINT = 0.07
+const CARD_TINT_BAND = 0.09
+/* A chip a design draws inside its band in the ACCENT - 10% of the accent
+ * over the band, with the accent's own words on it (templates.css
+ * .tpl-verdant .rm-col-aside .rm-chip). Restated here so those words are
+ * derived against that ground: they were the raw accent, and the tint was
+ * chosen so the design's own green reads on it unmoved (4.55:1), which says
+ * nothing about an accent chosen in the Design panel - a gold measured 2.08:1
+ * there, a sky blue 1.89:1. */
+const BAND_ACCENT_CHIP_TINT = 0.1
+const BAND_FOLIO_TINT = 0.16
+/* A chip inside the band is drawn in two strengths of the band's own ink: a
+ * 15% fill and a 30% hairline (artboard.css .rm-col-aside .rm-chip). The fill
+ * was measured and chosen; the hairline was not, and a hairline is not a
+ * hairline to a contrast measurement - at 200 dpi a glyph's box takes in the
+ * line beside it, so a chip whose FILL reads 4.94:1 measured 4.19:1 on the
+ * file the moment the widest page margin took the type to 6.7pt.
+ *
+ * The ink cannot move here: a band's own ink is what every other line in the
+ * column is set in, and on a mid-tone band no colour reads on the fill AND on
+ * a 30% edge - the best either extreme can do is 3.89:1. So the EDGE moves:
+ * the strongest hairline this band can carry, never more than the 30% it
+ * always drew and never less than the fill it stands on. Most bands keep the
+ * full 30%; the few that cannot lose the rim rather than the words. */
+const CHIP_FILL_BAND = 0.15
+const CHIP_LINE_BAND_MAX = 0.3
+/* The stepped header's three treads: the accent, and the accent lightened by
+ * these two (see --rm-step-2 / --rm-step-3 below). Named once so the ink each
+ * tread carries is derived against the tread it actually stands on. */
+const STEP_2_LIGHTEN = 0.14
+const STEP_3_LIGHTEN = 0.28
+/* The strength the accent wash over an art band never drops below - the
+ * strength it always had, before it was derived. */
+const ART_VEIL_ACCENT_FLOOR = 0.55
+/* How far a band header's second stop is lightened out of the accent when the
+ * author named no colour of their own: the fade the band always had. It is a
+ * CEILING now rather than a constant - see --rm-gradient-to. */
+const GRADIENT_LIGHTEN = 0.18
+/* How far a quiet line may step back toward the paper under it: a design sets
+ * its date behind the numeral on its rail this way (templates.css
+ * .tpl-chronicle .rm-item-date). A CEILING, like the fade above - the step
+ * was chosen at 8% against the plain page, and a card lowers the paper under
+ * the same words, where the same 8% measured 4.45:1. See --rm-muted-soft. */
+const MUTED_SOFT = 0.08
 /* The ink is derived a twentieth of a point above the 4.5:1 the words are
  * held to. Two of the three grounds are the STYLESHEET's mixes recomputed
  * here in whole channels, and the browser's own rounding of the same mix can
@@ -130,11 +196,197 @@ const FOLIO_TINT = 0.08
  * chip. The headroom costs nothing anyone can see and never leaves a word one
  * rounding short. */
 const INK_RATIO = 4.55
+/** Large type (18pt, or 14pt bold) is held to 3:1; the same hair of headroom. */
+const LARGE_INK_RATIO = 3.05
 
-function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
+/** `headerStyle`: the Design panel's choice when there is one, else the
+ *  design's own - the same resolution the header itself makes below. The ink
+ *  the header's words take is derived against the ground THAT composition
+ *  paints, so the answer has to be the same one. */
+function useVars(doc: ResumeDocument, fit: FitVector, headerStyle?: string): CSSProperties {
   const { theme, typography: t, layout, page } = doc.metadata
   const lock = page.fit?.lock ?? {}
   return useMemo(() => {
+    /* The grounds a word can land on that are not the page: the strip at the
+     * foot, a card, a sidebar card, the two lighter treads of a stepped
+     * header, and the paper a link tag takes inside a sidebar. Each is named
+     * once here, and every ink below is derived against the one the words
+     * actually stand on - which is the whole of what "every template, every
+     * section style, every customisation" turned on. */
+    const pageBg = theme.background || '#ffffff'
+    const bandBg = theme.sidebar || pageBg
+    const footerBg = theme.footer || theme.text
+    const cardBg = mix(theme.text, pageBg, CARD_TINT)
+    const gutterBg = mix(theme.primary, pageBg, GUTTER_TINT)
+    const bandCardBg = mix('#ffffff', bandBg, CARD_TINT_BAND)
+    /* The stepped header's two lighter treads: the accent graded down, or the
+     * two shades a design prints instead (headerStyles.tsx STEP_GROUNDS). Both
+     * the shade the renderer writes and the ink derived against it come from
+     * the same place, so a printed tread can no longer carry an ink derived
+     * against a tread nobody draws. */
+    const ownSteps = STEP_GROUNDS[doc.metadata.template ?? '']
+    const step2Bg = ownSteps?.step2 ?? lighten(theme.primary, STEP_2_LIGHTEN)
+    const step3Bg = ownSteps?.step3 ?? lighten(theme.primary, STEP_3_LIGHTEN)
+    const bandFolioBg = mix(theme.sidebarText || theme.text, bandBg, BAND_FOLIO_TINT)
+    /* The strongest hairline a sidebar chip can wear and still be a chip with
+     * readable words in it - see CHIP_LINE_BAND_MAX. */
+    const chipLineBand = (() => {
+      const ink = theme.sidebarText || theme.text
+      for (let pct = Math.round(CHIP_LINE_BAND_MAX * 100); pct > Math.round(CHIP_FILL_BAND * 100); pct--)
+        if (contrastRatio(ink, mix(ink, bandBg, pct / 100)) >= INK_RATIO) return pct / 100
+      return CHIP_FILL_BAND
+    })()
+    /* The band header's second stop, and the one ground on the page that
+     * nothing can correct afterwards: the words CROSS it, so unlike every
+     * other ground here it cannot be answered with an ink - the ink would
+     * have to be two colours at once. What moves instead is the stop.
+     *
+     * A fade the words can stand on is one where some single colour reads on
+     * every step of it. Lightened a flat 18% out of the accent, two designs'
+     * bands ended pale enough that white measured 4.13:1 and 4.37:1 at the
+     * far end. And a stop the AUTHOR named can be worse still, because the
+     * two ends can sit either side of the middle of the range: a bright red
+     * accent fading to a design's dark teal runs through mud where the best
+     * any ink can do is 3.62:1 - three of 144 accents offered in the Design
+     * panel did exactly that on the design that ships a named stop.
+     *
+     * So the stop is brought back toward the ACCENT - the lightening reduced,
+     * or the author's colour mixed back - by the smallest amount that leaves
+     * the band carrying an ink. A shorter fade of the same colour is a fade;
+     * an ink that cannot read is not a word. A stop that already works is
+     * returned untouched, which is all but three of the 144. */
+    const bandCarriesInk = (to: string) => {
+      const stops = gradientGrounds(theme.primary, to)
+      return contrastOn(readableOnAll(stops, theme.text, INK_RATIO), stops) >= INK_RATIO
+    }
+    const gradientTo = (() => {
+      if (theme.gradientTo) {
+        if (bandCarriesInk(theme.gradientTo)) return theme.gradientTo
+        // Toward the accent a hundredth at a time, from the far end, so as
+        // much of the named colour survives as the band can carry.
+        for (let pct = 99; pct > 0; pct--) {
+          const to = mix(theme.gradientTo, theme.primary, pct / 100)
+          if (bandCarriesInk(to)) return to
+        }
+        return theme.primary
+      }
+      const lighter = lighten(theme.primary, GRADIENT_LIGHTEN)
+      if (bandCarriesInk(lighter)) return lighter
+      /* The fade can also run the other way. Where the lightened end is too
+       * pale for the band's ink, that ink is white - a dark ink only reads
+       * better as the ground pales - and white reads better still as the
+       * ground DARKENS. So the same-strength fade toward black keeps the band
+       * a band: shortening the pale fade until white read left the defaults'
+       * blue banded by 5%, a flat slab to the eye. */
+      const darker = mix(theme.primary, '#000000', 1 - GRADIENT_LIGHTEN)
+      if (bandCarriesInk(darker)) return darker
+      for (let pct = Math.round(GRADIENT_LIGHTEN * 100); pct > 0; pct--) {
+        const to = lighten(theme.primary, pct / 100)
+        if (bandCarriesInk(to)) return to
+      }
+      return theme.primary
+    })()
+    const artGrounds = ART_BAND_GROUNDS[theme.artBand ?? 'none'] ?? []
+    /* A composition with a ground of its own hands that ground to the art and
+     * washes it in the accent instead (artboard.css .rm-header-art), so under
+     * a band of art the header's ground is the WASH and nothing else - not the
+     * accent's gradient, not a design's own stops, not the stepped header's
+     * three shades. */
+    const hs = layout.headerStyle ?? headerStyle
+    const onArt = artGrounds.length > 0 && ['block', 'band', 'banner', 'stepped'].includes(hs ?? '')
+    /* Every colour the header's own ground can be, so the ink that stands on
+     * it is derived against all of it and not against the accent alone:
+     *  - a BAND fades from the accent to its second stop (artboard.css
+     *    .rm-header-band), and both ends carry the same words;
+     *  - two designs paint their BANNER from stops of their own, darkened
+     *    from the accent until white reads (headerStyles.tsx HEADER_GROUNDS);
+     *  - with an art band under any of them the composition's own ground goes
+     *    (artboard.css .rm-header-art) and the ground is the accent WASH, so
+     *    the accent alone is right again - and the wash below is what carries
+     *    the ink over the picture. */
+    const headerGrounds = (): string[] => {
+      if (onArt) return ART_STRIP_TEMPLATES.has(doc.metadata.template ?? '') ? [pageBg] : [theme.primary]
+      if (hs === 'band') return gradientGrounds(theme.primary, gradientTo)
+      const own = hs === 'banner' ? HEADER_GROUNDS[doc.metadata.template ?? ''] : undefined
+      if (own) {
+        const stops = own.map((g) => mix(theme.primary, g.with, g.amount))
+        return stops.length > 1 ? gradientGrounds(stops[0], stops[stops.length - 1]) : stops
+      }
+      return [theme.primary]
+    }
+    /* The quiet half of a quiet line: --rm-muted as the ground can carry it,
+     * stepped back toward that ground by the most of MUTED_SOFT that still
+     * reads on it. The step is DERIVED rather than flat for the same reason
+     * the wash over an art band and the hairline on a sidebar chip are: it
+     * was measured once, on the plain page, and the ground moves. Most
+     * grounds keep the whole 8%. */
+    const mutedSoft = (ground: string) => {
+      const ink = darkenToContrast(theme.muted, ground, INK_RATIO)
+      for (let pct = Math.round(MUTED_SOFT * 100); pct > 0; pct--)
+        if (contrastRatio(mix(ink, ground, 1 - pct / 100), ground) >= INK_RATIO)
+          return mix(ink, ground, 1 - pct / 100)
+      return ink
+    }
+    const hdrGrounds = headerGrounds()
+    /* TWO grounds, and they were one variable.
+     *
+     * --rm-on-primary is read by everything that stands on the ACCENT ITSELF -
+     * a monogram, a boxed section title, a badge - and it was also being read
+     * by the four header compositions, whose ground is the accent only when
+     * the design does not paint one of its own. On the design that fades its
+     * banner from a darkened accent the two answers differ, and the boxed
+     * heading took the banner's: white on the raw purple, 4.2:1, on every
+     * heading of the page. One name for two grounds is one of them wrong. */
+    const onHeader = readableOnAll(hdrGrounds, theme.text, INK_RATIO)
+    const onPrimary = readableOn(theme.primary, theme.text, INK_RATIO)
+    /* Each tread's own ink - EXCEPT under the art, where the treads have no
+     * shade of their own to be derived against: all three stand on the one
+     * wash, so all three take the wash's ink. Derived against the lightened
+     * treads while the art covered them, the contact line measured 3.77:1 on
+     * the accent it was actually standing on. */
+    const onStep2 = onArt ? onHeader : readableOn(step2Bg, theme.text, INK_RATIO)
+    const onStep3 = onArt ? onHeader : readableOn(step3Bg, theme.text, INK_RATIO)
+    /* An element colour, re-derived against the header's own ground.
+     *
+     * PRECEDENCE, written down because it was the thing nobody had decided: a
+     * colour chosen for the PAGE is not a colour chosen for a BAND. The
+     * stylesheet used to let theme.name - a design's own, or one picked in
+     * the Design panel - through to a coloured header unexamined, and it beat
+     * the derived ink outright: a blue that is exactly right on white
+     * measured 2.47:1 on a band header, 1.08:1 under an art band, while the
+     * headline and the contacts beside it correctly turned white. The choice
+     * is not overruled and it is not obeyed blindly; it is carried the
+     * smallest distance that makes it read on the ground it has landed on,
+     * which is the same contract every other ink in this file keeps.
+     *
+     * And NOTHING AT ALL for a colour nobody set - the discipline
+     * elementColorVars keeps, and for a sharper reason here: these variables
+     * are written INLINE on the root, which no stylesheet rule can outrank, so
+     * one emitted for an unset colour would beat a template's own override of
+     * the tread ink beneath it. Unset, the stylesheet's own chain answers and
+     * the words take exactly the ink they always took. */
+    const elOn = (v: string | undefined, grounds: string[]) =>
+      v ? darkenToContrastAll(v, grounds, INK_RATIO) : undefined
+    /* The strength of the accent wash the art carries, derived for the ink the
+     * header's own words take - the strength it has always been derived at. */
+    const artVeilAccent = veilAlpha(theme.primary, onHeader, artGrounds, ART_VEIL_ACCENT_FLOOR)
+    /* And under the art the ground an element colour lands on is that WASH,
+     * not the accent: the accent at that strength over each extreme the
+     * picture puts under a word. Derived against the accent instead, a name
+     * came out a shade the wash could not carry, and deriving the WASH for it
+     * instead asked for a fully opaque one - which reads perfectly and leaves
+     * nothing of the picture to see. The words move; the art stays. */
+    const elGrounds =
+      onArt && artGrounds.length ? artGrounds.map((g) => mix(theme.primary, g, artVeilAccent)) : hdrGrounds
+    const nameOnHeader = elOn(theme.name, elGrounds)
+    const headlineOnHeader = elOn(theme.headline, elGrounds)
+    const contactOnHeader = elOn(theme.contacts, elGrounds)
+    /* The two lighter treads carry the headline and the contact line, so an
+     * element colour set there is derived against the tread and not against
+     * the accent above it - and under the art all three treads are the one
+     * wash again. */
+    const headlineOnStep2 = onArt ? headlineOnHeader : elOn(theme.headline, [step2Bg])
+    const contactOnStep3 = onArt ? contactOnHeader : elOn(theme.contacts, [step3Bg])
     // Magic fit: the body follows the TYPE scale, the gaps the SPACING scale;
     // a locked size derives from the body as set, so it stays exactly what
     // the sliders say however far the fit moves (fitOnePage.ts fitToPages).
@@ -173,44 +425,104 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
       // the accent is TEXT read them. Derived here rather than written into
       // the designs so an accent chosen in the Design panel is corrected
       // exactly as a design's own is.
-      '--rm-primary-ink': darkenToContrast(theme.primary, theme.background || '#ffffff', INK_RATIO),
+      '--rm-primary-ink': darkenToContrast(theme.primary, pageBg, INK_RATIO),
       // On a chip the accent is drawn on 12% of itself (artboard.css
       // .rm-chip), which costs about half a point of ratio - so the chip's
       // words are derived against the ground they actually sit on.
-      '--rm-primary-ink-on-chip': darkenToContrast(
-        theme.primary,
-        mix(theme.primary, theme.background || '#ffffff', CHIP_TINT),
-        INK_RATIO
-      ),
+      '--rm-primary-ink-on-chip': darkenToContrast(theme.primary, mix(theme.primary, pageBg, CHIP_TINT), INK_RATIO),
       // A sidebar is a second paper, and the page's ink says nothing about
       // it: on a pale band the page ink is a shade too light, and on a dark
       // one it is darkened in exactly the wrong direction. artboard.css
       // hands this to every rule inside .rm-col-aside.
-      '--rm-primary-ink-on-band': darkenToContrast(
-        theme.primary,
-        theme.sidebar || theme.background || '#ffffff',
-        INK_RATIO
-      ),
+      '--rm-primary-ink-on-band': darkenToContrast(theme.primary, bandBg, INK_RATIO),
       // The folio tag a named link wears stands on the gold-tinted paper
       // (artboard.css --rm-folio-paper), darker than the page by a little
       // and enough to matter at these sizes.
       '--rm-primary-ink-on-folio': darkenToContrast(
         theme.primary,
-        mix(FOLIO_GOLD, theme.background || '#ffffff', FOLIO_TINT),
+        mix(FOLIO_GOLD, pageBg, FOLIO_TINT),
         INK_RATIO
       ),
+      // The same tag INSIDE a sidebar stands on the band's own paper
+      // instead, and took the raw accent there - the one folio ground with
+      // no ink of its own. On a mid-tone band it measured 1.01:1.
+      '--rm-primary-ink-on-band-folio': darkenToContrast(theme.primary, bandFolioBg, INK_RATIO),
+      // An entry drawn as a CARD lays a 4% wash of the page's ink under its
+      // words (templates.css .lay-ov-cards), and inside a sidebar a 9% wash
+      // of white over the band. Neither ground was known to the inks derived
+      // against the plain page, so designs sitting at 4.2-4.5:1 fell through
+      // the moment a section was set to cards. The quiet lines move with
+      // them: --rm-muted was chosen for paper too.
+      '--rm-primary-ink-on-card': darkenToContrast(theme.primary, cardBg, INK_RATIO),
+      '--rm-primary-ink-on-chip-card': darkenToContrast(
+        theme.primary,
+        mix(theme.primary, cardBg, CHIP_TINT),
+        INK_RATIO
+      ),
+      '--rm-muted-on-card': darkenToContrast(theme.muted, cardBg, INK_RATIO),
+      // The quiet line's own step back, derived against each ground it can
+      // land on rather than measured once against the page.
+      '--rm-muted-soft': mutedSoft(pageBg),
+      '--rm-muted-soft-on-card': mutedSoft(cardBg),
+      // The gutter's rail is a third wash of the accent, and the year standing
+      // on it took the raw accent while the label under it took the muted
+      // colour chosen for the page.
+      '--rm-primary-ink-on-gutter': darkenToContrast(theme.primary, gutterBg, INK_RATIO),
+      // The rail's year is display type - at least 3.1 times the body size,
+      // so 21pt at the smallest body the fit reaches - and large type is held
+      // to 3:1. Derived against 4.5 it walked a design's own orange that
+      // already read at 3.71:1 to a darker one for no reader's sake.
+      '--rm-primary-ink-on-gutter-large': darkenToContrast(theme.primary, gutterBg, LARGE_INK_RATIO),
+      '--rm-muted-on-gutter': darkenToContrast(theme.muted, gutterBg, INK_RATIO),
+      '--rm-primary-ink-on-band-card': darkenToContrast(theme.primary, bandCardBg, INK_RATIO),
+      '--rm-primary-ink-on-band-chip': darkenToContrast(
+        theme.primary,
+        mix(theme.primary, bandBg, BAND_ACCENT_CHIP_TINT),
+        INK_RATIO
+      ),
+      '--rm-sidebar-text-on-card': darkenToContrast(theme.sidebarText || theme.text, bandCardBg, INK_RATIO),
+      '--rm-chip-line-band': `${Math.round(chipLineBand * 100)}%`,
       // The band header's second gradient stop, and the colour a block or
       // band header sets its text in: the author's own when chosen, else
       // derived from the accent alone (elementColors.ts).
-      '--rm-gradient-to': theme.gradientTo || lighten(theme.primary, 0.18),
-      '--rm-on-primary': readableOn(theme.primary, theme.text),
+      '--rm-gradient-to': gradientTo,
+      // The second stop as INK. It is a GROUND - the far end of a band, the
+      // hairline down a heading, the arc of a ring - and one design sets it
+      // as small text as well, where it was the one accent-like colour on
+      // the page that nothing derived: a teal chosen to close a navy fade
+      // measured 3.61:1 as a date. Derived exactly as --rm-primary-ink is,
+      // against the page and against a card, so a page or an accent moved in
+      // the Design panel carries it.
+      '--rm-gradient-to-ink': darkenToContrast(gradientTo, pageBg, INK_RATIO),
+      '--rm-gradient-to-ink-on-card': darkenToContrast(gradientTo, cardBg, INK_RATIO),
+      '--rm-gradient-to-ink-on-band': darkenToContrast(gradientTo, bandBg, INK_RATIO),
+      '--rm-on-primary': onPrimary,
+      // The four compositions that paint a ground of their own read this one
+      // instead: the accent when that is what they paint, and the design's
+      // own stops or the band's fade when it is not.
+      '--rm-on-header': onHeader,
       // The stepped header's second and third bands: the accent lightened
       // 14% and 28%, so the three steps grade from the accent down. A
       // template can name its own two shades instead, on the header element
       // itself (templates.css): written here they are inline on the root,
       // which no stylesheet rule can outrank.
-      '--rm-step-2': lighten(theme.primary, 0.14),
-      '--rm-step-3': lighten(theme.primary, 0.28),
+      '--rm-step-2': step2Bg,
+      '--rm-step-3': step3Bg,
+      // A tread is LIGHTER than the accent, and the ink every step carried
+      // was derived against the accent itself: on twenty-eight designs the
+      // third tread's contact line measured under 4.5:1 - obsidian at 1.51.
+      // Each tread now carries the ink derived against its own shade.
+      '--rm-on-step-2': onStep2,
+      '--rm-on-step-3': onStep3,
+      // An element colour on the header's own ground, and only for the
+      // colours somebody set. The stylesheet reads THESE inside a coloured
+      // header and never --rm-name-color itself, so a colour chosen for the
+      // page cannot walk onto a band unexamined.
+      ...(nameOnHeader ? { '--rm-name-on-header': nameOnHeader } : {}),
+      ...(headlineOnHeader ? { '--rm-headline-on-header': headlineOnHeader } : {}),
+      ...(contactOnHeader ? { '--rm-contact-on-header': contactOnHeader } : {}),
+      ...(headlineOnStep2 ? { '--rm-headline-on-step-2': headlineOnStep2 } : {}),
+      ...(contactOnStep3 ? { '--rm-contact-on-step-3': contactOnStep3 } : {}),
       // The wash a header lays over its art band (theme.artBand): the page's
       // own colour, at the smallest strength that still leaves the text
       // readable over the darkest and lightest ground THIS band puts under a
@@ -222,16 +534,34 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
       // composition that has a ground of its own (block, band, banner,
       // stepped) hands that ground to the art and washes it in the accent
       // instead, so its white words still read (artboard.css .rm-header-art).
-      '--rm-art-veil': withAlpha(
-        theme.background,
-        veilAlpha(theme.background, theme.text, ART_BAND_GROUNDS[theme.artBand ?? 'none'] ?? [])
-      ),
-      '--rm-art-veil-accent': withAlpha(theme.primary, 0.55),
+      '--rm-art-veil': withAlpha(theme.background, veilAlpha(theme.background, theme.text, artGrounds)),
+      // The accent wash was a CONSTANT 0.55 while its sibling above was
+      // derived, so the one composite ground nothing checked was the one a
+      // coloured header hands to the art: obsidian's banner over the navy
+      // band measured 1.38:1 and the contact line simply was not there.
+      // Same derivation, same floor as the strength it always had, and it
+      // holds every ink the header's words actually take - the header's own
+      // and each element colour derived against the same accent.
+      '--rm-art-veil-accent': withAlpha(theme.primary, artVeilAccent),
       // The footer strip: its ground is the theme's footer colour when one
       // is set (the stylesheet falls back to the text colour), and its text
       // whichever of white and the text colour reads on that ground.
       ...(theme.footer ? { '--rm-footer-bg': theme.footer } : {}),
-      '--rm-on-footer': readableOn(theme.footer || theme.text, theme.text),
+      '--rm-on-footer': readableOn(footerBg, theme.text, INK_RATIO),
+      // The strip is a THIRD paper, and nothing but its own words followed
+      // it there: its quiet lines kept --rm-muted and its titles the raw
+      // accent, both chosen for the page. On a dark design the strip's
+      // ground is a LIGHT colour - it is the page's ink - so the muted line
+      // measured 2.24:1 and, on the eight designs whose accent IS their text
+      // colour, the title measured 1:1 and the word was simply not there.
+      // Both are derived against the strip's own ground, and artboard.css
+      // hands them to every rule inside .rm-footer the way .rm-col-aside
+      // hands the band's ink to the sidebar.
+      '--rm-muted-on-footer': darkenToContrast(theme.muted, footerBg, INK_RATIO),
+      '--rm-primary-ink-on-footer': darkenToContrast(theme.primary, footerBg, INK_RATIO),
+      // And the heading colour a design names for its PAGE, re-derived
+      // against the strip: folio-noir's gold measured 1.75:1 there.
+      '--rm-heading-ink-on-footer': darkenToContrast(theme.headings || theme.primary, footerBg, INK_RATIO),
       // The sheet's own height, so a one-page document can seat the strip
       // at its foot (artboard.css .rm-has-footer).
       '--rm-page-h': `${PAGE_DIMENSIONS[page.format === 'Letter' ? 'Letter' : 'A4'].h.toFixed(2)}px`,
@@ -283,7 +613,23 @@ function useVars(doc: ResumeDocument, fit: FitVector): CSSProperties {
       // stylesheet's fallback chains decide the rest (elementColors.ts).
       ...elementColorVars(theme),
     } as CSSProperties
-  }, [theme, t, layout, page, fit.type, fit.space, lock.name, lock.headline, lock.contacts, lock.sectionGap])
+  }, [
+    theme,
+    t,
+    layout,
+    page,
+    // Two designs paint their banner from stops of their own, so which design
+    // this is decides the ground the header's ink is derived against
+    // (headerStyles.tsx HEADER_GROUNDS).
+    doc.metadata.template,
+    headerStyle,
+    fit.type,
+    fit.space,
+    lock.name,
+    lock.headline,
+    lock.contacts,
+    lock.sectionGap,
+  ])
 }
 
 interface ContactEntry {
@@ -1189,7 +1535,7 @@ export function SectionPreview({
   config: TemplateConfig
   sectionKey: string
 }) {
-  const vars = useVars(doc, FIT_AS_SET)
+  const vars = useVars(doc, FIT_AS_SET, config.header)
   const t = doc.metadata.typography
   ensureFont(t.fontFamily)
   ensureFont(t.headingFamily)
@@ -1240,7 +1586,7 @@ export function Artboard({
   onAddSection?: () => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
-  const vars = useVars(doc, fit ?? { type: fitScale, space: fitScale })
+  const vars = useVars(doc, fit ?? { type: fitScale, space: fitScale }, config.header)
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
   // with their inline "Add item" affordance; print/thumbnail show content only.
   const editing = !!edit
@@ -1293,8 +1639,15 @@ export function Artboard({
     .filter(Boolean)
     .join(' ')
 
+  // A sidebar on paper of its own - one the page's own text colour cannot be
+  // read on - is a BAND, and in a band a design's page colours stand down
+  // (artboard.css .rm-aside-painted). A pale sidebar is the page's paper
+  // tinted, where those colours were chosen to read and still do.
+  const sideTheme = doc.metadata.theme
+  const asidePainted =
+    twoCol && contrastRatio(sideTheme.text, sideTheme.sidebar || sideTheme.background || '#ffffff') < 4.5
   const AsideCol = twoCol ? (
-    <aside className="rm-col-aside">
+    <aside className={asidePainted ? 'rm-col-aside rm-aside-painted' : 'rm-col-aside'}>
       {doc.metadata.layout.showPhoto && doc.content.basics.image ? (
         <Photo doc={doc} editMeta={editMeta} />
       ) : doc.metadata.layout.monogram ? (
