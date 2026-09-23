@@ -1,7 +1,7 @@
 {
   "name": "cvaurum",
   "private": true,
-  "version": "1.0.0",
+  "version": "3.0.0",
   "type": "module",
   "description": "CVAurum — the open-source resume studio. Beautiful, ATS-ready resumes, 100% local and private. No account, no server, no tracking.",
   "license": "AGPL-3.0-only",
