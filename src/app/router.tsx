@@ -3,6 +3,7 @@ import { createBrowserRouter, useRouteError } from 'react-router-dom'
 import { RootLayout } from './RootLayout'
 import { Landing } from '@/routes/Landing'
 import { NotFound } from '@/routes/NotFound'
+import { GUIDES } from '@/data/guides'
 
 const RELOAD_KEY = 'cvaurum:chunk-reload'
 
@@ -51,6 +52,7 @@ const TemplatePage = lazyRoute(() => import('@/routes/TemplatePage').then((m) =>
 const ExamplesPage = lazyRoute(() => import('@/routes/Examples').then((m) => ({ default: m.Examples })))
 const ExamplePage = lazyRoute(() => import('@/routes/ExamplePage').then((m) => ({ default: m.ExamplePage })))
 const PromptsPage = lazyRoute(() => import('@/routes/Prompts').then((m) => ({ default: m.Prompts })))
+const GuidePage = lazyRoute(() => import('@/routes/Guide').then((m) => ({ default: m.Guide })))
 const EditorRoute = lazyRoute(() => import('@/routes/EditorRoute').then((m) => ({ default: m.EditorRoute })))
 const Tracker = lazyRoute(() => import('@/routes/Tracker').then((m) => ({ default: m.Tracker })))
 const PrintPage = lazyRoute(() => import('@/routes/PrintPage').then((m) => ({ default: m.PrintPage })))
@@ -144,6 +146,11 @@ export const router = createBrowserRouter([
       // public, indexable, and the way in for someone whose history is in a
       // chat window rather than in a file.
       { path: '/prompts', element: s(<PromptsPage />) },
+      // One page per search question - "free resume builder", "ATS resume
+      // checker", "resume builder no sign up" - answered in full
+      // (src/data/guides.ts). Listed by slug, not matched by a pattern, so a
+      // mistyped address is still a 404.
+      ...GUIDES.map((g) => ({ path: `/${g.slug}`, element: s(<GuidePage />) })),
       { path: '/app', element: s(<Dashboard />) },
       { path: '/resume/:id', element: s(<EditorRoute />) },
       { path: '/tracker', element: s(<Tracker />) },

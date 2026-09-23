@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronDown, FileText, FilePlus2, FileUp, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
+import { useEditorStore } from '@/store/useEditorStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
@@ -72,7 +73,9 @@ export function useResumeActions() {
   }
 
   /** Import an existing PDF résumé — parsed 100% in the browser, never uploaded. */
-  const importPdf = async (file?: File) => {
+  /** `openAts` lands the editor on the ATS panel - the checker page's way in,
+   *  where the reason someone dropped a PDF was to see what a parser reads. */
+  const importPdf = async (file?: File, opts: { openAts?: boolean } = {}) => {
     if (!file) return
     toast('Reading your PDF — all on your device…', 'info')
     try {
@@ -108,6 +111,10 @@ export function useResumeActions() {
       await saveDoc(doc)
       await refreshLibrary()
       toast(meta.ocrPages.length ? 'Imported via OCR — please review the fields closely' : 'Imported from PDF — review and tidy the fields', 'success')
+      if (opts.openAts) {
+        useEditorStore.getState().setLeftTab('ats')
+        useEditorStore.getState().setLeftOpen(true)
+      }
       navigate(`/resume/${doc.id}`)
     } catch (e) {
       console.error(e)

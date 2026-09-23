@@ -187,6 +187,8 @@ function seoPages(): Plugin {
       // example" can land anywhere but the homepage.
       write('examples', pageHtml(shell, seo.SITE, seo.examplesPageMeta(), seo.examplesStaticHtml(), seo.examplesJsonLd()))
       write('prompts', pageHtml(shell, seo.SITE, seo.promptsPageMeta(), seo.promptsStaticHtml(), seo.promptsJsonLd()))
+      for (const slug of seo.guideSlugs())
+        write(slug, pageHtml(shell, seo.SITE, seo.guidePageMeta(slug), seo.guideStaticHtml(slug), seo.guideJsonLd(slug)))
       const slugs = seo.orderedSampleSlugs()
       for (const slug of slugs) {
         write(
@@ -225,6 +227,7 @@ function seoPages(): Plugin {
       for (const id of ids) writeText(path.join('templates', `${id}.md`), seo.templateMarkdown(id))
       writeText('examples.md', seo.examplesMarkdown())
       writeText('prompts.md', seo.promptsMarkdown())
+      for (const slug of seo.guideSlugs()) writeText(`${slug}.md`, seo.guideMarkdown(slug))
       for (const slug of slugs) writeText(path.join('examples', `${slug}.md`), seo.sampleMarkdown(slug))
 
       // Agent discovery, truthful for a site with no server: an API catalog

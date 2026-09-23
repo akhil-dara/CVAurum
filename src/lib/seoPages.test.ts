@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { TEMPLATES, TEMPLATE_MAP, getTemplate } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
+import { GUIDES } from '@/data/guides'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { examplesPageMeta, samplePageImage } from '@/lib/seoLibrary'
 import {
@@ -170,8 +171,8 @@ describe('the sitemap', () => {
   const xml = sitemapXml('2026-09-08')
 
   // Home, the gallery, the example shelf and the prompt library, plus one
-  // page per design and one per example.
-  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 4
+  // page per design and one per example, and the guides at the end.
+  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 4 + GUIDES.length
 
   it('lists the landing page, both collections and every page in them', () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
@@ -181,10 +182,11 @@ describe('the sitemap', () => {
     const designs = allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`)
     expect(locs.slice(2, 2 + designs.length)).toEqual(designs)
     expect(locs[2 + designs.length]).toBe('https://cvaurum.com/examples')
-    expect(locs.slice(3 + designs.length, -1)).toEqual(
+    expect(locs.slice(3 + designs.length, -1 - GUIDES.length)).toEqual(
       orderedSampleSlugs().map((slug) => `https://cvaurum.com/examples/${slug}`)
     )
-    expect(locs[locs.length - 1]).toBe('https://cvaurum.com/prompts')
+    expect(locs[locs.length - 1 - GUIDES.length]).toBe('https://cvaurum.com/prompts')
+    expect(locs.slice(-GUIDES.length)).toEqual(GUIDES.map((g) => `https://cvaurum.com/${g.slug}`))
   })
 
   /**
@@ -254,12 +256,14 @@ describe('the sitemap', () => {
     const p = [...xml.matchAll(/<priority>([^<]+)<\/priority>/g)].map((m) => m[1])
     expect(p[0]).toBe('1.0')
     // Every collection page ranks above the pages inside it; the prompt
-    // library is one too, and is the last entry.
+    // library is one too, and the guides follow it, between the two.
+    const prompts = p.length - 1 - GUIDES.length
     expect(p[1]).toBe('0.8')
     expect(p[2 + TEMPLATES.length]).toBe('0.8')
-    expect(p[p.length - 1]).toBe('0.8')
-    const collections = new Set([0, 1, 2 + TEMPLATES.length, p.length - 1])
-    const inner = p.filter((_, i) => !collections.has(i))
+    expect(p[prompts]).toBe('0.8')
+    expect(new Set(p.slice(-GUIDES.length))).toEqual(new Set(['0.7']))
+    const collections = new Set([0, 1, 2 + TEMPLATES.length, prompts])
+    const inner = p.filter((_, i) => !collections.has(i) && i <= prompts)
     expect(new Set(inner)).toEqual(new Set(['0.6']))
   })
 })
@@ -788,14 +792,70 @@ describe('the one list of public URLs', () => {
     const paths = publicUrlPaths()
     expect(paths[0]).toBe('/')
     expect(paths[1]).toBe('/templates')
-    expect(paths[paths.length - 1]).toBe('/prompts')
-    expect(paths).toHaveLength(TEMPLATES.length + orderedSampleSlugs().length + 4)
+    expect(paths[paths.length - 1 - GUIDES.length]).toBe('/prompts')
+    expect(paths.slice(-GUIDES.length)).toEqual(GUIDES.map((g) => `/${g.slug}`))
+    expect(paths).toHaveLength(TEMPLATES.length + orderedSampleSlugs().length + 4 + GUIDES.length)
     expect(publicUrls()).toEqual(paths.map((p) => `https://cvaurum.com${p}`))
   })
 
   it('holds no duplicate and no private route', () => {
     const paths = publicUrlPaths()
     expect(new Set(paths).size).toBe(paths.length)
-    for (const p of paths) expect(/^\/(app|tracker|resume|print|r)\b/.test(p), p).toBe(false)
+    for (const p of paths) expect(/^\/(app|tracker|resume|print|r)(\/|$)/.test(p), p).toBe(false)
+  })
+})
+
+describe('the guides', () => {
+  it('each answers one search at its own address, listed with the public pages', async () => {
+    const { GUIDES } = await import('@/data/guides')
+    const seo = await import('@/lib/seoPages')
+    expect(GUIDES.map((g) => g.slug)).toEqual(['free-resume-builder', 'ats-resume-checker', 'resume-builder-no-sign-up'])
+    const paths = seo.publicUrlPaths()
+    for (const g of GUIDES) expect(paths).toContain(`/${g.slug}`)
+    const map = seo.sitemapXml('2026-01-01')
+    for (const g of GUIDES) expect(map).toContain(`<loc>https://cvaurum.com/${g.slug}</loc>`)
+    for (const g of GUIDES) expect(seo.llmsTxt()).toContain(`https://cvaurum.com/${g.slug}`)
+  })
+
+  it('keeps every title distinct and every description whole within the limit', async () => {
+    const { GUIDES } = await import('@/data/guides')
+    const seo = await import('@/lib/seoPages')
+    expect(new Set(GUIDES.map((g) => g.title)).size).toBe(GUIDES.length)
+    for (const g of GUIDES) {
+      expect(g.description.length, g.slug).toBeLessThanOrEqual(seo.DESC_MAX)
+      expect(seo.guidePageMeta(g.slug).description).toBe(g.description)
+    }
+  })
+
+  it('serves the same words to a reader with no script as to the page, questions included', async () => {
+    const { GUIDES } = await import('@/data/guides')
+    const seo = await import('@/lib/seoPages')
+    for (const g of GUIDES) {
+      const html = seo.guideStaticHtml(g.slug)
+      const md = seo.guideMarkdown(g.slug)
+      expect(html).toContain(`<h1>${htmlEscape(g.heading)}</h1>`)
+      for (const sec of g.sections) {
+        expect(html).toContain(`<h2>${htmlEscape(sec.heading)}</h2>`)
+        expect(md).toContain(`## ${sec.heading}`)
+        for (const li of sec.list ?? []) expect(md).toContain(`- ${li}`)
+      }
+      for (const f of g.faq) {
+        expect(html).toContain(htmlEscape(f.q))
+        expect(md).toContain(f.a)
+      }
+      // no literal escape left behind by a template string
+      expect(html).not.toMatch(/\\n|\$\{/)
+      expect(md).not.toMatch(/\\n|\$\{/)
+    }
+  })
+
+  it('declares the page, its trail and its questions as structured data', async () => {
+    const { GUIDES } = await import('@/data/guides')
+    const seo = await import('@/lib/seoPages')
+    for (const g of GUIDES) {
+      const graph = JSON.parse(seo.guideJsonLd(g.slug))['@graph'] as { '@type': string; mainEntity?: unknown[] }[]
+      expect(graph.map((n) => n['@type'])).toEqual(['WebPage', 'BreadcrumbList', 'FAQPage'])
+      expect(graph[2].mainEntity).toHaveLength(g.faq.length)
+    }
   })
 })

@@ -1,290 +1,290 @@
 {
   "/": {
-    "hash": "b591ad31cb2cbb05",
-    "lastmod": "2026-09-16"
+    "hash": "8a6d30551f6a98ed",
+    "lastmod": "2026-09-23"
   },
   "/templates": {
     "hash": "c9af238083759499",
     "lastmod": "2026-09-16"
   },
   "/templates/broadsheet": {
-    "hash": "61d6e6193a51fdc9",
-    "lastmod": "2026-09-22"
+    "hash": "cd42d78f0c22778c",
+    "lastmod": "2026-09-23"
   },
   "/templates/marquee": {
-    "hash": "7fe06bba171bf9d9",
-    "lastmod": "2026-09-22"
+    "hash": "88add46dba590746",
+    "lastmod": "2026-09-23"
   },
   "/templates/atlas": {
-    "hash": "85c2bd98037175d1",
-    "lastmod": "2026-09-22"
+    "hash": "026f8c962bd595b3",
+    "lastmod": "2026-09-23"
   },
   "/templates/chronicle": {
-    "hash": "04a97af8cf8f15f9",
-    "lastmod": "2026-09-22"
+    "hash": "5d92aaf79e7fed30",
+    "lastmod": "2026-09-23"
   },
   "/templates/folio-noir": {
-    "hash": "18c0ee1dc29b7d33",
-    "lastmod": "2026-09-22"
+    "hash": "ffeb3f8ba8499eee",
+    "lastmod": "2026-09-23"
   },
   "/templates/terrace": {
-    "hash": "5651e99091e841e7",
-    "lastmod": "2026-09-22"
+    "hash": "300b2ef10de6849c",
+    "lastmod": "2026-09-23"
   },
   "/templates/clarity": {
-    "hash": "60fd751858f6460b",
-    "lastmod": "2026-09-22"
+    "hash": "a3b050aeff5d2dfa",
+    "lastmod": "2026-09-23"
   },
   "/templates/obsidian": {
-    "hash": "11ceea1cbd19f69e",
-    "lastmod": "2026-09-22"
+    "hash": "2de947f865fdbc12",
+    "lastmod": "2026-09-23"
   },
   "/templates/onyx-noir": {
-    "hash": "52e4c7809e242959",
-    "lastmod": "2026-09-22"
+    "hash": "b3b05ee237a2b26f",
+    "lastmod": "2026-09-23"
   },
   "/templates/cascade": {
-    "hash": "5cc9bbed95e1131b",
-    "lastmod": "2026-09-22"
+    "hash": "2f1088cc5abb8287",
+    "lastmod": "2026-09-23"
   },
   "/templates/sapphire": {
-    "hash": "ffffa5c8e79e332a",
-    "lastmod": "2026-09-22"
+    "hash": "e9842d81b923e5e8",
+    "lastmod": "2026-09-23"
   },
   "/templates/garnet": {
-    "hash": "9a5a417c83e97d6a",
-    "lastmod": "2026-09-22"
+    "hash": "e2c047b99efb5d13",
+    "lastmod": "2026-09-23"
   },
   "/templates/initials": {
-    "hash": "bd7e096fa48ec3ab",
-    "lastmod": "2026-09-22"
+    "hash": "ecdb3ed399a06587",
+    "lastmod": "2026-09-23"
   },
   "/templates/emblem": {
-    "hash": "e1fba1040d7a9092",
-    "lastmod": "2026-09-22"
+    "hash": "c6a8efa0ca724564",
+    "lastmod": "2026-09-23"
   },
   "/templates/verde": {
-    "hash": "56241687f2edb68b",
-    "lastmod": "2026-09-22"
+    "hash": "c81a1856f2171e35",
+    "lastmod": "2026-09-23"
   },
   "/templates/onyx-gold": {
-    "hash": "662d677a6c8cc8fd",
-    "lastmod": "2026-09-22"
+    "hash": "504689614161562b",
+    "lastmod": "2026-09-23"
   },
   "/templates/pinnacle": {
-    "hash": "6683c965bbb38da4",
-    "lastmod": "2026-09-22"
+    "hash": "7fcd4bf21f79569d",
+    "lastmod": "2026-09-23"
   },
   "/templates/crest": {
-    "hash": "4ef972ff2f4a2490",
-    "lastmod": "2026-09-22"
+    "hash": "4e153a720cb85db3",
+    "lastmod": "2026-09-23"
   },
   "/templates/ribbon": {
-    "hash": "49af4090571248b0",
-    "lastmod": "2026-09-22"
+    "hash": "143b0bef798ead8d",
+    "lastmod": "2026-09-23"
   },
   "/templates/orchid": {
-    "hash": "a151db5c65f63d3a",
-    "lastmod": "2026-09-22"
+    "hash": "cb2a11cbf6ecd0bd",
+    "lastmod": "2026-09-23"
   },
   "/templates/aurum": {
-    "hash": "429eacef3974eac9",
-    "lastmod": "2026-09-22"
+    "hash": "a2c488787ebf2f16",
+    "lastmod": "2026-09-23"
   },
   "/templates/aurum-editorial": {
-    "hash": "6916c787d2794477",
-    "lastmod": "2026-09-22"
+    "hash": "9dda53fad33ebd98",
+    "lastmod": "2026-09-23"
   },
   "/templates/swiss-aurum": {
-    "hash": "6376516b8d4043e5",
-    "lastmod": "2026-09-22"
+    "hash": "921ba57b10e36616",
+    "lastmod": "2026-09-23"
   },
   "/templates/atelier": {
-    "hash": "fae8b74f3d7635d3",
-    "lastmod": "2026-09-22"
+    "hash": "89d5a5c1ac40f688",
+    "lastmod": "2026-09-23"
   },
   "/templates/harvard": {
-    "hash": "7ba9322bb29b5fb7",
-    "lastmod": "2026-09-22"
+    "hash": "1a4f60d272d3b1b1",
+    "lastmod": "2026-09-23"
   },
   "/templates/garamond": {
-    "hash": "e70592fec6050dca",
-    "lastmod": "2026-09-22"
+    "hash": "6745de063061cd94",
+    "lastmod": "2026-09-23"
   },
   "/templates/modern": {
-    "hash": "b164397b7272c110",
-    "lastmod": "2026-09-22"
+    "hash": "71abdf86d92d7d9d",
+    "lastmod": "2026-09-23"
   },
   "/templates/classic": {
-    "hash": "c7297c66d4ee9096",
-    "lastmod": "2026-09-22"
+    "hash": "fd3aa45dc754f0be",
+    "lastmod": "2026-09-23"
   },
   "/templates/cambridge": {
-    "hash": "051ff730dfdeebd1",
-    "lastmod": "2026-09-22"
+    "hash": "c125906e8bc71f26",
+    "lastmod": "2026-09-23"
   },
   "/templates/vector": {
-    "hash": "475f204ddd64b9cd",
-    "lastmod": "2026-09-22"
+    "hash": "77e3a423ea6e20d6",
+    "lastmod": "2026-09-23"
   },
   "/templates/minimal": {
-    "hash": "fbd0ff2d42ecaaef",
-    "lastmod": "2026-09-22"
+    "hash": "a8bc291a821f0d17",
+    "lastmod": "2026-09-23"
   },
   "/templates/executive": {
-    "hash": "13e4d2d72e34a28b",
-    "lastmod": "2026-09-22"
+    "hash": "253f70b6d5b09e84",
+    "lastmod": "2026-09-23"
   },
   "/templates/timeline": {
-    "hash": "57646801eb548b89",
-    "lastmod": "2026-09-22"
+    "hash": "79c35a6d35f7b97b",
+    "lastmod": "2026-09-23"
   },
   "/templates/double": {
-    "hash": "26645359673d1731",
-    "lastmod": "2026-09-22"
+    "hash": "ee9b663f8d22acbb",
+    "lastmod": "2026-09-23"
   },
   "/templates/double-colored": {
-    "hash": "bdedbd1a7c6090e7",
-    "lastmod": "2026-09-22"
+    "hash": "27283f4b0748ef4c",
+    "lastmod": "2026-09-23"
   },
   "/templates/aside": {
-    "hash": "2f7ec17acd074cbd",
-    "lastmod": "2026-09-22"
+    "hash": "e3efb9d409232717",
+    "lastmod": "2026-09-23"
   },
   "/templates/compact": {
-    "hash": "c4cadadee2fb7bb0",
-    "lastmod": "2026-09-22"
+    "hash": "d0aa552e2fb53564",
+    "lastmod": "2026-09-23"
   },
   "/templates/elegant": {
-    "hash": "dd7ecdb99a448001",
-    "lastmod": "2026-09-22"
+    "hash": "a30d08b8f9ebff47",
+    "lastmod": "2026-09-23"
   },
   "/templates/contemporary": {
-    "hash": "90f423c693a9350f",
-    "lastmod": "2026-09-22"
+    "hash": "d6051945fb322077",
+    "lastmod": "2026-09-23"
   },
   "/templates/polished": {
-    "hash": "6306969aa821e932",
-    "lastmod": "2026-09-22"
+    "hash": "d1f2c8ef531c1345",
+    "lastmod": "2026-09-23"
   },
   "/templates/technical": {
-    "hash": "724bfb6bd560617d",
-    "lastmod": "2026-09-22"
+    "hash": "c352874c6f3f42e4",
+    "lastmod": "2026-09-23"
   },
   "/templates/creative": {
-    "hash": "fcba3e6e6c5c9cd8",
-    "lastmod": "2026-09-22"
+    "hash": "7b7c6c8ca8dbefbc",
+    "lastmod": "2026-09-23"
   },
   "/templates/ivy": {
-    "hash": "5dbe19a7089e6cf8",
-    "lastmod": "2026-09-22"
+    "hash": "64750997956db71a",
+    "lastmod": "2026-09-23"
   },
   "/templates/onyx": {
-    "hash": "ebbc8b97e04327b2",
-    "lastmod": "2026-09-22"
+    "hash": "4042930f2c46d5bb",
+    "lastmod": "2026-09-23"
   },
   "/templates/cobalt": {
-    "hash": "d46d2f5a538c2315",
-    "lastmod": "2026-09-22"
+    "hash": "8ad2f7a2b55f0db2",
+    "lastmod": "2026-09-23"
   },
   "/templates/academic": {
-    "hash": "e1a3aa2da4186413",
-    "lastmod": "2026-09-22"
+    "hash": "b5a21995e5155128",
+    "lastmod": "2026-09-23"
   },
   "/templates/verdant": {
-    "hash": "c013b84cdb7f17eb",
-    "lastmod": "2026-09-22"
+    "hash": "70579c832675a76f",
+    "lastmod": "2026-09-23"
   },
   "/templates/sienna": {
-    "hash": "dcb2b1bfe3d76e99",
-    "lastmod": "2026-09-22"
+    "hash": "48838b3489c20922",
+    "lastmod": "2026-09-23"
   },
   "/templates/newton": {
-    "hash": "685ea6d96bc55fd6",
-    "lastmod": "2026-09-22"
+    "hash": "20d9bab3777f29cf",
+    "lastmod": "2026-09-23"
   },
   "/templates/deedy": {
-    "hash": "4c60a7362a845fc9",
-    "lastmod": "2026-09-22"
+    "hash": "a85c88105cce08e3",
+    "lastmod": "2026-09-23"
   },
   "/templates/slate": {
-    "hash": "12c8d5181594d32b",
-    "lastmod": "2026-09-22"
+    "hash": "30ecdc99dca2dd1a",
+    "lastmod": "2026-09-23"
   },
   "/templates/mercury": {
-    "hash": "65268b59e4e4cbae",
-    "lastmod": "2026-09-22"
+    "hash": "ecc08740198c8614",
+    "lastmod": "2026-09-23"
   },
   "/templates/halcyon": {
-    "hash": "9f41a7315efe9eab",
-    "lastmod": "2026-09-22"
+    "hash": "05008f0646d4f2b3",
+    "lastmod": "2026-09-23"
   },
   "/templates/graphite": {
-    "hash": "da54b3df0da07625",
-    "lastmod": "2026-09-22"
+    "hash": "60f0a0151cee0af3",
+    "lastmod": "2026-09-23"
   },
   "/templates/portrait": {
-    "hash": "402c31ab2391d240",
-    "lastmod": "2026-09-22"
+    "hash": "925eb77442ff105d",
+    "lastmod": "2026-09-23"
   },
   "/templates/spotlight": {
-    "hash": "24ce4cd07340bc1b",
-    "lastmod": "2026-09-22"
+    "hash": "bf8826e6dac3df47",
+    "lastmod": "2026-09-23"
   },
   "/templates/mono": {
-    "hash": "ff6f4c157b8be206",
-    "lastmod": "2026-09-22"
+    "hash": "08811ba8e6b575bf",
+    "lastmod": "2026-09-23"
   },
   "/templates/opal": {
-    "hash": "64d71811c4fe39b3",
-    "lastmod": "2026-09-22"
+    "hash": "86cc59c1ca072472",
+    "lastmod": "2026-09-23"
   },
   "/templates/plainsong": {
-    "hash": "633518be9c3fd3ee",
-    "lastmod": "2026-09-22"
+    "hash": "39432202c3638b6b",
+    "lastmod": "2026-09-23"
   },
   "/templates/quire": {
-    "hash": "3de2810f16b8de6e",
-    "lastmod": "2026-09-22"
+    "hash": "948f83f209b5098e",
+    "lastmod": "2026-09-23"
   },
   "/templates/scribe": {
-    "hash": "9b1a1b5864863dc3",
-    "lastmod": "2026-09-22"
+    "hash": "8840603084cde9ba",
+    "lastmod": "2026-09-23"
   },
   "/templates/beacon": {
-    "hash": "441ffe1646b63a61",
-    "lastmod": "2026-09-22"
+    "hash": "8030520d9226eeb2",
+    "lastmod": "2026-09-23"
   },
   "/templates/bare": {
-    "hash": "2218f8167fd1e61d",
-    "lastmod": "2026-09-22"
+    "hash": "f132e02b3661eaa0",
+    "lastmod": "2026-09-23"
   },
   "/templates/signal": {
-    "hash": "00579a6c2f5b14bf",
-    "lastmod": "2026-09-22"
+    "hash": "1ab8b8e77d91ae69",
+    "lastmod": "2026-09-23"
   },
   "/templates/marker": {
-    "hash": "a16d04a08f110477",
-    "lastmod": "2026-09-22"
+    "hash": "5e664aaa047616c0",
+    "lastmod": "2026-09-23"
   },
   "/templates/console": {
-    "hash": "92b3594aeb1ddb55",
-    "lastmod": "2026-09-22"
+    "hash": "eef83b9d476cd31a",
+    "lastmod": "2026-09-23"
   },
   "/templates/margin": {
-    "hash": "3d53b72f7a751dac",
-    "lastmod": "2026-09-22"
+    "hash": "1086dd05a6983831",
+    "lastmod": "2026-09-23"
   },
   "/templates/measure": {
-    "hash": "f49b401854187e1c",
-    "lastmod": "2026-09-22"
+    "hash": "524c031f1c0912ff",
+    "lastmod": "2026-09-23"
   },
   "/examples": {
     "hash": "5e6649f07993dacc",
     "lastmod": "2026-09-16"
   },
   "/examples/frontend-engineer": {
-    "hash": "645202f60e86c8d4",
+    "hash": "52df75cebdef5662",
     "lastmod": "2026-09-22"
   },
   "/examples/qa-automation-engineer": {
@@ -718,5 +718,17 @@
   "/prompts": {
     "hash": "ed64f8ac1b5581d8",
     "lastmod": "2026-09-16"
+  },
+  "/free-resume-builder": {
+    "hash": "ae387032ad6359cb",
+    "lastmod": "2026-09-23"
+  },
+  "/ats-resume-checker": {
+    "hash": "470d71b2607bf52e",
+    "lastmod": "2026-09-23"
+  },
+  "/resume-builder-no-sign-up": {
+    "hash": "4aed1d6b12db9ab9",
+    "lastmod": "2026-09-23"
   }
 }

@@ -24,6 +24,23 @@ Allow: /fonts/
 Allow: /favicon.svg
 Allow: /og.png
 
+# Image search. The pictures of the page itself (/img/) are what a design or
+# an example looks like, and are what an image result should show. The share
+# cards (/og/) are wide link-preview cards with a small page inside, and /art/
+# holds decorative backdrops; indexed, they stood in for the page in image
+# results. Link previews are fetched by their own crawlers, which do not read
+# this group. A named group replaces the * group for this crawler, so the
+# private routes are repeated here.
+User-agent: Googlebot-Image
+Allow: /img/
+Allow: /og.png
+Disallow: /og/
+Disallow: /art/
+Disallow: /app
+Disallow: /tracker
+Disallow: /resume/
+Disallow: /print/
+
 # Machine readers are welcome on the public pages. The landing page carries
 # its content in its HTML, the gallery, every template page, the example
 # library, every example page and the prompt library do too, and /llms.txt

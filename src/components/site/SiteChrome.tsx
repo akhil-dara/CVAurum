@@ -8,6 +8,7 @@
  */
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { GUIDES } from '@/data/guides'
 import { Github } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { Logo } from '@/components/ui/Logo'
@@ -132,6 +133,18 @@ export function SiteFooter() {
           <span>100% local · MIT licensed</span>
         </span>
       </div>
+      {/* The guides, from every public page: each answers one search in full,
+          and a page nothing links to is a page a crawler rarely finds. */}
+      <nav
+        aria-label="Guides"
+        className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-4 gap-y-1 px-6 pb-7 text-xs text-muted-foreground sm:justify-start"
+      >
+        {GUIDES.map((g) => (
+          <Link key={g.slug} className="transition hover:text-foreground" to={`/${g.slug}`}>
+            {g.short}
+          </Link>
+        ))}
+      </nav>
     </footer>
   )
 }

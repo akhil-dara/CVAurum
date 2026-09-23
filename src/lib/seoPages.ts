@@ -22,6 +22,7 @@ import { orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLi
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
+import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
 
 /**
  * The example library's own pages, re-exported so the build step keeps loading
@@ -752,6 +753,121 @@ Import an answer: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
 `
 }
 
+/* ---- Guides (src/data/guides.ts) -------------------------------------
+   One search question per page. Every copy - this HTML, the Markdown twin,
+   the structured data and the page a person reads (src/routes/Guide.tsx) -
+   renders from the same entry, so they are one text. */
+
+function mustGuide(slug: string): Guide {
+  const g = guideBySlug(slug)
+  if (!g) throw new Error(`seoPages: no guide "${slug}"`)
+  return g
+}
+
+export function guideSlugs(): string[] {
+  return GUIDES.map((g) => g.slug)
+}
+
+export function guidePageMeta(slug: string): PageMeta {
+  const g = mustGuide(slug)
+  return { path: `/${g.slug}`, title: g.title, description: trimToWords(g.description), image: '/og.png' }
+}
+
+/** The other guides, as links: each page points at its siblings. */
+function guideSiblings(g: Guide): Guide[] {
+  return GUIDES.filter((x) => x.slug !== g.slug)
+}
+
+export function guideStaticHtml(slug: string): string {
+  const g = mustGuide(slug)
+  const esc = htmlEscape
+  const NL = '\n'
+  const sections = g.sections
+    .map((sec) => {
+      const paras = sec.paragraphs.map((p) => `      <p>${esc(p)}</p>`).join(NL)
+      const list = sec.list
+        ? `${NL}      <ul>${NL}${sec.list.map((li) => `        <li>${esc(li)}</li>`).join(NL)}${NL}      </ul>`
+        : ''
+      return `    <section>${NL}      <h2>${esc(sec.heading)}</h2>${NL}${paras}${list}${NL}    </section>`
+    })
+    .join(NL)
+  const faq = g.faq.map((f) => `      <dt>${esc(f.q)}</dt>${NL}      <dd>${esc(f.a)}</dd>`).join(NL)
+  const intro = g.intro.map((p) => `    <p>${esc(p)}</p>`).join(NL)
+  const siblings = guideSiblings(g)
+    .map((x) => `<a href="/${x.slug}">${esc(x.short)}</a>`)
+    .join(' · ')
+  return `<main class="seo-static">
+    <p><a href="/">CVAurum</a> › ${esc(g.short)}</p>
+    <h1>${esc(g.heading)}</h1>
+${intro}
+    <p><a href="${g.action.href}">${esc(g.action.label)}</a></p>
+${sections}
+    <h2>Questions</h2>
+    <dl>
+${faq}
+    </dl>
+    <p><a href="/templates">Browse the ${TEMPLATES.length} résumé templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete résumé examples</a> · ${siblings}</p>
+  </main>`
+}
+
+export function guideMarkdown(slug: string): string {
+  const g = mustGuide(slug)
+  const NL = '\n'
+  const PARA = '\n\n'
+  const sections = g.sections
+    .map((sec) => {
+      const list = sec.list ? PARA + sec.list.map((li) => `- ${li}`).join(NL) : ''
+      return `## ${sec.heading}${PARA}${sec.paragraphs.join(PARA)}${list}`
+    })
+    .join(PARA)
+  const faq = g.faq.map((f) => `**${f.q}**${PARA}${f.a}`).join(PARA)
+  return `# ${g.heading}
+
+${g.intro.join(PARA)}
+
+${g.action.label}: ${SITE}${g.action.href}
+
+${sections}
+
+## Questions
+
+${faq}
+
+Templates: ${SITE}/templates · Examples: ${SITE}/examples · About CVAurum: ${SITE}/llms.txt
+`
+}
+
+/** A WebPage with its trail, and the page's own questions as FAQPage. */
+export function guideJsonLd(slug: string): string {
+  const g = mustGuide(slug)
+  const url = `${SITE}/${g.slug}`
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': url,
+        url,
+        name: g.heading,
+        description: trimToWords(g.description),
+        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
+      },
+      breadcrumbList([
+        { name: 'Home', path: '/' },
+        { name: g.short, path: `/${g.slug}` },
+      ]),
+      {
+        '@type': 'FAQPage',
+        mainEntity: g.faq.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      },
+    ],
+  })
+}
+
 /**
  * One <url>, with the pictures that page carries.
  *
@@ -807,6 +923,7 @@ export function publicUrlPaths(): string[] {
     '/examples',
     ...librarySlugs().map((slug) => `/examples/${slug}`),
     '/prompts',
+    ...GUIDES.map((g) => `/${g.slug}`),
   ]
 }
 
@@ -851,6 +968,8 @@ export function sitemapXml(today: string): string {
     // A collection too, of prompts rather than designs; it carries no picture
     // of its own, so it declares none.
     urlEntry(`${SITE}/prompts`, mod('/prompts'), 'weekly', '0.8'),
+    // The guides: one question each, answered in full. No picture of their own.
+    ...GUIDES.map((g) => urlEntry(`${SITE}/${g.slug}`, mod(`/${g.slug}`), 'monthly', '0.7')),
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -1052,6 +1171,7 @@ export function landingStaticHtml(): string {
     <h1>${esc(COPY.hero)}</h1>
     <p>${esc(COPY.oneLiner)}</p>
     <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} résumé examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
+    <p>${GUIDES.map((g) => `<a href="/${g.slug}">${esc(g.short)}</a>`).join(' · ')}</p>
     <h2>Three steps</h2>
     <ol>
 ${steps}
@@ -1146,6 +1266,7 @@ function pagesBlock(): string {
     `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page.`,
     `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example résumés for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
     `- [Prompts](${SITE}/prompts): ${PROMPTS.length} copy-ready prompts for an AI assistant — notes into a résumé, tailoring to a posting, rewriting bullets to name a number, writing the summary, starting from nothing. Each asks for JSON Resume so the answer imports here, and none of them will invent experience.`,
+    ...GUIDES.map((g) => `- [${g.short}](${SITE}/${g.slug}): ${g.description}`),
     `- [The app](${SITE}/app): the résumé dashboard and the editor. Nothing to sign up for; the page is private to the visitor's browser and not indexed.`,
     `- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.`,
   ].join('\n')
