@@ -324,6 +324,14 @@ export function Ed({
       ))
       return className ? <span className={className}>{inner}</span> : <>{inner}</>
     }
+    // The tag the field asked for, as the editable branch renders it. A span
+    // in its place turned two block fields into two inline runs with nothing
+    // between them: a reference printed "Priya MenonEngineering Director" in
+    // the preview and the PDF while the canvas showed two lines.
+    if (as) {
+      const T = as
+      return <T className={className}>{value}</T>
+    }
     return className ? <span className={className}>{value}</span> : <>{value || ''}</>
   }
   return (
