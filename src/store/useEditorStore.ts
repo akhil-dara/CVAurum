@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import type { FitResult } from '@/lib/fitReadout'
 import type { FitTrialFn, Suggestion } from '@/lib/fitSuggest'
+import type { ContrastGroup, ContrastReport } from '@/lib/a11y'
 
 /** The per-section visual style fields the style painter copies. */
 export type CopiedStyle = Record<string, string>
@@ -43,6 +44,11 @@ interface EditorState {
   fitOffers: Suggestion[]
   /** True while the preview is measuring candidate moves. */
   fitSuggesting: boolean
+  /** What every run of words on the page measures against what it stands on
+   *  (src/lib/a11y), read off the print tree the export is painted from once
+   *  the fit has settled, with its findings gathered by the setting that
+   *  answers for them; null until the first measure. */
+  contrast: { report: ContrastReport; groups: ContrastGroup[] } | null
   /** show the resume as the plain text an ATS parser reads (instead of the canvas) */
   atsView: boolean
   /** render the canvas exactly as the exported PDF (no edit chrome/placeholders) */
@@ -76,6 +82,7 @@ interface EditorState {
   setFitTrial: (fn: FitTrialFn | null) => void
   setFitOffers: (offers: Suggestion[]) => void
   setFitSuggesting: (v: boolean) => void
+  setContrast: (r: { report: ContrastReport; groups: ContrastGroup[] } | null) => void
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
@@ -98,6 +105,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   fitTrial: null,
   fitOffers: [],
   fitSuggesting: false,
+  contrast: null,
   atsView: false,
   copiedStyle: null,
   skimView: false,
@@ -143,6 +151,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ fitResult })
   },
   setFitTrial: (fitTrial) => set({ fitTrial }),
+  // Measured after every settled edit; a report that says the same thing as
+  // the last one is not news to the panels reading it.
+  setContrast: (contrast) => {
+    const cur = get().contrast?.report
+    const next = contrast?.report
+    if (
+      cur &&
+      next &&
+      cur.checked === next.checked &&
+      cur.unmeasured.length === next.unmeasured.length &&
+      cur.findings.length === next.findings.length &&
+      cur.findings.every((f, i) => f.id === next.findings[i].id && f.measured === next.findings[i].measured)
+    )
+      return
+    set({ contrast })
+  },
   setFitOffers: (fitOffers) => {
     const cur = get().fitOffers
     if (cur.length === fitOffers.length && cur.every((o, i) => o.id === fitOffers[i].id && o.label === fitOffers[i].label)) return

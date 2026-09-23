@@ -175,6 +175,7 @@ export function ColorField({
   fallback,
   onChange,
   onClear,
+  note,
 }: {
   label: string
   value: string | undefined
@@ -185,9 +186,21 @@ export function ColorField({
   /** Puts the colour back on Auto (unset). The button shows only while a
    *  value is set, so a field that is always set never grows one. */
   onClear?: () => void
+  /**
+   * What this colour MEASURES where the page sets it, when that is under the
+   * bar - shown under the row that sets it.
+   *
+   * The accent corrects itself at render time (elementColors.ts
+   * darkenToContrast), so it never needs one. The others are not corrected
+   * and must not be: a body colour, a muted colour, a band's own ink are the
+   * author's choice, and a builder that quietly moved them would be deciding
+   * what their resume looks like. So the panel SAYS what the pair comes to,
+   * beside the control that made it, and leaves the choice where it belongs.
+   */
+  note?: string
 }) {
   const shown = value || fallback || ''
-  return (
+  const row = (
     <div className="flex items-center justify-between gap-2">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-1.5">
@@ -218,6 +231,13 @@ export function ColorField({
           />
         </label>
       </div>
+    </div>
+  )
+  if (!note) return row
+  return (
+    <div className="space-y-1">
+      {row}
+      <p className="text-[11px] text-amber-700 dark:text-amber-400">{note}</p>
     </div>
   )
 }

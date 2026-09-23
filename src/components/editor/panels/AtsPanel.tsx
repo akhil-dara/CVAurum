@@ -8,6 +8,7 @@ import { visibleSectionKeys } from '@/lib/atsScope'
 import { sectionHasContent } from '@/lib/sections'
 import { analyzeWriting, type WritingSeverity } from '@/lib/writing'
 import { AtsSimulator } from './AtsSimulator'
+import { ContrastCard } from './ContrastCard'
 import { SemanticMatchCard } from './SemanticMatch'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
@@ -349,6 +350,8 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
       <AtsSimulator doc={doc} />
 
       <SkimCard />
+
+      <ContrastCard />
 
       {/* checks, under the three questions they answer */}
       <div className="space-y-4">

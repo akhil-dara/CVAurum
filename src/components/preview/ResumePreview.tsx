@@ -56,6 +56,7 @@ import { measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
 import { preparePrintTree } from '@/lib/pdf/prepareTree'
 import { suggestFits } from '@/lib/fitSuggest'
 import { FitChip } from './FitChip'
+import { ContrastChip } from './ContrastChip'
 
 const AS_SET: FitVector = { type: 1, space: 1 }
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
@@ -381,6 +382,32 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     }, 1200)
     return () => clearTimeout(id)
   }, [fitResultLive, doc, autoFit, setFitOffers, setFitSuggesting])
+
+  // The live contrast check (src/lib/a11y). It reads the PRINT tree, the DOM
+  // the export is painted from, rather than the canvas: the canvas carries
+  // placeholders and edit chrome the file never shows, and a report about
+  // those would be about the wrong page. It waits for the fit to settle -
+  // until then the sizes, and so which words count as large, are not final -
+  // and the checker is loaded on demand, so an editor that never opens the
+  // Design or ATS tab never pays for it.
+  const setContrast = useEditorStore((s) => s.setContrast)
+  const contrastReq = useRef(0)
+  useEffect(() => {
+    const myReq = ++contrastReq.current
+    const id = setTimeout(async () => {
+      const root = measureRef.current?.querySelector<HTMLElement>('.rm-root')
+      if (!root || myReq !== contrastReq.current) return
+      try {
+        const { checkArtboardContrastAsync, groupBySetting } = await import('@/lib/a11y')
+        const report = await checkArtboardContrastAsync(root)
+        if (myReq === contrastReq.current) setContrast({ report, groups: groupBySetting(report.findings) })
+      } catch {
+        // A check that could not run says nothing, rather than "all clear".
+        if (myReq === contrastReq.current) setContrast(null)
+      }
+    }, 700)
+    return () => clearTimeout(id)
+  }, [fitResultLive, doc, setContrast])
   // A fresh closure here defeated TemplateRenderer's memo, so every
   // incidental state change in this component re-rendered the whole canvas.
   const openAddSection = useCallback(() => setAddOpen(true), [])
@@ -894,7 +921,15 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         className={`canvas-bg relative h-full w-full overflow-auto${focusMode && !exactCanvas ? ' focus-mode' : ''}`}
       >
         {/* what Magic fit did, in five words, and the way to its card */}
-        {!atsView && !previewExact && <FitChip doc={doc} />}
+        {!atsView && !previewExact && (
+          // In the page's own flow, a row above the sheet: it scrolls away with
+          // the page instead of riding over it (sticky, it covered the name on a
+          // phone and sat on whatever scrolled under it; reported 2026-09-12).
+          <div className="flex flex-wrap justify-end gap-2 px-3 pb-2 pt-3">
+            <ContrastChip />
+            <FitChip doc={doc} />
+          </div>
+        )}
         {/* skim-heat status pill — floats over the canvas while the heat is on */}
         {skimView && <SkimPill />}
         {/* first-time hint on a blank resume — the canvas interactions aren't

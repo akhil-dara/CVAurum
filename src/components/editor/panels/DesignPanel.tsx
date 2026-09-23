@@ -9,6 +9,7 @@ import { FontSelect } from '../fields/FontSelect'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 import { StatTilesEditor } from '@/templates/_shared/StatTilesEditor'
 import { MagicFitCard } from './MagicFitCard'
+import { ContrastCard, useContrastNote } from './ContrastCard'
 import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
@@ -157,6 +158,24 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const m = doc.metadata
   const twoCol = m.layout.columns === 2
 
+  // What each colour control's words MEASURE on the page, read from the live
+  // check the preview runs on the print tree (ContrastCard). A two-colour
+  // estimate here would disagree with it: a muted colour painted at 85% in a
+  // sidebar fails where the raw pair passes, and a large name passes where
+  // the raw pair fails.
+  const notes = {
+    text: useContrastNote('theme.text'),
+    muted: useContrastNote('theme.muted'),
+    background: useContrastNote('theme.background', 'ground'),
+    sidebar: useContrastNote('theme.sidebar', 'ground'),
+    sidebarText: useContrastNote('theme.sidebarText'),
+    name: useContrastNote('theme.name'),
+    headline: useContrastNote('theme.headline'),
+    headings: useContrastNote('theme.headings'),
+    contacts: useContrastNote('theme.contacts'),
+    links: useContrastNote('theme.links'),
+  }
+
   // A click on a running numeral on the canvas asks for this row by name
   // (Artboard openSectionNumbers). The panel is long, so the row is scrolled
   // to and flashed: landing somewhere near it is not finding it.
@@ -174,6 +193,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
 
   return (
     <div className="space-y-6">
+      <ContrastCard />
       <FieldGroup title="Accent color">
         <div className="grid grid-cols-6 gap-2">
           {PALETTES.map((p) => (
@@ -206,6 +226,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <ColorField
           label="Body text"
           value={m.theme.text}
+          note={notes.text}
           onChange={(v) =>
             update((md) => {
               md.theme.text = v
@@ -215,6 +236,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <ColorField
           label="Muted text"
           value={m.theme.muted}
+          note={notes.muted}
           onChange={(v) =>
             update((md) => {
               md.theme.muted = v
@@ -224,6 +246,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
         <ColorField
           label="Background"
           value={m.theme.background}
+note={notes.background}
           onChange={(v) =>
             update((md) => {
               md.theme.background = v
@@ -235,6 +258,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             <ColorField
               label="Sidebar"
               value={m.theme.sidebar}
+              note={notes.sidebar}
               onChange={(v) =>
                 update((md) => {
                   md.theme.sidebar = v
@@ -244,6 +268,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             <ColorField
               label="Sidebar text"
               value={m.theme.sidebarText}
+              note={notes.sidebarText}
               onChange={(v) =>
                 update((md) => {
                   md.theme.sidebarText = v
@@ -261,6 +286,7 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
             label={r.label}
             value={m.theme[r.key]}
             fallback={m.theme[r.from]}
+note={notes[r.key]}
             onChange={(v) =>
               update((md) => {
                 // An emptied box is Auto again, not a colour of nothing.
