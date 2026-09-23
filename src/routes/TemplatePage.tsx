@@ -145,7 +145,7 @@ function Design({ id }: { id: string }) {
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">Price</dt>
-                <dd className="mt-0.5 font-medium">Free, MIT licensed</dd>
+                <dd className="mt-0.5 font-medium">Free, open source (AGPL-3.0)</dd>
               </div>
             </dl>
           </div>

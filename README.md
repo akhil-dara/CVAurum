@@ -9,7 +9,7 @@
 
 ### 🔗 [**Try it live → cvaurum.com**](https://cvaurum.com)
 
-`100% Client-Side` · `MIT Licensed` · `Node ≥ 18.18` · `Zero Backend`
+`100% Client-Side` · `AGPL-3.0` · `Node ≥ 18.18` · `Zero Backend`
 
 </div>
 
@@ -358,7 +358,11 @@ If you build something cool with CVAurum, tell us about it!
 
 ## 📄 License
 
-CVAurum is released under the **MIT License**. See [`LICENSE`](./LICENSE) for details.
+CVAurum is open source under the **GNU Affero General Public License v3.0** (AGPL-3.0-only), copyright © 2026 Akhil Dara. See [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE).
+
+- **You may** use, study, modify and share CVAurum freely — including self-hosting it — as long as you keep the author's credit and publish your complete source code under the same licence. That applies to running a modified version as a service over a network, too.
+- **Commercial licence.** To use CVAurum or any part of its code in a closed-source product, or in a hosted service whose source you do not publish, you need a commercial licence from the author: open an issue titled "Commercial licence" on this repository.
+- Releases published before this change were under the MIT License; copies obtained under those releases keep that licence.
 
 ---
 

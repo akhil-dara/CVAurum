@@ -130,7 +130,7 @@ export function SiteFooter() {
           <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
             GitHub
           </a>
-          <span>100% local · MIT licensed</span>
+          <span>100% local · AGPL-3.0</span>
         </span>
       </div>
       {/* The guides, from every public page: each answers one search in full,

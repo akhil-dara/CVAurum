@@ -432,7 +432,7 @@ export function Landing() {
             <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
               GitHub
             </a>
-            <span>100% local · MIT licensed</span>
+            <span>100% local · AGPL-3.0</span>
           </span>
         </div>
       </footer>

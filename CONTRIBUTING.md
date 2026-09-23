@@ -277,7 +277,7 @@ If a change would weaken these guarantees, it's almost certainly not the right c
 
 ## License
 
-By contributing to CVAurum, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE).
+By contributing to CVAurum, you agree that your contributions are licensed under the project's [GNU Affero General Public License v3.0](./LICENSE), and you grant Akhil Dara a perpetual, worldwide, royalty-free right to also license your contributions under other terms, including commercial licences (see [NOTICE](./NOTICE)). This is what lets the project offer a commercial licence alongside the AGPL.
 
 ---
 

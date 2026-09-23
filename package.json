@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "CVAurum — the open-source resume studio. Beautiful, ATS-ready resumes, 100% local and private. No account, no server, no tracking.",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "author": "akhil-dara",
   "homepage": "https://github.com/akhil-dara/cvaurum#readme",
   "repository": {

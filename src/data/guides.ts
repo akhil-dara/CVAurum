@@ -52,7 +52,7 @@ export const GUIDES: readonly Guide[] = [
     short: 'Free resume builder',
     intro: [
       'Most résumé builders are free until the moment you press Download. CVAurum is free at that moment too: every template, every export format and every check, with no tier to upgrade to and no watermark on the file.',
-      'It can afford to be, because it has no server to pay for. The whole application runs in your browser, your résumé is saved on your own device, and the source code is public under the MIT licence.',
+      'It can afford to be, because it has no server to pay for. The whole application runs in your browser, your résumé is saved on your own device, and the source code is public under the AGPL-3.0.',
     ],
     sections: [
       {
@@ -93,7 +93,7 @@ export const GUIDES: readonly Guide[] = [
       },
       {
         q: 'Who pays for it?',
-        a: 'There is little to pay for: the app is a set of static files and your browser does all the work. It is an open-source project under the MIT licence.',
+        a: 'There is little to pay for: the app is a set of static files and your browser does all the work. It is an open-source project under the AGPL-3.0.',
       },
     ],
     action: { label: 'Start a résumé', href: '/app' },

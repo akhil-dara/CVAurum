@@ -41,7 +41,7 @@ export interface SiteCopy {
 
 export const SITE: SiteCopy = {
   name: 'CVAurum',
-  oneLiner: `CVAurum is a free, open-source (MIT) résumé builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, ${SAMPLE_COUNT} complete example résumés, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
+  oneLiner: `CVAurum is a free, open-source (AGPL-3.0) résumé builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, ${SAMPLE_COUNT} complete example résumés, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
   hero: 'A resume this beautiful never leaves your browser.',
   steps: [
     {
@@ -66,7 +66,7 @@ export const SITE: SiteCopy = {
     },
     {
       capability: 'Source code',
-      cvaurum: 'Fully open source (MIT) — read it, fork it, self-host it',
+      cvaurum: 'Fully open source (AGPL-3.0) — read it, fork it, self-host it',
       others: 'Closed — you take the privacy claims on faith',
     },
     {
@@ -107,7 +107,7 @@ export const SITE: SiteCopy = {
     },
     {
       q: "If it's free and open source, what's the catch?",
-      a: "There isn't one. CVAurum is MIT-licensed and the full source is on GitHub. There's no paid tier, no export paywall, and no data to monetize because we never collect any. Fork it, self-host it, or run it offline forever.",
+      a: "There isn't one. CVAurum is open source under the AGPL-3.0 and the full source is on GitHub. There's no paid tier, no export paywall, and no data to monetize because we never collect any. Fork it, self-host it, or run it offline forever.",
     },
     {
       q: 'Is the ATS score real, or AI guesswork?',
@@ -191,7 +191,7 @@ export const SITE: SiteCopy = {
     { label: 'Offline', value: 'installs as a web app and works with no connection: the app, its Latin fonts and the colour profile are saved on the device at install, and each résumé\u2019s export fonts are saved quietly while you are online, so it exports with no connection too. Every font is bundled with the app, so no third-party server is ever contacted' },
     { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },
     { label: 'Platform', value: 'any modern browser on desktop, tablet or phone; JavaScript is required to edit (the public pages carry their content in plain HTML)' },
-    { label: 'Licence and source', value: 'MIT; the whole application is public at https://github.com/akhil-dara/cvaurum' },
+    { label: 'Licence and source', value: 'AGPL-3.0 (open source; a commercial licence is available from the author for use that cannot meet its terms); the whole application is public at https://github.com/akhil-dara/cvaurum' },
   ],
   limits: [
     'It has no server, so there is no cloud sync and no account: a résumé lives in the browser it was made in, and moves to another device by a backup file, a JSON Resume file or an encrypted link.',
@@ -233,7 +233,7 @@ export const SITE: SiteCopy = {
     'Engineers, marketers and designers: the other four examples, and templates from technical to editorial.',
     'People applying through applicant-tracking systems: the ATS view, the five-system simulation and the keyword match exist for them.',
     'People who need an archival or accessible PDF: every export conforms to PDF/A-2B and PDF/UA-1.',
-    'Developers: open source under MIT, one Node build, no backend to run; self-host it or fork it.',
+    'Developers: open source under the AGPL-3.0, one Node build, no backend to run; self-host it or fork it and share your changes.',
   ],
   links: {
     site: 'https://cvaurum.com',

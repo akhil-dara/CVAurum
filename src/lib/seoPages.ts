@@ -308,7 +308,7 @@ ${tpl.description}
 - Layout: ${tpl.defaults.layout.columns === 2 ? 'two column' : 'single column'}
 - Photo: ${tpl.defaults.layout.showPhoto ? 'on by default' : 'optional'}
 - Exports: PDF (vector, selectable text), Word, JSON Resume
-- Price: free, MIT licensed; no account, nothing uploaded
+- Price: free, open source (AGPL-3.0); no account, nothing uploaded
 - Open in the editor: ${SITE}/app
 
 ## Related designs
@@ -1206,7 +1206,7 @@ ${signature}
     <p>${SAMPLE_COUNT} complete résumés for named jobs, each written out in full on its own page and filterable by field, career stage and the country it is written for — <a href="/examples">read the ${SAMPLE_COUNT} résumé examples</a>. Every person, employer, address and figure in them is invented.</p>
     <h2>Prompts</h2>
     <p>${PROMPTS.length} copy-ready prompts for whatever AI assistant you already use — <a href="/prompts">start from your own history instead of a blank page</a>. Each asks for JSON Resume, which this app imports, and none of them will invent experience you do not have.</p>
-    <p>CVAurum is open source under the MIT licence: <a href="${COPY.links.repo}">${COPY.links.repo}</a>.</p>
+    <p>CVAurum is open source under the AGPL-3.0: <a href="${COPY.links.repo}">${COPY.links.repo}</a>.</p>
   </main>`
 }
 
@@ -1281,7 +1281,7 @@ function resourcesBlock(): string {
     `- [API catalog](${SITE}/.well-known/api-catalog) (RFC 9727): says plainly that there is no HTTP API; the site itself is the service.`,
     `- [Skills index](${SITE}/.well-known/agent-skills/index.json) and [SKILL.md](${SCHEMA_DOC}): how an assistant can help a person use CVAurum, the full field list of the document it should produce (generated from the schemas the importer validates against), and the in-page WebMCP tools it can call.`,
     `- [auth.md](${SITE}/auth.md): there are no accounts, keys or registration, for people or for agents.`,
-    `- [Source repository](${COPY.links.repo}): the whole application, MIT licensed; issues and contributions go there.`,
+    `- [Source repository](${COPY.links.repo}): the whole application, open source under the AGPL-3.0; issues and contributions go there.`,
     `- [JSON Resume schema](https://jsonresume.org/schema): the open format CVAurum imports and exports.`,
   ].join('\n')
 }
@@ -1309,7 +1309,7 @@ export function llmsTxt(): string {
 
 > ${COPY.oneLiner}
 
-CVAurum, at ${SITE}, is a résumé builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the MIT licence at ${COPY.links.repo}.
+CVAurum, at ${SITE}, is a résumé builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the AGPL-3.0 at ${COPY.links.repo}.
 
 ## Facts at a glance
 
@@ -1372,7 +1372,7 @@ export function llmsFullTxt(): string {
 
 ## What it is
 
-CVAurum is a résumé builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the MIT licence at ${COPY.links.repo}.
+CVAurum is a résumé builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the AGPL-3.0 at ${COPY.links.repo}.
 
 ## Facts at a glance
 
@@ -1479,6 +1479,6 @@ ${sitemapBlock()}
 
 ## Licence and source
 
-MIT licence. Source: ${COPY.links.repo}. Site: ${SITE}.
+AGPL-3.0. Source: ${COPY.links.repo}. Site: ${SITE}.
 `
 }
