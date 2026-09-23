@@ -2364,15 +2364,32 @@ function Languages({
                   placeholder="Language"
                 />
                 {prof !== 'none' && (edit || l.fluency) ? (
-                  <Ed
-                    edit={edit}
-                    value={l.fluency}
-                    apply={(c, v) => {
-                      c.languages[i].fluency = v
-                    }}
-                    className="rm-mini-sub"
-                    placeholder="Fluency"
-                  />
+                  doc.metadata.layout.levelPlacement === 'line' ? (
+                    // On one line the level reads in brackets - real text, so
+                    // the file says "English (Professional)" as the page does.
+                    <span className="rm-mini-sub">
+                      (
+                      <Ed
+                        edit={edit}
+                        value={l.fluency}
+                        apply={(c, v) => {
+                          c.languages[i].fluency = v
+                        }}
+                        placeholder="Fluency"
+                      />
+                      )
+                    </span>
+                  ) : (
+                    <Ed
+                      edit={edit}
+                      value={l.fluency}
+                      apply={(c, v) => {
+                        c.languages[i].fluency = v
+                      }}
+                      className="rm-mini-sub"
+                      placeholder="Fluency"
+                    />
+                  )
                 ) : null}
               </div>
             )}

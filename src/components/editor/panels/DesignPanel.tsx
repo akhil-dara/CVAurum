@@ -657,9 +657,12 @@ note={notes[r.key]}
           <label className="label">Language level</label>
           <Segmented
             value={m.layout.levelPlacement ?? 'end'}
+            wrap
             options={[
-              { value: 'end', label: 'At the end' },
-              { value: 'inline', label: 'After the name' },
+              { value: 'end', label: 'Aligned' },
+              { value: 'inline', label: 'After name' },
+              { value: 'tag', label: 'Tag' },
+              { value: 'line', label: 'One line' },
               { value: 'cards', label: 'Cards' },
             ]}
             onChange={(v) =>
@@ -669,7 +672,7 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            Where a language's level sits: across the row, right after the language, or each language as a small card.
+            Where a language's level sits: in an aligned column, right after the language, as a small tag, all on one line, or each language as a card.
           </p>
         </div>
       </FieldGroup>

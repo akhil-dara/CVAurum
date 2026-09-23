@@ -221,9 +221,11 @@ export const LayoutSchema = z.object({
    *  row's right edge, a leading column, straight after the title, or at
    *  the end of the company line. Unset is the right edge. */
   dateAlign: z.enum(['right', 'left', 'title', 'inline']).optional(),
-  /** Where a language's level (and a skill's) sits: at the far end of the
-   *  row, right after the name, or each language as a small card in a grid. */
-  levelPlacement: z.enum(['end', 'inline', 'cards']).default('end'),
+  /** Where a language's level sits: 'end' is an aligned column just past the
+   *  names (it once meant the far edge of the row), 'inline' right after the
+   *  name, 'tag' a small outlined label beside it, 'line' every language on
+   *  one line with its level in brackets, 'cards' a grid of small cards. */
+  levelPlacement: z.enum(['end', 'inline', 'cards', 'tag', 'line']).default('end'),
   /** Every section as a rounded tile on a tinted page. */
   sectionFrame: z.enum(['none', 'tile']).default('none'),
   /** A band of numbers derived from the content (years, companies, skills,

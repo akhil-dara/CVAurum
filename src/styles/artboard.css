@@ -1439,6 +1439,62 @@
 .rm-root.lvl-inline [data-section='languages'] .rm-mini .rm-item-head > .rm-mini-sub {
   margin-left: 0;
 }
+/* At the end (the default): the level in a column of its own just past the
+   names, aligned down the list - not at the far edge of the row, where
+   "English" and "Professional" stood a page-width apart and read as two
+   unrelated words. A name longer than the column pushes its own level along;
+   nothing wraps. The same column holds a meter's dots. */
+.rm-root:not(.lvl-inline):not(.lvl-cards):not(.lvl-tag):not(.lvl-line) [data-section='languages'] .rm-mini .rm-item-head {
+  justify-content: flex-start;
+  gap: 0.9em;
+}
+.rm-root:not(.lvl-inline):not(.lvl-cards):not(.lvl-tag):not(.lvl-line) [data-section='languages'] .rm-mini .rm-item-head > .rm-mini-title,
+.rm-root:not(.lvl-inline):not(.lvl-cards):not(.lvl-tag):not(.lvl-line) [data-section='languages'] .rm-mini .rm-level > .rm-mini-title {
+  flex: 0 0 auto;
+  min-width: 7.5em;
+}
+.rm-root:not(.lvl-inline):not(.lvl-cards):not(.lvl-tag):not(.lvl-line) [data-section='languages'] .rm-mini .rm-item-head > .rm-mini-sub {
+  margin-left: 0;
+}
+/* Tag: the level as a small outlined label beside the name. Outlined, so the
+   ground under its words is the page's. */
+.rm-root.lvl-tag [data-section='languages'] .rm-mini .rm-item-head {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.6em;
+}
+.rm-root.lvl-tag [data-section='languages'] .rm-mini .rm-item-head > .rm-mini-sub {
+  margin-left: 0;
+  font-size: 0.84em;
+  line-height: 1.35;
+  padding: 0.05em 0.6em;
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 999px;
+}
+/* One line: every language in a single run - "English (Professional)
+   Hindi (Professional)  Kannada (Native)" - the space between them doing the
+   separating. The brackets are real text (sections.tsx Languages), so the
+   file reads as the page does. Not in the footer strip, which has its own
+   row. */
+.rm-root.lvl-line [data-section='languages']:not(.rm-section-compact) .rm-section-body {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25em 1.6em;
+}
+.rm-root.lvl-line [data-section='languages']:not(.rm-section-compact) .rm-mini {
+  display: inline-flex;
+  align-items: baseline;
+  margin: 0;
+}
+.rm-root.lvl-line [data-section='languages']:not(.rm-section-compact) .rm-mini .rm-item-head {
+  justify-content: flex-start;
+  gap: 0.3em;
+}
+.rm-root.lvl-line [data-section='languages']:not(.rm-section-compact) .rm-mini .rm-item-head > .rm-mini-sub {
+  margin-left: 0;
+}
 /* Cards: each language a small outlined card in a grid - name, then its
    level. Outlined, never filled, so the ground under the words is the ground
    every ink on the page was derived against. */
