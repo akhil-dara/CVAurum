@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
+import type { ResumeDocument } from '@/types/document'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { TEMPLATE_COUNT, getTemplate } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
@@ -533,12 +534,27 @@ function HeroCinema({
   const drift = onScreen && !covered
   // The morph reel: identical sample content flowing through contrasting
   // designs — the template engine demonstrating itself.
+  // Some frames also show a choice the page offers on top of any design - a
+  // labelled contact strip, pills, contacts beside the name, headings on a
+  // rail, dates in the company line - so the reel shows the controls too, not
+  // only the templates.
   const morph = useMemo(
     () =>
-      ['clarity', 'obsidian', 'sapphire', 'crest', 'halcyon', 'pinnacle', 'marquee'].map((id) => {
+      (
+        [
+          ['clarity', 'labelled contacts', (m) => void (m.layout.contactStyle = 'strip')],
+          ['obsidian', '', null],
+          ['sapphire', 'contact pills', (m) => void (m.layout.contactStyle = 'pills')],
+          ['crest', 'headings on a rail', (m) => void (m.layout.headingPlacement = 'side')],
+          ['halcyon', 'dates in the company line', (m) => void (m.layout.dateAlign = 'inline')],
+          ['pinnacle', 'contacts beside the name', (m) => void (m.layout.contactPlacement = 'beside')],
+          ['marquee', '', null],
+        ] as [string, string, ((m: ResumeDocument['metadata']) => void) | null][]
+      ).map(([id, note, tweak]) => {
         const d = createDocument({ sample: true })
         d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
-        return { id, name: getTemplate(id).name, doc: d }
+        tweak?.(d.metadata)
+        return { id, name: getTemplate(id).name, note, doc: d }
       }),
     []
   )
@@ -758,7 +774,8 @@ function HeroCinema({
               <div className="pointer-events-none absolute bottom-2 right-2">
                 <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-[#0a0c12]/85 px-2.5 py-1 text-[10px] font-medium text-white shadow-lg backdrop-blur">
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#d4982f' }} />
-                  {morph[ti].name} — same content, one click
+                  {morph[ti].name}
+                  {morph[ti].note ? ` · ${morph[ti].note}` : ''} — same content, one click
                 </span>
               </div>
             </div>

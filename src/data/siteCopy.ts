@@ -90,6 +90,11 @@ export const SITE: SiteCopy = {
       others: 'PDF only, often a flattened image',
     },
     {
+      capability: 'Accessibility',
+      cvaurum: 'A tagged PDF/UA-1 file, and every design’s text meets WCAG AA contrast — checked live as you edit',
+      others: 'An untagged PDF, with contrast left to chance',
+    },
+    {
       capability: 'Price',
       cvaurum: 'Free, forever — no tiers, no upsell',
       others: 'Free to start, then paywalled to export',
@@ -149,6 +154,10 @@ export const SITE: SiteCopy = {
       a: 'Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts.',
     },
     {
+      q: 'Is the text on my résumé easy to read for everyone?',
+      a: 'Yes, and it is measured rather than assumed. Every design’s text meets WCAG 2.2 AA contrast at its defaults, checked on the exported PDF against what each word actually stands on — coloured headers, bands, gradients, art and cards included. If a colour you choose falls short, a chip over the page says so, names the setting responsible and offers the nearest colour that passes everywhere that setting paints; nothing changes until you click.',
+    },
+    {
       q: 'How long should my resume be?',
       a: "For most roles, one page — two if you have 10+ years of experience. Magic fit sizes type and spacing to the page count you pick (one, two or three) inside rules you set, such as a body size it never goes below and sizes it must keep as set, and tells you exactly what it chose; live page-break guides show where you stand, and Suggest measures a few moves that would fit better.",
     },
@@ -166,6 +175,11 @@ export const SITE: SiteCopy = {
     { label: 'Where the data lives', value: "the browser's own storage (IndexedDB); nothing is uploaded, and the site's content-security policy allows no outbound request at all" },
     { label: 'Templates', value: `${TEMPLATE_COUNT}, each on its own page, six of them Signature designs with distinct page structures; every one exports real selectable text` },
     { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 50 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
+    {
+      label: 'Accessibility',
+      value:
+        'every export is a tagged PDF/UA-1 file - headings, paragraphs and lists in reading order, a declared language, described links and a bookmarked outline - and archival PDF/A-2B; every design meets WCAG 2.2 AA text contrast at its defaults, measured on the exported file; while editing, a live check names any colour that falls short and offers the nearest one that passes',
+    },
     { label: 'ATS', value: 'a deterministic score, a job-description keyword match, a parser’s-eye text view, a simulation of five applicant-tracking systems, a rule-based writing coach and a recruiter skim heatmap; optional on-device semantic matching' },
     { label: 'Import', value: 'PDF (text-based, or scanned with on-device OCR) and JSON Resume' },
     {

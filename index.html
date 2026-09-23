@@ -28,7 +28,7 @@
          Cloudflare Pages). If the domain changes, update it in index.html,
          public/robots.txt and public/sitemap.xml. -->
     <title>Free Open-Source ATS Resume Builder — CVAurum</title>
-    <meta name="description" content="Build an ATS-ready résumé free in your browser — no sign-up, no server, open source. 68 templates, 108 examples, PDF import, PDF/Word/JSON export." />
+    <meta name="description" content="Free, open-source résumé builder in your browser: 68 templates, an ATS check, and accessible PDF/UA export with WCAG AA contrast. No sign-up, no server." />
     <meta name="keywords" content="free resume builder, open source resume builder, private resume builder, offline resume builder, ATS resume builder, resume builder no sign up, local resume builder, JSON Resume" />
     <meta name="author" content="Akhil Dara" />
     <meta name="application-name" content="CVAurum" />
@@ -48,7 +48,7 @@
     <!-- Open Graph (link previews) -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
-    <meta property="og:description" content="Build an ATS-ready résumé free in your browser — no sign-up, no server, open source. 68 templates, 108 examples, PDF import, PDF/Word/JSON export." />
+    <meta property="og:description" content="Free, open-source résumé builder in your browser: 68 templates, an ATS check, and accessible PDF/UA export with WCAG AA contrast. No sign-up, no server." />
     <meta property="og:url" content="https://cvaurum.com/" />
     <meta property="og:image" content="https://cvaurum.com/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -73,7 +73,7 @@
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
-    <meta name="twitter:description" content="Build an ATS-ready résumé free in your browser — no sign-up, no server, open source. 68 templates, 108 examples, PDF import, PDF/Word/JSON export." />
+    <meta name="twitter:description" content="Free, open-source résumé builder in your browser: 68 templates, an ATS check, and accessible PDF/UA export with WCAG AA contrast. No sign-up, no server." />
     <meta name="twitter:image" content="https://cvaurum.com/og.png" />
     <meta name="twitter:image:alt" content="The CVAurum mark and name, the words no account, no server, no tracking, the line: a resume this beautiful never leaves your browser, the number of designs and example resumes, and four real resume pages fanned beside them." />
 
@@ -83,7 +83,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "CVAurum",
-      "description": "CVAurum is a 100% client-side, open-source, privacy-first resume builder. Build ATS-ready resumes entirely in your browser with no server, no account, and no tracking. Includes 68 premium data-driven templates, local PDF résumé import (with on-device OCR), a deterministic ATS score, job-description keyword matching, and exports to crisp vector PDF, WYSIWYG Word, and JSON Resume.",
+      "description": "CVAurum is a 100% client-side, open-source, privacy-first resume builder. Build ATS-ready resumes entirely in your browser with no server, no account, and no tracking. Includes 68 premium data-driven templates, local PDF résumé import (with on-device OCR), a deterministic ATS score, job-description keyword matching, and exports to crisp vector PDF (tagged PDF/UA-1 and archival PDF/A-2B, with every design's text meeting WCAG 2.2 AA contrast), WYSIWYG Word, and JSON Resume.",
       "url": "https://cvaurum.com/",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Any (runs in the browser)",
@@ -192,6 +192,11 @@
           "@type": "Question",
           "name": "Is the PDF archival quality?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the text on my résumé easy to read for everyone?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, and it is measured rather than assumed. Every design’s text meets WCAG 2.2 AA contrast at its defaults, checked on the exported PDF against what each word actually stands on — coloured headers, bands, gradients, art and cards included. If a colour you choose falls short, a chip over the page says so, names the setting responsible and offers the nearest colour that passes everywhere that setting paints; nothing changes until you click." }
         },
         {
           "@type": "Question",
