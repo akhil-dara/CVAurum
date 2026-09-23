@@ -48,6 +48,19 @@
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 /og/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+# Every Markdown file - the twins beside the public pages, SKILL.md, auth.md -
+# goes out as plain text. The host labels .md as text/markdown, and some
+# assistants' page readers refuse that type outright ("Unsupported
+# content-type: text/markdown"), so they could not read the very files written
+# for them. Plain text is what every reader accepts; the words are the same.
+# The charset is stated because the files carry accented letters (résumé) and
+# a reader left to guess reads them as mojibake.
+/*.md
+  Content-Type: text/plain; charset=utf-8
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 /.well-known/agent-skills/index.json
