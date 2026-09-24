@@ -23,6 +23,7 @@ import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
 import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
+import { CUSTOMIZE } from '@/data/customize'
 
 /**
  * The example library's own pages, re-exported so the build step keeps loading
@@ -244,6 +245,14 @@ export function staticHtml(id: string): string {
     ${figure(tpl, true)}
     <p>${htmlEscape(tpl.description)}</p>
     <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
+    <p><strong>${htmlEscape(CUSTOMIZE.switchLine)}</strong></p>
+    <section>
+      <h2>${htmlEscape(CUSTOMIZE.heading)}</h2>
+      <p>${htmlEscape(CUSTOMIZE.intro)}</p>
+      <ul>
+${CUSTOMIZE.items.map((i) => `        <li>${htmlEscape(i)}</li>`).join('\n')}
+      </ul>
+    </section>
     <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} résumé templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete résumé examples</a></p>
     <nav aria-label="Every other résumé template">
       <h2>The other ${others.length} designs</h2>
@@ -310,6 +319,14 @@ ${tpl.description}
 - Exports: PDF (vector, selectable text), Word, JSON Resume
 - Price: free, open source (AGPL-3.0); no account, nothing uploaded
 - Open in the editor: ${SITE}/app
+
+## ${CUSTOMIZE.heading}
+
+${CUSTOMIZE.switchLine}
+
+${CUSTOMIZE.intro}
+
+${CUSTOMIZE.items.map((i) => `- ${i}`).join('\n')}
 
 ## Related designs
 
@@ -952,6 +969,17 @@ export function lastmodFor(path: string, fallback: string): string {
  * function stays pure and the file it writes is reproducible; it is now only
  * the fallback for a URL with no recorded lastmod.
  */
+/**
+ * The sitemap: the landing page, the template gallery and one page per
+ * design, the example library and one page per sample, the prompt library and
+ * the guides. /app, /tracker, /resume/:id and /print/:id are private shells
+ * and are left out (and Disallowed in robots.txt). Each lastmod is the day
+ * THAT page's sources last changed (src/data/lastmod.json), not the build day.
+ *
+ * The file itself carries no comment: it is read by crawlers, and the long
+ * note that used to open it was noise a strict sitemap reader had no reason
+ * to see.
+ */
 export function sitemapXml(today: string): string {
   // Absolute URLs, computed once: a collection page declares every picture it
   // lists, a single page declares its own.
@@ -973,18 +1001,6 @@ export function sitemapXml(today: string): string {
   ]
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <!--
-    The landing page, the template gallery and one page per design, then the
-    example library and one page per sample. /app,
-    /tracker, /resume/:id and /print/:id are private, account-free shells with
-    no shareable content and are deliberately excluded (and Disallowed in
-    robots.txt). Generated — see src/lib/seoPages.ts and the SEO plugin in
-    vite.config.ts; edit those, not this file.
-
-    Each <lastmod> is the day THAT page's sources last changed, recorded in
-    src/data/lastmod.json by scripts/make-lastmod.cjs — not the day of the
-    build. A date that moved is a page that moved.
-  -->
 ${entries.join('\n')}
 </urlset>
 `
