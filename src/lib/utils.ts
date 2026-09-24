@@ -379,7 +379,7 @@ export function currentYearMonth(d: Date = new Date()): string {
 /** Absolute month (year * 12 + month) of a "YYYY-MM" or "YYYY-MM-DD" string;
  *  null for a bare year, free text or nothing. A span needs a month at both
  *  ends - guessing one would print a length the author never stated. */
-function monthIndex(value?: string): number | null {
+export function monthIndex(value?: string): number | null {
   const m = (value || '').trim().match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/)
   if (!m) return null
   const month = parseInt(m[2], 10)

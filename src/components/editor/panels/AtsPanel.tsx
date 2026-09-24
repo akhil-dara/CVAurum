@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, AlertTriangle, XCircle, Target, FileText, PenLine, Sparkles, Crosshair } from 'lucide-react'
+import { Target, FileText, PenLine, Sparkles, Crosshair } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
-import { ATS_CATEGORY_LABELS, analyzeResume, type AtsCategory, type AtsCheck, type AtsMeasurement, type CheckStatus } from '@/lib/ats'
+import { analyzeResume, type AtsCheck, type AtsMeasurement } from '@/lib/ats'
+import { CheckGroups, Ring } from '@/components/ats/AtsParts'
 import { fitSizesPt } from '@/lib/fitReadout'
 import { visibleSectionKeys } from '@/lib/atsScope'
 import { sectionHasContent } from '@/lib/sections'
@@ -13,50 +14,6 @@ import { SemanticMatchCard } from './SemanticMatch'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
-
-const STATUS_ICON = { pass: CheckCircle2, warn: AlertTriangle, fail: XCircle }
-const STATUS_COLOR: Record<CheckStatus, string> = {
-  pass: 'text-success',
-  warn: 'text-warning',
-  fail: 'text-danger',
-}
-
-function scoreColor(n: number) {
-  if (n >= 80) return 'hsl(var(--success))'
-  if (n >= 60) return 'hsl(var(--warning))'
-  return 'hsl(var(--danger))'
-}
-
-function Ring({ value, label, size = 92 }: { value: number; label?: string; size?: number }) {
-  const r = (size - 10) / 2
-  const circ = 2 * Math.PI * r
-  const off = circ * (1 - value / 100)
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={7} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={scoreColor(value)}
-          strokeWidth={7}
-          strokeDasharray={circ}
-          strokeDashoffset={off}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-bold tabular-nums" style={{ color: scoreColor(value) }}>
-          {value}
-        </span>
-        {label && <span className="text-[10px] text-muted-foreground">{label}</span>}
-      </div>
-    </div>
-  )
-}
 
 /* ------------------------------------------------------- jump to the fault
  * A check that says "3 bullets use a first-person pronoun" is a note; one that
@@ -308,17 +265,6 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
     return { sections: visible.size, excluded: excluded.length }
   }, [doc])
 
-  // `analyzeResume` already returns the checks worst-first, heaviest-first;
-  // filter preserves that order, so each group opens on the row worth the
-  // reader's next five minutes.
-  const grouped = useMemo(
-    () =>
-      (Object.keys(ATS_CATEGORY_LABELS) as AtsCategory[])
-        .map((category) => ({ category, checks: report.checks.filter((c) => c.category === category) }))
-        .filter((g) => g.checks.length),
-    [report.checks]
-  )
-
   return (
     <div className="space-y-5">
       {/* score header */}
@@ -353,45 +299,8 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
 
       <ContrastCard />
 
-      {/* checks, under the three questions they answer */}
-      <div className="space-y-4">
-        {grouped.map(({ category, checks }) => {
-          const failed = checks.filter((c) => c.status !== 'pass').length
-          // Each category carries its own score, so a reader can see WHICH of
-          // the three jobs is going wrong without reading twenty-five rows.
-          const catScore = report.categoryScores[category]
-          return (
-            <section key={category} className="space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {ATS_CATEGORY_LABELS[category]}
-                </h3>
-                <span className="flex items-baseline gap-2 text-[11px] tabular-nums text-muted-foreground">
-                  <span>
-                    {checks.length - failed}/{checks.length}
-                  </span>
-                  <span className="font-semibold" style={{ color: scoreColor(catScore) }}>
-                    {catScore}
-                  </span>
-                </span>
-              </div>
-              {checks.map((c) => {
-                const Icon = STATUS_ICON[c.status]
-                return (
-                  <div key={c.id} className="flex gap-2.5 rounded-lg border border-border bg-surface p-2.5">
-                    <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_COLOR[c.status])} />
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-medium">{c.label}</p>
-                      <p className="text-xs leading-snug text-muted-foreground">{c.detail}</p>
-                      {c.status !== 'pass' && c.where && <ShowMe doc={doc} where={c.where} />}
-                    </div>
-                  </div>
-                )
-              })}
-            </section>
-          )
-        })}
-      </div>
+      {/* checks, under the questions they answer */}
+      <CheckGroups report={report} extra={(c) => (c.where ? <ShowMe doc={doc} where={c.where} /> : null)} />
 
       <WritingCard doc={doc} />
 

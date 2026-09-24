@@ -3,6 +3,7 @@
  * the dashboard (/app): the create/import actions (which navigate straight into
  * the editor) and the Blank-vs-Example chooser modal.
  */
+import type { ResumeDocument } from '@/types/document'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
@@ -72,6 +73,20 @@ export function useResumeActions() {
     }
   }
 
+  /** Save a résumé read from a PDF and open it in the editor - on the ATS
+   *  panel when the reason for reading it was to check it. Shared by the
+   *  import button and the checker page, which reads the PDF itself first. */
+  const openImported = async (doc: ResumeDocument, opts: { openAts?: boolean; ocr?: boolean } = {}) => {
+    await saveDoc(doc)
+    await refreshLibrary()
+    toast(opts.ocr ? 'Imported via OCR — please review the fields closely' : 'Imported from PDF — review and tidy the fields', 'success')
+    if (opts.openAts) {
+      useEditorStore.getState().setLeftTab('ats')
+      useEditorStore.getState().setLeftOpen(true)
+    }
+    navigate(`/resume/${doc.id}`)
+  }
+
   /** Import an existing PDF résumé — parsed 100% in the browser, never uploaded. */
   /** `openAts` lands the editor on the ATS panel - the checker page's way in,
    *  where the reason someone dropped a PDF was to see what a parser reads. */
@@ -108,21 +123,14 @@ export function useResumeActions() {
         sample: true, // lay out exactly the sections we found
         title: name ? `${name} — Resume` : 'Imported résumé',
       })
-      await saveDoc(doc)
-      await refreshLibrary()
-      toast(meta.ocrPages.length ? 'Imported via OCR — please review the fields closely' : 'Imported from PDF — review and tidy the fields', 'success')
-      if (opts.openAts) {
-        useEditorStore.getState().setLeftTab('ats')
-        useEditorStore.getState().setLeftOpen(true)
-      }
-      navigate(`/resume/${doc.id}`)
+      await openImported(doc, { ...opts, ocr: meta.ocrPages.length > 0 })
     } catch (e) {
       console.error(e)
       toast('Could not read that PDF. Please try another file, or a text-based PDF.', 'error')
     }
   }
 
-  return { create, importFile, importPdf }
+  return { create, importFile, importPdf, openImported }
 }
 
 export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onClose }: { onBlank: () => void; onExample: () => void; onImport: () => void; onImportPdf?: () => void; onClose: () => void }) {

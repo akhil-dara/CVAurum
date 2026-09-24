@@ -112,12 +112,15 @@ export const GUIDES: readonly Guide[] = [
     sections: [
       {
         heading: 'What it checks',
-        paragraphs: ['The checks fall under three questions: can a parser read the file, will the right keywords be found, and will a person reading it quickly see what matters.'],
+        paragraphs: ['The checks answer four questions in turn: can a parser read the file at all, is the right material on the page, is it written well, and is it set so a person skimming it sees what matters.'],
         list: [
-          'The plain text a parser reads, shown beside the page, in the order it is read',
+          'The file itself: real selectable text or a scanned picture, characters that decode, headings spaced into single letters, two columns a parser may read straight across, page size and file name',
+          'What a parser pulled out, field by field — name, email, phone, each role with its dates — and which fields it could not find',
+          'The plain text a parser reads, in the order it is read',
           'A keyword match against a job description you paste in: which terms you have and which are missing',
           'Structure: contact details, section headings a parser recognises, dates it can read',
-          'Your bullets: how many carry a number, and which start with a weak verb',
+          'Your bullets: how many carry a number, which start with a weak verb, which run past two lines, and finished roles told in the present tense',
+          'Gaps between roles, emoji and symbols a parser drops, and personal details such as a date of birth that invite bias',
           'How five kinds of applicant-tracking system would split the file into fields',
           'A skim map of where a recruiter’s eye lands in the first seconds',
         ],
@@ -132,7 +135,8 @@ export const GUIDES: readonly Guide[] = [
       {
         heading: 'How to use it',
         paragraphs: [
-          'Open or import your résumé in the editor, open the ATS panel, and paste the job description into the box at the bottom. Fix what it points at, and watch the score and the keyword match move as you type.',
+          'Drop your PDF on the box at the top of this page. The report appears right here: the score, what a parser pulled out, every check worst first, and a box for the job description. Nothing is saved.',
+          'To fix what it found, open the résumé in the editor from the report: each fault is marked where it is, and the score moves as you type. Or rebuild it in any of the designs without retyping.',
         ],
       },
     ],

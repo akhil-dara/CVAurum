@@ -6,73 +6,16 @@
  * HTML, the Markdown twin and the structured data have to be the same text as
  * this page. This file is only how a person reads it.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowRight, FileUp, ShieldCheck } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
-import { useResumeActions } from '@/components/dashboard/newResume'
+import { AtsFileCheck } from '@/components/ats/AtsFileCheck'
 import { GUIDES, guideBySlug } from '@/data/guides'
 import { SITE, guidePageMeta } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
 import { TEMPLATE_COUNT } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
-
-/**
- * The checker itself, on the checker's page: drop a PDF and it is read here,
- * on this device, then opened in the editor on the ATS panel. Someone who
- * searched for an ATS checker came to check a résumé, not to read about one.
- */
-function AtsDrop() {
-  const { importPdf } = useResumeActions()
-  const input = useRef<HTMLInputElement>(null)
-  const [over, setOver] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const take = async (file?: File) => {
-    if (!file || busy) return
-    setBusy(true)
-    try {
-      await importPdf(file, { openAts: true })
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <div
-      data-ats-drop
-      onDragOver={(e) => {
-        e.preventDefault()
-        setOver(true)
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        e.preventDefault()
-        setOver(false)
-        void take(e.dataTransfer.files?.[0])
-      }}
-      className={`mt-6 rounded-2xl border-2 border-dashed p-6 text-center transition sm:p-8 ${
-        over ? 'border-primary bg-primary/5' : 'border-border bg-surface'
-      }`}
-    >
-      <FileUp className="mx-auto h-8 w-8 text-primary" aria-hidden />
-      <p className="mt-3 text-[15px] font-medium">Drop your résumé PDF here</p>
-      <p className="mt-1 text-sm text-muted-foreground">It is read on this device and opened in the ATS check. Scanned PDFs work too.</p>
-      <input
-        ref={input}
-        type="file"
-        accept="application/pdf,.pdf"
-        className="hidden"
-        onChange={(e) => void take(e.target.files?.[0])}
-      />
-      <button type="button" className="btn-primary mt-4" disabled={busy} onClick={() => input.current?.click()}>
-        {busy ? 'Reading…' : 'Choose a PDF'}
-      </button>
-      <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-        Nothing is uploaded: there is no server to send it to.
-      </p>
-    </div>
-  )
-}
 
 export function Guide() {
   // The router lists each guide by its own path, so the path IS the slug.
@@ -118,7 +61,7 @@ export function Guide() {
             </p>
           ))}
           {g.tool === 'ats-check' ? (
-            <AtsDrop />
+            <AtsFileCheck />
           ) : (
             <Link className="btn-primary mt-6" to={g.action.href}>
               {g.action.label}

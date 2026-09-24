@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createDocument } from '@/data/defaults'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { analyzeResume, type AtsCheck } from './ats'
+import type { FileFacts } from './fileFacts'
 
 /**
  * The analysis is the thing a person acts on before sending a résumé out, so
@@ -445,5 +446,176 @@ describe('the report as a whole', () => {
     const score = analyzeResume(empty).score
     expect(score).toBeGreaterThanOrEqual(0)
     expect(score).toBeLessThanOrEqual(100)
+  })
+})
+
+/* ------------------------------------------------ rules added 2026-09-24 */
+
+const role = (id: string, position: string, startDate: string, endDate: string, highlights: string[] = ['Cut release time from 3 days to 4 hours across 12 teams.']) => ({
+  id,
+  name: 'Company',
+  position,
+  location: 'Pune, India',
+  url: '',
+  startDate,
+  endDate,
+  summary: '',
+  highlights,
+})
+
+describe('gaps between roles', () => {
+  it('names a stretch of more than six months that nothing on the page covers', () => {
+    const d = doc({ volunteer: [], education: [], work: [role('b', 'Lead Engineer', '2021-06', ''), role('a', 'Engineer', '2018-01', '2020-03')] })
+    const c = find(d, 'gaps')
+    expect(c.status).toBe('warn')
+    expect(c.detail).toContain('14 months')
+    expect(c.where).toEqual({ section: 'work', entry: 0 })
+  })
+
+  it('counts study that fills most of the gap as the explanation, even with a month either side', () => {
+    const d = doc({
+      volunteer: [],
+      education: [{ id: 'e', institution: 'Law School', area: 'Law', studyType: 'J.D.', startDate: '2019-08', endDate: '2022-05', score: '', courses: [], url: '', summary: '', location: '' }],
+      work: [role('b', 'Associate', '2022-09', ''), role('a', 'Analyst', '2017-07', '2019-06')],
+    })
+    expect(find(d, 'gaps').status).toBe('pass')
+  })
+
+  it('leaves overlapping roles alone', () => {
+    const d = doc({ volunteer: [], education: [], work: [role('b', 'Advisor', '2019-01', '2023-01'), role('a', 'Engineer', '2018-01', '')] })
+    expect(find(d, 'gaps').status).toBe('pass')
+  })
+})
+
+describe('tense', () => {
+  it('flags a finished role told in the present tense', () => {
+    const d = withBullets([])
+    d.content.work = [role('a', 'Engineer', '2018-01', '2020-03', ['Lead a team of six building the payments API for 40 merchants.'])]
+    const c = find(d, 'tense')
+    expect(c.status).toBe('warn')
+    expect(c.where).toEqual({ section: 'work', entry: 0, bullet: 0 })
+  })
+
+  it('lets the current role speak in the present, and a noun open a past one', () => {
+    const d = withBullets([])
+    d.content.work = [
+      role('b', 'Engineer', '2021-01', '', ['Lead a team of six building the payments API.']),
+      role('a', 'Engineer', '2018-01', '2020-03', ['Process redesign cut invoice errors by 30% across 4 regions.']),
+    ]
+    expect(find(d, 'tense').status).toBe('pass')
+  })
+})
+
+describe('bullet length', () => {
+  it('flags a bullet that runs past two lines', () => {
+    const long = 'Led the migration of '.concat('the billing platform and its twelve dependent services '.repeat(4), 'to the new cluster.')
+    expect(find(withBullets([long]), 'bulletLength').status).toBe('warn')
+    expect(find(withBullets(['Cut checkout latency from 820ms to 190ms for 2.4M customers.']), 'bulletLength').status).toBe('pass')
+  })
+})
+
+describe('symbols typed as text', () => {
+  it('flags emoji and ornaments, and spares the trademark signs of product names', () => {
+    const c = find(withBullets(['🚀 Shipped the Acme® platform to 40 clients in 6 months.']), 'symbols')
+    expect(c.status).toBe('warn')
+    expect(c.detail).toContain('🚀')
+    expect(c.detail).not.toContain('®')
+    expect(find(withBullets(['Shipped the Acme® platform to 40 clients.']), 'symbols').status).toBe('pass')
+  })
+})
+
+describe('personal details', () => {
+  const item = (name: string, summary = '') => ({ id: 'i', name, subtitle: '', summary, highlights: [], date: '', location: '', url: '' })
+  const personal = (text: string) => doc({ custom: [{ id: 'p', name: 'Personal Details', items: [item(text)] }] })
+
+  it('warns - never fails - on a date of birth or marital status, and points at the section', () => {
+    const c = find(personal('Date of Birth: 12/04/1996 · Marital Status: Single'), 'personal')
+    expect(c.status).toBe('warn')
+    expect(c.detail).toContain('date of birth')
+    expect(c.detail).toContain('marital status')
+    expect(c.where).toEqual({ section: 'custom-p' })
+  })
+
+  it('does not read an ordinary sentence as a personal detail', () => {
+    expect(find(personal('Advised on the merger of two family-owned firms, both married to one supplier'), 'personal').status).toBe('pass')
+  })
+
+  it('names a declaration as lines a reader skips', () => {
+    const d = doc({ custom: [{ id: 'd', name: 'Declaration', items: [item('', 'I hereby declare that the above is true.')] }] })
+    expect(find(d, 'declaration').status).toBe('warn')
+  })
+})
+
+describe('a PDF from elsewhere, judged as a file', () => {
+  const facts = (over: Partial<FileFacts> = {}): FileFacts => ({
+    fileName: 'Alex-Morgan-Resume.pdf',
+    pageCount: 1,
+    pageSizes: [{ w: 595.3, h: 841.9 }],
+    scannedPages: [],
+    textChars: 3000,
+    unmappedChars: 0,
+    tracked: [],
+    twoColumn: false,
+    contact: 'top',
+    photo: false,
+    bodyPt: 10.5,
+    text: '',
+    ...over,
+  })
+  const d = () => {
+    const x = doc()
+    x.content.basics = { ...x.content.basics, name: 'Alex Morgan' }
+    return x
+  }
+
+  it('asks the file questions only of a dropped file, and drops the question of which design it is set in', () => {
+    expect(analyzeResume(d()).checks.some((c) => c.category === 'file')).toBe(false)
+    const r = analyzeResume(d(), { file: facts() })
+    expect(r.checks.filter((c) => c.category === 'file').every((c) => c.status === 'pass')).toBe(true)
+    expect(r.checks.some((c) => c.id === 'template')).toBe(false)
+  })
+
+  it('fails a picture of a résumé, and weighs it above any rule about the words', () => {
+    const c = find(d(), 'textLayer', { file: facts({ scannedPages: [1] }) })
+    expect(c.status).toBe('fail')
+    expect(c.weight).toBeGreaterThan(2)
+  })
+
+  it('tells icon glyphs apart from a font that decodes to nothing', () => {
+    expect(find(d(), 'characters', { file: facts({ unmappedChars: 3 }) }).status).toBe('warn')
+    expect(find(d(), 'characters', { file: facts({ unmappedChars: 900 }) }).status).toBe('fail')
+  })
+
+  it('quotes a letter-spaced heading as the parser reads it', () => {
+    const c = find(d(), 'spacing', { file: facts({ tracked: [{ raw: 'E X P E R I E N C E', text: 'EXPERIENCE' }] }) })
+    expect(c.status).toBe('warn')
+    expect(c.detail).toContain('E X P E R I E N C E')
+  })
+
+  it('shows two columns merged, from the file itself', () => {
+    const c = find(d(), 'readingOrder', { file: facts({ twoColumn: true, acrossExample: { left: 'SKILLS', right: 'Senior Engineer, Vertex Labs' } }) })
+    expect(c.status).toBe('warn')
+    expect(c.detail).toContain('“SKILLS” would run into “Senior Engineer, Vertex Labs”')
+  })
+
+  it('knows A4 and US Letter, and names any other size in millimetres', () => {
+    expect(find(d(), 'pageSize', { file: facts({ pageSizes: [{ w: 612, h: 792 }] }) }).detail).toContain('US Letter')
+    expect(find(d(), 'pageSize', { file: facts({ pageSizes: [{ w: 600, h: 900 }] }) }).status).toBe('warn')
+  })
+
+  it('wants the file named after its owner, not "final (2)"', () => {
+    expect(find(d(), 'fileName', { file: facts() }).status).toBe('pass')
+    expect(find(d(), 'fileName', { file: facts({ fileName: 'Resume final (2).pdf' }) }).status).toBe('warn')
+    expect(find(d(), 'fileName', { file: facts({ fileName: 'document.pdf' }) }).status).toBe('warn')
+  })
+
+  it('warns when the contact line sits in a sidebar', () => {
+    expect(find(d(), 'contactPlace', { file: facts({ contact: 'sidebar' }) }).status).toBe('warn')
+  })
+
+  it('takes the page count and body size from the file', () => {
+    const r = analyzeResume(d(), { file: facts({ pageCount: 3, bodyPt: 8 }) })
+    expect(r.pages).toBe(3)
+    expect(r.checks.find((c) => c.id === 'bodySize')?.status).toBe('fail')
   })
 })
