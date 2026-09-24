@@ -5,6 +5,7 @@
  * Skills, Projects. Every field is regex/lexicon/geometry-derived — no network,
  * no model. v2 adds OCR + multi-column reading order on the same graph.
  */
+import type { FileFacts } from '@/lib/fileFacts'
 import { uid } from '@/lib/utils'
 import type { ResumeContent } from '@/types/document'
 import type { Line, LayoutGraph } from './layoutGraph'
@@ -43,6 +44,13 @@ interface Section {
   title: string
   lines: Line[]
 }
+
+/** Labels that head a block of bullets inside one job, common in résumés from India. */
+const ENTRY_LABEL =
+  /^(roles?\s*(and|&)\s*responsibilit\w*|responsibilities|key\s*responsibilities|duties|achievements|key\s*achievements|highlights)\s*:?$/i
+
+const DEGREE_LINE =
+  /^(bachelor|master|doctor(ate)?|diploma|associate (of|in|degree)|b\.?\s?(tech|e|sc|a|com|s|ba|ca|arch|pharm)\b|m\.?\s?(tech|e|sc|a|s|ba|ca|com|phil)\b|ph\.?\s?d\b|mba\b|bba\b|bca\b|mca\b|high school|higher secondary|secondary school|intermediate\b|ssc\b|hsc\b)/i
 
 // Contained-keyword fallback for short heading-like lines whose keyword isn't at
 // the very start ("Relevant Experience", "Core Competencies", "Areas of Expertise").
@@ -93,6 +101,10 @@ const startsAllCaps = (t: string): boolean => /^[A-Z][A-Z][A-Z &/,'’-]+/.test(
 function headingKey(line: Line, g: LayoutGraph, styledHeadingSeen = false, plainHeadingHeight = 0): string | null {
   const t = line.text.replace(/[:•·]\s*$/, '').trim()
   if (/@|https?:|\.com\b/.test(t)) return null // contact lines aren't headings
+  // A degree is an entry, never a heading - though set larger than the body
+  // it passes as styled, and "Bachelor Of Technology" matched Skills on its
+  // last word, taking the whole education entry with it.
+  if (DEGREE_LINE.test(t)) return null
   const words = t.split(/\s+/)
   const styled = line.upper || line.bold || line.height >= g.bodySize * 1.14
   // Tier 0 — the line is essentially JUST a section name (a plain heading), so
@@ -192,7 +204,7 @@ function unwrapWrappedLabels(lines: Line[], g: LayoutGraph): Line[] {
     // Only when the first half cannot stand as the heading on its own, or
     // it trails a connector that plainly continues ("TECHNICAL SKILLS &").
     const aloneMatches = HEAD_PHRASES.some((ph) => ph.re.test(runA))
-    if (aloneMatches && !/[&–—]$|(and|of|the)$/i.test(a.text.trim())) {
+    if (aloneMatches && !/[&–—]$|\b(and|of|the)$/i.test(a.text.trim())) {
       out.push(a)
       continue
     }
@@ -267,6 +279,15 @@ export function splitSections(g: LayoutGraph): Section[] {
 
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/
 const LINKEDIN_RE = /(?:https?:\/\/)?(?:[a-z]{2,3}\.)?linkedin\.com\/(?:in|pub)\/[A-Za-z0-9_-]+\/?/i
+/** A LinkedIn address printed as its path alone ("in/jane-doe"), which is how
+ *  a line with a LinkedIn icon in front of it often reads. */
+const LINKEDIN_PATH_RE = /(?<![A-Za-z./])in\/([A-Za-z0-9_-]{3,100})/
+const linkedinOf = (blob: string): string | undefined => {
+  const full = blob.match(LINKEDIN_RE)?.[0]
+  if (full) return full
+  const path = blob.match(LINKEDIN_PATH_RE)?.[1]
+  return path ? `linkedin.com/in/${path}` : undefined
+}
 const GITHUB_RE = /(?:https?:\/\/)?(?:www\.)?github\.com\/[A-Za-z0-9_-]+\/?/i
 const URL_RE =
   /(?:https?:\/\/)?(?:www\.)?[A-Za-z0-9-]+\.(?:dev|io|com|net|org|me|co|ai|app|tech|in|uk|page|site|xyz)(?:\/[^\s|,]*)?/i
@@ -351,6 +372,11 @@ const isBullet = (s: string) =>
 const stripBullet = (s: string) => s.replace(/^[•‣▪◦●■·⁃∙◆✓*►▸]+\s*|^[-–—›]\s+/, '').trim()
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+/** Regions spelled out after a one-word city ("Hyderabad, India", "Pune,
+ *  Maharashtra"): with one of these the city needs no second word. */
+const REGION_NAMES =
+  /^(india|usa|uk|uae|canada|australia|germany|singapore|france|netherlands|ireland|japan|china|malaysia|qatar|kuwait|oman|bahrain|nepal|bangladesh|pakistan|brazil|mexico|spain|italy|sweden|switzerland|poland|belgium|denmark|norway|finland|austria|portugal|israel|egypt|nigeria|kenya|philippines|indonesia|vietnam|thailand|korea|telangana|karnataka|maharashtra|tamilnadu|kerala|gujarat|rajasthan|punjab|haryana|delhi|bihar|odisha|orissa|assam|goa|uttarakhand|jharkhand|chhattisgarh|england|scotland|wales|ontario|quebec|texas|california|florida|washington|virginia|georgia|illinois|massachusetts|colorado|arizona|oregon|michigan|ohio|pennsylvania|carolina)$/i
+
 // Multi-word city prefixes so "San Francisco" / "New York" stay whole.
 const CITY_PREFIX = /^(san|los|las|new|santa|fort|st\.?|saint|north|south|east|west|el|la|mount|lake|cape|port)$/i
 
@@ -368,10 +394,12 @@ function pullLocation(text: string): { location: string; rest: string } {
   const isCode = /^[A-Z]{2}$/.test(region)
   const before = text.slice(0, m.index).replace(/\s+$/, '')
   const words = before.split(/\s+/).filter(Boolean)
-  if (!words.length || !/^[A-Z]/.test(words[words.length - 1])) return { location: '', rest: text }
+  // A city is capitalised, unless a known region vouches for it ("kakinada,India").
+  if (!words.length || (!/^[A-Z]/.test(words[words.length - 1]) && !REGION_NAMES.test(region))) return { location: '', rest: text }
   const cityWords = [words[words.length - 1]]
   if (words.length >= 2 && CITY_PREFIX.test(words[words.length - 2])) cityWords.unshift(words[words.length - 2])
-  if (!isCode && cityWords.length < 2) return { location: '', rest: text } // guard against non-locations
+  // guard against non-locations - unless the region is a place name we know
+  if (!isCode && cityWords.length < 2 && !REGION_NAMES.test(region)) return { location: '', rest: text }
   const city = cityWords.join(' ')
   const rest = words.slice(0, words.length - cityWords.length).join(' ')
   return { location: `${city}, ${region}`, rest: cleanEdge(rest) }
@@ -463,7 +491,7 @@ function parseHeader(header: Line[], content: ResumeContent) {
     })
   b.phone = phoneCands.sort((a, b2) => b2.replace(/\D/g, '').length - a.replace(/\D/g, '').length)[0] ?? ''
 
-  const linkedin = blob.match(LINKEDIN_RE)?.[0]
+  const linkedin = linkedinOf(blob)
   const github = blob.match(GITHUB_RE)?.[0]
   const profiles: { id: string; network: string; username: string; url: string }[] = []
   const httpify = (u: string) => (/^https?:\/\//.test(u) ? u : 'https://' + u.replace(/^\/+/, ''))
@@ -560,7 +588,7 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
   }
   const httpify = (u: string) => (/^https?:\/\//.test(u) ? u : 'https://' + u.replace(/^\/+/, ''))
   if (!b.profiles || !b.profiles.length) {
-    const linkedin = blob.match(LINKEDIN_RE)?.[0]
+    const linkedin = linkedinOf(blob)
     const github = blob.match(GITHUB_RE)?.[0]
     const profiles: { id: string; network: string; username: string; url: string }[] = []
     if (linkedin) profiles.push({ id: uid(), network: 'LinkedIn', username: '', url: httpify(linkedin) })
@@ -568,7 +596,17 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
     if (profiles.length) b.profiles = profiles
   }
   if (!b.location || (!b.location.city && !b.location.region)) {
-    const locM = blob.match(LOCATION_RE)
+    // Only where a contact block can sit: the top of page one, or a sidebar.
+    // Searched across the whole document, "Proficient in BigQuery, PySpark"
+    // in a summary became the candidate's city.
+    const pageH = g.file?.pageSizes[0]?.h ?? 842
+    const contactBlob = allLines
+      // A dated line is an entry, not contact details: "April 2024 -
+      // Present, Hyderabad" is a job, and its "Present" is no city.
+      .filter((l) => l.text.length < 90 && ((l.page === 1 && l.top < pageH * 0.3) || l.aside) && !/\b(19|20)\d{2}\b|\bpresent\b|\bcurrent\b/i.test(l.text))
+      .map((l) => l.text)
+      .join('  \u00b7  ')
+    const locM = contactBlob.match(LOCATION_RE)
     if (locM) {
       const [city, region] = locM[1].split(',').map((x) => x.trim())
       b.location = { city, region }
@@ -837,6 +875,9 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
         end = '',
         location = ''
       for (const line of entry) {
+        // A label inside the entry ("Roles and Responsibilities:") introduces
+        // the bullets; it is not one of them.
+        if (ENTRY_LABEL.test(stripBullet(line.text).trim())) continue
         if (isHL(line)) {
           hlLines.push(line)
           continue
@@ -850,7 +891,11 @@ function parseWork(lines: Line[], g: LayoutGraph): ResumeContent['work'] {
           start = d.single ? d.end : d.start
           end = d.end
         }
-        let rest = d.rest
+        // Edges first: with the date closing the company line ("Vertex Labs
+        // San Francisco, CA · Mar 2021 - Present") taking the date away
+        // leaves the separator dot on the end, and the location, which is
+        // read from the end of the line, was never found.
+        let rest = cleanEdge(d.rest)
         const pl = pullLocation(rest)
         if (pl.location && !location) {
           location = pl.location
@@ -982,6 +1027,12 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   // chip row follows it falls through to the loose pile as before).
   const isChipRow = (l: Line): boolean => {
     if (!l.items || l.items.length < 2) return false
+    // A labelled list ("Languages: TypeScript · Go") set as separate runs is
+    // not a chip row: its label, colon and separators are runs too, and read
+    // as chips they became keywords ("Languages", ":") in one unnamed group.
+    // The labelled-line path below reads it whole.
+    if (/^[A-Za-z][A-Za-z /&+#.-]{1,28}:\s*\S/.test(stripBullet(l.text))) return false
+    if (l.items.some((it) => /^[\p{P}\p{S}\s]+$/u.test(it.str))) return false
     for (let i = 1; i < l.items.length; i++) {
       const gapPt = l.items[i].x - (l.items[i - 1].x + l.items[i - 1].width)
       if (gapPt < 3) return false
@@ -1076,6 +1127,13 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
     if (consumed.has(i)) continue
     const t = stripBullet(line.text)
     const m = t.match(/^([A-Za-z][A-Za-z /&+#.-]{1,28}):\s*(.+)$/)
+    // A label on its own line, its list on the next ("Cloud Services:").
+    const label = t.match(/^([A-Za-z][A-Za-z /&+#.()-]{1,34}):\s*$/)
+    if (label) {
+      if (pendingName) loose.push(pendingName)
+      pendingName = label[1].trim()
+      continue
+    }
     if (m) {
       if (pendingName) loose.push(pendingName)
       pendingName = null
@@ -1084,6 +1142,14 @@ export function parseSkills(lines: Line[]): ResumeContent['skills'] {
     } else if (groupNameish(t)) {
       if (pendingName) loose.push(pendingName)
       pendingName = t
+    } else if (pendingName && /[,;|•·]/.test(t) && looksLikeSkillList(t)) {
+      // A short name on its own line over a delimited list is that list's
+      // name: the shape a group takes when a level meter shares the name's
+      // row and pushes the keywords to the next line.
+      const keywords = clean(t.split(/[,;|•·]/))
+      if (keywords.length) groups.push({ id: uid(), name: pendingName, level: '', keywords })
+      else loose.push(pendingName)
+      pendingName = null
     } else {
       if (pendingName) loose.push(pendingName)
       pendingName = null
@@ -1112,7 +1178,29 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
       let start = '',
         end = '',
         url = ''
+      const keywords: string[] = []
       for (const line of entry) {
+        const bare = stripBullet(line.text).trim()
+        // A line that is nothing but an address is the project's link, not
+        // a bullet about it ("github.com/alexmorgan/pulse" under the title).
+        const whole = bare.match(URL_RE)
+        if (whole && whole[0].length >= bare.length - 1 && !url) {
+          url = whole[0]
+          continue
+        }
+        // A row of short, separated runs UNDER a project is its tag chips -
+        // never the first line, where a short title and its date have the
+        // same shape, and never a line carrying a date.
+        if (line !== entry[0] && !pullDates(bare).end && !pullDates(bare).start) {
+          const items = line.items ?? []
+          const chips =
+            items.length >= 2 &&
+            items.every((it, k) => it.str.trim().split(/\s+/).length <= 3 && (k === 0 || it.x - (items[k - 1].x + items[k - 1].width) >= 3))
+          if (chips && !/[.!?]$/.test(bare) && !/^[•·▪◦‣–-]/.test(line.text.trim())) {
+            keywords.push(...items.map((it) => it.str.trim()).filter(Boolean))
+            continue
+          }
+        }
         if (isHL(line)) {
           hlLines.push(line)
           continue
@@ -1142,7 +1230,7 @@ function parseProjects(lines: Line[], g: LayoutGraph): ResumeContent['projects']
         startDate: start,
         endDate: end,
         highlights,
-        keywords: [],
+        keywords,
       }
     })
     .filter((p) => p.name)
@@ -1389,6 +1477,8 @@ export interface ImportResult {
     lowText: boolean
     ocrPages: number[]
     ocrEngineFailed: boolean
+    /** The file as a parser meets it (set by importResumeFromPdf). */
+    file?: FileFacts
   }
 }
 

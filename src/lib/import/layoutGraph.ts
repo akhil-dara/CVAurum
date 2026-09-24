@@ -59,6 +59,31 @@ export interface LayoutGraph {
   ocrPages: number[]
   /** OCR was needed but the engine itself failed to start (blocked/offline). */
   ocrEngineFailed: boolean
+  /** What the file itself is like, beyond its words: the evidence the ATS
+   *  check's file rules read (src/lib/import/fileFacts.ts). */
+  file?: FileEvidence
+}
+
+/**
+ * Facts about the file a parser would meet, collected while it is read.
+ *
+ * The importer repairs what it can - it closes up letter-spaced headings,
+ * recovers two columns, OCRs a scanned page - which is right for importing and
+ * wrong for judging: a checker that only ever sees the repaired text tells the
+ * author their file is fine when the parser at the other end will not repair
+ * it. So the unrepaired facts are kept here.
+ */
+export interface FileEvidence {
+  /** Each page's size in points, in page order. */
+  pageSizes: { w: number; h: number }[]
+  /** Non-space characters in the native text layer, and how many of them map
+   *  to no real letter (no ToUnicode entry: private-use, replacement, control). */
+  textChars: number
+  unmappedChars: number
+  /** Lines whose raw text was letter-spaced ("S U M M A R Y"), as read and as repaired. */
+  tracked: { page: number; raw: string; text: string }[]
+  /** Pictures painted on each page, with their size in points. */
+  images: { page: number; x: number; top: number; w: number; h: number }[]
 }
 
 export interface BuildOptions {
@@ -96,15 +121,64 @@ interface PageText {
   total: number
 }
 
+type Matrix = [number, number, number, number, number, number]
+const mul = (m: Matrix, n: Matrix): Matrix => [
+  m[0] * n[0] + m[2] * n[1],
+  m[1] * n[0] + m[3] * n[1],
+  m[0] * n[2] + m[2] * n[3],
+  m[1] * n[2] + m[3] * n[3],
+  m[0] * n[4] + m[2] * n[5] + m[4],
+  m[1] * n[4] + m[3] * n[5] + m[5],
+]
+
+/**
+ * The pictures a page paints, and how big. An image is drawn into the unit
+ * square under the current transform, so its size on the page is the length
+ * of the transform's two axis vectors. Image masks are left out: those are
+ * one-colour stencils (icons), not pictures.
+ */
+async function pageImages(page: pdfjsLib.PDFPageProxy, num: number, height: number): Promise<FileEvidence['images']> {
+  const out: FileEvidence['images'] = []
+  try {
+    const ops = await page.getOperatorList()
+    const O = pdfjsLib.OPS
+    const stack: Matrix[] = []
+    let ctm: Matrix = [1, 0, 0, 1, 0, 0]
+    for (let i = 0; i < ops.fnArray.length; i++) {
+      const fn = ops.fnArray[i]
+      const args = ops.argsArray[i] as unknown[]
+      if (fn === O.save) stack.push(ctm)
+      else if (fn === O.restore) ctm = stack.pop() ?? ctm
+      else if (fn === O.transform) ctm = mul(ctm, args as Matrix)
+      else if (fn === O.paintFormXObjectBegin) {
+        stack.push(ctm)
+        if (Array.isArray(args?.[0]) && (args[0] as number[]).length === 6) ctm = mul(ctm, args[0] as Matrix)
+      } else if (fn === O.paintFormXObjectEnd) ctm = stack.pop() ?? ctm
+      else if (fn === O.paintImageXObject || fn === O.paintInlineImageXObject || fn === O.paintImageXObjectRepeat) {
+        const w = Math.hypot(ctm[0], ctm[1])
+        const h = Math.hypot(ctm[2], ctm[3])
+        if (w > 1 && h > 1) out.push({ page: num, x: ctm[4], top: height - ctm[5] - h, w, h })
+      }
+    }
+  } catch {
+    /* a page whose operators cannot be listed has no pictures we can speak for */
+  }
+  return out
+}
+
 async function readTextLayer(
   doc: pdfjsLib.PDFDocumentProxy,
-): Promise<{ pages: PageText[]; pageWidth: Map<number, number> }> {
+): Promise<{ pages: PageText[]; pageWidth: Map<number, number>; sizes: FileEvidence['pageSizes']; images: FileEvidence['images'] }> {
   const pages: PageText[] = []
   const pageWidth = new Map<number, number>()
+  const sizes: FileEvidence['pageSizes'] = []
+  const images: FileEvidence['images'] = []
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p)
     const viewport = page.getViewport({ scale: 1 })
     pageWidth.set(p, viewport.width)
+    sizes.push({ w: viewport.width, h: viewport.height })
+    images.push(...(await pageImages(page, p, viewport.height)))
     const tc = await page.getTextContent()
     const styles = tc.styles as Record<string, { fontFamily?: string }>
     const items: Item[] = []
@@ -132,7 +206,7 @@ async function readTextLayer(
     pages.push({ num: p, items, usable, total })
     page.cleanup()
   }
-  return { pages, pageWidth }
+  return { pages, pageWidth, sizes, images }
 }
 
 /**
@@ -374,7 +448,7 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
   return any
 }
 
-function buildLines(items: Item[]): Line[] {
+function buildLines(items: Item[], tracked: FileEvidence['tracked'] = []): Line[] {
   // Reading order for RECOVERY (2026-08-16): main flow first (col 0/1 in
   // page order), every col-2 column LAST (in page order). The old strictly
   // per-page order (p1 main, p1 aside, p2 ...) let a short aside's own
@@ -414,7 +488,10 @@ function buildLines(items: Item[]): Line[] {
     }
     // Collapse letter-spacing BEFORE squashing whitespace (a real word break in
     // tracked text shows up as 2+ spaces, which collapseTracking preserves).
-    text = collapseTracking(text.trim()).replace(/\s+/g, ' ').trim()
+    const raw = text.trim()
+    text = collapseTracking(raw).replace(/\s+/g, ' ').trim()
+    // Kept as the parser would meet it: repaired here, letter-spaced there.
+    if (text !== raw.replace(/\s+/g, ' ').trim()) tracked.push({ page: ordered[0].page, raw: raw.replace(/\s+/g, ' '), text })
     if (text) {
       const heights = ordered.map((i) => i.height).filter(Boolean)
       const boldChars = ordered.filter((i) => i.bold).reduce((n, i) => n + i.str.length, 0)
@@ -459,9 +536,17 @@ function buildLines(items: Item[]): Line[] {
   return lines
 }
 
-function assemble(items: Item[], pageWidth: Map<number, number>, pageCount: number, ocrPages: number[], ocrEngineFailed = false): LayoutGraph {
+function assemble(
+  items: Item[],
+  pageWidth: Map<number, number>,
+  pageCount: number,
+  ocrPages: number[],
+  ocrEngineFailed = false,
+  evidence: Omit<FileEvidence, 'tracked'> = { pageSizes: [], textChars: 0, unmappedChars: 0, images: [] },
+): LayoutGraph {
   const twoColumn = assignColumns(items, pageWidth)
-  const lines = buildLines(items)
+  const tracked: FileEvidence['tracked'] = []
+  const lines = buildLines(items, tracked)
   const bodyLines = lines.filter((l) => l.text.length > 12)
   const bodySize = median((bodyLines.length ? bodyLines : lines).map((l) => l.height)) || 10
   const gaps: number[] = []
@@ -480,6 +565,7 @@ function assemble(items: Item[], pageWidth: Map<number, number>, pageCount: numb
     twoColumn,
     ocrPages,
     ocrEngineFailed,
+    file: { ...evidence, tracked },
   }
 }
 
@@ -496,7 +582,10 @@ export async function buildLayoutGraph(file: File | ArrayBuffer, opts: BuildOpti
   const pageCount = doc.numPages
 
   try {
-    const { pages, pageWidth } = await readTextLayer(doc)
+    const { pages, pageWidth, sizes, images } = await readTextLayer(doc)
+    // Counted before OCR replaces anything: the native layer is what a parser reads.
+    const textChars = pages.reduce((n, p) => n + p.total, 0)
+    const unmappedChars = pages.reduce((n, p) => n + (p.total - p.usable), 0)
     const items: Item[] = pages.flatMap((p) => p.items)
 
     // Route unreadable pages through OCR (lazy-loaded; only touched if needed).
@@ -534,7 +623,7 @@ export async function buildLayoutGraph(file: File | ArrayBuffer, opts: BuildOpti
       }
     }
 
-    return assemble(items, pageWidth, pageCount, ocrPages, ocrEngineFailed)
+    return assemble(items, pageWidth, pageCount, ocrPages, ocrEngineFailed, { pageSizes: sizes, textChars, unmappedChars, images })
   } finally {
     doc.destroy()
   }

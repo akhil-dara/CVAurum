@@ -397,6 +397,30 @@ describe('parseSkills — chip rows and group-name pairing (2026-08-16)', () => 
     expect(out[0].keywords).toEqual(['React', 'Vue', 'Svelte'])
   })
 
+  // A level meter beside the name pushes the list to the next line, where it
+  // opens with no colon (2026-09-24): the name used to fall into the loose
+  // pile and every group merged into one.
+  it('names a delimited list by the short line above it', () => {
+    const out = parseSkills([
+      proseLine('Languages', 9.8, 0),
+      proseLine('TypeScript · Go · Python', 8.8, 12),
+      proseLine('Frontend', 9.8, 30),
+      proseLine('React · Next.js', 8.8, 42),
+    ])
+    expect(out.map((g) => [g.name, g.keywords])).toEqual([
+      ['Languages', ['TypeScript', 'Go', 'Python']],
+      ['Frontend', ['React', 'Next.js']],
+    ])
+  })
+
+  // A labelled list set as separate runs has a gap between every run, like a
+  // chip row; its label and colon are not chips.
+  it('does not read "Label: a · b" set as separate runs as a chip row', () => {
+    const out = parseSkills([chipLine(['Languages', ':', 'TypeScript', '·', 'Go'], 8.8, 0)])
+    expect(out[0].name).toBe('Languages')
+    expect(out[0].keywords).toEqual(['TypeScript', 'Go'])
+  })
+
   it('still parses colon-style lines (harvard) exactly as before', () => {
     const out = parseSkills([proseLine('Languages: TypeScript, Go, Python', 9.8, 0)])
     expect(out).toHaveLength(1)
@@ -1151,5 +1175,114 @@ describe('one date is not a range (2026-09-22)', () => {
     const [w] = work('Mar 2021 - Feb 2023')
     expect(w.startDate).toBe('2021-03')
     expect(w.endDate).toBe('2023-02')
+  })
+})
+
+describe('projects — the link line and the tag chips are fields, not bullets (2026-09-24)', () => {
+  // The ATS report quoted "github.com/alexmorgan/pulse" as a bullet too
+  // short to say anything: the address line under a project title and the
+  // row of tag chips beneath the bullets were both read as highlights.
+  it('reads the address as the link and the chip row as keywords', () => {
+    const at = (l: Line, top: number, x = 40): Line => ({ ...l, top, x, items: l.items.length ? l.items : [{ str: l.text, x, top, width: l.text.length * 4, height: l.height, bold: l.bold, page: 1, col: 0, aside: false }] })
+    const out = parseLayout(
+      graph([
+        at(line('Alex Morgan', true, 22), 0),
+        at(upperLine('PROJECTS'), 60),
+        at(line('Pulse — Open-source observability', true, 10.2), 75),
+        at(line('github.com/alexmorgan/pulse', false, 9.2), 88),
+        at(line('• 3.2k GitHub stars, 40+ contributors.', false, 9.8), 101),
+        at(line('• Zero-config OpenTelemetry instrumentation for Node and Go.', false, 9.8), 113),
+        { ...chipLine(['Go', 'OpenTelemetry', 'React'], 8.8, 126), x: 40 },
+      ])
+    )
+    const p = out.content.projects[0]
+    expect(p.name).toBe('Pulse — Open-source observability')
+    expect(p.url).toBe('https://github.com/alexmorgan/pulse')
+    expect(p.keywords).toEqual(['Go', 'OpenTelemetry', 'React'])
+    expect(p.highlights.map((h) => h.replace(/<[^>]+>/g, ''))).toEqual([
+      '3.2k GitHub stars, 40+ contributors.',
+      'Zero-config OpenTelemetry instrumentation for Node and Go.',
+    ])
+  })
+})
+
+describe('work — a date closing the company line (2026-09-24)', () => {
+  // With the date at the end of the company line, taking the date away left
+  // "Vertex Labs San Francisco, CA ·", and the location - read from the end
+  // of the line - was never found: the company swallowed the city.
+  it('still separates the company from its location', () => {
+    const at = (l: Line, top: number): Line => ({ ...l, top, x: 40, items: [{ str: l.text, x: 40, top, width: l.text.length * 4, height: l.height, bold: l.bold, page: 1, col: 0, aside: false }] })
+    const out = parseLayout(
+      graph([
+        at(line('Alex Morgan', true, 22), 0),
+        at(upperLine('EXPERIENCE'), 60),
+        at(line('Senior Software Engineer', true, 10.2), 75),
+        at(line('Vertex Labs San Francisco, CA · Mar 2021 — Present', false, 9.2), 88),
+        at(line('• Led the rebuild of the billing platform serving 2.4M customers.', false, 9.8), 101),
+      ])
+    )
+    const w = out.content.work[0]
+    expect(w.name).toBe('Vertex Labs')
+    expect(w.location).toBe('San Francisco, CA')
+    expect(w.startDate).toBe('2021-03')
+  })
+})
+
+describe('a résumé laid out the way many are in India (2026-09-24)', () => {
+  // Shapes measured on a real third-party PDF: the ATS report read its
+  // degree as a Skills heading, its summary's "BigQuery, PySpark" as the
+  // candidate's city, "Hyderabad,India" as part of the company, an icon'd
+  // "in/…" as no LinkedIn, and "Roles and Responsibilities :" as a bullet.
+  const at = (l: Line, top: number, page = 1): Line => ({
+    ...l,
+    top,
+    page,
+    x: 40,
+    items: [{ str: l.text, x: 40, top, width: l.text.length * 4, height: l.height, bold: l.bold, page, col: 0, aside: false }],
+  })
+  const doc = () =>
+    parseLayout(
+      graph([
+        at(line('Asha Verma', false, 15.7), 55),
+        at(line('asha@example.com +91 98765 43210 in/asha-verma-1234', false, 7.1), 70),
+        at(upperLine('SUMMARY', 10.9), 110),
+        at(line('Data engineer with five years of experience. Proficient in BigQuery, PySpark, Dataflow and SQL.', false, 8.1), 128),
+        at(upperLine('EXPERIENCE', 10.9), 202),
+        at(line('Senior Data Engineer', false, 9.5), 217),
+        at(line('Acme Analytics April 2024 - Present, Hyderabad,India', false, 8.1), 232),
+        at(line('• Roles and Responsibilities :', false, 8.1), 247),
+        at(line('• Built streaming pipelines that load 40M events a day into the warehouse.', false, 8.1), 262),
+        at(upperLine('EDUCATION', 10.9), 364),
+        at(line('Bachelor Of Technology', false, 9.5), 383),
+        at(line('Kits Engineering College • kakinada,India • 2019', false, 8.1), 396),
+        at(upperLine('SKILLS', 10.9), 430),
+        at(line('Cloud Services: BigQuery, Dataproc, Dataflow', false, 8.1), 449),
+      ])
+    ).content
+
+  it('keeps a degree in education instead of reading it as a Skills heading', () => {
+    const c = doc()
+    expect(c.education).toHaveLength(1)
+    expect(`${c.education[0].studyType} ${c.education[0].area}`).toMatch(/Bachelor Of Technology/)
+    expect(c.skills.flatMap((s) => s.keywords)).not.toContain('Kits Engineering College')
+  })
+
+  it('separates a one-word city and its country from the company', () => {
+    const w = doc().work[0]
+    expect(w.name).toBe('Acme Analytics')
+    expect(w.location).toBe('Hyderabad, India')
+  })
+
+  it('never takes the city from a sentence in the summary', () => {
+    expect(doc().basics.location?.city ?? '').not.toBe('BigQuery')
+  })
+
+  it('reads "in/handle" beside an icon as the LinkedIn profile', () => {
+    expect(doc().basics.profiles?.[0]?.url).toBe('https://linkedin.com/in/asha-verma-1234')
+  })
+
+  it('does not count a "Roles and Responsibilities" label as a bullet', () => {
+    const hl = doc().work[0].highlights.map((h) => h.replace(/<[^>]+>/g, ''))
+    expect(hl).toEqual(['Built streaming pipelines that load 40M events a day into the warehouse.'])
   })
 })

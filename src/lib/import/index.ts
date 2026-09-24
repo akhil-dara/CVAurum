@@ -12,6 +12,7 @@
 import type { ResumeContent } from '@/types/document'
 import { buildLayoutGraph, type BuildOptions } from './layoutGraph'
 import { parseLayout, type ImportResult } from './parse'
+import { measureFile } from '@/lib/fileFacts'
 
 export type { ImportResult } from './parse'
 
@@ -49,10 +50,13 @@ function nameFromFilename(fn: string): string {
 export async function importResumeFromPdf(file: File | ArrayBuffer, opts: ImportOptions = {}): Promise<ImportResult> {
   const graph = await buildLayoutGraph(file, { ocr: opts.ocr, onOcrProgress: opts.onOcrProgress })
   const result = parseLayout(graph)
+  const fname = opts.fileName ?? (file instanceof File ? file.name : '')
+  // Measured before the name is borrowed from the file name below, so a name
+  // missing from the page is not credited to the page.
+  result.meta.file = measureFile(graph, result.content, fname)
   // Last-resort name recovery from the filename (e.g. PDFs whose name lives only
   // in a running page-header). Never overrides a name found in the content.
   if (!result.content.basics.name) {
-    const fname = opts.fileName ?? (file instanceof File ? file.name : '')
     const n = fname && nameFromFilename(fname)
     if (n) result.content.basics.name = n
   }
