@@ -72,6 +72,45 @@ describe('suggestFits', () => {
     expect(await suggestFits(doc, trial, res(3, 0.61, 1.517, 1, ['awards']))).toEqual([])
   })
 
+  // Measured on the owner's own file (2026-09-24): 3 pages, target 1, an 11pt
+  // floor. One page needs a body under 8pt, so nothing was offered - though
+  // two pages were within reach at about 9pt, the move actually worth making.
+  it('when the target is out of reach even so, offers the fewest pages a readable floor can reach', async () => {
+    const doc = docWith(['experience', 'education', 'skills'], 1)
+    doc.metadata.page.fit.minBody = 11
+    doc.metadata.typography.fontSize = 7.25
+    const trial = async (c: ResumeDocument) => {
+      const f = c.metadata.page.fit
+      // as applied: floor 9pt, target 1 -> the fit falls back to 2 pages at 9pt
+      if (f.minBody === 9 && f.target === 1) return res(2, 0.97, 9 / 7.25, 1)
+      if (f.minBody !== 6) return res(3, 0.6)
+      // one page only at 6pt; two pages at 1.25 x 7.25 = 9.1pt
+      return f.target === 1 ? res(1, 0.99, 0.83, 0.7) : res(2, 0.95, 1.25, 1)
+    }
+    const out = await suggestFits(doc, trial, res(3, 0.61, 1.517, 1, ['awards']))
+    expect(out.map((s) => s.label)).toContain('Fit 2 pages: body 9pt, below your 11pt floor')
+    const offer = out.find((s) => s.id.startsWith('floor-'))!
+    const applied = structuredClone(doc)
+    offer.mutate(applied)
+    // the floor moves; the target stays the author's
+    expect(applied.metadata.page.fit.minBody).toBe(9)
+    expect(applied.metadata.page.fit.target).toBe(1)
+  })
+
+  it('says so when the size it offers is below what prints legibly', async () => {
+    const doc = docWith(['experience', 'education', 'skills'], 1)
+    doc.metadata.page.fit.minBody = 11
+    doc.metadata.typography.fontSize = 7.25
+    const trial = async (c: ResumeDocument) => {
+      const f = c.metadata.page.fit
+      if (f.minBody === 8 && f.target === 1) return res(2, 0.99, 8 / 7.25, 1)
+      if (f.minBody !== 6) return res(3, 0.6)
+      return f.target === 1 ? res(1, 0.99, 0.83, 0.7) : res(2, 0.99, 8.1 / 7.25, 1)
+    }
+    const out = await suggestFits(doc, trial, res(3, 0.61, 1.517, 1, ['awards']))
+    expect(out.map((s) => s.label)).toContain('Fit 2 pages: body 8pt, below your 11pt floor — small for print')
+  })
+
   it('offers no floor change when the floor is already at its lowest, or when even that cannot reach the target', async () => {
     const low = docWith(['experience', 'education', 'skills'], 1)
     let calls = 0

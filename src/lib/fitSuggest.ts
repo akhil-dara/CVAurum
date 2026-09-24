@@ -1,6 +1,6 @@
 import type { ResumeDocument } from '@/types/document'
 import type { FitResult } from './fitReadout'
-import { fitSizesPt } from './fitReadout'
+import { LEGIBLE_BODY_PT, fitSizesPt } from './fitReadout'
 import { moveSection, sectionLabel } from './sections'
 
 /** A candidate document measured the way the preview measures the real one:
@@ -76,30 +76,48 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
   }
 
   // Relax: the target was out of reach within the rules. Measure what body
-  // size the target needs with the floor let down to its lowest, and say so
-  // plainly; lowering the floor stays the author's call.
+  // size it needs with the floor let down to its lowest, and say so plainly;
+  // lowering the floor stays the author's call. When even that needs a body
+  // too small to offer, the next page count up is measured, and so on to one
+  // page fewer than now: the owner's 3-page file with a 1-page target and an
+  // 11pt floor needed 6pt for one page and was offered nothing, though two
+  // pages were within reach at 9pt. The fewest pages at a readable size wins.
   const ownFloor = doc.metadata.page.fit.minBody
   if (current.pages > target && ownFloor != null && ownFloor > FLOOR_MIN) {
-    const c = structuredClone(doc)
-    c.metadata.page.fit.minBody = FLOOR_MIN
-    const r = await trial(c)
-    const sBody = fitSizesPt(c.metadata, r.fit).body
-    if (r.pages <= target && sBody >= RELAX_MIN_BODY) {
+    for (let n = target; n < current.pages; n++) {
+      const c = structuredClone(doc)
+      c.metadata.page.fit.minBody = FLOOR_MIN
+      c.metadata.page.fit.target = n as 1 | 2 | 3
+      const r = await trial(c)
       const s = fitSizesPt(c.metadata, r.fit)
+      if (r.pages > n || s.body < RELAX_MIN_BODY) continue
       // The floor the offer sets: the measured body, rounded down to the
       // slider's half-point step, so the same fit is reachable afterwards.
+      // Only the floor moves - with the target left as the author set it, the
+      // fit falls back to this page count by itself.
       const floor = Math.max(FLOOR_MIN, Math.floor(s.body * 2) / 2)
+      // The label reports the document as it will be once applied, measured:
+      // the rounded floor and the author's own target give a slightly
+      // different fit from the probe above (9pt where the probe found 9.1).
+      const applied = structuredClone(doc)
+      applied.metadata.page.fit.minBody = floor
+      const a = n === target ? r : await trial(applied)
+      const aBody = n === target ? s.body : fitSizesPt(applied.metadata, a.fit).body
+      if (a.pages > n) continue
       offers.push({
         s: {
           id: `floor-${floor}`,
-          label: `Fit ${pages(target)}: body ${pt(s.body)}, below your ${pt(ownFloor)} floor`,
+          // Offered, since the page is the author's call, but never without
+          // saying when the size is one the ATS check calls hard to read.
+          label: `Fit ${pages(n)}: body ${pt(aBody)}, below your ${pt(ownFloor)} floor${aBody < LEGIBLE_BODY_PT ? ' — small for print' : ''}`,
           mutate: (d) => {
             d.metadata.page.fit.minBody = floor
           },
         },
-        pages: r.pages,
-        fill: r.lastPageFill,
+        pages: a.pages,
+        fill: a.lastPageFill,
       })
+      break
     }
   }
 
