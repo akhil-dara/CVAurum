@@ -11,8 +11,9 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react'
 import { isPhoneLayout } from '@/lib/layoutMode'
+import { TEMPLATE_COUNT } from '@/templates/registry'
 
-const TOUR_KEY = 'cvaurum:tour:v1'
+const TOUR_KEY = 'cvaurum:tour:v2'
 const CARD_W = 324
 
 interface Step {
@@ -43,17 +44,17 @@ interface Step {
 /* Titles carry no numbers - the prefix is added at render, so skipping the
    desktop-only steps on a phone keeps the numbering sequential. */
 const STEPS: Step[] = [
-  { title: 'Welcome — quick tour 👋', body: "A 30-second look at where everything is. Skip anytime, and reopen it from the “?” in the top bar." },
-  { sel: '[data-tour="nav"]', title: 'Choose a section', body: 'Switch between Content, Design, Templates, and the ATS check here.', mobileBody: 'The bottom bar switches between Content, Design, Templates, the ATS check and Preview.' },
-  { sel: '[data-tour="panel"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Fill in your details', body: 'Type your name, experience, and skills. Empty sections show an “Add” button — nothing is hidden.' },
-  { sel: '[data-tour="canvas"]', mobileShow: { panelOpen: false }, title: 'Edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you export.', mobileBody: 'This is the page itself — tap any text to edit it right there. The Content tab below reopens the full forms; everything you type lands here instantly.' },
-  { sel: '[data-tour="canvas"]', mobileSel: '.rm-panel-gear .rm-section-gear', mobileShow: { tab: 'content', panelOpen: true, event: 'cvaurum:tour-show-style' }, title: 'Restyle any section', body: 'Hover a section and press its “Style” pill — pick heading, layout, and skill styles from live visual previews. The eye icon beside it hides the section. The header has its own Style pill too, with photo/monogram options.', mobileBody: 'This “Style” button opens a section’s full style sheet — heading style, entry layout, badge size and shape. Every section card has one; the ⋯ menu renames, hides or removes the section.' },
-  { mobileShow: { tab: 'content', panelOpen: true }, title: 'Links that read as words', body: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Click the chain beside a title or contact, or the printed word itself, for one card: Shown as, Goes to, and whether exports make links clickable. While editing, a faint dotted mark shows which words carry a link, and named links print as small tags unless Design makes them plain words.', mobileBody: 'Every link keeps its display text separate from its address — “Portfolio” can point anywhere. Each link is a plain pair of fields in the panel, and one switch (in any link card, or under Design) turns clickability on or off for the whole document.' },
-  { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Edit is the live canvas. Preview shows exactly what exports. ATS shows the plain text a recruiting system reads — plus a per-system parse simulation (Workday, Greenhouse, Lever, Taleo, iCIMS) and an on-device writing coach.' },
-  { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: 'Switch templates', body: 'Try any of 52 designs — hover one for a full-size preview with your content, click to switch. Nothing is re-typed.', mobileBody: 'Try any of 52 designs — tap one to switch. Nothing is re-typed.' },
-  { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link — your résumé is sealed with a passphrase inside the link and never touches a server, so even a cached link can’t be read without it.' },
-  { sel: '[data-tour="palette"]', title: 'Do anything with ⌘K', body: 'Press ⌘K / Ctrl+K for a command palette — switch templates, fonts, accents, add sections, change mode. Inside a summary, type “/” for quick inserts.', desktopOnly: true },
-  { sel: '[data-tour="export"]', title: 'Download, free', body: 'Export a crisp PDF or Word file — unlimited, no account, no watermark. Everything stays in your browser.' },
+  { title: 'Welcome — a quick tour 👋', body: 'Thirty seconds on where everything is. Skip it anytime and reopen it from the “?” in the top bar.' },
+  { sel: '[data-tour="panel"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Fill in your details', body: 'Type your name, experience and skills here. Empty sections show an “Add” button — nothing is hidden.' },
+  { sel: '[data-tour="canvas"]', mobileShow: { panelOpen: false }, title: 'Or edit on the page', body: 'Click any text on the résumé to edit it right there. What you see is exactly what you download.', mobileBody: 'This is the page itself — tap any text to edit it. The Content tab below reopens the full forms; everything you type lands here instantly.' },
+  { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: `${TEMPLATE_COUNT} designs, one résumé`, body: 'Hover a design for a full-size preview with your own content; click to switch. Nothing is retyped, and every design can be restyled afterwards.', mobileBody: 'Tap any design to switch. Nothing is retyped, and every design can be restyled afterwards.' },
+  { sel: '[data-tour="design"]', mobileShow: { tab: 'design', panelOpen: true }, title: 'Make it yours', body: 'Design changes colours, fonts, the header, the contact line and where it sits, heading styles, where dates and language levels go, one or two columns, spacing and page size — on any template.' },
+  { sel: '[data-tour="canvas"]', mobileSel: '.rm-panel-gear .rm-section-gear', mobileShow: { tab: 'content', panelOpen: true, event: 'cvaurum:tour-show-style' }, title: 'Restyle one section', body: 'Hover a section and press its “Style” pill to change just that section: heading, icon, entry layout, date position. The eye beside it hides the section.', mobileBody: 'This “Style” button restyles one section — heading, icon, entry layout, date position. The ⋯ menu renames, hides or removes it.' },
+  { sel: '[data-tour="checks"]', mobileShow: { panelOpen: false }, title: 'Fits the page, reads for everyone', body: 'Magic fit sizes the text to your page target inside rules you set; tap it for the details. Beside it, the contrast check confirms every line meets WCAG AA — and offers the fix when one does not.' },
+  { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Preview shows exactly what exports. ATS shows the plain text an applicant-tracking system reads, how five kinds of system would split it into fields, and a keyword match against the job.' },
+  { sel: '[data-tour="palette"]', title: 'Do anything with ⌘K', body: 'Press ⌘K / Ctrl+K for a command palette — switch designs, fonts and colours, add sections, change mode. In a summary, type “/” for quick inserts.', desktopOnly: true },
+  { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link: the résumé is sealed with a passphrase inside the link and never touches a server.' },
+  { sel: '[data-tour="export"]', title: 'Download, free', body: 'PDF or Word, unlimited, no account, no watermark. The PDF is real selectable text, tagged for screen readers (PDF/UA-1) and archival (PDF/A-2B).' },
 ]
 
 export function EditorTour() {

@@ -33,7 +33,7 @@ export function LeftRail() {
         return (
           <button
             key={t.id}
-            data-tour={t.id === 'templates' ? 'templates' : undefined}
+            data-tour={t.id === 'templates' || t.id === 'design' ? t.id : undefined}
             onClick={() => {
               setLeftTab(t.id)
               setLeftOpen(true)

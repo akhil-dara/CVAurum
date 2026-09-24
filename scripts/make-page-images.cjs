@@ -197,7 +197,7 @@ const RASTER = async ({ kind, id, width }) => {
 
   const browser = await chromium.launch({ headless: true })
   const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 } })
-  await ctx.addInitScript(() => localStorage.setItem('cvaurum:tour:v1', '1'))
+  await ctx.addInitScript(() => localStorage.setItem('cvaurum:tour:v2', '1'))
   const page = await ctx.newPage()
   await page.goto(`${BASE}/app`, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(2000)
