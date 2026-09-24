@@ -2199,7 +2199,9 @@ function Skills({
                 variant={chipStyle ? 'chips' : 'inline'}
                 // The colon joins the name to the list; stacked puts the
                 // list on its own line, where a leading colon reads as a typo.
-                lead={!chipStyle && s.name && !stacked ? ': ' : ''}
+                // So does a meter: it takes the rest of the name's row and
+                // the list opens the next line.
+                lead={!chipStyle && s.name && !stacked && !showMeter ? ': ' : ''}
                 items={s.keywords ?? []}
                 edit={edit}
                 setItem={(c, ki, v) => {
@@ -2248,7 +2250,7 @@ function Skills({
               <Chips items={s.keywords!} />
             ) : hasKeywords ? (
               <span className="rm-skill-inline">
-                {stacked || !s.name ? '' : ': '}
+                {stacked || showMeter || !s.name ? '' : ': '}
                 <KeywordList items={s.keywords!} sep={keywordSep(doc)} />
               </span>
             ) : null}
