@@ -58,6 +58,16 @@ const DATE_ALIGNS: { label: string; value: string; title: string }[] = [
   { label: 'Company line', value: 'inline', title: 'At the end of the line under the title' },
 ]
 
+/** What the line under the title is called in each section, so the in-line
+ *  choice names the line it moves the date to. */
+const SUB_LINE: Record<string, string> = {
+  certificates: 'Issuer line',
+  awards: 'Awarder line',
+  publications: 'Publisher line',
+  education: 'School line',
+  volunteer: 'Organisation line',
+}
+
 /** Whether a page break may fall inside one of this section's entries.
  *  undefined = Auto, the document's own switch (page.keepEntriesWhole). */
 const KEEP_ENTRIES: { label: string; value?: boolean; title: string }[] = [
@@ -1294,7 +1304,7 @@ export function SectionGear({
                       {DATE_ALIGNS.map((d) => (
                         <ChipBtn
                           key={d.value}
-                          label={d.label}
+                          label={d.value === 'inline' ? (SUB_LINE[base] ?? d.label) : d.label}
                           title={d.title}
                           // What is in effect: the section's own choice, else the
                           // document's (Design, Dates). Picking the one the

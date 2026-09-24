@@ -686,7 +686,7 @@ note={notes[r.key]}
             options={[
               { value: 'right', label: 'Right edge' },
               { value: 'title', label: 'After title' },
-              { value: 'inline', label: 'Company line' },
+              { value: 'inline', label: 'Company / issuer line' },
               { value: 'left', label: 'Left column' },
             ]}
             onChange={(v) =>

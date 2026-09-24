@@ -191,7 +191,7 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
       push(
         c.certificates
           .filter((x) => x.name)
-          .flatMap((x) => [line(x.name, formatDate(x.date, dates)), verified(x.issuer, x.url, x.urlLabel) ?? ''].filter(Boolean)),
+          .flatMap((x) => [line(x.name, dateInSub ? undefined : formatDate(x.date, dates)), verified(line(x.issuer, dateInSub ? formatDate(x.date, dates) : undefined), x.url, x.urlLabel) ?? ''].filter(Boolean)),
       )
       break
     case 'awards':
@@ -199,8 +199,10 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
         c.awards
           .filter((a) => a.title)
           .flatMap((a) => [
-            line(a.title, formatDate(a.date, dates)),
-            ...(verified(a.awarder, a.url, a.urlLabel) ? [verified(a.awarder, a.url, a.urlLabel) as string] : []),
+            line(a.title, dateInSub ? undefined : formatDate(a.date, dates)),
+            ...(verified(line(a.awarder, dateInSub ? formatDate(a.date, dates) : undefined), a.url, a.urlLabel)
+              ? [verified(line(a.awarder, dateInSub ? formatDate(a.date, dates) : undefined), a.url, a.urlLabel) as string]
+              : []),
             ...(htmlToText(a.summary) ? [htmlToText(a.summary)] : []),
           ]),
       )
@@ -210,8 +212,10 @@ function sectionText(key: string, doc: ResumeDocument, compact = false): string[
         c.publications
           .filter((p) => p.name)
           .flatMap((p) => [
-            line(p.name, formatDate(p.releaseDate, dates)),
-            ...(p.publisher ? [p.publisher] : []),
+            line(p.name, dateInSub ? undefined : formatDate(p.releaseDate, dates)),
+            ...(line(p.publisher, dateInSub ? formatDate(p.releaseDate, dates) : undefined)
+              ? [line(p.publisher, dateInSub ? formatDate(p.releaseDate, dates) : undefined)]
+              : []),
             ...(htmlToText(p.summary) ? [htmlToText(p.summary)] : []),
           ]),
       )

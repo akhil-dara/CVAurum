@@ -1427,6 +1427,11 @@
 .rm-sub-date .rm-meta-sep {
   white-space: pre;
 }
+/* A credential's issuer line is plain text, not the spaced flex row above:
+   the separator's own spaces are all the room the dot needs. */
+.rm-mini-sub > .rm-sub-date {
+  margin-left: 0;
+}
 
 /* ---- where a language's level sits (layout.levelPlacement) -------------
    Inline: the level follows the name ("Spanish  Professional") rather than

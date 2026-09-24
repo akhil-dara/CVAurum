@@ -2490,7 +2490,7 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                   }
                 />
               ) : null}
-              {edit || cert.date ? (
+              {!dateInSub(opts) && (edit || cert.date) ? (
                 <span className="rm-item-date">
                   {singleDate(
                     edit,
@@ -2504,7 +2504,49 @@ function Certificates({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                 </span>
               ) : null}
             </div>
-            {edit || cert.issuer ? (
+            {/* The date closing the issuer line, when the section asks for
+                it there: "Amazon Web Services · Sep 2024". */}
+            {dateInSub(opts) ? (
+              edit || cert.issuer || cert.date ? (
+                <span className="rm-mini-sub">
+                  {edit || cert.issuer ? (
+                    <Ed
+                      edit={edit}
+                      value={cert.issuer}
+                      apply={(c, v) => {
+                        c.certificates[i].issuer = v
+                      }}
+                      placeholder="Issuer"
+                    />
+                  ) : null}
+                  {!(edit || cert.date) ? null : edit || cert.issuer ? (
+                    <SubDate>
+                      {singleDate(
+                        edit,
+                        true,
+                        cert.date,
+                        (c, v) => {
+                          c.certificates[i].date = v
+                        },
+                        opts?.dates
+                      )}
+                    </SubDate>
+                  ) : (
+                    <span className="rm-sub-date">
+                      {singleDate(
+                        edit,
+                        true,
+                        cert.date,
+                        (c, v) => {
+                          c.certificates[i].date = v
+                        },
+                        opts?.dates
+                      )}
+                    </span>
+                  )}
+                </span>
+              ) : null
+            ) : edit || cert.issuer ? (
               <Ed
                 edit={edit}
                 value={cert.issuer}
@@ -2650,7 +2692,7 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                   }
                 />
               ) : null}
-{edit || a.date ? (
+{!dateInSub(opts) && (edit || a.date) ? (
                 <span className="rm-item-date">
                   {singleDate(
                     edit,
@@ -2664,7 +2706,49 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                 </span>
               ) : null}
             </div>
-            {edit || a.awarder ? (
+            {/* The date closing the awarder line, when the section asks for
+                it there: "Amazon Web Services · Sep 2024". */}
+            {dateInSub(opts) ? (
+              edit || a.awarder || a.date ? (
+                <span className="rm-mini-sub">
+                  {edit || a.awarder ? (
+                    <Ed
+                      edit={edit}
+                      value={a.awarder}
+                      apply={(c, v) => {
+                        c.awards[i].awarder = v
+                      }}
+                      placeholder="Awarder"
+                    />
+                  ) : null}
+                  {!(edit || a.date) ? null : edit || a.awarder ? (
+                    <SubDate>
+                      {singleDate(
+                        edit,
+                        true,
+                        a.date,
+                        (c, v) => {
+                          c.awards[i].date = v
+                        },
+                        opts?.dates
+                      )}
+                    </SubDate>
+                  ) : (
+                    <span className="rm-sub-date">
+                      {singleDate(
+                        edit,
+                        true,
+                        a.date,
+                        (c, v) => {
+                          c.awards[i].date = v
+                        },
+                        opts?.dates
+                      )}
+                    </span>
+                  )}
+                </span>
+              ) : null
+            ) : edit || a.awarder ? (
               <Ed
                 edit={edit}
                 value={a.awarder}
@@ -2789,7 +2873,7 @@ function Publications({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                   p.name
                 )}
               </span>
-              {edit || p.releaseDate ? (
+              {!dateInSub(opts) && (edit || p.releaseDate) ? (
                 <span className="rm-item-date">
                   {singleDate(
                     edit,
@@ -2803,7 +2887,49 @@ function Publications({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                 </span>
               ) : null}
             </div>
-            {edit || p.publisher ? (
+            {/* The date closing the publisher line, when the section asks for
+                it there: "Amazon Web Services · Sep 2024". */}
+            {dateInSub(opts) ? (
+              edit || p.publisher || p.releaseDate ? (
+                <span className="rm-mini-sub">
+                  {edit || p.publisher ? (
+                    <Ed
+                      edit={edit}
+                      value={p.publisher}
+                      apply={(c, v) => {
+                        c.publications[i].publisher = v
+                      }}
+                      placeholder="Publisher"
+                    />
+                  ) : null}
+                  {!(edit || p.releaseDate) ? null : edit || p.publisher ? (
+                    <SubDate>
+                      {singleDate(
+                        edit,
+                        true,
+                        p.releaseDate,
+                        (c, v) => {
+                          c.publications[i].releaseDate = v
+                        },
+                        opts?.dates
+                      )}
+                    </SubDate>
+                  ) : (
+                    <span className="rm-sub-date">
+                      {singleDate(
+                        edit,
+                        true,
+                        p.releaseDate,
+                        (c, v) => {
+                          c.publications[i].releaseDate = v
+                        },
+                        opts?.dates
+                      )}
+                    </span>
+                  )}
+                </span>
+              ) : null
+            ) : edit || p.publisher ? (
               <Ed
                 edit={edit}
                 value={p.publisher}
