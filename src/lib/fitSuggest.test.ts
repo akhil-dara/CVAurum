@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createDocument } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
 import type { FitResult } from './fitReadout'
-import { suggestFits } from './fitSuggest'
+import { suggestFitOn, suggestFits } from './fitSuggest'
 
 const docWith = (main: string[], target: 1 | 2 | 3 = 1) => {
   const d = createDocument({ sample: true })
@@ -166,5 +166,49 @@ describe('suggestFits', () => {
     const two = docWith(['experience', 'education', 'skills'], 2)
     const trial = async (c: ResumeDocument) => (c.metadata.page.fit.target === 1 ? res(2, 0.3) : res(2, 0.36))
     expect(await suggestFits(two, trial, res(2, 0.3, 1, 1, ['skills']))).toEqual([])
+  })
+})
+
+describe('suggestFitOn — with Magic fit off', () => {
+  const off = (fontSize = 10) => {
+    const d = docWith(['experience', 'education', 'skills'], 1)
+    d.metadata.page.autoFit = false
+    d.metadata.page.fit.minBody = 9
+    d.metadata.typography.fontSize = fontSize
+    return d
+  }
+
+  it('offers one page fewer when a few lines spill over and 9pt or more still fits', async () => {
+    const doc = off()
+    const trial = async (c: ResumeDocument) => {
+      expect(c.metadata.page.autoFit).toBe(true)
+      expect(c.metadata.page.fit.target).toBe(1)
+      expect(c.metadata.page.fit.minBody).toBe(9)
+      return res(1, 0.99, 0.94, 0.9)
+    }
+    const out = await suggestFitOn(doc, trial, res(2, 0.12))
+    expect(out?.label).toBe('Fit on 1 page: text 9.4pt')
+    const applied = structuredClone(doc)
+    out!.mutate(applied)
+    expect(applied.metadata.page.autoFit).toBe(true)
+    expect(applied.metadata.page.fit.target).toBe(1)
+  })
+
+  it('offers nothing when fitting would take the text under 9pt', async () => {
+    expect(await suggestFitOn(off(), async () => res(2, 0.99, 0.9, 0.9), res(2, 0.12))).toBeNull()
+  })
+
+  it('does not measure at all when the last page is well used, on one page, or with the fit on', async () => {
+    let calls = 0
+    const t = async () => {
+      calls++
+      return res(1, 0.9)
+    }
+    expect(await suggestFitOn(off(), t, res(2, 0.6))).toBeNull()
+    expect(await suggestFitOn(off(), t, res(1, 0.2))).toBeNull()
+    const on = off()
+    on.metadata.page.autoFit = true
+    expect(await suggestFitOn(on, t, res(2, 0.1))).toBeNull()
+    expect(calls).toBe(0)
   })
 })

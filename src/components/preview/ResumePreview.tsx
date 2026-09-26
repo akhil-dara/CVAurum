@@ -52,9 +52,9 @@ import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
 import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
-import { measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
+import { countPagesForFit, measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
 import { preparePrintTree } from '@/lib/pdf/prepareTree'
-import { suggestFits } from '@/lib/fitSuggest'
+import { suggestFitOn, suggestFits } from '@/lib/fitSuggest'
 import { FitChip } from './FitChip'
 import { ContrastChip } from './ContrastChip'
 
@@ -324,11 +324,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             return trialRef.current?.scrollHeight ?? Number.POSITIVE_INFINITY
           },
           subsequentPageH: ph - marginMm * MM_TO_PX * 2,
+          // The live fit's own count (countPagesForFit): an offer measured
+          // any other way can promise a page the fit will not give.
           countPages: async () => {
             const r = root()
             if (!r) return Number.POSITIVE_INFINITY
             try {
-              return measurePages(r, ph, marginMm).pages
+              return countPagesForFit(r, ph)
             } catch {
               return Number.POSITIVE_INFINITY
             }
@@ -362,7 +364,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const myReq = ++suggestReq.current
     const r = fitResultLive
     const need = autoFit && !!r && (r.pages > doc.metadata.page.fit.target || (r.pages > 1 && r.lastPageFill < 0.6))
-    if (!need) {
+    // With the fit off, one question only: do a few spilled lines fit back a
+    // page sooner at a readable size (suggestFitOn)?
+    const needOff = !autoFit && !!r && r.pages > 1 && r.lastPageFill < 0.35
+    if (!need && !needOff) {
       setFitOffers([])
       setFitSuggesting(false)
       return
@@ -372,7 +377,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       if (!trial || myReq !== suggestReq.current) return
       setFitSuggesting(true)
       try {
-        const offers = await suggestFits(doc, trial, r!)
+        const offers = need ? await suggestFits(doc, trial, r!) : [await suggestFitOn(doc, trial, r!)].filter((o) => o !== null)
         if (myReq === suggestReq.current) setFitOffers(offers)
       } catch {
         if (myReq === suggestReq.current) setFitOffers([])
@@ -538,14 +543,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             const printRoot = measureRef.current?.querySelector<HTMLElement>('.rm-root')
             if (!printRoot) return Number.POSITIVE_INFINITY
             try {
-              const pad = findMainColumnPaddingPx(printRoot)
-              const n = paginate({
-                blocks: (preparePrintTree(printRoot), extractPageBlocks(printRoot, computeUsablePageHeightPx(pageH, pad))),
-                contentHeightPx: printRoot.getBoundingClientRect().height,
-                usablePageHeightPx: computeUsablePageHeightPx(pageH, pad),
-                firstPageUsablePageHeightPx: computeFirstPageUsablePageHeightPx(pageH, pad),
-                maxPageHeightPx: pageH,
-              }).pageCount
+              const n = countPagesForFit(printRoot, pageH)
               if (import.meta.env.DEV) { const t = window.__cvaFitTrace; if (t && t.length) t[t.length - 1].pages = n }
               return n
             } catch {

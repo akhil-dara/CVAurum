@@ -121,6 +121,7 @@ export function useResumeActions() {
       const doc = createDocument({
         content,
         sample: true, // lay out exactly the sections we found
+        fitted: false, // and print at the size set, like any résumé not started from a picture
         title: name ? `${name} — Resume` : 'Imported résumé',
       })
       await openImported(doc, { ...opts, ocr: meta.ocrPages.length > 0 })

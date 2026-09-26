@@ -56,7 +56,7 @@ export function AtsFileCheck() {
         return
       }
       const name = result.content.basics.name?.trim()
-      const doc = createDocument({ content: result.content, sample: true, title: name ? `${name} — Resume` : 'Imported résumé' })
+      const doc = createDocument({ content: result.content, sample: true, fitted: false, title: name ? `${name} — Resume` : 'Imported résumé' })
       setStage({ kind: 'done', fileName: file.name, result, doc })
       requestAnimationFrame(() => document.getElementById('ats-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
     } catch (e) {

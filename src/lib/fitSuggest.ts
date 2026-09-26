@@ -149,3 +149,39 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
   offers.sort((a, b) => a.pages - b.pages || b.fill - a.fill)
   return offers.slice(0, MAX_OFFERS).map((o) => o.s)
 }
+
+/** With the fit off, the last page is "a few lines" below this fill: worth
+ *  measuring whether the résumé fits a page fewer at a readable size. */
+const SPILL = 0.35
+/** The smallest text an unasked "fit on fewer pages" may propose. */
+const OFFER_MIN_BODY = 9
+
+/**
+ * The one offer made while Magic fit is OFF: a résumé whose last page holds a
+ * few spilled lines, told it fits a page fewer and at what size - and only
+ * when that size is 9pt or more, so the offer never trades a page for text
+ * too small to read. Taking it turns the fit on at that target with a 9pt
+ * floor; nothing changes until then (2026-09-26: the fit used to be on for
+ * everyone and shrink as far as a page demanded).
+ */
+export async function suggestFitOn(doc: ResumeDocument, trial: FitTrialFn, current: FitResult): Promise<Suggestion | null> {
+  if (doc.metadata.page.autoFit || current.pages < 2 || current.lastPageFill >= SPILL) return null
+  const n = Math.min(3, current.pages - 1) as 1 | 2 | 3
+  const floor = Math.max(OFFER_MIN_BODY, doc.metadata.page.fit.minBody ?? OFFER_MIN_BODY)
+  const c = structuredClone(doc)
+  c.metadata.page.autoFit = true
+  c.metadata.page.fit.target = n
+  c.metadata.page.fit.minBody = floor
+  const r = await trial(c)
+  const body = fitSizesPt(c.metadata, r.fit).body
+  if (r.pages > n || body < OFFER_MIN_BODY - 0.05) return null
+  return {
+    id: `fit-on-${n}`,
+    label: `Fit on ${pages(n)}: text ${pt(body)}`,
+    mutate: (d) => {
+      d.metadata.page.autoFit = true
+      d.metadata.page.fit.target = n
+      d.metadata.page.fit.minBody = floor
+    },
+  }
+}

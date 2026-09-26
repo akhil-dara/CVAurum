@@ -53,7 +53,13 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
           })
         }
       />
+      <p className="-mt-1 text-[11px] leading-snug text-muted-foreground">
+        {on
+          ? 'Shrinks text and spacing, as little as it can, to reach the pages you choose — never below the smallest size you set.'
+          : 'Off: the text prints at the size you set and flows onto a new page when it needs one. Turn it on to fit a page count.'}
+      </p>
       <FitReadout doc={doc} />
+      {!on && <OffOffer />}
       {on && (
         <>
           <div>
@@ -165,6 +171,22 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
           </details>
         </>
       )}
+    </div>
+  )
+}
+
+/** With the fit off, the one offer the preview may have measured: a few
+ *  spilled lines fitting back a page sooner at 9pt or more. */
+function OffOffer() {
+  const updateDoc = useResumeStore((s) => s.updateDoc)
+  const offer = useEditorStore((s) => s.fitOffers.find((o) => o.id.startsWith('fit-on-')))
+  if (!offer) return null
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5" data-testid="fit-offer">
+      <span className="text-xs leading-snug text-foreground">{offer.label}</span>
+      <button type="button" className="btn-primary btn-sm shrink-0" onClick={() => updateDoc((d) => offer.mutate(d))}>
+        Apply
+      </button>
     </div>
   )
 }

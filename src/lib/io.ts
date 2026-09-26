@@ -26,6 +26,15 @@ import { MetadataSchema } from '@/types/metadata'
 import { seedSectionOrder } from '@/lib/sections'
 import { RETIRED_AVATARS } from './storage'
 import { defaultMetadata, ensureIds, withoutSeeded } from '@/data/defaults'
+
+/** A plain JSON Resume brings no settings: it prints at the size set, as any
+ *  résumé not started from a picture does (defaults.ts createDocument). */
+function unfittedMetadata() {
+  const m = defaultMetadata()
+  m.page.autoFit = false
+  m.page.fit.minBody = 9
+  return m
+}
 import { downscaleDataUrl } from '@/lib/image'
 
 export class ImportError extends Error {}
@@ -291,7 +300,7 @@ export function fromJsonResume(raw: unknown): ResumeDocument {
   applyRich(content, rmRaw?.rich)
   // safeParse so one out-of-range visual setting can't reject the whole resume.
   const parsedMeta = rmRaw ? MetadataSchema.safeParse(rmRaw) : null
-  const parsed = parsedMeta && parsedMeta.success ? parsedMeta.data : defaultMetadata()
+  const parsed = parsedMeta && parsedMeta.success ? parsedMeta.data : unfittedMetadata()
   // A file can arrive with no section order at all (plain JSON Resume, or an
   // empty settings object): give it one, or the editor's section list stands
   // empty while the page shows those sections anyway.

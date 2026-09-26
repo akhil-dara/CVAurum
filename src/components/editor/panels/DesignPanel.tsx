@@ -9,6 +9,8 @@ import { FontSelect } from '../fields/FontSelect'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
 import { StatTilesEditor } from '@/templates/_shared/StatTilesEditor'
 import { MagicFitCard } from './MagicFitCard'
+import { useEditorStore } from '@/store/useEditorStore'
+import { fitSizesPt } from '@/lib/fitReadout'
 import { ContrastCard, useContrastNote } from './ContrastCard'
 import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
@@ -347,6 +349,7 @@ note={notes[r.key]}
             })
           }
         />
+        <PrintedSizeNote doc={doc} />
         <Slider
           label="Line height"
           value={m.typography.lineHeight}
@@ -1364,5 +1367,35 @@ note={notes[r.key]}
         />
       </FieldGroup>
     </div>
+  )
+}
+
+/** Under the font size: what the page actually prints, when Magic fit has
+ *  shrunk it. The slider says the size set; without this line "I set 10pt"
+ *  and a page printed at 8.6pt looked like the app ignoring the slider
+ *  (reported 2026-09-26). */
+function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
+  const result = useEditorStore((s) => s.fitResult)
+  const updateDoc = useResumeStore((s) => s.updateDoc)
+  if (!doc.metadata.page.autoFit || !result) return null
+  const set = doc.metadata.typography.fontSize
+  const body = fitSizesPt(doc.metadata, result.fit).body
+  if (Math.abs(body - set) < 0.05) return null
+  const p = (x: number) => `${Math.round(x * 10) / 10}pt`
+  return (
+    <p className="-mt-1 text-[11px] leading-snug text-muted-foreground" data-testid="printed-size-note">
+      Printing at {p(body)}: Magic fit {body < set ? 'shrank' : 'enlarged'} it to reach {result.pages} page{result.pages === 1 ? '' : 's'}.{' '}
+      <button
+        type="button"
+        className="font-medium text-primary underline-offset-2 hover:underline"
+        onClick={() =>
+          updateDoc((d) => {
+            d.metadata.page.autoFit = false
+          })
+        }
+      >
+        Print at {p(set)}
+      </button>
+    </p>
   )
 }
