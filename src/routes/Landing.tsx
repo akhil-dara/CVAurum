@@ -3,6 +3,7 @@
  * what it is, how it works, why it's private — with clear ways in. The actual
  * resume library/dashboard lives at /app.
  */
+import { CreateButton, HeaderThemeToggle, PhoneResumesLink } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useInView, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
@@ -33,7 +34,6 @@ import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { HoverZoom } from '@/components/preview/HoverZoom'
 import { Logo } from '@/components/ui/Logo'
 import { SiteMenuButton } from '@/components/site/SiteMenu'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
@@ -115,7 +115,7 @@ export function Landing() {
       <header
         className={`sticky top-0 z-30 border-b transition-colors duration-300 ${overHero ? '' : 'backdrop-blur '}${
           overHero
-            ? 'border-white/10 bg-[#0a0c12]/85 text-white [&_.btn-ghost]:text-white/85 [&_.btn-ghost:hover]:bg-white/10 [&_.btn-outline]:border-white/25 [&_.btn-outline]:bg-transparent [&_.btn-outline]:text-white [&_.btn-outline:hover]:bg-white/10'
+            ? 'border-white/10 bg-[#0a0c12]/[0.97] text-white [&_.btn-ghost]:text-white/85 [&_.btn-ghost:hover]:bg-white/10 [&_.btn-outline]:border-white/25 [&_.btn-outline]:bg-transparent [&_.btn-outline]:text-white [&_.btn-outline:hover]:bg-white/10'
             : 'border-border bg-background/80'
         }`}
       >
@@ -151,21 +151,17 @@ export function Landing() {
               <Github className="h-4 w-4" /> GitHub
             </a>
             <InstallButton />
-            <ThemeToggle />
-            {/* Below sm this chip gives its room to the menu button, which
-                lists "My resumes" as a row — see SiteMenu.tsx. */}
+            <HeaderThemeToggle />
+            {/* Below sm: "My resumes" for someone who has any (HeaderActions.tsx);
+                the menu lists it as a row as well. */}
+            <PhoneResumesLink />
             <Link
               className={`hidden sm:inline-flex ${hasResumes ? 'btn-outline btn-sm' : 'btn-ghost btn-sm'}`}
               to="/app"
             >
               My resumes{hasResumes ? ` (${library.length})` : ''}
             </Link>
-            <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-              <Plus className="h-4 w-4" />
-              <span>
-                Create<span className="hidden sm:inline"> resume</span>
-              </span>
-            </button>
+            <CreateButton onClick={() => setChooser(true)} />
             <SiteMenuButton current="home" repoUrl={REPO_URL} onCreate={() => setChooser(true)} />
           </div>
         </div>
@@ -771,11 +767,16 @@ function HeroCinema({
                 </AnimatePresence>
                 <div className="hero-sheen" aria-hidden />
               </div>
-              <div className="pointer-events-none absolute bottom-2 right-2">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-[#0a0c12]/85 px-2.5 py-1 text-[10px] font-medium text-white shadow-lg backdrop-blur">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#d4982f' }} />
-                  {morph[ti].name}
-                  {morph[ti].note ? ` · ${morph[ti].note}` : ''} — same content, one click
+              {/* Inside the card's edges and allowed to wrap: on one line it ran
+                  wider than the card on a phone and was cut at the left
+                  ("apphire · contact pills", reported 2026-09-26). */}
+              <div className="pointer-events-none absolute inset-x-2 bottom-2 flex justify-end">
+                <span className="inline-flex max-w-full items-start gap-1.5 rounded-2xl border border-white/20 bg-[#0a0c12]/85 px-2.5 py-1 text-[10px] font-medium leading-snug text-white shadow-lg backdrop-blur">
+                  <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: '#d4982f' }} />
+                  <span>
+                    {morph[ti].name}
+                    {morph[ti].note ? ` · ${morph[ti].note}` : ''} — same content, one click
+                  </span>
                 </span>
               </div>
             </div>

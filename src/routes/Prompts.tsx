@@ -22,9 +22,10 @@
  * served, what the Markdown twin says and what a person can read are one
  * text, which is the rule this page has always been held to.
  */
+import { CreateButton } from '@/components/site/HeaderActions'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowDown, Check, ChevronDown, ClipboardPaste, Copy, FileJson, Plus } from 'lucide-react'
+import { ArrowDown, Check, ChevronDown, ClipboardPaste, Copy, FileJson } from 'lucide-react'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/dashboard/newResume'
 import { PROMPTS, PROMPTS_INTRO, SCHEMA_DOC, SITE, promptsPageMeta, type PromptEntry } from '@/lib/seoPages'
@@ -128,12 +129,7 @@ export function Prompts() {
         current="prompts"
         onCreate={() => setChooser(true)}
         action={
-          <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-            <Plus className="h-4 w-4" />
-            <span>
-              Create<span className="hidden sm:inline"> resume</span>
-            </span>
-          </button>
+          <CreateButton onClick={() => setChooser(true)} />
         }
       />
 

@@ -16,9 +16,10 @@
  * for all 108 against 10.74 MB, for cards 172 CSS px wide on a phone. The
  * lightbox below still opens the big one.
  */
+import { CreateButton } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronDown, Plus, Search, SlidersHorizontal, Wand2, X } from 'lucide-react'
+import { ChevronDown, Search, SlidersHorizontal, Wand2, X } from 'lucide-react'
 import { LIBRARY } from '@/data/library'
 import {
   CATEGORY_LABELS,
@@ -205,12 +206,7 @@ export function Examples() {
         current="examples"
         onCreate={() => setChooser(true)}
         action={
-          <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-            <Plus className="h-4 w-4" />
-            <span>
-              Create<span className="hidden sm:inline"> resume</span>
-            </span>
-          </button>
+          <CreateButton onClick={() => setChooser(true)} />
         }
       />
 

@@ -6,13 +6,13 @@
  * would have made four copies of the same markup and four places to keep a
  * link in step. One component, one nav.
  */
+import { HeaderThemeToggle, PhoneResumesLink } from './HeaderActions'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { GUIDES } from '@/data/guides'
 import { Github } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { Logo } from '@/components/ui/Logo'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { SiteMenuButton } from './SiteMenu'
 import { cn } from '@/lib/utils'
@@ -89,7 +89,7 @@ export function SiteHeader({
             <Github className="h-4 w-4" /> GitHub
           </a>
           <InstallButton />
-          <ThemeToggle />
+          <HeaderThemeToggle />
           {/* Below sm this chip gives its 87px to the menu button, which lists
               "My resumes" as a row: measured at 375px, the row had 18px of
               slack left and a 44px target needs 50 of them. */}
@@ -99,6 +99,7 @@ export function SiteHeader({
           >
             My resumes{library.length ? ` (${library.length})` : ''}
           </Link>
+          <PhoneResumesLink />
           {action}
           <SiteMenuButton current={current} repoUrl={REPO_URL} onCreate={onCreate} />
         </div>

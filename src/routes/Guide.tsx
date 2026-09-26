@@ -11,6 +11,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { AtsFileCheck } from '@/components/ats/AtsFileCheck'
+import { useSavedCount } from '@/components/site/HeaderActions'
 import { GUIDES, guideBySlug } from '@/data/guides'
 import { SITE, guidePageMeta } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
@@ -31,6 +32,7 @@ export function Guide() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [slug])
+  const saved = useSavedCount()
   if (!g) return null
   const others = GUIDES.filter((x) => x.slug !== g.slug)
 
@@ -38,7 +40,9 @@ export function Guide() {
     <div className="min-h-full bg-background">
       <SiteHeader
         action={
-          <Link className="btn-primary btn-sm" to={g.action.href}>
+          // On a phone with saved résumés "My resumes" takes this place; the
+          // page repeats its own call to action under the heading.
+          <Link className={`btn-primary btn-sm${saved ? ' hidden sm:inline-flex' : ''}`} to={g.action.href}>
             {g.action.label}
           </Link>
         }

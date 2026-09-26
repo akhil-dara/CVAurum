@@ -29,7 +29,7 @@
 import { useEffect, useRef, useState, Fragment, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Check, Menu as MenuIcon, X } from 'lucide-react'
+import { ArrowUpRight, Check, Menu as MenuIcon, Moon, Sun, X } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { siteMenuItems, type SiteMenuItem, type SiteMenuSection } from './siteNav'
@@ -185,10 +185,28 @@ function SiteMenuSheet({
               <MenuRow item={item} onCreate={onCreate} onClose={onClose} />
             </Fragment>
           ))}
+          <div className="my-1.5 border-t border-border" />
+          <ThemeRow />
         </nav>
       </div>
     </div>,
     document.body
+  )
+}
+
+/** The theme switch as a row. On a phone with saved résumés the header gives
+ *  the switch's place to "My resumes" (HeaderActions.tsx), so it lives here
+ *  for everyone on a phone. */
+function ThemeRow() {
+  const theme = useAppStore((s) => s.settings.theme)
+  const update = useAppStore((s) => s.updateSettings)
+  const isDark =
+    theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+  return (
+    <button type="button" className={cn(ROW, REST, 'text-left')} role="switch" aria-checked={isDark} onClick={() => update({ theme: isDark ? 'light' : 'dark' })}>
+      <span className="truncate">Dark mode</span>
+      {isDark ? <Moon className="h-4 w-4 text-primary" aria-hidden /> : <Sun className="h-4 w-4 text-muted-foreground" aria-hidden />}
+    </button>
   )
 }
 

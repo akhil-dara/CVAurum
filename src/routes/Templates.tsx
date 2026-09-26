@@ -13,9 +13,10 @@
  * is one of the two actions; the "Use" button beside the name is unchanged and
  * still starts a résumé in one click.
  */
+import { CreateButton } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AlignLeft, ArrowRight, ChevronDown, Plus, Search, SlidersHorizontal } from 'lucide-react'
+import { AlignLeft, ArrowRight, ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
 import { TEMPLATES, galleryOrder } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { PagePicture } from '@/components/preview/PagePicture'
@@ -166,12 +167,7 @@ export function Templates() {
         current="templates"
         onCreate={() => setChooser(true)}
         action={
-          <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-            <Plus className="h-4 w-4" />
-            <span>
-              Create<span className="hidden sm:inline"> resume</span>
-            </span>
-          </button>
+          <CreateButton onClick={() => setChooser(true)} />
         }
       />
 
