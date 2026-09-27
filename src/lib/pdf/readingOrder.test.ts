@@ -108,4 +108,25 @@ describe('sidebarFirstOnContinuationPages', () => {
     const pages = [[text('a', 'main')], [text('b', 'main')]]
     expect(sidebarFirstOnContinuationPages(pages)).toBe(pages)
   })
+
+  // A RIGHT-hand sidebar paints its column background after the main column
+  // (DOM order). Moving the sidebar's text ahead of the main text put it
+  // BEHIND that background: two certifications on page 2 printed as white
+  // on white while the text layer still carried them (usability test,
+  // 2026-09-26). The main text moves later instead - text drawn later can
+  // never be covered - and the reading order is the same.
+  it('never draws the sidebar text before its own column background', () => {
+    const page2 = [head('EDUCATION', 'main'), text('BSc', 'main'), rect(), text('ACLS', 'aside')]
+    const out = sidebarFirstOnContinuationPages([page1, page2])
+    expect(strs(out[1])).toEqual(['RECT', 'ACLS', 'EDUCATION', 'BSc'])
+  })
+
+  // A LEFT-hand sidebar comes first in the DOM, so its text already leads,
+  // and the main column's chip backgrounds follow it: main text moved to
+  // just after the sidebar's text would be painted UNDER its own chip.
+  it('moves no text on a left-hand sidebar, so a chip stays under its words', () => {
+    const page2 = [rect(), text('ACLS', 'aside'), rect(), text('Go', 'main')]
+    const out = sidebarFirstOnContinuationPages([page1, page2])
+    expect(strs(out[1])).toEqual(['RECT', 'ACLS', 'RECT', 'Go'])
+  })
 })

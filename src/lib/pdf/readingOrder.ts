@@ -102,14 +102,31 @@ export function sidebarFirstOnContinuationPages(pages: DrawOp[][]): DrawOp[][] {
     if (!firstAside || isHeading(firstAside)) return ops
     if (!ops.some(isMainText)) return ops
 
-    // Move ONLY the sidebar's own text, and only as far as the main column's
-    // first text - so every rect, image and decoration keeps both its place
-    // and its painting order relative to the text that sits on it.
-    const aside = ops.filter(isAsideText)
-    const kept = ops.filter((op) => !isAsideText(op))
-    const insertAt = kept.findIndex(isMainText)
+    // Move the MAIN column's text LATER, to just after the sidebar's last
+    // text - never the sidebar's text earlier. Text drawn later can never be
+    // covered, and every rect, image and decoration keeps its place. Moving
+    // the sidebar text earlier put it BEHIND a right-hand sidebar's column
+    // background, which the DOM paints after the main column: two
+    // certifications on page 2 printed white on white while the text layer
+    // still carried them (usability test, 2026-09-26). The reading order is
+    // the same either way: sidebar, then main.
+    // Only main text that sits BEFORE the sidebar's last text moves, and only
+    // to just after it: text is never moved earlier than it was, so nothing
+    // drawn before it (a chip, a band) can end up on top of it. On a
+    // left-hand sidebar the sidebar already leads and nothing moves.
+    let lastAside = -1
+    ops.forEach((op, i) => {
+      if (isAsideText(op)) lastAside = i
+    })
+    const moved = ops.filter((op, i) => i < lastAside && isMainText(op))
+    if (!moved.length) return ops
     changed = true
-    return [...kept.slice(0, insertAt), ...aside, ...kept.slice(insertAt)]
+    const out: DrawOp[] = []
+    ops.forEach((op, i) => {
+      if (!(i < lastAside && isMainText(op))) out.push(op)
+      if (i === lastAside) out.push(...moved)
+    })
+    return out
   })
   return changed ? out : pages
 }
