@@ -3,6 +3,7 @@
  * machine — no server, no account, no telemetry. Each resume is stored under
  * `doc:<id>`; app settings under `settings`.
  */
+import { withProfileAddresses } from '@/lib/profileAddress'
 import { createStore, get, set, del, keys } from 'idb-keyval'
 import { ResumeDocumentSchema, type ResumeDocument } from '@/types/document'
 import type { JobApplication } from '@/types/tracker'
@@ -153,7 +154,11 @@ function scrubRetiredAvatar(doc: ResumeDocument): ResumeDocument {
 /** Validate & coerce a stored doc; returns null if irreparably malformed. */
 function safeParseDoc(doc: ResumeDocument): ResumeDocument | null {
   const res = ResumeDocumentSchema.safeParse(doc)
-  if (res.success) return scrubRetiredAvatar(res.data)
+  if (res.success) {
+    // Profiles saved with their address in the username field link again.
+    withProfileAddresses(res.data.content)
+    return scrubRetiredAvatar(res.data)
+  }
   console.warn('Stored resume failed validation; attempting recovery', res.error)
   // Best-effort recovery: keep id/title/timestamps, re-default the rest.
   try {

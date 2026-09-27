@@ -1,4 +1,5 @@
 import { ChevronRight, Plus, Trash2, Camera, ImagePlus, X } from 'lucide-react'
+import { profileFromTyped } from '@/lib/profileAddress'
 import { useResumeStore } from '@/store/useResumeStore'
 import { uid } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
@@ -318,9 +319,10 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 placeholder="https://linkedin.com/in/yourname"
                 onChange={(e) =>
                   update((c) => {
-                    const val = e.target.value
-                    if (/^https?:\/\//.test(val)) c.basics.profiles![i].url = val
-                    else c.basics.profiles![i].username = val
+                    // An address typed without https:// is still an address
+                    // (lib/profileAddress.ts); it used to become a username,
+                    // shown but never linked.
+                    Object.assign(c.basics.profiles![i], profileFromTyped(e.target.value))
                   })
                 }
               />

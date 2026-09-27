@@ -688,7 +688,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
 
   // The profile link recruiters actually click, in the short form that fits on
   // one line and survives being printed.
-  const linkedin = c.basics.profiles?.find((pr) => /linkedin/i.test(`${pr.network} ${pr.url}`))
+  const linkedin = c.basics.profiles?.find((pr) => /linkedin/i.test(`${pr.network} ${pr.url} ${pr.username}`))
   const linkedinUrl = linkedin?.url ?? ''
   const shortForm = /linkedin\.com\/in\/[^/?#]+\/?$/i.test(linkedinUrl)
   push(
@@ -697,9 +697,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     !linkedin ? 'warn' : shortForm ? 'pass' : 'warn',
     !linkedin
       ? 'No LinkedIn profile. It is the first thing most recruiters look for after the résumé itself.'
-      : shortForm
-        ? 'Linked in the short form recruiters expect.'
-        : 'Trim the address to linkedin.com/in/your-name — the tracking tail after it is noise on a printed page.',
+      : !linkedinUrl.trim()
+        ? 'Your LinkedIn line is not a link. Put the address in its “Goes to” field — linkedin.com/in/your-name is enough.'
+        : shortForm
+          ? 'Linked in the short form recruiters expect.'
+          : 'Trim the address to linkedin.com/in/your-name — the tracking tail after it is noise on a printed page.',
     0.5,
     'content'
   )

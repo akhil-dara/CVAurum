@@ -4,6 +4,7 @@
  * round-trip with the wider JSON Resume ecosystem. Import is defensive: a single
  * bad field or item never throws away the whole resume.
  */
+import { withProfileAddresses } from '@/lib/profileAddress'
 import { z } from 'zod'
 import { uid, downloadBlob, resumeFilename } from '@/lib/utils'
 import { ResumeContentSchema, type JsonResumeExport, type ResumeContent, type ResumeDocument } from '@/types/document'
@@ -298,6 +299,7 @@ export function fromJsonResume(raw: unknown): ResumeDocument {
   // had to flatten; putting them back is what makes the round trip exact. A
   // plain JSON Resume has none, and simply keeps its plain text.
   applyRich(content, rmRaw?.rich)
+  withProfileAddresses(content)
   // safeParse so one out-of-range visual setting can't reject the whole resume.
   const parsedMeta = rmRaw ? MetadataSchema.safeParse(rmRaw) : null
   const parsed = parsedMeta && parsedMeta.success ? parsedMeta.data : unfittedMetadata()
