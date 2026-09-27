@@ -244,6 +244,16 @@ export interface FitRules {
   /** What gives first when the page is over: spacing, both together (the
    *  old single scale), or type. The grow direction follows the same order. */
   priority: 'spacing' | 'both' | 'type'
+  /** Auto: print as set; only to save a nearly empty last page, try one page fewer. */
+  auto?: boolean
+  /** May the search enlarge a page that fits its target? Default true (the old fit). */
+  grow?: boolean
+  /** The spacing scale's floor (default FIT_SPACE_MIN). */
+  spaceMin?: number
+  /** Auto leaves the page as set while it has this many pages. */
+  keptPages?: number | null
+  /** A page break is pinned: Auto leaves the page as set. */
+  pinned?: boolean
 }
 
 export interface FitInput {
@@ -267,7 +277,9 @@ export function typeFloor(rules: Pick<FitRules, 'minBody' | 'fontSize'>): number
   // A floor above the size as set is honoured as a floor: "never below
   // 11pt" on a 7.25pt body means the fit sets 11pt (measured: it used to be
   // clamped to 1 and the author got 8.3pt back from an 11pt rule).
-  return Math.max(MIN_FIT, Number(byBody.toFixed(3)))
+  // Rounded UP: a floor must print at or above itself (8.5pt on a 9.6pt body
+  // used to round to 0.885 and print at 8.496pt, under the ATS check's line).
+  return Math.max(MIN_FIT, Math.ceil(byBody * 1000 - 1e-9) / 1000)
 }
 
 /** The highest type scale the rules allow: the growth cap, or the floor

@@ -138,7 +138,7 @@ describe('typeFloor', () => {
     expect(typeFloor({ minBody: null, fontSize: 8 })).toBe(0.66)
     // a floor above the size as set is a floor: 12pt on a 10pt body is 1.2x
     expect(typeFloor({ minBody: 12, fontSize: 10 })).toBe(1.2)
-    expect(typeFloor({ minBody: 11, fontSize: 7.25 })).toBe(1.517)
+    expect(typeFloor({ minBody: 11, fontSize: 7.25 })).toBe(1.518)
   })
 })
 
@@ -210,7 +210,7 @@ describe('fitToPages', () => {
       { target: 1, minBody: 11, fontSize: 7.25, priority: 'type' }
     )
     // 2500 x 1.517 = 3793: four pages at the floor; three at tighter spacing
-    expect(r2.type).toBe(1.517)
+    expect(r2.type).toBe(1.518)
     expect(r2.space).toBeLessThan(1)
     expect(height(2500, r2)).toBeLessThanOrEqual(3000)
     expect(height(2500, { ...r2, space: r2.space + 0.004 })).toBeGreaterThan(3000)

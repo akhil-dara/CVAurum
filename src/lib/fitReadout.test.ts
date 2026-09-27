@@ -15,8 +15,17 @@ const meta = () => {
 describe('fitRulesOf', () => {
   it('hands the search the document’s rules and the body size as set', () => {
     const m = meta()
-    m.page.fit = { target: 2, minBody: 11, priority: 'type', lock: { name: false, headline: false, contacts: false, sectionGap: false, leading: false } }
-    expect(fitRulesOf(m)).toEqual({ target: 2, minBody: 11, fontSize: 10, priority: 'type' })
+    m.page.fit = {
+      ...m.page.fit,
+      target: 2,
+      minBody: 11,
+      priority: 'type',
+      lock: { name: false, headline: false, contacts: false, sectionGap: false, leading: false },
+    }
+    // A saved résumé's rules: exactly what the search always got, and none of Auto's.
+    expect(fitRulesOf(m)).toMatchObject({ target: 2, minBody: 11, fontSize: 10, priority: 'type', auto: false, pinned: false })
+    expect(fitRulesOf(m).grow).toBeUndefined()
+    expect(fitRulesOf(m).spaceMin).toBeUndefined()
   })
 })
 

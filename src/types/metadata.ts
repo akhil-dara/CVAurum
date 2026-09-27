@@ -63,6 +63,18 @@ export const PageSchema = z.object({
       target: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
       minBody: z.number().min(6).max(12).nullable().default(null),
       priority: z.enum(['spacing', 'both', 'type']).default('both'),
+      /** 'auto' (new résumés from 2026-09-26): print at the size set, and fit
+       *  only to save a nearly empty last page. 'pages': reach `target`. */
+      mode: z.enum(['auto', 'pages']).default('pages'),
+      /** Who chose `minBody`: the app's own floor, or the author. Only an
+       *  author floor is shown as theirs and may raise text above the size set. */
+      minBodyBy: z.enum(['app', 'author']).default('author'),
+      /** The author accepted this many pages: Auto leaves the page as set while it holds. */
+      keptPages: z.number().int().min(1).max(6).nullable().default(null),
+      /** The author's own floor before they allowed a smaller size for one page. */
+      relaxedFrom: z.number().min(6).max(12).nullable().default(null),
+      /** Started from an example: keeps its fitted picture until its content is first edited. */
+      fromExample: z.boolean().default(false),
       lock: z
         .object({
           name: z.boolean().default(false),

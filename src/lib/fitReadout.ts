@@ -22,9 +22,40 @@ export interface FitResult {
   lastPageSections?: string[]
 }
 
+/** Auto's own floor: 9pt, or 6% below the size set when that is larger, and
+ *  never above the size set - a floor the app chose never raises text. */
+export const AUTO_TYPE_MIN_PT = 9
+export const AUTO_MAX_SHRINK = 0.94
+export const AUTO_SPACE_MIN = 0.8
+/** The floor for a page count on a new résumé when the author set none. */
+export const PAGES_APP_FLOOR_PT = 8.5
+export function autoFloorPt(setPt: number): number {
+  return Math.min(setPt, Math.max(AUTO_TYPE_MIN_PT, Math.round(setPt * AUTO_MAX_SHRINK * 100) / 100))
+}
+
+/**
+ * The document's rules as the fit search reads them - the ONE place the
+ * preview, the exporter and the trials all read, so they agree by
+ * construction. A saved résumé (mode 'pages', floor 'author' or none) maps
+ * exactly as it always did.
+ */
 export function fitRulesOf(metadata: Metadata): FitRules {
   const f = metadata.page.fit
-  return { target: f.target, minBody: f.minBody, fontSize: metadata.typography.fontSize, priority: f.priority }
+  const set = metadata.typography.fontSize
+  const auto = f.mode === 'auto'
+  const author = f.minBodyBy === 'author' && f.minBody != null
+  const appFloor = auto ? autoFloorPt(set) : f.minBodyBy === 'app' ? Math.min(set, PAGES_APP_FLOOR_PT) : null
+  return {
+    target: f.target,
+    minBody: author ? f.minBody : (appFloor ?? f.minBody),
+    fontSize: set,
+    priority: f.priority,
+    auto,
+    grow: auto || f.minBodyBy === 'app' ? false : undefined,
+    spaceMin: auto ? AUTO_SPACE_MIN : undefined,
+    keptPages: f.keptPages,
+    pinned: metadata.page.breaks.length > 0,
+  }
 }
 
 /** The body size the fit will not go below on this document, in points:
