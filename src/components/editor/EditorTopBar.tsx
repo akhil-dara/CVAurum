@@ -86,7 +86,11 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-2 sm:gap-3 sm:px-3">
+    // Its own stacking level, above the canvas: the Export and More menus sat
+    // at z-20 against the whole page, and the Preview banner - also z-20 and
+    // later in the page - covered "Download PDF", so a click on it went to
+    // "Back to editing" instead (usability test, 2026-09-26).
+    <header className="relative z-30 flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-surface px-2 sm:gap-3 sm:px-3">
       <Logo compact />
       <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
 
