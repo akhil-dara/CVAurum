@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { deleteItem } from '@/store/deleteItem'
 import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
@@ -121,7 +122,8 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
       const it = list.find((x) => x.id === id)
       if (it) fn(it)
     })
-  const removeById = (id: string) => update((c) => removeItem(c, sectionKey, id))
+  // Says what went, with an Undo right there (store/deleteItem.ts).
+  const removeById = (id: string) => deleteItem(sectionKey, id)
   const reorder = (order: string[]) =>
     mutate((list) => {
       const byId = new Map(list.map((x) => [x.id, x]))

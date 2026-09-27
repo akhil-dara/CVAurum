@@ -5,6 +5,7 @@
  * (<Ed>) and write straight back to the store; otherwise they render plain so
  * print/thumbnail stay clean.
  */
+import { runItemDelete } from './itemActions'
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
@@ -904,7 +905,9 @@ function ItemDelete({
       className="rm-item-del no-print"
       contentEditable={false}
       onMouseDown={(e) => e.preventDefault()}
-      onClick={() => edit((c) => removeItem(c, sectionKey, id))}
+      // In the editor: says what went, with an Undo right there
+      // (itemActions.ts, store/deleteItem.ts).
+      onClick={() => runItemDelete(edit, sectionKey, id)}
       aria-label={`Remove ${label}`}
       title={`Remove ${label}`}
     >

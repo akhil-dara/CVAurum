@@ -8,7 +8,6 @@
  */
 import { create } from 'zustand'
 import { temporal } from 'zundo'
-import { throttle } from '@/lib/utils'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import type { TemplateDefaults } from '@/types/template'
@@ -39,8 +38,24 @@ interface ResumeState {
   replaceDoc: (doc: ResumeDocument) => void
 }
 
+/** A pause this long ends one undo step; typing faster than this is one step. */
+const UNDO_PAUSE_MS = 700
+let burstBroken = false
+/** The next change starts a new undo step, however soon it follows the last:
+ *  a delete must never merge into the typing before it, or its Undo would
+ *  take the typing back too. */
+export function breakUndoBurst() {
+  burstBroken = true
+}
+
 function touch(doc: ResumeDocument): ResumeDocument {
   return { ...doc, updatedAt: Date.now() }
+}
+
+/** Did an update change anything but the clock? One that did not is not an
+ *  undo step and does not make the document dirty. */
+function changed(a: ResumeDocument, b: ResumeDocument): boolean {
+  return JSON.stringify({ ...a, updatedAt: 0 }) !== JSON.stringify({ ...b, updatedAt: 0 })
 }
 
 export const useResumeStore = create<ResumeState>()(
@@ -59,6 +74,7 @@ export const useResumeStore = create<ResumeState>()(
         if (!cur) return
         const next = structuredClone(cur)
         recipe(next.content)
+        if (!changed(cur, next)) return
         set({ doc: touch(next), dirty: true })
       },
 
@@ -67,6 +83,7 @@ export const useResumeStore = create<ResumeState>()(
         if (!cur) return
         const next = structuredClone(cur)
         recipe(next.metadata)
+        if (!changed(cur, next)) return
         set({ doc: touch(next), dirty: true })
       },
 
@@ -75,6 +92,7 @@ export const useResumeStore = create<ResumeState>()(
         if (!cur) return
         const next = structuredClone(cur)
         recipe(next)
+        if (!changed(cur, next)) return
         set({ doc: touch(next), dirty: true })
       },
 
@@ -106,9 +124,27 @@ export const useResumeStore = create<ResumeState>()(
       // Leading-edge throttle: a burst of keystrokes records ONE history entry
       // whose baseline is the state before the burst, so a single undo reverts
       // the whole burst (a trailing debounce would record the wrong baseline).
-      // Each updater produces a fresh structuredClone'd doc, so reference
-      // inequality is sufficient — no custom equality needed.
-      handleSet: (handleSet) => throttle((state) => handleSet(state), 400) as typeof handleSet,
+      // A step is a change of DOCUMENT. `partialize` builds `{ doc }` anew on
+      // every update, so without this, saving - which touches only `dirty`
+      // and `lastSavedAt` - recorded a step whose document was the same one,
+      // and the first Undo after an edit reversed nothing visible
+      // (usability test, 2026-09-26).
+      equality: (a, b) => a.doc === b.doc,
+      // A burst of edits is one step: the state before its first change is
+      // recorded, and nothing more until the author pauses. The fixed 400ms
+      // slices this replaces cut one sentence of typing into several steps
+      // (six edits took ten presses to undo), and their clock also ran on
+      // saves, so an edit landing just after one was never recorded at all.
+      handleSet: (handleSet) => {
+        let lastChange = -Infinity
+        return ((...args: Parameters<typeof handleSet>) => {
+          const now = Date.now()
+          const startsBurst = burstBroken || now - lastChange >= UNDO_PAUSE_MS
+          burstBroken = false
+          lastChange = now
+          if (startsBurst) handleSet(...args)
+        }) as typeof handleSet
+      },
     }
   )
 )

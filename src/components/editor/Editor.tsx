@@ -20,6 +20,8 @@ import { AtsPanel } from './panels/AtsPanel'
 import { TemplateGallery } from './TemplateGallery'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { ResumePreview } from '@/components/preview/ResumePreview'
+import { setItemDelete } from '@/templates/_shared/itemActions'
+import { deleteItem } from '@/store/deleteItem'
 
 const PANEL_TITLES: Record<string, string> = {
   content: 'Content',
@@ -44,6 +46,13 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
   const split = !compact
 
   // Global undo/redo shortcuts.
+  // The canvas's trash buttons delete with a message and an Undo, like the
+  // panel's (store/deleteItem.ts); templates cannot import the stores.
+  useEffect(() => {
+    setItemDelete(deleteItem)
+    return () => setItemDelete(null)
+  }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey

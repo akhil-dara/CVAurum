@@ -131,6 +131,30 @@ export function removeItem(content: ResumeContent, sectionKey: string, id: strin
   if (idx >= 0) list.splice(idx, 1)
 }
 
+/** The list a section's items live in, or undefined. */
+function itemList(content: ResumeContent, sectionKey: string): AnyItem[] | undefined {
+  if (sectionKey.startsWith('custom-')) {
+    const scId = sectionKey.slice('custom-'.length)
+    return content.custom.find((c) => c.id === scId)?.items as AnyItem[] | undefined
+  }
+  const list = (content as any)[sectionKey]
+  return Array.isArray(list) ? list : undefined
+}
+
+/** An item and its position, for putting it back after a delete. */
+export function findItem(content: ResumeContent, sectionKey: string, id: string): { item: AnyItem; index: number } | null {
+  const list = itemList(content, sectionKey)
+  const index = list ? list.findIndex((x) => x.id === id) : -1
+  return list && index >= 0 ? { item: list[index], index } : null
+}
+
+/** Puts an item back at its position (or the end, if the list got shorter). */
+export function insertItem(content: ResumeContent, sectionKey: string, item: AnyItem, index: number): void {
+  const list = itemList(content, sectionKey)
+  if (!list || list.some((x) => x.id === item.id)) return
+  list.splice(Math.min(index, list.length), 0, structuredClone(item))
+}
+
 /* --------------------------------------------------------- reorder helpers
  * One implementation for every control surface (side panel, canvas arrows,
  * canvas drag), so an order mutation can never behave differently depending

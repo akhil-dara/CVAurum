@@ -17,6 +17,8 @@ export interface Toast {
   id: string
   kind: ToastKind
   message: string
+  /** One button on the message, e.g. Undo after a delete. */
+  action?: { label: string; run: () => void }
 }
 
 interface AppState {
@@ -31,7 +33,7 @@ interface AppState {
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>
   applyTheme: () => void
 
-  toast: (message: string, kind?: ToastKind) => void
+  toast: (message: string, kind?: ToastKind, action?: Toast['action']) => void
   dismissToast: (id: string) => void
 }
 
@@ -81,10 +83,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     document.documentElement.classList.toggle('dark', dark)
   },
 
-  toast: (message, kind = 'info') => {
+  toast: (message, kind = 'info', action) => {
     const id = `t${++toastSeq}`
-    set((s) => ({ toasts: [...s.toasts, { id, kind, message }] }))
-    setTimeout(() => get().dismissToast(id), kind === 'error' ? 6000 : 3500)
+    set((s) => ({ toasts: [...s.toasts, { id, kind, message, ...(action ? { action } : {}) }] }))
+    // A message with a button stays long enough to reach the button.
+    setTimeout(() => get().dismissToast(id), action ? 8000 : kind === 'error' ? 6000 : 3500)
   },
 
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

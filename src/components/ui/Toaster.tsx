@@ -54,6 +54,18 @@ export function Toaster() {
                 }
               />
               <p className="flex-1 text-sm leading-snug text-foreground">{t.message}</p>
+              {t.action && (
+                <button
+                  type="button"
+                  className="-my-1 shrink-0 rounded-md px-2 py-1 text-sm font-semibold text-primary hover:bg-primary/10 coarse:min-h-10"
+                  onClick={() => {
+                    t.action!.run()
+                    dismiss(t.id)
+                  }}
+                >
+                  {t.action.label}
+                </button>
+              )}
               {/* 40px of touch target on a phone, without growing the card:
                   the negative margin gives the button back the 24px box the
                   layout had. */}
