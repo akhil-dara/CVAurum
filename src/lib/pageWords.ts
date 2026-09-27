@@ -48,16 +48,14 @@ export function furnitureYear(updatedAt?: number): number {
  *  own. */
 export const KICKER_LABEL = 'Curriculum vitae'
 
-/** The line's right-hand words by default: the author's place as their
- *  contact line writes it (city and region, else city and country), then the
+/** The line's right-hand words by default: the author's place exactly as
+ *  their contact line writes it (city and region - contacts.ts), then the
  *  year - a letterhead's dateline. */
 export function kickerPlace(
   location: { city?: string; region?: string; countryCode?: string } | undefined,
   year: number
 ): string {
-  const city = location?.city?.trim()
-  const where = [city, location?.region?.trim() || location?.countryCode?.trim()].filter(Boolean)
-  const place = city ? where.join(', ') : ''
+  const place = [location?.city?.trim(), location?.region?.trim()].filter(Boolean).join(', ')
   return place ? `${place} · ${year}` : String(year)
 }
 

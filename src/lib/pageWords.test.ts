@@ -34,7 +34,10 @@ describe('the line above the name', () => {
 
   it('places the author as the contact line does, with the year', () => {
     expect(kickerPlace({ city: 'San Francisco', region: 'CA', countryCode: 'US' }, 2026)).toBe('San Francisco, CA · 2026')
-    expect(kickerPlace({ city: 'Pune', countryCode: 'IN' }, 2026)).toBe('Pune, IN · 2026')
+    // the place exactly as the contact line prints it: city and region, and
+    // no country code the contact line never shows
+    expect(kickerPlace({ city: 'Pune', countryCode: 'IN' }, 2026)).toBe('Pune · 2026')
+    expect(kickerPlace({ region: 'Karnataka', countryCode: 'IN' }, 2026)).toBe('Karnataka · 2026')
     expect(kickerPlace({}, 2026)).toBe('2026')
     expect(kickerPlace(undefined, 2026)).toBe('2026')
   })
