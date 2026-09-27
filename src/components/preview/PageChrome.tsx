@@ -36,6 +36,7 @@
 
 import type { CSSProperties } from 'react'
 import { pageFootText, type PageNumberStyle } from '@/lib/pageWords'
+import { OPEN_PAGE_FOOT } from '@/templates/_shared/FootGear'
 
 /** Height (CSS px) of the REAL gap the editor opens above each
  *  `data-page-start` element (artboard.css `--rm-page-gap` must match) —
@@ -97,14 +98,44 @@ export interface PageFootLook {
   pageStyle: CSSProperties
 }
 
+/** The frame and the drafting grid the design draws on every page, read
+ *  from the live canvas where they are laid out but hidden (artboard.css),
+ *  so the canvas can draw them on each page's own paper. */
+export interface PageSheetLook {
+  frame: { insetPx: number; border: string } | null
+  grid: { stepPx: number; color: string; widthPx: number } | null
+}
+
+export function readPageSheet(root: HTMLElement, scale: number): PageSheetLook | null {
+  const frame = root.querySelector<HTMLElement>('.rm-running .rm-page-frame')
+  const gridLine = root.querySelector<HTMLElement>('.rm-running .rm-grid-v')
+  if (!frame && !gridLine) return null
+  let frameLook: PageSheetLook['frame'] = null
+  if (frame) {
+    const r = frame.getBoundingClientRect()
+    const rootRect = root.getBoundingClientRect()
+    const cs = getComputedStyle(frame)
+    frameLook = { insetPx: (r.left - rootRect.left) / scale, border: `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}` }
+  }
+  return {
+    frame: frameLook,
+    // 8mm squares, as the layer rules them (Artboard GRID_MM)
+    grid: gridLine
+      ? { stepPx: 8 * (96 / 25.4), color: getComputedStyle(gridLine).backgroundColor, widthPx: root.getBoundingClientRect().width / scale }
+      : null,
+  }
+}
+
 /** Reads the look of the design's foot from the edit canvas's `.rm-root`, or
  *  null when the document has none. `scale` is the canvas zoom, which the
  *  rects carry and the copies must not. */
 export function readPageFoot(root: HTMLElement, scale: number): PageFootLook | null {
   const foot = root.querySelector<HTMLElement>('.rm-running .rm-pagefoot')
+  // The words are optional (an author can take them away); the number's
+  // element is always there, empty when it prints nothing.
   const name = foot?.querySelector('.rm-pagefoot-name')
   const page = foot?.querySelector<HTMLElement>('.rm-pagefoot-page')
-  if (!foot || !name || !page) return null
+  if (!foot || !page) return null
   const r = foot.getBoundingClientRect()
   const rootRect = root.getBoundingClientRect()
   // Measured from its own layer, which is one page tall on a single page and
@@ -116,10 +147,10 @@ export function readPageFoot(root: HTMLElement, scale: number): PageFootLook | n
     widthPx: r.width / scale,
     heightPx: r.height / scale,
     insetPx: (layer.bottom - r.bottom) / scale,
-    name: name.textContent ?? '',
+    name: name?.textContent ?? '',
     numberStyle: (page.dataset.runPage as PageNumberStyle) || 'slash',
     box: pick(foot),
-    nameStyle: pick(name),
+    nameStyle: name ? pick(name) : {},
     pageStyle: pick(page),
   }
 }
@@ -131,7 +162,13 @@ export function PageChromeOverlay({
   variant = 'band',
   footLook,
   feet = [],
+  sheetLook,
+  pageRects = [],
 }: {
+  /** The frame and grid the design repeats on every page, and each page's
+   *  paper (edit canvas only, and only when every break opened a real gap). */
+  sheetLook?: PageSheetLook | null
+  pageRects?: { top: number; bottom: number }[]
   /** The design's page foot and where each page's copy goes (edit canvas
    *  only): the canvas draws one continuous sheet, so the foot the exporter
    *  prints on every page is drawn here, in the paper each page gap keeps
@@ -203,11 +240,48 @@ export function PageChromeOverlay({
         )
       )}
 
+      {sheetLook
+        ? pageRects.map((r, i) => {
+            const h = r.bottom - r.top
+            const grid = sheetLook.grid
+            // centred on the page's width, and run from the page's own top
+            const off = grid ? ((grid.widthPx - Math.floor(grid.widthPx / grid.stepPx) * grid.stepPx) / 2).toFixed(2) : '0'
+            return (
+              <div key={`sheet-${i}`} className="pointer-events-none absolute inset-x-0" style={{ top: r.top, height: h }} data-page-chrome="sheet" aria-hidden>
+                {grid ? (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `linear-gradient(to right, ${grid.color} 0.6px, transparent 0.6px), linear-gradient(to bottom, ${grid.color} 0.6px, transparent 0.6px)`,
+                      backgroundSize: `${grid.stepPx}px ${grid.stepPx}px`,
+                      backgroundPosition: `${off}px ${off}px`,
+                      // drawn above the page but read as beneath it, as the
+                      // export lays it: a multiply never lightens the words
+                      mixBlendMode: 'multiply',
+                    }}
+                  />
+                ) : null}
+                {sheetLook.frame ? (
+                  <div className="absolute" style={{ inset: sheetLook.frame.insetPx, border: sheetLook.frame.border }} />
+                ) : null}
+              </div>
+            )
+          })
+        : null}
+
       {footLook
         ? feet.map((f) => (
+            // A click on any page's foot opens the one foot popover
+            // (FootGear.tsx) - the copy is drawn here, the control lives there.
             <div
               key={`foot-${f.page}`}
-              className="pointer-events-none absolute"
+              className="absolute cursor-pointer rounded hover:outline hover:outline-1 hover:outline-offset-4 hover:outline-dashed hover:outline-primary/50"
+              onClick={(e) =>
+                window.dispatchEvent(
+                  new CustomEvent(OPEN_PAGE_FOOT, { detail: { y: (e.currentTarget as HTMLElement).getBoundingClientRect().top } })
+                )
+              }
+              title="Page foot: words, page number, place"
               style={{
                 ...footLook.box,
                 left: footLook.leftPx,
@@ -220,8 +294,14 @@ export function PageChromeOverlay({
               data-page-index={f.page}
               aria-hidden
             >
-              <span style={footLook.nameStyle}>{footLook.name}</span>
-              <span style={footLook.pageStyle}>{pageFootText(f.page, pageCount, footLook.numberStyle)}</span>
+              {footLook.name ? <span style={footLook.nameStyle}>{footLook.name}</span> : null}
+              {/* Not the measured margin: the hidden foot's number is empty
+                  (it is one page tall to the tree that drew it), so its margin
+                  was the whole line and pushed every copy's number past the
+                  frame. Spread, the number simply takes the right edge. */}
+              <span style={{ ...footLook.pageStyle, marginLeft: footLook.box.justifyContent === 'center' ? undefined : 'auto' }}>
+                {pageFootText(f.page, pageCount, footLook.numberStyle)}
+              </span>
             </div>
           ))
         : null}

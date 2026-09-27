@@ -459,3 +459,20 @@ describe('a strike heading cuts its mask in the ground it actually sits on', () 
     }
   })
 })
+
+describe('an entry title and its date share a baseline', () => {
+  // A rule meant only for rows led by a logo badge ("title + date stay on the
+  // badge's first line") was written without its condition, so every title
+  // row in every design aligned to the TOP: a date in a smaller face sat up
+  // to 6px above the title's baseline, on the canvas and in the export alike.
+  it('holds a plain title row on the baseline', () => {
+    const plain = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .map((m) => ({ selector: m[1].trim(), body: m[2] }))
+      .filter((r) => /^\.rm-item-head$/.test(r.selector))
+    const aligns = plain.flatMap((r) => declared(r.body, 'align-items'))
+    expect(aligns).toEqual(['baseline'])
+  })
+  it('keeps a badge-led row on the badge’s first line', () => {
+    expect(css).toMatch(/\.rm-item-head:has\([^)]*rm-item-badge[^)]*\)\s*\{[^}]*align-items:\s*flex-start/)
+  })
+})

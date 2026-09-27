@@ -272,6 +272,12 @@ describe('the page furniture words', () => {
     expect(own).toMatch(/rm-pagefoot-name[^>]*>Alex Morgan · Senior Engineer</)
   })
 
+  it('drops the words from the foot when the author removes them', () => {
+    const none = render((d) => (d.metadata.layout.pageFootLabel = ''))
+    expect(none).not.toContain('rm-pagefoot-name')
+    expect(none).toContain('rm-pagefoot-page')
+  })
+
   it('carries the author’s number style, place and rule to the foot', () => {
     const plain = render(() => {})
     expect(plain).toMatch(/data-run-page="slash"/)
@@ -288,5 +294,32 @@ describe('the page furniture words', () => {
     expect(set).toMatch(/data-run-anchor="left"/)
     expect(set).toContain('rm-pagefoot-center')
     expect(set).toContain('rm-pagefoot-norule')
+  })
+})
+
+describe('section headings on the canvas', () => {
+  const html = (tpl: string, rename?: string) => {
+    const doc = createDocument({ sample: true })
+    doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(tpl).defaults)
+    if (rename) doc.metadata.layout.headings = { work: rename }
+    return renderToStaticMarkup(<TemplateRenderer doc={doc} mode="preview" edit={() => {}} editMeta={() => {}} />)
+  }
+
+  it('are typed into in place, like every other word on the page', () => {
+    // Renaming a heading lived behind the link card's "Shown as" field and the
+    // panel's Rename: clicking the words on the page did nothing at all.
+    for (const tpl of ['modern', 'punch', 'schematic']) {
+      expect(html(tpl)).toMatch(/<span contenteditable="true"[^>]*class="[^"]*\brm-section-title-text\b/)
+    }
+  })
+
+  it('show the author’s name for the section once they gave one', () => {
+    expect(html('modern', 'Where I have worked')).toContain('Where I have worked')
+  })
+
+  it('print as plain words', () => {
+    const doc = createDocument({ sample: true })
+    const out = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+    expect(out).not.toMatch(/rm-section-title-text[^>]*contenteditable/)
   })
 })

@@ -83,7 +83,7 @@ import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
 import { ColumnBalanceHint } from './ColumnBalanceHint'
-import { PageChromeOverlay, readPageFoot, type PageFootCopy, type PageFootLook } from './PageChrome'
+import { PageChromeOverlay, readPageFoot, readPageSheet, type PageFootCopy, type PageFootLook, type PageSheetLook } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
 // is throttled to ~never, which would stall the fit loop and leave a stale page
@@ -614,10 +614,14 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const [pagePageCount, setPagePageCount] = useState(1)
   const [footLook, setFootLook] = useState<PageFootLook | null>(null)
   const [pageFeet, setPageFeet] = useState<PageFootCopy[]>([])
+  const [sheetLook, setSheetLook] = useState<PageSheetLook | null>(null)
+  const [pageRects, setPageRects] = useState<{ top: number; bottom: number }[]>([])
   useEffect(() => {
     const clearOverlay = () => {
       setFootLook((prev) => (prev ? null : prev))
       setPageFeet((prev) => (prev.length ? [] : prev))
+      setSheetLook((prev) => (prev ? null : prev))
+      setPageRects((prev) => (prev.length ? [] : prev))
       setPageSeparators((prev) => (prev.length ? [] : prev))
       setPageBadgeTops((prev) => (prev.length ? [] : prev))
       setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
@@ -757,6 +761,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             // ending at a cut with no gap has no room for one and goes without.
             const look = readPageFoot(editRoot, scaleNow)
             const feet: PageFootCopy[] = []
+            // Each page's own paper, top to bottom, for the frame and the grid
+            // the design draws on every page - known only where every break
+            // opened a real gap; one it had to guess leaves them export-only.
+            const rects: { top: number; bottom: number }[] = []
+            let pageTop = 0
+            let exact = true
             for (let i = 0; i < result.cutsPx.length; i++) {
               const el = anchors[i]
               if (el) {
@@ -766,6 +776,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 separators.push({ y: grey - PAGE_GAP_PX / 2 })
                 badgeTops.push(grey)
                 if (look) feet.push({ page: i + 1, top: grey - PAGE_GAP_PX - look.insetPx - look.heightPx })
+                rects.push({ top: pageTop, bottom: grey - PAGE_GAP_PX })
+                pageTop = grey
               } else if (fallbackYs[i] != null) {
                 // Interpolated, so it can land in the MIDDLE of a chip or a
                 // line, and drawn there it reads as though the page break
@@ -775,20 +787,25 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 // visible without ever crossing ink, which is the same
                 // judgement this module already makes when it suppresses a
                 // separator it cannot place.
+                exact = false
                 const snapped = snapClearOfInk(fallbackYs[i]!, editRoot, scaleNow)
                 // The badge marks the page whether or not a rule can be drawn.
                 if (snapped !== null) separators.push({ y: snapped, thin: true })
                 badgeTops.push(snapped ?? fallbackYs[i]!)
               } else {
+                exact = false
                 badgeTops.push(result.cutsPx[i] * badgeScale)
               }
             }
+            rects.push({ top: pageTop, bottom: editRoot.offsetHeight })
             if (look) feet.push({ page: result.pageCount, top: editRoot.offsetHeight - look.insetPx - look.heightPx })
             setPageSeparators(separators)
             setPageBadgeTops(badgeTops)
             setPagePageCount(result.pageCount)
             setFootLook(look)
             setPageFeet(feet)
+            setSheetLook(exact ? readPageSheet(editRoot, scaleNow) : null)
+            setPageRects(exact ? rects : [])
             // The margin gaps grew the canvas — keep the white sheet sized.
             if (innerRef.current) setContentH(innerRef.current.scrollHeight)
           })
@@ -1031,6 +1048,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 variant={exactCanvas ? 'hairline' : 'band'}
                 footLook={exactCanvas ? null : footLook}
                 feet={pageFeet}
+                sheetLook={exactCanvas ? null : sheetLook}
+                pageRects={pageRects}
               />
             </div>
           </div>

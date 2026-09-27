@@ -1536,6 +1536,20 @@ function markerWidthPx(text: string, markerCs: CSSStyleDeclaration, cssFont: str
  * next begins. (A marker painted as a vector outline used to be
  * `isDecorative`, with an invisible twin beside it carrying the text.)
  */
+/** The baseline of `el`'s first laid-out line of text, measured, or null
+ *  when it holds none (a nested list's own items are theirs, not its). */
+function firstLineBaselinePx(el: HTMLElement, root: HTMLElement): number | null {
+  const walker = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.textContent?.trim()) continue
+    const nested = n.parentElement?.closest('li')
+    if (nested && nested !== el) continue
+    const runs = extractRuns(n as Text, root)
+    if (runs.length) return runs[0].baselinePx
+  }
+  return null
+}
+
 function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   const cs = getComputedStyle(el)
   if (cs.display !== 'list-item') return
@@ -1563,6 +1577,14 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   if (!text) return
   const run = styledTextRun(markerCs, text, 0, box.yPx)
   if (!run) return
+  // The browser sets an outside marker on the BASELINE OF THE ITEM'S FIRST
+  // LINE. The top-plus-ascent guess above ignores that line's half-leading
+  // and the marker's own size, so a marker set larger than its text
+  // (Keystone's diamond at 1.35em) rode 2.25pt high and one set smaller sat
+  // low (Harvard, 0.75pt) - measured on the exports, 2026-09-27. The first
+  // run of the item's own text carries the real baseline.
+  const first = firstLineBaselinePx(el, root)
+  if (first !== null) run.baselinePx = first
   const widthPx = markerWidthPx(text, markerCs, font)
   run.xPx = markerOriginX(box, cs, widthPx)
   // A REAL measured width, unlike every other synthesized run's (see

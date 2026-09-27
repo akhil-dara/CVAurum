@@ -349,3 +349,39 @@ export function Ed({
     />
   )
 }
+
+/**
+ * `Ed` for words that live in the document's settings rather than its
+ * content - a section heading's name (layout.headings) - so they are typed
+ * into on the page like every other word. Plain text only; out of edit mode
+ * it renders the value as the given tag, exactly as `Ed` does.
+ */
+export function EdMeta({
+  editMeta,
+  value,
+  apply,
+  as,
+  className,
+  placeholder,
+}: {
+  editMeta?: MetaEditFn
+  value: string
+  apply: (m: Metadata, v: string) => void
+  as?: Tag
+  className?: string
+  placeholder?: string
+}) {
+  if (!editMeta) {
+    const T = as ?? 'span'
+    return <T className={className}>{value}</T>
+  }
+  return (
+    <Editable
+      as={as}
+      className={className}
+      value={value}
+      placeholder={placeholder}
+      onChange={(v) => editMeta((m) => apply(m, v))}
+    />
+  )
+}

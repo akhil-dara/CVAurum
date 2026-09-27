@@ -161,6 +161,8 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateMetadata)
   const m = doc.metadata
   const twoCol = m.layout.columns === 2
+  // The page count the canvas last measured: the foot says whether numbers print.
+  const footPages = useEditorStore((s) => s.fitResult?.pages)
 
   // What each colour control's words MEASURE on the page, read from the live
   // check the preview runs on the print tree (ContrastCard). A two-colour
@@ -1000,7 +1002,7 @@ note={notes[r.key]}
               })
             }
           />
-          {m.layout.pageFoot ? <FootFields doc={doc} editMeta={update} /> : null}
+          {m.layout.pageFoot ? <FootFields doc={doc} editMeta={update} pages={footPages} /> : null}
           <Toggle
             label="Frame every page"
             checked={m.layout.pageFrame}

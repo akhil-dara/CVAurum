@@ -251,7 +251,7 @@ function PhotoRow({ doc }: { doc: ResumeDocument }) {
  * and lost its bottom strip. Desktop - any width, because a fine pointer is
  * what decides - keeps the card exactly as before.
  */
-function wantsSheet() {
+export function wantsSheet() {
   if (isPhoneLayout()) return true
   const w = document.documentElement.clientWidth
   const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches

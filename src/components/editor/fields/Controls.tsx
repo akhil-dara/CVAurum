@@ -115,6 +115,7 @@ export function Segmented<T extends string>({
   options,
   onChange,
   wrap = false,
+  itemClass,
 }: {
   value: T
   options: { value: T; label: string }[]
@@ -122,13 +123,15 @@ export function Segmented<T extends string>({
   /** Let a long option list flow onto a second line instead of clipping
    *  at the panel's edge (a row of seven text buttons lost its last one). */
   wrap?: boolean
+  /** Each button's sizing, in place of the defaults - e.g. two to a row. */
+  itemClass?: string
 }) {
   return (
     <div className={`segmented w-full${wrap ? ' flex-wrap' : ''}`}>
       {options.map((o) => (
         <button
           key={o.value}
-          className={wrap ? 'grow basis-[22%]' : 'flex-1'}
+          className={itemClass ?? (wrap ? 'grow basis-[22%]' : 'flex-1')}
           data-active={value === o.value}
           onClick={() => onChange(o.value)}
         >

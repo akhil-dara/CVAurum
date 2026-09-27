@@ -2398,8 +2398,92 @@
   justify-content: center;
   gap: 1.6em;
 }
+/* Spread, the number keeps the right edge even when the words were taken
+   away and it is the foot's only child. */
+.rm-pagefoot:not(.rm-pagefoot-center) > .rm-pagefoot-page {
+  margin-left: auto;
+}
 .rm-pagefoot.rm-pagefoot-norule {
   border-top-color: transparent;
+}
+/* The page foot's own control on the canvas (FootGear.tsx): a button laid
+   over the foot's box. At rest it is invisible but always there to click; a
+   hover or keyboard focus outlines the foot and shows its label. It stays
+   inside the foot's own box - nothing to cross, nothing hidden that can be
+   hit (hover-reveal traps). */
+.rm-foot-edit {
+  position: absolute;
+  left: var(--rm-foot-left, var(--rm-pad));
+  right: var(--rm-pad);
+  bottom: calc(var(--rm-foot-inset) - 5px);
+  height: calc(var(--rm-foot-fs) + 16px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 0 4px;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  z-index: 5;
+}
+.rm-foot-edit:hover,
+.rm-foot-edit:focus-visible {
+  border-color: color-mix(in srgb, var(--rm-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--rm-primary) 5%, transparent);
+  outline: none;
+}
+.rm-foot-edit-note {
+  font: italic 10px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--rm-muted) 75%, transparent);
+  padding-bottom: 1px;
+}
+.rm-foot-edit-note {
+  margin-left: auto;
+}
+/* Inside the foot's own box, at its right end: above the box it sat on
+   whatever the page ends with (an "+ Add section" bar, measured). Shown, it
+   takes the note's place. */
+.rm-foot-edit-pill {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font: 600 11px/1 ui-sans-serif, system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.rm-foot-edit-pill svg {
+  width: 12px;
+  height: 12px;
+}
+.rm-foot-edit:hover .rm-foot-edit-pill,
+.rm-foot-edit:focus-visible .rm-foot-edit-pill {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .rm-foot-edit-pill {
+    opacity: 1;
+  }
+  /* no hover on a touch screen: the pill always shows, so the note stands
+     clear of it rather than under it */
+  .rm-foot-edit-note {
+    margin-right: 64px;
+  }
+}
+.rm-foot-edit:hover .rm-foot-edit-note,
+.rm-foot-edit:focus-visible .rm-foot-edit-note {
+  opacity: 0;
 }
 /* A hairline frame inset from the paper's edge. */
 .rm-page-frame {
@@ -2427,11 +2511,11 @@
   right: 0;
   height: 0.6px;
 }
-/* The canvas draws one continuous sheet, not pages. Past page one the grid
-   and the frame would run across the next page's words, so they show in the
-   export only. The foot stays laid out, hidden, at the foot of the last page,
-   where the canvas reads its look and draws a copy for every page in the
-   paper each page gap keeps for it (PageChrome.tsx). */
+/* The canvas draws one continuous sheet, not pages: past page one this
+   layer would run across the next page's words. So it stays laid out but
+   hidden, the foot at the foot of the last page, and the canvas reads its
+   look and draws a frame, a grid and a foot for every page on that page's
+   own paper (PageChrome.tsx). */
 /* On the canvas the layer reaches the foot of the sheet, whatever its
    length: a résumé the export fits onto one page at a smaller size still
    shows at the size the author set, longer than a page, and a foot pinned
@@ -2441,10 +2525,7 @@
   height: auto;
   min-height: var(--rm-page-h, 1122.52px);
 }
-[data-pages]:not([data-pages='1']) .rm-running > :not(.rm-pagefoot) {
-  display: none;
-}
-[data-pages]:not([data-pages='1']) .rm-running > .rm-pagefoot {
+[data-pages]:not([data-pages='1']) .rm-running > * {
   visibility: hidden;
 }
 
@@ -3696,8 +3777,11 @@
   background: color-mix(in srgb, currentColor 16%, transparent);
   color: inherit;
 }
-/* with a badge, title + date stay on the badge's first line */
-.rm-item-head {
+/* With a badge or a logo, title + date stay on the badge's first line. Only
+   there: written without its condition, this top-aligned every title row in
+   every design, and a date in a smaller face sat up to 6px above the title's
+   baseline on the canvas and in the export (review, 2026-09-27). */
+.rm-item-head:has(> .rm-item-badge, > .rm-item-logo, > .rm-logo-btn) {
   align-items: flex-start;
 }
 

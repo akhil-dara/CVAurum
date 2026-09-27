@@ -34,10 +34,11 @@ const FIT_AS_SET: FitVector = { type: 1, space: 1 }
 import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
-import { Ed, type EditFn, type MetaEditFn } from './Editable'
+import { Ed, EdMeta, type EditFn, type MetaEditFn } from './Editable'
 import { LinkButton } from './LinkButton'
 import { SectionGear } from './SectionGear'
 import { HeaderGear } from './HeaderGear'
+import { FootGear } from './FootGear'
 import { ART_BAND_GROUNDS, ART_STRIP_TEMPLATES, HEADER_GROUNDS, STEP_GROUNDS, artBandSrc } from './headerStyles'
 import { keepEntriesOn, sectionOverrideClasses } from './sectionClasses'
 import { sectionNumeral } from './sectionNumeral'
@@ -1221,8 +1222,15 @@ function RunningLayer({ doc }: { doc: ResumeDocument }) {
   if (!pageFoot && !pageFrame && !pageGrid) return null
   const { w, h } = PAGE_DIMENSIONS[doc.metadata.page.format === 'Letter' ? 'Letter' : 'A4']
   const step = GRID_MM * MM_TO_PX
-  const across = Array.from({ length: Math.floor(w / step) }, (_, i) => (i + 1) * step)
-  const down = Array.from({ length: Math.floor(h / step) }, (_, i) => (i + 1) * step)
+  // Centred on the sheet: the part-square the page's width and height leave
+  // over is split between the two edges rather than all left at one.
+  const lines = (size: number) => {
+    const n = Math.floor(size / step)
+    const off = (size - n * step) / 2
+    return Array.from({ length: n + 1 }, (_, i) => off + i * step).filter((v) => v > 0.5 && v < size - 0.5)
+  }
+  const across = lines(w)
+  const down = lines(h)
   return (
     <div className="rm-running" data-running="page" aria-hidden="true">
       {pageGrid ? (
@@ -1247,13 +1255,18 @@ function RunningLayer({ doc }: { doc: ResumeDocument }) {
 function PageFoot({ doc }: { doc: ResumeDocument }) {
   const { pageFootLabel, pageFootNumber, pageFootAlign, pageFootRule } = doc.metadata.layout
   const centred = pageFootAlign === 'center'
+  const name = (pageFootLabel ?? doc.content.basics.name ?? '').trim()
   return (
     <div
       className={cn('rm-pagefoot', centred && 'rm-pagefoot-center', pageFootRule === false && 'rm-pagefoot-norule')}
     >
-      <span className="rm-deco rm-pagefoot-name" data-deco="1">
-        {pageFootLabel ?? doc.content.basics.name ?? ''}
-      </span>
+      {/* An empty label is the author taking the words away: no span, so a
+          centred foot does not hold a gap for words that are not there. */}
+      {name ? (
+        <span className="rm-deco rm-pagefoot-name" data-deco="1">
+          {name}
+        </span>
+      ) : null}
       <span
         className="rm-deco rm-pagefoot-page"
         data-deco="1"
@@ -1622,6 +1635,21 @@ function Section({
     doc.metadata.layout.sectionNumbers && index !== undefined
       ? sectionNumeral(index, doc.metadata.layout.sectionNumberStyle)
       : null
+  // The heading's words are typed into on the page: an emptied heading goes
+  // back to the section's own name, which is what an ATS reads for it.
+  const title = (
+    <EdMeta
+      editMeta={edit ? editMeta : undefined}
+      value={sectionLabel(sectionKey, doc)}
+      className="rm-section-title-text"
+      placeholder={sectionLabel(sectionKey, { ...doc, metadata: { ...doc.metadata, layout: { ...doc.metadata.layout, headings: {} } } })}
+      apply={(m, v) => {
+        const next = v.trim()
+        if (next) (m.layout.headings ??= {})[sectionKey] = next
+        else if (m.layout.headings) delete m.layout.headings[sectionKey]
+      }}
+    />
+  )
   return (
     <section className={cls} style={secStyle} data-section={sectionKey}>
       {editMeta ? <SectionGear sectionKey={sectionKey} doc={doc} editMeta={editMeta} /> : null}
@@ -1655,10 +1683,10 @@ function Section({
             href={safeHref(ss?.url)}
             onClick={edit ? (e) => e.preventDefault() : undefined}
           >
-            <span className="rm-section-title-text">{sectionLabel(sectionKey, doc)}</span>
+            {title}
           </a>
         ) : (
-          <span className="rm-section-title-text">{sectionLabel(sectionKey, doc)}</span>
+          title
         )}
         {editMeta ? (
           <LinkButton
@@ -1938,6 +1966,9 @@ export function Artboard({
         {twoCol && doc.metadata.layout.sidebar === 'right' ? AsideCol : null}
       </div>
       {FooterStrip}
+      {/* Last, so it sits above the page's words; edit mode only, so the
+          export tree never holds it. */}
+      {edit && editMeta && doc.metadata.layout.pageFoot ? <FootGear doc={doc} editMeta={editMeta} /> : null}
     </div>
   )
 }
