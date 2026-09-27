@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn, monthNames } from '@/lib/utils'
+import { parseYM, pickMonthYear } from '@/lib/monthYear'
 import { useResumeStore } from '@/store/useResumeStore'
 
 export function Labeled({ label, hint, children, className }: { label?: string; hint?: string; children: ReactNode; className?: string }) {
@@ -132,11 +133,6 @@ export function TextAreaField({
 const NOW_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 75 }, (_, i) => NOW_YEAR + 2 - i)
 
-function parseYM(v: string): { y: string; m: string } {
-  const match = (v || '').trim().match(/^(\d{4})(?:-(\d{1,2}))?/)
-  if (!match) return { y: '', m: '' }
-  return { y: match[1], m: match[2] ? String(parseInt(match[2], 10)) : '' }
-}
 const isPresent = (v: string) => /^present$/i.test((v || '').trim())
 
 /** Month + year picker. Stores "YYYY-MM" (or "YYYY"); end dates can be "Present". */
@@ -161,15 +157,27 @@ export function DateField({
   // and a phone has only this field to edit a date with.
   const language = useResumeStore((s) => s.doc?.metadata.dates?.language)
   const months = monthNames(language)
-  const single = singleWith != null && !!singleWith.trim() && singleWith.trim() === (value || '').trim()
+  // "Single date" is a choice, not a coincidence. It used to switch itself
+  // on whenever the two ends matched, so picking 2025 for both ends of a
+  // May-July internship ticked it and hid the end pickers before the months
+  // were in (usability test, 2026-09-26). It starts ticked only for an entry
+  // that already is a single date.
+  const same = singleWith != null && !!singleWith.trim() && singleWith.trim() === (value || '').trim()
+  const [singleChosen, setSingleChosen] = useState(same)
+  const single = singleChosen && same
   const present = !!allowPresent && !single && !pickMode && (!value.trim() || isPresent(value))
   const { y, m } = parseYM(value)
+  // A month picked before its year is held here until the year arrives
+  // (lib/monthYear.ts); it used to be thrown away.
+  const [pendingMonth, setPendingMonth] = useState('')
 
-  const setYM = (year: string, month: string) => {
+  const pick = (change: { month?: string; year?: string }) => {
     setPickMode(true)
-    if (!year) return onChange('')
-    onChange(month ? `${year}-${month.padStart(2, '0')}` : year)
+    const r = pickMonthYear(value, pendingMonth, change)
+    setPendingMonth(r.pendingMonth)
+    if (r.value !== value) onChange(r.value)
   }
+  const waitingForYear = !!pendingMonth && !y
 
   return (
     <Labeled label={label}>
@@ -178,9 +186,9 @@ export function DateField({
       <div className={`grid grid-cols-2 gap-1.5${single ? ' hidden' : ''}`}>
         <select
           className="input h-9 min-w-0 px-2 disabled:opacity-50"
-          value={present ? '' : m}
+          value={present ? '' : m || pendingMonth}
           disabled={present}
-          onChange={(e) => setYM(y, e.target.value)}
+          onChange={(e) => pick({ month: e.target.value })}
           aria-label={`${label ?? 'Date'} month`}
         >
           <option value="">Month</option>
@@ -191,11 +199,11 @@ export function DateField({
           ))}
         </select>
         <select
-          className="input h-9 min-w-0 px-2 disabled:opacity-50"
+          className={cn('input h-9 min-w-0 px-2 disabled:opacity-50', waitingForYear && 'ring-2 ring-primary')}
           value={present ? '' : y}
           disabled={present}
-          onChange={(e) => setYM(e.target.value, m)}
-          aria-label={`${label ?? 'Date'} year`}
+          onChange={(e) => pick({ year: e.target.value })}
+          aria-label={waitingForYear ? `${label ?? 'Date'} year — pick it to keep the month` : `${label ?? 'Date'} year`}
         >
           <option value="">Year</option>
           {YEARS.map((yy) => (
@@ -213,6 +221,7 @@ export function DateField({
             checked={single}
             onChange={(e) => {
               setPickMode(true)
+              setSingleChosen(e.target.checked)
               // end === start collapses the range to one date everywhere
               onChange(e.target.checked ? singleWith.trim() || String(NOW_YEAR) : '')
             }}

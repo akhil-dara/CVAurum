@@ -4,6 +4,7 @@ import type { ResumeContent } from '@/types/document'
 import { currentYearMonth, formatDate, formatDateRange, isSingleDate, monthNames } from '@/lib/utils'
 import type { DateRangeOptions } from '@/lib/utils'
 import { railLabel } from '@/lib/rail'
+import { pickMonthYear } from '@/lib/monthYear'
 import type { EditFn } from './Editable'
 
 const NOW_YEAR = new Date().getFullYear()
@@ -72,13 +73,17 @@ function MonthYear({
   months: string[]
 }) {
   const { y, m } = parseYM(value)
-  const set = (year: string, month: string) => {
-    if (!year) return onChange('')
-    onChange(month ? `${year}-${month.padStart(2, '0')}` : year)
+  // A month picked before its year is held until the year arrives
+  // (lib/monthYear.ts); it used to be thrown away.
+  const [pendingMonth, setPendingMonth] = useState('')
+  const pick = (change: { month?: string; year?: string }) => {
+    const r = pickMonthYear(value, pendingMonth, change)
+    setPendingMonth(r.pendingMonth)
+    if (r.value !== value) onChange(r.value)
   }
   return (
     <div className="flex gap-1.5">
-      <select className="h-8 flex-1 rounded-md border border-input bg-surface px-1.5 text-sm disabled:opacity-50" value={present ? '' : m} disabled={present} onChange={(e) => set(y, e.target.value)}>
+      <select className="h-8 flex-1 rounded-md border border-input bg-surface px-1.5 text-sm disabled:opacity-50" value={present ? '' : m || pendingMonth} disabled={present} onChange={(e) => pick({ month: e.target.value })}>
         <option value="">Month</option>
         {months.map((name, i) => (
           <option key={name} value={String(i + 1)}>
@@ -86,7 +91,7 @@ function MonthYear({
           </option>
         ))}
       </select>
-      <select className="h-8 flex-1 rounded-md border border-input bg-surface px-1.5 text-sm disabled:opacity-50" value={present ? '' : y} disabled={present} onChange={(e) => set(e.target.value, m)}>
+      <select className={`h-8 flex-1 rounded-md border border-input bg-surface px-1.5 text-sm disabled:opacity-50${pendingMonth && !y ? ' ring-2 ring-primary' : ''}`} value={present ? '' : y} disabled={present} onChange={(e) => pick({ year: e.target.value })}>
         <option value="">Year</option>
         {YEARS.map((yy) => (
           <option key={yy} value={String(yy)}>
