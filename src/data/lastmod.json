@@ -1,290 +1,310 @@
 {
   "/": {
-    "hash": "9630bac4473eecf7",
+    "hash": "98dccdc3fe073740",
     "lastmod": "2026-09-27"
   },
   "/templates": {
-    "hash": "f28cce02dcd21890",
+    "hash": "85b5dcf1d47f8cd5",
     "lastmod": "2026-09-27"
   },
   "/templates/broadsheet": {
-    "hash": "9f5fcb8fde8b9271",
+    "hash": "8c81754f4042a4eb",
     "lastmod": "2026-09-27"
   },
   "/templates/marquee": {
-    "hash": "e9ef37f91d564f72",
+    "hash": "ee47dbfd6942a0fe",
     "lastmod": "2026-09-27"
   },
   "/templates/atlas": {
-    "hash": "37a0aa91268a21f0",
+    "hash": "708ea22a8926ca35",
     "lastmod": "2026-09-27"
   },
   "/templates/chronicle": {
-    "hash": "7a09d65d71df2b23",
+    "hash": "afc1288e12a7b4b3",
     "lastmod": "2026-09-27"
   },
   "/templates/folio-noir": {
-    "hash": "e4ea9dce983be984",
+    "hash": "8b0450711e046c8a",
     "lastmod": "2026-09-27"
   },
   "/templates/terrace": {
-    "hash": "3814be05a365fc44",
+    "hash": "841eb3d3102e51c9",
     "lastmod": "2026-09-27"
   },
   "/templates/flare": {
-    "hash": "500cb4f930eadc8c",
+    "hash": "824ca759846c6a5b",
     "lastmod": "2026-09-27"
   },
   "/templates/dossier": {
-    "hash": "9082b2acae0fd8b4",
+    "hash": "b4dfcbbd3fde75e2",
+    "lastmod": "2026-09-27"
+  },
+  "/templates/keystone": {
+    "hash": "09352d409e6f7719",
+    "lastmod": "2026-09-27"
+  },
+  "/templates/meridian": {
+    "hash": "30862e7daada8247",
+    "lastmod": "2026-09-27"
+  },
+  "/templates/schematic": {
+    "hash": "12cf202068215730",
+    "lastmod": "2026-09-27"
+  },
+  "/templates/volta": {
+    "hash": "844cc936a695f541",
+    "lastmod": "2026-09-27"
+  },
+  "/templates/punch": {
+    "hash": "dbe795bd4b0a20fd",
     "lastmod": "2026-09-27"
   },
   "/templates/clarity": {
-    "hash": "9268cd8291f192c8",
+    "hash": "7f3db7663847cf17",
     "lastmod": "2026-09-27"
   },
   "/templates/obsidian": {
-    "hash": "4846f55aebbf5e3c",
+    "hash": "7f285d68a2dcfa89",
     "lastmod": "2026-09-27"
   },
   "/templates/onyx-noir": {
-    "hash": "f7ecbf95582a8661",
+    "hash": "533c66ae60eb3b64",
     "lastmod": "2026-09-27"
   },
   "/templates/cascade": {
-    "hash": "b1d239b74fd64283",
+    "hash": "3f5a2de9c4485b19",
     "lastmod": "2026-09-27"
   },
   "/templates/sapphire": {
-    "hash": "a3a2a0fe6ce7c6e5",
+    "hash": "4c44b53dcdb3d6af",
     "lastmod": "2026-09-27"
   },
   "/templates/garnet": {
-    "hash": "8efdc828369927f2",
+    "hash": "13db7abb72093874",
     "lastmod": "2026-09-27"
   },
   "/templates/initials": {
-    "hash": "d432447df5068753",
+    "hash": "76ca631968b876f1",
     "lastmod": "2026-09-27"
   },
   "/templates/emblem": {
-    "hash": "1823a1d4de1548a4",
+    "hash": "fad1ebffc126d1ee",
     "lastmod": "2026-09-27"
   },
   "/templates/verde": {
-    "hash": "1ee18ca44f11860e",
+    "hash": "99f376378f716aba",
     "lastmod": "2026-09-27"
   },
   "/templates/onyx-gold": {
-    "hash": "dc5d6e6911cd2cb4",
+    "hash": "9ff47ee6339de2b4",
     "lastmod": "2026-09-27"
   },
   "/templates/pinnacle": {
-    "hash": "12fe553865379cfc",
+    "hash": "f6887f15a73a91f9",
     "lastmod": "2026-09-27"
   },
   "/templates/crest": {
-    "hash": "0ad86a417899c59c",
+    "hash": "a91e5ed877f7c1a1",
     "lastmod": "2026-09-27"
   },
   "/templates/ribbon": {
-    "hash": "9d2070860e8d7624",
+    "hash": "b4897133fa208d94",
     "lastmod": "2026-09-27"
   },
   "/templates/orchid": {
-    "hash": "3ed292586eb031e8",
+    "hash": "4b14a27ef2a5ae59",
     "lastmod": "2026-09-27"
   },
   "/templates/aurum": {
-    "hash": "764deb579ab21257",
+    "hash": "8730f655232af413",
     "lastmod": "2026-09-27"
   },
   "/templates/aurum-editorial": {
-    "hash": "08ba1174fda24b70",
+    "hash": "b92a4a5ba7ce31d7",
     "lastmod": "2026-09-27"
   },
   "/templates/swiss-aurum": {
-    "hash": "7c88cfda2181ccc7",
+    "hash": "82ed1fb81d1933e3",
     "lastmod": "2026-09-27"
   },
   "/templates/atelier": {
-    "hash": "147376eab56720b7",
+    "hash": "89fd68140485ff5b",
     "lastmod": "2026-09-27"
   },
   "/templates/harvard": {
-    "hash": "b381b29a66823f84",
+    "hash": "ab8cd545d49ae21b",
     "lastmod": "2026-09-27"
   },
   "/templates/garamond": {
-    "hash": "c421e5c08294d696",
+    "hash": "ba604500106b182c",
     "lastmod": "2026-09-27"
   },
   "/templates/modern": {
-    "hash": "4cc46f950a61a8e0",
+    "hash": "28ebedb0308e7d9f",
     "lastmod": "2026-09-27"
   },
   "/templates/classic": {
-    "hash": "2ba9657c8a484a1c",
+    "hash": "224af1005f8ae8a7",
     "lastmod": "2026-09-27"
   },
   "/templates/cambridge": {
-    "hash": "592383e52fcd74ac",
+    "hash": "15a52f6884045d53",
     "lastmod": "2026-09-27"
   },
   "/templates/vector": {
-    "hash": "1b9bfda98c2f3014",
+    "hash": "d9ffc68dd46b9d73",
     "lastmod": "2026-09-27"
   },
   "/templates/minimal": {
-    "hash": "9be7bf99c4856996",
+    "hash": "c9c3ea5ba9abd6a1",
     "lastmod": "2026-09-27"
   },
   "/templates/executive": {
-    "hash": "8e4b4e83cac67cd5",
+    "hash": "c74fc4b17dc62253",
     "lastmod": "2026-09-27"
   },
   "/templates/timeline": {
-    "hash": "5acfee16c497694d",
+    "hash": "67717410ccf5ff9a",
     "lastmod": "2026-09-27"
   },
   "/templates/double": {
-    "hash": "86f4987505a944ed",
+    "hash": "4476181e4f9e58ac",
     "lastmod": "2026-09-27"
   },
   "/templates/double-colored": {
-    "hash": "12ef7afbabd886ca",
+    "hash": "3d300a1286c4ae74",
     "lastmod": "2026-09-27"
   },
   "/templates/aside": {
-    "hash": "daeb747f3a9121bf",
+    "hash": "c00deffb80d63ed0",
     "lastmod": "2026-09-27"
   },
   "/templates/compact": {
-    "hash": "ae07edd000e98e9e",
+    "hash": "48d338e85d39aac4",
     "lastmod": "2026-09-27"
   },
   "/templates/elegant": {
-    "hash": "82405907dde25885",
+    "hash": "554f8f85c612b7f9",
     "lastmod": "2026-09-27"
   },
   "/templates/contemporary": {
-    "hash": "a479e3aa4527834e",
+    "hash": "fd7797f41abd3d30",
     "lastmod": "2026-09-27"
   },
   "/templates/polished": {
-    "hash": "a8428ceb11efd376",
+    "hash": "4e1d3f07bf81465c",
     "lastmod": "2026-09-27"
   },
   "/templates/technical": {
-    "hash": "3ed1ef26cca98cef",
+    "hash": "813a8b7c689c6267",
     "lastmod": "2026-09-27"
   },
   "/templates/creative": {
-    "hash": "86f3a4f064a25b46",
+    "hash": "a8698fd4792afdf9",
     "lastmod": "2026-09-27"
   },
   "/templates/ivy": {
-    "hash": "79e2994ec51be039",
+    "hash": "696fc8c46851ec80",
     "lastmod": "2026-09-27"
   },
   "/templates/onyx": {
-    "hash": "fa1c6448bb2a84ed",
+    "hash": "8a9594b94f24aeb2",
     "lastmod": "2026-09-27"
   },
   "/templates/cobalt": {
-    "hash": "f688b0902250c1f5",
+    "hash": "6debd5bf4d8b6f0b",
     "lastmod": "2026-09-27"
   },
   "/templates/academic": {
-    "hash": "f1c4f9d4d9c1467f",
+    "hash": "38b31efa3e99823b",
     "lastmod": "2026-09-27"
   },
   "/templates/verdant": {
-    "hash": "1cc823003cabb9f1",
+    "hash": "fe761a0e06f5ddbb",
     "lastmod": "2026-09-27"
   },
   "/templates/sienna": {
-    "hash": "55142e39e7fbb342",
+    "hash": "0fc8f95f5f17c014",
     "lastmod": "2026-09-27"
   },
   "/templates/newton": {
-    "hash": "05b477384cff9ff9",
+    "hash": "ba9fc6c64a3f9b7a",
     "lastmod": "2026-09-27"
   },
   "/templates/deedy": {
-    "hash": "103839437008b66a",
+    "hash": "aee1bcf86cba9e71",
     "lastmod": "2026-09-27"
   },
   "/templates/slate": {
-    "hash": "6497ae7b8c09150d",
+    "hash": "19e44192a0d63c7f",
     "lastmod": "2026-09-27"
   },
   "/templates/mercury": {
-    "hash": "46fa985c26019db8",
+    "hash": "cb3a480290d097ce",
     "lastmod": "2026-09-27"
   },
   "/templates/halcyon": {
-    "hash": "b316fb0cfbfc57ae",
+    "hash": "bd5e2d87691dd080",
     "lastmod": "2026-09-27"
   },
   "/templates/graphite": {
-    "hash": "ee50c644966a8dde",
+    "hash": "b3e50a8a19ee6000",
     "lastmod": "2026-09-27"
   },
   "/templates/portrait": {
-    "hash": "3eac251aee39ec3e",
+    "hash": "745a102324663d5d",
     "lastmod": "2026-09-27"
   },
   "/templates/spotlight": {
-    "hash": "cae8578f4dfa37fe",
+    "hash": "5b892386cd538a6d",
     "lastmod": "2026-09-27"
   },
   "/templates/mono": {
-    "hash": "46ca05b97da51075",
+    "hash": "428581017d26bd5b",
     "lastmod": "2026-09-27"
   },
   "/templates/opal": {
-    "hash": "c1d5b8bf0e15d131",
+    "hash": "16afe926830157b6",
     "lastmod": "2026-09-27"
   },
   "/templates/plainsong": {
-    "hash": "400f238a33a794ac",
+    "hash": "aa49519a159bfcdc",
     "lastmod": "2026-09-27"
   },
   "/templates/quire": {
-    "hash": "b53dcdae26329c04",
+    "hash": "bd09054dd3dd192b",
     "lastmod": "2026-09-27"
   },
   "/templates/scribe": {
-    "hash": "1349641d5e6420e0",
+    "hash": "4cd26d3536a43abc",
     "lastmod": "2026-09-27"
   },
   "/templates/beacon": {
-    "hash": "40fc9b2c9d5e253a",
+    "hash": "a63c10422310bea2",
     "lastmod": "2026-09-27"
   },
   "/templates/bare": {
-    "hash": "b62828b4a44cb7ab",
+    "hash": "82bd2bae92ce5e71",
     "lastmod": "2026-09-27"
   },
   "/templates/signal": {
-    "hash": "674c436e3883c94f",
+    "hash": "bd499a326aa52089",
     "lastmod": "2026-09-27"
   },
   "/templates/marker": {
-    "hash": "c120dd2985fec866",
+    "hash": "cd385e828ab7b966",
     "lastmod": "2026-09-27"
   },
   "/templates/console": {
-    "hash": "002c109acbc661f8",
+    "hash": "9d7ebe11c6998626",
     "lastmod": "2026-09-27"
   },
   "/templates/margin": {
-    "hash": "914f8dd9b6c05ae9",
+    "hash": "d2c2f9026f5ee2f3",
     "lastmod": "2026-09-27"
   },
   "/templates/measure": {
-    "hash": "e2a2263b9467ea65",
+    "hash": "dbcf8f1644d0855f",
     "lastmod": "2026-09-27"
   },
   "/examples": {
@@ -292,435 +312,435 @@
     "lastmod": "2026-09-16"
   },
   "/examples/frontend-engineer": {
-    "hash": "cf2dcc02859de15f",
+    "hash": "3bb3c080eea70a59",
     "lastmod": "2026-09-27"
   },
   "/examples/qa-automation-engineer": {
-    "hash": "bb6f29052ada383e",
+    "hash": "a9d3aac923bd63c6",
     "lastmod": "2026-09-27"
   },
   "/examples/android-engineer": {
-    "hash": "371da7be3ea5b9c6",
+    "hash": "2d306f6a08ff1d61",
     "lastmod": "2026-09-27"
   },
   "/examples/full-stack-engineer": {
-    "hash": "97a9c55db663af67",
+    "hash": "867e148309a7901e",
     "lastmod": "2026-09-27"
   },
   "/examples/ios-engineer": {
-    "hash": "aa529283e06e3cb7",
+    "hash": "3dacf567620450e4",
     "lastmod": "2026-09-27"
   },
   "/examples/application-security-engineer": {
-    "hash": "22beb032097c7c9c",
+    "hash": "99b943d885e8e961",
     "lastmod": "2026-09-27"
   },
   "/examples/embedded-software-engineer": {
-    "hash": "9604c5a8e1b9e41e",
+    "hash": "c7298f64712b439a",
     "lastmod": "2026-09-27"
   },
   "/examples/senior-backend-engineer": {
-    "hash": "2a3136cf2ca7c26e",
+    "hash": "4fa53516cccc1554",
     "lastmod": "2026-09-27"
   },
   "/examples/site-reliability-engineer": {
-    "hash": "eaaa8dafc63c3ca4",
+    "hash": "19829ee0c4f4559e",
     "lastmod": "2026-09-27"
   },
   "/examples/engineering-manager": {
-    "hash": "efa3e0baf5dbba1b",
+    "hash": "36b531b7aa67c5d2",
     "lastmod": "2026-09-27"
   },
   "/examples/business-intelligence-analyst": {
-    "hash": "02a0850da6a30251",
+    "hash": "2bc0d4d64acaf462",
     "lastmod": "2026-09-27"
   },
   "/examples/data-analyst": {
-    "hash": "d104f99ac150079c",
+    "hash": "e7e5d9184cf454da",
     "lastmod": "2026-09-27"
   },
   "/examples/analytics-engineer": {
-    "hash": "c898c72b638b9b4d",
+    "hash": "957decad207f74af",
     "lastmod": "2026-09-27"
   },
   "/examples/data-engineer": {
-    "hash": "351add075ec52dce",
+    "hash": "6530812985bba07a",
     "lastmod": "2026-09-27"
   },
   "/examples/database-administrator": {
-    "hash": "5771134f0370db53",
+    "hash": "13c5f626d165eb7d",
     "lastmod": "2026-09-27"
   },
   "/examples/machine-learning-engineer": {
-    "hash": "b49f8bdeb21c197d",
+    "hash": "3cb94064a41f1386",
     "lastmod": "2026-09-27"
   },
   "/examples/data-scientist": {
-    "hash": "7ef775443b2b86f3",
+    "hash": "2626405509f9c1a3",
     "lastmod": "2026-09-27"
   },
   "/examples/quantitative-analyst": {
-    "hash": "3bee721423b193ee",
+    "hash": "bce32cfa560c5581",
     "lastmod": "2026-09-27"
   },
   "/examples/head-of-data": {
-    "hash": "5f6d3332a358375f",
+    "hash": "0fd43e735d997a19",
     "lastmod": "2026-09-27"
   },
   "/examples/graduate-structural-engineer": {
-    "hash": "103a3037ee128612",
+    "hash": "56f77c2a93f99122",
     "lastmod": "2026-09-27"
   },
   "/examples/mechanical-design-engineer": {
-    "hash": "5089e7dd4b553fbe",
+    "hash": "19f38c845ccdae06",
     "lastmod": "2026-09-27"
   },
   "/examples/electrical-design-engineer": {
-    "hash": "ebd5397bde37be4d",
+    "hash": "88c1cfe4a8546d49",
     "lastmod": "2026-09-27"
   },
   "/examples/manufacturing-engineer": {
-    "hash": "5e33b8cd5fc6a38e",
+    "hash": "ef0fbc7aa4455abb",
     "lastmod": "2026-09-27"
   },
   "/examples/quality-engineer": {
-    "hash": "dffe72859f56365d",
+    "hash": "d50a86e4eea33a7f",
     "lastmod": "2026-09-27"
   },
   "/examples/senior-process-engineer": {
-    "hash": "d30b52018d6525c6",
+    "hash": "f1d85918ccce4ea8",
     "lastmod": "2026-09-27"
   },
   "/examples/senior-stress-engineer": {
-    "hash": "9b2d066637e301ca",
+    "hash": "169b75b88fc4d7a7",
     "lastmod": "2026-09-27"
   },
   "/examples/water-resources-engineer": {
-    "hash": "5a2f770e440e663e",
+    "hash": "9e91919718b9b957",
     "lastmod": "2026-09-27"
   },
   "/examples/manufacturing-engineering-manager": {
-    "hash": "5559ff50f70a1c96",
+    "hash": "a62147b5f730b4de",
     "lastmod": "2026-09-27"
   },
   "/examples/graphic-designer": {
-    "hash": "04ff9b26c236d217",
+    "hash": "41eec0a67a2c4bc1",
     "lastmod": "2026-09-27"
   },
   "/examples/ui-visual-designer": {
-    "hash": "f5be9f4c2aee8ef0",
+    "hash": "b03b3acfb79c8fb0",
     "lastmod": "2026-09-27"
   },
   "/examples/industrial-designer": {
-    "hash": "449796fd4457aac3",
+    "hash": "f13ac1b50b3a2554",
     "lastmod": "2026-09-27"
   },
   "/examples/motion-designer": {
-    "hash": "ba625de03c695a38",
+    "hash": "506e51f4b39e3a07",
     "lastmod": "2026-09-27"
   },
   "/examples/product-designer": {
-    "hash": "c5274ff932272658",
+    "hash": "42e1281fd4c37072",
     "lastmod": "2026-09-27"
   },
   "/examples/ux-designer": {
-    "hash": "e665705e8903904f",
+    "hash": "aa1e2ae0d9d09252",
     "lastmod": "2026-09-27"
   },
   "/examples/brand-designer": {
-    "hash": "075a3b02abae79c3",
+    "hash": "82db5614bb45696c",
     "lastmod": "2026-09-27"
   },
   "/examples/ux-researcher": {
-    "hash": "3b3d049a05660147",
+    "hash": "c8f3ffe60901311d",
     "lastmod": "2026-09-27"
   },
   "/examples/design-manager": {
-    "hash": "8287ccc91d07a19a",
+    "hash": "e1a9c3e9ca49d22f",
     "lastmod": "2026-09-27"
   },
   "/examples/content-marketing-specialist": {
-    "hash": "9d8cacdd97f913a9",
+    "hash": "027f919e1ac7329e",
     "lastmod": "2026-09-27"
   },
   "/examples/social-media-manager": {
-    "hash": "dcc9b482f4617446",
+    "hash": "a2d21aedeae7ced9",
     "lastmod": "2026-09-27"
   },
   "/examples/brand-manager": {
-    "hash": "5bb7b22aab9e2091",
+    "hash": "d68a1b78a4103913",
     "lastmod": "2026-09-27"
   },
   "/examples/communications-manager": {
-    "hash": "f7321c1186da3aea",
+    "hash": "830fdf067d6e3c81",
     "lastmod": "2026-09-27"
   },
   "/examples/digital-marketing-manager": {
-    "hash": "29b00da674c4b3db",
+    "hash": "0300826e7a1a5b48",
     "lastmod": "2026-09-27"
   },
   "/examples/seo-specialist": {
-    "hash": "26a45d4c3625b1dc",
+    "hash": "b83aaadcea360407",
     "lastmod": "2026-09-27"
   },
   "/examples/performance-marketing-manager": {
-    "hash": "c35b0e9c8e1e3380",
+    "hash": "4dd3c795fba85397",
     "lastmod": "2026-09-27"
   },
   "/examples/product-marketing-manager": {
-    "hash": "38b53d96b2eae9cd",
+    "hash": "eecfc77bcc9a7a8e",
     "lastmod": "2026-09-27"
   },
   "/examples/lifecycle-marketing-lead": {
-    "hash": "604513f27ef4cdf0",
+    "hash": "8ff198aa10f08f7c",
     "lastmod": "2026-09-27"
   },
   "/examples/business-analyst": {
-    "hash": "951517e93c875e7e",
+    "hash": "d0e2372db4e9205a",
     "lastmod": "2026-09-27"
   },
   "/examples/account-executive": {
-    "hash": "82fd700b1abe3efa",
+    "hash": "dcc7b633249004b9",
     "lastmod": "2026-09-27"
   },
   "/examples/customer-success-manager": {
-    "hash": "01f789335d43b4ed",
+    "hash": "1c59ee45eedf702e",
     "lastmod": "2026-09-27"
   },
   "/examples/product-manager": {
-    "hash": "c3e5aed3844949f0",
+    "hash": "548eeb6a6afb1669",
     "lastmod": "2026-09-27"
   },
   "/examples/program-manager": {
-    "hash": "bc72a6b63072d484",
+    "hash": "a9ba825ee9b03d30",
     "lastmod": "2026-09-27"
   },
   "/examples/chief-of-staff": {
-    "hash": "d42023779498cc06",
+    "hash": "a600c8f56130fad4",
     "lastmod": "2026-09-27"
   },
   "/examples/management-consultant": {
-    "hash": "183f0aeb062b65ec",
+    "hash": "0b2f85769f4d5968",
     "lastmod": "2026-09-27"
   },
   "/examples/sales-manager": {
-    "hash": "46b421602550924e",
+    "hash": "c38510f72d28d6b4",
     "lastmod": "2026-09-27"
   },
   "/examples/director-of-strategy": {
-    "hash": "aec5416eabcfe75d",
+    "hash": "dd9a9f91114720c6",
     "lastmod": "2026-09-27"
   },
   "/examples/audit-associate": {
-    "hash": "c615c0e3e978fb17",
+    "hash": "a59723bdc02baec1",
     "lastmod": "2026-09-27"
   },
   "/examples/financial-analyst": {
-    "hash": "985230babed089d6",
+    "hash": "97193ace44394ada",
     "lastmod": "2026-09-27"
   },
   "/examples/corporate-tax-specialist": {
-    "hash": "30384c92d20b4f57",
+    "hash": "10ac65f2a0ff9f63",
     "lastmod": "2026-09-27"
   },
   "/examples/investment-banking-analyst": {
-    "hash": "a8d8ca24dd5a4e96",
+    "hash": "1a94f85aa8203f40",
     "lastmod": "2026-09-27"
   },
   "/examples/senior-accountant": {
-    "hash": "df3266c78ff73c25",
+    "hash": "047162edabeb2ea3",
     "lastmod": "2026-09-27"
   },
   "/examples/treasury-analyst": {
-    "hash": "53242f2a689ade1c",
+    "hash": "ffa58f22d85fc713",
     "lastmod": "2026-09-27"
   },
   "/examples/financial-controller": {
-    "hash": "781116ae2670bbc3",
+    "hash": "1b29c1e43665bc92",
     "lastmod": "2026-09-27"
   },
   "/examples/risk-manager": {
-    "hash": "af5d6d783f755537",
+    "hash": "20a8d81d7d0bc2ac",
     "lastmod": "2026-09-27"
   },
   "/examples/finance-director": {
-    "hash": "58e45638df1ec6d4",
+    "hash": "0724f669c8aa797e",
     "lastmod": "2026-09-27"
   },
   "/examples/medical-laboratory-technologist": {
-    "hash": "cf0e366db7e61664",
+    "hash": "cc95068ae7840b22",
     "lastmod": "2026-09-27"
   },
   "/examples/physiotherapist": {
-    "hash": "d7b4726f14402a1b",
+    "hash": "d987a6fa55d66756",
     "lastmod": "2026-09-27"
   },
   "/examples/clinical-pharmacist": {
-    "hash": "2541c831a6e1baae",
+    "hash": "792c434e7793c5a3",
     "lastmod": "2026-09-27"
   },
   "/examples/internal-medicine-registrar": {
-    "hash": "eeecdbf290165007",
+    "hash": "42f98c434a16bcd1",
     "lastmod": "2026-09-27"
   },
   "/examples/radiologic-technologist": {
-    "hash": "546a235fede1c923",
+    "hash": "7c2937ba2170df0f",
     "lastmod": "2026-09-27"
   },
   "/examples/registered-nurse": {
-    "hash": "a89d005c1db314c7",
+    "hash": "ac8f4ad52a94238e",
     "lastmod": "2026-09-27"
   },
   "/examples/clinical-dietitian": {
-    "hash": "3ab5a2a7b8906573",
+    "hash": "10bcb09bf0535b08",
     "lastmod": "2026-09-27"
   },
   "/examples/clinical-research-associate": {
-    "hash": "91557fd54e344c7c",
+    "hash": "0e548fd71afe0b40",
     "lastmod": "2026-09-27"
   },
   "/examples/healthcare-administrator": {
-    "hash": "b4f4277a2fe333c3",
+    "hash": "87a7f3a1aa7a13f4",
     "lastmod": "2026-09-27"
   },
   "/examples/corporate-trainer": {
-    "hash": "15b125ba1cb4a999",
+    "hash": "054b413a621c529f",
     "lastmod": "2026-09-27"
   },
   "/examples/elementary-school-teacher": {
-    "hash": "8996e549adfbe74b",
+    "hash": "5f5fcbeafce5b9f3",
     "lastmod": "2026-09-27"
   },
   "/examples/instructional-designer": {
-    "hash": "792f4336a535d1ed",
+    "hash": "91c253c1e553c175",
     "lastmod": "2026-09-27"
   },
   "/examples/postdoctoral-researcher": {
-    "hash": "339c61e25c277472",
+    "hash": "1db9dcb8e4162078",
     "lastmod": "2026-09-27"
   },
   "/examples/secondary-physics-teacher": {
-    "hash": "c3b17a6eb1056d4f",
+    "hash": "2eb3765474ca30ca",
     "lastmod": "2026-09-27"
   },
   "/examples/special-education-teacher": {
-    "hash": "f5a22422acb6122d",
+    "hash": "098b07016fa53648",
     "lastmod": "2026-09-27"
   },
   "/examples/university-lecturer": {
-    "hash": "67edac4f89ba0f68",
+    "hash": "649cfb24cf046a82",
     "lastmod": "2026-09-27"
   },
   "/examples/school-principal": {
-    "hash": "404be9f2713df09e",
+    "hash": "96706ee81e8ef8bf",
     "lastmod": "2026-09-27"
   },
   "/examples/legal-trainee": {
-    "hash": "e35b617d596a44cc",
+    "hash": "9242fb00281edfd6",
     "lastmod": "2026-09-27"
   },
   "/examples/litigation-paralegal": {
-    "hash": "03b25a7f47be8ca8",
+    "hash": "a35b0cd1188a1a41",
     "lastmod": "2026-09-27"
   },
   "/examples/compliance-officer": {
-    "hash": "6733b6fa7f6b068e",
+    "hash": "c5c53f02bbdbda06",
     "lastmod": "2026-09-27"
   },
   "/examples/corporate-ma-associate": {
-    "hash": "ea8c0b01b6e8a311",
+    "hash": "620fc1277b4f146d",
     "lastmod": "2026-09-27"
   },
   "/examples/litigation-associate": {
-    "hash": "0e56891ea4bff7d0",
+    "hash": "cd1ab03a1f0535e6",
     "lastmod": "2026-09-27"
   },
   "/examples/contracts-manager": {
-    "hash": "0bf4651908fbc630",
+    "hash": "c2dfb84b3c9d52c9",
     "lastmod": "2026-09-27"
   },
   "/examples/senior-legal-counsel": {
-    "hash": "1a9ebec9a0ff5499",
+    "hash": "1aa94e6947df474c",
     "lastmod": "2026-09-27"
   },
   "/examples/head-of-intellectual-property": {
-    "hash": "d8ccb62c46ab330a",
+    "hash": "63438f81981bc1ab",
     "lastmod": "2026-09-27"
   },
   "/examples/logistics-coordinator": {
-    "hash": "9a9f3d35291ce29b",
+    "hash": "adf615bbc33cf311",
     "lastmod": "2026-09-27"
   },
   "/examples/recruiter": {
-    "hash": "5b9bf7b1fd66ea42",
+    "hash": "22296e888004937c",
     "lastmod": "2026-09-27"
   },
   "/examples/hr-generalist": {
-    "hash": "cfc60ab2c14bfc96",
+    "hash": "7f535cd53444ae96",
     "lastmod": "2026-09-27"
   },
   "/examples/office-manager": {
-    "hash": "3776fd5e1bcb627e",
+    "hash": "76387a6fa8966492",
     "lastmod": "2026-09-27"
   },
   "/examples/procurement-specialist": {
-    "hash": "efdcc058c92779b0",
+    "hash": "ea322e620afc60dd",
     "lastmod": "2026-09-27"
   },
   "/examples/supply-chain-analyst": {
-    "hash": "1cede30618605657",
+    "hash": "873e21caaa6acbbe",
     "lastmod": "2026-09-27"
   },
   "/examples/customer-support-lead": {
-    "hash": "dfe465d162436788",
+    "hash": "a63c91d67c5786cc",
     "lastmod": "2026-09-27"
   },
   "/examples/warehouse-manager": {
-    "hash": "19378f405cbabdd6",
+    "hash": "ba38d0146dd747ba",
     "lastmod": "2026-09-27"
   },
   "/examples/head-of-operations": {
-    "hash": "bfce6f7f4061d378",
+    "hash": "ed708854e6bd6fbb",
     "lastmod": "2026-09-27"
   },
   "/examples/school-leaver-apprenticeship": {
-    "hash": "dc0e77fd211cfa05",
+    "hash": "25b9724db5d18412",
     "lastmod": "2026-09-27"
   },
   "/examples/final-year-engineering-student": {
-    "hash": "24e5f456c35735e8",
+    "hash": "93e452a9bb341d93",
     "lastmod": "2026-09-27"
   },
   "/examples/junior-accounts-executive": {
-    "hash": "ab22aa20971f2c76",
+    "hash": "f141ddb2c7527655",
     "lastmod": "2026-09-27"
   },
   "/examples/career-changer-junior-developer": {
-    "hash": "2b6b2bcf5e2398c4",
+    "hash": "15663b951509e676",
     "lastmod": "2026-09-27"
   },
   "/examples/mba-candidate": {
-    "hash": "09df8824913e9a75",
+    "hash": "9aaa7f512dd97de7",
     "lastmod": "2026-09-27"
   },
   "/examples/mechanical-engineering-intern": {
-    "hash": "9c933664f91256a5",
+    "hash": "5908069de4a196b7",
     "lastmod": "2026-09-27"
   },
   "/examples/phd-applicant-neuroscience": {
-    "hash": "f2879ecd117f5da2",
+    "hash": "0a6245b5a7ee36f7",
     "lastmod": "2026-09-27"
   },
   "/examples/postgraduate-research-associate": {
-    "hash": "792f65f83772d864",
+    "hash": "64ae28c1fab544f1",
     "lastmod": "2026-09-27"
   },
   "/examples/new-graduate-business-analyst": {
-    "hash": "36f14e87b83b3fb8",
+    "hash": "9f8825a76481af0c",
     "lastmod": "2026-09-27"
   },
   "/examples/bootcamp-graduate-data-analyst": {
-    "hash": "0618305e26276fc3",
+    "hash": "7b56fea5ed6530d3",
     "lastmod": "2026-09-27"
   },
   "/prompts": {
@@ -728,15 +748,15 @@
     "lastmod": "2026-09-16"
   },
   "/free-resume-builder": {
-    "hash": "51e5c6300bb7f9a6",
+    "hash": "81719611720cc587",
     "lastmod": "2026-09-27"
   },
   "/ats-resume-checker": {
-    "hash": "92fba9a96bf6c066",
+    "hash": "13cc2ac7f4b4f5a1",
     "lastmod": "2026-09-27"
   },
   "/resume-builder-no-sign-up": {
-    "hash": "1577396bbac97f24",
+    "hash": "dcff935181f236bd",
     "lastmod": "2026-09-27"
   }
 }

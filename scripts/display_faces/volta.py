@@ -148,7 +148,10 @@ def volta():
     g("Q", 660, arc_ring(330, 350, 280, 358, T, 0, 360) + stroke_polyline([(470, 170), (560, 40), (630, -60)], T))
     g("0", 620, arc_ring(310, 350, 250, 355, T, 0, 360))
     # Its 3 and 4 were polylines of short straight segments, jagged at size.
-    g("3", 620, arc_ring(320, 505, 215, 195, T, 125, -135) + arc_ring(320, 205, 235, 205, T, 135, -125))
+    # Two bowls that meet at the middle of the figure: the upper from its
+    # left terminal round to the centre, the lower from the centre round to
+    # its left terminal. Ending each bowl past the centre made a chevron.
+    g("3", 620, arc_ring(310, 520, 220, 180, T, 150, -90) + arc_ring(310, 190, 240, 190, T, 90, -150))
     g("4", 620, stroke_polyline([(470, 700), (120, 90), (600, 90)], T) + [R(410, 0, 530, 700)])
 
     fixed = dict(G)

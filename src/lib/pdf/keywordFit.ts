@@ -167,7 +167,7 @@ const FIT_CONTAINERS = [
   '.heads-side .rm-col-main .rm-section-title',
   // A name set several times the body size over a kicker: one long surname
   // is wider than the page at that size, and it broke mid-word.
-  '.rm-header-kicker .rm-name',
+  '.rm-fit-name .rm-header .rm-name',
 ].join(', ')
 
 /**
@@ -181,7 +181,7 @@ const FIT_CONTAINERS = [
  * The exporter mounts its own tree, which never had that inline size at all,
  * so the two trees then hold the same heading at two different sizes.
  */
-const FIT_RESET = ['.rm-section-title', '.rm-skill-inline', '.rm-chips', '.rm-header-kicker .rm-name'].join(', ')
+const FIT_RESET = ['.rm-section-title', '.rm-skill-inline', '.rm-chips', '.rm-header .rm-name'].join(', ')
 
 export function fitHeadingWords(root: HTMLElement): void {
   for (const el of Array.from(root.querySelectorAll<HTMLElement>(FIT_RESET))) el.style.fontSize = ''

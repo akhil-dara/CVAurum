@@ -50,7 +50,7 @@ import { applyPdfMetadata, buildDocInfo } from './metadata'
 import { applyPdfAConformance, loadSrgbProfile, setPdfVersion, stampPdfVersion, PDFA_CLAIM, PDFUA_CLAIM } from './pdfa'
 import type { DecoBox } from './types'
 import { withoutSeeded } from '@/data/defaults'
-import { pageFootText } from '@/lib/pageWords'
+import { pageFootText, type PageNumberStyle } from '@/lib/pageWords'
 import { documentFaces } from '@/lib/documentFaces'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
@@ -382,10 +382,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // withPageNumbers). The element is one line that never wraps, so this
     // moves nothing the paginator measured.
     sheet.querySelectorAll<HTMLElement>('[data-run-page]').forEach((el) => {
-      el.textContent = pageFootText(1, pageCount, {
-        page: el.dataset.runPage || undefined,
-        end: el.dataset.runEnd || undefined,
-      })
+      el.textContent = pageFootText(1, pageCount, el.dataset.runPage as PageNumberStyle)
     })
 
     const pdfDoc = await PDFDocument.create()

@@ -339,12 +339,13 @@ export default defineConfig({
         // .icc: the 3KB sRGB profile embedded as every export's PDF/A
         // OutputIntent — precached so an OFFLINE export is still PDF/A
         // (without it the fetch fails and conformance silently drops).
-        // .ttf: three files under /fonts/ are ttf, all generated here - the
+        // .ttf: seven files under /fonts/ are ttf, all generated here - the
         // 1.6 KB marks font (scripts/make-marks-font.py), which draws four
-        // bullet glyphs no other bundled family has, and the two display
-        // faces of Flare and Dossier (scripts/make-display-faces.py, 24 and
-        // 41 KB). Without them in the precache an offline first visit draws a
-        // check bullet or a whole name from a system font, or from nothing.
+        // bullet glyphs no other bundled family has, and the six display
+        // faces of the signature collection (scripts/make-display-faces.py,
+        // 24-55 KB each). Without them in the precache an offline first visit
+        // draws a check bullet or a whole name from a system font, or from
+        // nothing.
         // The PDF instances under /fonts-pdf/ are .ttf too and stay held back
         // by the globIgnore below.
         globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,woff,woff2,ttf,icc,webp,json}'],

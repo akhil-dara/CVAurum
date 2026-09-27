@@ -111,7 +111,7 @@ def extras(T):
       # a small closed bowl on top, a larger open one below, and a leg kicked out
       R(80, CAP - T, 400, CAP), R(80, 420, 80 + T, CAP), R(400 - T, 470, 400, CAP),
       Q((80, 420), (80 + T, 420), (560, 0), (420, 0)),
-      R(0, 0, T, 380), R(0, 0, 360, T), Q((360, 0), (360, T), (660, 380), (560, 380)))
+      R(0, 0, T, 380), R(0, 0, 360, T), Q((360, 0), (360 + T, 0), (660, 380), (660 - T, 380)))
     x("#", 620,
       R(150, 60, 150 + T, 640), R(620 - 150 - T, 60, 620 - 150, 640),
       R(40, 420, 580, 420 + 100), R(40, 180, 580, 180 + 100))
@@ -402,7 +402,20 @@ def glyph_name(ch):
 ROUND = set("OCGQSD0689@3")
 
 
-def build(family, slug, base_fn, transform=None, respace=None):
+# Letters built from stroked diagonals, whose mitred points overshoot the
+# cap line and the baseline by up to a fifth of a letter (A and M stood 20%
+# above the rest of a heading, V and W hung below it). Trimmed to a hair past
+# both lines, as a drawn geometric face trims its points.
+POINTED = set("AMNVWKXYZ47")
+TRIM = 14
+
+
+def trimmed(contour):
+    p = _slab(contour, 1, -TRIM, CAP + TRIM)
+    return p if len(p) >= 3 else []
+
+
+def build(family, slug, base_fn, transform=None, respace=None, trim=False):
     """`respace` is a side bearing in font units: when given, every glyph is
     set that far in from its own outline on both sides, rather than keeping
     the advance its construction listed."""
@@ -419,7 +432,8 @@ def build(family, slug, base_fn, transform=None, respace=None):
         order.append(name)
         cmap[ord(ch)] = name
         pen = TTGlyphPen(None)
-        pieces = [pc for c in body for pc in (transform(ch, c) if transform else [c])] + marks
+        shape = [trimmed(c) if trim and ch.upper() in POINTED else c for c in body]
+        pieces = [pc for c in shape if c for pc in (transform(ch, c) if transform else [c])] + marks
         advance = w + 80
         drawn = [pc for pc in pieces if len(pc) >= 3]
         if respace and drawn:
@@ -477,9 +491,9 @@ FACES = [
     ("Flare Display", "flare-display", blocky, None),
     ("Dossier Stencil", "dossier-stencil", blocky, stencil),
     ("Schematic Outline", "schematic-outline", blocky, outline),
-    ("Keystone Condensed", "keystone-condensed", condensed, None),
-    ("Meridian Geometric", "meridian-geometric", geometric, None),
-    ("Volta Display", "volta-display", volta, None, 55),
+    ("Keystone Condensed", "keystone-condensed", condensed, None, 50, True),
+    ("Meridian Geometric", "meridian-geometric", geometric, None, 55, True),
+    ("Volta Display", "volta-display", volta, None, 55, True),
 ]
 
 

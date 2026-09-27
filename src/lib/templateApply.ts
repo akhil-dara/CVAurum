@@ -83,7 +83,16 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   const BASE = defaultMetadata()
   const prev = cur.template ? getTemplate(cur.template).defaults.layout : defaultMetadata().layout
   const prevType = cur.template ? getTemplate(cur.template).defaults.typography : defaultMetadata().typography
-  const prevArt = cur.template ? getTemplate(cur.template).defaults.theme.artBand : defaultMetadata().theme.artBand
+  const prevTheme = cur.template ? getTemplate(cur.template).defaults.theme : defaultMetadata().theme
+  const prevArt = prevTheme.artBand
+  // An element colour is the author's once chosen. One that still equals
+  // what the previous template shipped was that template's and stays with it:
+  // Schematic's navy heading colour, carried into Punch as a choice, set the
+  // titles navy on Punch's black bars, where they all but vanished.
+  const element = (key: 'name' | 'headline' | 'headings' | 'contacts' | 'links') => {
+    const mine = cur.theme[key]
+    return mine !== undefined && mine !== prevTheme[key] ? mine : defaults.theme[key]
+  }
 
   return defaultMetadata({
     template: defaults.template,
@@ -93,11 +102,11 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       ...defaults.theme,
       // A colour the author set on one element is theirs across a switch;
       // one the template ships applies only where nothing was decided.
-      name: cur.theme.name ?? defaults.theme.name,
-      headline: cur.theme.headline ?? defaults.theme.headline,
-      headings: cur.theme.headings ?? defaults.theme.headings,
-      contacts: cur.theme.contacts ?? defaults.theme.contacts,
-      links: cur.theme.links ?? defaults.theme.links,
+      name: element('name'),
+      headline: element('headline'),
+      headings: element('headings'),
+      contacts: element('contacts'),
+      links: element('links'),
       // The art band is the author's once chosen - but a band that merely
       // came with the PREVIOUS template is that template's, and it must not
       // follow the author into a design that never asked for it: Folio Noir's
@@ -205,6 +214,8 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       stats: chosen(cur.layout.stats, prev.stats, defaults.layout.stats),
       sectionNumbers: chosen(cur.layout.sectionNumbers, prev.sectionNumbers, defaults.layout.sectionNumbers),
       pageFoot: chosen(cur.layout.pageFoot, prev.pageFoot, defaults.layout.pageFoot),
+      pageFrame: chosen(cur.layout.pageFrame, prev.pageFrame, defaults.layout.pageFrame),
+      pageGrid: chosen(cur.layout.pageGrid, prev.pageGrid, defaults.layout.pageGrid),
       // ...but the SHAPE of that numeral is not a structural choice at all,
       // so it does not go through chosen(): it is the author's the way the
       // heading style and the date format are, and it simply travels. Stated

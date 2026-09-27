@@ -86,11 +86,10 @@ export interface TemplateConfig {
    *  set in a mono face whatever the body is. The export waits for them and
    *  the offline warmer fetches them, like the document's own three faces. */
   fonts?: string[]
-  /** The kicker header's label, left of its line, and whether a case-file
-   *  reference drawn from the name follows it (pageWords.ts). */
-  kicker?: { label: string; reference?: boolean }
-  /** What the page foot says beside the page number (pageWords.ts). */
-  pageFootWords?: { page?: string; end?: string }
+  /** The name is set several times the body, so the word-fit pass keeps its
+   *  longest word on one line (keywordFit.ts, `rm-fit-name`). The kicker
+   *  header always is. */
+  fitName?: boolean
   /** the metadata this template applies when selected */
   defaults: Pick<Metadata, 'theme' | 'typography' | 'layout'> & { template: string }
   /** optional fully-custom component (rare; overrides the generic Artboard) */

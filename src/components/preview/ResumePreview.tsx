@@ -83,7 +83,7 @@ import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
 import { ColumnBalanceHint } from './ColumnBalanceHint'
-import { PageChromeOverlay } from './PageChrome'
+import { PageChromeOverlay, readPageFoot, type PageFootCopy, type PageFootLook } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
 // is throttled to ~never, which would stall the fit loop and leave a stale page
@@ -612,8 +612,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const [pageSeparators, setPageSeparators] = useState<{ y: number; thin?: boolean }[]>([])
   const [pageBadgeTops, setPageBadgeTops] = useState<number[]>([])
   const [pagePageCount, setPagePageCount] = useState(1)
+  const [footLook, setFootLook] = useState<PageFootLook | null>(null)
+  const [pageFeet, setPageFeet] = useState<PageFootCopy[]>([])
   useEffect(() => {
     const clearOverlay = () => {
+      setFootLook((prev) => (prev ? null : prev))
+      setPageFeet((prev) => (prev.length ? [] : prev))
       setPageSeparators((prev) => (prev.length ? [] : prev))
       setPageBadgeTops((prev) => (prev.length ? [] : prev))
       setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
@@ -730,6 +734,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           anchors[i] ? null : mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey)
         )
         for (const el of editRoot.querySelectorAll('[data-page-start]')) el.removeAttribute('data-page-start')
+        // The paper either side of each gap: the page's bottom margin, then
+        // the next page's top margin, as the export leaves them.
+        const paperBelow = padding.topPx
+        editRoot.style.setProperty('--rm-gap-paper-above', `${padding.bottomPx}px`)
+        editRoot.style.setProperty('--rm-gap-paper-below', `${paperBelow}px`)
         for (const el of anchors) el?.setAttribute('data-page-start', '')
         // Two frames so the margin gaps are laid out before measuring.
         requestAnimationFrame(() =>
@@ -742,12 +751,21 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             const scaleNow = editRoot.offsetWidth > 0 ? rootRect.width / editRoot.offsetWidth : 1
             const separators: { y: number; thin?: boolean }[] = []
             const badgeTops: number[] = [0]
+            // The page foot, read off the hidden one at the last page's foot:
+            // each page that ends in a real gap gets a copy in the paper that
+            // gap keeps above the grey (artboard.css --rm-foot-band); a page
+            // ending at a cut with no gap has no room for one and goes without.
+            const look = readPageFoot(editRoot, scaleNow)
+            const feet: PageFootCopy[] = []
             for (let i = 0; i < result.cutsPx.length; i++) {
               const el = anchors[i]
               if (el) {
-                const top = (el.getBoundingClientRect().top - rootRect.top) / scaleNow
-                separators.push({ y: top - PAGE_GAP_PX / 2 })
-                badgeTops.push(top)
+                // `grey` is where the gap's grey ends and the next page's paper
+                // begins; the page's own margin runs down from there.
+                const grey = (el.getBoundingClientRect().top - rootRect.top) / scaleNow - paperBelow
+                separators.push({ y: grey - PAGE_GAP_PX / 2 })
+                badgeTops.push(grey)
+                if (look) feet.push({ page: i + 1, top: grey - PAGE_GAP_PX - look.insetPx - look.heightPx })
               } else if (fallbackYs[i] != null) {
                 // Interpolated, so it can land in the MIDDLE of a chip or a
                 // line, and drawn there it reads as though the page break
@@ -765,9 +783,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 badgeTops.push(result.cutsPx[i] * badgeScale)
               }
             }
+            if (look) feet.push({ page: result.pageCount, top: editRoot.offsetHeight - look.insetPx - look.heightPx })
             setPageSeparators(separators)
             setPageBadgeTops(badgeTops)
             setPagePageCount(result.pageCount)
+            setFootLook(look)
+            setPageFeet(feet)
             // The margin gaps grew the canvas — keep the white sheet sized.
             if (innerRef.current) setContentH(innerRef.current.scrollHeight)
           })
@@ -1008,6 +1029,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 badgeTops={pageBadgeTops}
                 pageCount={pagePageCount}
                 variant={exactCanvas ? 'hairline' : 'band'}
+                footLook={exactCanvas ? null : footLook}
+                feet={pageFeet}
               />
             </div>
           </div>

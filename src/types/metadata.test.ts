@@ -114,6 +114,29 @@ describe('the page foot, the kicker header and the chevron mark', () => {
     expect(LayoutSchema.parse({}).pageFoot).toBe(false)
     expect(LayoutSchema.parse({ pageFoot: true }).pageFoot).toBe(true)
   })
+  it('the line above the name and the page foot carry the author’s own words, when they write any', () => {
+    expect(LayoutSchema.parse({}).kicker).toBeUndefined()
+    expect(LayoutSchema.parse({}).pageFootLabel).toBeUndefined()
+    const set = LayoutSchema.parse({ kicker: { show: false, left: 'Portfolio', right: '' }, pageFootLabel: 'Priya Raman · Data Scientist' })
+    expect(set.kicker).toEqual({ show: false, left: 'Portfolio', right: '' })
+    expect(set.pageFootLabel).toBe('Priya Raman · Data Scientist')
+    // however long - a longer value must never fail the whole document
+    expect(LayoutSchema.parse({ pageFootLabel: 'x'.repeat(500) }).pageFootLabel).toHaveLength(500)
+  })
+  it('the foot keeps its look until the author changes it: number, place, rule', () => {
+    const plain = LayoutSchema.parse({})
+    expect(plain.pageFootNumber).toBeUndefined()
+    expect(plain.pageFootAlign).toBeUndefined()
+    expect(plain.pageFootRule).toBeUndefined()
+    const set = LayoutSchema.parse({ pageFootNumber: 'of', pageFootAlign: 'center', pageFootRule: false })
+    expect(set).toMatchObject({ pageFootNumber: 'of', pageFootAlign: 'center', pageFootRule: false })
+    expect(() => LayoutSchema.parse({ pageFootNumber: 'roman' })).toThrow()
+  })
+  it('so are the page frame and the drafting grid', () => {
+    expect(LayoutSchema.parse({}).pageFrame).toBe(false)
+    expect(LayoutSchema.parse({}).pageGrid).toBe(false)
+    expect(LayoutSchema.parse({ pageFrame: true, pageGrid: true })).toMatchObject({ pageFrame: true, pageGrid: true })
+  })
   it('the kicker is a header composition like the others', () => {
     expect(LayoutSchema.parse({ headerStyle: 'kicker' }).headerStyle).toBe('kicker')
     expect(LayoutSchema.parse({}).headerStyle).toBeUndefined()

@@ -12,6 +12,7 @@ import type { Metadata } from '@/types/metadata'
 import type { MetaEditFn } from './Editable'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from './headerStyles'
 import { StatTilesEditor } from './StatTilesEditor'
+import { KickerFields } from './PageWordsFields'
 import { FONTS } from '@/data/fonts'
 import { usePopoverA11y } from './popoverA11y'
 import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
@@ -257,7 +258,7 @@ function wantsSheet() {
   return coarse && w < 1024
 }
 
-export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: MetaEditFn }) {
+export function HeaderGear({ doc, editMeta, variant }: { doc: ResumeDocument; editMeta: MetaEditFn; variant?: string }) {
   const [open, setOpen] = useState(false)
   const [top, setTop] = useState(0)
   // The room left under `top`. The panel used to cap its height at the whole
@@ -373,6 +374,17 @@ export function HeaderGear({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
                   )
                 })}
               </div>
+              {/* The line above the name, where the composition draws one:
+                  its words are the author's, never the design's. */}
+              {variant === 'kicker' ? (
+                <>
+                  <div className="mx-2 my-1 border-t border-border" />
+                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Above the name <span className="font-normal normal-case">— your own words</span>
+                  </div>
+                  <KickerFields doc={doc} editMeta={editMeta} compact />
+                </>
+              ) : null}
               <div className="mx-2 my-1 border-t border-border" />
               <div
                 id="hg-numbers"

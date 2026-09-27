@@ -84,6 +84,20 @@ describe('applyTemplateToMetadata keeps the element colours', () => {
     expect(next.theme.name).toBe('#112233')
     expect(next.theme.links).toBeUndefined()
   })
+
+  it('a colour the previous template shipped stays with that template', () => {
+    // Schematic ships its own navy heading colour. Carried into Punch as
+    // though the author had chosen it, it set the section titles in navy on
+    // Punch's black bars, where they all but vanished.
+    const schematic = getTemplate('schematic').defaults
+    const onSchematic = applyTemplateToMetadata(MetadataSchema.parse({ template: 'modern' }), schematic)
+    expect(onSchematic.theme.headings).toBe(schematic.theme.headings)
+    const onPunch = applyTemplateToMetadata(onSchematic, getTemplate('punch').defaults)
+    expect(onPunch.theme.headings).toBe(getTemplate('punch').defaults.theme.headings)
+    // ...while one the author changed is theirs, even on the way out
+    const own = { ...onSchematic, theme: { ...onSchematic.theme, headings: '#778899' } }
+    expect(applyTemplateToMetadata(own, getTemplate('punch').defaults).theme.headings).toBe('#778899')
+  })
 })
 
 describe('applyTemplateToMetadata keeps the type scale, heading case and weights', () => {
@@ -396,6 +410,13 @@ describe('a design that ships a bullet mark or a page foot', () => {
   it('keeps a mark the author chose', () => {
     const cur = MetadataSchema.parse({ template: 'modern', typography: { bulletStyle: 'check' } })
     expect(applyTemplateToMetadata(cur, getTemplate('dossier').defaults).typography.bulletStyle).toBe('check')
+  })
+  it('takes a frame or a grid from the design, and leaves it behind with it', () => {
+    const onKeystone = applyTemplateToMetadata(MetadataSchema.parse({ template: 'modern' }), getTemplate('keystone').defaults)
+    expect(onKeystone.layout.pageFrame).toBe(true)
+    const onSchematic = applyTemplateToMetadata(onKeystone, getTemplate('schematic').defaults)
+    expect(onSchematic.layout.pageFrame).toBe(false)
+    expect(onSchematic.layout.pageGrid).toBe(true)
   })
   it('drops the previous design mark and foot on the way out', () => {
     const onFlare = applyTemplateToMetadata(MetadataSchema.parse({ template: 'modern' }), getTemplate('flare').defaults)

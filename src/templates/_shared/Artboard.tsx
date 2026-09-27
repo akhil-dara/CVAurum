@@ -10,7 +10,7 @@ import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
 import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
-import { safeHref } from '@/lib/utils'
+import { cn, safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import {
   darkenToContrast,
@@ -46,7 +46,7 @@ import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
 import { iconForKind } from '@/components/icons/sectionIcons'
 import { FolioIcon, type FolioIconKind } from './folioIcons'
 import { sectionIconKind } from './sectionIconChoice'
-import { fileReference, kickerPlace, pageFootText } from '@/lib/pageWords'
+import { furnitureYear, kickerWords, pageFootText } from '@/lib/pageWords'
 
 /** Traditional templates render headings without icon chips. */
 const NO_SECTION_ICONS = new Set(['classic', 'ivy', 'academic', 'elegant', 'minimal', 'executive', 'sienna'])
@@ -1183,61 +1183,85 @@ function StatsBand({ doc, edit }: { doc: ResumeDocument; edit?: boolean }) {
   )
 }
 
-/** The year the page furniture dates itself by: the year the document was
- *  last touched, so a résumé keeps its date until it is edited again. */
-function furnitureYear(doc: ResumeDocument): number {
-  const at = doc.updatedAt ? new Date(doc.updatedAt) : new Date()
-  return Number.isFinite(at.getTime()) ? at.getFullYear() : new Date().getFullYear()
-}
-
 /**
- * The kicker: a small line of type over the name - the design's label on
- * the left (and, for a case file, a reference drawn from the name), the
- * author's city and the year on the right. All of it is decoration (Deco):
- * outlines in the PDF, nothing a parser reads. The contact line still
- * carries the real location.
+ * The kicker: a small line of type over the name, in the author's own words
+ * (layout.kicker) - by default a plain label on the left and their place and
+ * the year on the right, read from the document (pageWords.ts). Nothing on it
+ * is invented, and the author can rewrite either side or turn it off. All of
+ * it is decoration (Deco): outlines in the PDF, nothing a parser reads. The
+ * contact line still carries the real location.
  */
-function Kicker({ doc, config }: { doc: ResumeDocument; config: TemplateConfig }) {
-  const year = furnitureYear(doc)
-  const label = config.kicker?.label ?? 'Curriculum vitae'
-  const ref = config.kicker?.reference ? fileReference(doc.content.basics.name || '', year) : null
+function Kicker({ doc }: { doc: ResumeDocument }) {
+  const { left, right } = kickerWords(doc.metadata.layout.kicker, doc.content.basics, furnitureYear(doc.updatedAt))
+  if (!left && !right) return null
   return (
     <div className="rm-kicker" aria-hidden="true">
-      <Deco className="rm-kicker-label">
-        {label}
-        {ref ? <span className="rm-kicker-ref"> {ref}</span> : null}
-      </Deco>
-      <Deco className="rm-kicker-place">{kickerPlace(doc.content.basics.location, year)}</Deco>
+      <Deco className="rm-kicker-label">{left}</Deco>
+      <Deco className="rm-kicker-place">{right}</Deco>
     </div>
   )
 }
 
+/** The drafting grid's pitch: 8mm, the squares a drawing sheet is ruled in. */
+const GRID_MM = 8
+
 /**
- * The page foot: the name on the left and the page number on the right, at
- * the foot of EVERY page (layout.pageFoot). It sits in a layer the size of
- * one page (`rm-running`), and the exporter repeats that layer's ink on each
- * page it paints (pdf/paint.ts), writing the number afresh each time - the
- * canvas, which draws one page, shows what a one-page document prints. All
- * decoration: nothing here reaches the text layer, the Word file or the ATS
- * text, so the name is never read twice.
+ * The RUNNING layer: what a design draws on every page - a drafting grid, a
+ * frame, and the foot with the name and the page number (layout.pageGrid,
+ * pageFrame, pageFoot). It is one page tall at the top of the document, and
+ * the exporter repeats its ink on each page it paints (pdf/paint.ts), writing
+ * the number afresh each time; the canvas, which draws one page, shows what a
+ * one-page document prints. It is the root's FIRST child, so the painter -
+ * which paints in document order - lays a grid under the words, never over
+ * them. All decoration: nothing here reaches the text layer, the Word file or
+ * the ATS text, so the name is never read twice.
  */
-function PageFoot({ doc, config }: { doc: ResumeDocument; config: TemplateConfig }) {
-  const words = config.pageFootWords ?? {}
+function RunningLayer({ doc }: { doc: ResumeDocument }) {
+  const { pageFoot, pageFrame, pageGrid } = doc.metadata.layout
+  if (!pageFoot && !pageFrame && !pageGrid) return null
+  const { w, h } = PAGE_DIMENSIONS[doc.metadata.page.format === 'Letter' ? 'Letter' : 'A4']
+  const step = GRID_MM * MM_TO_PX
+  const across = Array.from({ length: Math.floor(w / step) }, (_, i) => (i + 1) * step)
+  const down = Array.from({ length: Math.floor(h / step) }, (_, i) => (i + 1) * step)
   return (
     <div className="rm-running" data-running="page" aria-hidden="true">
-      <div className="rm-pagefoot">
-        <span className="rm-deco rm-pagefoot-name" data-deco="1">
-          {doc.content.basics.name || ''}
-        </span>
-        <span
-          className="rm-deco rm-pagefoot-page"
-          data-deco="1"
-          data-run-page={words.page ?? ''}
-          data-run-end={words.end ?? ''}
-        >
-          {pageFootText(1, 1, words)}
-        </span>
-      </div>
+      {pageGrid ? (
+        <div className="rm-page-grid">
+          {across.map((x) => (
+            <div key={`v${x}`} className="rm-grid-v" style={{ left: `${x.toFixed(2)}px` }} />
+          ))}
+          {down.map((y) => (
+            <div key={`h${y}`} className="rm-grid-h" style={{ top: `${y.toFixed(2)}px` }} />
+          ))}
+        </div>
+      ) : null}
+      {pageFrame ? <div className="rm-page-frame" /> : null}
+      {pageFoot ? <PageFoot doc={doc} /> : null}
+    </div>
+  )
+}
+
+/** The foot: the author's own words on the left (layout.pageFootLabel, by
+ *  default their name), the page number on the right once there is more than
+ *  one page. */
+function PageFoot({ doc }: { doc: ResumeDocument }) {
+  const { pageFootLabel, pageFootNumber, pageFootAlign, pageFootRule } = doc.metadata.layout
+  const centred = pageFootAlign === 'center'
+  return (
+    <div
+      className={cn('rm-pagefoot', centred && 'rm-pagefoot-center', pageFootRule === false && 'rm-pagefoot-norule')}
+    >
+      <span className="rm-deco rm-pagefoot-name" data-deco="1">
+        {pageFootLabel ?? doc.content.basics.name ?? ''}
+      </span>
+      <span
+        className="rm-deco rm-pagefoot-page"
+        data-deco="1"
+        data-run-page={pageFootNumber ?? 'slash'}
+        data-run-anchor={centred ? 'left' : undefined}
+      >
+        {pageFootText(1, 1)}
+      </span>
     </div>
   )
 }
@@ -1263,7 +1287,7 @@ function Header({
   const twoCol = doc.metadata.layout.columns === 2
   const HeaderPhoto = twoCol ? null : <HeaderVisual doc={doc} editMeta={editMeta} />
   // On-canvas gear to recompose the header (edit mode only).
-  const Gear = editMeta ? <HeaderGear doc={doc} editMeta={editMeta} /> : null
+  const Gear = editMeta ? <HeaderGear doc={doc} editMeta={editMeta} variant={variant} /> : null
   // Contacts placed in the sidebar are drawn there (Artboard's AsideCol),
   // and the header leaves them out.
   const ContactsEl = contactsInSidebar(doc) ? null : edit ? (
@@ -1344,7 +1368,7 @@ function Header({
       <header className={hcls('rm-header-kicker')}>
         {art}
         {Gear}
-        <Kicker doc={doc} config={config} />
+        <Kicker doc={doc} />
         <div className="rm-header-main">
           {nameEl}
           {headlineEl}
@@ -1795,6 +1819,11 @@ export function Artboard({
     // Every page carries a quiet foot (the name and the page number), whose
     // band the columns keep clear (artboard.css .rm-pagefoot-on).
     doc.metadata.layout.pageFoot ? 'rm-pagefoot-on' : '',
+    doc.metadata.layout.pageFoot || doc.metadata.layout.pageFrame || doc.metadata.layout.pageGrid ? 'rm-running-on' : '',
+    doc.metadata.layout.pageFrame ? 'rm-frame-on' : '',
+    // A name set several times the body: the word-fit pass keeps its longest
+    // word on one line (keywordFit.ts).
+    config.fitName || (doc.metadata.layout.headerStyle ?? config.header) === 'kicker' ? 'rm-fit-name' : '',
     // An entry's dates can have a column of their own: a gutter of
     // decorative years on the left, or a margin holding the real date on
     // the right. Absent unless asked for, so nothing existing shifts.
@@ -1892,6 +1921,7 @@ export function Artboard({
 
   return (
     <div ref={rootRef} className={rootClass} style={vars} data-template={config.id}>
+      <RunningLayer doc={doc} />
       <div className={`rm-body ${twoCol ? '' : 'rm-single'}`}>
         {twoCol && doc.metadata.layout.sidebar === 'left' ? AsideCol : null}
         <main className="rm-col-main">
@@ -1908,7 +1938,6 @@ export function Artboard({
         {twoCol && doc.metadata.layout.sidebar === 'right' ? AsideCol : null}
       </div>
       {FooterStrip}
-      {doc.metadata.layout.pageFoot ? <PageFoot doc={doc} config={config} /> : null}
     </div>
   )
 }

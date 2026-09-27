@@ -31,7 +31,7 @@ describe('the signature templates', () => {
     // repository builds itself (the marks, Flare Display, Dossier Stencil) in
     // artboard.css, which no generator rewrites.
     const fonts = readFileSync('src/styles/fonts.css', 'utf8') + readFileSync('src/styles/artboard.css', 'utf8')
-    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace', 'flare', 'dossier']) {
+    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace', 'flare', 'dossier', 'keystone', 'meridian', 'schematic', 'volta', 'punch']) {
       const t = getTemplate(id)
       expect(t.id).toBe(id)
       expect(t.defaults.layout.columns).toBe(1)
@@ -57,7 +57,7 @@ describe('the signature templates', () => {
     expect(getTemplate('terrace').defaults.layout.headingPlacement).toBe('side')
     expect(getTemplate('terrace').header).toBe('stepped')
     // Flare and Dossier: a kicker over a name in a constructed face, numbered
-    // heads, and a foot on every page; Dossier signs its last page off.
+    // heads, and a foot on every page.
     for (const id of ['flare', 'dossier']) {
       const t = getTemplate(id)
       expect(t.header).toBe('kicker')
@@ -68,8 +68,13 @@ describe('the signature templates', () => {
     expect(getTemplate('flare').defaults.typography.bulletStyle).toBe('square')
     expect(getTemplate('dossier').defaults.typography.nameFamily).toBe('Dossier Stencil')
     expect(getTemplate('dossier').defaults.typography.bulletStyle).toBe('chevron')
-    expect(getTemplate('dossier').kicker?.reference).toBe(true)
-    expect(getTemplate('dossier').pageFootWords?.end).toBe('End of file')
+    // Keystone frames every page, Meridian carries its name on a dark
+    // masthead, Schematic rules every page as a drawing sheet.
+    expect(getTemplate('keystone').defaults.layout.pageFrame).toBe(true)
+    expect(getTemplate('keystone').defaults.typography.nameFamily).toBe('Keystone Condensed')
+    expect(getTemplate('meridian').header).toBe('banner')
+    expect(getTemplate('meridian').defaults.typography.nameFamily).toBe('Meridian Geometric')
+    expect(getTemplate('schematic').defaults.layout.pageGrid).toBe(true)
   })
 
   /**
@@ -79,7 +84,7 @@ describe('the signature templates', () => {
    */
   it('each one has a scoped block of its own in the stylesheet', () => {
     const css = readFileSync('src/templates/templates.css', 'utf8')
-    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace', 'flare', 'dossier']) {
+    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace', 'flare', 'dossier', 'keystone', 'meridian', 'schematic', 'volta', 'punch']) {
       expect(css).toContain(`.tpl-${id} `)
     }
   })

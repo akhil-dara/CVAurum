@@ -27,14 +27,14 @@ import {
 } from 'pdf-lib'
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, ptToPx, flipY } from './units'
-import { fontCoveringAll, mayNeedFallback, segmentByCoverage } from './textFallback'
+import { mayNeedFallback, segmentByCoverage } from './textFallback'
 import { smallCapsSegments } from './smallcaps'
 import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
 import { sidebarFirstOnContinuationPages } from './readingOrder'
-import { pageFootText } from '@/lib/pageWords'
+import { pageFootText, type PageNumberStyle } from '@/lib/pageWords'
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
 const JPEG_MAGIC = [0xff, 0xd8, 0xff]
@@ -890,9 +890,17 @@ async function paintTrackedRun(
   fonts: PdfFontCache,
   pageHeightPt: number,
   xPt: number,
-  domWidthPt: number
+  domWidthPt: number,
+  segments?: Array<{ text: string; family: string }>
 ): Promise<{ advanceWidthPt: number; tzPct: number }> {
-  const pieces = await trackedPieces(run, fonts)
+  // A run its face cannot finish comes in segments, each named for the chain
+  // font that draws it (see the caller); every segment is shaped and tracked
+  // against its own family, then all of them are laid end to end as one run.
+  // One after another, not all at once: two segments in one family asking
+  // at the same moment both missed the font cache and embedded it twice.
+  let pieces: TrackedPiece[] = []
+  if (!segments) pieces = await trackedPieces(run, fonts)
+  else for (const seg of segments) pieces.push(...(await trackedPieces({ ...run, text: seg.text, family: seg.family }, fonts)))
   const naturalPt = pieces.reduce((sum, p) => sum + p.widthPt, 0)
   let tzPct = 100
   if (domWidthPt > 0 && naturalPt > 0) {
@@ -1217,6 +1225,7 @@ export async function paintOps(
       // CSS stack). Latin runs never pay for this: mayNeedFallback is a
       // single regex test. See textFallback.ts.
       let pieces: Array<{ text: string; font: PDFFont | null }> | null = null
+      let trackedSegments: Array<{ text: string; family: string }> | undefined
       if (mayNeedFallback(run.text, run.family)) {
         const chain = await fonts.coverage(run.family, run.weight)
         if (chain.length > 1) {
@@ -1224,15 +1233,16 @@ export async function paintOps(
           if (segs.some((s) => s.font !== 0)) {
             const chainFonts = await Promise.all(chain.map((c) => fonts.embed(c.family, run.weight)))
             if (run.letterSpacingPx !== 0 || (run.smallCapsScale ?? 0) > 0) {
-              // A tracked or small-caps run is shaped and measured piece by
-              // piece against ONE cut of one family (paintTrackedRun), so it
-              // takes the first chain font that draws all of it; a heading is
-              // one script in practice.
-              const whole = fontCoveringAll(run.text, chain.map((c) => c.has))
-              if (whole > 0) {
-                run = { ...run, family: chain[whole].family }
-                font = chainFonts[whole]
-              }
+              // A tracked or small-caps run borrows character by character
+              // too, each segment tracked in its own family (paintTrackedRun).
+              // It used to move WHOLE to the first chain font that drew all
+              // of it: one ß in a name set in a constructed display face put
+              // the entire name in the fallback face - in lower case, the
+              // face being unicase - while the canvas borrowed the one letter.
+              // A character no chain font has is dropped, as below.
+              trackedSegments = segs
+                .filter((seg) => seg.font >= 0)
+                .map((seg) => ({ text: seg.text, family: chain[seg.font].family }))
             } else {
               pieces = segs.map((s) => ({ text: s.text, font: s.font >= 0 ? chainFonts[s.font] : null }))
             }
@@ -1291,7 +1301,7 @@ export async function paintOps(
       // text-showing operator can express — but every piece is ordinary
       // VISIBLE text, drawn once (see paintTrackedRun).
       if (run.letterSpacingPx !== 0 || (run.smallCapsScale ?? 0) > 0) {
-        const drawn = await paintTrackedRun(page, run, fonts, pageHeightPt, xPt, domWidthPt)
+        const drawn = await paintTrackedRun(page, run, fonts, pageHeightPt, xPt, domWidthPt, trackedSegments)
         // Folded into the SAME tzPct/advanceWidthPt the non-tracked branch
         // below sets, so the shared endXPt formula just past this if/else
         // advances by the true (tracked) drawn width with no separate
@@ -2073,7 +2083,8 @@ async function outlineAdvancePx(fonts: PdfFontCache, run: TextRun, text: string)
 /**
  * Page `page` of `pages`'s copy of the running page numbers (types.ts
  * `runPage`): each rewritten with that page's words (pageWords.ts), moved so
- * it ends at the right edge the DOM's own text ended at, and dropped where
+ * it ends at the right edge the DOM's own text ended at (a centred foot's
+ * number keeps its left edge instead, after the words), and dropped where
  * the page has nothing to say. Every other op passes through untouched.
  */
 export async function withPageNumbers(ops: DrawOp[], page: number, pages: number, fonts: PdfFontCache): Promise<DrawOp[]> {
@@ -2084,7 +2095,7 @@ export async function withPageNumbers(ops: DrawOp[], page: number, pages: number
       out.push(op)
       continue
     }
-    const words = pageFootText(page, pages, { page: op.runPage.page || undefined, end: op.runPage.end || undefined })
+    const words = pageFootText(page, pages, op.runPage.style as PageNumberStyle)
     const text = op.runPage.upper ? words.toUpperCase() : words
     if (!text) continue
     if (text === op.run.text) {
@@ -2092,11 +2103,13 @@ export async function withPageNumbers(ops: DrawOp[], page: number, pages: number
       continue
     }
     let xPx = op.run.xPx
-    try {
-      const right = op.run.xPx + (await outlineAdvancePx(fonts, op.run, op.run.text))
-      xPx = right - (await outlineAdvancePx(fonts, op.run, text))
-    } catch {
-      // No outlines to measure with: the number keeps the first page's left edge.
+    if (op.runPage.anchor !== 'left') {
+      try {
+        const right = op.run.xPx + (await outlineAdvancePx(fonts, op.run, op.run.text))
+        xPx = right - (await outlineAdvancePx(fonts, op.run, text))
+      } catch {
+        // No outlines to measure with: the number keeps the first page's left edge.
+      }
     }
     out.push({ ...op, run: { ...op.run, text, xPx, widthPx: 0 } })
   }

@@ -29,7 +29,7 @@
   unicode-range: U+25AA, U+25C6, U+25E6, U+2713;
 }
 
-/* The two constructed display faces, Flare Display and Dossier Stencil
+/* The constructed display faces of the signature collection
    (scripts/make-display-faces.py, public/fonts/LICENCE): one regular cut
    each, declared across the WHOLE weight range. A name or a heading asks for
    bold, and a face declared at 400 alone would be smeared into a fake bold
@@ -48,6 +48,34 @@
   font-weight: 100 900;
   font-display: block;
   src: url(/fonts/dossier-stencil.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Schematic Outline';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url(/fonts/schematic-outline.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Keystone Condensed';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url(/fonts/keystone-condensed.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Meridian Geometric';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url(/fonts/meridian-geometric.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Volta Display';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url(/fonts/volta-display.ttf) format('truetype');
 }
 
 .rm-root {
@@ -306,13 +334,15 @@
   align-items: flex-start;
   gap: 0.28em;
 }
-/* A visible separator between inline contacts, drawn BEFORE every contact but
-   the first. Using ::before on the following item (rather than ::after on the
-   preceding one) keeps a separator from ever dangling at the end of a wrapped
-   row. Stacked rows never take one. */
-.rm-contacts.rm-contacts-sep:not(.rm-contacts-stacked) .rm-contact + .rm-contact::before {
+/* A visible separator between inline contacts, drawn AFTER every contact but
+   the last. It used to open each following contact instead, so a row that
+   wrapped began its second line with a stray mark ("| github.com/...") that
+   read as a typo - flagged on every design that separates its contacts
+   (review, 2026-09-27). At the end of a line a separator reads as the
+   punctuation it is. Stacked rows never take one. */
+.rm-contacts.rm-contacts-sep:not(.rm-contacts-stacked) .rm-contact:not(:last-child)::after {
   content: var(--rm-contact-sep, '·');
-  margin-right: 0.5em;
+  margin-left: 0.5em;
   opacity: 0.5;
 }
 
@@ -437,13 +467,13 @@
 
 /* The accent node: a bullet glyph in the accent between contacts, where the
    header stands on the page; on a painted header it takes the header's ink. */
-.rm-contacts.rm-contacts-node .rm-contact + .rm-contact::before {
+.rm-contacts.rm-contacts-node .rm-contact:not(:last-child)::after {
   opacity: 1;
   font-size: 0.8em;
-  margin-right: 0.7em;
+  margin-left: 0.7em;
 }
-.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split):not(.rm-header-art)
-  .rm-contacts-node .rm-contact + .rm-contact::before {
+.rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split, .rm-header-kicker):not(.rm-header-art)
+  .rm-contacts-node .rm-contact:not(:last-child)::after {
   color: var(--rm-contact-color, var(--rm-primary-ink, var(--rm-primary)));
 }
 
@@ -478,7 +508,7 @@
   gap: 0.25em;
   text-align: right;
 }
-.rm-root.cpos-beside .rm-header-main > .rm-contacts .rm-contact + .rm-contact::before {
+.rm-root.cpos-beside .rm-header-main > .rm-contacts .rm-contact::after {
   content: none;
 }
 .rm-root.cpos-beside .rm-header-main > .rm-contacts.rm-contacts-strip {
@@ -614,10 +644,14 @@
    ResumePreview's pagination effect) so the page band renders inside
    created empty space and can never cover content. Additive with the
    margin-bottom gap scheme above (these elements carry no margin-top of
-   their own). Edit canvas only — print never carries .mode-preview, so
+   their own). Either side of the grey it keeps the paper the export leaves
+   there - the page's bottom margin (with its foot, where the design has
+   one) and the next page's top margin - set from the print tree's own
+   padding by ResumePreview (--rm-gap-paper-above / -below), so the canvas
+   shows where each page really ends and starts. Edit canvas only — print never carries .mode-preview, so
    export geometry is untouched. */
 .mode-preview [data-page-start] {
-  margin-top: var(--rm-page-gap, 28px);
+  margin-top: calc(var(--rm-gap-paper-above, 0px) + var(--rm-page-gap, 28px) + var(--rm-gap-paper-below, 0px));
 }
 .rm-section:last-child {
   margin-bottom: 0;
@@ -2228,9 +2262,9 @@
   margin-right: auto;
 }
 
-/* kicker: a small line of decorative type over a large name - the design's
-   label on the left, the city and the year on the right - then the role and
-   the contacts, all down the left edge. The kicker is Deco (outlines in the
+/* kicker: a small line of decorative type over a large name - the author's
+   own words, by default a plain label on the left and their place and the
+   year on the right - then the role and the contacts, down the left edge. The kicker is Deco (outlines in the
    PDF, nothing in the text layer); the role and the contacts are real text
    below a name tall enough that no extractor can read them as its last line
    (the same drop the display header keeps, see above). */
@@ -2253,10 +2287,6 @@
   color: var(--rm-muted);
   white-space: nowrap;
   margin-bottom: calc(var(--rm-fs) * 1.3);
-}
-.rm-kicker-ref {
-  color: var(--rm-primary-ink, var(--rm-primary));
-  font-weight: 600;
 }
 .rm-header-kicker .rm-name {
   font-size: calc(var(--rm-name-size) * 2.2);
@@ -2306,14 +2336,31 @@
    that padding is what the paginator's page budget is made of (metrics.ts),
    so no line of text can be placed where the foot is drawn. A page with a
    foot also takes no bottom-margin tolerance (metrics.ts onePageMarginMm). */
+.rm-root.rm-running-on {
+  position: relative;
+  /* The frame stands in from the paper's edge by 5mm, or less on a narrow
+     margin, so it never runs through the words (review: at a 4mm margin it
+     cut the bullets). The foot sits inside it, clear of its line. */
+  --rm-frame-inset: min(5mm, calc(var(--rm-pad) * 0.38));
+}
 .rm-root.rm-pagefoot-on {
   position: relative;
   --rm-foot-inset: max(12px, calc(var(--rm-pad) * 0.4));
+}
+/* With a frame, the foot stands inside it: the frame's line ran through the
+   name and the page number (review, 2026-09-27). */
+.rm-root.rm-pagefoot-on.rm-frame-on {
+  --rm-foot-inset: calc(var(--rm-frame-inset) + 10px);
+}
+.rm-root.rm-pagefoot-on {
   --rm-foot-fs: 9.4px;
+}
+.rm-root.rm-pagefoot-on {
+  --rm-foot-band: max(var(--rm-pad), calc(var(--rm-foot-inset) + var(--rm-foot-fs) + 22px));
 }
 .rm-pagefoot-on > .rm-body > .rm-col-main,
 .rm-pagefoot-on > .rm-body > .rm-col-aside {
-  padding-bottom: max(var(--rm-pad), calc(var(--rm-foot-inset) + var(--rm-foot-fs) + 22px));
+  padding-bottom: var(--rm-foot-band);
 }
 .rm-running {
   position: absolute;
@@ -2344,12 +2391,63 @@
   color: var(--rm-foot-ink, var(--rm-muted));
   white-space: nowrap;
 }
-/* The canvas draws one continuous sheet, not pages: past page one the foot
-   would sit on the next page's text, so there it gives way to the canvas's
-   own page badges (PageChrome.tsx) and appears in the export. */
-[data-pages]:not([data-pages='1']) .rm-running {
+/* The author's choices (layout.pageFootAlign, pageFootRule): the words and
+   the number centred together, the number following the words; and the
+   hairline taken away, its padding kept so the foot sits where it did. */
+.rm-pagefoot.rm-pagefoot-center {
+  justify-content: center;
+  gap: 1.6em;
+}
+.rm-pagefoot.rm-pagefoot-norule {
+  border-top-color: transparent;
+}
+/* A hairline frame inset from the paper's edge. */
+.rm-page-frame {
+  position: absolute;
+  inset: var(--rm-frame-inset);
+  border: 1px solid var(--rm-frame, color-mix(in srgb, var(--rm-primary) 40%, var(--rm-bg)));
+}
+/* The drafting grid: 8mm squares in a hairline of the ink at a whisper. */
+.rm-page-grid {
+  position: absolute;
+  inset: 0;
+}
+.rm-grid-v,
+.rm-grid-h {
+  position: absolute;
+  background: var(--rm-grid, color-mix(in srgb, var(--rm-text) 7%, transparent));
+}
+.rm-grid-v {
+  top: 0;
+  bottom: 0;
+  width: 0.6px;
+}
+.rm-grid-h {
+  left: 0;
+  right: 0;
+  height: 0.6px;
+}
+/* The canvas draws one continuous sheet, not pages. Past page one the grid
+   and the frame would run across the next page's words, so they show in the
+   export only. The foot stays laid out, hidden, at the foot of the last page,
+   where the canvas reads its look and draws a copy for every page in the
+   paper each page gap keeps for it (PageChrome.tsx). */
+/* On the canvas the layer reaches the foot of the sheet, whatever its
+   length: a résumé the export fits onto one page at a smaller size still
+   shows at the size the author set, longer than a page, and a foot pinned
+   one page down ran through its words. */
+.mode-preview .rm-running {
+  bottom: 0;
+  height: auto;
+  min-height: var(--rm-page-h, 1122.52px);
+}
+[data-pages]:not([data-pages='1']) .rm-running > :not(.rm-pagefoot) {
   display: none;
 }
+[data-pages]:not([data-pages='1']) .rm-running > .rm-pagefoot {
+  visibility: hidden;
+}
+
 
 /* block: a full-bleed colour block holding a giant name, with the role and
    the contacts as a byline along the block's foot. Wrapping flex rows rather

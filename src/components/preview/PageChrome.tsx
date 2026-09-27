@@ -34,18 +34,110 @@
  * through the page.
  */
 
+import type { CSSProperties } from 'react'
+import { pageFootText, type PageNumberStyle } from '@/lib/pageWords'
+
 /** Height (CSS px) of the REAL gap the editor opens above each
  *  `data-page-start` element (artboard.css `--rm-page-gap` must match) —
  *  the 'band' separator fills exactly this created empty space, so it can
  *  never cover content (2026-08-17 spec 2). */
 export const PAGE_GAP_PX = 28
 
+/** The properties the canvas copies from the design's own page foot onto its
+ *  copies: resolved values, since a copy stands outside `.rm-root` where the
+ *  design's variables do not reach. */
+const FOOT_PROPS = [
+  'font-family',
+  'font-size',
+  'font-weight',
+  'font-style',
+  'letter-spacing',
+  'text-transform',
+  'line-height',
+  'color',
+  'white-space',
+  'display',
+  'justify-content',
+  'align-items',
+  'column-gap',
+  'padding-top',
+  'border-top-width',
+  'border-top-style',
+  'border-top-color',
+] as const
+
+function pick(el: Element): CSSProperties {
+  const cs = getComputedStyle(el)
+  const out: Record<string, string> = {}
+  for (const prop of FOOT_PROPS) out[prop.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] = cs.getPropertyValue(prop)
+  return out as CSSProperties
+}
+
+/** One page's foot as the canvas draws it: where it sits and what its number
+ *  says. */
+export interface PageFootCopy {
+  /** Page index, from 1. */
+  page: number
+  /** Edit-space top of the foot box. */
+  top: number
+}
+
+/** The design's page foot, read once from the live canvas (where it is laid
+ *  out but hidden, at the foot of the last page) so every copy matches it. */
+export interface PageFootLook {
+  leftPx: number
+  widthPx: number
+  heightPx: number
+  /** From the foot box's bottom to the bottom of its page. */
+  insetPx: number
+  name: string
+  numberStyle: PageNumberStyle
+  box: CSSProperties
+  nameStyle: CSSProperties
+  pageStyle: CSSProperties
+}
+
+/** Reads the look of the design's foot from the edit canvas's `.rm-root`, or
+ *  null when the document has none. `scale` is the canvas zoom, which the
+ *  rects carry and the copies must not. */
+export function readPageFoot(root: HTMLElement, scale: number): PageFootLook | null {
+  const foot = root.querySelector<HTMLElement>('.rm-running .rm-pagefoot')
+  const name = foot?.querySelector('.rm-pagefoot-name')
+  const page = foot?.querySelector<HTMLElement>('.rm-pagefoot-page')
+  if (!foot || !name || !page) return null
+  const r = foot.getBoundingClientRect()
+  const rootRect = root.getBoundingClientRect()
+  // Measured from its own layer, which is one page tall on a single page and
+  // the whole sheet on more: the same inset either way.
+  const layer = foot.parentElement!.getBoundingClientRect()
+  if (!r.width) return null
+  return {
+    leftPx: (r.left - rootRect.left) / scale,
+    widthPx: r.width / scale,
+    heightPx: r.height / scale,
+    insetPx: (layer.bottom - r.bottom) / scale,
+    name: name.textContent ?? '',
+    numberStyle: (page.dataset.runPage as PageNumberStyle) || 'slash',
+    box: pick(foot),
+    nameStyle: pick(name),
+    pageStyle: pick(page),
+  }
+}
+
 export function PageChromeOverlay({
   separatorYs,
   badgeTops,
   pageCount,
   variant = 'band',
+  footLook,
+  feet = [],
 }: {
+  /** The design's page foot and where each page's copy goes (edit canvas
+   *  only): the canvas draws one continuous sheet, so the foot the exporter
+   *  prints on every page is drawn here, in the paper each page gap keeps
+   *  for it (artboard.css --rm-foot-band). */
+  footLook?: PageFootLook | null
+  feet?: PageFootCopy[]
   /** Edit-space separator positions ResumePreview.tsx could confidently
    *  place — may have FEWER entries than `pageCount - 1` when some cuts
    *  were suppressed (see this file's own top comment). `y` is the CENTER
@@ -110,6 +202,29 @@ export function PageChromeOverlay({
           </div>
         )
       )}
+
+      {footLook
+        ? feet.map((f) => (
+            <div
+              key={`foot-${f.page}`}
+              className="pointer-events-none absolute"
+              style={{
+                ...footLook.box,
+                left: footLook.leftPx,
+                width: footLook.widthPx,
+                height: footLook.heightPx,
+                top: f.top,
+                boxSizing: 'border-box',
+              }}
+              data-page-chrome="foot"
+              data-page-index={f.page}
+              aria-hidden
+            >
+              <span style={footLook.nameStyle}>{footLook.name}</span>
+              <span style={footLook.pageStyle}>{pageFootText(f.page, pageCount, footLook.numberStyle)}</span>
+            </div>
+          ))
+        : null}
 
       {/* "Page k / N" chip, top-right of every page region (incl. page 1) --
           always pageCount of these regardless of how many separators drew. */}

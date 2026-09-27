@@ -304,11 +304,13 @@ export type DrawOp = DrawOpChrome &
         /**
          * A running page number (Artboard's `data-run-page`): the words it
          * prints differ on every page, so paint.ts rewrites the run for each
-         * one (pageWords.ts pageFootText) and keeps it right-aligned to the
-         * edge the first page's text ended at. `upper` carries the element's
-         * text-transform, which the DOM applied to page one's words only.
+         * one in the author's style (pageWords.ts pageFootText) and keeps it
+         * on the edge the first page's text was set from - the right edge,
+         * or the left in a centred foot (`anchor`), where the number follows
+         * the words. `upper` carries the element's text-transform, which the
+         * DOM applied to page one's words only.
          */
-        runPage?: { page: string; end: string; upper?: boolean }
+        runPage?: { style: string; anchor?: 'left'; upper?: boolean }
         /**
          * Structure type for the tagged-PDF tree (tagging.ts). Absent means
          * "not tagged yet" and is treated as a paragraph; decorative runs

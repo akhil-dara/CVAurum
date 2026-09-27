@@ -312,6 +312,10 @@ def _repair(G, T, round_=True):
         on_ring = (rcx + (rrx - T / 2) * math.cos(ang), rcy + (rry - T / 2) * math.sin(ang))
         tip = (rcx - 60, 0) if up else (rcx + 60, CAP)
         g(ch, arc_ring(rcx, rcy, rrx, rry, T, 0, 360) + stroke_polyline([on_ring, tip], T))
+    # 3: two bowls meeting at the middle of the figure, each ending at its
+    # left terminal - the proof's pair overran the centre into a chevron.
+    hw = w("3")
+    g("3", arc_ring(hw / 2.0, 520, hw / 2.0 - 70, 180, T, 150, -90) + arc_ring(hw / 2.0, 190, hw / 2.0 - 50, 190, T, 90, -150))
     # 5: a bar across the top, a stem down the left, and a bowl open to the left.
     fw = w("5")
     fry = 205

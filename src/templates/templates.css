@@ -1710,27 +1710,24 @@
 .tpl-flare .rm-mini-sub {
   font-family: var(--rm-mono);
   font-size: 0.84em;
-  letter-spacing: 0.14em;
-  /* Small caps, not capitals: text-transform rewrites the words the PDF
-     carries ("AMAZON WEB SERVICES"), and a stacked skill label in capitals
-     read to a parser as a section of its own. Small caps draw the same
-     capitals and keep the author's case in the text layer (pdf/smallcaps.ts). */
-  font-variant: small-caps;
+  letter-spacing: 0.02em;
+  /* The author's own case: capitals (text-transform) rewrote the words the
+     PDF carries and made a stacked skill label read as a section; small caps
+     shrank every lowercase letter to 5pt beside full capitals. */
   color: var(--rm-muted);
 }
 .tpl-flare .rm-skill-group-name {
   font-family: var(--rm-mono);
   font-size: 0.8em;
   font-weight: 500;
-  letter-spacing: 0.2em;
-  font-variant: small-caps;
+  letter-spacing: 0.04em;
   color: var(--rm-primary-ink, var(--rm-primary));
 }
 
-/* ===================================================== Dossier (the case file)
-   A case-file line with a reference over a stencilled name, the role stamped
-   in a box, numbered stencil heads over a heavier rule, a > before every
-   point, and a typewriter mono for everything a person reads. */
+/* ===================================================== Dossier (stencil and typewriter)
+   A ruled letterhead line over a stencilled name, the role stamped in a box,
+   numbered stencil heads over a heavier rule, a > before every point, and a
+   typewriter mono for everything a person reads. */
 .rm-root.tpl-dossier {
   --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --rm-font-kicker: var(--rm-mono);
@@ -1796,19 +1793,499 @@
 .tpl-dossier .rm-item-sub,
 .tpl-dossier .rm-mini-sub {
   font-size: 0.86em;
-  letter-spacing: 0.16em;
-  font-variant: small-caps;
+  letter-spacing: 0.02em;
   color: var(--rm-muted);
 }
 .tpl-dossier .rm-skill-group-name {
   font-size: 0.84em;
   font-weight: 600;
-  letter-spacing: 0.22em;
-  font-variant: small-caps;
+  letter-spacing: 0.04em;
   color: var(--rm-primary-ink, var(--rm-primary));
 }
 .tpl-dossier .rm-bullets li::marker {
   font-weight: 600;
+}
+
+/* ===================================================== Keystone (the frame)
+   Ivory paper inside a gold hairline frame on every page, the name in
+   Keystone Condensed over a plum rule and a gold one, plum display heads
+   with a gold hairline running out from each, gold diamonds, and the dates
+   and places in a mono face. The frame is running ink (layout.pageFrame):
+   the exporter draws it on every page. */
+.rm-root.tpl-keystone {
+  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-font-foot: var(--rm-mono);
+  --rm-frame: #d8c391;
+  --rm-foot-rule: #d8c391;
+  --rm-gold-ink: #7d5f1e;
+}
+.tpl-keystone .rm-header {
+  position: relative;
+  padding-bottom: calc(var(--rm-fs) * 1.1);
+  border-bottom: 3px solid var(--rm-primary);
+  margin-bottom: calc(var(--rm-section-gap) * 0.9);
+}
+/* The second of the two rules: a gold hairline just under the plum one. */
+.tpl-keystone .rm-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 1px;
+  background: #a8822f;
+}
+.tpl-keystone .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.55);
+  font-weight: var(--rm-name-weight, 400);
+  color: var(--rm-name-color, var(--rm-text));
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+.rm-root.tpl-keystone.rm-long-name .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.2);
+}
+.tpl-keystone .rm-headline {
+  font-family: var(--rm-mono);
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.94 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-headline-color, var(--rm-primary));
+  margin-top: 0.55em;
+}
+.tpl-keystone .rm-contacts {
+  margin-top: 0.7em;
+}
+.tpl-keystone .rm-contacts.rm-contacts-sep .rm-contact:not(:last-child)::after {
+  color: var(--rm-contact-color, #d8c391);
+  opacity: 1;
+}
+.tpl-keystone .rm-section-title {
+  font-weight: var(--rm-heading-weight, 400);
+  font-size: calc(var(--rm-section-title-size) * 1.6);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--rm-heading-color, #46203a);
+}
+/* The line running out of each head is a gold hairline, not the plum of the
+   words at a third of their strength. */
+.tpl-keystone .rm-section-title::after {
+  height: var(--rm-heading-rule, 1px);
+  background: var(--rm-heading-color, #a8822f);
+  opacity: 1;
+}
+.tpl-keystone .rm-item-title {
+  font-size: 1.24em;
+  font-weight: 700;
+}
+.tpl-keystone .rm-item-date,
+.tpl-keystone .rm-sub-date {
+  font-family: var(--rm-mono);
+  font-size: 0.86em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--rm-gold-ink);
+}
+.tpl-keystone .rm-item-sub,
+.tpl-keystone .rm-mini-sub {
+  font-family: var(--rm-mono);
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+  color: var(--rm-muted);
+}
+.tpl-keystone .rm-skill-group-name {
+  font-family: var(--rm-mono);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-gold-ink);
+}
+.tpl-keystone .rm-bullets li::marker {
+  color: var(--rm-gold-ink);
+}
+
+/* ===================================================== Meridian (the masthead)
+   A near-black masthead the width of the page carrying the name in Meridian
+   Geometric, the role in a bright green mono line, then quiet eyebrow heads:
+   a short green bar before a tracked mono word. No numerals by default. */
+.rm-root.tpl-meridian {
+  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-font-foot: var(--rm-mono);
+}
+.tpl-meridian .rm-header-banner {
+  background: #111417;
+  padding: calc(var(--rm-pad) * 1.05) var(--rm-pad) calc(var(--rm-pad) * 0.85);
+  margin-bottom: calc(var(--rm-section-gap) * 1.4);
+}
+.tpl-meridian .rm-header-banner .rm-name {
+  overflow-wrap: anywhere;
+  font-weight: var(--rm-name-weight, 400);
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+}
+.tpl-meridian .rm-header-banner .rm-headline {
+  font-family: var(--rm-mono);
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.94 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-top: 0.9em;
+}
+.tpl-meridian .rm-header-banner .rm-contacts {
+  font-family: var(--rm-mono);
+  font-size: calc(var(--rm-fs) * 0.84 * var(--rm-contact-mul, 1));
+  margin-top: 0.9em;
+}
+/* The eyebrow: a short bar of the accent, then the title in tracked mono. */
+.tpl-meridian .rm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 1.1em;
+  font-size: calc(var(--rm-section-title-size) * 1.02);
+  font-weight: var(--rm-heading-weight, 600);
+  letter-spacing: 0.24em;
+  color: var(--rm-heading-color, var(--rm-text));
+  border: none;
+}
+.tpl-meridian .rm-section-title::before {
+  content: '';
+  flex: none;
+  width: 15mm;
+  height: var(--rm-heading-rule, 3.6px);
+  background: var(--rm-heading-color, var(--rm-primary));
+}
+.tpl-meridian .rm-section-title::after {
+  content: none;
+}
+.tpl-meridian .rm-item-title {
+  font-size: 1.24em;
+  font-weight: 700;
+}
+.tpl-meridian .rm-item-date,
+.tpl-meridian .rm-sub-date {
+  font-family: var(--rm-mono);
+  font-size: 0.86em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+.tpl-meridian .rm-item-sub,
+.tpl-meridian .rm-mini-sub {
+  font-family: var(--rm-mono);
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+  color: var(--rm-muted);
+}
+.tpl-meridian .rm-skill-group-name {
+  font-family: var(--rm-mono);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+
+/* ===================================================== Schematic (the drawing)
+   Blueprint blue on a whisper-light drafting grid on every page, a drawing
+   strip over a name drawn in outline, the role on a dimension line, red
+   outline numerals before bold tracked heads, and hollow red nodes for
+   bullets. The grid is running ink (layout.pageGrid). */
+.rm-root.tpl-schematic {
+  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-font-kicker: var(--rm-mono);
+  --rm-font-foot: var(--rm-mono);
+  --rm-foot-rule: var(--rm-text);
+  --rm-red-ink: #b5341f;
+}
+.tpl-schematic .rm-kicker {
+  border-bottom: 1px solid var(--rm-text);
+  padding-bottom: calc(var(--rm-fs) * 0.8);
+  margin-bottom: calc(var(--rm-fs) * 1.7);
+}
+.tpl-schematic .rm-header-kicker .rm-name {
+  font-weight: var(--rm-name-weight, 400);
+  color: var(--rm-name-color, var(--rm-text));
+  line-height: 1.06;
+}
+/* The dimension line: the role centred on a rule with a tick at each end. */
+.tpl-schematic .rm-header-kicker .rm-headline {
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+  margin-top: calc(var(--rm-fs) * 1.3);
+  font-family: var(--rm-mono);
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.9 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.3em;
+  color: var(--rm-headline-color, var(--rm-red-ink));
+}
+/* Each half a rule with a tick dropping from its outer end; centred on the
+   words, as the painter centres a pseudo box in a row. */
+.tpl-schematic .rm-header-kicker .rm-headline::before,
+.tpl-schematic .rm-header-kicker .rm-headline::after {
+  content: '';
+  flex: 1;
+  height: 10px;
+  border-top: 1.5px solid var(--rm-text);
+}
+.tpl-schematic .rm-header-kicker .rm-headline::before {
+  border-left: 1.5px solid var(--rm-text);
+}
+.tpl-schematic .rm-header-kicker .rm-headline::after {
+  border-right: 1.5px solid var(--rm-text);
+}
+.tpl-schematic .rm-header-kicker .rm-contacts {
+  color: var(--rm-contact-color, var(--rm-text));
+}
+.tpl-schematic .rm-section-title {
+  font-size: calc(var(--rm-section-title-size) * 1.18);
+  font-weight: var(--rm-heading-weight, 700);
+  letter-spacing: 0.14em;
+  color: var(--rm-heading-color, #152a66);
+  border-bottom: var(--rm-heading-rule, 1.5px) solid var(--rm-text);
+  padding-bottom: 0.18em;
+}
+.tpl-schematic .rm-section-title::after {
+  content: none;
+}
+.tpl-schematic .rm-section-number {
+  font-family: 'Schematic Outline', var(--rm-mono);
+  font-weight: 400;
+  font-size: 1.22em;
+  color: var(--rm-red-ink);
+  margin-right: 0.45em;
+}
+.tpl-schematic .rm-item-title {
+  font-size: 1.24em;
+  font-weight: 700;
+  color: #152a66;
+}
+.tpl-schematic .rm-item-date,
+.tpl-schematic .rm-sub-date {
+  font-family: var(--rm-mono);
+  font-size: 0.86em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--rm-red-ink);
+}
+.tpl-schematic .rm-item-sub,
+.tpl-schematic .rm-mini-sub {
+  font-family: var(--rm-mono);
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+  color: var(--rm-muted);
+}
+.tpl-schematic .rm-skill-group-name {
+  font-family: var(--rm-mono);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-red-ink);
+}
+/* The node is a hollow ring: drawn a third larger than the text's own mark,
+   on whatever size the author gave their bullets. */
+.tpl-schematic .rm-bullets li::marker {
+  color: var(--rm-red-ink);
+  font-size: calc(var(--rm-bullet-size, 1em) * 1.35);
+}
+
+/* ===================================================== Volta (the charge)
+   A cobalt band across the top of the page carrying the kicker in white, the
+   name in Volta Display, a band of numbers on an ice-blue ground ruled in
+   cobalt, cobalt numerals before display heads with a hairline running out,
+   and every date set in the display face. */
+.rm-root.tpl-volta {
+  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-font-kicker: var(--rm-mono);
+  --rm-font-foot: var(--rm-mono);
+  --rm-ice: #eef1ff;
+  --rm-hair: #e2e6ee;
+}
+/* The band: the kicker set full bleed on the accent. Its words are
+   decoration (the kicker is Deco), so white on the accent needs no ink
+   derived for a reader's sake; it measures 6.9:1 on the stock cobalt. */
+.tpl-volta .rm-kicker {
+  background: var(--rm-primary);
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  margin: calc(var(--rm-pad) * -1) calc(var(--rm-pad) * -1) calc(var(--rm-fs) * 2);
+  padding: 3.2mm var(--rm-pad);
+}
+.tpl-volta .rm-header-kicker .rm-name {
+  font-weight: var(--rm-name-weight, 400);
+  color: var(--rm-name-color, var(--rm-text));
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+.tpl-volta .rm-header-kicker .rm-headline {
+  font-family: var(--rm-mono);
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 0.94 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.16em;
+  color: var(--rm-headline-color, var(--rm-primary-ink, var(--rm-primary)));
+  margin-top: calc(var(--rm-name-size) * 0.5);
+}
+.tpl-volta .rm-header-kicker .rm-contacts {
+  margin-top: 0.7em;
+}
+/* The numbers band: an ice-blue ground ruled in the accent above and below,
+   a hairline between its cells, the figures in the display face. */
+.tpl-volta .rm-stats {
+  margin-top: calc(var(--rm-fs) * 1.2);
+  background: var(--rm-ice);
+  border-top: 2px solid var(--rm-primary);
+  border-bottom: 2px solid var(--rm-primary);
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.tpl-volta .rm-stat + .rm-stat {
+  border-left: 1px solid var(--rm-hair);
+}
+.tpl-volta .rm-stat-value {
+  font-family: var(--rm-font-name);
+  font-weight: 400;
+  color: var(--rm-primary);
+}
+.tpl-volta .rm-stat-label {
+  font-family: var(--rm-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--rm-muted);
+}
+.tpl-volta .rm-section-title {
+  font-size: calc(var(--rm-section-title-size) * 1.6);
+  font-weight: var(--rm-heading-weight, 400);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: var(--rm-heading-color, var(--rm-text));
+}
+.tpl-volta .rm-section-title::after {
+  height: var(--rm-heading-rule, 1px);
+  background: var(--rm-heading-color, var(--rm-hair));
+  opacity: 1;
+}
+.tpl-volta .rm-section-number {
+  font-size: 0.8em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+  margin-right: 0.45em;
+}
+.tpl-volta .rm-item-title {
+  font-size: 1.24em;
+  font-weight: 700;
+}
+/* The dates in the display face, in the accent: the voice of the design. */
+.tpl-volta .rm-item-date,
+.tpl-volta .rm-sub-date {
+  font-family: var(--rm-font-name);
+  font-size: 1.1em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+.tpl-volta .rm-item-sub,
+.tpl-volta .rm-mini-sub {
+  font-family: var(--rm-mono);
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+  color: var(--rm-muted);
+}
+.tpl-volta .rm-skill-group-name {
+  font-family: var(--rm-mono);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+
+/* ===================================================== Punch (the bars)
+   Brutalist and loud: the name set huge and bold in Space Grotesk over a
+   heavy black rule, the role in neon capitals, and every section title a
+   black bar the width of the column with a neon stripe down its left and a
+   neon numeral inside it. Neon squares for the points. */
+.rm-root.tpl-punch {
+  --rm-neon: var(--rm-primary);
+}
+.tpl-punch .rm-header {
+  padding-bottom: calc(var(--rm-fs) * 1.1);
+  border-bottom: 5px solid var(--rm-text);
+  margin-bottom: calc(var(--rm-section-gap) * 1.1);
+}
+.tpl-punch .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.45);
+  font-weight: var(--rm-name-weight, 700);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--rm-name-color, var(--rm-text));
+  overflow-wrap: anywhere;
+}
+.rm-root.tpl-punch.rm-long-name .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.1);
+}
+.tpl-punch .rm-headline {
+  margin-top: 0.7em;
+  font-family: var(--rm-font-heading);
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 1.2 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rm-headline-color, var(--rm-primary-ink, var(--rm-primary)));
+}
+.tpl-punch .rm-contacts {
+  margin-top: 0.6em;
+  color: var(--rm-contact-color, var(--rm-text));
+}
+/* The bar: black, the width of the column, a neon stripe on its left edge.
+   White on black whatever the accent is, so the title always reads. */
+.tpl-punch .rm-section-title {
+  display: flex;
+  align-items: baseline;
+  background: #000000;
+  color: var(--rm-heading-color, #ffffff);
+  border-left: 9px solid var(--rm-neon);
+  padding: 0.34em 0.8em 0.3em;
+  font-size: calc(var(--rm-section-title-size) * 1.12);
+  font-weight: var(--rm-heading-weight, 600);
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  margin-bottom: calc(0.6em * var(--rm-heading-gap, 1));
+}
+.tpl-punch .rm-section-title::after {
+  content: none;
+}
+/* The numeral in the bar: decoration, in the neon itself - it stands on
+   black, where the raw accent reads (6.1:1 on the stock neon). */
+.tpl-punch .rm-section-number {
+  color: var(--rm-neon);
+  margin-right: 0.6em;
+}
+.tpl-punch .rm-item-title {
+  font-family: var(--rm-font-heading);
+  font-size: 1.22em;
+  font-weight: 600;
+}
+.tpl-punch .rm-item-date,
+.tpl-punch .rm-sub-date {
+  font-family: var(--rm-font-heading);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+.tpl-punch .rm-item-sub,
+.tpl-punch .rm-mini-sub {
+  color: var(--rm-muted);
+}
+.tpl-punch .rm-skill-group-name {
+  font-family: var(--rm-font-heading);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+/* Neon squares a third larger than the text's own mark, in the accent as
+   ink (a mark is a word to a contrast check). */
+.tpl-punch .rm-bullets li::marker {
+  font-size: calc(var(--rm-bullet-size, 1em) * 1.35);
 }
 
 /* ===================================================== Measure

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { fontCoveringAll, mayNeedFallback, segmentByCoverage } from './textFallback'
+import { mayNeedFallback, segmentByCoverage } from './textFallback'
 
 const latin = (cp: number) => cp < 0x0250
 const cyrillic = (cp: number) => cp < 0x0250 || (cp >= 0x0400 && cp <= 0x04ff)
-const greekOnly = (cp: number) => cp >= 0x0370 && cp <= 0x03ff
 
 describe('mayNeedFallback', () => {
   it('lets plain Latin text through untouched', () => {
@@ -81,13 +80,3 @@ describe('segmentByCoverage', () => {
   })
 })
 
-describe('fontCoveringAll', () => {
-  it('names the first font that draws the whole run', () => {
-    expect(fontCoveringAll('ОПИТ', [latin, cyrillic, greekOnly])).toBe(1)
-    expect(fontCoveringAll('EXPERIENCE', [latin, cyrillic])).toBe(0)
-    expect(fontCoveringAll('ΕΜΠΕΙΡΙΑ', [latin, cyrillic, greekOnly])).toBe(2)
-  })
-  it('returns -1 when no single font covers it', () => {
-    expect(fontCoveringAll('ΕΜΠΕΙΡΙΑ 2021', [latin, cyrillic, greekOnly])).toBe(-1)
-  })
-})

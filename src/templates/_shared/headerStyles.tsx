@@ -93,6 +93,9 @@ export const HEADER_GROUNDS: Record<string, { with: string; amount: number }[]> 
     { with: '#000000', amount: 0.96 },
     { with: '#168b9d', amount: 0.55 },
   ],
+  // a near-black masthead whatever the accent is: none of the accent in it
+  // (mix(accent, with, amount) keeps `amount` of the accent)
+  meridian: [{ with: '#111417', amount: 0 }],
   // the accent itself, fading into a pink mixed halfway out of it
   spotlight: [
     { with: '#ec4899', amount: 1 },

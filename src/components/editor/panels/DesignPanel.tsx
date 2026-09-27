@@ -17,6 +17,7 @@ import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
 import { getTemplate } from '@/templates/registry'
 import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
+import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
 
 const BULLET_OPTIONS = [
   ['disc', '●'],
@@ -822,6 +823,9 @@ note={notes[r.key]}
             How your name &amp; contacts compose — on top of any template.
           </p>
         </div>
+        {(m.layout.headerStyle ?? getTemplate(m.template).header) === 'kicker' ? (
+          <KickerFields doc={doc} editMeta={update} />
+        ) : null}
         <div>
           <label className="label">Numbers band</label>
           <StatTilesEditor doc={doc} editMeta={update} />
@@ -985,6 +989,39 @@ note={notes[r.key]}
               />
             </div>
           )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <Toggle
+            label="Name and page number at the foot"
+            checked={m.layout.pageFoot}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.pageFoot = v
+              })
+            }
+          />
+          {m.layout.pageFoot ? <FootFields doc={doc} editMeta={update} /> : null}
+          <Toggle
+            label="Frame every page"
+            checked={m.layout.pageFrame}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.pageFrame = v
+              })
+            }
+          />
+          <Toggle
+            label="Drafting grid"
+            checked={m.layout.pageGrid}
+            onChange={(v) =>
+              update((md) => {
+                md.layout.pageGrid = v
+              })
+            }
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Drawn on every page of the PDF as decoration - never in the text a parser reads.
+          </p>
         </div>
         <div>
           <label className="label">Columns</label>

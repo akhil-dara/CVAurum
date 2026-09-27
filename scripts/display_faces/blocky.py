@@ -56,7 +56,11 @@ def blocky():
       stemL(), R(40, CAP - T, 560, CAP), R(580 - T, MID, 580, CAP),
       R(40, MID - HB, 560, MID + HB), R(580 - T, 0, 580, MID), R(40, 0, 560, T))
     g("C", 600, R(40, CAP - T, 600, CAP), stemL(), R(40, 0, 600, T))
-    g("D", 640, stemL(), R(40, CAP - T, 610, CAP), R(640 - T, 0, 640, CAP), R(40, 0, 610, T))
+    # D: its two right corners cut on the diagonal. Drawn square it was the
+    # same box as O, and EDUCATION read EOUCATION (review, 2026-09-27).
+    g("D", 640, stemL(), R(40, CAP - T, 440, CAP), R(40, 0, 440, T), R(640 - T, 200, 640, CAP - 200),
+      Q((440, CAP), (440, CAP - T), (640 - T, CAP - 200), (640, CAP - 200)),
+      Q((440, 0), (640, 200), (640 - T, 200), (440, T)))
     g("E", 560, stemL(), topB(560), R(0, MID - HB, 500, MID + HB), botB(560))
     g("F", 560, stemL(), topB(560), R(0, MID - HB, 500, MID + HB))
     g("G", 620,
@@ -64,7 +68,8 @@ def blocky():
       R(620 - T, 150, 620, 360), R(380, 308, 600, 412))
     g("H", 620, stemL(), stemR(620), midB(620))
     g("I", 300, topB(300), R((300 - T) // 2, 0, (300 + T) // 2, CAP), botB(300))
-    g("J", 560, R(60, CAP - T, 560, CAP), R(560 - T, 150, 560, CAP), R(60, 0, 560, T), R(60, 0, 178, 150))
+    # J: a stem into a hook, no bar across the top - with one it read as ].
+    g("J", 560, R(560 - T, 0, 560, CAP), R(60, 0, 560, T), R(60, 0, 60 + T, 260))
     g("K", 620,
       stemL(),
       Q((110, 320), (250, 320), (590, 700), (450, 700)),
@@ -102,7 +107,9 @@ def blocky():
 
     # ---------------------------------------------------------------- digits
     g("0", 560, topB(560), botB(560), stemL(), stemR(560))
-    g("1", 340, topB(340), R((340 - T) // 2, 0, (340 + T) // 2, CAP), botB(340))
+    # 1: a stem with a flag. Serifed top and bottom it was the I, and 11
+    # read as the roman numeral.
+    g("1", 360, R(180, 0, 180 + T, CAP), Q((180, CAP), (180, CAP - 110), (40, CAP - 190), (40, CAP - 80)))
     g("2", 560, topB(560), R(560 - T, MID, 560, CAP), midB(560), R(0, 0, T, MID), botB(560))
     g("3", 560, topB(560), stemR(560), R(60, MID - HB, 560, MID + HB), botB(560))
     g("4", 600, R(0, MID, T, CAP), midB(600), stemR(600))
@@ -110,7 +117,8 @@ def blocky():
     g("6", 560, topB(560), stemL(), midB(560), R(560 - T, 0, 560, MID), botB(560))
     g("7", 560, topB(560), stemR(560))
     g("8", 560, topB(560), botB(560), stemL(), stemR(560), midB(560))
-    g("9", 560, topB(560), stemR(560), midB(560), botB(560))
+    # 9: a closed bowl on top. Without its upper-left stem it was the 3.
+    g("9", 560, topB(560), R(0, MID, T, CAP), stemR(560), midB(560), botB(560))
 
     # ---------------------------------------------------------------- the base marks
     g(" ", 300)

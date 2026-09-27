@@ -34,7 +34,12 @@ const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? font
 const here = path.dirname(fileURLToPath(import.meta.url))
 const FONT_DIR = path.resolve(here, '../../../public/fonts-pdf')
 const FONT_FILE = 'arimo-700.ttf'
-const FONT_INDEX = { 'arimo|700': FONT_FILE }
+const FONT_INDEX = {
+  'arimo|700': FONT_FILE,
+  // a constructed display face with no ß, and the text face it falls back to
+  'volta-display|400': 'volta-display-400.ttf',
+  'archivo|400': 'archivo-400.ttf',
+}
 
 // PdfFontCache fetches font bytes over HTTP in the real app; stub fetch so
 // paintOps exercises the real production font-loading path against a real
@@ -197,6 +202,21 @@ describe('paintOps — tracked (letter-spaced) runs are ordinary visible text', 
     ])
     const [, secondX] = tmXPositions(stream)
     expect(secondX).toBeCloseTo(trackedEnd, 3)
+  })
+
+  it('draws a tracked run its face cannot finish in that face, borrowing only what it lacks', async () => {
+    // A tracked name in a constructed display face that has no ß: the whole
+    // name used to move to the first fallback that drew ALL of it, so one
+    // letter set the name in another face - and, the face being unicase, in
+    // lower case. The canvas borrows the one letter; so must the export.
+    const stream = await renderContentStream([
+      { kind: 'text', run: baseRun({ text: 'WEIßE', family: 'Volta Display', weight: 400, letterSpacingPx: 1.5 }) },
+    ])
+    // pdf-lib names a fresh page resource each time a font is set again, so
+    // read the family off the name rather than counting resource keys
+    const fontsUsed = [...stream.matchAll(/\/(\S+)-\d+ [\d.]+ Tf/g)].map((m) => m[1])
+    expect(fontsUsed).toEqual(['VoltaDisplay-Regular', 'ArchivoSemiBold-Regular', 'VoltaDisplay-Regular'])
+    expect(stream.match(/\bTj\b/g)?.length).toBe(3)
   })
 
   it('negative tracking is simply a NARROWER cut, not a special case', async () => {
@@ -2303,7 +2323,7 @@ describe('the running layer', () => {
     const doc = await PDFDocument.create()
     doc.registerFontkit(fontkit)
     const fonts = new PdfFontCache(doc, FONT_INDEX)
-    const num = foot('1 / 12', { runPage: { page: '', end: '' } })
+    const num = foot('1 / 12', { runPage: { style: 'slash' } })
     const [p1] = await withPageNumbers([num], 1, 12, fonts)
     const [p10] = await withPageNumbers([num], 10, 12, fonts)
     const t1 = p1 as Extract<DrawOp, { kind: 'text' }>
@@ -2315,19 +2335,26 @@ describe('the running layer', () => {
     expect(t10.run.xPx).toBeLessThan(500)
   })
 
-  it('writes the closing words on the last page and nothing where there is nothing to say', async () => {
+  it('writes the style the author picked, in the case the stylesheet set', async () => {
     const doc = await PDFDocument.create()
     doc.registerFontkit(fontkit)
     const fonts = new PdfFontCache(doc, FONT_INDEX)
-    const num = foot('1 / 2', { runPage: { page: '', end: 'End of file' } })
+    const num = foot('PAGE 1 OF 2', { runPage: { style: 'of', upper: true } })
     const [last] = await withPageNumbers([num], 2, 2, fonts)
-    expect((last as Extract<DrawOp, { kind: 'text' }>).run.text).toBe('End of file · 2 / 2')
-    // The stylesheet set the foot in capitals, which reached page one's
-    // words through the DOM and must reach every later page's too.
-    const upper = foot('1 / 2', { runPage: { page: '', end: 'End of file', upper: true } })
-    const [lastUpper] = await withPageNumbers([upper], 2, 2, fonts)
-    expect((lastUpper as Extract<DrawOp, { kind: 'text' }>).run.text).toBe('END OF FILE · 2 / 2')
-    const other = foot('x', { runPage: { page: '', end: '' } })
+    expect((last as Extract<DrawOp, { kind: 'text' }>).run.text).toBe('PAGE 2 OF 2')
+    const none = foot('x', { runPage: { style: 'none' } })
+    expect(await withPageNumbers([none], 1, 2, fonts)).toEqual([])
+    const other = foot('x', { runPage: { style: 'slash' } })
     expect(await withPageNumbers([other], 1, 1, fonts)).toEqual([])
   })
+
+  it('keeps the number of a centred foot on its left edge', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+    const num = foot('1 / 12', { runPage: { style: 'slash', anchor: 'left' } })
+    const [p10] = await withPageNumbers([num], 10, 12, fonts)
+    expect((p10 as Extract<DrawOp, { kind: 'text' }>).run.xPx).toBe(500)
+  })
+
 })

@@ -286,6 +286,33 @@ export const LayoutSchema = z.object({
    *  PDF, nothing in the text layer, the Word file or the ATS text. The main
    *  column keeps its band clear on every page (artboard.css .rm-pagefoot). */
   pageFoot: z.boolean().default(false),
+  /** The words at the left of the page foot; unset is the author's name. */
+  pageFootLabel: z.string().optional(),
+  /** How the foot writes the page number: "1 / 2" (unset), "Page 1 of 2",
+   *  "1", or no number at all (src/lib/pageWords.ts pageFootText). */
+  pageFootNumber: z.enum(['slash', 'of', 'plain', 'none']).optional(),
+  /** Words left and number right (unset), or the two centred together. */
+  pageFootAlign: z.enum(['split', 'center']).optional(),
+  /** The hairline above the foot; unset keeps it. */
+  pageFootRule: z.boolean().optional(),
+  /** The line above the name (the kicker header) in the author's own words:
+   *  unset keeps the defaults ("Curriculum vitae" on the left, the place and
+   *  the year on the right), an empty string leaves that side blank, and
+   *  show: false takes the line away (src/lib/pageWords.ts). Decoration only
+   *  - nothing a parser reads. */
+  kicker: z
+    .object({
+      show: z.boolean().optional(),
+      left: z.string().optional(),
+      right: z.string().optional(),
+    })
+    .optional(),
+  /** A hairline frame inset from the paper's edge on every page, drawn as
+   *  running decoration like the foot (Artboard's `rm-running`). */
+  pageFrame: z.boolean().default(false),
+  /** A whisper-light drafting grid across every page, drawn UNDER the words
+   *  (the running layer paints before the page's own content). */
+  pageGrid: z.boolean().default(false),
   /** hidden section keys */
   hidden: z.array(z.string()).default([]),
   /** custom heading label overrides keyed by section key */

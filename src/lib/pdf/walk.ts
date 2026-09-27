@@ -1369,6 +1369,27 @@ function borderBoxSize(el: Element, cs: CSSStyleDeclaration): { wPx: number; hPx
   return { wPx: w, hPx: h }
 }
 
+/**
+ * The box of the last thing a flex row lays out before its ::after: the last
+ * element child, or the last run of text when that comes after it. A row
+ * whose only child is text (a headline with a rule on either side of its
+ * words) has no element child at all, and the ::after was placed at the
+ * row's own left edge - on top of the ::before (Schematic, 2026-09-27).
+ */
+function lastFlowChildBox(el: HTMLElement, root: HTMLElement): Box | null {
+  for (let n = el.lastChild; n; n = n.previousSibling) {
+    if (n.nodeType === Node.ELEMENT_NODE) return boxOf(n as Element, root)
+    if (n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim()) {
+      const range = document.createRange()
+      range.selectNodeContents(n)
+      const r = range.getBoundingClientRect()
+      const rootRect = root.getBoundingClientRect()
+      return { xPx: r.left - rootRect.left, yPx: r.top - rootRect.top, wPx: r.width, hPx: r.height }
+    }
+  }
+  return null
+}
+
 function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::before' | '::after'): void {
   const cs = getComputedStyle(el, which)
   if (cs.content === 'none' || cs.display === 'none') return
@@ -1379,7 +1400,7 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
   // extra getBoundingClientRect for every plain static pseudo (the
   // overwhelming common case) would be wasted work.
   const isFlex = hostCs.display === 'flex' || hostCs.display === 'inline-flex'
-  const lastChildBox = isFlex && which === '::after' && el.lastElementChild ? boxOf(el.lastElementChild, root) : null
+  const lastChildBox = isFlex && which === '::after' ? lastFlowChildBox(el, root) : null
   const box = pseudoBox(cs, boxOf(el, root), which, hostCs, lastChildBox)
 
   // Row-flex `align-items: baseline` with a TEXTLESS pseudo (2026-08-17
@@ -1968,12 +1989,12 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
       // different columns. See `lineBoxId`.
       const box = lineBoxId((n as Text).parentElement, root)
       // A running page number: paint.ts writes its words afresh on every
-      // page (pageWords.ts), so it carries the design's words with it.
+      // page (pageWords.ts), so it carries the author's number style with it.
       const pageEl = (n as Text).parentElement?.closest?.('[data-run-page]') as HTMLElement | null | undefined
       const runPage = pageEl
         ? {
-            page: pageEl.dataset.runPage ?? '',
-            end: pageEl.dataset.runEnd ?? '',
+            style: pageEl.dataset.runPage ?? '',
+            ...(pageEl.dataset.runAnchor === 'left' ? { anchor: 'left' as const } : {}),
             upper: getComputedStyle(pageEl).textTransform === 'uppercase',
           }
         : undefined

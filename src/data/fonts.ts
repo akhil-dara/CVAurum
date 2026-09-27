@@ -54,6 +54,7 @@ export const FONTS: FontDef[] = [
   { name: 'Exo 2', category: 'sans' },
   { name: 'IBM Plex Sans', category: 'sans' },
   { name: 'DM Sans', category: 'sans' },
+  { name: 'Space Grotesk', category: 'sans', weights: [400, 500, 600, 700] },
 
   // — Serif —
   { name: 'Merriweather', category: 'serif', weights: [400, 700, 900] },
@@ -111,6 +112,10 @@ export const FONTS: FontDef[] = [
   // sit beside, then the display chain.
   { name: 'Flare Display', category: 'display', weights: [400], chain: ['Archivo'], partialLatin: true },
   { name: 'Dossier Stencil', category: 'display', weights: [400], chain: ['IBM Plex Mono'], partialLatin: true },
+  { name: 'Schematic Outline', category: 'display', weights: [400], chain: ['Archivo'], partialLatin: true },
+  { name: 'Keystone Condensed', category: 'display', weights: [400], chain: ['Archivo'], partialLatin: true },
+  { name: 'Meridian Geometric', category: 'display', weights: [400], chain: ['Archivo'], partialLatin: true },
+  { name: 'Volta Display', category: 'display', weights: [400], chain: ['Archivo'], partialLatin: true },
 
   // — Handwriting / signature (decorative name fonts) —
   { name: 'Dancing Script', category: 'handwriting', weights: [400, 500, 600, 700] },

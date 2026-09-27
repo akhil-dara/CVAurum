@@ -227,3 +227,66 @@ describe('the numbers band follows the author’s list', () => {
     expect(renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)).not.toContain('rm-stats')
   })
 })
+
+/**
+ * The line above the name (the kicker header) and the page foot print only
+ * the author's own words or words read from their content - never a made-up
+ * reference or a sign-off (2026-09-27: a "case file" number and an "end of
+ * file" were removed from the designs that printed them).
+ */
+describe('the page furniture words', () => {
+  const render = (edit: (doc: ReturnType<typeof createDocument>) => void, tpl = 'dossier') => {
+    const doc = createDocument({ sample: true })
+    doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(tpl).defaults)
+    edit(doc)
+    return renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
+  }
+
+  it('defaults to a plain label and the place the contact line gives', () => {
+    for (const tpl of ['flare', 'dossier', 'schematic', 'volta']) {
+      const html = render(() => {}, tpl)
+      expect(html).toContain('Curriculum vitae')
+      expect(html).toContain('San Francisco, CA · ')
+      expect(html).not.toMatch(/case file|end of file|dwg\. no|scale 1:1/i)
+      expect(html).not.toMatch(/[A-Z]{1,3}-20\d\d-\d{4}/)
+    }
+  })
+
+  it('prints the author’s words, or nothing where they cleared a side', () => {
+    const html = render((d) => {
+      d.metadata.layout.kicker = { left: 'Portfolio edition', right: '' }
+    })
+    expect(html).toContain('Portfolio edition')
+    expect(html).not.toContain('Curriculum vitae')
+    expect(html).not.toContain('San Francisco, CA · ')
+  })
+
+  it('draws no line at all when the author turns it off', () => {
+    expect(render((d) => (d.metadata.layout.kicker = { show: false }))).not.toContain('rm-kicker')
+  })
+
+  it('puts the author’s words at the foot in place of the name, when they write some', () => {
+    const plain = render(() => {})
+    expect(plain).toMatch(/rm-pagefoot-name[^>]*>Alex Morgan</)
+    const own = render((d) => (d.metadata.layout.pageFootLabel = 'Alex Morgan · Senior Engineer'))
+    expect(own).toMatch(/rm-pagefoot-name[^>]*>Alex Morgan · Senior Engineer</)
+  })
+
+  it('carries the author’s number style, place and rule to the foot', () => {
+    const plain = render(() => {})
+    expect(plain).toMatch(/data-run-page="slash"/)
+    expect(plain).not.toContain('rm-pagefoot-center')
+    expect(plain).not.toContain('rm-pagefoot-norule')
+    const set = render((d) => {
+      d.metadata.layout.pageFootNumber = 'of'
+      d.metadata.layout.pageFootAlign = 'center'
+      d.metadata.layout.pageFootRule = false
+    })
+    expect(set).toMatch(/data-run-page="of"/)
+    // centred, the number follows the words, so each page's number keeps
+    // its left edge (pdf/paint.ts withPageNumbers)
+    expect(set).toMatch(/data-run-anchor="left"/)
+    expect(set).toContain('rm-pagefoot-center')
+    expect(set).toContain('rm-pagefoot-norule')
+  })
+})
