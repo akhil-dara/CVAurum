@@ -60,6 +60,7 @@ import { ContrastChip } from './ContrastChip'
 
 const AS_SET: FitVector = { type: 1, space: 1 }
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
+import { documentFaces } from '@/lib/documentFaces'
 import { SectionGallery } from '@/components/editor/SectionGallery'
 import { extractPageBlocks, extractMainColumnBlocks } from '@/lib/pdf/walk'
 import { paginate, PaginationImpossibleError } from '@/lib/pdf/paginate'
@@ -68,6 +69,7 @@ import {
   computeFirstPageUsablePageHeightPx,
   findMainColumnPaddingPx,
   exceedsOnePage,
+  onePageMarginMm,
 } from '@/lib/pdf/metrics'
 import { resolveForcedCutsPx } from '@/lib/pdf/pageBreaks'
 import {
@@ -468,11 +470,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
   // Re-measure once fonts for the chosen families have actually loaded.
   useEffect(() => {
-    ensureFontsReady([
-      doc.metadata.typography.fontFamily,
-      doc.metadata.typography.headingFamily,
-      doc.metadata.typography.nameFamily,
-    ]).then(() => {
+    ensureFontsReady(documentFaces(doc.metadata)).then(() => {
       if (innerRef.current) setContentH(innerRef.current.scrollHeight)
       if (measureRef.current) setPrintH(measureRef.current.scrollHeight)
     })
@@ -505,11 +503,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
       if (import.meta.env.DEV) window.__cvaFitTrace = []
-      await ensureFontsReady([
-        measureDoc.metadata.typography.fontFamily,
-        measureDoc.metadata.typography.headingFamily,
-        measureDoc.metadata.typography.nameFamily,
-      ])
+      await ensureFontsReady(documentFaces(measureDoc.metadata))
       // Wait for the photo in the measure render to load too — an unsized image
       // makes the header (and thus the fit) measure short, diverging from the PDF.
       const img = measureRef.current?.querySelector('img.rm-photo') as HTMLImageElement | null
@@ -651,7 +645,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       // `exceedsOnePage` is the export's own gate (render.tsx), shared here
       // so the two can never independently re-derive (and diverge on) this
       // arithmetic again.
-      if (!exceedsOnePage(contentHeightPx, pageH, doc.metadata.page.margin)) {
+      if (!exceedsOnePage(contentHeightPx, pageH, onePageMarginMm(doc.metadata))) {
         clearOverlay()
         setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / pageH, lastPageSections: [] })
         return
@@ -973,7 +967,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 ['--rm-zoom' as string]: effectiveZoom,
               }}
             >
-              <div ref={innerRef} style={{ width: pageW }}>
+              <div ref={innerRef} style={{ width: pageW }} data-pages={pagePageCount}>
                 {exactCanvas ? (
                   // Exact-PDF mode: the print render — no edit chrome, placeholders,
                   // hover rings, or empty sections. What you see here is the export.

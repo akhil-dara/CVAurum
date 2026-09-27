@@ -381,3 +381,26 @@ describe('a template can apply its own structure', () => {
     expect(m.layout.headingPlacement).toBe('side')
   })
 })
+
+describe('a design that ships a bullet mark or a page foot', () => {
+  // No design stated a bullet mark before Flare and Dossier, so the mark was
+  // simply carried across every switch. It follows the same rule as the
+  // other structural choices now: the author's own mark stays, and a mark
+  // that only came with the previous design gives way to the next design's.
+  it('takes the design mark when the author never chose one', () => {
+    const cur = MetadataSchema.parse({ template: 'modern' })
+    const next = applyTemplateToMetadata(cur, getTemplate('flare').defaults)
+    expect(next.typography.bulletStyle).toBe('square')
+    expect(next.layout.pageFoot).toBe(true)
+  })
+  it('keeps a mark the author chose', () => {
+    const cur = MetadataSchema.parse({ template: 'modern', typography: { bulletStyle: 'check' } })
+    expect(applyTemplateToMetadata(cur, getTemplate('dossier').defaults).typography.bulletStyle).toBe('check')
+  })
+  it('drops the previous design mark and foot on the way out', () => {
+    const onFlare = applyTemplateToMetadata(MetadataSchema.parse({ template: 'modern' }), getTemplate('flare').defaults)
+    const next = applyTemplateToMetadata(onFlare, getTemplate('modern').defaults)
+    expect(next.typography.bulletStyle).toBe(getTemplate('modern').defaults.typography.bulletStyle)
+    expect(next.layout.pageFoot).toBe(false)
+  })
+})

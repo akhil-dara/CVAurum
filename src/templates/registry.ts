@@ -1031,6 +1031,8 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'chronicle',
     name: 'Chronicle',
+    // The rail's year numerals are set in this face whatever the body is.
+    fonts: ['Bebas Neue'],
     description: 'A ledger: every entry hands its opening year to a tinted rail down the left, set in tall condensed numerals, while the entry keeps its own real dates in one plain column beside them.',
     tags: ['signature', 'single-column', 'modern', 'timeline', 'premium'],
     atsSafe: true,
@@ -1098,6 +1100,94 @@ export const TEMPLATES: TemplateConfig[] = [
       // one unhurried row instead of spilling a lone address onto a second
       // line under half a step of empty colour.
       { columns: 1, headingPlacement: 'side', showPhoto: false, icons: false, sectionGap: 17, itemGap: 7 }
+    ),
+  },
+  {
+    id: 'flare',
+    name: 'Flare',
+    description: 'A signal flare down the margin: an orange spine on every page, the name in a constructed display face under a small letterhead line, numbered heads, square orange marks and a quiet name-and-page line at the foot.',
+    tags: ['signature', 'single-column', 'modern', 'technical', 'premium'],
+    atsSafe: true,
+    class: 'tpl-flare',
+    header: 'kicker',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    // Dates, places, labels and the letterhead are set in a mono face
+    // whatever the body is: the voice of the design.
+    fonts: ['IBM Plex Mono'],
+    kicker: { label: 'Curriculum vitae' },
+    defaults: defs(
+      'flare',
+      { primary: '#f04e23', text: '#0d0d0f', muted: '#62666d', background: '#ffffff', headings: '#0d0d0f' },
+      {
+        fontFamily: 'Archivo',
+        headingFamily: 'Flare Display',
+        nameFamily: 'Flare Display',
+        fontSize: 9.8,
+        lineHeight: 1.46,
+        letterSpacing: 0,
+        nameScale: 2.9,
+        sectionTitleScale: 1.6,
+        uppercaseHeadings: true,
+        headingWeight: 'regular',
+        nameWeight: 'regular',
+        bulletStyle: 'square',
+      },
+      {
+        columns: 1,
+        sectionNumbers: true,
+        pageFoot: true,
+        contactSeparator: 'dot',
+        icons: false,
+        showPhoto: false,
+        sectionGap: 12,
+        itemGap: 9,
+        sectionSettings: { skills: { skillsStyle: 'stacked' } },
+      }
+    ),
+  },
+  {
+    id: 'dossier',
+    name: 'Dossier',
+    description: 'A case file: a file reference over a stencilled name, the role stamped in a box, numbered stencil heads, a > before every point, everything else in a typewriter mono, and the last page signed off as the end of the file.',
+    tags: ['signature', 'single-column', 'creative', 'technical', 'premium'],
+    atsSafe: true,
+    class: 'tpl-dossier',
+    header: 'kicker',
+    section: 'underline',
+    skills: 'inline',
+    sectionIcons: false,
+    kicker: { label: 'Case file', reference: true },
+    pageFootWords: { end: 'End of file' },
+    defaults: defs(
+      'dossier',
+      { primary: '#b5341f', text: '#161616', muted: '#6a6e75', background: '#ffffff', headings: '#161616' },
+      {
+        fontFamily: 'IBM Plex Mono',
+        headingFamily: 'Dossier Stencil',
+        nameFamily: 'Dossier Stencil',
+        fontSize: 9.2,
+        lineHeight: 1.55,
+        letterSpacing: 0,
+        nameScale: 2.8,
+        sectionTitleScale: 1.36,
+        uppercaseHeadings: true,
+        headingWeight: 'regular',
+        nameWeight: 'regular',
+        bulletStyle: 'chevron',
+      },
+      {
+        columns: 1,
+        sectionNumbers: true,
+        pageFoot: true,
+        contactSeparator: 'chevron',
+        icons: false,
+        showPhoto: false,
+        sectionGap: 11,
+        itemGap: 10,
+        sectionSettings: { skills: { skillsStyle: 'stacked' } },
+      }
     ),
   },
 

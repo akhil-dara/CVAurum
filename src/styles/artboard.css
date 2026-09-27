@@ -29,6 +29,27 @@
   unicode-range: U+25AA, U+25C6, U+25E6, U+2713;
 }
 
+/* The two constructed display faces, Flare Display and Dossier Stencil
+   (scripts/make-display-faces.py, public/fonts/LICENCE): one regular cut
+   each, declared across the WHOLE weight range. A name or a heading asks for
+   bold, and a face declared at 400 alone would be smeared into a fake bold
+   by the browser - a bold the PDF, which embeds this one outline, never
+   draws. Declared here for the same reason as the marks font above. */
+@font-face {
+  font-family: 'Flare Display';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url(/fonts/flare-display.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Dossier Stencil';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url(/fonts/dossier-stencil.ttf) format('truetype');
+}
+
 .rm-root {
   /* The artboard owns its own alignment. The dashboard renders a thumbnail
      inside a card that centres its label, and without this the whole resume
@@ -2205,6 +2226,129 @@
 .rm-header-display .rm-monogram {
   margin-left: auto;
   margin-right: auto;
+}
+
+/* kicker: a small line of decorative type over a large name - the design's
+   label on the left, the city and the year on the right - then the role and
+   the contacts, all down the left edge. The kicker is Deco (outlines in the
+   PDF, nothing in the text layer); the role and the contacts are real text
+   below a name tall enough that no extractor can read them as its last line
+   (the same drop the display header keeps, see above). */
+.rm-header-kicker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.rm-kicker {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.5em;
+  font-family: var(--rm-font-kicker, var(--rm-font-body));
+  font-size: max(7px, calc(var(--rm-fs) * 0.8));
+  line-height: 1.2;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--rm-muted);
+  white-space: nowrap;
+  margin-bottom: calc(var(--rm-fs) * 1.3);
+}
+.rm-kicker-ref {
+  color: var(--rm-primary-ink, var(--rm-primary));
+  font-weight: 600;
+}
+.rm-header-kicker .rm-name {
+  font-size: calc(var(--rm-name-size) * 2.2);
+  line-height: 1;
+  margin: 0;
+  text-indent: 0;
+  overflow-wrap: anywhere;
+}
+/* A long name steps down so it takes two lines, not four: over 22
+   characters by a quarter, over 32 by nearly half. The word-fit pass
+   (keywordFit.ts) still shrinks a single word too wide for the line. */
+.rm-root.rm-long-name .rm-header-kicker .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.65);
+}
+.rm-root.rm-longer-name .rm-header-kicker .rm-name {
+  font-size: calc(var(--rm-name-size) * 1.25);
+}
+.rm-header-kicker .rm-headline {
+  margin-top: calc(var(--rm-name-size) * 0.8);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rm-header-kicker .rm-contacts {
+  margin-top: 0.55em;
+}
+.rm-header-kicker > .rm-photo,
+.rm-header-kicker > .rm-monogram {
+  position: absolute;
+  right: 0;
+  top: calc(var(--rm-fs) * 2.6);
+}
+.rm-header-kicker:has(> .rm-photo, > .rm-monogram) .rm-header-main {
+  padding-right: calc(var(--rm-photo-size) + 1.2em);
+}
+
+/* ---- the page foot (layout.pageFoot) ------------------------------------
+   A layer one page tall at the top of the document (`rm-running`) holds a
+   quiet line at the foot of that page: the name, and the page number once
+   there is more than one page. The exporter repeats the layer's ink on
+   every page it paints and writes each page its own number (pdf/paint.ts);
+   the paginator never sees it. Decoration throughout - outlines in the PDF,
+   nothing in the text layer, the Word file or the ATS text.
+
+   The columns keep the foot's band clear on every page: their bottom
+   padding is at least the foot's inset plus its own height and some air, and
+   that padding is what the paginator's page budget is made of (metrics.ts),
+   so no line of text can be placed where the foot is drawn. A page with a
+   foot also takes no bottom-margin tolerance (metrics.ts onePageMarginMm). */
+.rm-root.rm-pagefoot-on {
+  position: relative;
+  --rm-foot-inset: max(12px, calc(var(--rm-pad) * 0.4));
+  --rm-foot-fs: 9.4px;
+}
+.rm-pagefoot-on > .rm-body > .rm-col-main,
+.rm-pagefoot-on > .rm-body > .rm-col-aside {
+  padding-bottom: max(var(--rm-pad), calc(var(--rm-foot-inset) + var(--rm-foot-fs) + 22px));
+}
+.rm-running {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--rm-page-h, 1122.52px);
+  pointer-events: none;
+}
+.rm-pagefoot {
+  position: absolute;
+  left: var(--rm-foot-left, var(--rm-pad));
+  right: var(--rm-pad);
+  bottom: var(--rm-foot-inset);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.5em;
+  padding-top: 6px;
+  border-top: 0.75px solid var(--rm-foot-rule, color-mix(in srgb, var(--rm-muted) 32%, var(--rm-bg)));
+  font-family: var(--rm-font-foot, var(--rm-font-body));
+  /* A set size, not the body's: this is furniture, and the one-page fit
+     must not shrink it into a smudge or grow it into a line of text. */
+  font-size: var(--rm-foot-fs);
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rm-foot-ink, var(--rm-muted));
+  white-space: nowrap;
+}
+/* The canvas draws one continuous sheet, not pages: past page one the foot
+   would sit on the next page's text, so there it gives way to the canvas's
+   own page badges (PageChrome.tsx) and appears in the export. */
+[data-pages]:not([data-pages='1']) .rm-running {
+  display: none;
 }
 
 /* block: a full-bleed colour block holding a giant name, with the role and

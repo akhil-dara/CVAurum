@@ -1625,6 +1625,192 @@
   color: var(--rm-primary-ink, var(--rm-primary));
 }
 
+/* ===================================================== Flare (the spine)
+   An accent spine down the left edge of every page, a letterhead kicker over
+   a name in Flare Display, an ink bar under it, numbered display heads, and
+   the dates, places and labels in a mono face. The spine is the root's own
+   ::before, a fill from the top of the document the full height of it: the
+   painter repeats such a fill on every page (pdf/paint.ts, page chrome).
+   It is at least a page tall itself, so a one-page canvas shows it to the
+   paper's foot - rather than holding the ROOT a page tall, which made every
+   short page measure as a full one to the fit and to the page count. */
+.rm-root.tpl-flare {
+  position: relative;
+  --rm-spine: 19px;
+  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-font-kicker: var(--rm-mono);
+  --rm-font-foot: var(--rm-mono);
+  --rm-foot-left: calc(var(--rm-pad) + var(--rm-spine));
+}
+.rm-root.tpl-flare::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: max(100%, var(--rm-page-h, 1122.52px));
+  width: var(--rm-spine);
+  background: var(--rm-primary);
+}
+.tpl-flare .rm-col-main {
+  padding-left: calc(var(--rm-pad) + var(--rm-spine));
+}
+.tpl-flare .rm-header-kicker .rm-name {
+  font-weight: var(--rm-name-weight, 400);
+  color: var(--rm-name-color, var(--rm-text));
+  padding-bottom: calc(var(--rm-fs) * 1.35);
+  border-bottom: calc(var(--rm-fs) * 0.68) solid var(--rm-text);
+}
+.tpl-flare .rm-header-kicker .rm-headline {
+  margin-top: calc(var(--rm-fs) * 1.2);
+  font-size: calc(var(--rm-fs) * 1.12 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.12em;
+  color: var(--rm-headline-color, var(--rm-text));
+}
+.tpl-flare .rm-header-kicker .rm-contacts {
+  font-family: var(--rm-mono);
+  font-size: calc(var(--rm-fs) * 0.84 * var(--rm-contact-mul, 1));
+  color: var(--rm-contact-color, var(--rm-muted));
+  margin-top: 0.7em;
+}
+.tpl-flare .rm-header {
+  margin-bottom: calc(var(--rm-section-gap) * 0.6);
+}
+.tpl-flare .rm-section-title {
+  font-size: calc(var(--rm-section-title-size) * 1.6);
+  font-weight: var(--rm-heading-weight, 400);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: var(--rm-heading-color, var(--rm-text));
+  border-bottom: var(--rm-heading-rule, 1px) solid var(--rm-text);
+  padding-bottom: 0.12em;
+}
+.tpl-flare .rm-section-title::after {
+  content: none;
+}
+/* The numeral and the marks are words on the page to a contrast check, so
+   they take the accent as ink; the spine, which is not text, keeps the
+   accent itself. */
+.tpl-flare .rm-section-number {
+  color: var(--rm-primary-ink, var(--rm-primary));
+  margin-right: 0.3em;
+}
+.tpl-flare .rm-item-title {
+  font-size: 1.3em;
+  font-weight: 700;
+}
+.tpl-flare .rm-item-date,
+.tpl-flare .rm-sub-date {
+  font-family: var(--rm-mono);
+  font-size: 0.86em;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+.tpl-flare .rm-item-sub,
+.tpl-flare .rm-mini-sub {
+  font-family: var(--rm-mono);
+  font-size: 0.84em;
+  letter-spacing: 0.14em;
+  /* Small caps, not capitals: text-transform rewrites the words the PDF
+     carries ("AMAZON WEB SERVICES"), and a stacked skill label in capitals
+     read to a parser as a section of its own. Small caps draw the same
+     capitals and keep the author's case in the text layer (pdf/smallcaps.ts). */
+  font-variant: small-caps;
+  color: var(--rm-muted);
+}
+.tpl-flare .rm-skill-group-name {
+  font-family: var(--rm-mono);
+  font-size: 0.8em;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  font-variant: small-caps;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+
+/* ===================================================== Dossier (the case file)
+   A case-file line with a reference over a stencilled name, the role stamped
+   in a box, numbered stencil heads over a heavier rule, a > before every
+   point, and a typewriter mono for everything a person reads. */
+.rm-root.tpl-dossier {
+  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-font-kicker: var(--rm-mono);
+  --rm-font-foot: var(--rm-mono);
+}
+.tpl-dossier .rm-kicker {
+  border-bottom: 1px solid var(--rm-text);
+  padding-bottom: calc(var(--rm-fs) * 0.8);
+  margin-bottom: calc(var(--rm-fs) * 1.7);
+}
+.tpl-dossier .rm-header-kicker .rm-name {
+  font-weight: var(--rm-name-weight, 400);
+  color: var(--rm-name-color, var(--rm-text));
+  line-height: 1.04;
+}
+/* The stamp: the role in a heavy box that fits the words, not the page. */
+.tpl-dossier .rm-header-kicker .rm-headline {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: calc(var(--rm-fs) * 1.6);
+  border: 2.2px solid var(--rm-text);
+  padding: 0.55em 1.1em;
+  font-weight: 600;
+  font-size: calc(var(--rm-fs) * 1.1 * var(--rm-headline-mul, 1));
+  letter-spacing: 0.24em;
+  color: var(--rm-headline-color, var(--rm-text));
+}
+.tpl-dossier .rm-header-kicker .rm-contacts {
+  font-size: calc(var(--rm-fs) * 0.9 * var(--rm-contact-mul, 1));
+  color: var(--rm-contact-color, var(--rm-muted));
+  margin-top: 1em;
+}
+.tpl-dossier .rm-header {
+  margin-bottom: calc(var(--rm-section-gap) * 0.5);
+}
+.tpl-dossier .rm-section-title {
+  font-size: calc(var(--rm-section-title-size) * 1.6);
+  font-weight: var(--rm-heading-weight, 400);
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  color: var(--rm-heading-color, var(--rm-text));
+  border-bottom: var(--rm-heading-rule, 1.5px) solid var(--rm-text);
+  padding-bottom: 0.1em;
+}
+.tpl-dossier .rm-section-title::after {
+  content: none;
+}
+.tpl-dossier .rm-section-number {
+  color: var(--rm-primary-ink, var(--rm-primary));
+  margin-right: 0.3em;
+}
+.tpl-dossier .rm-item-title {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+.tpl-dossier .rm-item-date,
+.tpl-dossier .rm-sub-date {
+  font-size: 0.9em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+.tpl-dossier .rm-item-sub,
+.tpl-dossier .rm-mini-sub {
+  font-size: 0.86em;
+  letter-spacing: 0.16em;
+  font-variant: small-caps;
+  color: var(--rm-muted);
+}
+.tpl-dossier .rm-skill-group-name {
+  font-size: 0.84em;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  font-variant: small-caps;
+  color: var(--rm-primary-ink, var(--rm-primary));
+}
+.tpl-dossier .rm-bullets li::marker {
+  font-weight: 600;
+}
+
 /* ===================================================== Measure
    The finish of a page set by a typesetting engine. Almost all of the recipe
    is in the registry entry (10pt body, 12.0pt baseline, a 20.7pt name in

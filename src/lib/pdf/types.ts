@@ -168,6 +168,15 @@ interface DrawOpChrome {
    * this flag anywhere else.
    */
   pageChrome?: true
+  /**
+   * True for ink from the page's RUNNING layer (Artboard's `rm-running`,
+   * `data-running`): the page foot and anything else a design draws on every
+   * page. Its coordinates are already page-relative - the layer is one page
+   * tall and sits at the top of the document - so paint.ts puts a copy on
+   * every page at the same place instead of assigning it to one band, and
+   * the paginator never sees it (walk.ts extractPageBlocks skips the layer).
+   */
+  running?: true
 }
 
 export type DrawOp = DrawOpChrome &
@@ -292,6 +301,14 @@ export type DrawOp = DrawOpChrome &
     | {
         kind: 'text'
         run: TextRun
+        /**
+         * A running page number (Artboard's `data-run-page`): the words it
+         * prints differ on every page, so paint.ts rewrites the run for each
+         * one (pageWords.ts pageFootText) and keeps it right-aligned to the
+         * edge the first page's text ended at. `upper` carries the element's
+         * text-transform, which the DOM applied to page one's words only.
+         */
+        runPage?: { page: string; end: string; upper?: boolean }
         /**
          * Structure type for the tagged-PDF tree (tagging.ts). Absent means
          * "not tagged yet" and is treated as a paragraph; decorative runs

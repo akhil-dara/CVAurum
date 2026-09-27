@@ -160,6 +160,20 @@ describe('fitToPages', () => {
     expect(asked).toBeGreaterThan(0)
   })
 
+  it('a page measured a hair over its height is still one page', async () => {
+    // A page drawn exactly one page tall (the page foot's layer, Flare's
+    // spine) measures 1123 in a 1122.52px page: scrollHeight rounds up. The
+    // search took that for an overflow and asked the paginator, whose answer
+    // for a short page counts the bottom padding twice - two pages, for a
+    // résumé that fitted one at the size set.
+    let asked = 0
+    const r = await fitToPages(
+      { pageH: 1122.5196850393702, measure: async () => 1123, countPages: async () => { asked++; return 2 } },
+      { target: 1, minBody: null, fontSize: 10, priority: 'both' }
+    )
+    expect(r.type).toBeGreaterThanOrEqual(1)
+    expect(asked).toBe(0)
+  })
   it('a small overflow is taken by spacing alone', async () => {
     const m = twoAxis(1100)
     const r = await fitToPages({ pageH: 1000, measure: m.measure }, RULES)

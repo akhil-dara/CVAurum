@@ -57,7 +57,7 @@ copy never flashes inside the app.
   | Page | `@graph` |
   | --- | --- |
   | Landing | `SoftwareApplication`, `WebSite`, `FAQPage` (from `index.html`) |
-  | `/templates` | `CollectionPage`, `BreadcrumbList`, `ItemList` of 68 designs |
+  | `/templates` | `CollectionPage`, `BreadcrumbList`, `ItemList` of 70 designs |
   | `/templates/<id>` | `WebPage` with `primaryImageOfPage`, `BreadcrumbList` |
   | `/examples` | `CollectionPage`, `BreadcrumbList`, `ItemList` of 108 examples |
   | `/examples/<slug>` | `WebPage` with `primaryImageOfPage`, `BreadcrumbList` |
@@ -73,7 +73,7 @@ A crawler that runs no scripts walks `<a href>` and nothing else, so every page
 is reachable that way and the collections reach each other:
 
 - the landing page links `/templates`, `/examples`, `/prompts` and `/app`;
-- `/templates` links all 68 designs, plus `/`, `/examples`, `/prompts`;
+- `/templates` links all 70 designs, plus `/`, `/examples`, `/prompts`;
 - `/examples` links all 108 examples, plus `/`, `/templates`, `/prompts`;
 - a design page links up to `/templates`, across to `/examples`, and sideways
   to every other design;

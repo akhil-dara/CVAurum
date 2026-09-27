@@ -34,6 +34,7 @@ import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './ty
 import type { Rgba } from './style'
 import type { PdfFontCache } from './fonts'
 import { sidebarFirstOnContinuationPages } from './readingOrder'
+import { pageFootText } from '@/lib/pageWords'
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
 const JPEG_MAGIC = [0xff, 0xd8, 0xff]
@@ -1216,7 +1217,7 @@ export async function paintOps(
       // CSS stack). Latin runs never pay for this: mayNeedFallback is a
       // single regex test. See textFallback.ts.
       let pieces: Array<{ text: string; font: PDFFont | null }> | null = null
-      if (mayNeedFallback(run.text)) {
+      if (mayNeedFallback(run.text, run.family)) {
         const chain = await fonts.coverage(run.family, run.weight)
         if (chain.length > 1) {
           const segs = segmentByCoverage(run.text, chain.map((c) => c.has))
@@ -1996,6 +1997,13 @@ export function assignOpsToPages(
   }
 
   for (const op of ops) {
+    // The running layer (the page foot) is drawn in PAGE coordinates - one
+    // page tall, at the top of the document - so every page takes the same
+    // copy, untranslated. See types.ts `running`.
+    if (op.running) {
+      pages.forEach((pageOps) => pageOps.push(op))
+      continue
+    }
     // The tag alone is not enough to earn the full-bleed repeat — the op has
     // to start at the document's top as well. See `isDocumentGround`.
     if (op.pageChrome && isDocumentGround(op)) {
@@ -2051,6 +2059,50 @@ export function assignOpsToPages(
  * the ORIGINAL `ops` array, unchanged — see `assignOpsToPages`'s own doc
  * comment for why that's byte-identical to calling `paintOps` directly.
  */
+/** How far a decorative run's outlines advance, in CSS px - the same layout
+ *  and tracking `paintGlyphOutlines` draws them with. */
+async function outlineAdvancePx(fonts: PdfFontCache, run: TextRun, text: string): Promise<number> {
+  const font = await fonts.embedGlyphOutlines(run.family, run.weight)
+  const glyphs = font.layout(text)
+  const scale = run.sizePx / font.unitsPerEm
+  let w = 0
+  for (const pos of glyphs.positions) w += pos.xAdvance * scale + run.letterSpacingPx
+  return w
+}
+
+/**
+ * Page `page` of `pages`'s copy of the running page numbers (types.ts
+ * `runPage`): each rewritten with that page's words (pageWords.ts), moved so
+ * it ends at the right edge the DOM's own text ended at, and dropped where
+ * the page has nothing to say. Every other op passes through untouched.
+ */
+export async function withPageNumbers(ops: DrawOp[], page: number, pages: number, fonts: PdfFontCache): Promise<DrawOp[]> {
+  if (!ops.some((op) => op.kind === 'text' && op.runPage)) return ops
+  const out: DrawOp[] = []
+  for (const op of ops) {
+    if (op.kind !== 'text' || !op.runPage) {
+      out.push(op)
+      continue
+    }
+    const words = pageFootText(page, pages, { page: op.runPage.page || undefined, end: op.runPage.end || undefined })
+    const text = op.runPage.upper ? words.toUpperCase() : words
+    if (!text) continue
+    if (text === op.run.text) {
+      out.push(op)
+      continue
+    }
+    let xPx = op.run.xPx
+    try {
+      const right = op.run.xPx + (await outlineAdvancePx(fonts, op.run, op.run.text))
+      xPx = right - (await outlineAdvancePx(fonts, op.run, text))
+    } catch {
+      // No outlines to measure with: the number keeps the first page's left edge.
+    }
+    out.push({ ...op, run: { ...op.run, text, xPx, widthPx: 0 } })
+  }
+  return out
+}
+
 export async function paintPages(
   pages: PDFPage[],
   ops: DrawOp[],
@@ -2068,6 +2120,7 @@ export async function paintPages(
   const perPageOps = sidebarFirstOnContinuationPages(assignOpsToPages(ops, cutsPx, pageTopPaddingPx, pageHeightPx))
   for (let i = 0; i < pages.length; i++) {
     tagSink?.startPage(i)
-    await paintOps(pages[i], perPageOps[i] ?? [], fonts, pageHeightPt, captureDecoBoxes, tagSink)
+    const pageOps = await withPageNumbers(perPageOps[i] ?? [], i + 1, pages.length, fonts)
+    await paintOps(pages[i], pageOps, fonts, pageHeightPt, captureDecoBoxes, tagSink)
   }
 }

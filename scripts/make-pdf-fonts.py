@@ -97,8 +97,23 @@ REQUIRED_CHARS = (
 )
 
 
-# Static outputs this script does not build itself, by index key.
-EXTRA_STATIC = {"cvaurum-marks|400": "cva-marks-400.ttf"}
+# Static outputs this script does not build itself, by index key: the marks
+# font (scripts/make-marks-font.py) and the constructed display faces of the
+# signature collection (scripts/make-display-faces.py).
+EXTRA_STATIC = {
+    "cvaurum-marks|400": "cva-marks-400.ttf",
+    **{
+        f"{slug}|400": f"{slug}-400.ttf"
+        for slug in (
+            "flare-display",
+            "dossier-stencil",
+            "schematic-outline",
+            "keystone-condensed",
+            "meridian-geometric",
+            "volta-display",
+        )
+    },
+}
 
 
 def coverage(font: TTFont) -> int:
@@ -346,7 +361,7 @@ def main() -> int:
             index[key] = name
             seen_static.add(name)
         else:
-            print(f"  WARNING {name} missing - run scripts/make-marks-font.py")
+            print(f"  WARNING {name} missing - run scripts/make-marks-font.py or scripts/make-display-faces.py")
 
     # Drop stale outputs from earlier runs so the directory always matches the
     # index exactly (family slugs can change as the generator improves).

@@ -22,6 +22,14 @@ export interface FontDef {
   italic?: boolean
   /** CSS fallback stack */
   fallback?: string
+  /** Bundled families that draw what this one lacks, tried BEFORE the
+   *  category's script chain: a small display face falls back to the text
+   *  face it was drawn to sit beside, not to whatever the category offers. */
+  chain?: string[]
+  /** The face does not draw all of Basic Latin (an @ or a $ is missing), so
+   *  the PDF painter checks every run set in it rather than only the runs
+   *  outside Latin (src/lib/pdf/textFallback.ts, mayNeedFallback). */
+  partialLatin?: true
 }
 
 export const FONTS: FontDef[] = [
@@ -96,6 +104,13 @@ export const FONTS: FontDef[] = [
   { name: 'Bebas Neue', category: 'display', weights: [400] },
   { name: 'Abril Fatface', category: 'display', weights: [400] },
   { name: 'Archivo', category: 'display' },
+  // The two constructed faces (scripts/make-display-faces.py): one regular
+  // cut, unicase - a lowercase letter is drawn as its capital in a glyph of
+  // its own, so the text layer keeps the author's case. They cover Latin
+  // names; anything else in a heading comes from the face each was drawn to
+  // sit beside, then the display chain.
+  { name: 'Flare Display', category: 'display', weights: [400], chain: ['Archivo'], partialLatin: true },
+  { name: 'Dossier Stencil', category: 'display', weights: [400], chain: ['IBM Plex Mono'], partialLatin: true },
 
   // — Handwriting / signature (decorative name fonts) —
   { name: 'Dancing Script', category: 'handwriting', weights: [400, 500, 600, 700] },
@@ -154,8 +169,8 @@ export const MARKS_FAMILY = 'CVAurum Marks'
 /** The fallback families for `name`, in order, never naming `name` itself. */
 export function scriptFallbacks(name?: string): string[] {
   const def = name ? FONT_MAP[name] : undefined
-  const chain = [...SCRIPT_FALLBACKS[def?.category ?? 'sans'], MARKS_FAMILY]
-  return chain.filter((f) => f !== name)
+  const chain = [...(def?.chain ?? []), ...SCRIPT_FALLBACKS[def?.category ?? 'sans'], MARKS_FAMILY]
+  return [...new Set(chain)].filter((f) => f !== name)
 }
 
 export function fontStack(name?: string): string {

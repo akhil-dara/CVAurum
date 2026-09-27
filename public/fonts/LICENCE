@@ -147,3 +147,27 @@ two circles, a square, a diamond, and a polyline stroked to a width. No font
 data, outline or metric is read, copied or derived from any other font. It is
 therefore an original work of this repository and is covered by this
 repository's own licence (see ../../LICENSE), like any other file we write.
+
+
+The display faces of the signature collection
+=============================================================================
+
+    flare-display.ttf         ../fonts-pdf/flare-display-400.ttf
+    dossier-stencil.ttf       ../fonts-pdf/dossier-stencil-400.ttf
+    schematic-outline.ttf     ../fonts-pdf/schematic-outline-400.ttf
+    keystone-condensed.ttf    ../fonts-pdf/keystone-condensed-400.ttf
+    meridian-geometric.ttf    ../fonts-pdf/meridian-geometric-400.ttf
+
+Each pair is the SAME font, built by scripts/make-display-faces.py from the
+constructions in scripts/display_faces/. They are the name and heading faces
+of the Flare, Dossier, Schematic, Keystone and Meridian templates: capitals,
+figures, the punctuation a name or a heading uses and the accented letters of
+Latin names, drawn unicase (a lowercase letter is its own glyph in the shape
+of its capital). Dossier Stencil and Schematic Outline are Flare Display's
+outlines, cut into bridged pieces and drawn as their own perimeters.
+
+Every outline is constructed by those scripts out of plain arithmetic -
+rectangles, quadrilaterals, arcs cut into quads and stroked polylines on a
+1000-unit em. No font data, outline or metric is read, copied or derived from
+any other font. They are therefore original works of this repository and are
+covered by this repository's own licence (see ../../LICENSE).

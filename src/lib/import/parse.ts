@@ -366,10 +366,14 @@ const cleanEdge = (s: string) => s.replace(/^[\s|·•,–—-]+|[\s|·•,–�
 // seven bullet styles are all real characters now (Artboard.tsx's
 // BULLET_TYPE), where four of them used to reach the file as a vector dot
 // with an invisible • underneath, so every export read as a • whatever the
-// page showed.
+// page showed. A > is one of them too (the chevron style), and like a dash
+// it only counts with a space after it.
 const isBullet = (s: string) =>
-  /^[•‣▪◦●■·⁃∙◆✓›*\-–—►▸]\s+/.test(s) || /^[•‣▪◦●■·⁃∙◆✓►▸]/.test(s)
-const stripBullet = (s: string) => s.replace(/^[•‣▪◦●■·⁃∙◆✓*►▸]+\s*|^[-–—›]\s+/, '').trim()
+  /^[•‣▪◦●■·⁃∙◆✓›*\-–—►▸>]\s+/.test(s) || /^[•‣▪◦●■·⁃∙◆✓►▸]/.test(s)
+// A mark standing alone as an item of its own - how the text layer can hand
+// one over, with no space after it for isBullet's dash rule to see.
+const isBareMark = (s: string) => /^[•‣▪◦●■·⁃∙◆✓›*\-–—►▸>]$/.test(s.trim())
+const stripBullet = (s: string) => s.replace(/^[•‣▪◦●■·⁃∙◆✓*►▸]+\s*|^[-–—›>]\s+/, '').trim()
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 /** Regions spelled out after a one-word city ("Hyderabad, India", "Pune,
@@ -655,7 +659,7 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
 export const sectionLeftX = (lines: Line[]): number => {
   const xs = lines.map((l) => {
     if (!isBullet(l.text)) return l.x
-    const word = l.items.find((i) => i.str.trim() && !isBullet(i.str) && stripBullet(i.str) !== '')
+    const word = l.items.find((i) => i.str.trim() && !isBareMark(i.str) && !isBullet(i.str) && stripBullet(i.str) !== '')
     return word ? word.x : l.x
   })
   return xs.length ? Math.min(...xs) : 0

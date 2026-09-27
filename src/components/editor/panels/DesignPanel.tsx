@@ -26,6 +26,7 @@ const BULLET_OPTIONS = [
   ['arrow', '›'],
   ['check', '✓'],
   ['diamond', '◆'],
+  ['chevron', '>'],
   ['none', '∅'],
 ] as const
 

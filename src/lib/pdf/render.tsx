@@ -14,6 +14,7 @@ import {
   computeUsablePageHeightPx,
   exceedsOnePage,
   findMainColumnPaddingPx,
+  onePageMarginMm,
   setLastUnsupported,
 } from './metrics'
 export {
@@ -49,6 +50,8 @@ import { applyPdfMetadata, buildDocInfo } from './metadata'
 import { applyPdfAConformance, loadSrgbProfile, setPdfVersion, stampPdfVersion, PDFA_CLAIM, PDFUA_CLAIM } from './pdfa'
 import type { DecoBox } from './types'
 import { withoutSeeded } from '@/data/defaults'
+import { pageFootText } from '@/lib/pageWords'
+import { documentFaces } from '@/lib/documentFaces'
 
 // Task 15 gate-instrumentation hook: a harness sets `window.__cvaCaptureRenderBoxes
 // = true` BEFORE calling `renderResumePdf`, and reads `window.__cvaLastDecoBoxes`
@@ -163,11 +166,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
   try {
     root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
 
-    await ensureFontsReady([
-      doc.metadata.typography.fontFamily,
-      doc.metadata.typography.headingFamily,
-      doc.metadata.typography.nameFamily,
-    ])
+    await ensureFontsReady(documentFaces(doc.metadata))
     await raf2()
 
     // Render once more now the webfonts have resolved, and give the Artboard's
@@ -268,7 +267,7 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // bottom margin doesn't count as a real overflow. Shared with
     // ResumePreview.tsx's own pagination-overlay gate via `exceedsOnePage`
     // (task-6b final-fix, finding F1) so the two can never silently diverge.
-    const overflow = exceedsOnePage(container.scrollHeight, pageHpx, doc.metadata.page.margin)
+    const overflow = exceedsOnePage(container.scrollHeight, pageHpx, onePageMarginMm(doc.metadata))
 
     const sheet = container.firstElementChild as HTMLElement
     // Before anything measures the layout: keep hyphenated words whole, so a
@@ -376,6 +375,18 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // it lengthens the page below the last break and moves nothing above it.
     // Past the paper's edge the page itself cuts it.
     if (cutsPx.length) sheet.style.setProperty('--rm-page-min', `${cutsPx[cutsPx.length - 1] + pageHpx}px`)
+    // The page foot's number (Artboard's `data-run-page`) can only be known
+    // now: the tree was drawn for one page. Page one's words go in before the
+    // walk, so the walker measures real text where the number sits, and the
+    // painter rewrites that run for every later page (paint.ts
+    // withPageNumbers). The element is one line that never wraps, so this
+    // moves nothing the paginator measured.
+    sheet.querySelectorAll<HTMLElement>('[data-run-page]').forEach((el) => {
+      el.textContent = pageFootText(1, pageCount, {
+        page: el.dataset.runPage || undefined,
+        end: el.dataset.runEnd || undefined,
+      })
+    })
 
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)

@@ -27,13 +27,16 @@ describe('the registry', () => {
  */
 describe('the signature templates', () => {
   it('are single-column, tagged, and use bundled fonts', () => {
-    const fonts = readFileSync('src/styles/fonts.css', 'utf8')
-    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace']) {
+    // The fetched families are declared in fonts.css; the faces this
+    // repository builds itself (the marks, Flare Display, Dossier Stencil) in
+    // artboard.css, which no generator rewrites.
+    const fonts = readFileSync('src/styles/fonts.css', 'utf8') + readFileSync('src/styles/artboard.css', 'utf8')
+    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace', 'flare', 'dossier']) {
       const t = getTemplate(id)
       expect(t.id).toBe(id)
       expect(t.defaults.layout.columns).toBe(1)
       expect(t.tags).toContain('signature')
-      for (const f of [t.defaults.typography.fontFamily, t.defaults.typography.headingFamily, t.defaults.typography.nameFamily]) {
+      for (const f of [t.defaults.typography.fontFamily, t.defaults.typography.headingFamily, t.defaults.typography.nameFamily, ...(t.fonts ?? [])]) {
         expect(fonts).toContain(`font-family: '${f}'`)
       }
     }
@@ -53,6 +56,20 @@ describe('the signature templates', () => {
     expect(getTemplate('folio-noir').defaults.theme.artBand).toBe('navy-gold')
     expect(getTemplate('terrace').defaults.layout.headingPlacement).toBe('side')
     expect(getTemplate('terrace').header).toBe('stepped')
+    // Flare and Dossier: a kicker over a name in a constructed face, numbered
+    // heads, and a foot on every page; Dossier signs its last page off.
+    for (const id of ['flare', 'dossier']) {
+      const t = getTemplate(id)
+      expect(t.header).toBe('kicker')
+      expect(t.defaults.layout.sectionNumbers).toBe(true)
+      expect(t.defaults.layout.pageFoot).toBe(true)
+    }
+    expect(getTemplate('flare').defaults.typography.nameFamily).toBe('Flare Display')
+    expect(getTemplate('flare').defaults.typography.bulletStyle).toBe('square')
+    expect(getTemplate('dossier').defaults.typography.nameFamily).toBe('Dossier Stencil')
+    expect(getTemplate('dossier').defaults.typography.bulletStyle).toBe('chevron')
+    expect(getTemplate('dossier').kicker?.reference).toBe(true)
+    expect(getTemplate('dossier').pageFootWords?.end).toBe('End of file')
   })
 
   /**
@@ -62,7 +79,7 @@ describe('the signature templates', () => {
    */
   it('each one has a scoped block of its own in the stylesheet', () => {
     const css = readFileSync('src/templates/templates.css', 'utf8')
-    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace']) {
+    for (const id of ['broadsheet', 'marquee', 'atlas', 'chronicle', 'folio-noir', 'terrace', 'flare', 'dossier']) {
       expect(css).toContain(`.tpl-${id} `)
     }
   })

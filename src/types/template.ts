@@ -52,6 +52,7 @@ export type HeaderVariant =
   | 'block' // the name fills a colour block in tall capitals
   | 'band' // a two-stop gradient band carries the name, with a slot for the stats
   | 'stepped' // three full-width bands in graded shades: name, role, contacts
+  | 'kicker' // a small decorative line over a large name: a label, and the city and year
 
 /** Section heading treatment. */
 export type SectionStyle =
@@ -81,6 +82,15 @@ export interface TemplateConfig {
   /** show an icon chip beside each section title (premium look). Defaults on
    *  for modern templates, off for traditional/minimal ones. */
   sectionIcons?: boolean
+  /** Families the template's own stylesheet names outright - a meta line
+   *  set in a mono face whatever the body is. The export waits for them and
+   *  the offline warmer fetches them, like the document's own three faces. */
+  fonts?: string[]
+  /** The kicker header's label, left of its line, and whether a case-file
+   *  reference drawn from the name follows it (pageWords.ts). */
+  kicker?: { label: string; reference?: boolean }
+  /** What the page foot says beside the page number (pageWords.ts). */
+  pageFootWords?: { page?: string; end?: string }
   /** the metadata this template applies when selected */
   defaults: Pick<Metadata, 'theme' | 'typography' | 'layout'> & { template: string }
   /** optional fully-custom component (rare; overrides the generic Artboard) */

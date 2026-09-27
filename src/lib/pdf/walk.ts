@@ -1874,9 +1874,19 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
   // ::after flushed, innermost (most recently opened) first — exactly the
   // order CSS closes nested elements in.
   const openForAfter: HTMLElement[] = []
+  // Ink from the RUNNING layer (the page foot and whatever else a design
+  // draws on every page, Artboard's `data-running`) is tagged as it is
+  // emitted: paint.ts repeats it on every page instead of giving it to one.
+  const tagRunning = (from: number, el: Element | null | undefined) => {
+    if (!el?.closest?.('[data-running]')) return
+    for (let i = from; i < ops.length; i++) ops[i].running = true
+  }
   const closeUpTo = (n: Node | null) => {
     while (openForAfter.length && !(n && openForAfter[openForAfter.length - 1].contains(n))) {
-      pseudoOps(openForAfter.pop()!, root, ops, '::after')
+      const el = openForAfter.pop()!
+      const from = ops.length
+      pseudoOps(el, root, ops, '::after')
+      tagRunning(from, el)
     }
   }
 
@@ -1906,6 +1916,7 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
 
   for (let n: Node | null = walker.nextNode(); n; n = walker.nextNode()) {
     closeUpTo(n)
+    const opsBefore = ops.length
     if (n.nodeType === Node.ELEMENT_NODE) {
       const el = n as HTMLElement
       if (el.tagName === 'svg') {
@@ -1956,11 +1967,30 @@ export function buildDrawList(root: HTMLElement, opts?: { clickableLinks?: boole
       // one visual line from two pieces that merely sit at the same height in
       // different columns. See `lineBoxId`.
       const box = lineBoxId((n as Text).parentElement, root)
+      // A running page number: paint.ts writes its words afresh on every
+      // page (pageWords.ts), so it carries the design's words with it.
+      const pageEl = (n as Text).parentElement?.closest?.('[data-run-page]') as HTMLElement | null | undefined
+      const runPage = pageEl
+        ? {
+            page: pageEl.dataset.runPage ?? '',
+            end: pageEl.dataset.runEnd ?? '',
+            upper: getComputedStyle(pageEl).textTransform === 'uppercase',
+          }
+        : undefined
       for (const run of extractRuns(n as Text, root)) {
         const r = decorative ? { ...run, isDecorative: true, lineBoxId: box } : { ...run, lineBoxId: box }
-        ops.push({ kind: 'text', run: r, role: r.isDecorative ? 'Artifact' : role, column, blockId, linkUrl: r.isDecorative ? undefined : linkUrl })
+        ops.push({
+          kind: 'text',
+          run: r,
+          role: r.isDecorative ? 'Artifact' : role,
+          column,
+          blockId,
+          linkUrl: r.isDecorative ? undefined : linkUrl,
+          ...(runPage ? { runPage } : {}),
+        })
       }
     }
+    tagRunning(opsBefore, n.nodeType === Node.ELEMENT_NODE ? (n as Element) : (n as Text).parentElement)
   }
   closeUpTo(null)
   tagPageChromeOps(ops, boxOf(root, root).hPx)

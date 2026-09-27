@@ -82,6 +82,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
   // template".
   const BASE = defaultMetadata()
   const prev = cur.template ? getTemplate(cur.template).defaults.layout : defaultMetadata().layout
+  const prevType = cur.template ? getTemplate(cur.template).defaults.typography : defaultMetadata().typography
   const prevArt = cur.template ? getTemplate(cur.template).defaults.theme.artBand : defaultMetadata().theme.artBand
 
   return defaultMetadata({
@@ -113,7 +114,10 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
     typography: {
       ...cur.typography,
       ...defaults.typography,
-      bulletStyle: cur.typography.bulletStyle,
+      // The mark is the author's once chosen, like the structure below: a
+      // mark that only came with the previous design is that design's (Flare
+      // ships squares, Dossier a >), and the next design's own applies.
+      bulletStyle: chosen(cur.typography.bulletStyle, prevType.bulletStyle, defaults.typography.bulletStyle),
       bulletIndent: cur.typography.bulletIndent,
       bulletGap: cur.typography.bulletGap,
       proficiency: cur.typography.proficiency,
@@ -200,6 +204,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // turned on is the previous template's, not the author's.
       stats: chosen(cur.layout.stats, prev.stats, defaults.layout.stats),
       sectionNumbers: chosen(cur.layout.sectionNumbers, prev.sectionNumbers, defaults.layout.sectionNumbers),
+      pageFoot: chosen(cur.layout.pageFoot, prev.pageFoot, defaults.layout.pageFoot),
       // ...but the SHAPE of that numeral is not a structural choice at all,
       // so it does not go through chosen(): it is the author's the way the
       // heading style and the date format are, and it simply travels. Stated

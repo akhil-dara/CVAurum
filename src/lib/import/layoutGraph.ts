@@ -283,12 +283,51 @@ function collapseTracking(text: string): string {
  */
 const runningTextItems = (items: Item[]): Item[] => items.filter((it) => it.str.trim().length > 1)
 
+/** One word of a date as a résumé sets it: a month, a year, a numeric date,
+ *  "Present" and its kin, or the dash and "to" between two of them. */
+const DATE_WORD =
+  /^(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?|\d{4}|\d{1,2}[/.-]\d{2,4}|present|current|now|today|to|till|[-–—])$/i
+const isDateText = (s: string) => {
+  const words = s.trim().split(/\s+/).map((w) => w.replace(/[,()]/g, '')).filter(Boolean)
+  return words.length > 0 && words.every((w) => DATE_WORD.test(w))
+}
+
+/**
+ * True when one side of a candidate gutter holds almost nothing but dates - a
+ * one-column page whose dates are set flush right (or left), not a sidebar.
+ * Measured on the import gate's rich document in the larger signature
+ * designs: a last page of certificates, awards and a publication - short
+ * titles on the left, a year each on the right - split cleanly at the gap,
+ * and the years were read as a column and handed to another section.
+ */
+function isDateRail(items: Item[], gutter: number): boolean {
+  let left = 0
+  let right = 0
+  let leftDates = 0
+  let rightDates = 0
+  for (const it of items) {
+    if (it.x < gutter - 2 && it.x + it.width > gutter + 2) continue
+    const date = isDateText(it.str)
+    if (it.x + it.width <= gutter) {
+      left++
+      if (date) leftDates++
+    } else {
+      right++
+      if (date) rightDates++
+    }
+  }
+  // Three quarters, not all: a rail carries the odd word beside its dates (an
+  // education line's "GPA" measured there), and a real sidebar is mostly words.
+  return (right > 0 && rightDates >= right * 0.75) || (left > 0 && leftDates >= left * 0.75)
+}
+
 /**
  * Find a clean vertical gutter that splits a page's items into two columns.
  * A good gutter has (almost) no item straddling it and substantial text on both
- * sides. Returns the x position, or null for single-column pages.
+ * sides. Returns the x position, or null for single-column pages - which a
+ * page whose one side is only dates is (isDateRail). Exported for its tests.
  */
-function detectGutter(all: Item[], width: number): number | null {
+export function detectGutter(all: Item[], width: number): number | null {
   const items = runningTextItems(all)
   if (items.length < 20 || width <= 0) return null
   let best: number | null = null
@@ -386,6 +425,7 @@ function detectGutter(all: Item[], width: number): number | null {
     }
     if (leftMax > -Infinity && rightMin < Infinity && rightMin > leftMax) best = (leftMax + rightMin) / 2
   }
+  if (best != null && isDateRail(items, best)) return null
   return best
 }
 
@@ -425,7 +465,8 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
       // falls on still identifies its column; a genuinely full-width
       // continuation page still crosses the old gutter and is rejected by
       // the straddle cap below.
-      if (left + right > 0 && straddle <= pageItems.length * 0.03) gutter = prevGutter
+      if (left + right > 0 && straddle <= pageItems.length * 0.03 && !isDateRail(runningTextItems(pageItems), prevGutter))
+        gutter = prevGutter
     }
     if (gutter == null) continue
     prevGutter = gutter

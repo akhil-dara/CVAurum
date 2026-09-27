@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { documentFaces } from '@/lib/documentFaces'
 import { ArrowLeft, Download } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
@@ -78,7 +79,7 @@ export function PrintPage() {
     void (async () => {
       try {
         await withTimeout(
-          ensureFontsReady([doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily]),
+          ensureFontsReady(documentFaces(doc.metadata)),
           4000,
         )
         await awaitPhoto()

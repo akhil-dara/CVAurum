@@ -50,6 +50,9 @@ function joinable(prev: TextOp, next: TextOp): boolean {
   // never become one run, or the structure tree could not pair each link's
   // text with its own annotation (0008).
   if (prev.linkUrl !== next.linkUrl) return false
+  // Running ink is painted on every page and a page number is rewritten
+  // on each one; neither may be folded into a neighbour.
+  if (!!prev.running !== !!next.running || !!prev.runPage !== !!next.runPage) return false
   const a = prev.run
   const b = next.run
   if (Math.abs(a.baselinePx - b.baselinePx) > 0.1) return false

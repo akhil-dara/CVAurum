@@ -119,7 +119,7 @@ function collectSignals(input: ResumeDocument): Signals {
 
   const bulletStyles = Object.values(layout.sectionSettings ?? {}).map((s) => s?.bulletStyle)
   const globalBullet = doc.metadata.typography.bulletStyle
-  const fancy = ['arrow', 'diamond', 'check'].includes(globalBullet) || bulletStyles.some((b) => b && ['arrow', 'diamond', 'check'].includes(b))
+  const fancy = ['arrow', 'diamond', 'check', 'chevron'].includes(globalBullet) || bulletStyles.some((b) => b && ['arrow', 'diamond', 'check', 'chevron'].includes(b))
 
   return {
     twoColumn,

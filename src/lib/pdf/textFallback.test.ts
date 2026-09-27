@@ -15,6 +15,14 @@ describe('mayNeedFallback', () => {
     expect(mayNeedFallback('Αλέξανδρος')).toBe(true)
     expect(mayNeedFallback('Nguyễn')).toBe(true)
   })
+  // The two constructed display faces draw a name's letters but not all of
+  // Basic Latin: an address sign or a dollar is not in them, and a heading
+  // that carried one lost it outright while the fast path waved it through.
+  it('checks every run set in a face that lacks part of Basic Latin', () => {
+    expect(mayNeedFallback('R&D @ Scale', '"Flare Display", "Archivo", "Oswald"')).toBe(true)
+    expect(mayNeedFallback('Case File', "'Dossier Stencil', monospace")).toBe(true)
+    expect(mayNeedFallback('R&D @ Scale', '"Archivo", "Oswald"')).toBe(false)
+  })
 })
 
 describe('segmentByCoverage', () => {

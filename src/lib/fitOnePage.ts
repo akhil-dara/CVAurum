@@ -12,6 +12,19 @@
  * content height (px). Returns 1 when the content already fits at full size, or
  * when it can't fit even at MIN_FIT (then it's left full size and paginates).
  */
+
+/**
+ * A measured height is within a page when it is no more than half a pixel
+ * over it. Heights come back as whole pixels (scrollHeight) while the page is
+ * 1122.52px: a page drawn exactly one page tall - the page foot's layer,
+ * Flare's spine - measured 1123 and read as an overflow, and the page count
+ * asked for next counts a short page's bottom padding twice. The exporter's
+ * one-page test allows the same half pixel (pdf/metrics.ts exceedsOnePage).
+ */
+export function withinPage(h: number, pageH: number): boolean {
+  return h <= pageH + 0.5
+}
+
 export const MIN_FIT = 0.66
 /** How far a SPARSE page may grow to fill itself. Auto-fit used to work in
  *  one direction only - an overflowing page shrank, a half-empty one just
@@ -341,7 +354,7 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
     // résumé the old fit put on one page fell back to two (pdf gate,
     // folio-noir after the gate's template sequence: 1074px in a 1123px page).
     // Past the page height the true count decides, as the old fallback did.
-    if (h <= pageH) return 1
+    if (withinPage(h, pageH)) return 1
     if (countPages) return countPages()
     return 1 + Math.ceil((h - pageH) / Math.max(1, subsequentPageH))
   }

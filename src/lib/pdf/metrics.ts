@@ -93,7 +93,22 @@ export function computeFirstPageUsablePageHeightPx(pageHeightPx: number, padding
  * ResumePreview.tsx now call this, not their own copy of the arithmetic.
  */
 export function exceedsOnePage(contentHeightPx: number, pageHeightPx: number, marginMm: number): boolean {
-  return contentHeightPx > pageHeightPx + marginMm * MM_TO_PX
+  // Half a pixel of rounding: the page height reaches CSS rounded to 0.01px
+  // (Artboard's --rm-page-h, 1122.52 for A4's 1122.5197), so a root held at
+  // exactly one page tall measures a few hundredths over the page.
+  return contentHeightPx > pageHeightPx + marginMm * MM_TO_PX + SUBPIXEL_PX
+}
+const SUBPIXEL_PX = 0.5
+
+/**
+ * The bottom-margin tolerance `exceedsOnePage` should allow this document.
+ * Text may run a little into an EMPTY bottom margin and still be one page;
+ * a page with a foot (layout.pageFoot) has the foot in that margin, so it
+ * allows none, and a line that would have reached into it starts a page two
+ * instead. The export and the preview both ask here.
+ */
+export function onePageMarginMm(metadata: { page: { margin: number }; layout: { pageFoot?: boolean } }): number {
+  return metadata.layout.pageFoot ? 0 : metadata.page.margin
 }
 
 /**

@@ -15,6 +15,7 @@ export const HEADER_STYLES: { label: string; value: string }[] = [
   { label: 'Block', value: 'block' },
   { label: 'Band', value: 'band' },
   { label: 'Stepped', value: 'stepped' },
+  { label: 'Kicker', value: 'kicker' },
 ]
 
 /**
@@ -267,6 +268,20 @@ export function HeaderMini({ kind }: { kind: string }) {
           <span className="flex bg-primary/45 px-[3px] py-[2px]">
             <span className="h-[2px] w-3/4 rounded-[1px] bg-white/80" />
           </span>
+        </span>
+      )
+    // A thin line of type over a large name, then the role and the contacts
+    // down the left.
+    case 'kicker':
+      return (
+        <span className="flex w-full flex-col gap-[2px]">
+          <span className="flex w-full justify-between">
+            <span className={`h-[1px] w-1/3 ${line}`} />
+            <span className={`h-[1px] w-1/4 ${line}`} />
+          </span>
+          <span className={`h-[7px] w-4/5 ${bar}`} />
+          <span className={`h-[2px] w-1/2 ${line}`} />
+          <span className={`h-[2px] w-3/4 ${line}`} />
         </span>
       )
     default:

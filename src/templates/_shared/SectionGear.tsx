@@ -465,6 +465,7 @@ const BULLET_CHOICES: { v: string; label: string; title: string }[] = [
   { v: 'arrow', label: '›', title: 'Arrow' },
   { v: 'check', label: '✓', title: 'Check' },
   { v: 'diamond', label: '◆', title: 'Diamond' },
+  { v: 'chevron', label: '>', title: 'Chevron' },
   { v: 'none', label: 'None', title: 'No bullet markers' },
 ]
 

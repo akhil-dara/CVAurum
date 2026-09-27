@@ -18,6 +18,7 @@ import {
   needsReshape,
   jpegColorComponents,
   DRIFT_FRACTION,
+  withPageNumbers,
 } from './paint'
 import { PdfFontCache } from './fonts'
 import { createTagSink } from './structure'
@@ -2268,5 +2269,65 @@ describe('jpegColorComponents — JPEG frame-header component count (CMYK screen
   })
   it('returns null for a truncated header with no frame', () => {
     expect(jpegColorComponents(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBeNull()
+  })
+})
+
+/**
+ * The running layer (the page foot, Artboard's `rm-running`): its ink is
+ * already in page coordinates, so every page gets the same copy, and a page
+ * number is rewritten for each page and kept to the right edge it ended at.
+ */
+describe('the running layer', () => {
+  const foot = (text: string, extra: Partial<Extract<DrawOp, { kind: 'text' }>> = {}): DrawOp => ({
+    kind: 'text',
+    run: baseRun({ text, xPx: 500, baselinePx: 1100, sizePx: 9.6, family: 'Arimo', weight: 700, isDecorative: true }),
+    role: 'Artifact',
+    running: true,
+    ...extra,
+  })
+
+  it('puts the same copy of running ink on every page', () => {
+    const rule: DrawOp = { kind: 'line', x1Px: 40, y1Px: 1090, x2Px: 700, y2Px: 1090, widthPx: 0.7, color: { r: 0, g: 0, b: 0, a: 1 }, running: true }
+    const name = foot('PRIYA RAMAN')
+    const body: DrawOp = { kind: 'rect', xPx: 0, yPx: 1500, wPx: 10, hPx: 10, fill: { r: 0, g: 0, b: 0, a: 1 } }
+    const pages = assignOpsToPages([rule, name, body], [1040, 2080], 45, 1122)
+    expect(pages.length).toBe(3)
+    for (const p of pages) {
+      expect(p).toContain(rule)
+      expect(p).toContain(name)
+    }
+    expect(pages[1].some((o) => o.kind === 'rect')).toBe(true)
+  })
+
+  it('writes each page its own number, right edge where the first one ended', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+    const num = foot('1 / 12', { runPage: { page: '', end: '' } })
+    const [p1] = await withPageNumbers([num], 1, 12, fonts)
+    const [p10] = await withPageNumbers([num], 10, 12, fonts)
+    const t1 = p1 as Extract<DrawOp, { kind: 'text' }>
+    const t10 = p10 as Extract<DrawOp, { kind: 'text' }>
+    expect(t1.run.text).toBe('1 / 12')
+    expect(t1.run.xPx).toBe(500)
+    expect(t10.run.text).toBe('10 / 12')
+    // A wider number starts further left, so the two end at one edge.
+    expect(t10.run.xPx).toBeLessThan(500)
+  })
+
+  it('writes the closing words on the last page and nothing where there is nothing to say', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, FONT_INDEX)
+    const num = foot('1 / 2', { runPage: { page: '', end: 'End of file' } })
+    const [last] = await withPageNumbers([num], 2, 2, fonts)
+    expect((last as Extract<DrawOp, { kind: 'text' }>).run.text).toBe('End of file · 2 / 2')
+    // The stylesheet set the foot in capitals, which reached page one's
+    // words through the DOM and must reach every later page's too.
+    const upper = foot('1 / 2', { runPage: { page: '', end: 'End of file', upper: true } })
+    const [lastUpper] = await withPageNumbers([upper], 2, 2, fonts)
+    expect((lastUpper as Extract<DrawOp, { kind: 'text' }>).run.text).toBe('END OF FILE · 2 / 2')
+    const other = foot('x', { runPage: { page: '', end: '' } })
+    expect(await withPageNumbers([other], 1, 1, fonts)).toEqual([])
   })
 })

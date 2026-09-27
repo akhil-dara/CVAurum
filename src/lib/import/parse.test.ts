@@ -1057,8 +1057,20 @@ describe('sectionLeftX - a hanging bullet mark is not the section margin (2026-0
   })
 
   it('does the same for every mark the exporter can write', () => {
-    for (const mark of ['•', '◦', '▪', '–', '›', '✓', '◆']) {
+    for (const mark of ['•', '◦', '▪', '–', '›', '✓', '◆', '>']) {
       expect(sectionLeftX([bulleted(mark, 35.7, 'Mentored new contributors', 43.2)])).toBeCloseTo(43.2, 4)
+    }
+  })
+
+  it('knows a mark the file carries bare, with no space after it', () => {
+    // The exporter's text layer can hand the mark over as an item of its own
+    // with nothing after it: a bare > (or ›) was taken for the line's first
+    // word, the margin moved out to the marks, and the organisation line
+    // under an entry's title read as an indented highlight (Dossier,
+    // 2026-09-27).
+    for (const mark of ['>', '›', '–', '•', '▪']) {
+      const bare = { ...line(mark + ' Mentored new contributors', false), x: 35.7, items: [item(mark, 35.7), item('Mentored new contributors', 43.2)] }
+      expect(sectionLeftX([bare])).toBeCloseTo(43.2, 4)
     }
   })
 

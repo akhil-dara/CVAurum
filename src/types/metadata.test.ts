@@ -103,3 +103,23 @@ describe('the bullet mark has a size of its own', () => {
     expect(() => TypographySchema.parse({ bulletSize: 0.2 })).toThrow()
   })
 })
+
+/**
+ * The running page foot, the kicker header and the > mark (Flare and
+ * Dossier, 2026-09-27). All additive: a file written before them parses to
+ * the page it always was.
+ */
+describe('the page foot, the kicker header and the chevron mark', () => {
+  it('a page foot is off unless a design or the author turns it on', () => {
+    expect(LayoutSchema.parse({}).pageFoot).toBe(false)
+    expect(LayoutSchema.parse({ pageFoot: true }).pageFoot).toBe(true)
+  })
+  it('the kicker is a header composition like the others', () => {
+    expect(LayoutSchema.parse({ headerStyle: 'kicker' }).headerStyle).toBe('kicker')
+    expect(LayoutSchema.parse({}).headerStyle).toBeUndefined()
+  })
+  it('> is a bullet mark and a contact separator', () => {
+    expect(TypographySchema.parse({ bulletStyle: 'chevron' }).bulletStyle).toBe('chevron')
+    expect(LayoutSchema.parse({ contactSeparator: 'chevron' }).contactSeparator).toBe('chevron')
+  })
+})

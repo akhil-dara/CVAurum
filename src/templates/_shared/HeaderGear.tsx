@@ -109,7 +109,7 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
           })
       )}
       {lined
-        ? row<'none' | 'dot' | 'pipe' | 'slash' | 'dash' | 'node'>(
+        ? row<'none' | 'dot' | 'pipe' | 'slash' | 'dash' | 'node' | 'chevron'>(
             'Between',
             contactSeparator ?? 'none',
             [
@@ -119,6 +119,7 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
               { v: 'pipe', label: '|', title: 'Vertical bar' },
               { v: 'slash', label: '/', title: 'Slash' },
               { v: 'dash', label: '–', title: 'En dash' },
+              { v: 'chevron', label: '>', title: 'Chevron' },
             ],
             (v) =>
               editMeta((m) => {

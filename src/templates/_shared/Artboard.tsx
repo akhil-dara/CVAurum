@@ -46,6 +46,7 @@ import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
 import { iconForKind } from '@/components/icons/sectionIcons'
 import { FolioIcon, type FolioIconKind } from './folioIcons'
 import { sectionIconKind } from './sectionIconChoice'
+import { fileReference, kickerPlace, pageFootText } from '@/lib/pageWords'
 
 /** Traditional templates render headings without icon chips. */
 const NO_SECTION_ICONS = new Set(['classic', 'ivy', 'academic', 'elegant', 'minimal', 'executive', 'sienna'])
@@ -109,8 +110,9 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
  * flags. As characters, the same marks are drawn once, from the same outlines,
  * on the canvas and in the file, and an extractor reads what the reader sees.
  *
- * • – › are in every bundled family (measured: 158/158 PDF instances), so
- * those three come from the résumé's own face. ◦ ▪ ✓ ◆ are in none of them and
+ * • – › are in every bundled family (measured: 158/158 PDF instances), and >
+ * is plain ASCII, so those four come from the résumé's own face. ◦ ▪ ✓ ◆ are
+ * in none of them and
  * come from the bundled marks family at the end of every stack
  * (src/data/fonts.ts, scripts/make-marks-font.py) — before that, ✓ and ◆ were
  * drawn from whatever font the reader's machine happened to have.
@@ -126,6 +128,7 @@ const BULLET_TYPE: Record<string, string> = {
   arrow: '"›  "',
   check: '"✓  "',
   diamond: '"◆  "',
+  chevron: '">  "',
   none: 'none',
 }
 
@@ -577,7 +580,7 @@ function useVars(doc: ResumeDocument, fit: FitVector, headerStyle?: string): CSS
       // The glyph itself, as a CSS `content` string. Written as real
       // characters rather than escapes: this value is handed to CSS verbatim.
       '--rm-contact-sep': (
-        { none: '""', dot: '"·"', pipe: '"|"', slash: '"/"', dash: '"–"', node: '"•"' } as Record<string, string>
+        { none: '""', dot: '"·"', pipe: '"|"', slash: '"/"', dash: '"–"', node: '"•"', chevron: '">"' } as Record<string, string>
       )[layout.contactSeparator ?? 'none'],
       '--rm-photo-align':
         layout.photoAlign === 'left' ? 'flex-start' : layout.photoAlign === 'right' ? 'flex-end' : 'center',
@@ -1180,6 +1183,65 @@ function StatsBand({ doc, edit }: { doc: ResumeDocument; edit?: boolean }) {
   )
 }
 
+/** The year the page furniture dates itself by: the year the document was
+ *  last touched, so a résumé keeps its date until it is edited again. */
+function furnitureYear(doc: ResumeDocument): number {
+  const at = doc.updatedAt ? new Date(doc.updatedAt) : new Date()
+  return Number.isFinite(at.getTime()) ? at.getFullYear() : new Date().getFullYear()
+}
+
+/**
+ * The kicker: a small line of type over the name - the design's label on
+ * the left (and, for a case file, a reference drawn from the name), the
+ * author's city and the year on the right. All of it is decoration (Deco):
+ * outlines in the PDF, nothing a parser reads. The contact line still
+ * carries the real location.
+ */
+function Kicker({ doc, config }: { doc: ResumeDocument; config: TemplateConfig }) {
+  const year = furnitureYear(doc)
+  const label = config.kicker?.label ?? 'Curriculum vitae'
+  const ref = config.kicker?.reference ? fileReference(doc.content.basics.name || '', year) : null
+  return (
+    <div className="rm-kicker" aria-hidden="true">
+      <Deco className="rm-kicker-label">
+        {label}
+        {ref ? <span className="rm-kicker-ref"> {ref}</span> : null}
+      </Deco>
+      <Deco className="rm-kicker-place">{kickerPlace(doc.content.basics.location, year)}</Deco>
+    </div>
+  )
+}
+
+/**
+ * The page foot: the name on the left and the page number on the right, at
+ * the foot of EVERY page (layout.pageFoot). It sits in a layer the size of
+ * one page (`rm-running`), and the exporter repeats that layer's ink on each
+ * page it paints (pdf/paint.ts), writing the number afresh each time - the
+ * canvas, which draws one page, shows what a one-page document prints. All
+ * decoration: nothing here reaches the text layer, the Word file or the ATS
+ * text, so the name is never read twice.
+ */
+function PageFoot({ doc, config }: { doc: ResumeDocument; config: TemplateConfig }) {
+  const words = config.pageFootWords ?? {}
+  return (
+    <div className="rm-running" data-running="page" aria-hidden="true">
+      <div className="rm-pagefoot">
+        <span className="rm-deco rm-pagefoot-name" data-deco="1">
+          {doc.content.basics.name || ''}
+        </span>
+        <span
+          className="rm-deco rm-pagefoot-page"
+          data-deco="1"
+          data-run-page={words.page ?? ''}
+          data-run-end={words.end ?? ''}
+        >
+          {pageFootText(1, 1, words)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function Header({
   doc,
   config,
@@ -1274,6 +1336,24 @@ function Header({
     ) : (
       head
     )
+
+  // kicker: a small decorative line over a large name, then the role and the
+  // contacts, all in one column down the left.
+  if (variant === 'kicker') {
+    return withStats(
+      <header className={hcls('rm-header-kicker')}>
+        {art}
+        {Gear}
+        <Kicker doc={doc} config={config} />
+        <div className="rm-header-main">
+          {nameEl}
+          {headlineEl}
+          {ContactsEl}
+        </div>
+        {HeaderPhoto}
+      </header>
+    )
+  }
 
   if (variant === 'display') {
     return (
@@ -1712,6 +1792,9 @@ export function Artboard({
     (doc.metadata.layout.levelPlacement ?? 'end') !== 'end' ? `lvl-${doc.metadata.layout.levelPlacement}` : '',
     // The page seats a footer strip at its foot (artboard.css).
     footer.length ? 'rm-has-footer' : '',
+    // Every page carries a quiet foot (the name and the page number), whose
+    // band the columns keep clear (artboard.css .rm-pagefoot-on).
+    doc.metadata.layout.pageFoot ? 'rm-pagefoot-on' : '',
     // An entry's dates can have a column of their own: a gutter of
     // decorative years on the left, or a margin holding the real date on
     // the right. Absent unless asked for, so nothing existing shifts.
@@ -1721,6 +1804,9 @@ export function Artboard({
     // things (the band): a name that would take three lines at full size
     // takes one size down instead.
     (doc.content.basics.name || '').trim().length > 22 ? 'rm-long-name' : '',
+    // ...and a very long one (a double surname and more) two sizes down,
+    // where a header sets the name at several times the body.
+    (doc.content.basics.name || '').trim().length > 32 ? 'rm-longer-name' : '',
     // A section can hand its title a column of its own on the left, beside
     // the content instead of above it. Absent unless asked for, so a page
     // that never chose it keeps the headings it has.
@@ -1797,10 +1883,12 @@ export function Artboard({
   // face: two sizes for one heading, and page cuts that disagreed between the
   // preview and the export (see keywordFit.ts).
   const { fontFamily, headingFamily, nameFamily } = doc.metadata.typography
+  // ...and the faces the template's own stylesheet names (TemplateConfig.fonts).
+  const templateFaces = (config.fonts ?? []).join('|')
   useEffect(() => {
     if (!rootRef.current) return
-    return refitWhenFontsReady(rootRef.current, [fontFamily, headingFamily, nameFamily])
-  }, [fontFamily, headingFamily, nameFamily])
+    return refitWhenFontsReady(rootRef.current, [fontFamily, headingFamily, nameFamily, ...templateFaces.split('|')])
+  }, [fontFamily, headingFamily, nameFamily, templateFaces])
 
   return (
     <div ref={rootRef} className={rootClass} style={vars} data-template={config.id}>
@@ -1820,6 +1908,7 @@ export function Artboard({
         {twoCol && doc.metadata.layout.sidebar === 'right' ? AsideCol : null}
       </div>
       {FooterStrip}
+      {doc.metadata.layout.pageFoot ? <PageFoot doc={doc} config={config} /> : null}
     </div>
   )
 }

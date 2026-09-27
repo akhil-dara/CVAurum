@@ -202,7 +202,7 @@ export const TypographySchema = z.object({
   /** width of the rule under a section title, in px; unset keeps the template's own */
   headingRuleWidth: z.union([z.literal(1), z.literal(2)]).optional(),
   /** bullet marker style for highlight lists */
-  bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'none']).default('disc'),
+  bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'chevron', 'none']).default('disc'),
   /** how far a highlight list is set in from the text edge, in em of the base size */
   bulletIndent: z.number().min(0.5).max(2.5).default(1.05),
   /** vertical space between two bullets, in em of the base size */
@@ -218,7 +218,7 @@ export const LayoutSchema = z.object({
   /** 1 = single column, 2 = main + sidebar */
   columns: z.union([z.literal(1), z.literal(2)]).default(1),
   /** header composition override (unset = the template's own header) */
-  headerStyle: z.enum(['standard', 'centered', 'split', 'banner', 'compact', 'display', 'block', 'cover', 'card', 'stepped', 'band']).optional(),
+  headerStyle: z.enum(['standard', 'centered', 'split', 'banner', 'compact', 'display', 'block', 'cover', 'card', 'stepped', 'band', 'kicker']).optional(),
   /** Where an entry's meta (date, place) sits: in the entry, in a tinted left
    *  gutter with a decorative year numeral, or in a right margin column. */
   metaColumn: z.enum(['none', 'gutter', 'margin']).default('none'),
@@ -281,6 +281,11 @@ export const LayoutSchema = z.object({
   /** Section keys rendered in a compact strip at the foot of the page,
    *  after the main flow; the ATS text and the Word file list them last. */
   footer: z.array(z.string()).default([]),
+  /** A quiet line at the foot of EVERY page - the name, and the page number
+   *  when there is more than one - drawn as decoration only: outlines in the
+   *  PDF, nothing in the text layer, the Word file or the ATS text. The main
+   *  column keeps its band clear on every page (artboard.css .rm-pagefoot). */
+  pageFoot: z.boolean().default(false),
   /** hidden section keys */
   hidden: z.array(z.string()).default([]),
   /** custom heading label overrides keyed by section key */
@@ -333,7 +338,7 @@ export const LayoutSchema = z.object({
         /** show a monogram badge (company/institution initial) beside each entry */
         showBadges: z.boolean().optional(),
         /** per-section bullet marker (overrides the global typography choice) */
-        bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'none']).optional(),
+        bulletStyle: z.enum(['disc', 'circle', 'square', 'dash', 'arrow', 'check', 'diamond', 'chevron', 'none']).optional(),
         /** per-section proficiency meter for skills/languages (overrides typography.proficiency) */
         meterStyle: z.enum(['dots', 'bars', 'stars', 'text', 'none']).optional(),
         /** entry logo / letter-badge size */
@@ -394,7 +399,7 @@ export const LayoutSchema = z.object({
   /** What sits between contacts on an inline row. Templates used to hard-code
    *  this, so an author who wanted dots between their details - or nothing at
    *  all - had to change template to get them. */
-  contactSeparator: z.enum(['none', 'dot', 'pipe', 'slash', 'dash', 'node']).default('none'),
+  contactSeparator: z.enum(['none', 'dot', 'pipe', 'slash', 'dash', 'node', 'chevron']).default('none'),
   /**
    * How a section heading's icon is presented. The badge is one of the
    * loudest stylistic choices on the page, so it is worth a real control:
