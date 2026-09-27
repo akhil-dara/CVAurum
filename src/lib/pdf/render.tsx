@@ -370,6 +370,12 @@ export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> 
     // paper's edge, so its tail falls entirely off the sheet and paints
     // nothing.
     sheet.style.setProperty('--rm-foot-tail', `${pageHpx}px`)
+    // And a two-column page's sidebar band runs to the foot of the LAST
+    // page, not only to where the longer column ends (artboard.css
+    // --rm-page-min). Set after pagination for the same reason as the tail:
+    // it lengthens the page below the last break and moves nothing above it.
+    // Past the paper's edge the page itself cuts it.
+    if (cutsPx.length) sheet.style.setProperty('--rm-page-min', `${cutsPx[cutsPx.length - 1] + pageHpx}px`)
 
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)

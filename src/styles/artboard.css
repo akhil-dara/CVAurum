@@ -106,6 +106,23 @@
   min-height: 100%;
   align-items: stretch;
 }
+/* A two-column page is a whole sheet tall, so its sidebar band runs to the
+   foot of the paper. `min-height: 100%` above resolves against a root that
+   was only as tall as its content, and on a short résumé the band stopped
+   56-83% of the way down on 16 of the 17 two-column designs - a white block
+   under a navy band (usability test, 2026-09-26). The root becomes the
+   column the body stretches in, as the footer designs' root already is.
+   The exporter lifts --rm-page-min to the foot of the LAST page once it has
+   paginated (pdf/render.tsx), so the band reaches the bottom there too
+   without moving a single break. */
+.rm-root:not(.rm-single):not(.rm-section-preview):not(.rm-has-footer) {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--rm-page-min, var(--rm-page-h, 1122.52px));
+}
+.rm-root:not(.rm-single):not(.rm-section-preview):not(.rm-has-footer) > .rm-body {
+  flex: 1 0 auto;
+}
 .rm-col-main {
   flex: 1 1 auto;
   min-width: 0;
