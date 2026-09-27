@@ -398,6 +398,23 @@ export function textNodeLineSegments(node: Text): TextLineSegment[] {
   }
   offsets.push({ start: segStart, end: len, top: segTop })
 
+  // A node that begins right after an inline element - a bold word, a
+  // no-break compound like "high-scale" - opens with the space that
+  // separated them, and when the wrap falls there that space begins a new
+  // line. The browser collapses it to nothing at a line's start, but it is
+  // this node's FIRST segment, which the hand-back below never looks at, so
+  // the painter drew it and the whole line started one space to the right
+  // (16 of 68 designs, usability test 2026-09-26). Only a collapsed space
+  // goes: one with width separates two words on the same line and stays.
+  const collapsedAt = (i: number): boolean => {
+    range.setStart(node, i)
+    range.setEnd(node, i + 1)
+    return range.getBoundingClientRect().width < 0.5
+  }
+  while (offsets[0].start < offsets[0].end && /\s/.test(node.data[offsets[0].start]) && collapsedAt(offsets[0].start)) {
+    offsets[0].start++
+  }
+
   // A wrap puts its space on ONE of the two lines, and Chromium is not
   // consistent about which: measured on a real export, most wrapped lines
   // ended with their space but one began with it, so the copied text read
