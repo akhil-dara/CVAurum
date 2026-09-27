@@ -154,6 +154,15 @@ def volta():
     g("3", 620, arc_ring(310, 520, 220, 180, T, 150, -90) + arc_ring(310, 190, 240, 190, T, 90, -150))
     g("4", 620, stroke_polyline([(470, 700), (120, 90), (600, 90)], T) + [R(410, 0, 530, 700)])
 
+    # The capital sharp s. B's lower bowl is too small to lend one (its inner
+    # counter is 70 units), so the bowl is the 3's lower one, and a diagonal
+    # falls to it from the top bar's end; make-display-faces.py composes the
+    # other faces' from their B.
+    g("ẞ", 600,
+      [R(0, 0, 120, 700), R(60, 580, 560, 700),
+       [_r((417, 700)), _r((560, 700)), _r((413, 380)), _r((270, 380))]]
+      + arc_ring(330, 190, 230, 190, T, 90, -150))
+
     fixed = dict(G)
     _repair(fixed, T, round_=True)
     for ch in "SGJU2569":

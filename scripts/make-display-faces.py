@@ -200,7 +200,7 @@ ACCENTED = {
     "G": [(circumflex, 0x011C), (breve, 0x011E), (dot_above, 0x0120), (comma_below, 0x0122)],
     "H": [(circumflex, 0x0124)],
     "I": [(grave, 0x00CC), (acute, 0x00CD), (circumflex, 0x00CE), (diaeresis, 0x00CF), (macron, 0x012A),
-          (breve, 0x012C), (dot_above, 0x0130)],
+          (breve, 0x012C), (dot_above, 0x0130), (tilde, 0x0128)],
     "J": [(circumflex, 0x0134)],
     "K": [(comma_below, 0x0136)],
     "L": [(acute, 0x0139), (comma_below, 0x013B), (caron, 0x013D)],
@@ -211,12 +211,70 @@ ACCENTED = {
     "S": [(acute, 0x015A), (circumflex, 0x015C), (cedilla, 0x015E), (caron, 0x0160), (comma_below, 0x0218)],
     "T": [(cedilla, 0x0162), (caron, 0x0164), (comma_below, 0x021A)],
     "U": [(grave, 0x00D9), (acute, 0x00DA), (circumflex, 0x00DB), (diaeresis, 0x00DC), (macron, 0x016A),
-          (breve, 0x016C), (ring, 0x016E), (double_acute, 0x0170)],
+          (breve, 0x016C), (ring, 0x016E), (double_acute, 0x0170), (tilde, 0x0168)],
     "W": [(circumflex, 0x0174)],
     "Y": [(acute, 0x00DD), (circumflex, 0x0176), (diaeresis, 0x0178)],
     "Z": [(acute, 0x0179), (dot_above, 0x017B), (caron, 0x017D)],
 }
 OGONEK = {"A": 0x0104, "E": 0x0118, "I": 0x012E, "U": 0x0172}
+
+
+def ligatures(G, T):
+    """Æ, Œ and ẞ (the capital the unicase faces draw for ß), composed from the
+    face's own A, E, O and B so they are drawn in its strokes: a name like
+    Æsa, Weiß or Cœur was set with those letters borrowed from the text face
+    beside it, a different shape at display size. Æ is A's left leg meeting
+    an E; Œ is O's left half meeting an E; ẞ is a stem, a top bar, a diagonal
+    down to the middle and B's lower bowl."""
+    xs = lambda c: [x for x, _ in c]
+    ys = lambda c: [y for _, y in c]
+    mean = lambda v: sum(v) / len(v)
+    wA, A, _ = G["A"]
+    wE, E, _ = G["E"]
+    wO, O, _ = G["O"]
+    wB, B, _ = G["B"]
+
+    def e_from(dx, bar_from):
+        out = []
+        for c in E:
+            if min(ys(c)) > 150 and max(ys(c)) < 550:  # the middle bar
+                lo, hi, x1 = min(ys(c)), max(ys(c)), max(xs(c))
+                c = [(bar_from, lo), (x1, lo), (x1, hi), (bar_from, hi)]
+            out.append(shift(c, dx))
+        return out
+
+    # Æ: the left leg, cut at the cap line (a mitred apex points above it)
+    apex = wA / 2
+    dx = round(apex - T / 2)
+    legs = [_slab(c, 1, -1000, CAP) for c in A if max(ys(c)) > 500 and mean(xs(c)) < apex]
+    legs = [c for c in legs if len(c) >= 3]
+    # the middle bar runs left to meet the leg, standing in for A's crossbar
+    G["Æ"] = (dx + wE, legs + e_from(dx, round(apex / 2 + T * 0.2) - dx), [])
+
+    # Œ: the left half of O, the E standing where O's centre was
+    half = wO / 2
+    left = [_slab(c, 0, -10000, half) for c in O]
+    dx = round(half - T / 2)
+    G["Œ"] = (dx + wE, [c for c in left if len(c) >= 3] + e_from(dx, 0), [])
+
+    # ẞ: B's stem and lower right, a top bar, and a diagonal between them
+    # The top bar runs nearly to the right edge and the diagonal falls from
+    # its end to the middle, as wide across as a stroke of its slope needs:
+    # steep and thin, the first cut read as a broken B.
+    # The lower bowl is B's pieces centred at or below the middle, cut free
+    # of the stem; the diagonal lands on its top, wherever the face put it
+    # (Volta's upper bowl dips below the middle, and a fixed height left a
+    # notch between the two).
+    xb, x1 = round(wB * 0.36), wB - round(T * 0.2)
+    stem = [c for c in B if max(xs(c)) <= T + 2]
+    lower = [_slab(c, 0, xb, 10000) for c in B if max(xs(c)) > T + 2 and mean(ys(c)) <= MID]
+    lower = [c for c in lower if len(c) >= 3]
+    yb = max(y for c in lower for _, y in c)
+    run, rise = x1 - xb, CAP - yb
+    W = round(T * (run * run + rise * rise) ** 0.5 / rise)
+    top = R(round(T * 0.5), CAP - T, x1, CAP)
+    diag = [(x1 - W, CAP), (x1, CAP), (xb + W, yb), (xb, yb)]
+    G.setdefault("ẞ", (wB, stem + [top, diag] + lower, []))  # unless the face drew its own
 
 
 def glyph_set(base_fn):
@@ -227,6 +285,7 @@ def glyph_set(base_fn):
     G = {ch: (w, list(cs), []) for ch, (w, cs) in base.items()}
     for ch, (w, cs) in extras(T).items():
         G.setdefault(ch, (w, list(cs), []))
+    ligatures(G, T)
 
     def accented(ch, letter, *marks):
         w, body, solid = G[letter]
@@ -245,6 +304,23 @@ def glyph_set(base_fn):
     w = G["O"][0]
     accented("Ø", "O", Q((40, -40), (40 + bar, -40), (w - 40, 740), (w - 40 - bar, 740)))  # Ø
     accented("Ħ", "H", R(-40, 540, G["H"][0] + 40, 540 + bar * 2 // 3))  # Ħ
+    wT = G["T"][0]
+    accented("Ŧ", "T", R(wT // 5, MID - bar // 2, wT - wT // 5, MID + bar // 2))  # Ŧ
+    wL = G["L"][0]
+    accented("Ŀ", "L", R(wL * 11 // 20, MID - T // 2, wL * 11 // 20 + T, MID + T // 2))  # Ŀ, the Catalan middle dot
+    # Ĳ, the Dutch IJ, and ŉ: two glyphs set as one
+    gap = T // 2
+    wI, bI, _ = G["I"]
+    wJ, bJ, _ = G["J"]
+    G["Ĳ"] = (wI + gap + wJ, list(bI) + [shift(c, wI + gap) for c in bJ], [])
+    wq, bq, _ = G["’"]
+    wN, bN, _ = G["N"]
+    G["ŉ"] = (wq + wN, list(bq) + [shift(c, wq) for c in bN], [])
+    G["ĸ"] = G["K"]  # kra: no capital of its own, and the face is unicase
+    # Þ, the Icelandic thorn: P's stem with its bowl lowered to the middle
+    wP, bP, _ = G["P"]
+    drop = CAP // 6
+    G["Þ"] = (wP, [c if max(x for x, _ in c) <= T + 2 else shift(c, 0, -drop) for c in bP], [])
 
     # UNICASE: every lowercase letter is its OWN glyph, drawn as its capital.
     # Mapping "a" to the "A" glyph would look the same on the page, but a
@@ -320,6 +396,10 @@ def stencil(ch, contour):
     w = max(xs) - min(xs)
     h = max(ys) - min(ys)
     if w < 1 or h < 1 or not _convex(contour):
+        return [contour]
+    # ẞ's diagonal stays whole, as A's legs read: cut, it fell into slivers
+    # that filled the bridges of the bars it crosses.
+    if ch in "ẞß" and len(contour) == 4 and len(set(xs)) == 4:
         return [contour]
     axis = 0 if w >= h else 1
     lo = min(xs) if axis == 0 else min(ys)

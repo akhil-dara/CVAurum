@@ -36,7 +36,7 @@ const FONT_DIR = path.resolve(here, '../../../public/fonts-pdf')
 const FONT_FILE = 'arimo-700.ttf'
 const FONT_INDEX = {
   'arimo|700': FONT_FILE,
-  // a constructed display face with no ß, and the text face it falls back to
+  // a constructed display face with no @, and the text face it falls back to
   'volta-display|400': 'volta-display-400.ttf',
   'archivo|400': 'archivo-400.ttf',
 }
@@ -205,12 +205,13 @@ describe('paintOps — tracked (letter-spaced) runs are ordinary visible text', 
   })
 
   it('draws a tracked run its face cannot finish in that face, borrowing only what it lacks', async () => {
-    // A tracked name in a constructed display face that has no ß: the whole
+    // A tracked name in a constructed display face that has no @: the whole
     // name used to move to the first fallback that drew ALL of it, so one
-    // letter set the name in another face - and, the face being unicase, in
-    // lower case. The canvas borrows the one letter; so must the export.
+    // character (a ß, before the faces drew their own) set the name in another
+    // face - and, the face being unicase, in lower case. The canvas borrows
+    // the one character; so must the export.
     const stream = await renderContentStream([
-      { kind: 'text', run: baseRun({ text: 'WEIßE', family: 'Volta Display', weight: 400, letterSpacingPx: 1.5 }) },
+      { kind: 'text', run: baseRun({ text: 'WEI@E', family: 'Volta Display', weight: 400, letterSpacingPx: 1.5 }) },
     ])
     // pdf-lib names a fresh page resource each time a font is set again, so
     // read the family off the name rather than counting resource keys
