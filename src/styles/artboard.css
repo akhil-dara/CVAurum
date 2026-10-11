@@ -1968,6 +1968,18 @@
 .rm-mini:last-child {
   margin-bottom: 0;
 }
+/* In a section body - a flex column whose gap already separates its rows -
+   the row's own margin would come on top, since a flex item's margin never
+   collapses into the gap: two one-line languages on Keystone stood 20px
+   apart, a blank line, and more again at a larger size. The gap alone
+   separates them; the margin above stays for rows outside a body. */
+.rm-section-body > .rm-mini {
+  margin-bottom: 0;
+}
+/* A language is one line: it takes the mini rhythm, not a job block's. */
+[data-section='languages'] > .rm-section-body {
+  gap: var(--rm-item-gap-mini, var(--rm-item-gap));
+}
 .rm-mini-title {
   font-weight: 600;
 }

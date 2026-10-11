@@ -476,3 +476,16 @@ describe('an entry title and its date share a baseline', () => {
     expect(css).toMatch(/\.rm-item-head:has\([^)]*rm-item-badge[^)]*\)\s*\{[^}]*align-items:\s*flex-start/)
   })
 })
+
+describe('a short row never pays two gaps', () => {
+  // The section body is a flex column whose gap is the entry gap, and a mini
+  // row (a language, a certificate, an award) also carried a bottom margin of
+  // its own; flex items' margins do not collapse into the gap, so the two
+  // added up - 20px between two one-line languages on Keystone, a blank line.
+  it('takes its own margin away inside the section body', () => {
+    expect(css).toMatch(/\.rm-section-body\s*>\s*\.rm-mini\s*\{[^}]*margin-bottom:\s*0/)
+  })
+  it('sets one-line languages at the mini rhythm', () => {
+    expect(css).toMatch(/\[data-section='languages'\]\s*>\s*\.rm-section-body\s*\{[^}]*gap:\s*var\(--rm-item-gap-mini/)
+  })
+})
