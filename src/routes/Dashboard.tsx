@@ -274,7 +274,7 @@ export function Dashboard() {
             <Link
               className="btn-ghost btn-sm h-10 sm:h-8"
               to="/examples"
-              title="Browse the résumé examples"
+              title="Browse the resume examples"
               aria-label="Examples"
             >
               <BookOpen className="h-4 w-4" />

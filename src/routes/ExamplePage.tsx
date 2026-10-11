@@ -97,7 +97,7 @@ function Example({ sample }: { sample: LibrarySample }) {
         <div className="mt-6 grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* What it is and the one button, first on every width. */}
           <div className="order-1 lg:order-2">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{sample.role} résumé example</h1>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{sample.role} resume example</h1>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{sample.blurb}</p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">

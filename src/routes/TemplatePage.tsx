@@ -115,7 +115,7 @@ function Design({ id }: { id: string }) {
         */}
         <div className="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-[560px_minmax(0,1fr)] lg:gap-12">
           <div className="order-1 min-w-0 lg:order-2 lg:pt-2">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{tpl.name} résumé template</h1>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{tpl.name} resume template</h1>
             <p className="mt-1.5 text-sm font-medium text-primary">{tagSentence(tpl.tags)}</p>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{tpl.description}</p>
 

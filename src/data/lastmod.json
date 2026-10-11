@@ -1,7 +1,7 @@
 {
   "/": {
-    "hash": "98dccdc3fe073740",
-    "lastmod": "2026-09-27"
+    "hash": "0c736355f43bb9dc",
+    "lastmod": "2026-10-11"
   },
   "/templates": {
     "hash": "85b5dcf1d47f8cd5",
@@ -744,19 +744,19 @@
     "lastmod": "2026-09-27"
   },
   "/prompts": {
-    "hash": "ed64f8ac1b5581d8",
-    "lastmod": "2026-09-16"
+    "hash": "27b58cb6b8eeb1f3",
+    "lastmod": "2026-10-11"
   },
   "/free-resume-builder": {
-    "hash": "81719611720cc587",
-    "lastmod": "2026-09-27"
+    "hash": "63c0c080c4a265a6",
+    "lastmod": "2026-10-11"
   },
   "/ats-resume-checker": {
-    "hash": "13cc2ac7f4b4f5a1",
-    "lastmod": "2026-09-27"
+    "hash": "634b70e47c337643",
+    "lastmod": "2026-10-11"
   },
   "/resume-builder-no-sign-up": {
-    "hash": "dcff935181f236bd",
-    "lastmod": "2026-09-27"
+    "hash": "db8069086f329733",
+    "lastmod": "2026-10-11"
   }
 }

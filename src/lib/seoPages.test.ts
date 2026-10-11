@@ -63,7 +63,7 @@ describe('the head each template page asks for', () => {
   it('names the design, its path and its preview image', () => {
     const meta = templatePageMeta('broadsheet')
     expect(meta.path).toBe('/templates/broadsheet')
-    expect(meta.title).toBe('Broadsheet résumé template — free, ATS-ready · CVAurum')
+    expect(meta.title).toBe('Broadsheet resume template — free, ATS-ready · CVAurum')
     expect(meta.image).toBe('/og/broadsheet.jpg')
   })
 
@@ -126,7 +126,7 @@ describe('the HTML a crawler reads without running the app', () => {
   const html = staticHtml('broadsheet')
 
   it('leads with the design as a heading', () => {
-    expect(html).toContain('<h1>Broadsheet résumé template</h1>')
+    expect(html).toContain('<h1>Broadsheet resume template</h1>')
   })
 
   it('links to every OTHER design in the collection', () => {
@@ -162,7 +162,7 @@ describe('the HTML a crawler reads without running the app', () => {
 
   it('gives the gallery its own block listing all of them', () => {
     const gallery = galleryStaticHtml()
-    expect(gallery).toContain(`<h1>${TEMPLATES.length} résumé templates, all free</h1>`)
+    expect(gallery).toContain(`<h1>${TEMPLATES.length} resume templates, all free</h1>`)
     expect(templateLinks(gallery)).toHaveLength(TEMPLATES.length)
   })
 })
@@ -615,9 +615,9 @@ describe('the prompt library', () => {
 
     const html = promptsStaticHtml()
     const md = promptsMarkdown()
-    expect(html).toContain(`<h1>${PROMPTS.length} résumé prompts for an AI assistant</h1>`)
+    expect(html).toContain(`<h1>${PROMPTS.length} resume prompts for an AI assistant</h1>`)
     expect(html).toContain(htmlEscape(PROMPTS_INTRO))
-    expect(md.startsWith(`# ${PROMPTS.length} résumé prompts`)).toBe(true)
+    expect(md.startsWith(`# ${PROMPTS.length} resume prompts`)).toBe(true)
     for (const p of PROMPTS) {
       // The prompt itself is the page's content: a crawler and an assistant
       // both get the whole text, not a title and a button.
@@ -691,7 +691,7 @@ describe('the collection pages describe themselves', () => {
   it('says what the gallery is, where it sits and what is on it', () => {
     const page = node(galleryJsonLd(), 'CollectionPage')
     expect(page.url).toBe('https://cvaurum.com/templates')
-    expect(page.name).toBe(`${TEMPLATES.length} résumé templates`)
+    expect(page.name).toBe(`${TEMPLATES.length} resume templates`)
     expect(page.description.length).toBeLessThanOrEqual(DESC_MAX)
 
     const crumbs = node(galleryJsonLd(), 'BreadcrumbList').itemListElement

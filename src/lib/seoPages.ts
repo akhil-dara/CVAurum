@@ -126,7 +126,7 @@ export function templatePageMeta(id: string): PageMeta {
   const tpl = must(id)
   return {
     path: `/templates/${tpl.id}`,
-    title: `${tpl.name} résumé template — free, ATS-ready · CVAurum`,
+    title: `${tpl.name} resume template — free, ATS-ready · CVAurum`,
     description: trimToWords(tpl.description),
     image: `/og/${tpl.id}.jpg`,
   }
@@ -136,7 +136,7 @@ export function templatePageMeta(id: string): PageMeta {
 export function galleryPageMeta(): PageMeta {
   return {
     path: '/templates',
-    title: `All ${TEMPLATES.length} Résumé Templates — Free & ATS-Ready · CVAurum`,
+    title: `All ${TEMPLATES.length} Resume Templates — Free & ATS-Ready · CVAurum`,
     description: trimToWords(GALLERY_INTRO),
     // The gallery's own card - a fan of real design pages with the count on
     // it. It fell back to the site card, which shows one design and no count.
@@ -168,7 +168,7 @@ function linkList(list: readonly TemplateConfig[]): string {
   return list
     .map(
       (t) =>
-        `      <li><a href="/templates/${t.id}">${htmlEscape(t.name)} résumé template</a></li>`
+        `      <li><a href="/templates/${t.id}">${htmlEscape(t.name)} resume template</a></li>`
     )
     .join('\n')
 }
@@ -224,7 +224,7 @@ function figure(tpl: TemplateConfig, eager: boolean): string {
 
 function cardList(list: readonly TemplateConfig[]): string {
   return list
-    .map((t) => `      <li>${figure(t, false)}<p><a href="/templates/${t.id}">${htmlEscape(t.name)} résumé template</a> — ${htmlEscape(trimToWords(t.description, 120))}</p></li>`)
+    .map((t) => `      <li>${figure(t, false)}<p><a href="/templates/${t.id}">${htmlEscape(t.name)} resume template</a> — ${htmlEscape(trimToWords(t.description, 120))}</p></li>`)
     .join('\n')
 }
 
@@ -240,8 +240,8 @@ export function staticHtml(id: string): string {
   const tpl = must(id)
   const others = ORDERED.filter((t) => t.id !== id)
   return `<main class="seo-static">
-    <p><a href="/templates">Résumé templates</a> › ${htmlEscape(tpl.name)}</p>
-    <h1>${htmlEscape(tpl.name)} résumé template</h1>
+    <p><a href="/templates">Resume templates</a> › ${htmlEscape(tpl.name)}</p>
+    <h1>${htmlEscape(tpl.name)} resume template</h1>
     ${figure(tpl, true)}
     <p>${htmlEscape(tpl.description)}</p>
     <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
@@ -253,8 +253,8 @@ export function staticHtml(id: string): string {
 ${CUSTOMIZE.items.map((i) => `        <li>${htmlEscape(i)}</li>`).join('\n')}
       </ul>
     </section>
-    <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} résumé templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete résumé examples</a></p>
-    <nav aria-label="Every other résumé template">
+    <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} resume templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete resume examples</a></p>
+    <nav aria-label="Every other resume template">
       <h2>The other ${others.length} designs</h2>
       <ul>
 ${linkList(others)}
@@ -266,11 +266,11 @@ ${linkList(others)}
 /** The same crawler-readable block for the gallery itself. */
 export function galleryStaticHtml(): string {
   return `<main class="seo-static">
-    <p><a href="/">CVAurum</a> › Résumé templates</p>
-    <h1>${TEMPLATES.length} résumé templates, all free</h1>
+    <p><a href="/">CVAurum</a> › Resume templates</p>
+    <h1>${TEMPLATES.length} resume templates, all free</h1>
     <p>${htmlEscape(GALLERY_INTRO)}</p>
-    <p><a href="/app">Start a résumé</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete résumé examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a></p>
-    <nav aria-label="Every résumé template">
+    <p><a href="/app">Start a résumé</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a></p>
+    <nav aria-label="Every resume template">
       <h2>Every design</h2>
       <ul class="seo-cards">
 ${cardList(ORDERED)}
@@ -294,7 +294,7 @@ export function landingMarkdown(): string {
 }
 
 export function galleryMarkdown(): string {
-  return `# ${TEMPLATES.length} résumé templates, all free
+  return `# ${TEMPLATES.length} resume templates, all free
 
 ${GALLERY_INTRO}
 
@@ -307,7 +307,7 @@ Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
 export function templateMarkdown(id: string): string {
   const tpl = must(id)
   const related = relatedTemplateIds(id, 6).map((r) => must(r))
-  return `# ${tpl.name} résumé template
+  return `# ${tpl.name} resume template
 
 ${tpl.description}
 
@@ -440,7 +440,7 @@ Dates are strings: \`YYYY-MM-DD\`, \`YYYY-MM\` or \`YYYY\`. An empty \`endDate\`
 export function skillMd(): string {
   return `---
 name: cvaurum
-description: Help a person build, tailor or export a résumé with CVAurum (${SITE}), a free résumé builder that runs entirely in the browser. Use when someone asks for a résumé template, a PDF/Word résumé, an ATS check, or wants to import or export JSON Resume.
+description: Help a person build, tailor or export a resume with CVAurum (${SITE}), a free resume builder that runs entirely in the browser. Use when someone asks for a resume template, a PDF/Word resume, an ATS check, or wants to import or export JSON Resume.
 ---
 
 # CVAurum
@@ -487,7 +487,7 @@ export function agentSkillsIndex(digestHex: string): string {
         {
           name: 'cvaurum',
           type: 'skill-md',
-          description: `Help a person build, tailor or export a résumé with CVAurum, a free résumé builder that runs entirely in the browser (${TEMPLATES.length} templates, PDF/Word/JSON Resume, ATS checks).`,
+          description: `Help a person build, tailor or export a resume with CVAurum, a free resume builder that runs entirely in the browser (${TEMPLATES.length} templates, PDF/Word/JSON Resume, ATS checks).`,
           url: `${SITE}/skills/cvaurum/SKILL.md`,
           digest: `sha256:${digestHex}`,
         },
@@ -582,7 +582,7 @@ export const PROMPTS_SCHEMA_NOTE =
 export const PROMPTS: readonly PromptEntry[] = [
   {
     id: 'notes-to-resume',
-    title: 'Turn what I already have into a résumé file',
+    title: 'Turn what I already have into a resume file',
     when: 'You have notes, an old résumé or a job history in some other shape, and no wish to retype it.',
     prompt: `I want to turn what I already have into a résumé I can edit.
 
@@ -603,7 +603,7 @@ Reply with the JSON in a single fenced block. After it, list the fields you left
   },
   {
     id: 'tailor-to-a-job',
-    title: 'Tailor a résumé I already have to one job description',
+    title: 'Tailor a resume I already have to one job description',
     when: 'You have a résumé that works and a posting you want it to answer, and you do not want the two to drift apart into a lie.',
     prompt: `Here is my résumé as a JSON Resume document:
 
@@ -664,7 +664,7 @@ Under each version, name the entries in the résumé it rests on, so I can check
   },
   {
     id: 'first-resume',
-    title: 'Draft a first résumé from a job title',
+    title: 'Draft a first resume from a job title',
     when: 'You are starting out, the page is blank, and everything you have feels too thin to write down.',
     prompt: `I am starting out and I do not have a résumé yet.
 
@@ -683,7 +683,7 @@ I would rather have a short honest résumé and a list of what to do next than a
   },
   {
     id: 'read-it-back',
-    title: 'Read my résumé back to me the way a hiring manager would',
+    title: 'Read my resume back to me the way a hiring manager would',
     when: 'You have stared at it too long to see it, and you want to know what it says before someone else decides what it says.',
     prompt: `Here is my résumé as a JSON Resume document:
 
@@ -706,7 +706,7 @@ Then ask me those questions, one at a time, and wait for my answers. When we are
 export function promptsPageMeta(): PageMeta {
   return {
     path: '/prompts',
-    title: `${PROMPTS.length} Résumé Prompts for AI Assistants — Free · CVAurum`,
+    title: `${PROMPTS.length} Resume Prompts for AI Assistants — Free · CVAurum`,
     description: trimToWords(PROMPTS_INTRO),
     image: '/og.png',
   }
@@ -731,15 +731,15 @@ export function promptsStaticHtml(): string {
     </section>`
   ).join('\n')
   return `<main class="seo-static">
-    <p><a href="/">CVAurum</a> › Résumé prompts</p>
-    <h1>${PROMPTS.length} résumé prompts for an AI assistant</h1>
+    <p><a href="/">CVAurum</a> › Resume prompts</p>
+    <h1>${PROMPTS.length} resume prompts for an AI assistant</h1>
     <p>${htmlEscape(PROMPTS_INTRO)}</p>
     <ol>
 ${index}
     </ol>
 ${blocks}
     <p>${htmlEscape(PROMPTS_SCHEMA_NOTE)} The field names are at <a href="/skills/cvaurum/SKILL.md">/skills/cvaurum/SKILL.md</a>, generated from the schemas the importer validates against, so they cannot drift from the code.</p>
-    <p><a href="/app">Import an answer and start editing</a> · <a href="/templates">Browse the ${TEMPLATES.length} résumé templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete examples</a></p>
+    <p><a href="/app">Import an answer and start editing</a> · <a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete examples</a></p>
   </main>`
 }
 
@@ -756,7 +756,7 @@ ${p.prompt}
 
 What to do with the answer: ${p.after}`
   ).join('\n\n')
-  return `# ${PROMPTS.length} résumé prompts for an AI assistant
+  return `# ${PROMPTS.length} resume prompts for an AI assistant
 
 ${PROMPTS_INTRO}
 
@@ -823,7 +823,7 @@ ${sections}
     <dl>
 ${faq}
     </dl>
-    <p><a href="/templates">Browse the ${TEMPLATES.length} résumé templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete résumé examples</a> · ${siblings}</p>
+    <p><a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · ${siblings}</p>
   </main>`
 }
 
@@ -1025,7 +1025,7 @@ export function breadcrumbJsonLd(id: string): string {
         '@type': 'WebPage',
         '@id': url,
         url,
-        name: `${tpl.name} résumé template`,
+        name: `${tpl.name} resume template`,
         primaryImageOfPage: {
           '@type': 'ImageObject',
           contentUrl: `${SITE}${templatePageImage(tpl.id)}`,
@@ -1036,8 +1036,8 @@ export function breadcrumbJsonLd(id: string): string {
       },
       breadcrumbList([
         { name: 'Home', path: '/' },
-        { name: 'Résumé templates', path: '/templates' },
-        { name: `${tpl.name} résumé template`, path: `/templates/${tpl.id}` },
+        { name: 'Resume templates', path: '/templates' },
+        { name: `${tpl.name} resume template`, path: `/templates/${tpl.id}` },
       ]),
     ],
   })
@@ -1077,22 +1077,22 @@ export function galleryJsonLd(): string {
         '@type': 'CollectionPage',
         '@id': url,
         url,
-        name: `${TEMPLATES.length} résumé templates`,
+        name: `${TEMPLATES.length} resume templates`,
         description: trimToWords(GALLERY_INTRO),
         isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
       },
       breadcrumbList([
         { name: 'Home', path: '/' },
-        { name: 'Résumé templates', path: '/templates' },
+        { name: 'Resume templates', path: '/templates' },
       ]),
       {
         '@type': 'ItemList',
-        name: 'Résumé templates',
+        name: 'Resume templates',
         numberOfItems: ORDERED.length,
         itemListElement: ORDERED.map((t, i) => ({
           '@type': 'ListItem',
           position: i + 1,
-          name: `${t.name} résumé template`,
+          name: `${t.name} resume template`,
           url: `${SITE}/templates/${t.id}`,
           image: `${SITE}${templatePageImage(t.id)}`,
         })),
@@ -1112,17 +1112,17 @@ export function promptsJsonLd(): string {
         '@type': 'CollectionPage',
         '@id': url,
         url,
-        name: `${PROMPTS.length} résumé prompts for an AI assistant`,
+        name: `${PROMPTS.length} resume prompts for an AI assistant`,
         description: trimToWords(PROMPTS_INTRO),
         isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
       },
       breadcrumbList([
         { name: 'Home', path: '/' },
-        { name: 'Résumé prompts', path: '/prompts' },
+        { name: 'Resume prompts', path: '/prompts' },
       ]),
       {
         '@type': 'ItemList',
-        name: 'Résumé prompts',
+        name: 'Resume prompts',
         numberOfItems: PROMPTS.length,
         itemListElement: PROMPTS.map((p, i) => ({
           '@type': 'ListItem',
@@ -1141,7 +1141,7 @@ export function allTemplateIds(): string[] {
 }
 
 /* ---- The landing page for whoever does not run scripts ------------------
-   An assistant asked to compare résumé builders fetches https://cvaurum.com
+   An assistant asked to compare resume builders fetches https://cvaurum.com
    and reads the HTML before any JavaScript runs. That HTML used to be the
    head and an empty <div id="root">: nothing to quote, compare or rank. The
    block below is written into dist/index.html's #root at build time (the
@@ -1186,7 +1186,7 @@ export function landingStaticHtml(): string {
   return `<main class="seo-static">
     <h1>${esc(COPY.hero)}</h1>
     <p>${esc(COPY.oneLiner)}</p>
-    <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} résumé examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
+    <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
     <p>${GUIDES.map((g) => `<a href="/${g.slug}">${esc(g.short)}</a>`).join(' · ')}</p>
     <h2>Three steps</h2>
     <ol>
@@ -1219,7 +1219,7 @@ ${signature}
     </ul>
     <p><a href="${COPY.links.gallery}">Every template, rendered on the same example résumé</a>.</p>
     <h2>Examples</h2>
-    <p>${SAMPLE_COUNT} complete résumés for named jobs, each written out in full on its own page and filterable by field, career stage and the country it is written for — <a href="/examples">read the ${SAMPLE_COUNT} résumé examples</a>. Every person, employer, address and figure in them is invented.</p>
+    <p>${SAMPLE_COUNT} complete résumés for named jobs, each written out in full on its own page and filterable by field, career stage and the country it is written for — <a href="/examples">read the ${SAMPLE_COUNT} resume examples</a>. Every person, employer, address and figure in them is invented.</p>
     <h2>Prompts</h2>
     <p>${PROMPTS.length} copy-ready prompts for whatever AI assistant you already use — <a href="/prompts">start from your own history instead of a blank page</a>. Each asks for JSON Resume, which this app imports, and none of them will invent experience you do not have.</p>
     <p>CVAurum is open source under the AGPL-3.0: <a href="${COPY.links.repo}">${COPY.links.repo}</a>.</p>
@@ -1241,7 +1241,7 @@ export function shellHtml(indexHtml: string, title: string): string {
 /* ---- llms.txt ------------------------------------------------------------
    What a machine reader finds at /llms.txt. The convention is an H1, a
    blockquote summary and sections of links; this one goes further, because
-   an assistant asked "which résumé builder should I use" needs the facts,
+   an assistant asked "which resume builder should I use" needs the facts,
    the limits, every page and the sitemap in one place, in plain prose it
    can quote. llms-full.txt carries the same plus the long-form sections.
    Every claim here is true of the code; no superlatives (a test checks). */
@@ -1278,7 +1278,7 @@ function textLayerBlock(): string {
 
 function pagesBlock(): string {
   return [
-    `- [Home](${SITE}/): what CVAurum is, how it compares with other résumé builders, the three steps, privacy, questions and answers.`,
+    `- [Home](${SITE}/): what CVAurum is, how it compares with other resume builders, the three steps, privacy, questions and answers.`,
     `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page.`,
     `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example résumés for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
     `- [Prompts](${SITE}/prompts): ${PROMPTS.length} copy-ready prompts for an AI assistant — notes into a résumé, tailoring to a posting, rewriting bullets to name a number, writing the summary, starting from nothing. Each asks for JSON Resume so the answer imports here, and none of them will invent experience.`,
@@ -1325,7 +1325,7 @@ export function llmsTxt(): string {
 
 > ${COPY.oneLiner}
 
-CVAurum, at ${SITE}, is a résumé builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the AGPL-3.0 at ${COPY.links.repo}.
+CVAurum, at ${SITE}, is a resume builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the AGPL-3.0 at ${COPY.links.repo}.
 
 ## Facts at a glance
 
@@ -1388,7 +1388,7 @@ export function llmsFullTxt(): string {
 
 ## What it is
 
-CVAurum is a résumé builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the AGPL-3.0 at ${COPY.links.repo}.
+CVAurum is a resume builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the AGPL-3.0 at ${COPY.links.repo}.
 
 ## Facts at a glance
 
@@ -1406,7 +1406,7 @@ ${audienceBlock()}
 
 ${steps}
 
-## Head-to-head with most résumé builders
+## Head-to-head with most resume builders
 
 ${table}
 

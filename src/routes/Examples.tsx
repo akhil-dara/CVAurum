@@ -212,7 +212,7 @@ export function Examples() {
 
       <main className="mx-auto max-w-6xl px-4 py-9 sm:px-6 sm:py-10">
         <h1 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-[2.4rem] sm:leading-[1.12]">
-          {LIBRARY.length} résumé examples, written out in full
+          {LIBRARY.length} resume examples, written out in full
         </h1>
         <p className="mt-3.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Complete résumés for real jobs — every bullet naming something that happened and what it changed. Open any one

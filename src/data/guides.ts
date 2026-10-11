@@ -48,10 +48,10 @@ export const GUIDES: readonly Guide[] = [
     slug: 'free-resume-builder',
     title: 'Free Resume Builder — No Paywall, No Watermark · CVAurum',
     heading: 'A free resume builder that stays free when you download',
-    description: `Build and download a résumé for free: ${TEMPLATE_COUNT} templates, PDF and Word export, no paywall, no watermark, no account. Open source and private.`,
+    description: `Build and download a resume for free: ${TEMPLATE_COUNT} templates, PDF and Word export, no paywall, no watermark, no account. Open source and private.`,
     short: 'Free resume builder',
     intro: [
-      'Most résumé builders are free until the moment you press Download. CVAurum is free at that moment too: every template, every export format and every check, with no tier to upgrade to and no watermark on the file.',
+      'Most resume builders are free until the moment you press Download. CVAurum is free at that moment too: every template, every export format and every check, with no tier to upgrade to and no watermark on the file.',
       'It can afford to be, because it has no server to pay for. The whole application runs in your browser, your résumé is saved on your own device, and the source code is public under the AGPL-3.0.',
     ],
     sections: [
@@ -59,7 +59,7 @@ export const GUIDES: readonly Guide[] = [
         heading: 'What is free',
         paragraphs: ['All of it. There is no paid plan, so there is nothing held back from this list.'],
         list: [
-          `${TEMPLATE_COUNT} résumé templates, each restylable section by section`,
+          `${TEMPLATE_COUNT} resume templates, each restylable section by section`,
           `${SAMPLE_COUNT} complete example résumés to start from, across twelve fields`,
           'Unlimited PDF downloads: vector text you can select, archival (PDF/A-2B) and accessible (PDF/UA-1)',
           'An editable Word (.docx) file and a JSON Resume file',
@@ -101,7 +101,7 @@ export const GUIDES: readonly Guide[] = [
   {
     slug: 'ats-resume-checker',
     title: 'Free ATS Resume Checker — Private, No Upload · CVAurum',
-    heading: 'A free ATS résumé checker that never uploads your résumé',
+    heading: 'A free ATS resume checker that never uploads your resume',
     description:
       'Check a résumé the way an applicant-tracking system reads it: a repeatable score, a keyword match against the job and the text a parser sees. No upload.',
     short: 'ATS resume checker',
@@ -160,8 +160,8 @@ export const GUIDES: readonly Guide[] = [
   {
     slug: 'resume-builder-no-sign-up',
     title: 'Resume Builder With No Sign-Up or Login · CVAurum',
-    heading: 'A résumé builder with no sign-up, no login and no email',
-    description: `Make a résumé without creating an account: open the editor and start. ${TEMPLATE_COUNT} templates, free PDF and Word export, saved only in your browser.`,
+    heading: 'A resume builder with no sign-up, no login and no email',
+    description: `Make a resume without creating an account: open the editor and start. ${TEMPLATE_COUNT} templates, free PDF and Word export, saved only in your browser.`,
     short: 'No sign-up resume builder',
     intro: [
       'There is no account to create. Open CVAurum and the editor is in front of you: pick a template, type, and download. No email address, no password, no confirmation link.',
@@ -175,7 +175,7 @@ export const GUIDES: readonly Guide[] = [
         ],
       },
       {
-        heading: 'Moving a résumé to another device',
+        heading: 'Moving a resume to another device',
         paragraphs: ['Without an account there is no cloud sync, so a résumé travels the way a file does:'],
         list: [
           'A backup file of every résumé, restored in any browser',

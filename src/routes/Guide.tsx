@@ -105,10 +105,10 @@ export function Guide() {
 
           <p className="mt-10 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <Link className="text-primary hover:underline" to="/templates">
-              Browse the {TEMPLATE_COUNT} résumé templates
+              Browse the {TEMPLATE_COUNT} resume templates
             </Link>
             <Link className="text-primary hover:underline" to="/examples">
-              Read {SAMPLE_COUNT} complete résumé examples
+              Read {SAMPLE_COUNT} complete resume examples
             </Link>
             {others.map((x) => (
               <Link key={x.slug} className="text-primary hover:underline" to={`/${x.slug}`}>

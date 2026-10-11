@@ -177,7 +177,7 @@ export function Templates() {
           page was everything except the gallery. */}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <h1 className="text-[1.7rem] font-semibold leading-[1.15] tracking-tight sm:text-4xl sm:leading-tight">
-          {TEMPLATES.length} résumé templates, all free
+          {TEMPLATES.length} resume templates, all free
         </h1>
         <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-3">
           Every design below is shown on the same example résumé, so what changes between cards is the layout and
@@ -448,7 +448,7 @@ function TemplateCard({
         <div className="flex flex-1 flex-col gap-2 p-3">
           <div className="flex items-center justify-between gap-2">
             {/* The name is the design's own page (/templates/<id>):
-                "Broadsheet résumé template" is a thing people search for and
+                "Broadsheet resume template" is a thing people search for and
                 a link is how they — and a crawler — reach it. */}
             <Link
               to={`/templates/${tpl.id}`}
