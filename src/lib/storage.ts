@@ -27,25 +27,48 @@ export const DEFAULT_SETTINGS: AppSettings = {
   onboarded: false,
 }
 
+/** What the last library load found: how many résumés this browser holds,
+ *  how many could be shown, and whether reading failed outright. The
+ *  dashboard says so when they differ - a résumé that cannot be opened was
+ *  once left out of the list without a word. */
+export interface LoadReport {
+  stored: number
+  shown: number
+  failed: boolean
+}
+
+let lastLoad: LoadReport = { stored: 0, shown: 0, failed: false }
+
+export function getLoadReport(): LoadReport {
+  return lastLoad
+}
+
+/** Every stored résumé exactly as it sits in this browser, read or not. */
+export async function loadRawDocs(): Promise<unknown[]> {
+  const allKeys = await keys(store)
+  const docKeys = allKeys.filter((k) => typeof k === 'string' && (k as string).startsWith(DOC_PREFIX))
+  return (await Promise.all(docKeys.map((k) => get(k, store)))).filter(Boolean)
+}
+
 export async function loadAllDocs(): Promise<ResumeDocument[]> {
   try {
-    const allKeys = await keys(store)
-    const docKeys = allKeys.filter((k) => typeof k === 'string' && (k as string).startsWith(DOC_PREFIX))
-    const docs = await Promise.all(docKeys.map((k) => get<ResumeDocument>(k, store)))
-    return docs
-      .filter(Boolean)
-      .map((d) => safeParseDoc(d as ResumeDocument))
+    const raw = (await loadRawDocs()) as ResumeDocument[]
+    const docs = raw
+      .map((d) => parseStoredDoc(d))
       .filter((d): d is ResumeDocument => d !== null)
       .sort((a, b) => b.updatedAt - a.updatedAt)
+    lastLoad = { stored: raw.length, shown: docs.length, failed: false }
+    return docs
   } catch (e) {
     console.error('Failed to load resumes', e)
+    lastLoad = { stored: 0, shown: 0, failed: true }
     return []
   }
 }
 
 export async function loadDoc(id: string): Promise<ResumeDocument | null> {
   const raw = await get<ResumeDocument>(DOC_PREFIX + id, store)
-  return raw ? safeParseDoc(raw) : null
+  return raw ? parseStoredDoc(raw) : null
 }
 
 /** Wide status including the pre-check default; the dashboard notice reads this. */
@@ -151,26 +174,67 @@ function scrubRetiredAvatar(doc: ResumeDocument): ResumeDocument {
   return doc
 }
 
-/** Validate & coerce a stored doc; returns null if irreparably malformed. */
-function safeParseDoc(doc: ResumeDocument): ResumeDocument | null {
-  const res = ResumeDocumentSchema.safeParse(doc)
-  if (res.success) {
-    // Profiles saved with their address in the username field link again.
-    withProfileAddresses(res.data.content)
-    return scrubRetiredAvatar(res.data)
+/** Removes the value at `path` from `root`: an object key, or an array item. */
+function dropAt(root: unknown, path: PropertyKey[]): boolean {
+  if (!path.length) return false
+  let node = root as Record<PropertyKey, unknown> | unknown[]
+  for (const key of path.slice(0, -1)) {
+    const next = (node as Record<PropertyKey, unknown>)?.[key as never]
+    if (next === null || typeof next !== 'object') return false
+    node = next as Record<PropertyKey, unknown>
   }
-  console.warn('Stored resume failed validation; attempting recovery', res.error)
-  // Best-effort recovery: keep id/title/timestamps, re-default the rest.
-  try {
-    return ResumeDocumentSchema.parse({
-      id: doc.id,
-      title: doc.title ?? 'Recovered Resume',
-      createdAt: doc.createdAt ?? Date.now(),
-      updatedAt: doc.updatedAt ?? Date.now(),
-      content: doc.content ?? {},
-      metadata: doc.metadata ?? {},
-    })
-  } catch {
-    return null
+  const last = path[path.length - 1]
+  if (Array.isArray(node)) {
+    if (typeof last !== 'number' || last >= node.length) return false
+    node.splice(last, 1)
+  } else {
+    if (!(last in node)) return false
+    delete (node as Record<PropertyKey, unknown>)[last]
   }
+  return true
+}
+
+/**
+ * Validate & coerce a stored doc; null only for something that is not a
+ * résumé at all.
+ *
+ * A stored résumé must never vanish for one value this version cannot read
+ * (a setting a later or earlier version wrote, an entry field of the wrong
+ * shape). The old recovery parsed the very same content and metadata a
+ * second time, failed again, and the dashboard left the résumé out without a
+ * word while it sat in storage. Now each value the schema rejects is removed
+ * - its default takes its place - and the parse is tried again; a value
+ * whose removal is not enough (a required field) takes its parent with it,
+ * one level at a time. Everything else the author wrote is kept.
+ */
+export function parseStoredDoc(doc: ResumeDocument): ResumeDocument | null {
+  const first = ResumeDocumentSchema.safeParse(doc)
+  if (first.success) return finish(first.data)
+  if (!doc || typeof doc !== 'object' || typeof (doc as { id?: unknown }).id !== 'string') return null
+  console.warn('Stored resume failed validation; repairing it field by field', first.error.issues)
+  const work = structuredClone(doc) as unknown as Record<string, unknown>
+  work.content ??= {}
+  work.metadata ??= {}
+  const tried = new Set<string>()
+  for (let round = 0; round < 200; round++) {
+    const res = ResumeDocumentSchema.safeParse(work)
+    if (res.success) return finish(res.data)
+    let changed = false
+    for (const issue of res.error.issues) {
+      let path = [...issue.path]
+      // a value already removed that still fails was required: drop its parent
+      while (path.length && tried.has(JSON.stringify(path))) path = path.slice(0, -1)
+      if (path.length < 2) continue // never the document's own id, content or metadata
+      tried.add(JSON.stringify(path))
+      if (dropAt(work, path)) changed = true
+    }
+    if (!changed) break
+  }
+  return null
+}
+
+function finish(doc: ResumeDocument): ResumeDocument {
+  // Profiles saved with their address in the username field link again.
+  withProfileAddresses(doc.content)
+  return scrubRetiredAvatar(doc)
 }

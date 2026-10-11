@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeStorageNotice } from './Dashboard'
+import { computeStorageNotice, unreadableResumes } from './Dashboard'
 
 const DAY = 24 * 60 * 60 * 1000
 const NOW = Date.parse('2026-08-15T00:00:00.000Z')
@@ -140,5 +140,20 @@ describe('the durability warning and an empty library', () => {
         now: NOW,
       })
     ).toBe('durability')
+  })
+})
+
+describe('résumés this browser holds but cannot show', () => {
+  // The list used to leave such a résumé out without a word, and a failed
+  // read showed an empty library as though there were nothing to lose.
+  it('says nothing when every stored résumé is shown', () => {
+    expect(unreadableResumes({ stored: 3, shown: 3, failed: false })).toBeNull()
+    expect(unreadableResumes({ stored: 0, shown: 0, failed: false })).toBeNull()
+  })
+  it('counts the ones it could not open', () => {
+    expect(unreadableResumes({ stored: 5, shown: 3, failed: false })).toBe(2)
+  })
+  it('says so when the library could not be read at all', () => {
+    expect(unreadableResumes({ stored: 0, shown: 0, failed: true })).toBe('all')
   })
 })

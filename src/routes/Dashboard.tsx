@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { BookOpen, FileText, Plus, FileUp, Copy, Trash2, MoreVertical, KanbanSquare, DatabaseBackup } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
-import { saveDoc, deleteDoc, requestDurability, getDurabilityStatus, type DurabilityStatus } from '@/lib/storage'
-import { exportFullBackup, importFullBackup } from '@/lib/backup'
+import { saveDoc, deleteDoc, requestDurability, getDurabilityStatus, getLoadReport, type DurabilityStatus, type LoadReport } from '@/lib/storage'
+import { exportFullBackup, exportRawStored, importFullBackup } from '@/lib/backup'
 import { uid, timeAgo } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
@@ -79,6 +79,32 @@ export function computeStorageNotice({
   const backupStale = !lastBackup || now - lastBackup > FOURTEEN_DAYS_MS
   if (settledIn && backupStale && now - dismissedAt.backup > FOURTEEN_DAYS_MS) return 'backup'
   return null
+}
+
+/** How many résumés this browser holds but the list cannot show - 'all' when
+ *  the library could not be read at all - or null when nothing is missing. */
+export function unreadableResumes(report: LoadReport): number | 'all' | null {
+  if (report.failed) return 'all'
+  const missing = report.stored - report.shown
+  return missing > 0 ? missing : null
+}
+
+/** Résumés stored here that cannot be opened: never left out in silence, and
+ *  always one tap from a file that keeps every word of them. */
+function UnreadableNotice({ count, onSave }: { count: number | 'all'; onSave: () => void }) {
+  const message =
+    count === 'all'
+      ? 'Your saved resumes could not be read just now. They are still in this browser: save a copy before anything else.'
+      : `${count} saved resume${count === 1 ? '' : 's'} in this browser could not be opened. ${count === 1 ? 'It is' : 'They are'} still stored: save a copy so nothing is lost.`
+  return (
+    <div role="alert" className="mb-6 flex flex-wrap items-start gap-x-2.5 gap-y-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
+      <span aria-hidden>⚠️</span>
+      <span className="min-w-0 flex-1 basis-56">{message}</span>
+      <button className="btn-outline btn-sm ml-auto h-7 shrink-0 phone:h-10" onClick={onSave}>
+        <DatabaseBackup className="h-3.5 w-3.5" /> Save a copy
+      </button>
+    </div>
+  )
 }
 
 /** Dismissible inline notice — same visual language as the canvas's BlankCanvasTip hint. */
@@ -194,6 +220,16 @@ export function Dashboard() {
       toast(`Backed up ${n} resume${n === 1 ? '' : 's'} + settings`, 'success')
     } catch {
       toast('Could not create the backup', 'error')
+    }
+  }
+  // Read after every library load (the store re-reads on each visit).
+  const unreadable = libraryLoaded ? unreadableResumes(getLoadReport()) : null
+  const onSaveStored = async () => {
+    try {
+      const n = await exportRawStored()
+      toast(`Saved ${n} stored resume${n === 1 ? '' : 's'}`, 'success')
+    } catch {
+      toast('Could not read this browser’s storage', 'error')
     }
   }
   const onRestore = async (file?: File) => {
@@ -312,6 +348,7 @@ export function Dashboard() {
       />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        {libraryLoaded && unreadable !== null ? <UnreadableNotice count={unreadable} onSave={onSaveStored} /> : null}
         {notice && <StorageNotice kind={notice} onBackup={onBackup} onDismiss={dismissNotice} />}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

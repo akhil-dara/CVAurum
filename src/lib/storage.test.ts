@@ -101,3 +101,44 @@ describe('requestDurability / getDurabilityStatus', () => {
     expect(persist).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('a stored résumé is never dropped for one bad field', () => {
+  // A résumé that failed validation was "recovered" by parsing the very same
+  // content and metadata again, which failed again; the dashboard then left it
+  // out without a word while it sat in storage. One field a later version
+  // cannot read must cost that field, never the document.
+  const good = async () => {
+    const { createDocument } = await import('@/data/defaults')
+    const d = createDocument({ sample: true })
+    return JSON.parse(JSON.stringify(d))
+  }
+
+  it('drops only a setting this version does not know', async () => {
+    const { parseStoredDoc } = await import('./storage')
+    const raw = await good()
+    raw.metadata.layout.sectionSettings = { work: { headingStyle: 'a-style-from-the-future', showDates: false } }
+    const doc = parseStoredDoc(raw)!
+    expect(doc).not.toBeNull()
+    expect(doc.content.basics.name).toBe(raw.content.basics.name)
+    expect(doc.content.work.length).toBe(raw.content.work.length)
+    expect(doc.metadata.layout.sectionSettings?.work?.headingStyle).toBeUndefined()
+    expect(doc.metadata.layout.sectionSettings?.work?.showDates).toBe(false)
+    expect(doc.metadata.template).toBe(raw.metadata.template)
+  })
+
+  it('keeps every other word when one entry carries a field it cannot read', async () => {
+    const { parseStoredDoc } = await import('./storage')
+    const raw = await good()
+    raw.content.work[0].highlights = 42
+    const doc = parseStoredDoc(raw)!
+    expect(doc).not.toBeNull()
+    expect(doc.content.work.length).toBe(raw.content.work.length)
+    expect(doc.content.work[0].position).toBe(raw.content.work[0].position)
+    expect(doc.content.work[1].highlights).toEqual(raw.content.work[1].highlights)
+  })
+
+  it('gives up only on something that is not a résumé at all', async () => {
+    const { parseStoredDoc } = await import('./storage')
+    expect(parseStoredDoc({ hello: 'world' } as never)).toBeNull()
+  })
+})

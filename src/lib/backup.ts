@@ -10,6 +10,7 @@ import { ResumeDocumentSchema, type ResumeDocument } from '@/types/document'
 import type { AppSettings } from '@/lib/storage'
 import {
   loadAllDocs,
+  loadRawDocs,
   saveDoc,
   clearAllDocs,
   loadSettings,
@@ -49,6 +50,21 @@ export async function exportFullBackup(): Promise<number> {
   downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }), `cvaurum-backup-${stamp}.json`)
   try { localStorage.setItem('cvaurum:last-backup', String(Date.now())) } catch { /* private mode */ }
   return resumes.length
+}
+
+/** Download every résumé stored in this browser exactly as it is stored,
+ *  including any this version cannot open, so nothing is ever lost to a
+ *  value it does not understand. Returns how many it saved. */
+export async function exportRawStored(): Promise<number> {
+  const docs = await loadRawDocs()
+  const stamp = new Date().toISOString().slice(0, 10)
+  downloadBlob(
+    new Blob([JSON.stringify({ app: APP, kind: 'cvaurum-stored-resumes', exportedAt: new Date().toISOString(), docs }, null, 2)], {
+      type: 'application/json',
+    }),
+    `cvaurum-stored-resumes-${stamp}.json`
+  )
+  return docs.length
 }
 
 export interface RestoreResult {
