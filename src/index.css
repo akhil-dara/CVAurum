@@ -123,6 +123,26 @@
 
 /* ============================================================== components */
 @layer components {
+  /* SkipLink: off-screen until a keyboard reaches it, then a plain chip at
+     the top-left above everything (the editor's top bar is z-40). */
+  .skip-link {
+    position: fixed;
+    left: 12px;
+    top: -48px;
+    z-index: 100;
+    border-radius: 8px;
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: top 0.15s ease-out;
+  }
+  .skip-link:focus-visible {
+    top: 12px;
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium
       transition-all duration-150 disabled:pointer-events-none disabled:opacity-50;

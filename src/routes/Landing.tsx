@@ -3,6 +3,7 @@
  * what it is, how it works, why it's private — with clear ways in. The actual
  * resume library/dashboard lives at /app.
  */
+import { SkipLink } from '@/components/ui/SkipLink'
 import { CreateButton, HeaderThemeToggle, PhoneResumesLink } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -90,6 +91,7 @@ export function Landing() {
         onChange={(e) => importPdf(e.target.files?.[0])}
       />
 
+      <SkipLink />
       {/* nav — ink glass over the hero, theme glass past it */}
       <header
         className={`sticky top-0 z-30 border-b transition-colors duration-300 ${overHero ? '' : 'backdrop-blur '}${

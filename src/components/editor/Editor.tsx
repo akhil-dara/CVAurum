@@ -1,3 +1,4 @@
+import { SkipLink } from '@/components/ui/SkipLink'
 import { useEffect } from 'react'
 import { scheduleWarmPdfFonts } from '@/lib/pdf/fontWarm'
 import { documentFaces } from '@/lib/documentFaces'
@@ -104,8 +105,18 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id])
 
+  // The skip link lands in the résumé's first field, putting the page on
+  // screen first where the panel covers it (a phone, or a narrow window).
+  const skipToPage = () => {
+    if (leftOpen && !split) setLeftOpen(false)
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-tour="canvas"] [role="textbox"]')?.focus())
+    )
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <SkipLink label="Skip to your résumé" onSkip={skipToPage} />
       <EditorTopBar doc={doc} />
       <PdfExportStatus />
       <div className="flex min-h-0 flex-1 flex-col desk:flex-row">
@@ -150,15 +161,16 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             </motion.aside>
           )}
         </AnimatePresence>
-        <div
+        <main
           data-tour="canvas"
+          aria-label="Your résumé"
           className={cn(
             'order-2 min-h-0 min-w-0 flex-1 desk:order-none',
             leftOpen && (split ? 'phone:hidden' : 'hidden'),
           )}
         >
           <ResumePreview doc={doc} />
-        </div>
+        </main>
       </div>
       <EditorTour />
       <CommandPalette doc={doc} />

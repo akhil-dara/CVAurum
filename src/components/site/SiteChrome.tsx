@@ -6,6 +6,7 @@
  * would have made four copies of the same markup and four places to keep a
  * link in step. One component, one nav.
  */
+import { SkipLink } from '@/components/ui/SkipLink'
 import { HeaderThemeToggle, PhoneResumesLink } from './HeaderActions'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -50,6 +51,7 @@ export function SiteHeader({
   const library = useAppStore((s) => s.library)
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
+      <SkipLink />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
         <Logo to="/" />
         {/* The landing sections are fragment targets, and a client-side
