@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Eye,
   Settings2,
@@ -509,6 +509,14 @@ export function SectionGear({
   const [open, setOpen] = useState(false)
   // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
   const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false })
+  // The less-used groups (see Group's `more`), remembered across sections.
+  const [moreOpen, setMoreOpen] = useState(() => {
+    try {
+      return localStorage.getItem('cvaurum:style-more') === '1'
+    } catch {
+      return false
+    }
+  })
   const panelRef = useRef<HTMLDivElement>(null)
   // Escape closes; focus moves in on open and back to the gear on close.
   usePopoverA11y(open, () => setOpen(false), panelRef)
@@ -903,6 +911,7 @@ export function SectionGear({
               </div>
 
               {/* Scrollable body — vertical only; sideways clipping can never happen. */}
+              <MoreOpen.Provider value={moreOpen}>
               <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-2">
                 {rows.length > 0 && (
                   <Group label="Show">
@@ -928,7 +937,7 @@ export function SectionGear({
                     Gated the way the tag rows below are, on the sections that
                     actually print such a line. */}
                 {HAS_LINK.has(base) && (
-                  <Group label="Link line">
+                  <Group label="Link line" more>
                     <div className="grid grid-cols-4 gap-1">
                       {LINK_STYLES.map((s) => (
                         <StyleChip
@@ -956,7 +965,7 @@ export function SectionGear({
                     bullet row is. */}
                 {HAS_KEYWORDS.has(base) && opts.showKeywords !== false && (
                   <>
-                    <Group label="Tags as">
+                    <Group label="Tags as" more>
                       <div className="grid grid-cols-3 gap-1">
                         {TAG_STYLES.map((s) => (
                           <StyleChip
@@ -969,7 +978,7 @@ export function SectionGear({
                         ))}
                       </div>
                     </Group>
-                    <Group label="Tag size">
+                    <Group label="Tag size" more>
                       <div className="grid grid-cols-3 gap-1">
                         {CHIP_SIZES.map((z) => (
                           <ChipBtn
@@ -987,7 +996,7 @@ export function SectionGear({
                 {/* Page pin — force this section to start a new page (spec 1).
                     With auto-fit on, pagination isn't user-controlled, so the
                     row explains instead of offering a dead toggle. */}
-                <Group label="Page">
+                <Group label="Page" more>
                   {autoFitOn ? (
                     <p className="px-2 py-1 text-[11px] leading-snug text-muted-foreground">
                       Turn off “Magic fit” (Design panel) to pin page breaks.
@@ -1069,7 +1078,7 @@ export function SectionGear({
                     nothing to size, so showing these rows there was confusing */}
                 {!NO_ENTRY_LAYOUT.has(base) && !NO_BADGES.has(base) && (
                   <>
-                    <Group label="Logo & badge size">
+                    <Group label="Logo & badge size" more>
                       <div className="grid grid-cols-4 gap-1">
                         {[
                           { v: '', label: 'Auto' },
@@ -1091,7 +1100,7 @@ export function SectionGear({
                         entry&apos;s form in the Content panel).
                       </p>
                     </Group>
-                    <Group label="Logo & badge shape">
+                    <Group label="Logo & badge shape" more>
                       <div className="grid grid-cols-4 gap-1">
                         {[
                           { v: '', label: 'Auto', title: 'Template default shape' },
@@ -1128,7 +1137,7 @@ export function SectionGear({
                 </Group>
 
                 {/* Heading alignment - where THIS section's heading sits */}
-                <Group label="Heading align">
+                <Group label="Heading align" more>
                   <div className="grid grid-cols-3 gap-1">
                     {HEADING_ALIGNS.map((a) => {
                       // Beside the content the title has a narrow column of
@@ -1162,7 +1171,7 @@ export function SectionGear({
                     they are. The figures come from sectionNumeral.ts, which
                     is what the page actually draws with, so this row and the
                     Design panel's cannot come to offer different ones. */}
-                <Group label="Numbering (all sections)">
+                <Group label="Numbering (all sections)" more>
                   <div className="grid grid-cols-5 gap-1">
                     <ChipBtn
                       label="Off"
@@ -1190,7 +1199,7 @@ export function SectionGear({
                     whole set, then Auto and none. The badge style below
                     decides how the glyph is drawn. */}
                 {iconStyle !== 'none' ? (
-                  <Group label="This section's icon">
+                  <Group label="This section's icon" more>
                     <IconChoice
                       sectionKey={sectionKey}
                       title={sectionLabel(sectionKey, doc)}
@@ -1202,7 +1211,7 @@ export function SectionGear({
 
                 {/* Section badge - style and size are document-wide, unlike
                     every row above, and the labels say so. */}
-                <Group label="Section icons (all sections)">
+                <Group label="Section icons (all sections)" more>
                   <div className="grid grid-cols-4 gap-1">
                     {ICON_STYLES.map((s) => (
                       <StyleChip
@@ -1215,7 +1224,7 @@ export function SectionGear({
                     ))}
                   </div>
                 </Group>
-                <Group label="Icon size (all sections)">
+                <Group label="Icon size (all sections)" more>
                   <div className="grid grid-cols-3 gap-1">
                     {ICON_SIZES.map((z) => (
                       <ChipBtn
@@ -1251,7 +1260,7 @@ export function SectionGear({
                     (title on both) is unset, so a painted Auto lands on it. */}
                 {HAS_ORG.has(base) && (
                   <>
-                    <Group label="Lead with">
+                    <Group label="Lead with" more>
                       <div className="grid grid-cols-2 gap-1">
                         {ENTRY_FIELDS.map((f) => (
                           <ChipBtn
@@ -1264,7 +1273,7 @@ export function SectionGear({
                         ))}
                       </div>
                     </Group>
-                    <Group label="Bold">
+                    <Group label="Bold" more>
                       <div className="grid grid-cols-2 gap-1">
                         {ENTRY_FIELDS.map((f) => (
                           <ChipBtn
@@ -1285,7 +1294,7 @@ export function SectionGear({
                     under the order rows; each is only offered while the
                     section actually shows the field. */}
                 {HAS_LOCATION.has(base) && opts.showLocation !== false && (
-                  <Group label="Location">
+                  <Group label="Location" more>
                     <div className="grid grid-cols-2 gap-1">
                       {LOCATION_PLACEMENTS.map((p) => (
                         <ChipBtn
@@ -1300,7 +1309,7 @@ export function SectionGear({
                   </Group>
                 )}
                 {HAS_DATES.has(base) && opts.showDates !== false && (
-                  <Group label="Date side">
+                  <Group label="Date side" more>
                     <div className="grid grid-cols-2 gap-1">
                       {DATE_ALIGNS.map((d) => (
                         <ChipBtn
@@ -1322,7 +1331,7 @@ export function SectionGear({
 
                 {/* Score placement — education only */}
                 {sectionKey === 'education' && (
-                  <Group label="Score (GPA) placement">
+                  <Group label="Score (GPA) placement" more>
                     <div className="grid grid-cols-3 gap-1">
                       {SCORE_STYLES.map((s) => (
                         <StyleChip
@@ -1396,6 +1405,23 @@ export function SectionGear({
                   </Group>
                 )}
 
+                <button
+                  type="button"
+                  className="mx-1 mt-0.5 flex w-[calc(100%-0.5rem)] items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-expanded={moreOpen}
+                  onClick={() => {
+                    setMoreOpen((o) => {
+                      try {
+                        localStorage.setItem('cvaurum:style-more', o ? '0' : '1')
+                      } catch {
+                        /* private mode */
+                      }
+                      return !o
+                    })
+                  }}
+                >
+                  {moreOpen ? 'Fewer options' : 'More options'}
+                </button>
                 <div className="my-1.5 h-px bg-border" />
                 <div className="px-2 pb-1 pt-0.5">
                   <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1404,7 +1430,7 @@ export function SectionGear({
                   <p className="text-[11px] leading-snug text-muted-foreground">
                     {copiedStyle
                       ? 'Style copied — Paste it here, or paint it onto All sections at once.'
-                      : 'Like Figma’s paint-format: Copy this section’s look (heading, layout, bullets…), then open another section’s Style panel and Paste it there.'}
+                      : 'Copy this section’s look (heading, layout, bullets…), then open another section’s Style panel and Paste it there.'}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 px-1 pb-1">
@@ -1479,6 +1505,7 @@ export function SectionGear({
                   )}
                 </button>
               </div>
+              </MoreOpen.Provider>
             </div>
           </>,
           document.body
@@ -1551,7 +1578,16 @@ function IconChoice({
   )
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
+/** Whether the popover's less-used groups are showing (see `more` below). */
+const MoreOpen = createContext(true)
+
+/** One labelled group of the Style popover. A `more` group is a less-used
+ *  setting: it shows once the author asks for More options, so the popover
+ *  opens on the five groups people restyle a section with (Show, heading,
+ *  bullets or meter, skills, layout) instead of 22 in one scroll. */
+function Group({ label, more, children }: { label: string; more?: boolean; children: React.ReactNode }) {
+  const moreOpen = useContext(MoreOpen)
+  if (more && !moreOpen) return null
   return (
     <div className="px-1 pb-2 pt-1">
       <div className="mb-1 px-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
