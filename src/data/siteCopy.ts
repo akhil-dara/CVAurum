@@ -1,4 +1,4 @@
-import { TEMPLATE_COUNT } from '@/templates/registry'
+import { SIGNATURE_COUNT, TEMPLATE_COUNT } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
 
 /**
@@ -173,7 +173,7 @@ export const SITE: SiteCopy = {
     { label: 'Price', value: 'free, with no tiers, no export paywall and no watermark' },
     { label: 'Account', value: 'none; there is nothing to sign up for and no login' },
     { label: 'Where the data lives', value: "the browser's own storage (IndexedDB); nothing is uploaded, and the site's content-security policy allows no outbound request at all" },
-    { label: 'Templates', value: `${TEMPLATE_COUNT}, each on its own page, six of them Signature designs with distinct page structures; every one exports real selectable text` },
+    { label: 'Templates', value: `${TEMPLATE_COUNT}, each on its own page, ${SIGNATURE_COUNT} of them Signature designs with distinct page structures; every one exports real selectable text` },
     { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 50 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
     {
       label: 'Accessibility',
@@ -229,7 +229,7 @@ export const SITE: SiteCopy = {
   ],
   audience: [
     'Anyone who wants a résumé that looks designed without giving their career history to a server.',
-    'Students and recent graduates: a final-year example with internships and a graduate example are among the six starting points.',
+    `Students and recent graduates: a final-year example with internships and a graduate example are among the ${SAMPLE_COUNT} examples to start from.`,
     'Engineers, marketers and designers: the other four examples, and templates from technical to editorial.',
     'People applying through applicant-tracking systems: the ATS view, the five-system simulation and the keyword match exist for them.',
     'People who need an archival or accessible PDF: every export conforms to PDF/A-2B and PDF/UA-1.',

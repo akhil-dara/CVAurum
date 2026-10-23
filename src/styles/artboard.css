@@ -859,6 +859,12 @@
 .mode-thumbnail .rm-visual-hide {
   display: none;
 }
+/* A thumbnail is a whole page: a short résumé on a dark design left the
+   white of the thumbnail's frame showing under its last line, a strip of
+   blank paper on a black sheet (Folio Noir in the homepage reel). */
+.rm-root.mode-thumbnail {
+  min-height: var(--rm-page-h, 1122.52px);
+}
 
 .rm-section-gear svg {
   width: 1em;

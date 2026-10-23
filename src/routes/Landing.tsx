@@ -6,23 +6,8 @@
 import { CreateButton, HeaderThemeToggle, PhoneResumesLink } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useInView, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
-import {
-  FileText,
-  Plus,
-  FileUp,
-  ShieldCheck,
-  Target,
-  FileDown,
-  WifiOff,
-  ArrowRight,
-  LayoutGrid,
-  PencilLine,
-  Download,
-  Github,
-  Check,
-  Minus,
-} from 'lucide-react'
+import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion'
+import { FileText, Plus, FileUp, ShieldCheck, ArrowRight, LayoutGrid, PencilLine, Download, Github, Check, Minus } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
@@ -125,10 +110,11 @@ export function Landing() {
             className={`hidden items-center gap-5 whitespace-nowrap text-sm md:flex lg:gap-6 ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}
           >
             {/* The site chrome's rule (SiteChrome.tsx): md carries the pages,
-                lg brings the in-page anchors back. At 768px this row held
+                and the in-page anchors come back once there is room (xl here:
+                this header also carries GitHub, the theme and My resumes). At 768px this row held
                 five links, wrapped "How it works" onto three lines and pushed
                 the Create button off the edge (831px of page in 768). */}
-            <a href="#how" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <a href="#how" className={`hidden transition xl:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               How it works
             </a>
             <Link to="/templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
@@ -137,10 +123,15 @@ export function Landing() {
             <Link to="/examples" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Examples
             </Link>
-            <a href="#compare" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            {/* every other page's header offers it (SiteChrome.tsx); this one
+                built its own and left it out */}
+            <Link to="/prompts" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+              Prompts
+            </Link>
+            <a href="#compare" className={`hidden transition xl:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Compare
             </a>
-            <a href="#privacy" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <a href="#privacy" className={`hidden transition xl:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Privacy
             </a>
           </nav>
@@ -184,7 +175,7 @@ export function Landing() {
         <section id="how" className="border-y border-border bg-surface-muted/40">
           <div className="mx-auto max-w-6xl px-6 py-14 land-reveal">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold tracking-tight">Three steps to a polished résumé</h2>
+              <h2 className="font-display text-3xl font-semibold sm:text-4xl">Three steps to a polished résumé</h2>
               <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
                 No sign-up, no setup. Everything happens right here in your browser.
               </p>
@@ -245,7 +236,7 @@ export function Landing() {
         <section id="templates" className="relative mx-auto max-w-6xl px-6 py-14 land-reveal">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight">Start from a recruiter-ready template</h2>
+              <h2 className="font-display text-3xl font-semibold sm:text-4xl">Start from a recruiter-ready template</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Click any design to start editing — switch anytime, your content stays. Not sure what to write?{' '}
                 <Link className="text-primary underline-offset-2 hover:underline" to="/examples">
@@ -284,37 +275,63 @@ export function Landing() {
         </section>
         </div>
 
-        {/* feature band */}
-        <section className="border-y border-border bg-surface-muted/40">
-          <div className="mx-auto grid max-w-6xl gap-6 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4 land-reveal">
-            <Feature
-              icon={<ShieldCheck className="h-5 w-5" />}
-              title="Private by architecture"
-              body="No server, no account, no tracking. Your data lives only in this browser."
-            />
-            <Feature
-              icon={<Target className="h-5 w-5" />}
-              title="ATS built in"
-              body="A live, deterministic ATS score and job-description keyword matching."
-            />
-            <Feature
-              icon={<FileDown className="h-5 w-5" />}
-              title="PDF & Word export"
-              body="Pixel-perfect PDF plus a clean, ATS-friendly .docx — generated in-browser."
-            />
-            <Feature
-              icon={<WifiOff className="h-5 w-5" />}
-              title="Works offline"
-              body="Installable, with all fonts bundled. Zero external requests, ever."
-            />
+        {/* The proof: what makes the file different, shown on a real page.
+            It replaces four icon tiles (private, ATS, export, offline) that
+            any app could have printed; every fact here is measured on every
+            design by the export gates. */}
+        <section className="border-y border-border bg-surface-muted/40" aria-labelledby="proof-title">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[minmax(0,22rem)_1fr] land-reveal">
+            <figure className="mx-auto w-full max-w-[22rem]">
+              <img
+                src="/img/templates/broadsheet.webp"
+                alt="A page exported from the Broadsheet design"
+                width={1200}
+                height={1697}
+                loading="lazy"
+                decoding="async"
+                className="w-full rounded-sm border border-border bg-white shadow-[0_18px_40px_-24px_rgba(15,17,25,0.45)]"
+              />
+              <figcaption className="mt-3 text-center text-xs text-muted-foreground">
+                A page as it exports: Broadsheet, one of the Signature designs.
+              </figcaption>
+            </figure>
+            <div>
+              <h2
+                id="proof-title"
+                className="font-display text-4xl font-semibold leading-tight sm:text-5xl"
+               
+              >
+                The PDF is made the way print is.
+              </h2>
+              <p className="mt-3 max-w-xl text-base leading-relaxed text-muted-foreground">
+                Not a picture of a web page: every export is drawn as type and lines, and every design is checked for all three below, release after release.
+              </p>
+              <dl className="mt-8 divide-y divide-border border-y border-border">
+                {[
+                  ['Real text', 'Every word is selectable and searchable, and the text an ATS reads is the text you wrote, checked word for word on every design.'],
+                  ['About 60 KB', 'A one-page résumé weighs about as much as a short email: drawn in vectors, with only the letters it uses embedded.'],
+                  ['Accessible and archive-ready', 'Exports follow PDF/UA, the standard screen readers rely on, and PDF/A, the one archives keep.'],
+                ].map(([term, body]) => (
+                  <div key={term} className="grid gap-1 py-4 sm:grid-cols-[15rem_1fr] sm:gap-6">
+                    <dt
+                      className="font-display text-xl font-semibold"
+                     
+                    >
+                      {term}
+                    </dt>
+                    <dd className="text-sm leading-relaxed text-muted-foreground">{body}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           </div>
         </section>
 
         {/* comparison */}
         <section id="compare" className="mx-auto max-w-5xl px-6 py-14 land-reveal">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Most builders win one thing. CVAurum wins them all.
+            <h2 className="font-display text-3xl font-semibold sm:text-4xl">
+              How it compares, honestly
             </h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
               Privacy, or open source, or design, or ATS, or offline — most tools pick one. Here's the honest
@@ -386,7 +403,7 @@ export function Landing() {
                 <ShieldCheck className="h-8 w-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold tracking-tight">Your résumé never leaves your device</h2>
+                <h2 className="font-display text-3xl font-semibold sm:text-4xl">Your résumé never leaves your device</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   Most online builders upload your career history to their servers. CVAurum doesn't have a server.
                   Everything — your content, your photo, your exports — is created and stored locally in your browser.
@@ -408,11 +425,36 @@ export function Landing() {
 
         {/* faq */}
         <section id="faq" className="mx-auto max-w-3xl px-6 pb-16 land-reveal">
-          <h2 className="text-center text-xl font-semibold tracking-tight">Questions</h2>
+          <h2 className="font-display text-center text-3xl font-semibold sm:text-4xl">Questions</h2>
           <div className="mt-6 space-y-3">
             {SITE.faq.map((f) => (
               <Faq key={f.q} q={f.q} a={f.a} />
             ))}
+          </div>
+        </section>
+
+        {/* The last thing on the page is the first thing it asks: the call
+            to start used to end 1,500px back, at the privacy box. */}
+        <section className="border-t border-border" aria-labelledby="closing-title">
+          <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+            <h2
+              id="closing-title"
+              className="font-display text-4xl font-semibold sm:text-5xl"
+             
+            >
+              Start yours. It stays here.
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+              No account, no upload, nothing to pay. Your résumé is saved in this browser as you type.
+            </p>
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <button className="btn-primary" onClick={() => setChooser(true)}>
+                <Plus className="h-4 w-4" /> Create my resume
+              </button>
+              <button className="btn-outline" onClick={() => setSampleOpen(true)}>
+                <FileText className="h-4 w-4" /> Start with an example
+              </button>
+            </div>
           </div>
         </section>
       </main>
@@ -428,6 +470,9 @@ export function Landing() {
             </Link>
             <Link className="transition hover:text-foreground" to="/examples">
               Examples
+            </Link>
+            <Link className="transition hover:text-foreground" to="/prompts">
+              Prompts
             </Link>
             <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
               GitHub
@@ -482,16 +527,6 @@ function Step({ n, icon, title, body }: { n: number; icon: React.ReactNode; titl
   )
 }
 
-function Feature({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
-  return (
-    <div>
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</div>
-      <h3 className="mt-3 text-sm font-semibold">{title}</h3>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
-    </div>
-  )
-}
-
 function Faq({ q, a }: { q: string; a: string }) {
   return (
     <details className="group rounded-xl border border-border bg-surface px-5 py-4">
@@ -525,13 +560,10 @@ function HeroCinema({
   covered: boolean
 }) {
   const reduce = useReducedMotion()
-  // The aurora kept drifting long after the reader scrolled past it - three
-  // infinite animations writing styles every frame under a whole page that no
-  // longer showed them. They run only while the hero is actually on screen.
+  // The backdrop loop and the reel run only while the hero is on screen.
   const heroRef = useRef<HTMLElement | null>(null)
   const heroInView = useInView(heroRef, { amount: 0.05 })
   const onScreen = !reduce && heroInView
-  const drift = onScreen && !covered
   // The morph reel: identical sample content flowing through contrasting
   // designs — the template engine demonstrating itself.
   // Some frames also show a choice the page offers on top of any design - a
@@ -541,14 +573,17 @@ function HeroCinema({
   const morph = useMemo(
     () =>
       (
+        // It opens on the Signature designs - the ones nothing else has -
+        // then shows the choices any design takes on top.
         [
+          ['folio-noir', 'Signature', null],
+          ['broadsheet', 'Signature', null],
+          ['marquee', 'Signature', null],
           ['clarity', 'labelled contacts', (m) => void (m.layout.contactStyle = 'strip')],
-          ['obsidian', '', null],
           ['sapphire', 'contact pills', (m) => void (m.layout.contactStyle = 'pills')],
           ['crest', 'headings on a rail', (m) => void (m.layout.headingPlacement = 'side')],
+          ['keystone', 'Signature', null],
           ['halcyon', 'dates in the company line', (m) => void (m.layout.dateAlign = 'inline')],
-          ['pinnacle', 'contacts beside the name', (m) => void (m.layout.contactPlacement = 'beside')],
-          ['marquee', '', null],
         ] as [string, string, ((m: ResumeDocument['metadata']) => void) | null][]
       ).map(([id, note, tweak]) => {
         const d = createDocument({ sample: true })
@@ -570,22 +605,6 @@ function HeroCinema({
     }, 3400)
     return () => clearInterval(t)
   }, [reduce, morph.length, heroInView, covered])
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const rx = useSpring(useTransform(my, [-0.5, 0.5], [7, -7]), { stiffness: 110, damping: 16 })
-  const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-9, 9]), { stiffness: 110, damping: 16 })
-  // The backdrop art moves against the pointer (a few px, sprung) so the
-  // stage reads as a space with depth rather than a poster; the gold glow
-  // follows the pointer across the whole stage.
-  const bgX = useSpring(useTransform(mx, [-0.5, 0.5], [16, -16]), { stiffness: 60, damping: 18 })
-  const bgY = useSpring(useTransform(my, [-0.5, 0.5], [12, -12]), { stiffness: 60, damping: 18 })
-  // Compositor-only: the glow travels by transform, in fractions of the stage
-  // measured in the same normalised units the pointer already reports, so a
-  // pointer frame never triggers layout.
-  const glowSX = useSpring(mx, { stiffness: 50, damping: 18 })
-  const glowSY = useSpring(my, { stiffness: 50, damping: 18 })
-  const glowX = useTransform(glowSX, (v) => `${(v + 0.5) * 100}%`)
-  const glowY = useTransform(glowSY, (v) => `${(v + 0.5) * 100}%`)
   // The still's slow drift is only for the moments the video is not carrying
   // the motion: it stops the instant the loop is playing (two animated
   // full-stage layers were measured as a second, redundant cost).
@@ -605,26 +624,18 @@ function HeroCinema({
     document.addEventListener('visibilitychange', sync)
     return () => document.removeEventListener('visibilitychange', sync)
   }, [covered])
-  const onMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (reduce) return
-    const r = e.currentTarget.getBoundingClientRect()
-    mx.set((e.clientX - r.left) / r.width - 0.5)
-    my.set((e.clientY - r.top) / r.height - 0.5)
-  }
-
   return (
     <section
       ref={heroRef}
       id="hero-stage"
       className={`relative overflow-hidden bg-[#0a0c12] text-white${covered ? ' hero-covered' : ''}`}
-      onMouseMove={onMove}
     >
       {/* Backdrop art: black paper threaded with gold. A still for everyone;
           for viewers who allow motion, a slow loop of the same scene fades in
           over it (a palindrome, so it never pops at the seam) and the whole
           layer drifts against the pointer. Overscaled a touch so the parallax
           never shows an edge. */}
-      <motion.div aria-hidden className="pointer-events-none absolute inset-0 will-change-transform" style={{ x: bgX, y: bgY, scale: 1.06 }}>
+      <div aria-hidden className="pointer-events-none absolute inset-0">
         <img
           src="/art/hero-veins-1280.webp"
           srcSet="/art/hero-veins-1280.webp 1280w, /art/hero-veins-1920.webp 1920w"
@@ -654,7 +665,7 @@ function HeroCinema({
             <source src="/art/hero-loop-veins.mp4" type="video/mp4" />
           </video>
         )}
-      </motion.div>
+      </div>
       {/* legibility: the copy column stays ink-dark, the edges vignette */}
       <div
         aria-hidden
@@ -664,45 +675,10 @@ function HeroCinema({
             'linear-gradient(90deg, rgba(10,12,18,.86) 0%, rgba(10,12,18,.62) 42%, rgba(10,12,18,.28) 100%), radial-gradient(120% 80% at 50% 115%, rgba(10,12,18,.92), transparent 60%)',
         }}
       />
-      {/* a warm glow that follows the pointer across the stage */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute left-0 top-0 h-[28rem] w-[28rem] rounded-full will-change-transform"
-          style={{ x: glowX, y: glowY, translateX: '-50%', translateY: '-50%', background: 'radial-gradient(closest-side, rgba(212,152,47,.22), transparent 70%)' }}
-        />
-      </div>
-      {/* drifting aurora */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 left-[8%] h-[34rem] w-[34rem] rounded-full"
-        style={{ background: 'radial-gradient(closest-side,#d4982f4d,#d4982f1f 55%,transparent 85%)' }}
-        animate={drift ? { x: [0, 60, -30, 0], y: [0, 30, 10, 0] } : undefined}
-        transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-56 right-[4%] h-[38rem] w-[38rem] rounded-full"
-        style={{ background: 'radial-gradient(closest-side,#5b5df02e,#5b5df014 55%,transparent 85%)' }}
-        animate={drift ? { x: [0, -70, 20, 0], y: [0, -30, 20, 0] } : undefined}
-        transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute right-1/3 top-1/3 h-[26rem] w-[26rem] rounded-full"
-        style={{ background: 'radial-gradient(closest-side,#2dd4bf1f,#2dd4bf0f 55%,transparent 85%)' }}
-        animate={drift ? { x: [0, 40, -40, 0], y: [0, -40, 24, 0] } : undefined}
-        transition={{ duration: 38, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      {/* fine dot grid for depth */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.13]"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.4px)',
-          backgroundSize: '26px 26px',
-        }}
-      />
-
+      {/* One ambient layer - the backdrop above - and the reel. The pointer
+          glow, three drifting aurora blobs, a dot grid, parallax, a 3D tilt,
+          a shimmering headline and three bobbing glass chips all ran here at
+          once (critique, 2026-10-23): a stage busier than the product on it. */}
       {/* Two columns from lg: at a 768px tablet the headline was squeezed to
           one word per line beside a card hanging off the edge. */}
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.05fr_1fr] lg:py-28">
@@ -710,24 +686,19 @@ function HeroCinema({
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Local-first · Free · Open source
           </span>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+          {/* Set in the face of Folio Noir, a Signature design: the page is
+              typeset like the résumés it makes, not lit like any other app. */}
+          <h1
+            className="font-display mt-6 text-5xl font-semibold leading-[0.98] sm:text-7xl"
+           
+          >
             A resume this beautiful
             <br />
-            never leaves your{' '}
-            <span
-              className="hero-shimmer bg-clip-text text-transparent"
-              style={{
-                backgroundImage: 'linear-gradient(110deg,#8a5a12 0%,#d4982f 25%,#f7d774 50%,#d4982f 75%,#8a5a12 100%)',
-              }}
-            >
-              browser
-            </span>
-            .
+            never leaves your <span style={{ color: '#e2b04f' }}>browser</span>.
           </h1>
-          <p className="mt-5 max-w-md text-base leading-relaxed text-white/65">
-            {TEMPLATE_COUNT} designer templates you can restyle <em className="not-italic text-white/90">section by section</em>,{' '}
-            {SAMPLE_COUNT} complete examples to start from, a built-in ATS check with a parser&apos;s-eye view, PDF
-            import with on-device OCR — and not a single byte of your career story sent to any server.
+          <p className="mt-6 max-w-md text-base leading-relaxed text-white/70">
+            {TEMPLATE_COUNT} designs, a built-in ATS check, and a real vector PDF, made and kept entirely in your
+            browser. Free, with nothing to sign up for.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
@@ -771,7 +742,6 @@ function HeroCinema({
                     <PreviewThumb doc={morph[ti].doc} width={256} />
                   </motion.div>
                 </AnimatePresence>
-                <div className="hero-sheen" aria-hidden />
               </div>
               {/* Inside the card's edges and allowed to wrap: on one line it ran
                   wider than the card on a phone and was cut at the left
@@ -781,7 +751,7 @@ function HeroCinema({
                   <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: '#d4982f' }} />
                   <span>
                     {morph[ti].name}
-                    {morph[ti].note ? ` · ${morph[ti].note}` : ''} — same content, one click
+                    {morph[ti].note ? ` · ${morph[ti].note}` : ''}, same content
                   </span>
                 </span>
               </div>
@@ -791,10 +761,7 @@ function HeroCinema({
 
         {/* the product, demonstrated: ONE resume re-skinning itself live */}
         <div className="hidden [perspective:1400px] lg:block" aria-hidden data-nosnippet>
-          <motion.div
-            style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }}
-            className="relative mx-auto h-[34rem] w-[30rem]"
-          >
+          <div className="relative mx-auto h-[34rem] w-[30rem]" style={{ transformStyle: 'preserve-3d' }}>
             {/* depth: the NEXT design waits behind */}
             <div
               className="absolute left-20 top-8 w-[24rem] overflow-hidden rounded-xl border border-white/10 opacity-35 shadow-2xl"
@@ -823,7 +790,6 @@ function HeroCinema({
                     <PreviewThumb doc={morph[ti].doc} width={416} />
                   </motion.div>
                 </AnimatePresence>
-                <div className="hero-sheen" aria-hidden />
               </div>
               {/* live template name — proof it's the same content, restyled */}
               <div className="pointer-events-none absolute bottom-3 right-3">
@@ -837,43 +803,14 @@ function HeroCinema({
                     className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-[#0a0c12]/85 px-3 py-1 text-[11px] font-medium text-white shadow-lg backdrop-blur"
                   >
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#d4982f' }} />
-                    {morph[ti].name} — same content, one click
+                    {morph[ti].name}
+                    {morph[ti].note ? ` · ${morph[ti].note}` : ''}, same content
                   </motion.span>
                 </AnimatePresence>
               </div>
             </div>
 
-            {/* floating proof chips */}
-            <motion.div
-              className="absolute -top-7 left-4 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
-              style={{ z: 90 }}
-              animate={reduce ? undefined : { y: [0, -7, 0] }}
-              transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <div className="font-semibold text-emerald-300">0 bytes uploaded</div>
-              <div className="mt-0.5 text-white/60">everything stays on this device</div>
-            </motion.div>
-            <motion.div
-              className="absolute -right-16 top-44 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
-              style={{ z: 80 }}
-              animate={reduce ? undefined : { y: [0, -9, 0] }}
-              transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
-            >
-              <div className="font-semibold" style={{ color: '#f7d774' }}>
-                {TEMPLATE_COUNT} designs, one resume
-              </div>
-              <div className="mt-0.5 text-white/60">restyle section by section</div>
-            </motion.div>
-            <motion.div
-              className="absolute -bottom-14 left-2 rounded-xl border border-white/15 bg-[#0a0c12]/80 px-3.5 py-2.5 text-xs text-white/90 shadow-xl backdrop-blur-md"
-              style={{ z: 70 }}
-              animate={reduce ? undefined : { y: [0, -6, 0] }}
-              transition={{ duration: 5.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-            >
-              <div className="font-semibold text-sky-300">See what the ATS sees</div>
-              <div className="mt-0.5 text-white/60">parser's-eye view, built in</div>
-            </motion.div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

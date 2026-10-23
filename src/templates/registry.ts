@@ -1894,6 +1894,8 @@ export function galleryOrder(list: readonly TemplateConfig[]): TemplateConfig[] 
  *  have; the static tags in index.html cannot import it and are guarded by a
  *  test instead. */
 export const TEMPLATE_COUNT = TEMPLATES.length
+/** The Signature designs: each a different page structure, not a recolour. */
+export const SIGNATURE_COUNT = TEMPLATES.filter((t) => t.tags.includes('signature')).length
 
 export function getTemplate(id?: string): TemplateConfig {
   return (id && TEMPLATE_MAP[id]) || TEMPLATE_MAP.modern
