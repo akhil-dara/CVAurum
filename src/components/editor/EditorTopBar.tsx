@@ -10,9 +10,9 @@ import { useAppStore } from '@/store/useAppStore'
 // never needs until the moment a file is actually produced.
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { runPdfExport } from '@/lib/pdf/exportFlow'
-import { getDurabilityStatus, requestDurability, type DurabilityStatus } from '@/lib/storage'
+import { getDurabilityStatus, loadRawDocs, requestDurability, type DurabilityStatus } from '@/lib/storage'
 import { exportFullBackup } from '@/lib/backup'
-import { readLastBackup, saveAtRisk } from '@/lib/saveSafety'
+import { hasWorkToLose, readLastBackup, saveAtRisk } from '@/lib/saveSafety'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
@@ -107,7 +107,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
         aria-label="Resume title"
       />
 
-      <SaveStatus dirty={dirty} />
+      <SaveStatus dirty={dirty} content={doc.content} />
 
       <div className="ml-auto flex items-center gap-1">
         {/* undo / redo + zoom: needs a desktop layout AND a bar with room.
@@ -345,13 +345,18 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
  * storage not guaranteed and no recent backup - does it turn amber and offer
  * the backup on the spot.
  */
-function SaveStatus({ dirty }: { dirty: boolean }) {
+function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocument['content'] }) {
   const toast = useAppStore((s) => s.toast)
   const [durability, setDurability] = useState<DurabilityStatus>(getDurabilityStatus())
   const [lastBackup, setLastBackup] = useState(readLastBackup)
+  // how many résumés this browser holds: a blank one alone has nothing to lose
+  const [stored, setStored] = useState(1)
   useEffect(() => {
     let alive = true
     void requestDurability().then((d) => alive && setDurability(d))
+    void loadRawDocs()
+      .then((all) => alive && setStored(all.length))
+      .catch(() => {})
     return () => {
       alive = false
     }
@@ -364,7 +369,7 @@ function SaveStatus({ dirty }: { dirty: boolean }) {
       </span>
     )
   }
-  if (saveAtRisk(durability, lastBackup, Date.now())) {
+  if (saveAtRisk(durability, lastBackup, Date.now(), hasWorkToLose(content, stored))) {
     return (
       <button
         type="button"

@@ -3405,33 +3405,26 @@ function Custom({
 }
 
 /** Canvas-only "+ Add <entry>" row, mirroring the Bullets add-row. Lets the user
- *  add the first/next item to a section directly on the page (never printed). */
-function AddEntry({ sectionKey, edit }: { sectionKey: string; edit: EditFn }) {
+ *  add the first/next item to a section directly on the page (never printed).
+ *
+ *  In an empty section it is the section's only line and stays up at rest:
+ *  it replaced an italic "Empty sections are not exported" under every
+ *  empty heading, which told a first-timer what would NOT happen three times
+ *  over and never what to do. That fact moved to its tooltip. */
+function AddEntry({ sectionKey, edit, first }: { sectionKey: string; edit: EditFn; first?: boolean }) {
   const label = ADD_LABEL[sectionKey] ?? 'entry'
   return (
-    <div className="rm-add-entry-row no-print" contentEditable={false}>
+    <div className={`rm-add-entry-row no-print${first ? ' is-first' : ''}`} contentEditable={false}>
       <button
         type="button"
         className="rm-add-btn"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => edit((c) => pushNewItem(c, sectionKey))}
-        title={`Add ${label}`}
+        title={first ? `Add ${label}. An empty section is left out of the PDF.` : `Add ${label}`}
       >
         + Add {label}
       </button>
     </div>
-  )
-}
-
-/** Discoverability hint under a section that hasn't got real content yet — the
- *  ghost placeholder text (Title, Publisher, …) looks like a normal entry, so
- *  this makes clear it's not what will show up in the exported PDF. Canvas-only,
- *  one muted line, never affects layout in print/thumbnail (no `edit` there). */
-function EmptyHint() {
-  return (
-    <p className="rm-empty-hint no-print" contentEditable={false}>
-      Empty sections are not exported
-    </p>
   )
 }
 
@@ -3529,8 +3522,7 @@ export function SectionBody({
   return (
     <>
       {body}
-      {!sectionHasContent(sectionKey, doc.content) ? <EmptyHint /> : null}
-      <AddEntry sectionKey={sectionKey} edit={edit} />
+      <AddEntry sectionKey={sectionKey} edit={edit} first={!sectionHasContent(sectionKey, doc.content)} />
     </>
   )
 }

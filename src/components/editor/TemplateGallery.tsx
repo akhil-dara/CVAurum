@@ -77,7 +77,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
       <p className="text-sm text-muted-foreground">
         {TEMPLATES.length} templates — every one ATS-friendly.{' '}
         {isBlank
-          ? 'Previews show example content until you add yours.'
+          ? 'Pick one to start; you can switch any time. Previews show example content until you add yours.'
           : 'Your content flows into every one — switch any time.'}{' '}
         {phone ? 'Tap Preview on a card for a full-size look.' : 'Hover a card for a full-size look.'}
       </p>

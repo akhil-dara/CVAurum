@@ -92,12 +92,8 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
         sessionStorage.removeItem('cvaurum:pick-design')
         useEditorStore.getState().setLeftTab('templates')
         useEditorStore.getState().setLeftOpen(true)
-        useAppStore.getState().toast(
-          isPhoneLayout()
-            ? 'Start by picking a design — tap Preview on a card for a full-size look. Your content will flow into whichever you choose.'
-            : 'Start by picking a design — hover any card for a full-size preview. Your content will flow into whichever you choose.',
-          'info'
-        )
+        // No toast here: the gallery's own first line says the same, and on a
+        // phone the toast sat on top of the tour's invite card (2026-10-24).
       }
     } catch {
       /* private mode */

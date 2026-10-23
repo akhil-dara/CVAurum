@@ -3571,6 +3571,7 @@
      the section */
   .mode-preview :is(.rm-item, .rm-mini):is(:hover, :focus-within) .rm-add-btn,
   .mode-preview .rm-section:is(:hover, :focus-within) .rm-add-btn:not(:is(.rm-item, .rm-mini) .rm-add-btn),
+  .mode-preview .rm-add-entry-row.is-first .rm-add-btn,
   .mode-preview .rm-add-btn:focus-visible {
     opacity: 1;
   }
@@ -3683,16 +3684,6 @@
   background: color-mix(in srgb, #ef4444 12%, var(--rm-bg));
 }
 
-/* Discoverability hint under an empty section (editable preview only): the
-   ghost placeholder fields look like a real entry, so spell out that nothing
-   here reaches the export until it's filled in. One quiet line, no icon. */
-.mode-preview .rm-empty-hint {
-  margin: 0.15em 0 0;
-  font-size: 0.78em;
-  font-style: italic;
-  color: var(--rm-muted);
-  opacity: 0.8;
-}
 
 /* Inline date picker trigger (editable canvas) */
 .rm-date-edit {
