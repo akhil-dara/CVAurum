@@ -142,3 +142,24 @@ describe('a stored résumé is never dropped for one bad field', () => {
     expect(parseStoredDoc({ hello: 'world' } as never)).toBeNull()
   })
 })
+
+describe('a deleted résumé can be brought back for a month', () => {
+  // Deleting a whole résumé used to be a browser confirm and a hard delete:
+  // the one action that loses the most had the weakest safety net, after a
+  // real incident of résumés disappearing from a phone.
+  const DAY = 24 * 60 * 60 * 1000
+  it('keeps it for 30 days', async () => {
+    const { trashExpired, TRASH_DAYS } = await import('./storage')
+    expect(TRASH_DAYS).toBe(30)
+    const now = Date.parse('2026-10-23T12:00:00Z')
+    expect(trashExpired(now - 29 * DAY, now)).toBe(false)
+    expect(trashExpired(now - 30 * DAY + 1, now)).toBe(false)
+    expect(trashExpired(now - 31 * DAY, now)).toBe(true)
+  })
+  it('never treats a missing or future stamp as expired', async () => {
+    const { trashExpired } = await import('./storage')
+    const now = Date.parse('2026-10-23T12:00:00Z')
+    expect(trashExpired(Number.NaN, now)).toBe(false)
+    expect(trashExpired(now + DAY, now)).toBe(false)
+  })
+})

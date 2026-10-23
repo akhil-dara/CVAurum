@@ -129,6 +129,75 @@ export async function deleteDoc(id: string): Promise<void> {
   await del(DOC_PREFIX + id, store)
 }
 
+/* ---- Recently deleted ----------------------------------------------------
+ * Deleting a whole résumé moves it here rather than erasing it: kept as
+ * `trash:<id>` for TRASH_DAYS, restorable exactly as it was, then dropped on
+ * the next library visit. It was a browser confirm and a hard delete - the
+ * action that loses the most had the weakest safety net, after a real
+ * incident of résumés disappearing from a phone. Trashed résumés are not
+ * part of the library, a backup or the raw "save a copy" file. */
+const TRASH_PREFIX = 'trash:'
+export const TRASH_DAYS = 30
+
+export interface TrashedDoc {
+  doc: ResumeDocument
+  deletedAt: number
+}
+
+/** True once a résumé deleted at `deletedAt` has been kept its full month.
+ *  A missing or future stamp never expires: a clock that is wrong must not
+ *  be what erases someone's work. */
+export function trashExpired(deletedAt: number, now: number): boolean {
+  if (!Number.isFinite(deletedAt) || deletedAt > now) return false
+  return now - deletedAt > TRASH_DAYS * 24 * 60 * 60 * 1000
+}
+
+/** Moves a résumé to Recently deleted. */
+export async function trashDoc(id: string): Promise<void> {
+  const raw = await get(DOC_PREFIX + id, store)
+  if (!raw) return
+  // written before the original goes: a failure between the two leaves the
+  // résumé in both places, never in neither
+  await set(TRASH_PREFIX + id, { doc: raw, deletedAt: Date.now() }, store)
+  await del(DOC_PREFIX + id, store)
+}
+
+/** Puts a deleted résumé back in the library. */
+export async function restoreTrashed(id: string): Promise<boolean> {
+  const entry = await get<{ doc: unknown }>(TRASH_PREFIX + id, store)
+  if (!entry?.doc) return false
+  await set(DOC_PREFIX + id, entry.doc, store)
+  await del(TRASH_PREFIX + id, store)
+  return true
+}
+
+/** Erases a deleted résumé for good. */
+export async function deleteTrashedForever(id: string): Promise<void> {
+  await del(TRASH_PREFIX + id, store)
+}
+
+/** Recently deleted, newest first; anything past its month is dropped. */
+export async function loadTrash(now = Date.now()): Promise<TrashedDoc[]> {
+  try {
+    const trashKeys = (await keys(store)).filter((k): k is string => typeof k === 'string' && k.startsWith(TRASH_PREFIX))
+    const out: TrashedDoc[] = []
+    for (const k of trashKeys) {
+      const entry = await get<{ doc: ResumeDocument; deletedAt: number }>(k, store)
+      if (!entry?.doc) continue
+      if (trashExpired(entry.deletedAt, now)) {
+        await del(k, store)
+        continue
+      }
+      const doc = parseStoredDoc(entry.doc)
+      if (doc) out.push({ doc, deletedAt: entry.deletedAt })
+    }
+    return out.sort((a, b) => b.deletedAt - a.deletedAt)
+  } catch (e) {
+    console.error('Failed to load recently deleted resumes', e)
+    return []
+  }
+}
+
 /** Remove every stored resume (used by "restore backup → replace"). */
 export async function clearAllDocs(): Promise<void> {
   const allKeys = await keys(store)

@@ -30,7 +30,29 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
         'error'
       )
     } else {
-      toast(`Downloaded ${result.fileName} · ${result.pages} page${result.pages === 1 ? '' : 's'} · ${formatSize(result.bytes)}`, 'success')
+      const done = `Downloaded ${result.fileName} · ${result.pages} page${result.pages === 1 ? '' : 's'} · ${formatSize(result.bytes)}`
+      // The first finished export is when someone first cares about their
+      // work, and it lives only in this browser: offer, once, to keep a copy.
+      const { offerBackupAfterExport, readLastBackup } = await import('@/lib/saveSafety')
+      let offered = false
+      try {
+        offered = localStorage.getItem('cvaurum:backup-offered') === '1'
+        if (!offered) localStorage.setItem('cvaurum:backup-offered', '1')
+      } catch {
+        offered = true // no storage to remember the offer in: do not nag
+      }
+      if (offerBackupAfterExport({ lastBackup: readLastBackup(), offered })) {
+        toast(`${done}. Your résumés live only in this browser - keep a backup too.`, 'success', {
+          label: 'Back up',
+          run: async () => {
+            const { exportFullBackup } = await import('@/lib/backup')
+            const n = await exportFullBackup()
+            toast(`Backed up ${n} resume${n === 1 ? '' : 's'}`, 'success')
+          },
+        })
+      } else {
+        toast(done, 'success')
+      }
     }
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e)

@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { BookOpen, FileText, Plus, FileUp, Copy, Trash2, MoreVertical, KanbanSquare, DatabaseBackup } from 'lucide-react'
+import { BookOpen, FileText, Plus, FileUp, Copy, Trash2, MoreVertical, KanbanSquare, DatabaseBackup, RotateCcw, ChevronDown } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
-import { saveDoc, deleteDoc, requestDurability, getDurabilityStatus, getLoadReport, type DurabilityStatus, type LoadReport } from '@/lib/storage'
+import {
+  saveDoc,
+  trashDoc,
+  restoreTrashed,
+  deleteTrashedForever,
+  loadTrash,
+  TRASH_DAYS,
+  requestDurability,
+  getDurabilityStatus,
+  getLoadReport,
+  type DurabilityStatus,
+  type LoadReport,
+  type TrashedDoc,
+} from '@/lib/storage'
 import { exportFullBackup, exportRawStored, importFullBackup } from '@/lib/backup'
 import { uid, timeAgo } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
@@ -412,6 +425,7 @@ export function Dashboard() {
             ))}
           </div>
         )}
+        {libraryLoaded ? <RecentlyDeleted library={library} onChanged={refreshLibrary} /> : null}
       </main>
 
       {chooser && (
@@ -445,6 +459,87 @@ export function Dashboard() {
         />
       )}
     </div>
+  )
+}
+
+/** Résumés deleted in the last month: restorable as they were, or erased for
+ *  good on a second, deliberate click. Hidden when there are none. */
+function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; onChanged: () => Promise<void> }) {
+  const toast = useAppStore((s) => s.toast)
+  const [items, setItems] = useState<TrashedDoc[]>([])
+  const [open, setOpen] = useState(false)
+  const [armed, setArmed] = useState<string | null>(null)
+  // The library changes whenever something is deleted or restored, so this
+  // re-reads with it.
+  useEffect(() => {
+    let alive = true
+    void loadTrash().then((t) => {
+      if (alive) setItems(t)
+    })
+    return () => {
+      alive = false
+    }
+  }, [library])
+  if (!items.length) return null
+  const DAY = 24 * 60 * 60 * 1000
+  const keptUntil = (at: number) =>
+    new Date(at + TRASH_DAYS * DAY).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return (
+    <section className="mt-12 border-t border-border pt-5" aria-label="Recently deleted">
+      <button
+        type="button"
+        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? '' : '-rotate-90'}`} />
+        Recently deleted <span className="tabular-nums">· {items.length}</span>
+      </button>
+      {open ? (
+        <ul className="mt-3 divide-y divide-border rounded-xl border border-border">
+          {items.map(({ doc, deletedAt }) => (
+            <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{doc.title}</div>
+                <div className="text-xs text-muted-foreground">
+                  Deleted {timeAgo(deletedAt)} · kept until {keptUntil(deletedAt)}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-outline btn-sm phone:h-10"
+                onClick={async () => {
+                  await restoreTrashed(doc.id)
+                  await onChanged()
+                  toast(`Restored “${doc.title}”`, 'success')
+                }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Restore
+              </button>
+              {armed === doc.id ? (
+                <button
+                  type="button"
+                  className="btn-sm rounded-md bg-danger px-3 text-white phone:h-10"
+                  onClick={async () => {
+                    await deleteTrashedForever(doc.id)
+                    setArmed(null)
+                    setItems((all) => all.filter((t) => t.doc.id !== doc.id))
+                    toast(`“${doc.title}” erased for good`)
+                  }}
+                  onBlur={() => setArmed(null)}
+                >
+                  Erase for good
+                </button>
+              ) : (
+                <button type="button" className="btn-ghost btn-sm text-muted-foreground phone:h-10" onClick={() => setArmed(doc.id)}>
+                  <Trash2 className="h-3.5 w-3.5" /> Delete forever
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   )
 }
 
@@ -519,10 +614,18 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
     toast('Duplicated', 'success')
   }
   const remove = async () => {
-    if (!confirm(`Delete "${doc.title}"? This can't be undone.`)) return
-    await deleteDoc(doc.id)
+    // Moved to Recently deleted, never erased on the spot: the Undo is right
+    // here, and the résumé stays restorable for a month below the library.
+    setMenu(false)
+    await trashDoc(doc.id)
     await onChanged()
-    toast('Deleted')
+    toast(`Moved “${doc.title}” to Recently deleted`, 'info', {
+      label: 'Undo',
+      run: async () => {
+        await restoreTrashed(doc.id)
+        await onChanged()
+      },
+    })
   }
 
   return (

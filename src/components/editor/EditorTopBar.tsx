@@ -10,6 +10,9 @@ import { useAppStore } from '@/store/useAppStore'
 // never needs until the moment a file is actually produced.
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { runPdfExport } from '@/lib/pdf/exportFlow'
+import { getDurabilityStatus, requestDurability, type DurabilityStatus } from '@/lib/storage'
+import { exportFullBackup } from '@/lib/backup'
+import { readLastBackup, saveAtRisk } from '@/lib/saveSafety'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
@@ -104,10 +107,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
         aria-label="Resume title"
       />
 
-      <span className="flex items-center gap-1 text-xs text-muted-foreground" title={dirty ? 'Saving…' : 'All changes saved locally'}>
-        {dirty ? <Cloud className="h-3.5 w-3.5 animate-pulse" /> : <Check className="h-3.5 w-3.5 text-success" />}
-        <span className="hidden sm:inline">{dirty ? 'Saving…' : 'Saved'}</span>
-      </span>
+      <SaveStatus dirty={dirty} />
 
       <div className="ml-auto flex items-center gap-1">
         {/* undo / redo + zoom: needs a desktop layout AND a bar with room.
@@ -334,5 +334,66 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
       {exportFmt && <ExportDialog fmt={exportFmt} doc={doc} onClose={() => setExportFmt(null)} />}
     </header>
+  )
+}
+
+/**
+ * Where the work is, said plainly. "Saved" alone over-promised: the only copy
+ * of a résumé lives in this browser, and a browser that has not granted
+ * durable storage may clear it (a real incident wiped a phone's library). It
+ * says "Saved in this browser", and only when the work is really at risk -
+ * storage not guaranteed and no recent backup - does it turn amber and offer
+ * the backup on the spot.
+ */
+function SaveStatus({ dirty }: { dirty: boolean }) {
+  const toast = useAppStore((s) => s.toast)
+  const [durability, setDurability] = useState<DurabilityStatus>(getDurabilityStatus())
+  const [lastBackup, setLastBackup] = useState(readLastBackup)
+  useEffect(() => {
+    let alive = true
+    void requestDurability().then((d) => alive && setDurability(d))
+    return () => {
+      alive = false
+    }
+  }, [])
+  if (dirty) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-muted-foreground" role="status">
+        <Cloud className="h-3.5 w-3.5 animate-pulse" />
+        <span className="hidden sm:inline">Saving…</span>
+      </span>
+    )
+  }
+  if (saveAtRisk(durability, lastBackup, Date.now())) {
+    return (
+      <button
+        type="button"
+        className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-medium text-foreground hover:bg-warning/20"
+        title="Saved only in this browser, which has not promised to keep it. Download a backup so a cleared browser cannot lose your résumés."
+        onClick={async () => {
+          try {
+            const n = await exportFullBackup()
+            setLastBackup(Date.now())
+            toast(`Backed up ${n} resume${n === 1 ? '' : 's'}`, 'success')
+          } catch {
+            toast('Could not create the backup', 'error')
+          }
+        }}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
+        {/* the full sentence where the bar has room; the action everywhere */}
+        <span className="hidden xl:inline">Saved here only ·</span> Back up
+      </button>
+    )
+  }
+  return (
+    <span
+      className="flex items-center gap-1 text-xs text-muted-foreground"
+      role="status"
+      title="Every change is saved in this browser as you type. Nothing is uploaded."
+    >
+      <Check className="h-3.5 w-3.5 text-success" />
+      <span className="hidden whitespace-nowrap lg:inline">Saved in this browser</span>
+    </span>
   )
 }
