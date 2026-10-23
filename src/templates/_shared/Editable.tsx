@@ -45,6 +45,10 @@ interface EditableProps {
   spellCheck?: boolean
   /** bullet fields: a paste of two or more lines becomes that many bullets (the parent inserts them) */
   onPasteLines?: (lines: string[]) => void
+  /** A field nobody has to fill (a role overview, a summary under an award):
+   *  left empty, the canvas shows it only inside the entry being worked on,
+   *  so at rest the page reads as it prints. */
+  optional?: boolean
 }
 
 interface SlashMenu {
@@ -82,7 +86,7 @@ function detectSlash(root: HTMLElement): Omit<SlashMenu, 'items' | 'index'> & { 
   }
 }
 
-function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines }: EditableProps) {
+function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines, optional }: EditableProps) {
   const ref = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // "/" quick-insert menu (rich fields only). Kept in a ref too so the keydown
@@ -236,6 +240,7 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
         aria-label={placeholder || 'Editable field'}
         aria-multiline={rich && multiline ? true : undefined}
         data-placeholder={placeholder}
+        data-optional={optional ? '' : undefined}
         onInput={onInput}
         onBlur={onBlur}
         onKeyDown={onKeyDown}
@@ -292,6 +297,7 @@ export function Ed({
   spellCheck,
   chunk,
   onPasteLines,
+  optional,
 }: {
   edit?: EditFn
   value: string
@@ -307,6 +313,8 @@ export function Ed({
   chunk?: boolean
   /** bullet fields: a paste of two or more lines becomes that many bullets */
   onPasteLines?: (lines: string[]) => void
+  /** See EditableProps.optional. */
+  optional?: boolean
 }) {
   if (!edit) {
     if (rich) return <RichText html={value} className={className} />
@@ -345,6 +353,7 @@ export function Ed({
       placeholder={placeholder}
       spellCheck={spellCheck}
       onPasteLines={onPasteLines}
+      optional={optional}
       onChange={(v) => edit((c) => apply(c, v))}
     />
   )

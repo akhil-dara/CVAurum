@@ -1410,6 +1410,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
                     c.work[i].summary = v
                   }}
                   placeholder="Brief role overview — scope, team, mission (optional)"
+                  optional
                 />
               </div>
             ) : null}
@@ -1622,6 +1623,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 rich
                 multiline
                 placeholder="Summary"
+                optional
               />
             ) : null}
             {e.courses?.length ? (
@@ -2841,6 +2843,7 @@ function Awards({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?
                 // of the awarder line ("Vertex LabsTop 2% of ...").
                 as="div"
                 placeholder="Summary"
+                optional
               />
             ) : null}
             <ItemMove edit={edit} sectionKey="awards" id={a.id} label={ADD_LABEL.awards} />
@@ -2957,6 +2960,7 @@ function Publications({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn;
                 // Same as an award: its own block, or it joins the publisher.
                 as="div"
                 placeholder="Summary"
+                optional
               />
             ) : null}
             <ItemMove edit={edit} sectionKey="publications" id={p.id} label={ADD_LABEL.publications} />
@@ -3061,6 +3065,7 @@ function Volunteer({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 rich
                 multiline
                 placeholder="Summary"
+                optional
               />
             ) : null}
             {show(opts?.showBullets) ? (

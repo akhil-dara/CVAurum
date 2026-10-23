@@ -3487,6 +3487,109 @@
   background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
 }
 
+/* ---- the page at rest: tools where you work, the résumé everywhere else ----
+   Critique, 2026-10-23: in edit mode every section carried a Style pill, a
+   hide eye and a link glyph, every entry a grey "Brief role overview" line
+   and a "+ bullet" chip - the sample résumé alone held 43 remove buttons -
+   so the page read as a control panel rather than the document it prints.
+
+   1. Tool ink. The add controls drew in the document's own accent at 70%
+      (measured 2.7:1 for "+ bullet", 3.1:1 for "+ Add section"), which made
+      them read as part of the résumé and failed AA. They take the neutral
+      ink the Style pill already uses, at full strength, and turn to the
+      accent only under the pointer. */
+.mode-preview .rm-add-btn,
+.mode-preview .rm-add-section {
+  color: color-mix(in srgb, var(--rm-text) 72%, var(--rm-muted));
+  opacity: 1;
+}
+.mode-preview .rm-add-btn {
+  background: color-mix(in srgb, var(--rm-text) 6%, transparent);
+}
+.mode-preview .rm-add-section {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--rm-text) 28%, transparent);
+}
+.mode-preview .rm-add-btn:hover,
+.mode-preview .rm-add-btn:focus-visible,
+.mode-preview .rm-add-section:hover,
+.mode-preview .rm-add-section:focus-visible {
+  color: var(--rm-primary-ink, var(--rm-primary));
+  background: color-mix(in srgb, var(--rm-primary) 10%, transparent);
+}
+
+/* 2. Optional fields left empty show only inside the entry being worked on:
+      at rest the page holds exactly what it prints, and a click into the
+      entry brings the line up to type in. Focus, not hover - an empty line
+      appearing under a passing pointer would move everything below it. */
+.mode-preview :is(.rm-item, .rm-mini):not(:focus-within) .rm-editable[data-optional]:empty,
+.mode-preview :is(.rm-item, .rm-mini):not(:focus-within) .rm-item-summary:has(> .rm-editable[data-optional]:empty) {
+  display: none;
+}
+
+/* 3. With a mouse, a section's own tools come up with the section: the Style
+      pill, the hide eye, the link glyph after a title, and the add chips.
+      Each sits inside the box whose hover reveals it, so the pointer that
+      reaches it is already revealing it, and keyboard focus reveals the
+      same set. A touch screen has no hover: there they stay as they were. */
+@media (hover: hover) and (pointer: fine) {
+  .mode-preview .rm-section .rm-section-gear,
+  .mode-preview .rm-section .rm-section-hide:not(:disabled),
+  .mode-preview .rm-header > .rm-section-gear,
+  .mode-preview .rm-title-link-btn:not(.is-linked),
+  .mode-preview .rm-section .rm-add-btn {
+    opacity: 0;
+  }
+  /* A section's tools belong to its heading row: Style, hide and move come
+     up when the pointer is on the heading (or on the tools themselves), and
+     an entry's tools when it is on that entry. Revealed by any hover in the
+     section, the section's row and the first entry's lifted cluster shared
+     one line and collided. */
+  .mode-preview .rm-section:has(> :is(.rm-section-title, .rm-section-controls, .rm-section-gear):hover) .rm-section-gear,
+  .mode-preview .rm-section:has(> :is(.rm-section-title, .rm-section-controls, .rm-section-gear):hover) .rm-section-hide:not(:disabled),
+  .mode-preview .rm-section:has(> :is(.rm-section-controls, .rm-section-gear):focus-within) .rm-section-gear,
+  .mode-preview .rm-section:has(> .rm-section-controls:focus-within) .rm-section-hide:not(:disabled),
+  .mode-preview .rm-header:is(:hover, :focus-within) > .rm-section-gear,
+  .mode-preview .rm-section-gear:focus-visible,
+  .mode-preview .rm-section-hide:focus-visible {
+    opacity: 1;
+  }
+  .mode-preview :is(.rm-item-head, .rm-section-title, .rm-contact):is(:hover, :focus-within) .rm-title-link-btn,
+  .mode-preview .rm-title-link-btn:focus-visible {
+    opacity: 1;
+  }
+  /* an entry's own "+ bullet" with its entry; a section's "+ Add …" with
+     the section */
+  .mode-preview :is(.rm-item, .rm-mini):is(:hover, :focus-within) .rm-add-btn,
+  .mode-preview .rm-section:is(:hover, :focus-within) .rm-add-btn:not(:is(.rm-item, .rm-mini) .rm-add-btn),
+  .mode-preview .rm-add-btn:focus-visible {
+    opacity: 1;
+  }
+  /* a linked title keeps a quiet mark that its link exists; a contact says
+     so with its own underline, so its glyph waits for the pointer */
+  .mode-preview :is(.rm-item-head, .rm-section-title) .rm-title-link-btn.is-linked {
+    opacity: 0.55;
+  }
+  .mode-preview .rm-contact > .rm-title-link-btn.is-linked {
+    opacity: 0;
+  }
+  .mode-preview .rm-contact:is(:hover, :focus-within) > .rm-title-link-btn.is-linked {
+    opacity: 1;
+  }
+  /* Moving a section is a heading-row act too (see above). */
+  /* An entry's in-flow arrows are the KEYBOARD route; with a mouse the
+     hover cluster (CanvasReorder: grip, up, down, page pin) moves the entry,
+     and the two together drew two sets of arrows for one entry. Here the
+     in-flow pair appears only when Tab reaches it. */
+  .mode-preview :is(.rm-item, .rm-skill-group, .rm-ring, .rm-mini):is(:hover, :focus-within) > .rm-item-move:not(:focus-within) {
+    display: none;
+  }
+  .mode-preview .rm-section:not(:has(> :is(.rm-section-title, .rm-section-controls):hover)):not(:has(> .rm-section-controls:focus-within)) .rm-section-move:not(:focus-visible),
+  .mode-preview .rm-section:not(:has(> :is(.rm-section-title, .rm-section-controls, .rm-section-gear):hover)):not(:has(> :is(.rm-section-controls, .rm-section-gear):focus-within)) :is(.rm-section-gear, .rm-section-hide):not(:focus-visible) {
+    opacity: 0;
+  }
+}
+
 /* On-canvas item delete (editable preview only): a small ghost trash button
    that hangs just past the item's right edge — in the page's margin gutter,
    the same trick the "+ Logo" chip uses on the LEFT (.rm-logo-btn-empty) —
