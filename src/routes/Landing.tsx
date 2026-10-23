@@ -122,9 +122,13 @@ export function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
           <nav
-            className={`hidden items-center gap-6 text-sm md:flex ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}
+            className={`hidden items-center gap-5 whitespace-nowrap text-sm md:flex lg:gap-6 ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}
           >
-            <a href="#how" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            {/* The site chrome's rule (SiteChrome.tsx): md carries the pages,
+                lg brings the in-page anchors back. At 768px this row held
+                five links, wrapped "How it works" onto three lines and pushed
+                the Create button off the edge (831px of page in 768). */}
+            <a href="#how" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               How it works
             </a>
             <Link to="/templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
@@ -136,7 +140,7 @@ export function Landing() {
             <a href="#compare" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Compare
             </a>
-            <a href="#privacy" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <a href="#privacy" className={`hidden transition lg:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
               Privacy
             </a>
           </nav>
@@ -699,7 +703,9 @@ function HeroCinema({
         }}
       />
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 md:grid-cols-[1.05fr_1fr] md:py-28">
+      {/* Two columns from lg: at a 768px tablet the headline was squeezed to
+          one word per line beside a card hanging off the edge. */}
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.05fr_1fr] lg:py-28">
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Local-first · Free · Open source
@@ -750,7 +756,7 @@ function HeroCinema({
           </p>
 
           {/* phones: the same live morph, compact — the product stays visible */}
-          <div className="mt-10 flex justify-center md:hidden" aria-hidden data-nosnippet>
+          <div className="mt-10 flex justify-center lg:hidden" aria-hidden data-nosnippet>
             <div className="relative w-64 overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_60px_-18px_rgba(0,0,0,0.8)]">
               <div className="relative aspect-[210/297] overflow-hidden">
                 <AnimatePresence initial={false}>
@@ -784,7 +790,7 @@ function HeroCinema({
         </motion.div>
 
         {/* the product, demonstrated: ONE resume re-skinning itself live */}
-        <div className="hidden [perspective:1400px] md:block" aria-hidden data-nosnippet>
+        <div className="hidden [perspective:1400px] lg:block" aria-hidden data-nosnippet>
           <motion.div
             style={{ rotateX: rx, rotateY: ry, transformStyle: 'preserve-3d' }}
             className="relative mx-auto h-[34rem] w-[30rem]"
