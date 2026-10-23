@@ -2,6 +2,7 @@ import { Wand2 } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useAppStore } from '@/store/useAppStore'
 import { fitSizesPt } from '@/lib/fitReadout'
 
 /** Opens the Design panel at the Magic fit card, from anywhere. */
@@ -31,6 +32,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
   const result = useEditorStore((s) => s.fitResult)
   const offers = useEditorStore((s) => s.fitOffers)
   const updateDoc = useResumeStore((s) => s.updateDoc)
+  const toast = useAppStore((s) => s.toast)
   const on = doc.metadata.page.autoFit
   const setPt = doc.metadata.typography.fontSize
   const pages = result ? `${result.pages} page${result.pages === 1 ? '' : 's'}` : ''
@@ -63,17 +65,34 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
   const short = result && result.pages > doc.metadata.page.fit.target
   return (
     <>
-      <button type="button" data-testid="fit-chip" onClick={openMagicFit} title="Open Magic fit" className={CHIP}>
+      {/* Said the way a job seeker thinks about it - does it fit, and was
+          the text made smaller - with the exact sizes in the tooltip. "1 page
+          · printed at 8.8pt, you set 9.6pt" was the engineer's sentence. */}
+      <button
+        type="button"
+        data-testid="fit-chip"
+        onClick={openMagicFit}
+        title={
+          shrunk
+            ? `Magic fit made the text smaller to fit: it prints at ${pt(body)}; you set ${pt(setPt)}. Open Magic fit.`
+            : 'Open Magic fit'
+        }
+        className={CHIP}
+      >
         <Wand2 className="h-3.5 w-3.5 text-primary" aria-hidden />
         <span className="whitespace-nowrap">
-          {!result ? 'Magic fit' : shrunk ? `${pages} · printed at ${pt(body)}, you set ${pt(setPt)}` : `Magic fit · ${pages} · text ${pt(body)}`}
+          {!result
+            ? 'Magic fit'
+            : shrunk
+              ? `Fits ${pages} · text slightly smaller (${pt(body)})`
+              : `Fits ${pages} · text ${pt(body)}`}
         </span>
         {short && (
           <span
-            className="rounded-full bg-amber-500/15 px-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300"
-            title="The page target is out of reach within your rules"
+            className="rounded-full bg-amber-500/15 px-1.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300"
+            title="Your page target can't be reached within your rules"
           >
-            over
+            won't fit
           </span>
         )}
         {offers.length > 0 && (
@@ -87,14 +106,23 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
           type="button"
           data-testid="fit-use-set"
           className="flex items-center rounded-full border border-primary/50 bg-surface/95 px-2.5 py-1 text-[11px] font-semibold text-primary shadow-float transition hover:bg-primary/10 coarse:min-h-9"
-          title="Turn Magic fit off: the text prints at the size you set and flows onto more pages"
-          onClick={() =>
+          title={`Print the text at the ${pt(setPt)} you set. It may need more pages; Magic fit turns off.`}
+          onClick={() => {
             updateDoc((d) => {
               d.metadata.page.autoFit = false
             })
-          }
+            // A changed page count is the one thing nobody should find out
+            // later: say what happened, and put the way back right here.
+            toast(`Printing at ${pt(setPt)}, as you set. It may run onto more pages.`, 'info', {
+              label: 'Undo',
+              run: () =>
+                updateDoc((d) => {
+                  d.metadata.page.autoFit = true
+                }),
+            })
+          }}
         >
-          Use {pt(setPt)}
+          Print at {pt(setPt)}
         </button>
       )}
     </>

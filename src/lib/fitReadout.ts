@@ -108,6 +108,22 @@ export function fitSizesPt(metadata: Metadata, fit: FitVector): FitSizesPt {
 const pt = (n: number) => `${(Math.round(n * 10) / 10).toString()}pt`
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
+/** The line everyone reads, in a job seeker's words: does it fit, and was
+ *  the text made smaller. `formatFitReadout` keeps the exact sizes, one tap
+ *  away under Details. */
+export function formatFitSummary(metadata: Metadata, result: FitResult | null): string {
+  const on = metadata.page.autoFit
+  if (!result) return on ? 'Measuring…' : 'Off'
+  const pages = `${result.pages} page${result.pages === 1 ? '' : 's'}`
+  const setPt = metadata.typography.fontSize
+  if (!on) return `Off · ${pages} at your ${pt(setPt)}`
+  const body = fitSizesPt(metadata, result.fit).body
+  const t = metadata.page.fit.target
+  if (result.pages > t) return `Can't fit ${t} page${t === 1 ? '' : 's'} within your rules · ${pages} at ${pt(body)}`
+  if (body < setPt - 0.05) return `Fits ${pages} · text ${pt(body)}, a little smaller than your ${pt(setPt)}`
+  return `Fits ${pages} · text at your ${pt(setPt)}`
+}
+
 /** One sentence: what the fit did, and how the pages came out. */
 export function formatFitReadout(metadata: Metadata, result: FitResult | null): string {
   const on = metadata.page.autoFit

@@ -109,3 +109,38 @@ describe('what the readout owes the reader', () => {
     expect(line).not.toContain('below what prints legibly')
   })
 })
+
+describe('the fit, in a job seeker’s words', () => {
+  // The card's only readout was the engineer's sentence ("body 9.4pt,
+  // leading 1.23 from 1.28, headings 11.3pt, name …, gaps 8.3pt / 4.6pt").
+  // It stays one tap away; the line everyone reads says what they ask:
+  // does it fit, and was the text made smaller.
+  it('says the text was made smaller, and by how much, when it was', async () => {
+    const { formatFitSummary } = await import('./fitReadout')
+    const m = meta()
+    m.page.autoFit = true
+    expect(formatFitSummary(m, { fit: { type: 0.94, space: 0.85 }, pages: 1, lastPageFill: 0.98 })).toBe(
+      'Fits 1 page · text 9.4pt, a little smaller than your 10pt'
+    )
+  })
+  it('says it fits at the size set when it does', async () => {
+    const { formatFitSummary } = await import('./fitReadout')
+    const m = meta()
+    m.page.autoFit = true
+    expect(formatFitSummary(m, { fit: { type: 1, space: 0.9 }, pages: 1, lastPageFill: 0.7 })).toBe('Fits 1 page · text at your 10pt')
+  })
+  it('says when the target is out of reach', async () => {
+    const { formatFitSummary } = await import('./fitReadout')
+    const m = meta()
+    m.page.autoFit = true
+    expect(formatFitSummary(m, { fit: { type: 0.7, space: 0.7 }, pages: 2, lastPageFill: 1 })).toBe(
+      "Can't fit 1 page within your rules · 2 pages at 7pt"
+    )
+  })
+  it('says the pages when the fit is off', async () => {
+    const { formatFitSummary } = await import('./fitReadout')
+    const m = meta()
+    m.page.autoFit = false
+    expect(formatFitSummary(m, { fit: { type: 1, space: 1 }, pages: 2, lastPageFill: 0.23 })).toBe('Off · 2 pages at your 10pt')
+  })
+})

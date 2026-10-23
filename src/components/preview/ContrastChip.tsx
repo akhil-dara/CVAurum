@@ -26,7 +26,7 @@ export function ContrastChip() {
       type="button"
       data-testid="contrast-chip"
       onClick={openContrast}
-      title={ok ? 'Every run of text meets WCAG AA contrast' : 'Open the contrast fixes'}
+      title={ok ? 'Every line has enough contrast to read (meets WCAG AA)' : 'Some text is too faint against its background. Open the fixes.'}
       className="flex items-center gap-1.5 rounded-full border border-border bg-surface/95 py-1 pl-2 pr-2.5 text-[11px] font-medium text-foreground shadow-float backdrop-blur transition hover:border-primary/50 coarse:min-h-9"
     >
       {ok ? (
@@ -35,7 +35,7 @@ export function ContrastChip() {
         <AlertTriangle className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400" aria-hidden />
       )}
       <span className="whitespace-nowrap">
-        {ok ? 'Contrast · WCAG AA' : `${n} contrast issue${n === 1 ? '' : 's'}`}
+        {ok ? 'Easy to read' : `${n} line${n === 1 ? '' : 's'} hard to read`}
       </span>
     </button>
   )
