@@ -841,6 +841,7 @@ function EditableContacts({
             c.basics.email = v.trim()
           }}
           placeholder="email@example.com"
+          label="Email"
         />,
         'em',
         undefined,
@@ -858,6 +859,7 @@ function EditableContacts({
             c.basics.phone = v.trim()
           }}
           placeholder="+1 555 000 0000"
+          label="Phone"
         />,
         'ph',
         undefined,
@@ -874,6 +876,7 @@ function EditableContacts({
             c.basics.location = { ...c.basics.location, city: (city || '').trim(), region: rest.join(',').trim() }
           }}
           placeholder="City, Region"
+          label="Location"
         />,
         'loc',
         undefined,
@@ -903,6 +906,7 @@ function EditableContacts({
             else c.basics.urlLabel = next
           }}
           placeholder="yoursite.com"
+          label="Website"
         />,
         'url',
         <LinkButton
@@ -973,6 +977,7 @@ function EditableContacts({
                   ;(c.basics.profiles ??= [])[i].label = v.trim()
                 }}
                 placeholder="Label"
+                label={`${p.network || 'Profile'} link text`}
               />,
               `p${i}`,
               <LinkButton

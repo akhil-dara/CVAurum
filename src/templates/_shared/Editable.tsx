@@ -11,7 +11,7 @@
  * Rich fields (bullets, summary) also get the same "/" quick-insert menu as
  * the panel editor — type "/" at a word start for verbs, metric templates, etc.
  */
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FormatBar } from './FormatBar'
 import type { ResumeContent } from '@/types/document'
@@ -21,6 +21,7 @@ import { filterSlash, type Slash } from '@/lib/slashCommands'
 import { RichText } from './atoms'
 import { keywordChunks } from '@/lib/keywordChunks'
 import { splitPastedLines } from '@/lib/pasteLines'
+import { fieldName } from './fieldName'
 
 export type EditFn = (recipe: (c: ResumeContent) => void) => void
 /** Mutate document metadata (layout/typography/theme) from the canvas. */
@@ -49,6 +50,9 @@ interface EditableProps {
    *  left empty, the canvas shows it only inside the entry being worked on,
    *  so at rest the page reads as it prints. */
   optional?: boolean
+  /** The field's name when its placeholder is an example value
+   *  ("email@example.com" is read as "Email"). */
+  label?: string
 }
 
 interface SlashMenu {
@@ -86,7 +90,7 @@ function detectSlash(root: HTMLElement): Omit<SlashMenu, 'items' | 'index'> & { 
   }
 }
 
-function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines, optional }: EditableProps) {
+function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines, optional, label }: EditableProps) {
   const ref = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // What the field held when it was entered: Escape puts it back.
@@ -96,6 +100,26 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
   const [menu, setMenu] = useState<SlashMenu | null>(null)
   const menuRef = useRef<SlashMenu | null>(null)
   menuRef.current = menu
+
+  // The field's spoken name carries its entry and section (see fieldName).
+  // Read from the page after every render: a heading renamed or an entry
+  // retitled re-renders the canvas, and these fields with it.
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const sectionEl = el.closest('[data-section]')
+    const section = sectionEl?.querySelector('.rm-section-title-text')?.textContent
+    const entryEl = el.closest('.rm-item, .rm-mini')
+    const first = entryEl?.querySelector('[role="textbox"]')
+    const entry = first && first !== el ? first.textContent : ''
+    // its kind = the same placeholder, counted inside the entry it belongs to,
+    // or across the section for an entry's own first field
+    const scope = first && first !== el ? entryEl : sectionEl
+    const kin = scope ? [...scope.querySelectorAll('[role="textbox"]')].filter((f) => f.getAttribute('data-placeholder') === (placeholder ?? null)) : []
+    const position = kin.length > 1 ? { n: kin.indexOf(el) + 1, of: kin.length } : undefined
+    const name = fieldName({ placeholder: label ?? placeholder, fallback: el.closest('li') ? 'Bullet' : undefined, section, entry, position })
+    if (el.getAttribute('aria-label') !== name) el.setAttribute('aria-label', name)
+  })
 
   // Sync external value into the DOM, but never while the user is editing it.
   useEffect(() => {
@@ -317,6 +341,7 @@ export function Ed({
   chunk,
   onPasteLines,
   optional,
+  label,
 }: {
   edit?: EditFn
   value: string
@@ -334,6 +359,8 @@ export function Ed({
   onPasteLines?: (lines: string[]) => void
   /** See EditableProps.optional. */
   optional?: boolean
+  /** See EditableProps.label. */
+  label?: string
 }) {
   if (!edit) {
     if (rich) return <RichText html={value} className={className} />
@@ -373,6 +400,7 @@ export function Ed({
       spellCheck={spellCheck}
       onPasteLines={onPasteLines}
       optional={optional}
+      label={label}
       onChange={(v) => edit((c) => apply(c, v))}
     />
   )
