@@ -6,6 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { isMac, rankCommands, shortcutLabel } from '@/lib/paletteRank'
 import { Command, CornerDownLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
@@ -38,24 +39,23 @@ const ACCENTS: { name: string; hex: string }[] = [
   { name: 'Ink', hex: '#0f172a' },
 ]
 
-/** Subsequence fuzzy score: smaller is better; null = no match. Gaps between
- *  matched letters cost 4× a late start, so a CONTIGUOUS "skim" deep in a label
- *  always beats scattered s…k…i…m letters near the front. */
-function fuzzy(query: string, target: string): number | null {
-  const q = query.toLowerCase().replace(/\s+/g, '')
-  const t = target.toLowerCase()
-  if (!q) return t.length
-  let qi = 0
-  let score = 0
-  let last = -1
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) {
-      score += last >= 0 ? (ti - last - 1) * 4 : ti // gap cost ≫ late-start cost
-      last = ti
-      qi++
-    }
+const RECENT_KEY = 'cvaurum:palette-recent'
+
+/** The ids of the last commands run here, newest first. */
+function readRecent(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') as string[]
+  } catch {
+    return []
   }
-  return qi === q.length ? score : null
+}
+function rememberRecent(id: string) {
+  try {
+    const next = [id, ...readRecent().filter((r) => r !== id)].slice(0, 5)
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+  } catch {
+    /* private mode */
+  }
 }
 
 export function CommandPalette({ doc }: { doc: ResumeDocument }) {
@@ -133,8 +133,8 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
 
     // undo / redo
     cmds.push(
-      { id: 'undo', group: 'Edit', label: 'Undo', hint: 'Ctrl+Z', run: () => useResumeStore.temporal.getState().undo() },
-      { id: 'redo', group: 'Edit', label: 'Redo', hint: 'Ctrl+Shift+Z', run: () => useResumeStore.temporal.getState().redo() },
+      { id: 'undo', group: 'Edit', label: 'Undo', hint: shortcutLabel('Ctrl+Z', isMac()), run: () => useResumeStore.temporal.getState().undo() },
+      { id: 'redo', group: 'Edit', label: 'Redo', hint: shortcutLabel('Ctrl+Shift+Z', isMac()), run: () => useResumeStore.temporal.getState().redo() },
     )
 
     // templates
@@ -205,13 +205,9 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     return cmds
   }, [doc])
 
-  const results = useMemo(() => {
-    const scored = commands
-      .map((c) => ({ c, s: fuzzy(query, c.label + ' ' + (c.hint ?? '')) }))
-      .filter((x): x is { c: Cmd; s: number } => x.s !== null)
-      .sort((a, b) => a.s - b.s)
-    return scored.slice(0, 12).map((x) => x.c)
-  }, [commands, query])
+  // Opens on what was used last and the actions people come here for; a
+  // query ranks word-start matches first (src/lib/paletteRank.ts).
+  const results = useMemo(() => rankCommands(commands, query, readRecent()), [commands, query])
 
   useEffect(() => setSel(0), [query])
 
@@ -219,6 +215,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     const cmd = results[i]
     if (!cmd) return
     setOpen(false)
+    rememberRecent(cmd.id)
     cmd.run()
   }
 
