@@ -11,7 +11,7 @@ const cmds = [
   { id: 'font-Figtree', label: 'Font: Figtree', hint: 'sans' },
   { id: 'tpl-quartz', label: 'Template: Quartz', hint: 'Fit to the page' },
   { id: 'magic-fit-suggest', label: 'Magic fit: suggest', hint: 'measure a few moves' },
-  { id: 'export-pdf', label: 'Download PDF', hint: 'crisp' },
+  { id: 'export-pdf', label: 'Download PDF', hint: 'crisp, selectable, ATS-exact' },
   { id: 'undo', label: 'Undo', hint: 'Ctrl+Z' },
   { id: 'redo', label: 'Redo', hint: 'Ctrl+Shift+Z' },
   { id: 'export-menu', label: 'Open export menu…' },
@@ -23,6 +23,11 @@ describe('ranking a query', () => {
     const ids = rankCommands(cmds, 'fit', []).map((c) => c.id)
     expect(ids[0]).toBe('magic-fit-suggest')
     expect(ids).not.toContain('font-Figtree')
+  })
+  it('offers nothing rather than a command whose letters merely scatter through it', () => {
+    // "delete" listed Download PDF first: d…e…l…e…t…e spread across its
+    // name and hint (critique, round 2)
+    expect(rankCommands(cmds, 'delete', []).map((c) => c.id)).not.toContain('export-pdf')
   })
   it('still finds a loose match when nothing matches outright', () => {
     expect(rankCommands(cmds, 'dwnld', []).map((c) => c.id)).toContain('export-pdf')

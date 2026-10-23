@@ -51,7 +51,7 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
     set: (v: T) => void
   ) => (
     <div className="mb-1 flex items-center gap-1.5">
-      <span className="w-14 shrink-0 text-[10px] text-muted-foreground">{name}</span>
+      <span className="w-14 shrink-0 text-[11px] text-muted-foreground">{name}</span>
       <div className="flex flex-1 gap-1" role="radiogroup" aria-label={name}>
         {options.map((o) => (
           <button
@@ -156,7 +156,7 @@ function ContactLinePicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: M
           })
       )}
       {!lined ? (
-        <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
           {strip ? 'The strip’s rules do the separating.' : contactStyle === 'pills' ? 'Each pill is its own separator.' : 'Stacked rows never take a separator.'}
         </p>
       ) : null}
@@ -197,7 +197,7 @@ function IdentityMarkPicker({ doc, editMeta }: { doc: ResumeDocument; editMeta: 
         ))}
       </div>
       {current === 'photo' && !hasImage && (
-        <p className="mt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
+        <p className="mt-1 text-[11px] leading-snug text-amber-700 dark:text-amber-300">
           No photo yet — use <strong>Add photo…</strong> just below. Nothing prints until you do (no placeholder, ever).
         </p>
       )}
@@ -366,7 +366,7 @@ export function HeaderGear({ doc, editMeta, variant }: { doc: ResumeDocument; ed
                         <HeaderMini kind={h.value} />
                       </span>
                       <span
-                        className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
+                        className={`text-center text-[11px] font-medium leading-tight ${on ? 'text-primary' : 'text-muted-foreground'}`}
                       >
                         {h.label}
                       </span>
@@ -465,7 +465,7 @@ export function HeaderGear({ doc, editMeta, variant }: { doc: ResumeDocument; ed
                   ))}
                 </select>
               </div>
-              <p className="px-2 pb-1 text-[10px] leading-snug text-muted-foreground">
+              <p className="px-2 pb-1 text-[11px] leading-snug text-muted-foreground">
                 Changes apply live — Auto uses the template's own header. Full controls live in the Design panel.
               </p>
             </div>

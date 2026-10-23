@@ -61,10 +61,14 @@ export function rankCommands<T extends Rankable>(cmds: T[], query: string, recen
     .filter((x): x is { c: T; s: number } => x.s !== null)
     .sort((a, b) => a.s - b.s)
   if (direct.length) return direct.slice(0, limit).map((x) => x.c)
+  // The loose match reads the command's own name only, and only letters that
+  // stay fairly close together: "delete" found Download PDF by picking its
+  // letters out of the name and a long hint.
   const compact = q.replace(/\s+/g, '')
+  const maxSpread = compact.length * 6
   return cmds
-    .map((c) => ({ c, s: loose(compact, (c.label + ' ' + (c.hint ?? '')).toLowerCase()) }))
-    .filter((x): x is { c: T; s: number } => x.s !== null)
+    .map((c) => ({ c, s: loose(compact, c.label.toLowerCase()) }))
+    .filter((x): x is { c: T; s: number } => x.s !== null && x.s <= maxSpread)
     .sort((a, b) => a.s - b.s)
     .slice(0, limit)
     .map((x) => x.c)

@@ -69,8 +69,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   const toggleTag = (tag: TemplateTag) =>
     setFilter((f) => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag] }))
   const pick = (tpl: (typeof TEMPLATES)[number]) => {
-    applyTemplate(tpl.defaults)
-    toast(`Switched to ${tpl.name}`, 'success')
+    switchTemplate(tpl, applyTemplate, toast)
   }
 
   return (
@@ -344,4 +343,29 @@ function TemplateCard({
       </div>
     </HoverZoom>
   )
+}
+
+/**
+ * Switch the design, and offer the way back right in the message: a switch
+ * restyles every page at once, and the design settings it replaced were
+ * otherwise one undo among many. Undo restores exactly what the document had,
+ * whatever has been edited since.
+ */
+export function switchTemplate(
+  tpl: (typeof TEMPLATES)[number],
+  applyTemplate: (defaults: (typeof TEMPLATES)[number]['defaults']) => void,
+  toast: (message: string, kind?: 'success' | 'info' | 'error', action?: { label: string; run: () => void }) => void
+) {
+  const before = useResumeStore.getState().doc?.metadata
+  const snapshot = before ? structuredClone(before) : null
+  applyTemplate(tpl.defaults)
+  toast(`Switched to ${tpl.name}`, 'success', snapshot
+    ? {
+        label: 'Undo',
+        run: () =>
+          useResumeStore.getState().updateDoc((d) => {
+            d.metadata = structuredClone(snapshot)
+          }),
+      }
+    : undefined)
 }

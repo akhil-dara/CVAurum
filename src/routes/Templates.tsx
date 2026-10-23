@@ -477,7 +477,7 @@ function TemplateCard({
               .map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  className="rounded-full border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
                 >
                   {tagLabel(tag)}
                 </span>

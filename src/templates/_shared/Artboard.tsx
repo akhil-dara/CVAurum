@@ -1637,15 +1637,20 @@ function Section({
       : null
   // The heading's words are typed into on the page: an emptied heading goes
   // back to the section's own name, which is what an ATS reads for it.
+  // The section's own name, as it reads with no rename.
+  const ownName = sectionLabel(sectionKey, { ...doc, metadata: { ...doc.metadata, layout: { ...doc.metadata.layout, headings: {} } } })
   const title = (
     <EdMeta
       editMeta={edit ? editMeta : undefined}
       value={sectionLabel(sectionKey, doc)}
       className="rm-section-title-text"
-      placeholder={sectionLabel(sectionKey, { ...doc, metadata: { ...doc.metadata, layout: { ...doc.metadata.layout, headings: {} } } })}
+      placeholder={ownName}
       apply={(m, v) => {
+        // Emptied, or set back to its own name, a heading has no rename: it
+        // follows the section's name again (an Escape that restores the
+        // heading must not leave a rename behind that looks the same).
         const next = v.trim()
-        if (next) (m.layout.headings ??= {})[sectionKey] = next
+        if (next && next !== ownName) (m.layout.headings ??= {})[sectionKey] = next
         else if (m.layout.headings) delete m.layout.headings[sectionKey]
       }}
     />

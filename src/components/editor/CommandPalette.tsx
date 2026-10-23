@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { isMac, rankCommands, shortcutLabel } from '@/lib/paletteRank'
+import { switchTemplate } from './TemplateGallery'
 import { Command, CornerDownLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
@@ -144,10 +145,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         group: 'Template',
         label: `Template: ${tpl.name}`,
         hint: tpl.description,
-        run: () => {
-          applyTemplate(tpl.defaults)
-          toast(`Switched to ${tpl.name}`, 'success')
-        },
+        run: () => switchTemplate(tpl, applyTemplate, toast),
       })
     }
 

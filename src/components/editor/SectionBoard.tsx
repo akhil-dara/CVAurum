@@ -139,7 +139,7 @@ function DroppableColumn({
           className={cn(
             'space-y-2 rounded-lg transition-colors',
             isOver && 'bg-primary/5 ring-1 ring-primary/30',
-            ids.length === 0 && 'flex min-h-[52px] items-center justify-center border border-dashed border-border text-xs text-muted-foreground/70',
+            ids.length === 0 && 'flex min-h-[52px] items-center justify-center border border-dashed border-border text-xs text-muted-foreground',
           )}
         >
           {ids.map((sid) => (

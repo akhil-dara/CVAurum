@@ -39,8 +39,10 @@ export function LeftRail() {
               setLeftOpen(true)
             }}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors desk:h-14 desk:w-14 desk:flex-none desk:rounded-xl desk:py-0',
-              active ? 'text-primary desk:bg-primary/10' : 'text-muted-foreground hover:text-foreground desk:hover:bg-muted',
+              'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors desk:h-14 desk:w-14 desk:flex-none desk:rounded-xl desk:py-0',
+              // The active label in full ink (accent on its own tint measured 4.0:1);
+              // the accent stays on the icon, which marks the tab as clearly.
+              active ? 'text-foreground desk:bg-primary/10 [&>svg]:text-primary' : 'text-muted-foreground hover:text-foreground desk:hover:bg-muted',
             )}
             title={t.label}
           >
@@ -54,7 +56,7 @@ export function LeftRail() {
       <button
         onClick={() => setLeftOpen(false)}
         className={cn(
-          'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors desk:hidden',
+          'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors desk:hidden',
           !leftOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
         )}
         title="Preview"

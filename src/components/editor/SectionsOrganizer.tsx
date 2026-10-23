@@ -179,7 +179,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
         onChange={setColumns}
         renderCard={renderCard}
       />
-      <p className="text-[11px] text-muted-foreground/80">
+      <p className="text-[11px] text-muted-foreground">
         {twoCol
           ? 'Drag a section across the zones to move it between the main flow, the sidebar and the footer strip.'
           : 'Drag a section into the footer strip to print it as a compact band at the foot of the page.'}

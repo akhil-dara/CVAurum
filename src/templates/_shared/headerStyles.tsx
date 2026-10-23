@@ -159,7 +159,7 @@ export function ArtBandRow({ value, onPick }: { value: string; onPick: (band: st
             <span className="flex h-8 w-full items-center justify-center overflow-hidden rounded-[3px] border border-border/70 bg-white p-1">
               <ArtMini kind={a.value} />
             </span>
-            <span className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}>
+            <span className={`text-center text-[11px] font-medium leading-tight ${on ? 'text-primary' : 'text-muted-foreground'}`}>
               {a.label}
             </span>
           </button>

@@ -89,6 +89,8 @@ function detectSlash(root: HTMLElement): Omit<SlashMenu, 'items' | 'index'> & { 
 function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines, optional }: EditableProps) {
   const ref = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // What the field held when it was entered: Escape puts it back.
+  const atFocus = useRef<string | null>(null)
   // "/" quick-insert menu (rich fields only). Kept in a ref too so the keydown
   // handler always sees the current state without re-binding.
   const [menu, setMenu] = useState<SlashMenu | null>(null)
@@ -194,9 +196,22 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
       if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySlash(m.items[m.index]); return }
       if (e.key === 'Escape') { e.preventDefault(); setMenu(null); return }
     }
-    // Escape commits and leaves the field (keyboard users need a way out).
+    // Escape takes back what was typed since the field was entered, then
+    // leaves it - the way any text field behaves. It used to keep the edit:
+    // a heading renamed by mistake stayed renamed (critique, 2026-10-23).
+    // Edits commit 300ms after the last keystroke, so a commit may already
+    // have gone through: with the original back in the field, the commit on
+    // leaving it (onBlur) writes it back and undoes that too.
     if (e.key === 'Escape') {
       e.preventDefault()
+      if (timer.current) clearTimeout(timer.current)
+      const el = ref.current
+      const original = atFocus.current
+      if (el && original !== null) {
+        if (rich) el.innerHTML = sanitizeHtml(original)
+        else el.textContent = original
+      }
+      atFocus.current = null
       ;(e.target as HTMLElement).blur()
       return
     }
@@ -238,11 +253,15 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
         role="textbox"
         tabIndex={0}
         aria-label={placeholder || 'Editable field'}
+        aria-placeholder={placeholder}
         aria-multiline={rich && multiline ? true : undefined}
         data-placeholder={placeholder}
         data-optional={optional ? '' : undefined}
         onInput={onInput}
         onBlur={onBlur}
+        onFocus={() => {
+          atFocus.current = value || ''
+        }}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
         className={`rm-editable${rich ? ' rm-rich' : ''}${className ? ' ' + className : ''}`}
