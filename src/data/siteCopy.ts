@@ -174,7 +174,7 @@ export const SITE: SiteCopy = {
     { label: 'Account', value: 'none; there is nothing to sign up for and no login' },
     { label: 'Where the data lives', value: "the browser's own storage (IndexedDB); nothing is uploaded, and the site's content-security policy allows no outbound request at all" },
     { label: 'Templates', value: `${TEMPLATE_COUNT}, each on its own page, ${SIGNATURE_COUNT} of them Signature designs with distinct page structures; every one exports real selectable text` },
-    { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 50 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
+    { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 60 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
     {
       label: 'Accessibility',
       value:

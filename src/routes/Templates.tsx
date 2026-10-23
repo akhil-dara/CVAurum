@@ -176,7 +176,7 @@ export function Templates() {
           pushed the first card to 940px, so more than a screen of a gallery
           page was everything except the gallery. */}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <h1 className="text-[1.7rem] font-semibold leading-[1.15] tracking-tight sm:text-4xl sm:leading-tight">
+        <h1 className="font-display text-[2rem] font-semibold leading-[1.15] tracking-tight sm:text-4xl sm:leading-tight">
           {TEMPLATES.length} resume templates, all free
         </h1>
         <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-3">

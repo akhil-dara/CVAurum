@@ -7,7 +7,7 @@ import { CreateButton, HeaderThemeToggle, PhoneResumesLink } from '@/components/
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion'
-import { FileText, Plus, FileUp, ShieldCheck, ArrowRight, LayoutGrid, PencilLine, Download, Github, Check, Minus } from 'lucide-react'
+import { FileText, Plus, FileUp, ShieldCheck, ArrowRight, Github, Check, Minus } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { createDocument } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
@@ -24,12 +24,6 @@ import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
 const GOLD = 'linear-gradient(135deg,#8a5a12,#d4982f,#f7d774)'
-const goldText = {
-  backgroundImage: GOLD,
-  WebkitBackgroundClip: 'text',
-  backgroundClip: 'text',
-  color: 'transparent',
-} as const
 const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
 
 /** Templates shown live (with sample content) in the showcase strip. */
@@ -165,7 +159,7 @@ export function Landing() {
       <main>
         {/* hero — the cinematic stage */}
         <HeroCinema
-          onCreate={() => setChooser(true)}
+          onCreate={() => create(false)}
           onSample={() => setSampleOpen(true)}
           onImportPdf={() => pdfRef.current?.click()}
           covered={chooser || sampleOpen}
@@ -180,26 +174,23 @@ export function Landing() {
                 No sign-up, no setup. Everything happens right here in your browser.
               </p>
             </div>
-            <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            <ol className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-3">
               <Step
                 n={1}
-                icon={<LayoutGrid className="h-5 w-5" />}
                 title="Pick a template"
                 body={`Choose from ${TEMPLATE_COUNT} recruiter-ready designs. Switch anytime — your content carries over.`}
               />
               <Step
                 n={2}
-                icon={<PencilLine className="h-5 w-5" />}
                 title="Fill it in"
                 body="Edit right on the page. A live ATS score and keyword match keep you on track."
               />
               <Step
                 n={3}
-                icon={<Download className="h-5 w-5" />}
                 title="Export & apply"
                 body="Download a crisp, selectable PDF or an ATS-friendly Word file in one click."
               />
-            </div>
+            </ol>
           </div>
         </section>
 
@@ -283,8 +274,8 @@ export function Landing() {
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[minmax(0,22rem)_1fr] land-reveal">
             <figure className="mx-auto w-full max-w-[22rem]">
               <img
-                src="/img/templates/broadsheet.webp"
-                alt="A page exported from the Broadsheet design"
+                src="/img/templates/keystone.webp"
+                alt="A page exported from the Keystone design"
                 width={1200}
                 height={1697}
                 loading="lazy"
@@ -292,7 +283,7 @@ export function Landing() {
                 className="w-full rounded-sm border border-border bg-white shadow-[0_18px_40px_-24px_rgba(15,17,25,0.45)]"
               />
               <figcaption className="mt-3 text-center text-xs text-muted-foreground">
-                A page as it exports: Broadsheet, one of the Signature designs.
+                A page as it exports: Keystone, one of the Signature designs.
               </figcaption>
             </figure>
             <div>
@@ -348,7 +339,7 @@ export function Landing() {
                 <p className="mt-3 flex gap-2 text-sm">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span>
-                    <span className="font-semibold" style={goldText}>
+                    <span className="font-semibold text-primary">
                       CVAurum
                     </span>{' '}
                     — {r.cvaurum}
@@ -368,7 +359,7 @@ export function Landing() {
               <thead>
                 <tr className="bg-surface-muted/50 text-left">
                   <th className="px-4 py-3 font-medium text-muted-foreground"> </th>
-                  <th className="px-4 py-3 font-bold" style={goldText}>
+                  <th className="px-4 py-3 font-bold text-primary">
                     CVAurum
                   </th>
                   <th className="px-4 py-3 font-medium text-muted-foreground">Most builders</th>
@@ -394,7 +385,7 @@ export function Landing() {
 
         {/* privacy callout */}
         <section id="privacy" className="mx-auto max-w-6xl px-6 py-16 land-reveal">
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface p-8 shadow-[0_0_90px_-30px_rgba(212,152,47,0.4)] sm:p-12">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface p-8 sm:p-12">
             <div className="grid items-center gap-8 md:grid-cols-[auto,1fr]">
               <div
                 className="flex h-16 w-16 items-center justify-center rounded-2xl text-white"
@@ -411,7 +402,7 @@ export function Landing() {
                   exactly that.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
+                  <button className="btn-primary btn-sm" onClick={() => create(false)}>
                     <Plus className="h-4 w-4" /> Create my resume
                   </button>
                   <a className="btn-outline btn-sm" href={REPO_URL} target="_blank" rel="noreferrer">
@@ -448,7 +439,7 @@ export function Landing() {
               No account, no upload, nothing to pay. Your résumé is saved in this browser as you type.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <button className="btn-primary" onClick={() => setChooser(true)}>
+              <button className="btn-primary" onClick={() => create(false)}>
                 <Plus className="h-4 w-4" /> Create my resume
               </button>
               <button className="btn-outline" onClick={() => setSampleOpen(true)}>
@@ -516,14 +507,48 @@ export function Landing() {
   )
 }
 
-function Step({ n, icon, title, body }: { n: number; icon: React.ReactNode; title: string; body: string }) {
+/** One step on a hairline rule, numbered in the display face: the order is
+ *  the point, so the numeral leads and nothing is boxed. */
+function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
-    <div className="relative rounded-2xl border border-border bg-background p-6">
-      <span className="absolute right-5 top-5 text-3xl font-bold text-muted-foreground/15">{n}</span>
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</div>
-      <h3 className="mt-4 text-base font-semibold">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{body}</p>
-    </div>
+    <li className="border-t border-foreground/20 pt-4">
+      <div className="flex items-baseline gap-3">
+        <span className="font-display text-4xl font-semibold leading-none text-primary [font-variant-numeric:lining-nums]" aria-hidden="true">
+          {n}
+        </span>
+        <h3 className="text-base font-semibold">{title}</h3>
+      </div>
+      <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{body}</p>
+    </li>
+  )
+}
+
+/**
+ * The hero reel's pages, stacked so a change of design never flickers.
+ *
+ * Each tick used to mount a fresh full-resume render and fade it in while the
+ * old one faded out: the new page painted its first frames mid-fade, both
+ * layers sat near half opacity at the crossing (the stage showed through),
+ * and the card behind swapped with no fade at all. Now the previous, current
+ * and next pages stay mounted; the next one is already laid out, invisible,
+ * before its turn, so a tick only fades it in ON TOP of a page that stays
+ * fully opaque beneath it.
+ */
+function ReelPages({ items, index, width }: { items: { id: string; doc: ResumeDocument }[]; index: number; width: number }) {
+  const n = items.length
+  const layers = [(index - 1 + n) % n, index, (index + 1) % n]
+  return (
+    <>
+      {layers.map((i, slot) => (
+        <div
+          key={items[i].id}
+          className="absolute inset-0 bg-white transition-opacity duration-500 ease-out"
+          style={{ opacity: slot === 2 ? 0 : 1, zIndex: slot === 1 ? 2 : slot === 0 ? 1 : 0 }}
+        >
+          <PreviewThumb doc={items[i].doc} width={width} />
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -574,11 +599,13 @@ function HeroCinema({
     () =>
       (
         // It opens on the Signature designs - the ones nothing else has -
-        // then shows the choices any design takes on top.
+        // then shows the choices any design takes on top. A light page leads:
+        // the hero is dark, and a dark page first read as an empty stage.
         [
-          ['folio-noir', 'Signature', null],
           ['broadsheet', 'Signature', null],
+          ['measure', 'typeset to a baseline', null],
           ['marquee', 'Signature', null],
+          ['folio-noir', 'Signature', null],
           ['clarity', 'labelled contacts', (m) => void (m.layout.contactStyle = 'strip')],
           ['sapphire', 'contact pills', (m) => void (m.layout.contactStyle = 'pills')],
           ['crest', 'headings on a rail', (m) => void (m.layout.headingPlacement = 'side')],
@@ -595,14 +622,14 @@ function HeroCinema({
   )
   const [ti, setTi] = useState(0)
   useEffect(() => {
-    // The crossfade mounted a fresh full-resume render every 3.4 seconds
+    // The crossfade mounted a fresh full-resume render every few seconds
     // FOREVER - scrolled past, tab hidden, it kept spending a frame budget
     // nobody was watching. It ticks only while the hero is on screen and the
     // tab is visible.
     if (reduce || !heroInView || covered) return
     const t = setInterval(() => {
       if (!document.hidden) setTi((i) => (i + 1) % morph.length)
-    }, 3400)
+    }, 5500)
     return () => clearInterval(t)
   }, [reduce, morph.length, heroInView, covered])
   // The still's slow drift is only for the moments the video is not carrying
@@ -702,7 +729,7 @@ function HeroCinema({
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-[#1c1503] shadow-[0_10px_44px_-10px_rgba(212,152,47,0.65)] transition hover:scale-[1.03] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-[#1c1503] shadow-[0_6px_18px_-8px_rgba(0,0,0,0.6)] transition hover:scale-[1.03] active:scale-[0.99]"
               style={{ background: GOLD }}
               onClick={onCreate}
             >
@@ -730,18 +757,7 @@ function HeroCinema({
           <div className="mt-10 flex justify-center lg:hidden" aria-hidden data-nosnippet>
             <div className="relative w-64 overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_60px_-18px_rgba(0,0,0,0.8)]">
               <div className="relative aspect-[210/297] overflow-hidden">
-                <AnimatePresence initial={false}>
-                  <motion.div
-                    key={morph[ti].id}
-                    className="absolute inset-0"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45, ease: 'easeInOut' }}
-                  >
-                    <PreviewThumb doc={morph[ti].doc} width={256} />
-                  </motion.div>
-                </AnimatePresence>
+                <ReelPages items={morph} index={ti} width={256} />
               </div>
               {/* Inside the card's edges and allowed to wrap: on one line it ran
                   wider than the card on a phone and was cut at the left
@@ -767,8 +783,8 @@ function HeroCinema({
               className="absolute left-20 top-8 w-[24rem] overflow-hidden rounded-xl border border-white/10 opacity-35 shadow-2xl"
               style={{ transform: 'translateZ(-70px) rotate(5deg)' }}
             >
-              <div className="aspect-[210/297] overflow-hidden bg-white">
-                <PreviewThumb doc={morph[(ti + 1) % morph.length].doc} width={384} />
+              <div className="relative aspect-[210/297] overflow-hidden bg-white">
+                <ReelPages items={morph} index={(ti + 1) % morph.length} width={384} />
               </div>
             </div>
 
@@ -778,18 +794,7 @@ function HeroCinema({
               style={{ transform: 'translateZ(50px) rotate(-2deg)' }}
             >
               <div className="relative aspect-[210/297] overflow-hidden">
-                <AnimatePresence initial={false}>
-                  <motion.div
-                    key={morph[ti].id}
-                    className="absolute inset-0"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45, ease: 'easeInOut' }}
-                  >
-                    <PreviewThumb doc={morph[ti].doc} width={416} />
-                  </motion.div>
-                </AnimatePresence>
+                <ReelPages items={morph} index={ti} width={416} />
               </div>
               {/* live template name — proof it's the same content, restyled */}
               <div className="pointer-events-none absolute bottom-3 right-3">
