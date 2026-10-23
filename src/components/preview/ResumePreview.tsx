@@ -955,9 +955,18 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           // In the page's own flow, a row above the sheet: it scrolls away with
           // the page instead of riding over it (sticky, it covered the name on a
           // phone and sat on whatever scrolled under it; reported 2026-09-12).
-          <div data-tour="checks" className="flex flex-wrap justify-end gap-2 px-3 pb-2 pt-3">
-            <ContrastChip />
-            <FitChip doc={doc} />
+          // One strip, not three pills: what the page's reading and fitting
+          // checks say is one statement about the page, and three bordered
+          // pills read as three alerts (and wrapped onto two rows on a phone).
+          <div data-tour="checks" className="flex justify-end px-3 pb-2 pt-3">
+            <div
+              role="group"
+              aria-label="Page checks"
+              className="flex max-w-full items-stretch divide-x divide-border overflow-hidden rounded-full border border-border bg-surface/95 shadow-float backdrop-blur"
+            >
+              <ContrastChip />
+              <FitChip doc={doc} />
+            </div>
           </div>
         )}
         {/* skim-heat status pill — floats over the canvas while the heat is on */}

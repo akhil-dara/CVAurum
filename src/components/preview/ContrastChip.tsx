@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
+import { CHIP } from './FitChip'
 
 /** Opens the Design panel at the text-contrast card, from anywhere. */
 export function openContrast() {
@@ -27,7 +28,7 @@ export function ContrastChip() {
       data-testid="contrast-chip"
       onClick={openContrast}
       title={ok ? 'Every line has enough contrast to read (meets WCAG AA)' : 'Some text is too faint against its background. Open the fixes.'}
-      className="flex items-center gap-1.5 rounded-full border border-border bg-surface/95 py-1 pl-2 pr-2.5 text-[11px] font-medium text-foreground shadow-float backdrop-blur transition hover:border-primary/50 coarse:min-h-9"
+      className={CHIP}
     >
       {ok ? (
         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" aria-hidden />
