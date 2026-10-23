@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronDown, FileText, FilePlus2, FileUp, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
+import { usePopoverA11y } from '@/templates/_shared/popoverA11y'
 import { useEditorStore } from '@/store/useEditorStore'
 import { createDocument } from '@/data/defaults'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
@@ -135,12 +136,23 @@ export function useResumeActions() {
 }
 
 export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onClose }: { onBlank: () => void; onExample: () => void; onImport: () => void; onImportPdf?: () => void; onClose: () => void }) {
+  // A dialog to a keyboard and a screen reader too: it had no role, no
+  // Escape and left focus behind it on the page (SamplePicker had all three).
+  const panelRef = useRef<HTMLDivElement>(null)
+  usePopoverA11y(true, onClose, panelRef)
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-float">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-resume-title"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-float outline-none"
+      >
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Create a resume</h2>
+          <h2 id="new-resume-title" className="text-lg font-semibold">Create a resume</h2>
           <button className="btn-icon" onClick={onClose} aria-label="Close">
             <X className="h-5 w-5" />
           </button>

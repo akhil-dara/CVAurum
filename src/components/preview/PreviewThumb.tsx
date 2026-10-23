@@ -87,7 +87,18 @@ export const PreviewThumb = memo(function PreviewThumb({
 
   const scale = w / pageW
   return (
-    <div ref={ref} className="overflow-hidden bg-white" style={{ width: w, height: pageH * scale }} aria-hidden>
+    // inert as well as aria-hidden: a thumbnail is a picture of a résumé, but
+    // it renders the résumé's real links, and aria-hidden does not take them
+    // out of the Tab order - the homepage put about 50 hidden contact links
+    // between the hero's buttons and the rest of the page. (React 18 passes
+    // the attribute through as a string; any value turns it on.)
+    <div
+      ref={ref}
+      className="overflow-hidden bg-white"
+      style={{ width: w, height: pageH * scale }}
+      aria-hidden
+      {...{ inert: '' }}
+    >
       <div
         style={{
           width: pageW,
