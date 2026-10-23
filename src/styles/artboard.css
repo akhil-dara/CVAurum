@@ -3527,9 +3527,12 @@
 /* 2. Optional fields left empty show only inside the entry being worked on:
       at rest the page holds exactly what it prints, and a click into the
       entry brings the line up to type in. Focus, not hover - an empty line
-      appearing under a passing pointer would move everything below it. */
-.mode-preview :is(.rm-item, .rm-mini):not(:focus-within) .rm-editable[data-optional]:empty,
-.mode-preview :is(.rm-item, .rm-mini):not(:focus-within) .rm-item-summary:has(> .rm-editable[data-optional]:empty) {
+      appearing under a passing pointer would move everything below it - and
+      only focus that moves nothing above the caret: [data-engaged] is set by
+      optionalReveal.ts, so a first click on a bullet no longer opens the
+      overview line above it and slides the bullet out from under the click. */
+.mode-preview :is(.rm-item, .rm-mini):not([data-engaged]) .rm-editable[data-optional]:empty,
+.mode-preview :is(.rm-item, .rm-mini):not([data-engaged]) .rm-item-summary:has(> .rm-editable[data-optional]:empty) {
   display: none;
 }
 

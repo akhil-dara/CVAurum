@@ -38,6 +38,7 @@
  * outright rather than estimated (see PageChrome.tsx's own comment).
  * Auto-fit scales the page to the available width.
  */
+import { watchOptionalReveal } from './optionalReveal'
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Maximize, ZoomIn, ZoomOut } from 'lucide-react'
@@ -265,6 +266,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   }
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = scrollRef.current
+    return root ? watchOptionalReveal(root) : undefined
+  }, [])
   const innerRef = useRef<HTMLDivElement>(null)
   // Off-screen print-mode render (NO edit chrome, empty sections excluded) — its
   // height is the TRUE printable height the PDF paginates, so fit + page count
