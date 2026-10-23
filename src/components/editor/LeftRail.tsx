@@ -6,7 +6,7 @@ const TABS: { id: LeftTab; label: string; icon: typeof FileText }[] = [
   { id: 'content', label: 'Content', icon: FileText },
   { id: 'design', label: 'Design', icon: Palette },
   { id: 'templates', label: 'Templates', icon: LayoutTemplate },
-  { id: 'ats', label: 'ATS', icon: Target },
+  { id: 'ats', label: 'Score', icon: Target },
 ]
 
 /**

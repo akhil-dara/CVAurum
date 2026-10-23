@@ -28,7 +28,7 @@ const PANEL_TITLES: Record<string, string> = {
   content: 'Content',
   design: 'Design',
   templates: 'Templates',
-  ats: 'ATS & Tailoring',
+  ats: 'Score & job match',
 }
 
 export function Editor({ doc }: { doc: ResumeDocument }) {
