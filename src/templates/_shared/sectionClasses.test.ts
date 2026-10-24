@@ -370,3 +370,19 @@ describe('headingAlignLocked', () => {
     expect(headingAlignLocked('center', false)).toBe(false)
   })
 })
+
+describe('the timeline layout belongs to dated, narrative sections', () => {
+  it('draws on experience, education, projects, volunteering and custom sections', () => {
+    for (const key of ['work', 'education', 'projects', 'volunteer', 'custom-x1']) {
+      expect(sectionOverrideClasses({ entryLayout: 'timeline' }, undefined, undefined, key)).toContain('lay-ov-timeline')
+    }
+  })
+  it('is dropped on list-like sections such as certificates, even when painted there', () => {
+    for (const key of ['certificates', 'awards', 'publications', 'references', 'interests']) {
+      expect(sectionOverrideClasses({ entryLayout: 'timeline' }, undefined, undefined, key)).not.toContain('lay-ov-timeline')
+    }
+  })
+  it('leaves the other layouts on every section', () => {
+    expect(sectionOverrideClasses({ entryLayout: 'cards' }, undefined, undefined, 'certificates')).toContain('lay-ov-cards')
+  })
+})

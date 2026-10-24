@@ -20,7 +20,7 @@ import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
-import { HAS_DATES, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LINK, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
+import { HAS_DATES, HAS_TIMELINE, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LINK, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import { SECTION_NUMBER_STYLES } from './sectionNumeral'
 import { ICON_KINDS, sectionIconKind, suggestedIcons } from './sectionIconChoice'
 import { iconForKind } from '@/components/icons/sectionIcons'
@@ -1313,7 +1313,7 @@ export function SectionGear({
                 {!NO_ENTRY_LAYOUT.has(base) && (
                   <Group label="Entries layout">
                     <div className="grid grid-cols-3 gap-1">
-                      {ENTRY_LAYOUTS.map((s) => (
+                      {ENTRY_LAYOUTS.filter((s) => s.value !== 'timeline' || HAS_TIMELINE.has(base)).map((s) => (
                         <StyleChip
                           key={s.value || 'auto'}
                           label={s.label}

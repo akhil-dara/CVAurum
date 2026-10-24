@@ -35,6 +35,11 @@ export const HAS_DATES = new Set([
 
 /** Sections whose entries carry a location, so it can move beside the date. */
 export const HAS_LOCATION = new Set(['work', 'education', 'custom'])
+/** Sections a timeline means something on: dated entries that tell a story
+ *  in order. On a list of certificates or awards the rail is only a line
+ *  down the margin, so it is neither offered nor drawn there - a painted or
+ *  older choice included. */
+export const HAS_TIMELINE = new Set(['work', 'education', 'projects', 'volunteer', 'custom'])
 
 /** Sections whose entries carry keyword tags of their own, so the tags can be
  *  shown, hidden and styled. Only ProjectSchema has 'keywords' today; this set
@@ -234,7 +239,8 @@ export function headingStyleOf(
 export function sectionOverrideClasses(
   ss: SectionSettings | undefined,
   typo?: { headingStyle?: string },
-  docDateAlign?: string
+  docDateAlign?: string,
+  key?: string
 ): string[] {
   const heading = headingStyleOf(typo, ss)
   const date = dateAlignOf(ss, docDateAlign)
@@ -243,7 +249,7 @@ export function sectionOverrideClasses(
     heading ? `sec-ov-${heading}` : '',
     ss.skillsStyle ? `skl-ov-${ss.skillsStyle}` : '',
     ss.chipSize ? `chip-${ss.chipSize}` : '',
-    ss.entryLayout ? `lay-ov-${ss.entryLayout}` : '',
+    ss.entryLayout && !(ss.entryLayout === 'timeline' && key && !HAS_TIMELINE.has(sectionBase(key))) ? `lay-ov-${ss.entryLayout}` : '',
     ss.scoreStyle ? `score-ov-${ss.scoreStyle}` : '',
     ss.headingAlign ? `sec-align-${ss.headingAlign}` : '',
     entryEmphasisOnSub(ss) ? 'sec-emph-sub' : '',

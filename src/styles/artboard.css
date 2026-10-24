@@ -3331,58 +3331,109 @@
   cursor: pointer;
 }
 
-/* Inline bullet add/remove (editable preview only) */
+/* Editor ink (editable preview only). The canvas's own marks - hover
+   outlines, the caret's field, the bullet tools - are the editor talking, not
+   the résumé, so they never borrow the design's accent: on a red design an
+   accent ring and tint made every edit look like an error and washed the line
+   being edited (2026-10-24). Graphite for "you can edit this", the app's own
+   gold for "you are editing this", red only under the pointer on a remove. */
+.mode-preview {
+  --rm-edit-hint: rgb(51 65 85 / 0.26);
+  --rm-edit-hint-soft: rgb(51 65 85 / 0.12);
+  --rm-edit-focus: hsl(36 68% 42%);
+  --rm-edit-focus-wash: hsl(36 68% 42% / 0.06);
+  --rm-edit-tool-ink: #475569;
+  --rm-edit-tool-ink-strong: #0f172a;
+  --rm-edit-danger: #dc2626;
+}
+
+/* Bullet tools: move up, move down, remove - one cluster past the end of
+   the line (editable preview only). */
 .mode-preview .rm-bullet-row {
   position: relative;
 }
-.mode-preview .rm-bullet-del {
+.mode-preview .rm-bullet-tools {
   position: absolute;
-  right: -1.35em;
-  top: 0.1em;
-  width: 1.1em;
-  height: 1.1em;
-  line-height: 1;
-  border-radius: 9999px;
+  left: 100%;
+  top: 0;
+  margin-left: 0.45em;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: #ef4444;
-  font-size: 0.95em;
-  cursor: pointer;
+  gap: 1px;
+  padding: 1px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 1px solid rgb(15 23 42 / 0.12);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+  /* A steady size on screen whatever the canvas zoom: the sheet is scaled,
+     and at a fitted 0.65 the tools shrank to a 10px smudge. */
+  font-size: max(0.82em, calc(11px / var(--rm-zoom, 1)));
+  line-height: 1;
+  white-space: nowrap;
+  z-index: 5;
+  /* Inert while hidden (hover-reveal trap 3), revealed by the row (trap 4). */
   opacity: 0;
-  /* Hidden means untouchable. Opacity alone leaves a control fully
-     hit-testable, so this invisible pill lay over a skill chip's remove cross
-     and stole its hover - the two traded hover back and forth and the UI
-     shook under the cursor. Safe here because a PARENT hover reveals it: a
-     control whose own :hover is what reveals it must never do this, or it can
-     never be hovered at all (that is what made the Style pill unclickable). */
   pointer-events: none;
   transition: opacity 0.12s ease;
 }
-/* Focus reveals it too. Tabbing used to land on a control at opacity 0: the
-   focus ring was drawn on something invisible, so focus appeared to leave the
-   page, and Enter there deleted a bullet with nothing on screen to warn of it.
-   :focus-within covers arriving by keyboard, :focus-visible the button itself. */
-.mode-preview .rm-bullet-row:hover .rm-bullet-del,
-.mode-preview .rm-bullet-row:focus-within .rm-bullet-del,
-.mode-preview .rm-bullet-del:focus-visible {
+/* The cluster stands just past the row's edge; this bridge spans the strip
+   between, so the pointer can travel to it without the row losing :hover
+   and the cluster hiding under it (trap 1, which first hid the remove
+   button "like magic"). Inert exactly when the cluster is. */
+.mode-preview .rm-bullet-tools::before {
+  content: '';
+  position: absolute;
+  top: -0.2em;
+  bottom: -0.2em;
+  right: 100%;
+  width: 0.6em;
+}
+.mode-preview .rm-bullet-row:hover > .rm-bullet-tools,
+.mode-preview .rm-bullet-row:focus-within > .rm-bullet-tools {
   opacity: 1;
   pointer-events: auto;
 }
-/* The button sits just past the row's right edge, so the pointer crossed a
-   strip that belonged to neither on its way there: the row lost :hover, the
-   button hid and went inert under the pointer, and it could never be clicked
-   unless the bullet had the caret (2026-10-24, "vanishing like magic"). A hit
-   bridge on the button spans the strip; it is inert while the button is, and
-   live exactly when the button shows. */
-.mode-preview .rm-bullet-del::before {
-  content: '';
-  position: absolute;
-  top: -0.15em;
-  bottom: -0.15em;
-  right: 100%;
-  width: 0.45em;
+.mode-preview .rm-bullet-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55em;
+  height: 1.55em;
+  border-radius: 9999px;
+  color: var(--rm-edit-tool-ink);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.mode-preview .rm-bullet-tool svg {
+  width: 1.05em;
+  height: 1.05em;
+  stroke-width: 2.25;
+}
+.mode-preview .rm-bullet-tool:hover {
+  background: rgb(15 23 42 / 0.07);
+  color: var(--rm-edit-tool-ink-strong);
+}
+.mode-preview .rm-bullet-tool:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.mode-preview .rm-bullet-tool:focus-visible {
+  outline: 2px solid var(--rm-edit-focus);
+  outline-offset: 1px;
+}
+.mode-preview .rm-bullet-tool.rm-bullet-del:hover {
+  background: rgb(220 38 38 / 0.1);
+  color: var(--rm-edit-danger);
+}
+/* Which line the tools act on: a neutral wash while the pointer is on them,
+   a faint red one while it is on remove - the line, not the whole entry. */
+.mode-preview .rm-bullet-row:has(> .rm-bullet-tools:hover) > .rm-editable {
+  background: rgb(15 23 42 / 0.04);
+}
+.mode-preview .rm-bullet-row:has(> .rm-bullet-tools .rm-bullet-del:hover) > .rm-editable {
+  background: rgb(220 38 38 / 0.06);
 }
 .mode-preview .rm-bullet-addrow {
   list-style: none;
@@ -3393,8 +3444,8 @@
 .mode-preview .rm-add-btn {
   font-size: 0.82em;
   font-weight: 600;
-  color: var(--rm-primary);
-  background: color-mix(in srgb, var(--rm-primary) 10%, transparent);
+  color: var(--rm-edit-tool-ink);
+  background: rgb(15 23 42 / 0.05);
   border-radius: 0.3em;
   padding: 0.1em 0.55em;
   cursor: pointer;
@@ -3570,10 +3621,10 @@
   padding: 0.55em;
   font-size: 0.82em;
   font-weight: 600;
-  color: var(--rm-primary);
-  border: 1px dashed color-mix(in srgb, var(--rm-primary) 45%, transparent);
+  color: var(--rm-edit-tool-ink);
+  border: 1px dashed rgb(51 65 85 / 0.3);
   border-radius: 0.4em;
-  background: color-mix(in srgb, var(--rm-primary) 6%, transparent);
+  background: rgb(15 23 42 / 0.03);
   cursor: pointer;
   opacity: 0.75;
   transition:
@@ -3582,7 +3633,7 @@
 }
 .mode-preview .rm-add-section:hover {
   opacity: 1;
-  background: color-mix(in srgb, var(--rm-primary) 12%, transparent);
+  background: rgb(15 23 42 / 0.06);
 }
 
 /* ---- the page at rest: tools where you work, the résumé everywhere else ----
@@ -3612,8 +3663,8 @@
 .mode-preview .rm-add-btn:focus-visible,
 .mode-preview .rm-add-section:hover,
 .mode-preview .rm-add-section:focus-visible {
-  color: var(--rm-primary-ink, var(--rm-primary));
-  background: color-mix(in srgb, var(--rm-primary) 10%, transparent);
+  color: var(--rm-edit-tool-ink-strong);
+  background: rgb(15 23 42 / 0.07);
 }
 
 /* 2. Optional fields left empty show only inside the entry being worked on:
@@ -3802,8 +3853,7 @@
   white-space: nowrap;
 }
 .mode-preview .rm-date-edit:hover {
-  background: color-mix(in srgb, var(--rm-primary) 8%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 36%, transparent);
+  box-shadow: 0 0 0 1px var(--rm-edit-hint);
 }
 
 /* ATS keyword highlight (preview only) */
@@ -3823,12 +3873,12 @@
     background 0.12s ease;
 }
 .mode-preview .rm-editable:hover {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 38%, transparent);
+  box-shadow: 0 0 0 1px var(--rm-edit-hint);
 }
 .mode-preview .rm-editable:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--rm-primary);
-  background: color-mix(in srgb, var(--rm-primary) 7%, transparent);
+  box-shadow: 0 0 0 1.5px var(--rm-edit-focus);
+  background: var(--rm-edit-focus-wash);
 }
 .mode-preview .rm-editable:empty::before {
   content: attr(data-placeholder);
@@ -3848,9 +3898,9 @@
     box-shadow 0.12s ease,
     background 0.12s ease;
 }
+/* An outline only: a fill under the entry dimmed the very words being read. */
 .mode-preview .rm-item:hover {
-  background: color-mix(in srgb, var(--rm-primary) 7%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rm-primary) 55%, transparent);
+  box-shadow: 0 0 0 1px var(--rm-edit-hint);
 }
 /* A lighter ring for the whole section, shown until you hover a specific entry
  * inside it (then the entry ring above takes over). */
@@ -3861,7 +3911,7 @@
     background 0.12s ease;
 }
 .mode-preview .rm-section:hover {
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rm-primary) 22%, transparent);
+  box-shadow: 0 0 0 1px var(--rm-edit-hint-soft);
 }
 .mode-preview .rm-section:hover:has(.rm-item:hover) {
   box-shadow: none;
@@ -3914,7 +3964,7 @@
 .rm-logo-btn:hover .rm-item-badge,
 .rm-logo-btn:focus-visible .rm-item-logo,
 .rm-logo-btn:focus-visible .rm-item-badge {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rm-primary) 55%, transparent);
+  box-shadow: 0 0 0 1.5px var(--rm-edit-focus);
 }
 /* No logo & no badge yet: a quiet "+" chip that only shows while the entry is
    hovered (or the chip is focused) — discoverable without cluttering the page.
@@ -3949,10 +3999,11 @@
   line-height: 1;
   padding: 0.35em 0.6em;
   border-radius: 9999px;
-  color: var(--rm-primary);
-  border: 1px dashed color-mix(in srgb, var(--rm-primary) 60%, transparent);
-  /* solid-ish backing so the label reads over sidebars and the gray canvas */
-  background: color-mix(in srgb, var(--rm-primary) 8%, #fff);
+  /* Editor ink, not the design's accent (see .mode-preview tokens). */
+  color: var(--rm-edit-tool-ink, #475569);
+  border: 1px dashed rgb(51 65 85 / 0.4);
+  /* solid backing so the label reads over sidebars and the gray canvas */
+  background: #fff;
   transition: opacity 0.15s ease;
 }
 .rm-item:hover .rm-logo-add,

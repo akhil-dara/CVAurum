@@ -1,4 +1,4 @@
-import { GripVertical, Trash2, Plus } from 'lucide-react'
+import { GripVertical, Trash2, Plus, ChevronUp, ChevronDown } from 'lucide-react'
 import { SortableList } from '../SortableList'
 import { RichTextLazy as RichTextEditor } from './RichTextLazy'
 import { Labeled } from './Inputs'
@@ -16,6 +16,17 @@ export function BulletsEditor({
   placeholder?: string
 }) {
   const ids = items.map((_, i) => String(i))
+  // The arrows are the twin of the canvas bullet tools, and the only way to
+  // reorder for a finger: the grip drags, which a phone scroll fights.
+  const move = (i: number, dir: -1 | 1) => {
+    const to = i + dir
+    if (to < 0 || to >= items.length) return
+    const next = items.slice()
+    ;[next[i], next[to]] = [next[to], next[i]]
+    onChange(next)
+  }
+  const arrow =
+    'flex h-[18px] w-7 items-center justify-center rounded text-muted-foreground/60 hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30 coarse:h-6 coarse:w-9'
   return (
     <Labeled label={label}>
       {items.length > 0 && (
@@ -53,6 +64,20 @@ export function BulletsEditor({
                       onChange([...items.slice(0, empty ? i : i + 1), ...safe, ...items.slice(i + 1)])
                     }}
                   />
+                </div>
+                <div className="mt-0.5 flex flex-col">
+                  <button type="button" className={arrow} onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move bullet up">
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className={arrow}
+                    onClick={() => move(i, 1)}
+                    disabled={i === items.length - 1}
+                    aria-label="Move bullet down"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
                 </div>
                 <button
                   type="button"

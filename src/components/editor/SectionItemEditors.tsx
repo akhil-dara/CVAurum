@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { deleteItem } from '@/store/deleteItem'
-import { GripVertical, Trash2, Plus, ChevronDown } from 'lucide-react'
+import { GripVertical, Trash2, Plus, ChevronDown, CopyPlus } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import type { NamedLink } from '@/types/resume'
 import { cn, currentYearMonth, dateProgress, uid } from '@/lib/utils'
-import { newItem, removeItem, entryBadgeOn, metaColumnOn, ADD_LABEL } from '@/lib/sections'
+import { newItem, removeItem, duplicateItem, entryBadgeOn, metaColumnOn, ADD_LABEL } from '@/lib/sections'
 import { railLabel } from '@/lib/rail'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
@@ -187,6 +187,20 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
                         </span>
                       )}
                     </span>
+                  </button>
+                  {/* Panel twin of the canvas cluster's Duplicate. */}
+                  <button
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground/60 hover:bg-muted hover:text-foreground coarse:h-10 coarse:w-10"
+                    onClick={() =>
+                      update((c) => {
+                        duplicateItem(c, sectionKey, id)
+                      })
+                    }
+                    aria-label="Duplicate item"
+                    title="Duplicate"
+                  >
+                    <CopyPlus className="h-4 w-4" />
                   </button>
                   <button
                     type="button"

@@ -8,7 +8,7 @@
 import { runItemDelete } from './itemActions'
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Trash2, ChevronUp, ChevronDown, X } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import type { TemplateConfig } from '@/types/template'
 import { currentYearMonth, entryDateOptions, formatDateRange, formatDate, htmlEscape, htmlToText, safeHref, sectionDateOptions, uid } from '@/lib/utils'
@@ -375,37 +375,89 @@ function Bullets({
     )
   }
   const stop = (e: { preventDefault: () => void }) => e.preventDefault()
+  // Swap a bullet with its neighbour through the same setter the field
+  // writes with, so every list that renders here can reorder without its own
+  // handler. The focused field is left first: a focused editable keeps its
+  // DOM text over new props, which would show the old order in it.
+  const move = (bi: number, dir: -1 | 1) => {
+    const to = bi + dir
+    if (!edit || !setItem || to < 0 || to >= items.length) return
+    const a = items[bi]
+    const b = items[to]
+    deleting.current = true
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    edit((c) => {
+      setItem(c, bi, b)
+      setItem(c, to, a)
+    })
+    deleting.current = false
+    pendingFocus.current = to
+  }
   return (
     <ul className="rm-bullets rm-bullets-edit" ref={ulRef} onBlur={onListBlur}>
       {items.map((h, bi) => (
-        <li key={bi} className="rm-bullet-row">
-          {/* The remove button comes BEFORE the text, though it sits after it
+        <li
+          key={bi}
+          className="rm-bullet-row"
+          onKeyDown={(e) => {
+            if (!e.altKey || !e.shiftKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return
+            e.preventDefault()
+            move(bi, e.key === 'ArrowUp' ? -1 : 1)
+          }}
+        >
+          {/* The tools come BEFORE the text, though they sit after it
               on the page (absolute, right and top set). After the text it was
               still a box in the line, and with justified text a bullet's last
               line was no longer its last: "actually ... booked." stretched
               across the whole measure on the canvas, measured on 63 of 75
               designs (2026-10-24). */}
           {onRemove && (
-            <button
-              type="button"
-              className="rm-bullet-del no-print"
-              contentEditable={false}
-              onMouseDown={stop}
-              onClick={() => {
-                // Blur the focused bullet first: otherwise React keeps the focused
-                // (index-keyed) editable's stale DOM text after the splice, so a
-                // DIFFERENT bullet appears to vanish. The `deleting` guard stops the
-                // resulting list-blur from also pruning (which would re-index `bi`).
-                deleting.current = true
-                ;(document.activeElement as HTMLElement | null)?.blur()
-                onRemove(bi)
-                deleting.current = false
-              }}
-              aria-label="Remove bullet"
-              title="Remove bullet"
-            >
-              ×
-            </button>
+            // One quiet cluster past the line's end: move up, move down,
+            // remove. Neutral at rest so it never reads as the résumé's own
+            // ink; only remove turns red, and only under the pointer.
+            <span className="rm-bullet-tools no-print" contentEditable={false}>
+              <button
+                type="button"
+                className="rm-bullet-tool"
+                onMouseDown={stop}
+                onClick={() => move(bi, -1)}
+                disabled={bi === 0}
+                aria-label="Move bullet up"
+                title="Move up (Alt+Shift+↑)"
+              >
+                <ChevronUp aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="rm-bullet-tool"
+                onMouseDown={stop}
+                onClick={() => move(bi, 1)}
+                disabled={bi === items.length - 1}
+                aria-label="Move bullet down"
+                title="Move down (Alt+Shift+↓)"
+              >
+                <ChevronDown aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="rm-bullet-tool rm-bullet-del"
+                onMouseDown={stop}
+                onClick={() => {
+                  // Blur the focused bullet first: otherwise React keeps the focused
+                  // (index-keyed) editable's stale DOM text after the splice, so a
+                  // DIFFERENT bullet appears to vanish. The `deleting` guard stops the
+                  // resulting list-blur from also pruning (which would re-index `bi`).
+                  deleting.current = true
+                  ;(document.activeElement as HTMLElement | null)?.blur()
+                  onRemove(bi)
+                  deleting.current = false
+                }}
+                aria-label="Remove bullet"
+                title="Remove bullet"
+              >
+                <X aria-hidden />
+              </button>
+            </span>
           )}
           <Ed
             edit={edit}

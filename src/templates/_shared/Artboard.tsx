@@ -1613,7 +1613,7 @@ function Section({
     // default: sectionOverrideClasses resolves section-over-document, so one
     // choice in Design restyles every heading and a section that decided for
     // itself still wins.
-    ...sectionOverrideClasses(ss, doc.metadata.typography, doc.metadata.layout.dateAlign),
+    ...sectionOverrideClasses(ss, doc.metadata.typography, doc.metadata.layout.dateAlign, sectionKey),
     ...(keepEntries ? ['rm-keep-entries'] : []),
     ...(compact ? ['rm-section-compact'] : []),
   ].join(' ')

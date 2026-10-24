@@ -35,9 +35,9 @@
  */
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { GripVertical, ArrowUp, ArrowDown, ArrowDownToLine } from 'lucide-react'
+import { GripVertical, ArrowUp, ArrowDown, CopyPlus, ScissorsLineDashed } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
-import { moveSectionTo, moveEntry, sectionLabel } from '@/lib/sections'
+import { moveSectionTo, moveEntry, sectionLabel, duplicateItem } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 import { cn } from '@/lib/utils'
 
@@ -495,6 +495,17 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
     setHover(null)
   }
 
+  // A full copy of the hovered entry lands right below it - the quick way to
+  // start a second role at the same company, or a variant of a project.
+  const duplicateHoveredEntry = () => {
+    if (!hover) return
+    const { sectionKey, id } = hover
+    useResumeStore.getState().updateContent((c) => {
+      duplicateItem(c, sectionKey, id)
+    })
+    setHover(null)
+  }
+
   // On a coarse pointer the cluster is finger-sized and hangs at the entry's
   // LEFT edge: right-aligned it landed on the section's own controls row
   // (grown to finger size there too) for a section's first entry, and a tap
@@ -515,7 +526,9 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           // hovered again - the cluster kept itself alive by being pointed
           // at. Above the top edge it can only cover the previous entry's
           // tail, whose controls are not revealed - they need THEIR hover.
-          style={coarse ? { top: hover.top - 40, left: hover.left } : { top: hover.top - 30, left: hover.right - (autoFitOn ? 96 : 124) }}
+          // Right-aligned to the entry by its own width, so adding a control
+          // never needs a hand-counted offset.
+          style={coarse ? { top: hover.top - 40, left: hover.left } : { top: hover.top - 30, left: hover.right, transform: 'translateX(-100%)' }}
           data-canvas-entry-cluster
         >
           <button
@@ -548,16 +561,32 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           >
             <ArrowDown className="h-3.5 w-3.5" />
           </button>
+          <button
+            type="button"
+            className={clusterBtn}
+            onClick={duplicateHoveredEntry}
+            aria-label="Duplicate entry"
+            title="Duplicate entry"
+          >
+            <CopyPlus className="h-3.5 w-3.5" />
+          </button>
           {!autoFitOn && (
+            // Words, not a lone glyph: an arrow onto a line read as Download.
             <button
               type="button"
-              className={cn(clusterBtn, hoverPinned && 'border-primary text-primary')}
+              className={cn(
+                'flex h-6 coarse:h-8 items-center gap-1 whitespace-nowrap rounded-full border px-2 text-[11px] font-medium shadow-sm transition',
+                hoverPinned
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-surface text-muted-foreground hover:border-primary/50 hover:text-foreground'
+              )}
               onClick={toggleHoveredPin}
               aria-pressed={hoverPinned}
-              aria-label={hoverPinned ? 'Unpin page break' : 'Start this entry on a new page'}
-              title={hoverPinned ? 'Starts on a new page — click to unpin' : 'Start on new page'}
+              aria-label={hoverPinned ? 'Remove the page break before this entry' : 'Start this entry on a new page'}
+              title={hoverPinned ? 'This entry starts a new page. Click to remove the break.' : 'Start this entry on a new page'}
             >
-              <ArrowDownToLine className="h-3.5 w-3.5" />
+              <ScissorsLineDashed className="h-3.5 w-3.5" />
+              {hoverPinned ? 'Starts page' : 'New page'}
             </button>
           )}
         </div>

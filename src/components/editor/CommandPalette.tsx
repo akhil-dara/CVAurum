@@ -201,7 +201,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         id: `goto-${key}`,
         group: 'Go to',
         label: `Go to ${name}`,
-        run: () => { ed.setPreviewExact(false); ed.setAtsView(false); reachSection(key, 'first') },
+        run: () => { ed.setPreviewExact(false); ed.setAtsView(false); ed.markFresh(key); reachSection(key, 'first') },
       })
       if (key === 'summary') continue
       const entry = ADD_LABEL[key] ?? 'entry'
@@ -210,7 +210,9 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         group: 'Add',
         label: `Add ${entry} to ${name}`,
         run: () => {
-          ed.setPreviewExact(false); ed.setAtsView(false)
+          // An empty section can be held off the page (Empty sections:
+          // Auto); marked fresh it shows, so the new entry has a place.
+          ed.setPreviewExact(false); ed.setAtsView(false); ed.markFresh(key)
           useResumeStore.getState().updateContent((c) => pushNewItem(c, key))
           reachSection(key, 'last')
         },
@@ -228,6 +230,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
             if (!m.layout.main.includes(key) && !m.layout.aside.includes(key)) m.layout.main.push(key)
             m.layout.hidden = m.layout.hidden.filter((k) => k !== key)
           })
+          ed.markFresh(key)
           toast(`${DEFAULT_LABELS[key] ?? key} added`, 'success')
         },
       })

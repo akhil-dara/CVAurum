@@ -155,6 +155,17 @@ export function insertItem(content: ResumeContent, sectionKey: string, item: Any
   list.splice(Math.min(index, list.length), 0, structuredClone(item))
 }
 
+/** Copies an entry, all of it, into a new entry right after the original,
+ *  under an id of its own. Returns the new id, or null when there is none. */
+export function duplicateItem(content: ResumeContent, sectionKey: string, id: string): string | null {
+  const found = findItem(content, sectionKey, id)
+  const list = itemList(content, sectionKey)
+  if (!found || !list) return null
+  const copy = { ...structuredClone(found.item), id: uid() }
+  list.splice(found.index + 1, 0, copy)
+  return copy.id
+}
+
 /* --------------------------------------------------------- reorder helpers
  * One implementation for every control surface (side panel, canvas arrows,
  * canvas drag), so an order mutation can never behave differently depending
