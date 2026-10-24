@@ -3,7 +3,7 @@ import { applyTemplateToMetadata } from './templateApply'
 import { MetadataSchema } from '@/types/metadata'
 import type { TemplateDefaults } from '@/types/template'
 import { createDocument } from '@/data/defaults'
-import { getTemplate } from '@/templates/registry'
+import { TEMPLATES, getTemplate } from '@/templates/registry'
 
 /** A template's defaults, shaped exactly like a registry entry's. */
 const defaultsFor = (template: string, columns: 1 | 2): TemplateDefaults => {
@@ -423,5 +423,68 @@ describe('a design that ships a bullet mark or a page foot', () => {
     const next = applyTemplateToMetadata(onFlare, getTemplate('modern').defaults)
     expect(next.typography.bulletStyle).toBe(getTemplate('modern').defaults.typography.bulletStyle)
     expect(next.layout.pageFoot).toBe(false)
+  })
+})
+
+describe('a design switch: what you set travels, what the old design shipped stays behind', () => {
+  // One rule for every style field. It held for some (colours of single
+  // elements, the bullet mark, structure) while font size, spacing and the
+  // accent were reset on every switch, and the contact style, link style and
+  // icons of the PREVIOUS design followed the author into the next (2026-10-24).
+  const pairWhere = (pick: (d: TemplateDefaults) => unknown) => {
+    for (const a of TEMPLATES) for (const b of TEMPLATES) if (a.id !== b.id && pick(a.defaults) !== pick(b.defaults)) return [a, b] as const
+    throw new Error('no pair differs')
+  }
+  const startOn = (id: string) => applyTemplateToMetadata(createDocument({ sample: true }).metadata, getTemplate(id).defaults)
+
+  it('keeps a font size, line height and spacing the author set', () => {
+    const [a, b] = pairWhere((d) => d.typography.fontSize)
+    const cur = startOn(a.id)
+    cur.typography.fontSize = 9.75
+    cur.typography.lineHeight = 1.05
+    cur.layout.sectionGap = 4
+    const next = applyTemplateToMetadata(cur, b.defaults)
+    expect(next.typography.fontSize).toBe(9.75)
+    expect(next.typography.lineHeight).toBe(1.05)
+    expect(next.layout.sectionGap).toBe(4)
+  })
+  it("takes the new design's size and spacing where the author never changed the old one's", () => {
+    const [a, b] = pairWhere((d) => d.typography.fontSize)
+    const next = applyTemplateToMetadata(startOn(a.id), b.defaults)
+    expect(next.typography.fontSize).toBe(b.defaults.typography.fontSize)
+    expect(next.layout.sectionGap).toBe(b.defaults.layout.sectionGap)
+  })
+  it('keeps an accent colour the author picked, and takes the new one otherwise', () => {
+    const [a, b] = pairWhere((d) => d.theme.primary)
+    const picked = startOn(a.id)
+    picked.theme.primary = '#c8102e'
+    expect(applyTemplateToMetadata(picked, b.defaults).theme.primary).toBe('#c8102e')
+    expect(applyTemplateToMetadata(startOn(a.id), b.defaults).theme.primary).toBe(b.defaults.theme.primary)
+  })
+  it("leaves the old design's section icons behind, and carries a contact style the author chose", () => {
+    const [a, b] = pairWhere((d) => d.layout.icons)
+    expect(applyTemplateToMetadata(startOn(a.id), b.defaults).layout.icons).toBe(b.defaults.layout.icons)
+    const mine = startOn(a.id)
+    mine.layout.contactStyle = 'pills'
+    expect(applyTemplateToMetadata(mine, b.defaults).layout.contactStyle).toBe('pills')
+  })
+  it("a blank résumé's base values are nobody's choice: every design gets its own colours and fonts", () => {
+    // A blank document carries the schema's own text colour and an empty
+    // heading font, which differ from its template's. Read as choices they
+    // would put dark body text on every dark design.
+    const blank = createDocument({}).metadata
+    for (const t of TEMPLATES) {
+      const next = applyTemplateToMetadata(blank, t.defaults)
+      expect(next.theme.text, t.id).toBe(t.defaults.theme.text)
+      expect(next.theme.muted, t.id).toBe(t.defaults.theme.muted)
+      expect(next.typography.headingFamily, t.id).toBe(t.defaults.typography.headingFamily)
+    }
+  })
+  it('keeps a font the author chose', () => {
+    const [a, b] = pairWhere((d) => d.typography.fontFamily)
+    const cur = startOn(a.id)
+    cur.typography.fontFamily = 'Source Serif 4'
+    if (b.defaults.typography.fontFamily === 'Source Serif 4') return
+    expect(applyTemplateToMetadata(cur, b.defaults).typography.fontFamily).toBe('Source Serif 4')
   })
 })

@@ -24,6 +24,33 @@ function chosen<T>(cur: T, fallback: T, next: T): T {
   return cur === fallback ? next : cur
 }
 
+/**
+ * chosen() over every plain value of a settings group: what the author set
+ * travels, what the previous design shipped gives way to the next design's.
+ * The rule already held for a handful of fields while the rest fell to one of
+ * two spreads - font size, spacing and the accent were reset on every switch,
+ * and the previous design's contact style, link style and icons followed the
+ * author into the next (2026-10-24). Lists and nested objects are structure,
+ * not style: they keep the document's, and the lines below say otherwise
+ * where a group needs it.
+ */
+function chosenAll<T extends object>(cur: T, prev: T, next: T, base: T): T {
+  const out: Record<string, unknown> = { ...(next as Record<string, unknown>), ...(cur as Record<string, unknown>) }
+  const c = cur as Record<string, unknown>
+  const p = prev as Record<string, unknown>
+  const n = next as Record<string, unknown>
+  const b = base as Record<string, unknown>
+  for (const k of new Set([...Object.keys(c), ...Object.keys(n)])) {
+    const v = c[k]
+    if (v !== null && typeof v === 'object') continue
+    // Still the schema's own value is no choice either: a blank résumé
+    // carries the base text colour and an empty heading font, and read as
+    // choices they put dark body text on every dark design.
+    out[k] = v === b[k] ? n[k] : chosen(v, p[k], n[k])
+  }
+  return out as T
+}
+
 export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefaults): Metadata {
   const targetCols = defaults.layout.columns
   let main = [...cur.layout.main]
@@ -98,8 +125,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
     template: defaults.template,
     page: cur.page,
     theme: {
-      ...cur.theme,
-      ...defaults.theme,
+      ...chosenAll(cur.theme, prevTheme, defaults.theme, BASE.theme),
       // A colour the author set on one element is theirs across a switch;
       // one the template ships applies only where nothing was decided.
       name: element('name'),
@@ -121,8 +147,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
     // keep the user's cross-cutting style choices so a switch never silently
     // resets them.
     typography: {
-      ...cur.typography,
-      ...defaults.typography,
+      ...chosenAll(cur.typography, prevType, defaults.typography, BASE.typography),
       // The mark is the author's once chosen, like the structure below: a
       // mark that only came with the previous design is that design's (Flare
       // ships squares, Dossier a >), and the next design's own applies.
@@ -166,11 +191,8 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       headingRuleWidth: cur.typography.headingRuleWidth,
     },
     layout: {
-      ...cur.layout,
+      ...chosenAll(cur.layout, prev, defaults.layout, BASE.layout),
       columns: targetCols,
-      sidebar: defaults.layout.sidebar,
-      sidebarWidth: defaults.layout.sidebarWidth,
-      icons: defaults.layout.icons,
       // Preserve the user's photo intent across template switches: keep it shown
       // if they enabled it, but let a photo-oriented template light it up by
       // default. Keep their chosen shape/size unless they had no photo before.
@@ -180,8 +202,6 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // A monogram defines its own badge shape; otherwise keep the user's photo shape.
       photoShape: defaults.layout.monogram ? defaults.layout.photoShape : cur.layout.showPhoto ? cur.layout.photoShape : defaults.layout.photoShape,
       photoSize: cur.layout.showPhoto ? cur.layout.photoSize : defaults.layout.photoSize,
-      sectionGap: defaults.layout.sectionGap,
-      itemGap: defaults.layout.itemGap,
       main,
       aside,
       // preserve user choices (sectionSettings - every per-section choice,
@@ -223,6 +243,12 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // the opposite rule, and the two read as a pair: a design may decide
       // whether to number, never in what figures.
       sectionNumberStyle: cur.layout.sectionNumberStyle,
+      // The keyword separator and the section icon style are the document's
+      // house style (a new résumé starts on middots and folio icons), not a
+      // design's: most designs never state either and only inherit the
+      // schema's older values, so they travel with the document unchanged.
+      keywordSeparator: cur.layout.keywordSeparator,
+      sectionIconStyle: cur.layout.sectionIconStyle,
       sectionSettings: seedSectionSettings(defaults.layout.sectionSettings, cur.layout.sectionSettings),
       headings: cur.layout.headings,
     },
