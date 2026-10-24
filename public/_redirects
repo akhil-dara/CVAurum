@@ -8,6 +8,10 @@
 # 57 URLs sat in the index as "alternative page with proper canonical tag",
 # which is crawl budget spent on duplicates. A 301 says the slashed form is
 # not coming back, which is the truth: it has never been a page of this site.
+# Renamed designs keep their id (stored in every résumé that uses it) but
+# take a public slug of their own; the old address follows them. Listed
+# before the rules with placeholders, which the host would read first.
+/templates/deedy     /templates/duet     301
 /templates/          /templates          301
 /examples/           /examples           301
 /prompts/            /prompts            301
@@ -16,10 +20,6 @@
 /resume-builder-no-sign-up/    /resume-builder-no-sign-up    301
 /templates/:id/      /templates/:id      301
 /examples/:slug/     /examples/:slug     301
-
-# Renamed designs keep their id (stored in every résumé that uses it) but
-# take a public slug of their own; the old address follows them.
-/templates/deedy     /templates/duet     301
 
 # The app's own routes are NOT listed here, and the reason is worth keeping.
 # They used to be rewritten to the content-free shell (`/resume/*

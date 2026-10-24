@@ -1263,10 +1263,11 @@ ${signature}
  * flashes inside the app before the bundle loads.
  */
 export function shellHtml(indexHtml: string, title: string): string {
-  return indexHtml.replace(
-    /<title>[^<]*<\/title>/,
-    `<title>${htmlEscape(title)}</title>\n    <meta name="robots" content="noindex" />`
-  )
+  // The page's own robots tag is REPLACED: added beside it, the shell said
+  // noindex and "index, follow" at once (an audit read both, 2026-10-24).
+  return indexHtml
+    .replace(/\s*<meta name="robots"[^>]*>/g, '')
+    .replace(/<title>[^<]*<\/title>/, `<title>${htmlEscape(title)}</title>\n    <meta name="robots" content="noindex" />`)
 }
 
 /* ---- llms.txt ------------------------------------------------------------

@@ -13,7 +13,16 @@
   "preview_urls": false,
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    // An address with no file answers 404 with the built 404 page (an app
+    // shell that boots and shows the not-found screen). The single-page
+    // fallback answered every unknown address 200 with the home page - soft
+    // 404s to a search engine, measured on /about and every mistyped
+    // /examples or /templates URL (2026-10-24). A saved résumé's address
+    // (/resume/<id>) has no file either: it now arrives with status 404 and
+    // the same shell, which boots and opens the résumé - checked with
+    // `wrangler dev` on the built site, reload included. Those routes are
+    // private and kept out of the index by robots.txt.
+    "not_found_handling": "404-page"
   },
   // Static-asset Worker — no app code to debug, and Cloudflare Analytics already
   // shows traffic/errors. Keep observability off so deploys stay consistent (and
