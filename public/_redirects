@@ -17,6 +17,10 @@
 /templates/:id/      /templates/:id      301
 /examples/:slug/     /examples/:slug     301
 
+# Renamed designs keep their id (stored in every résumé that uses it) but
+# take a public slug of their own; the old address follows them.
+/templates/deedy     /templates/duet     301
+
 # The app's own routes are NOT listed here, and the reason is worth keeping.
 # They used to be rewritten to the content-free shell (`/resume/*
 # /shell.html 200`) so the landing copy inside index.html could not flash

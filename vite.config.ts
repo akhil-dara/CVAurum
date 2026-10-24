@@ -176,7 +176,7 @@ function seoPages(): Plugin {
       const ids = seo.allTemplateIds()
       for (const id of ids) {
         write(
-          path.join('templates', id),
+          seo.templatePageFile(id),
           pageHtml(shell, seo.SITE, seo.templatePageMeta(id), seo.staticHtml(id), seo.breadcrumbJsonLd(id))
         )
       }
@@ -224,7 +224,7 @@ function seoPages(): Plugin {
       // by the host for Accept: text/markdown, linked as alternates from each page).
       writeText('index.md', seo.landingMarkdown())
       writeText('templates.md', seo.galleryMarkdown())
-      for (const id of ids) writeText(path.join('templates', `${id}.md`), seo.templateMarkdown(id))
+      for (const id of ids) writeText(`${seo.templatePageFile(id)}.md`, seo.templateMarkdown(id))
       writeText('examples.md', seo.examplesMarkdown())
       writeText('prompts.md', seo.promptsMarkdown())
       for (const slug of seo.guideSlugs()) writeText(`${slug}.md`, seo.guideMarkdown(slug))

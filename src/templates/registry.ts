@@ -446,7 +446,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'cambridge',
     name: 'Cambridge',
-    description: 'RenderCV-grade clean layout: Source Sans, navy accent, ruled headings, right-aligned dates. The academic/engineer favorite.',
+    description: 'A clean academic layout: Source Sans, a navy accent, ruled headings and right-aligned dates. A favourite for research and engineering CVs.',
     tags: ['ats-safe', 'single-column', 'classic'],
     atsSafe: true,
     class: 'tpl-cambridge',
@@ -463,7 +463,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'vector',
     name: 'Vector',
-    description: "The beloved single-column tech format (Jake's Resume lineage): small-caps ruled headings, italic roles, ruthless ATS clarity. A favorite for software roles.",
+    description: 'A single-column technical format: small-caps ruled headings, italic roles and nothing an ATS could misread. A favourite for software roles.',
     tags: ['ats-safe', 'single-column', 'technical', 'classic'],
     atsSafe: true,
     class: 'tpl-vector',
@@ -808,8 +808,9 @@ export const TEMPLATES: TemplateConfig[] = [
   },
   {
     id: 'deedy',
-    name: 'Deedy',
-    description: 'The iconic two-column résumé — tight, bold, and recruiter-loved.',
+    slug: 'duet',
+    name: 'Duet',
+    description: 'A tight, bold two-column résumé: a narrow sidebar of skills and links beside a dense main column, red rules and capitalised headings.',
     tags: ['two-column', 'modern', 'technical'],
     atsSafe: true,
     class: 'tpl-deedy',
@@ -1899,4 +1900,10 @@ export const SIGNATURE_COUNT = TEMPLATES.filter((t) => t.tags.includes('signatur
 
 export function getTemplate(id?: string): TemplateConfig {
   return (id && TEMPLATE_MAP[id]) || TEMPLATE_MAP.modern
+}
+
+/** A design's page address: its public slug, else its id. Every link,
+ *  sitemap entry and pre-rendered page goes through this. */
+export function templatePath(t: TemplateConfig): string {
+  return `/templates/${t.slug ?? t.id}`
 }

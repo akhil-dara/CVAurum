@@ -13,7 +13,7 @@
  * Kept pure and dependency-free on purpose: it is imported by a Node build step
  * with no DOM and no browser, and it is the part worth unit-testing.
  */
-import { TEMPLATES, TEMPLATE_MAP, galleryOrder } from '@/templates/registry'
+import { TEMPLATES, TEMPLATE_MAP, galleryOrder, templatePath } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
@@ -125,7 +125,7 @@ export function tagSentence(tags: readonly string[]): string {
 export function templatePageMeta(id: string): PageMeta {
   const tpl = must(id)
   return {
-    path: `/templates/${tpl.id}`,
+    path: `${templatePath(tpl)}`,
     title: `${tpl.name} resume template — free, ATS-ready · CVAurum`,
     description: trimToWords(tpl.description),
     image: `/og/${tpl.id}.jpg`,
@@ -168,7 +168,7 @@ function linkList(list: readonly TemplateConfig[]): string {
   return list
     .map(
       (t) =>
-        `      <li><a href="/templates/${t.id}">${htmlEscape(t.name)} resume template</a></li>`
+        `      <li><a href="${templatePath(t)}">${htmlEscape(t.name)} resume template</a></li>`
     )
     .join('\n')
 }
@@ -224,7 +224,7 @@ function figure(tpl: TemplateConfig, eager: boolean): string {
 
 function cardList(list: readonly TemplateConfig[]): string {
   return list
-    .map((t) => `      <li>${figure(t, false)}<p><a href="/templates/${t.id}">${htmlEscape(t.name)} resume template</a> — ${htmlEscape(trimToWords(t.description, 120))}</p></li>`)
+    .map((t) => `      <li>${figure(t, false)}<p><a href="${templatePath(t)}">${htmlEscape(t.name)} resume template</a> — ${htmlEscape(trimToWords(t.description, 120))}</p></li>`)
     .join('\n')
 }
 
@@ -298,7 +298,7 @@ export function galleryMarkdown(): string {
 
 ${GALLERY_INTRO}
 
-${ORDERED.map((t) => `- [${t.name}](${SITE}/templates/${t.id}) — ${trimToWords(t.description, 140)} (${tagSentence(t.tags)})`).join('\n')}
+${ORDERED.map((t) => `- [${t.name}](${SITE}${templatePath(t)}) — ${trimToWords(t.description, 140)} (${tagSentence(t.tags)})`).join('\n')}
 
 Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
 `
@@ -330,7 +330,7 @@ ${CUSTOMIZE.items.map((i) => `- ${i}`).join('\n')}
 
 ## Related designs
 
-${related.map((r) => `- [${r.name}](${SITE}/templates/${r.id}) — ${trimToWords(r.description, 120)}`).join('\n')}
+${related.map((r) => `- [${r.name}](${SITE}${templatePath(r)}) — ${trimToWords(r.description, 120)}`).join('\n')}
 
 All ${TEMPLATES.length} designs: ${SITE}/templates
 `
@@ -936,7 +936,7 @@ export function publicUrlPaths(): string[] {
   return [
     '/',
     '/templates',
-    ...ORDERED.map((t) => `/templates/${t.id}`),
+    ...ORDERED.map((t) => `${templatePath(t)}`),
     '/examples',
     ...librarySlugs().map((slug) => `/examples/${slug}`),
     '/prompts',
@@ -990,7 +990,7 @@ export function sitemapXml(today: string): string {
   const entries = [
     urlEntry(`${SITE}/`, mod('/'), 'weekly', '1.0'),
     urlEntry(`${SITE}/templates`, mod('/templates'), 'weekly', '0.8', designs),
-    ...ORDERED.map((t, i) => urlEntry(`${SITE}/templates/${t.id}`, mod(`/templates/${t.id}`), 'monthly', '0.6', [designs[i]])),
+    ...ORDERED.map((t, i) => urlEntry(`${SITE}${templatePath(t)}`, mod(`${templatePath(t)}`), 'monthly', '0.6', [designs[i]])),
     urlEntry(`${SITE}/examples`, mod('/examples'), 'weekly', '0.8', samples),
     ...slugs.map((slug, i) => urlEntry(`${SITE}/examples/${slug}`, mod(`/examples/${slug}`), 'monthly', '0.6', [samples[i]])),
     // A collection too, of prompts rather than designs; it carries no picture
@@ -1017,7 +1017,7 @@ ${entries.join('\n')}
  */
 export function breadcrumbJsonLd(id: string): string {
   const tpl = must(id)
-  const url = `${SITE}/templates/${tpl.id}`
+  const url = `${SITE}${templatePath(tpl)}`
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@graph': [
@@ -1037,7 +1037,7 @@ export function breadcrumbJsonLd(id: string): string {
       breadcrumbList([
         { name: 'Home', path: '/' },
         { name: 'Resume templates', path: '/templates' },
-        { name: `${tpl.name} resume template`, path: `/templates/${tpl.id}` },
+        { name: `${tpl.name} resume template`, path: `${templatePath(tpl)}` },
       ]),
     ],
   })
@@ -1093,7 +1093,7 @@ export function galleryJsonLd(): string {
           '@type': 'ListItem',
           position: i + 1,
           name: `${t.name} resume template`,
-          url: `${SITE}/templates/${t.id}`,
+          url: `${SITE}${templatePath(t)}`,
           image: `${SITE}${templatePageImage(t.id)}`,
         })),
       },
@@ -1140,6 +1140,13 @@ export function allTemplateIds(): string[] {
   return ORDERED.map((t) => t.id)
 }
 
+/** Where a design's pre-rendered page is written, relative to the site
+ *  root: its public address (templatePath), never its stored id - a renamed
+ *  design's page must sit where every link and the sitemap send readers. */
+export function templatePageFile(id: string): string {
+  return templatePath(TEMPLATE_MAP[id]).slice(1)
+}
+
 /* ---- The landing page for whoever does not run scripts ------------------
    An assistant asked to compare resume builders fetches https://cvaurum.com
    and reads the HTML before any JavaScript runs. That HTML used to be the
@@ -1181,7 +1188,7 @@ export function landingStaticHtml(): string {
   const faq = COPY.faq.map((f) => `        <dt>${esc(f.q)}</dt>\n        <dd>${esc(f.a)}</dd>`).join('\n')
   const signature = SIGNATURE_IDS.map((id) => {
     const t = must(id)
-    return `        <li><a href="/templates/${t.id}">${esc(t.name)}</a>: ${esc(SIGNATURE_STRUCTURE[id] ?? t.description)}</li>`
+    return `        <li><a href="${templatePath(t)}">${esc(t.name)}</a>: ${esc(SIGNATURE_STRUCTURE[id] ?? t.description)}</li>`
   }).join('\n')
   return `<main class="seo-static">
     <h1>${esc(COPY.hero)}</h1>
@@ -1248,13 +1255,13 @@ export function shellHtml(indexHtml: string, title: string): string {
 
 function templateLine(t: TemplateConfig): string {
   const tags = tagSentence(t.tags)
-  return `- [${t.name}](${SITE}/templates/${t.id}): ${t.description}${tags ? ` (${tags})` : ''}`
+  return `- [${t.name}](${SITE}${templatePath(t)}): ${t.description}${tags ? ` (${tags})` : ''}`
 }
 
 function signatureLines(): string {
   return SIGNATURE_IDS.map((id) => {
     const t = must(id)
-    return `- [${t.name}](${SITE}/templates/${t.id}): ${SIGNATURE_STRUCTURE[id] ?? t.description}`
+    return `- [${t.name}](${SITE}${templatePath(t)}): ${SIGNATURE_STRUCTURE[id] ?? t.description}`
   }).join('\n')
 }
 
@@ -1307,12 +1314,14 @@ export function siteUrls(): string[] {
   return [
     `${SITE}/`,
     `${SITE}/templates`,
-    ...ORDERED.map((t) => `${SITE}/templates/${t.id}`),
+    ...ORDERED.map((t) => `${SITE}${templatePath(t)}`),
     // The library's shelf, not each of its pages: this block is read whole by
     // an assistant, and a hundred more lines of example URLs would crowd out
     // everything the file is for. The sitemap and examples.md carry them all.
     `${SITE}/examples`,
     `${SITE}/prompts`,
+    // the guides answer the questions this file is most often read for
+    ...GUIDES.map((g) => `${SITE}/${g.slug}`),
   ]
 }
 
@@ -1351,7 +1360,7 @@ ${pagesBlock()}
 
 ## Signature designs
 
-Six single-column designs whose structure is different, not only their colours. The structures they introduce are editable (Atlas's numbers band, Chronicle's year rail):
+${SIGNATURE_IDS.length} designs whose structure is different, not only their colours. The structures they introduce are editable (Atlas's numbers band, Chronicle's year rail):
 
 ${signatureLines()}
 
@@ -1367,7 +1376,7 @@ ${resourcesBlock()}
 
 ## Sitemap
 
-${siteUrls().length} public URLs, as in ${SITE}/sitemap.xml:
+${siteUrls().length} of the public URLs in ${SITE}/sitemap.xml; the sitemap and examples.md list every example page as well:
 
 ${sitemapBlock()}
 `
@@ -1489,7 +1498,7 @@ ${resourcesBlock()}
 
 ## Sitemap
 
-${siteUrls().length} public URLs, as in ${SITE}/sitemap.xml:
+${siteUrls().length} of the public URLs in ${SITE}/sitemap.xml; the sitemap and examples.md list every example page as well:
 
 ${sitemapBlock()}
 

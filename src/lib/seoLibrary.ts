@@ -16,7 +16,7 @@ import { LIBRARY } from '@/data/library'
 import { CATEGORY_LABELS, LIBRARY_CATEGORIES, REGION_LABELS, SENIORITY_LABELS } from '@/data/library/types'
 import type { LibraryCategory, LibrarySample } from '@/data/library/types'
 import { relatedSamples } from '@/data/library/related'
-import { TEMPLATE_MAP } from '@/templates/registry'
+import { TEMPLATE_MAP, getTemplate, templatePath } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
@@ -280,7 +280,7 @@ export function sampleStaticHtml(slug: string): string {
     <h1>${htmlEscape(s.role)} résumé example</h1>
     ${figure(slug, true)}
     <p>${htmlEscape(s.blurb)}</p>
-    <p>Written for ${htmlEscape(REGION_LABELS[s.region])}, at ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, in the ${htmlEscape(CATEGORY_LABELS[s.category].toLowerCase())} field${tpl ? `, shown in the <a href="/templates/${s.template}">${htmlEscape(tpl.name)}</a> design` : ''}. Every name, employer, address and number below is invented.</p>
+    <p>Written for ${htmlEscape(REGION_LABELS[s.region])}, at ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, in the ${htmlEscape(CATEGORY_LABELS[s.category].toLowerCase())} field${tpl ? `, shown in the <a href="${templatePath(getTemplate(s.template))}">${htmlEscape(tpl.name)}</a> design` : ''}. Every name, employer, address and number below is invented.</p>
     <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} résumé examples</a> · <a href="/templates">Browse the résumé templates</a></p>
     <article>
 ${resumeHtml(s)}
@@ -364,7 +364,7 @@ export function sampleMarkdown(slug: string): string {
     `- Field: ${CATEGORY_LABELS[s.category]}`,
     `- Career stage: ${SENIORITY_LABELS[s.seniority]}`,
     `- Written for: ${REGION_LABELS[s.region]}`,
-    `- Design: ${TEMPLATE_MAP[s.template]?.name ?? s.template} (${HOST}/templates/${s.template})`,
+    `- Design: ${TEMPLATE_MAP[s.template]?.name ?? s.template} (${HOST}${templatePath(getTemplate(s.template))})`,
     `- Open it: ${HOST}/examples/${s.slug}`,
     '',
     'Every name, employer, address, phone number and figure below is invented.',

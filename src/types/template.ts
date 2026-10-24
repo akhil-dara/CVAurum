@@ -68,6 +68,10 @@ export type SkillStyle = 'inline' | 'chips' | 'bars' | 'dots' | 'grouped-chips'
 
 export interface TemplateConfig {
   id: string
+  /** The page address when it differs from the id. The id is stored in
+   *  every résumé that uses the design and never changes; a renamed design
+   *  takes a new public slug instead (templatePath). */
+  slug?: string
   name: string
   description: string
   tags: TemplateTag[]

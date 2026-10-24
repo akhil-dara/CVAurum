@@ -1,7 +1,7 @@
 {
   "/": {
-    "hash": "84f044f12f1d3a12",
-    "lastmod": "2026-10-23"
+    "hash": "52961a3463768939",
+    "lastmod": "2026-10-24"
   },
   "/templates": {
     "hash": "85b5dcf1d47f8cd5",
@@ -148,12 +148,12 @@
     "lastmod": "2026-09-27"
   },
   "/templates/cambridge": {
-    "hash": "15a52f6884045d53",
-    "lastmod": "2026-09-27"
+    "hash": "234040f796b0f0c7",
+    "lastmod": "2026-10-24"
   },
   "/templates/vector": {
-    "hash": "d9ffc68dd46b9d73",
-    "lastmod": "2026-09-27"
+    "hash": "77fce8e106124830",
+    "lastmod": "2026-10-24"
   },
   "/templates/minimal": {
     "hash": "c9c3ea5ba9abd6a1",
@@ -231,9 +231,9 @@
     "hash": "ba9fc6c64a3f9b7a",
     "lastmod": "2026-09-27"
   },
-  "/templates/deedy": {
-    "hash": "aee1bcf86cba9e71",
-    "lastmod": "2026-09-27"
+  "/templates/duet": {
+    "hash": "f2854e2898c575b2",
+    "lastmod": "2026-10-24"
   },
   "/templates/slate": {
     "hash": "19e44192a0d63c7f",
@@ -388,8 +388,8 @@
     "lastmod": "2026-09-27"
   },
   "/examples/graduate-structural-engineer": {
-    "hash": "56f77c2a93f99122",
-    "lastmod": "2026-09-27"
+    "hash": "044c347a6fdc5a71",
+    "lastmod": "2026-10-24"
   },
   "/examples/mechanical-design-engineer": {
     "hash": "19f38c845ccdae06",
@@ -400,16 +400,16 @@
     "lastmod": "2026-09-27"
   },
   "/examples/manufacturing-engineer": {
-    "hash": "ef0fbc7aa4455abb",
-    "lastmod": "2026-09-27"
+    "hash": "8246ac67f577600f",
+    "lastmod": "2026-10-24"
   },
   "/examples/quality-engineer": {
     "hash": "d50a86e4eea33a7f",
     "lastmod": "2026-09-27"
   },
   "/examples/senior-process-engineer": {
-    "hash": "f1d85918ccce4ea8",
-    "lastmod": "2026-09-27"
+    "hash": "18211e402e60097a",
+    "lastmod": "2026-10-24"
   },
   "/examples/senior-stress-engineer": {
     "hash": "169b75b88fc4d7a7",
@@ -420,8 +420,8 @@
     "lastmod": "2026-09-27"
   },
   "/examples/manufacturing-engineering-manager": {
-    "hash": "a62147b5f730b4de",
-    "lastmod": "2026-09-27"
+    "hash": "c5196c82ddb129a3",
+    "lastmod": "2026-10-24"
   },
   "/examples/graphic-designer": {
     "hash": "41eec0a67a2c4bc1",
@@ -688,8 +688,8 @@
     "lastmod": "2026-09-27"
   },
   "/examples/supply-chain-analyst": {
-    "hash": "873e21caaa6acbbe",
-    "lastmod": "2026-09-27"
+    "hash": "99d256941ae0172c",
+    "lastmod": "2026-10-24"
   },
   "/examples/customer-support-lead": {
     "hash": "a63c91d67c5786cc",

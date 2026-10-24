@@ -23,7 +23,7 @@ import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { sampleDoc, sampleStyle } from '@/data/library/doc'
 import { relatedSamples, sampleShape } from '@/data/library/related'
 import { CATEGORY_LABELS, REGION_LABELS, SENIORITY_LABELS, type LibrarySample } from '@/data/library/types'
-import { getTemplate } from '@/templates/registry'
+import { getTemplate, templatePath } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { useResumeActions } from '@/components/dashboard/newResume'
@@ -165,7 +165,7 @@ function Example({ sample }: { sample: LibrarySample }) {
               <Fact
                 label="Design"
                 value={
-                  <Link className="text-primary hover:underline" to={`/templates/${tpl.id}`}>
+                  <Link className="text-primary hover:underline" to={`${templatePath(tpl)}`}>
                     {tpl.name}
                   </Link>
                 }

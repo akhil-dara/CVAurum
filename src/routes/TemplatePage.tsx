@@ -21,7 +21,7 @@ import { CUSTOMIZE } from '@/data/customize'
 // of the file on disk and a page never reserves the wrong box for it.
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { applyTemplateToMetadata } from '@/lib/templateApply'
-import { getTemplate } from '@/templates/registry'
+import { TEMPLATES, getTemplate, templatePath } from '@/templates/registry'
 import type { ResumeDocument } from '@/types/document'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
@@ -44,8 +44,11 @@ import {
 
 
 export function TemplatePage() {
-  const { id } = useParams<{ id: string }>()
-  if (!isTemplateId(id)) return <UnknownDesign id={id} />
+  const { id: segment } = useParams<{ id: string }>()
+  // The address carries a design's public slug (templatePath), which is its
+  // id unless the design was renamed; an old id still finds its design.
+  const id = TEMPLATES.find((t) => t.slug === segment)?.id ?? segment
+  if (!isTemplateId(id)) return <UnknownDesign id={segment} />
   // Keyed on the id so React rebuilds the page (and its preview) when a reader
   // walks from one design to the next through the related row.
   return <Design key={id} id={id} />
@@ -216,7 +219,7 @@ function Design({ id }: { id: string }) {
             {related.map((r) => (
               <li key={r.id}>
                 <Link
-                  to={`/templates/${r.id}`}
+                  to={`${templatePath(r)}`}
                   className="group block overflow-hidden rounded-lg border border-border bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-card"
                 >
                   <div data-nosnippet className="aspect-[210/297] overflow-hidden border-b border-border bg-white">

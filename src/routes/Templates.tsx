@@ -17,7 +17,7 @@ import { CreateButton } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AlignLeft, ArrowRight, ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
-import { TEMPLATES, galleryOrder } from '@/templates/registry'
+import { TEMPLATES, galleryOrder, templatePath } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { PagePicture } from '@/components/preview/PagePicture'
 import { HoverZoom } from '@/components/preview/HoverZoom'
@@ -132,7 +132,7 @@ export function Templates() {
         alt: pageImageAlt(tpl),
         title: tpl.name,
         caption: tagWords(tpl),
-        aboutHref: `/templates/${tpl.id}`,
+        aboutHref: `${templatePath(tpl)}`,
         aboutLabel: 'About this design',
         useLabel: 'Use this design',
         onUse: () => create(true, tpl.id),
@@ -451,7 +451,7 @@ function TemplateCard({
                 "Broadsheet resume template" is a thing people search for and
                 a link is how they — and a crawler — reach it. */}
             <Link
-              to={`/templates/${tpl.id}`}
+              to={`${templatePath(tpl)}`}
               title={`About the ${tpl.name} template`}
               className="text-sm font-semibold text-foreground transition hover:text-primary hover:underline"
             >

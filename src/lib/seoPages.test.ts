@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { TEMPLATES, TEMPLATE_MAP, getTemplate } from '@/templates/registry'
+import { TEMPLATES, TEMPLATE_MAP, getTemplate, templatePath } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { GUIDES } from '@/data/guides'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
@@ -134,7 +134,8 @@ describe('the HTML a crawler reads without running the app', () => {
     expect(linked).toHaveLength(TEMPLATES.length - 1)
     expect(new Set(linked).size).toBe(TEMPLATES.length - 1)
     expect(linked).not.toContain('broadsheet')
-    for (const id of linked) expect(TEMPLATE_MAP[id]).toBeTruthy()
+    // a link carries the design's public slug (templatePath)
+    for (const seg of linked) expect(TEMPLATES.find((t) => (t.slug ?? t.id) === seg), seg).toBeTruthy()
   })
 
   it('offers the way back to the gallery and into the app', () => {
@@ -179,7 +180,7 @@ describe('the sitemap', () => {
     expect(locs).toHaveLength(TOTAL)
     expect(locs[0]).toBe('https://cvaurum.com/')
     expect(locs[1]).toBe('https://cvaurum.com/templates')
-    const designs = allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`)
+    const designs = allTemplateIds().map((id) => `https://cvaurum.com${templatePath(TEMPLATE_MAP[id])}`)
     expect(locs.slice(2, 2 + designs.length)).toEqual(designs)
     expect(locs[2 + designs.length]).toBe('https://cvaurum.com/examples')
     expect(locs.slice(3 + designs.length, -1 - GUIDES.length)).toEqual(
@@ -486,13 +487,13 @@ describe('llms.txt', () => {
     const t = llmsTxt()
     for (const f of COPY.facts) expect(t).toContain(`- ${f.label}: `)
     for (const l of COPY.limits) expect(t).toContain(l)
-    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
+    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com${templatePath(tpl)}`)
     expect(t).toContain('https://cvaurum.com/sitemap.xml')
     expect(t).toContain('https://cvaurum.com/robots.txt')
     // Home, the gallery, one line per design, the library's shelf and the
     // prompt library - the library's own pages live in the sitemap and
     // examples.md, not here.
-    expect(siteUrls()).toHaveLength(TEMPLATES.length + 4)
+    expect(siteUrls()).toHaveLength(TEMPLATES.length + 4 + GUIDES.length)
     for (const u of siteUrls()) expect(t).toContain(`- ${u}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
   })
@@ -508,7 +509,7 @@ describe('llms.txt', () => {
   })
   it('the full text names every template with its page, without superlatives', () => {
     const t = llmsFullTxt()
-    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com/templates/${tpl.id}`)
+    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com${templatePath(tpl)}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
     expect(t).toContain(COPY.oneLiner)
     for (const r of COPY.comparison) expect(t).toContain(`| ${r.capability} |`)
@@ -707,7 +708,7 @@ describe('the collection pages describe themselves', () => {
     // Each entry names the design's own page picture, not the share card, so
     // the collection is described with the pictures the page carries.
     expect(list.itemListElement.map((i: { url: string }) => i.url)).toEqual(
-      allTemplateIds().map((id) => `https://cvaurum.com/templates/${id}`)
+      allTemplateIds().map((id) => `https://cvaurum.com${templatePath(TEMPLATE_MAP[id])}`)
     )
     expect(list.itemListElement.map((i: { image: string }) => i.image)).toEqual(
       allTemplateIds().map((id) => `https://cvaurum.com${templatePageImage(id)}`)
@@ -761,7 +762,7 @@ describe('the crawl path without JavaScript', () => {
 
   it('reaches every design from the gallery in one hop', () => {
     const l = links(galleryStaticHtml())
-    for (const id of allTemplateIds()) expect(l.has(`/templates/${id}`), id).toBe(true)
+    for (const id of allTemplateIds()) expect(l.has(templatePath(TEMPLATE_MAP[id])), id).toBe(true)
   })
 
   it('links the gallery sideways to the other collections', () => {

@@ -12,7 +12,9 @@ describe('the collection never claims a count it does not have', () => {
   // this is what catches them the day a template is added.
   it('agrees with the static tags in index.html', () => {
     const html = readFileSync('index.html', 'utf8')
-    const claims = [...html.matchAll(/(\d+)\s+(?:premium\s+)?(?:templates|designs)/g)].map((m) => Number(m[1]))
+    // up to two words between the number and the noun: "68 premium
+    // data-driven templates" slipped past a pattern that allowed one
+    const claims = [...html.matchAll(/(\d+)\s+(?:[\w-]+\s+){0,2}(?:templates|designs)\b/g)].map((m) => Number(m[1]))
     expect(claims.length).toBeGreaterThan(0)
     for (const c of claims) expect(c).toBe(TEMPLATE_COUNT)
   })

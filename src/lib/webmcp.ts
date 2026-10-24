@@ -26,7 +26,7 @@ export function registerWebMcpTools(): AbortController | null {
       description: 'List every résumé template CVAurum offers: id, name, what it is for, layout, and the page that shows it.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       execute: async () => {
-        const { TEMPLATES } = await import('@/templates/registry')
+        const { TEMPLATES, templatePath } = await import('@/templates/registry')
         return {
           templates: TEMPLATES.map((t) => ({
             id: t.id,
@@ -34,7 +34,7 @@ export function registerWebMcpTools(): AbortController | null {
             description: t.description,
             tags: t.tags,
             columns: t.defaults.layout.columns,
-            url: `${site}/templates/${t.id}`,
+            url: `${site}${templatePath(t)}`,
             image: `${site}/og/${t.id}.jpg`,
           })),
         }
@@ -47,11 +47,11 @@ export function registerWebMcpTools(): AbortController | null {
       inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'The template id' } }, required: ['id'], additionalProperties: false },
       execute: async (input) => {
         const id = String(input.id || '')
-        const { TEMPLATE_MAP } = await import('@/templates/registry')
+        const { TEMPLATE_MAP, templatePath } = await import('@/templates/registry')
         if (!TEMPLATE_MAP[id]) return { ok: false, error: `No template with id "${id}"` }
         const { router } = await import('@/app/router')
-        await router.navigate(`/templates/${id}`)
-        return { ok: true, url: `${site}/templates/${id}` }
+        await router.navigate(templatePath(TEMPLATE_MAP[id]))
+        return { ok: true, url: `${site}${templatePath(TEMPLATE_MAP[id])}` }
       },
       signal: ac.signal,
     },
