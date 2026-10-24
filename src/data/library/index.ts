@@ -1,4 +1,5 @@
 import type { LibrarySample } from './types'
+import { withShowcase } from './showcase'
 import s_account_executive from './samples/account-executive'
 import s_analytics_engineer from './samples/analytics-engineer'
 import s_android_engineer from './samples/android-engineer'
@@ -223,7 +224,7 @@ export const LIBRARY: readonly LibrarySample[] = [
   s_ux_researcher,
   s_warehouse_manager,
   s_water_resources_engineer,
-]
+].map(withShowcase)
 
 /** One sample by its URL segment, or undefined when there is no such sample. */
 export function getSample(slug: string | undefined): LibrarySample | undefined {

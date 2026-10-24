@@ -23,6 +23,7 @@ const slugs = fs
 const ident = (slug) => 's_' + slug.replace(/[^a-zA-Z0-9]/g, '_')
 
 const body = `import type { LibrarySample } from './types'
+import { withShowcase } from './showcase'
 ${slugs.map((s) => `import ${ident(s)} from './samples/${s}'`).join('\n')}
 
 /**
@@ -33,7 +34,7 @@ ${slugs.map((s) => `import ${ident(s)} from './samples/${s}'`).join('\n')}
  */
 export const LIBRARY: readonly LibrarySample[] = [
 ${slugs.map((s) => `  ${ident(s)},`).join('\n')}
-]
+].map(withShowcase)
 
 /** One sample by its URL segment, or undefined when there is no such sample. */
 export function getSample(slug: string | undefined): LibrarySample | undefined {

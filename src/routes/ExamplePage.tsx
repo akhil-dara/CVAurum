@@ -20,7 +20,7 @@ import { getSample } from '@/data/library'
 // Written beside the images themselves, so the size in the markup is the size
 // of the file on disk and a page never reserves the wrong box for it.
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
-import { sampleDoc } from '@/data/library/doc'
+import { sampleDoc, sampleStyle } from '@/data/library/doc'
 import { relatedSamples, sampleShape } from '@/data/library/related'
 import { CATEGORY_LABELS, REGION_LABELS, SENIORITY_LABELS, type LibrarySample } from '@/data/library/types'
 import { getTemplate } from '@/templates/registry'
@@ -78,6 +78,8 @@ function Example({ sample }: { sample: LibrarySample }) {
   const shape = useMemo(() => sampleShape(sample), [sample])
   const related = useMemo(() => relatedSamples(sample.slug), [sample.slug])
   const tpl = getTemplate(sample.template)
+  // the style options this sample wears on top of its design (library/showcase)
+  const styled = sampleStyle(sample)
 
   return (
     <div className="min-h-full bg-background">
@@ -141,7 +143,9 @@ function Example({ sample }: { sample: LibrarySample }) {
               />
             </figure>
             <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
-              Shown in the {tpl.name} design. Switching design later keeps every word.
+              Shown in the {tpl.name} design
+              {styled.length ? ` with ${styled.map((l) => l.toLowerCase()).join(' and ')}` : ''}. Switching design later
+              keeps every word.
             </p>
           </div>
 
@@ -166,6 +170,7 @@ function Example({ sample }: { sample: LibrarySample }) {
                   </Link>
                 }
               />
+              {styled.length > 0 && <Fact label="Styled with" value={styled.join(' · ')} />}
               <Fact
                 last
                 label="Sections"

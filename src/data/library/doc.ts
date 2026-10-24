@@ -3,6 +3,7 @@ import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { getTemplate } from '@/templates/registry'
 import type { ResumeDocument } from '@/types/document'
 import type { LibrarySample } from './types'
+import { showcaseFor } from './showcase'
 
 /**
  * The document a sample IS: its content in its own design, with whatever
@@ -18,4 +19,13 @@ export function sampleDoc(s: LibrarySample): ResumeDocument {
   doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(s.template).defaults)
   s.tweaks?.(doc.metadata)
   return doc
+}
+
+/** The style options a sample wears on top of its design, named for its
+ *  page ("Contact pills", "Skill chips"); empty for the design as it ships.
+ *  Read off the design's own metadata, the way the sample's tweaks pick it. */
+export function sampleStyle(s: LibrarySample): string[] {
+  const doc = createDocument({ sample: true, content: s.content })
+  const m = applyTemplateToMetadata(doc.metadata, getTemplate(s.template).defaults)
+  return showcaseFor(s.slug, m)?.labels ?? []
 }
