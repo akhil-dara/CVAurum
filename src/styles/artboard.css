@@ -3470,6 +3470,45 @@
 .mode-preview .rm-add-entry-row {
   margin-top: 0.4em;
 }
+/* With a mouse the add rows take NO room on the page. In the flow, hidden
+   until hover, they still held their height: measured on a real three-page
+   résumé, 215px of "+ Add …" rows and 150px of "+ bullet" rows - nearly half
+   a page of air between sections that the PDF does not have (2026-10-24).
+   They hang below their section or entry instead, over the gap, inert until
+   that section or entry is under the pointer (a hanging control that took
+   the pointer at rest would steal the next heading's hover - see the reveal
+   traps). An empty section's own Add stays in the flow: it is that
+   section's only line. A touch screen keeps them all in the flow. */
+@media (hover: hover) and (pointer: fine) {
+  /* the section's Add at the right edge, an entry's "+ bullet" at the
+     left: on a section's last entry both are up at once, and in one place
+     they printed over each other ("+ Aullet experience") */
+  .mode-preview .rm-add-entry-row:not(.is-first) {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin: 0;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .mode-preview .rm-bullets-edit {
+    position: relative;
+  }
+  .mode-preview .rm-bullets-edit > .rm-bullet-addrow {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin: 0;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .mode-preview .rm-section:is(:hover, :focus-within) .rm-add-entry-row,
+  .mode-preview :is(.rm-item, .rm-mini):is(:hover, :focus-within) .rm-bullet-addrow,
+  .mode-preview .rm-add-entry-row:focus-within,
+  .mode-preview .rm-bullet-addrow:focus-within {
+    pointer-events: auto;
+  }
+}
 /* Inline "Add section" at the foot of the canvas (editable preview only). */
 .mode-preview .rm-add-section {
   display: block;
@@ -3532,6 +3571,7 @@
       optionalReveal.ts, so a first click on a bullet no longer opens the
       overview line above it and slides the bullet out from under the click. */
 .mode-preview :is(.rm-item, .rm-mini):not([data-engaged]) .rm-editable[data-optional]:empty,
+.mode-preview :is(.rm-item, .rm-mini):not([data-engaged]) .rm-sep:has(+ .rm-editable[data-optional]:empty),
 .mode-preview :is(.rm-item, .rm-mini):not([data-engaged]) .rm-item-summary:has(> .rm-editable[data-optional]:empty) {
   display: none;
 }

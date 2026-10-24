@@ -1328,6 +1328,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               }}
               className="rm-item-loc"
               placeholder="Location"
+              optional
             />
           ) : null
         const position = (className?: string) => (
@@ -1509,6 +1510,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               }}
               className="rm-item-loc"
               placeholder="Location"
+              optional
             />
           ) : null
         // Degree + field are BOTH on the canvas (they both print) -
@@ -1524,7 +1526,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               }}
               placeholder="Degree — e.g. B.S."
             />
-            <span aria-hidden>{', '}</span>
+            <span className="rm-sep" aria-hidden>{', '}</span>
             <Ed
               edit={edit}
               value={e.area}
@@ -1532,6 +1534,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                 c.education[i].area = v
               }}
               placeholder="Field — e.g. Computer Science"
+              optional
             />
           </>
         ) : null
@@ -1615,6 +1618,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
                   }}
                   className="rm-item-score"
                   placeholder="GPA"
+                  optional
                 />
               ) : null}
               {dateInSub(opts) && when ? <SubDate>{when}</SubDate> : null}
@@ -3265,6 +3269,7 @@ function Custom({
               }}
               className="rm-item-loc"
               placeholder="Location"
+              optional
             />
           ) : null
         const name = (className?: string) => (
