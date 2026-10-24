@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { Check, ChevronDown, ClipboardCopy, Cloud, Command, Download, Eye, FileDown, FileJson, FileText, HardDriveDownload, HelpCircle, Maximize, Moon, MoreVertical, PencilLine, Redo2, ScanText, Share2, Sun, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -14,6 +14,8 @@ import { getDurabilityStatus, loadRawDocs, requestDurability, type DurabilitySta
 import { exportFullBackup } from '@/lib/backup'
 import { hasWorkToLose, readLastBackup, saveAtRisk } from '@/lib/saveSafety'
 import { Logo } from '@/components/ui/Logo'
+import { usePopoverA11y } from '@/templates/_shared/popoverA11y'
+import { onMenuKeyDown } from '@/lib/menuKeys'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
@@ -36,6 +38,17 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   const [exportFmt, setExportFmt] = useState<ExportFormat | null>(null)
   // phone overflow ("⋮") menu — holds the controls that don't fit at <768px
   const [moreOpen, setMoreOpen] = useState(false)
+  // Both menus: focus goes in on open, arrows move, Escape closes and hands
+  // focus back to the button (it left the menu open behind its backdrop,
+  // which then swallowed the next click - 2026-10-24).
+  const exportPanel = useRef<HTMLDivElement>(null)
+  const morePanel = useRef<HTMLDivElement>(null)
+  usePopoverA11y(exportOpen, () => setExportOpen(false), exportPanel)
+  usePopoverA11y(moreOpen, () => setMoreOpen(false), morePanel)
+  useEffect(() => {
+    const panel = exportOpen ? exportPanel.current : moreOpen ? morePanel.current : null
+    panel?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus()
+  }, [exportOpen, moreOpen])
   const theme = useAppStore((s) => s.settings.theme)
   const updateSettings = useAppStore((s) => s.updateSettings)
   const toast = useAppStore((s) => s.toast)
@@ -225,31 +238,38 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
         {/* export */}
         <div className="relative">
-          <button data-tour="export" className="btn-primary btn-sm" onClick={() => setExportOpen((o) => !o)} aria-label="Export">
+          <button data-tour="export" className="btn-primary btn-sm" onClick={() => setExportOpen((o) => !o)} aria-label="Export" aria-haspopup="menu" aria-expanded={exportOpen}>
             <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export</span> <ChevronDown className="h-3.5 w-3.5 opacity-70" />
           </button>
           {exportOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
-              <div className="card absolute right-0 z-20 mt-1 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden p-1.5 shadow-float">
-                <button
+              <div
+                ref={exportPanel}
+                role="menu"
+                aria-label="Export"
+                tabIndex={-1}
+                onKeyDown={onMenuKeyDown}
+                className="card absolute right-0 z-20 mt-1 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden p-1.5 shadow-float focus:outline-none"
+              >
+                <button role="menuitem"
                   className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left"
                   onClick={exportPdf}
                   disabled={pdfExporting}
                   aria-busy={pdfExporting}
                 >
                   <span className="flex items-center gap-2 font-medium"><FileDown className="h-4 w-4 shrink-0 text-primary" /> {pdfExporting ? 'Generating…' : 'Download PDF'}</span>
-                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Crisp, selectable, ATS-exact — generated in-app</span>
+                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">The one to send: real text an ATS reads word for word</span>
                 </button>
-                <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('docx')}>
+                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('docx')}>
                   <span className="flex items-center gap-2 font-medium"><FileText className="h-4 w-4 shrink-0 text-primary" /> Download Word (.docx)</span>
                   <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Editable, ATS-friendly text that mirrors your template</span>
                 </button>
-                <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={copyPlainText}>
+                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={copyPlainText}>
                   <span className="flex items-center gap-2 font-medium"><ClipboardCopy className="h-4 w-4 shrink-0 text-primary" /> Copy as plain text</span>
                   <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Whole paragraphs, for pasting into an application form</span>
                 </button>
-                <button className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('json')}>
+                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('json')}>
                   <span className="flex items-center gap-2 font-medium"><FileJson className="h-4 w-4 shrink-0 text-primary" /> Export JSON Resume</span>
                   <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Portable data — re-import here or anywhere, anytime</span>
                 </button>
@@ -268,13 +288,20 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
             from the menu, so the tour and the theme toggle cannot be reached
             at all. */}
         <div className="relative lg:hidden">
-          <button className="btn-icon" onClick={() => setMoreOpen((o) => !o)} title="More" aria-label="More options" aria-expanded={moreOpen}>
+          <button className="btn-icon" onClick={() => setMoreOpen((o) => !o)} title="More" aria-label="More options" aria-haspopup="menu" aria-expanded={moreOpen}>
             <MoreVertical className="h-[18px] w-[18px]" />
           </button>
           {moreOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
-              <div className="card absolute right-0 z-20 mt-1 w-56 overflow-hidden p-1.5 shadow-float">
+              <div
+                ref={morePanel}
+                role="menu"
+                aria-label="More options"
+                tabIndex={-1}
+                onKeyDown={onMenuKeyDown}
+                className="card absolute right-0 z-20 mt-1 w-56 overflow-hidden p-1.5 shadow-float focus:outline-none"
+              >
                 {/* Undo / redo. The bar's own pair is hidden below md and a
                     phone has no Ctrl+Z, so a mis-tapped Remove (section ⋯
                     menu, entry trash) or a template switch could not be taken
@@ -282,7 +309,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                     steps can be undone in a row. Only below md — above it the
                     bar already carries them. */}
                 <div className="flex items-center gap-1 md:hidden">
-                  <button
+                  <button role="menuitem"
                     className="btn-ghost flex h-10 flex-1 items-center justify-start gap-2 rounded-lg px-2.5 text-sm"
                     onClick={() => undo()}
                     disabled={past === 0}
@@ -290,7 +317,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                   >
                     <Undo2 className="h-4 w-4 text-primary" /> Undo
                   </button>
-                  <button
+                  <button role="menuitem"
                     className="btn-ghost flex h-10 flex-1 items-center justify-start gap-2 rounded-lg px-2.5 text-sm"
                     onClick={() => redo()}
                     disabled={future === 0}
@@ -304,25 +331,25 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                     heatmap and search-by-name for templates / fonts / accents.
                     Its bar button starts at sm and Ctrl+K needs a keyboard, so
                     below sm this menu item is the only door in. */}
-                <button
+                <button role="menuitem"
                   className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
                   onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-palette')) }}
                 >
                   <Command className="h-4 w-4 text-primary" /> Find a command…
                 </button>
-                <button
+                <button role="menuitem"
                   className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm sm:hidden"
                   onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-share')) }}
                 >
                   <Share2 className="h-4 w-4 text-primary" /> Share privately
                 </button>
-                <button
+                <button role="menuitem"
                   className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
                   onClick={() => { setMoreOpen(false); window.dispatchEvent(new Event('cvaurum:open-tour')) }}
                 >
                   <HelpCircle className="h-4 w-4 text-primary" /> Show the quick tour
                 </button>
-                <button
+                <button role="menuitem"
                   className="btn-ghost flex h-auto min-h-[40px] w-full items-center justify-start gap-2 rounded-lg px-2.5 py-2 text-sm"
                   onClick={() => { setMoreOpen(false); updateSettings({ theme: isDark ? 'light' : 'dark' }) }}
                 >
