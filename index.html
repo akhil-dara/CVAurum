@@ -19,7 +19,9 @@
     <meta name="apple-mobile-web-app-title" content="CVAurum" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <!-- Catch the install prompt before the app bundle loads (see the file). -->
-    <script src="/pwa-install.js"></script>
+    <!-- deferred: it only listens for the install prompt, which fires after
+         load, and as a plain script it held up the first paint of every page -->
+    <script src="/pwa-install.js" defer></script>
 
     <!-- LCP: the UI font renders the hero headline — fetch it before CSS asks. -->
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" />
