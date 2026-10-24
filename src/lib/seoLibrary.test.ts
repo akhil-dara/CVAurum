@@ -292,3 +292,19 @@ describe('the crawl path out of the library', () => {
     }
   })
 })
+
+describe('an example page title says it the way people search', () => {
+  it('reads "Resume Example" without the accent, "CV Example" for a UK résumé, and no country unless two share a role', async () => {
+    const { samplePageMeta } = await import('./seoLibrary')
+    const { LIBRARY } = await import('@/data/library/index')
+    const titles = LIBRARY.map((s) => samplePageMeta(s.slug).title)
+    expect(new Set(titles).size).toBe(LIBRARY.length)
+    for (const s of LIBRARY) {
+      const t = samplePageMeta(s.slug).title
+      expect(t, s.slug).not.toContain('Résumé')
+      expect(t, s.slug).toContain(s.region === 'uk' ? 'CV Example' : 'Resume Example')
+      const shared = LIBRARY.filter((x) => x.role === s.role).length > 1
+      if (!shared) expect(t, s.slug).not.toMatch(/\((India|UK|US)/)
+    }
+  })
+})

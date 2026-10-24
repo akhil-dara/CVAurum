@@ -168,12 +168,20 @@ export function sampleImageAlt(slug: string): string {
   return `${s.role} résumé example — ${stage}, written for ${REGION_LABELS[s.region]}${tpl ? `, set in the ${tpl.name} design` : ''}`
 }
 
+const SHORT_REGION: Record<LibrarySample['region'], string> = { india: 'India', us: 'US', uk: 'UK' }
+
 export function samplePageMeta(slug: string): SamplePageMeta {
   const s = must(slug)
-  const region = s.region === 'us' ? '' : ` (${REGION_LABELS[s.region]})`
+  // Said the way it is searched: "resume" without its accent, "CV" in the
+  // UK, and the country only where two samples share a role and the title
+  // would otherwise repeat; "(India)" on every Indian sample narrowed a
+  // title read everywhere (2026-10-24 audit).
+  const noun = s.region === 'uk' ? 'CV Example' : 'Resume Example'
+  const shared = LIBRARY.filter((x) => x.role === s.role).length > 1
+  const region = shared ? ` (${SHORT_REGION[s.region]})` : ''
   return {
     path: `/examples/${s.slug}`,
-    title: `${s.role} Résumé Example${region} — Free Template You Can Edit · CVAurum`,
+    title: `${s.role} ${noun}${region} — Free Template You Can Edit · CVAurum`,
     description: trim(s.blurb),
     // This sample's own card, not the design's: the preview shows the résumé
     // the page is about.

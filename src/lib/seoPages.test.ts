@@ -22,6 +22,7 @@ import {
   staticHtml,
   tagSentence,
   templatePageMeta,
+  templateKeyword,
   trimToWords,
   landingStaticHtml,
   shellHtml,
@@ -63,7 +64,7 @@ describe('the head each template page asks for', () => {
   it('names the design, its path and its preview image', () => {
     const meta = templatePageMeta('broadsheet')
     expect(meta.path).toBe('/templates/broadsheet')
-    expect(meta.title).toBe('Broadsheet resume template — free, ATS-ready · CVAurum')
+    expect(meta.title).toBe(`${templateKeyword(TEMPLATE_MAP.broadsheet)} Resume Template: Broadsheet — Free & ATS-Ready · CVAurum`)
     expect(meta.image).toBe('/og/broadsheet.jpg')
   })
 
@@ -858,5 +859,24 @@ describe('the guides', () => {
       expect(graph.map((n) => n['@type'])).toEqual(['WebPage', 'BreadcrumbList', 'FAQPage'])
       expect(graph[2].mainEntity).toHaveLength(g.faq.length)
     }
+  })
+})
+
+describe('a design page title leads with what people search', () => {
+  // "Aria resume template" named a design nobody types into a search box;
+  // a reader looking for one types its style and layout (2026-10-24 audit).
+  it('leads with the style and layout, then names the design', async () => {
+    const { templatePageMeta, templateKeyword } = await import('./seoPages')
+    const modern = TEMPLATES.find((t) => t.tags.includes('modern') && !t.tags.includes('two-column') && !t.tags.includes('technical') && !t.tags.includes('creative') && !t.tags.includes('executive') && !t.tags.includes('minimal') && !t.tags.includes('elegant') && !t.tags.includes('classic') && !t.tags.includes('bare'))!
+    expect(templateKeyword(modern)).toBe('Modern')
+    expect(templatePageMeta(modern.id).title.startsWith(`Modern Resume Template: ${modern.name}`)).toBe(true)
+    const twoCol = TEMPLATES.find((t) => t.tags.includes('two-column'))!
+    expect(templateKeyword(twoCol)).toMatch(/Two-Column$/)
+  })
+  it('gives every design a title of its own', async () => {
+    const { templatePageMeta } = await import('./seoPages')
+    const titles = TEMPLATES.map((t) => templatePageMeta(t.id).title)
+    expect(new Set(titles).size).toBe(TEMPLATES.length)
+    for (const t of titles) expect(t).toMatch(/^[A-Z][\w-]*( [\w-]+)? Resume Template: /)
   })
 })

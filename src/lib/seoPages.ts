@@ -122,11 +122,30 @@ export function tagSentence(tags: readonly string[]): string {
 }
 
 /** The head a single template's page wants. */
+/** The words a design is searched by: its strongest style, then its layout
+ *  when it has two columns ("Technical Two-Column"). The registry's tags,
+ *  ranked from the most particular style to the most general. */
+const STYLE_ORDER: [TemplateTag, string][] = [
+  ['executive', 'Executive'],
+  ['technical', 'Technical'],
+  ['creative', 'Creative'],
+  ['minimal', 'Minimal'],
+  ['bare', 'Minimal'],
+  ['elegant', 'Elegant'],
+  ['classic', 'Classic'],
+  ['modern', 'Modern'],
+]
+export function templateKeyword(tpl: TemplateConfig): string {
+  const style = STYLE_ORDER.find(([tag]) => tpl.tags.includes(tag))?.[1] ?? 'Professional'
+  return tpl.tags.includes('two-column') ? `${style} Two-Column` : style
+}
+
 export function templatePageMeta(id: string): PageMeta {
   const tpl = must(id)
   return {
     path: `${templatePath(tpl)}`,
-    title: `${tpl.name} resume template — free, ATS-ready · CVAurum`,
+    // led by the style and layout people search, then the design's own name
+    title: `${templateKeyword(tpl)} Resume Template: ${tpl.name} — Free & ATS-Ready · CVAurum`,
     description: trimToWords(tpl.description),
     image: `/og/${tpl.id}.jpg`,
   }
