@@ -178,16 +178,17 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
         twoCol={twoCol}
         onChange={setColumns}
         renderCard={renderCard}
+        beforeFooter={
+          <button className="btn-outline btn-sm w-full border-dashed" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" /> Add section
+          </button>
+        }
       />
-      <p className="text-[11px] text-muted-foreground">
-        {twoCol
-          ? 'Drag a section across the zones to move it between the main flow, the sidebar and the footer strip.'
-          : 'Drag a section into the footer strip to print it as a compact band at the foot of the page.'}
-      </p>
-
-      <button className="btn-outline btn-sm w-full border-dashed" onClick={() => setAddOpen(true)}>
-        <Plus className="h-4 w-4" /> Add section
-      </button>
+      {twoCol && (
+        <p className="text-[11px] text-muted-foreground">
+          Drag a section between the main column, the sidebar and the footer strip, or use its ⋯ menu.
+        </p>
+      )}
 
       {addOpen && (
         <SectionGallery

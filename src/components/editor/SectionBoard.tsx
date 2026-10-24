@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -32,6 +32,7 @@ export function SectionBoard({
   twoCol,
   onChange,
   renderCard,
+  beforeFooter,
 }: {
   main: string[]
   aside: string[]
@@ -39,6 +40,10 @@ export function SectionBoard({
   twoCol: boolean
   onChange: (main: string[], aside: string[], footer: string[]) => void
   renderCard: (id: string, handle: DragHandle) => ReactNode
+  /** Sits under the body columns, above the footer strip: the panel's "Add
+   *  section", which belongs with the list it adds to - an empty drop zone
+   *  between them parted the list from its own action. */
+  beforeFooter?: ReactNode
 }) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(
@@ -106,7 +111,10 @@ export function SectionBoard({
     >
       <div className="space-y-4">
         {columns.map((col) => (
-          <DroppableColumn key={col.id} id={col.id} label={col.label} ids={col.ids} renderCard={renderCard} />
+          <Fragment key={col.id}>
+            {col.id === 'footer' && beforeFooter}
+            <DroppableColumn id={col.id} label={col.label} ids={col.ids} renderCard={renderCard} />
+          </Fragment>
         ))}
       </div>
       <DragOverlay>
@@ -139,13 +147,24 @@ function DroppableColumn({
           className={cn(
             'space-y-2 rounded-lg transition-colors',
             isOver && 'bg-primary/5 ring-1 ring-primary/30',
-            ids.length === 0 && 'flex min-h-[52px] items-center justify-center border border-dashed border-border text-xs text-muted-foreground',
+            ids.length === 0 && 'flex min-h-[44px] items-center justify-center border border-dashed border-border px-3 py-2 text-center text-xs text-muted-foreground [text-wrap:balance]',
           )}
         >
           {ids.map((sid) => (
             <SortableRow key={sid} id={sid} renderItem={renderCard} />
           ))}
-          {ids.length === 0 && 'Drag a section here'}
+          {ids.length === 0 &&
+            (id === 'footer' ? (
+              // what the strip is for, and the way in each device has: a
+              // finger gets the ⋯ menu's "Move to footer", not a drag
+              <span>
+                A compact band at the foot of the page.{' '}
+                <span className="phone:hidden">Drag a section here.</span>
+                <span className="desk:hidden">Use a section's ⋯ menu to move it here.</span>
+              </span>
+            ) : (
+              'Drag a section here'
+            ))}
         </div>
       </SortableContext>
     </div>
