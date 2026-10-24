@@ -436,6 +436,18 @@
 .rm-contacts-strip.rm-strip-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+/* A last row that is not full closes like the rest: a detail left alone on
+   it spans the remaining cells, so the rule above it runs the whole width.
+   It stopped under the lone cell, and the grid read as broken off - five
+   details in two columns left LinkedIn alone under a half-length rule
+   (2026-10-24). */
+.rm-contacts-strip.rm-strip-2 .rm-contact:last-child:nth-child(2n + 1),
+.rm-contacts-strip.rm-strip-3 .rm-contact:last-child:nth-child(3n + 1) {
+  grid-column: 1 / -1;
+}
+.rm-contacts-strip.rm-strip-3 .rm-contact:last-child:nth-child(3n + 2) {
+  grid-column: span 2;
+}
 /* Wrap: three columns kept, and a long address breaks only between its own
    segments (Artboard.tsx AddressText boxes each one), never inside a word. */
 .rm-contacts-strip.rm-links-wrap .rm-contact-seg {
