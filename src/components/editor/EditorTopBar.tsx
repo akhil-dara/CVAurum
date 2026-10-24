@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
-import { Check, ChevronDown, ClipboardCopy, Cloud, Command, Download, Eye, FileDown, FileJson, FileText, HardDriveDownload, HelpCircle, Maximize, Moon, MoreVertical, PencilLine, Redo2, ScanText, Share2, Sun, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Check, ChevronDown, ClipboardCopy, Cloud, Command, Download, Eye, FileDown, FileJson, FileText, HelpCircle, Maximize, Moon, MoreVertical, PencilLine, Redo2, ScanText, Share2, ShieldAlert, Sun, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -379,6 +379,9 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
   const toast = useAppStore((s) => s.toast)
   const [durability, setDurability] = useState<DurabilityStatus>(getDurabilityStatus())
   const [lastBackup, setLastBackup] = useState(readLastBackup)
+  const [cardOpen, setCardOpen] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  usePopoverA11y(cardOpen, () => setCardOpen(false), cardRef)
   // how many résumés this browser holds: a blank one alone has nothing to lose
   const [stored, setStored] = useState(1)
   useEffect(() => {
@@ -400,31 +403,66 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
     )
   }
   if (saveAtRisk(durability, lastBackup, Date.now(), hasWorkToLose(content, stored))) {
+    const backUp = async () => {
+      setCardOpen(false)
+      try {
+        const n = await exportFullBackup()
+        setLastBackup(Date.now())
+        toast(`Backed up ${n} resume${n === 1 ? '' : 's'}`, 'success')
+      } catch {
+        toast('Could not create the backup', 'error')
+      }
+    }
     return (
-      <button
-        type="button"
-        // On a phone an icon that a finger can hit (it was a 22px-tall pill
-        // that took the title's room); the words return where there is space.
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 text-xs font-medium text-foreground hover:bg-warning/20 sm:h-auto sm:w-auto sm:px-2 sm:py-0.5"
-        aria-label="Back up. Saved only in this browser, which may clear it."
-        title="Saved only in this browser, which has not promised to keep it. Download a backup so a cleared browser cannot lose your résumés."
-        onClick={async () => {
-          try {
-            const n = await exportFullBackup()
-            setLastBackup(Date.now())
-            toast(`Backed up ${n} resume${n === 1 ? '' : 's'}`, 'success')
-          } catch {
-            toast('Could not create the backup', 'error')
-          }
-        }}
-      >
-        <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-warning sm:static" aria-hidden />
-        <HardDriveDownload className="h-4 w-4 sm:hidden" aria-hidden />
-        {/* the full sentence where the bar has room; the action from sm up */}
-        <span className="hidden sm:inline" aria-hidden>
+      <div className="relative shrink-0">
+        {/* Phone: a warning, not a second download arrow. Beside Export's
+            arrow the backup's tray-and-arrow read as "download" too, and a tap
+            downloaded a file with no word of why (2026-10-24). The tap now
+            says what is at risk and offers the backup by name. */}
+        <button
+          type="button"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full border border-warning/40 bg-warning/10 text-amber-800 hover:bg-warning/20 dark:text-amber-300 sm:hidden"
+          aria-label="Not backed up. Saved only in this browser."
+          aria-haspopup="dialog"
+          aria-expanded={cardOpen}
+          onClick={() => setCardOpen((o) => !o)}
+        >
+          <ShieldAlert className="h-4 w-4" aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-medium text-foreground hover:bg-warning/20 sm:flex"
+          title="Saved only in this browser, which has not promised to keep it. Download a backup so a cleared browser cannot lose your résumés."
+          onClick={backUp}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
+          {/* the full sentence where the bar has room; the action from sm up */}
           <span className="hidden xl:inline">Saved here only · </span>Back up
-        </span>
-      </button>
+        </button>
+        {cardOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setCardOpen(false)} />
+            <div
+              ref={cardRef}
+              role="dialog"
+              aria-label="Not backed up"
+              tabIndex={-1}
+              className="card fixed left-2 right-2 top-14 z-20 p-4 shadow-float focus:outline-none"
+            >
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldAlert className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden /> Saved only in this browser
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                A phone may clear a browser&rsquo;s storage. A backup file keeps every résumé; open it from My resumes to
+                bring them all back.
+              </p>
+              <button type="button" className="btn-primary btn-sm mt-3 w-full" onClick={backUp}>
+                Download backup file
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     )
   }
   return (
