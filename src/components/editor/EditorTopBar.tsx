@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from 'zustand'
-import { Check, ChevronDown, ClipboardCopy, Cloud, Command, Download, Eye, FileDown, FileJson, FileText, HelpCircle, Maximize, Moon, MoreVertical, PencilLine, Redo2, ScanText, Share2, Sun, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Check, ChevronDown, ClipboardCopy, Cloud, Command, Download, Eye, FileDown, FileJson, FileText, HardDriveDownload, HelpCircle, Maximize, Moon, MoreVertical, PencilLine, Redo2, ScanText, Share2, Sun, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -99,11 +99,14 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
       {/* The title yields space so Export never leaves the screen, but it
           keeps a readable minimum: in a 768px bar it used to shrink to 20px,
-          a slit that could not be read or edited (2026-09-08). */}
+          a slit that could not be read or edited (2026-09-08). On a phone it
+          takes whatever the bar has left - capped at a fifth of the screen it
+          showed 46px of a title ("My Res") beside empty room - and a title
+          longer than that ends in an ellipsis, not mid-letter. */}
       <input
         value={doc.title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-24 min-w-[4rem] max-w-[20vw] rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40 sm:w-44 sm:max-w-[40vw]"
+        className="min-w-[4rem] flex-1 text-ellipsis sm:w-44 sm:max-w-[40vw] sm:flex-initial rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40 sm:w-44 sm:max-w-[40vw]"
         aria-label="Resume title"
       />
 
@@ -373,7 +376,10 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
     return (
       <button
         type="button"
-        className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-medium text-foreground hover:bg-warning/20"
+        // On a phone an icon that a finger can hit (it was a 22px-tall pill
+        // that took the title's room); the words return where there is space.
+        className="relative flex h-9 w-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 text-xs font-medium text-foreground hover:bg-warning/20 sm:h-auto sm:w-auto sm:px-2 sm:py-0.5"
+        aria-label="Back up. Saved only in this browser, which may clear it."
         title="Saved only in this browser, which has not promised to keep it. Download a backup so a cleared browser cannot lose your résumés."
         onClick={async () => {
           try {
@@ -385,9 +391,12 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
           }
         }}
       >
-        <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
-        {/* the full sentence where the bar has room; the action everywhere */}
-        <span className="hidden xl:inline">Saved here only ·</span> Back up
+        <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-warning sm:static" aria-hidden />
+        <HardDriveDownload className="h-4 w-4 sm:hidden" aria-hidden />
+        {/* the full sentence where the bar has room; the action from sm up */}
+        <span className="hidden sm:inline" aria-hidden>
+          <span className="hidden xl:inline">Saved here only · </span>Back up
+        </span>
       </button>
     )
   }
