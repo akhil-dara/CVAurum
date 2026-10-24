@@ -5429,3 +5429,11 @@
     content: none;
   }
 }
+
+/* The section a docked Style inspector is editing (SectionGear), outlined
+   on the page so a change and the section it lands on are seen together. */
+.mode-preview .rm-section[data-styling] {
+  outline: 2px solid color-mix(in srgb, var(--rm-primary) 40%, transparent);
+  outline-offset: 5px;
+  border-radius: 3px;
+}

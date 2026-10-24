@@ -508,7 +508,8 @@ export function SectionGear({
 }) {
   const [open, setOpen] = useState(false)
   // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
-  const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false })
+  // dock=true → laid over the editor's side panel as an inspector (desktop).
+  const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false, dock: false, width: 0 })
   // The less-used groups (see Group's `more`), remembered across sections.
   const [moreOpen, setMoreOpen] = useState(() => {
     try {
@@ -520,6 +521,32 @@ export function SectionGear({
   const panelRef = useRef<HTMLDivElement>(null)
   // Escape closes; focus moves in on open and back to the gear on close.
   usePopoverA11y(open, () => setOpen(false), panelRef)
+
+  // Docked: one inspector at a time; it leaves when the panel under it
+  // changes (another tab, the panel closed) or the window is resized, and
+  // the section it styles is outlined on the page while it is open.
+  useEffect(() => {
+    if (!open || !pos.dock) return
+    const sec = document.querySelector<HTMLElement>(`[data-tour="canvas"] [data-section="${sectionKey}"]`)
+    sec?.setAttribute('data-styling', '')
+    sec?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const other = (e: Event) => {
+      if ((e as CustomEvent).detail !== sectionKey) setOpen(false)
+    }
+    const close = () => setOpen(false)
+    const ed = useEditorStore.getState()
+    const unsub = useEditorStore.subscribe((s) => {
+      if (s.leftTab !== ed.leftTab || !s.leftOpen) setOpen(false)
+    })
+    window.addEventListener('cvaurum:style-dock', other)
+    window.addEventListener('resize', close)
+    return () => {
+      sec?.removeAttribute('data-styling')
+      unsub()
+      window.removeEventListener('cvaurum:style-dock', other)
+      window.removeEventListener('resize', close)
+    }
+  }, [open, pos.dock, sectionKey])
 
   const layout = doc.metadata.layout
   const base = sectionBase(sectionKey)
@@ -713,10 +740,37 @@ export function SectionGear({
     const vw = document.documentElement.clientWidth
     const vh = window.innerHeight
     if (vw < 640) {
-      setPos({ top: 0, left: 0, maxH: Math.round(vh * 0.76), sheet: true })
+      setPos({ top: 0, left: 0, maxH: Math.round(vh * 0.76), sheet: true, dock: false, width: 0 })
       setOpen(true)
       return
     }
+    // Desktop: an inspector over the side panel. Floated beside the gear it
+    // had nowhere to go on a laptop - the page fills the canvas - and opened
+    // ON the section it styles, hiding the very lines a change was for
+    // (2026-10-24). Docked, the whole page stays in view and scrolls freely.
+    if (variant === 'canvas' && document.documentElement.getAttribute('data-layout') === 'desk') {
+      const dock = () => {
+        const pr = document.querySelector<HTMLElement>('[data-tour="panel"]')?.getBoundingClientRect()
+        if (!pr || pr.width < 260 || pr.width > vw * 0.5) return false
+        window.dispatchEvent(new CustomEvent('cvaurum:style-dock', { detail: sectionKey }))
+        setPos({ top: pr.top, left: pr.left, maxH: pr.height, sheet: false, dock: true, width: pr.width })
+        setOpen(true)
+        return true
+      }
+      const ed = useEditorStore.getState()
+      if (ed.leftOpen && dock()) return
+      if (!ed.leftOpen) {
+        ed.setLeftOpen(true)
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (!dock()) floatBeside(r, vw, vh)
+        }))
+        return
+      }
+    }
+    floatBeside(r, vw, vh)
+  }
+
+  const floatBeside = (r: DOMRect, vw: number, vh: number) => {
     // Sit beside the gear — the section stays visible while its styles change
     // live. Right of it by preference; on the far side when the right margin
     // cannot hold the whole panel, rather than sliding back OVER the control
@@ -759,7 +813,7 @@ export function SectionGear({
       maxH = Math.min(620, Math.max(minH, anchorBottom - room))
       top = Math.max(room, anchorBottom - maxH)
     }
-    setPos({ top, left, maxH, sheet: false })
+    setPos({ top, left, maxH, sheet: false, dock: false, width: 0 })
     setOpen(true)
   }
 
@@ -883,19 +937,30 @@ export function SectionGear({
       {open &&
         createPortal(
           <>
-            <div className={`fixed inset-0 z-[60] ${pos.sheet ? 'bg-black/35' : ''}`} onClick={() => setOpen(false)} />
+            {/* no backdrop when docked: the page stays live and scrollable */}
+            {!pos.dock && (
+              <div className={`fixed inset-0 z-[60] ${pos.sheet ? 'bg-black/35' : ''}`} onClick={() => setOpen(false)} />
+            )}
             <div
               ref={panelRef}
               role="dialog"
-              aria-modal="true"
+              aria-modal={pos.dock ? undefined : 'true'}
               tabIndex={-1}
               aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}
               className={
                 pos.sheet
                   ? 'fixed inset-x-0 bottom-0 z-[61] flex flex-col rounded-t-2xl border-t border-border bg-surface text-foreground shadow-float'
-                  : 'fixed z-[61] flex w-[308px] flex-col rounded-xl border border-border bg-surface text-foreground shadow-float'
+                  : pos.dock
+                    ? 'fixed z-[61] flex flex-col border-r border-border bg-surface text-foreground focus:outline-none'
+                    : 'fixed z-[61] flex w-[308px] flex-col rounded-xl border border-border bg-surface text-foreground shadow-float'
               }
-              style={pos.sheet ? { maxHeight: pos.maxH } : { top: pos.top, left: pos.left, maxHeight: pos.maxH }}
+              style={
+                pos.sheet
+                  ? { maxHeight: pos.maxH }
+                  : pos.dock
+                    ? { top: pos.top, left: pos.left, width: pos.width, height: pos.maxH }
+                    : { top: pos.top, left: pos.left, maxHeight: pos.maxH }
+              }
             >
               {/* Header — stays put while the controls scroll underneath. */}
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
@@ -1614,14 +1679,18 @@ function ChipBtn({
   disabled?: boolean
   reason?: string
 }) {
+  // A one-character label is a mark to recognise (•, ○, ▪): drawn at a
+  // size it can be told apart at, and named for a screen reader.
+  const glyph = [...label].length === 1
   return (
     <button
       type="button"
       title={disabled && reason ? reason : title || label}
+      aria-label={glyph ? title || label : undefined}
       aria-pressed={on}
       disabled={disabled}
       onClick={onClick}
-      className={`min-w-0 truncate rounded-md border px-1 py-1.5 text-xs font-medium transition ${
+      className={`min-w-0 truncate rounded-md border px-1 py-1.5 ${glyph ? 'text-base leading-none' : 'text-xs'} font-medium transition ${
         on
           ? 'border-primary bg-primary/10 text-primary'
           : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
