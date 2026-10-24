@@ -16,6 +16,7 @@ import { DESIGN_RANGES } from '@/lib/designRanges'
 import { OFFERED_WEIGHTS } from '@/lib/typeStyle'
 import type { ElementColorKey } from '@/lib/elementColors'
 import { getTemplate } from '@/templates/registry'
+import { applyDensity, densityOf, type Density } from '@/lib/density'
 import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
 import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
 
@@ -313,6 +314,7 @@ note={notes[r.key]}
       </FieldGroup>
 
       <FieldGroup title="Typography">
+        <DensityChoice />
         <FontSelect
           label="Body font"
           value={m.typography.fontFamily}
@@ -1437,5 +1439,36 @@ function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
         Print at {p(set)}
       </button>
     </p>
+  )
+}
+
+/** Compact, balanced or airy in one choice (lib/density): text size, line
+ *  height, the two spacings and the margins together, measured from this
+ *  design's own values. The sliders below stay; a page tuned by hand reads
+ *  as custom. */
+function DensityChoice() {
+  const m = useResumeStore((s) => s.doc?.metadata)
+  const update = useResumeStore((s) => s.updateMetadata)
+  if (!m) return null
+  const defaults = getTemplate(m.template).defaults
+  const level = densityOf(m, defaults)
+  return (
+    <div className="space-y-1.5">
+      <label className="label">Density</label>
+      <Segmented<Density>
+        value={level === 'custom' ? ('' as Density) : level}
+        options={[
+          { value: 'compact', label: 'Compact' },
+          { value: 'balanced', label: 'Balanced' },
+          { value: 'airy', label: 'Airy' },
+        ]}
+        onChange={(v) => update((md) => applyDensity(md, v, defaults))}
+      />
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {level === 'custom'
+          ? 'Custom: tuned by hand below. Pick one to set text size, line height, spacing and margins together.'
+          : 'Sets text size, line height, spacing and margins together, from this design’s own. Fine-tune any of them below.'}
+      </p>
+    </div>
   )
 }
