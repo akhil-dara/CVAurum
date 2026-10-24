@@ -825,6 +825,9 @@ describe('the guides', () => {
       'resume-for-freshers',
       'cv-template',
       'resume-template-word',
+      'resume-summary-examples',
+      'resume-skills',
+      'resume-action-verbs',
     ])
     const paths = seo.publicUrlPaths()
     for (const g of GUIDES) expect(paths).toContain(`/${g.slug}`)

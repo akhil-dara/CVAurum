@@ -17,6 +17,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, Check, ChevronRight, Wand2 } from 'lucide-react'
 import { createDocument } from '@/data/defaults'
 import { CUSTOMIZE } from '@/data/customize'
+import { TEMPLATE_NOTES } from '@/data/templateNotes'
 // Written beside the images themselves, so the size in the markup is the size
 // of the file on disk and a page never reserves the wrong box for it.
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
@@ -57,6 +58,7 @@ export function TemplatePage() {
 function Design({ id }: { id: string }) {
   const tpl = getTemplate(id)
   const meta = templatePageMeta(id)
+  const note = TEMPLATE_NOTES[id]
   useSeo({
     title: meta.title,
     description: meta.description,
@@ -187,6 +189,25 @@ function Design({ id }: { id: string }) {
             </p>
           </div>
         </div>
+
+        {/* What this design is for, in its own words (data/templateNotes) -
+            the part of the page no other design shares. */}
+        {note && (
+          <section className="mt-14 grid gap-8 border-t border-border pt-8 md:grid-cols-3">
+            <div>
+              <h2 className="text-base font-semibold tracking-tight">Who the {tpl.name} design suits</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{note.suits}</p>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold tracking-tight">How the page is laid out</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{note.layout}</p>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold tracking-tight">How it reads to an ATS</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{note.ats}</p>
+            </div>
+          </section>
+        )}
 
         {/* A visitor from a search judges the design by one picture; say
             plainly that the colour, photo and columns they may not like are

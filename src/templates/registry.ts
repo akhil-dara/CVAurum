@@ -1769,9 +1769,10 @@ export const TEMPLATES: TemplateConfig[] = [
      *
      * JUSTIFIED, because the even grey of a justified measure is the whole
      * effect. This paragraph was written when nothing in this renderer
-     * hyphenated, which is what usually makes that a bad trade; the renderer
-     * hyphenates for itself now, and a page exported today breaks words at
-     * the measure. (The reason it had to be our own: a browser's soft hyphen
+     * hyphenated, which is what usually makes that a bad trade. The renderer
+     * hyphenated for a while and no longer does (2026-10-24): the page being
+     * edited cannot show those breaks, so the file set lines the canvas never
+     * did. (The reason it had to be our own: a browser's soft hyphen
      * is not a character of the text node, and the painter draws each run
      * from that node's own range, so the canvas would show a hyphen the file
      * does not - artboard.css says so where the alignment is read.) So it was
@@ -1796,8 +1797,9 @@ export const TEMPLATES: TemplateConfig[] = [
      * 2.6x the natural one, and it lands within 0.07pt of the single 8.43pt
      * space the source's own page carries. The page is looser than it was
      * and it is loose in the same way, and to the same degree, as the page
-     * it is modelled on - which is the point. It is also why the hyphenation
-     * this renderer now does is load-bearing here rather than a nicety.
+     * it is modelled on - which is the point. Without hyphenation the loosest
+     * lines may open a little wider than these figures; the 0.6in measure is
+     * what keeps that within reason.
      */
     description:
       'A page set the way a typesetting engine sets one: a 0.6in measure of justified text on a tight 12pt baseline, a centred name in capitals, and section titles at the size of the body with a hairline rule beneath.',

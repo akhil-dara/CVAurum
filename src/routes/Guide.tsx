@@ -16,6 +16,7 @@ import { GUIDES, guideBySlug } from '@/data/guides'
 import { SITE, guidePageMeta } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
 import { linkParts } from '@/lib/inlineLinks'
+import { guideSections } from '@/data/guideData'
 import { TEMPLATE_COUNT } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
 
@@ -74,7 +75,7 @@ export function Guide() {
             </Link>
           )}
 
-          {g.sections.map((sec) => (
+          {guideSections(g).map((sec) => (
             <section key={sec.heading} className="mt-10">
               <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{sec.heading}</h2>
               {sec.paragraphs.map((p, i) => (

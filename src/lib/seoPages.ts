@@ -23,8 +23,10 @@ import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
 import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
+import { TEMPLATE_NOTES } from '@/data/templateNotes'
 import { pageDates } from './seoDates'
 import { linkHtml, linkMarkdown } from './inlineLinks'
+import { guideSections } from '@/data/guideData'
 import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
 import { CUSTOMIZE } from '@/data/customize'
 
@@ -266,12 +268,21 @@ export function staticHtml(id: string): string {
   // audit). The gallery still links every design in one hop.
   const related = relatedTemplateIds(id, 12).map((rid) => must(rid))
   const inThisDesign = EXAMPLES_BY_TEMPLATE[id] ?? []
+  const note = TEMPLATE_NOTES[id]
   return `<main class="seo-static">
     <p><a href="/templates">Resume templates</a> › ${htmlEscape(tpl.name)}</p>
     <h1>${htmlEscape(tpl.name)} resume template</h1>
     ${figure(tpl, true)}
     <p>${htmlEscape(tpl.description)}</p>
-    <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
+${note ? `    <section>
+      <h2>Who the ${htmlEscape(tpl.name)} design suits</h2>
+      <p>${htmlEscape(note.suits)}</p>
+      <h2>How the page is laid out</h2>
+      <p>${htmlEscape(note.layout)}</p>
+      <h2>How it reads to an ATS</h2>
+      <p>${htmlEscape(note.ats)}</p>
+    </section>
+` : ''}    <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
     <p><strong>${htmlEscape(CUSTOMIZE.switchLine)}</strong></p>
     <section>
       <h2>${htmlEscape(CUSTOMIZE.heading)}</h2>
@@ -338,6 +349,25 @@ Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
 `
 }
 
+/** The design's own notes (data/templateNotes) as Markdown sections. */
+function templateNoteMarkdown(tpl: TemplateConfig): string {
+  const n = TEMPLATE_NOTES[tpl.id]
+  if (!n) return ''
+  return `## Who the ${tpl.name} design suits
+
+${n.suits}
+
+## How the page is laid out
+
+${n.layout}
+
+## How it reads to an ATS
+
+${n.ats}
+
+`
+}
+
 export function templateMarkdown(id: string): string {
   const tpl = must(id)
   const related = relatedTemplateIds(id, 6).map((r) => must(r))
@@ -354,7 +384,7 @@ ${tpl.description}
 - Price: free, open source (AGPL-3.0); no account, nothing uploaded
 - Open in the editor: ${SITE}/app
 
-## ${CUSTOMIZE.heading}
+${templateNoteMarkdown(tpl)}## ${CUSTOMIZE.heading}
 
 ${CUSTOMIZE.switchLine}
 
@@ -833,7 +863,7 @@ export function guideStaticHtml(slug: string): string {
   const g = mustGuide(slug)
   const esc = htmlEscape
   const NL = '\n'
-  const sections = g.sections
+  const sections = guideSections(g)
     .map((sec) => {
       const paras = sec.paragraphs.map((p) => `      <p>${linkHtml(p, esc)}</p>`).join(NL)
       const list = sec.list
@@ -865,7 +895,7 @@ export function guideMarkdown(slug: string): string {
   const g = mustGuide(slug)
   const NL = '\n'
   const PARA = '\n\n'
-  const sections = g.sections
+  const sections = guideSections(g)
     .map((sec) => {
       const list = sec.list ? PARA + sec.list.map((li) => `- ${linkMarkdown(li, SITE)}`).join(NL) : ''
       return `## ${sec.heading}${PARA}${sec.paragraphs.map((p) => linkMarkdown(p, SITE)).join(PARA)}${list}`

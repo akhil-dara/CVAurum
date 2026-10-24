@@ -23,6 +23,9 @@
 /resume-for-freshers/          /resume-for-freshers          301
 /cv-template/                  /cv-template                  301
 /resume-template-word/         /resume-template-word         301
+/resume-summary-examples/      /resume-summary-examples      301
+/resume-skills/                /resume-skills                301
+/resume-action-verbs/          /resume-action-verbs          301
 /templates/:id/      /templates/:id      301
 /examples/:slug/     /examples/:slug     301
 

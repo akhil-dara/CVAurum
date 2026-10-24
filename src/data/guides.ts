@@ -48,6 +48,11 @@ export interface Guide {
   action: { label: string; href: string }
   /** A working tool on the page itself, not only a way to one. */
   tool?: 'ats-check'
+  /** A body built from the sample library after the written sections
+   *  (src/data/guideData.ts): every summary, every role's skills, or the
+   *  verbs the bullets open with. Read there, not here, so this file stays
+   *  small enough for the router and the footer to import. */
+  generated?: 'summaries' | 'skills' | 'verbs'
 }
 
 export const GUIDES: readonly Guide[] = [
@@ -723,6 +728,106 @@ export const GUIDES: readonly Guide[] = [
       },
     ],
     action: { label: 'Browse templates', href: '/templates' },
+  },
+  {
+    slug: 'resume-summary-examples',
+    title: `Resume Summary Examples for ${SAMPLE_COUNT} Jobs · CVAurum`,
+    heading: `Resume summary examples for ${SAMPLE_COUNT} jobs`,
+    description: `${SAMPLE_COUNT} resume summary examples by job and field, each from a complete example résumé you can open and edit for free. No sign-up.`,
+    short: 'Resume summary examples',
+    intro: [
+      'A resume summary is two or three lines under your name that say what you do, what you are good at and one result that proves it. Below are the summaries from every example résumé in the library, grouped by field, each linked to the full résumé it opens.',
+      'Read them for their shape rather than their words: a role and a specialty first, then a figure, then where you are heading. The people and employers are invented; the structure is the part worth copying.',
+    ],
+    sections: [
+      {
+        heading: 'How to write a resume summary',
+        paragraphs: [
+          'Start with the job you do and the level you do it at, add the area you are known for, and end on one measured result. Three lines is plenty; a summary that runs to a paragraph is read as one.',
+          'Skip the adjectives a reader cannot check ("hard-working", "passionate") and the objective statement about what you want. The summary is the place to say what an employer gets.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How long should a resume summary be?',
+        a: 'Two or three lines, around 40 to 60 words. Long enough to name your role, your strength and one result; short enough to be read in full.',
+      },
+      {
+        q: 'Do I need a summary if I have little experience?',
+        a: 'A short one helps a fresher or career changer: say what you studied or did, the skill you bring and the role you want. See the [resume for freshers](/resume-for-freshers) guide.',
+      },
+      {
+        q: 'Is a summary the same as an objective?',
+        a: 'No. An objective says what you want; a summary says what you offer. Most employers now expect a summary.',
+      },
+    ],
+    action: { label: 'Browse resume examples', href: '/examples' },
+    generated: 'summaries',
+  },
+  {
+    slug: 'resume-skills',
+    title: 'Skills for a Resume: Examples by Job and Field · CVAurum',
+    heading: 'Skills to put on a resume, by job',
+    description: `The skills listed on ${SAMPLE_COUNT} example résumés, by job and field, grouped the way an employer scans them. Open any example and edit it for free.`,
+    short: 'Resume skills by job',
+    intro: [
+      'The right skills for a resume are the ones the job description names and your bullets prove. Below are the skill sections of every example résumé in the library, by field and job, each grouped into named sets rather than one long list.',
+      'Use them to see what a section looks like for a role close to yours, then keep only what you can back up with a line of your own experience.',
+    ],
+    sections: [
+      {
+        heading: 'How to choose skills for a resume',
+        paragraphs: [
+          'Group skills into a few named sets (languages, tools, methods, certifications) so a reader finds the one they came for. Lead with the ones the job description asks for, using its exact wording, because both a recruiter and an applicant-tracking system look for those terms.',
+          'Every skill you list should appear in a bullet too, where you used it and what came of it. A skill named only in the list reads as a claim; one shown in a result reads as experience.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How many skills should a resume list?',
+        a: 'Usually 10 to 20, in three to five named groups. More than that turns the section into a keyword list and hides the ones that matter.',
+      },
+      {
+        q: 'Should soft skills go on a resume?',
+        a: 'Show them in bullets rather than list them: "led a team of six" says more than "leadership". Keep the skills section for skills a reader can check.',
+      },
+    ],
+    action: { label: 'Check a resume against a job', href: '/ats-resume-checker' },
+    generated: 'skills',
+  },
+  {
+    slug: 'resume-action-verbs',
+    title: 'Action Verbs for a Resume, With Example Bullets · CVAurum',
+    heading: 'Action verbs for a resume, with a real bullet for each',
+    description: `The verbs that open the bullets of ${SAMPLE_COUNT} example résumés, counted and grouped, each shown in a full bullet. Free examples you can edit.`,
+    short: 'Resume action verbs',
+    intro: [
+      'An action verb opens a bullet with what you did: built, cut, led, won. Below are the verbs that open the work-history bullets of every example résumé in the library, counted, grouped by the kind of claim they make, and each shown in a whole bullet so you can see the result that follows it.',
+      'A verb only works when the rest of the bullet says what changed. Every example below ends on a figure, a scale or an outcome.',
+    ],
+    sections: [
+      {
+        heading: 'How to use action verbs on a resume',
+        paragraphs: [
+          'Open each bullet with the most specific verb that is true: "cut" or "rebuilt" says more than "worked on" or "responsible for". Use the past tense for past roles and the present for the job you hold now.',
+          'Vary the verbs down a page, but never at the cost of accuracy: a reader trusts "ran" over "spearheaded" when that is what happened.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'What are the best action verbs for a resume?',
+        a: 'The specific ones that match what happened: cut, built, led, won, reduced, launched. The counts below show which verbs carry the most bullets across the library.',
+      },
+      {
+        q: 'Should every bullet start with a verb?',
+        a: 'Almost every one. A bullet that opens with a verb and ends with a result is the easiest line on a resume to read quickly.',
+      },
+    ],
+    action: { label: 'Start a résumé', href: '/app' },
+    generated: 'verbs',
   },
 ]
 

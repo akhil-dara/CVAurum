@@ -8,304 +8,304 @@
     "lastmod": "2026-09-27"
   },
   "/templates/broadsheet": {
-    "hash": "8c81754f4042a4eb",
-    "lastmod": "2026-09-27"
+    "hash": "4b55b3f10c641128",
+    "lastmod": "2026-10-24"
   },
   "/templates/marquee": {
-    "hash": "ee47dbfd6942a0fe",
-    "lastmod": "2026-09-27"
+    "hash": "87685dd2fd3af82a",
+    "lastmod": "2026-10-24"
   },
   "/templates/atlas": {
-    "hash": "708ea22a8926ca35",
-    "lastmod": "2026-09-27"
+    "hash": "99f1bbe194197842",
+    "lastmod": "2026-10-24"
   },
   "/templates/chronicle": {
-    "hash": "afc1288e12a7b4b3",
-    "lastmod": "2026-09-27"
+    "hash": "3343ed6b3a745b13",
+    "lastmod": "2026-10-24"
   },
   "/templates/folio-noir": {
-    "hash": "8b0450711e046c8a",
-    "lastmod": "2026-09-27"
+    "hash": "01ecfef3330ed9d1",
+    "lastmod": "2026-10-24"
   },
   "/templates/terrace": {
-    "hash": "841eb3d3102e51c9",
-    "lastmod": "2026-09-27"
+    "hash": "897eb58f4d019919",
+    "lastmod": "2026-10-24"
   },
   "/templates/flare": {
-    "hash": "824ca759846c6a5b",
-    "lastmod": "2026-09-27"
+    "hash": "1175fc4843ba3b16",
+    "lastmod": "2026-10-24"
   },
   "/templates/dossier": {
-    "hash": "b4dfcbbd3fde75e2",
-    "lastmod": "2026-09-27"
+    "hash": "125f1a76b3247e15",
+    "lastmod": "2026-10-24"
   },
   "/templates/keystone": {
-    "hash": "09352d409e6f7719",
-    "lastmod": "2026-09-27"
+    "hash": "cb501e1f2550788d",
+    "lastmod": "2026-10-24"
   },
   "/templates/meridian": {
-    "hash": "30862e7daada8247",
-    "lastmod": "2026-09-27"
+    "hash": "ba25f2ea44b0b336",
+    "lastmod": "2026-10-24"
   },
   "/templates/schematic": {
-    "hash": "12cf202068215730",
-    "lastmod": "2026-09-27"
+    "hash": "164f6558fd499db7",
+    "lastmod": "2026-10-24"
   },
   "/templates/volta": {
-    "hash": "844cc936a695f541",
-    "lastmod": "2026-09-27"
+    "hash": "bca4878cee0c79bd",
+    "lastmod": "2026-10-24"
   },
   "/templates/punch": {
-    "hash": "dbe795bd4b0a20fd",
-    "lastmod": "2026-09-27"
+    "hash": "69be6cbea84d9dc4",
+    "lastmod": "2026-10-24"
   },
   "/templates/clarity": {
-    "hash": "7f3db7663847cf17",
-    "lastmod": "2026-09-27"
+    "hash": "391e311b208a06ce",
+    "lastmod": "2026-10-24"
   },
   "/templates/obsidian": {
-    "hash": "7f285d68a2dcfa89",
-    "lastmod": "2026-09-27"
+    "hash": "9e1649676d213cbb",
+    "lastmod": "2026-10-24"
   },
   "/templates/onyx-noir": {
-    "hash": "533c66ae60eb3b64",
-    "lastmod": "2026-09-27"
+    "hash": "da5a96200241716d",
+    "lastmod": "2026-10-24"
   },
   "/templates/cascade": {
-    "hash": "3f5a2de9c4485b19",
-    "lastmod": "2026-09-27"
+    "hash": "d6340a7641543807",
+    "lastmod": "2026-10-24"
   },
   "/templates/sapphire": {
-    "hash": "4c44b53dcdb3d6af",
-    "lastmod": "2026-09-27"
+    "hash": "19e3ef2ec5dfb63a",
+    "lastmod": "2026-10-24"
   },
   "/templates/garnet": {
-    "hash": "13db7abb72093874",
-    "lastmod": "2026-09-27"
+    "hash": "8e45d5e7dbc5e54d",
+    "lastmod": "2026-10-24"
   },
   "/templates/initials": {
-    "hash": "76ca631968b876f1",
-    "lastmod": "2026-09-27"
+    "hash": "75f951ad36abdc02",
+    "lastmod": "2026-10-24"
   },
   "/templates/emblem": {
-    "hash": "fad1ebffc126d1ee",
-    "lastmod": "2026-09-27"
+    "hash": "964523db9a94856a",
+    "lastmod": "2026-10-24"
   },
   "/templates/verde": {
-    "hash": "99f376378f716aba",
-    "lastmod": "2026-09-27"
+    "hash": "5865c0e3979df38a",
+    "lastmod": "2026-10-24"
   },
   "/templates/onyx-gold": {
-    "hash": "9ff47ee6339de2b4",
-    "lastmod": "2026-09-27"
+    "hash": "0e8f94c3c1c844e2",
+    "lastmod": "2026-10-24"
   },
   "/templates/pinnacle": {
-    "hash": "f6887f15a73a91f9",
-    "lastmod": "2026-09-27"
+    "hash": "34fd64859ddee0b5",
+    "lastmod": "2026-10-24"
   },
   "/templates/crest": {
-    "hash": "a91e5ed877f7c1a1",
-    "lastmod": "2026-09-27"
+    "hash": "8ea65deb6c9c7725",
+    "lastmod": "2026-10-24"
   },
   "/templates/ribbon": {
-    "hash": "b4897133fa208d94",
-    "lastmod": "2026-09-27"
+    "hash": "5fb96de361b7a1ad",
+    "lastmod": "2026-10-24"
   },
   "/templates/orchid": {
-    "hash": "4b14a27ef2a5ae59",
-    "lastmod": "2026-09-27"
+    "hash": "ab8aa4358ba7c000",
+    "lastmod": "2026-10-24"
   },
   "/templates/aurum": {
-    "hash": "8730f655232af413",
-    "lastmod": "2026-09-27"
+    "hash": "d4892304b50b262c",
+    "lastmod": "2026-10-24"
   },
   "/templates/aurum-editorial": {
-    "hash": "b92a4a5ba7ce31d7",
-    "lastmod": "2026-09-27"
+    "hash": "31778ffcfb5111a0",
+    "lastmod": "2026-10-24"
   },
   "/templates/swiss-aurum": {
-    "hash": "82ed1fb81d1933e3",
-    "lastmod": "2026-09-27"
+    "hash": "5f26499a1c2ab058",
+    "lastmod": "2026-10-24"
   },
   "/templates/atelier": {
-    "hash": "89fd68140485ff5b",
-    "lastmod": "2026-09-27"
+    "hash": "b2a3b8928201cd06",
+    "lastmod": "2026-10-24"
   },
   "/templates/harvard": {
-    "hash": "ab8cd545d49ae21b",
-    "lastmod": "2026-09-27"
+    "hash": "36f8d01a1045882d",
+    "lastmod": "2026-10-24"
   },
   "/templates/garamond": {
-    "hash": "ba604500106b182c",
-    "lastmod": "2026-09-27"
+    "hash": "f79bc8dd89387dff",
+    "lastmod": "2026-10-24"
   },
   "/templates/modern": {
-    "hash": "28ebedb0308e7d9f",
-    "lastmod": "2026-09-27"
+    "hash": "065e403777836f84",
+    "lastmod": "2026-10-24"
   },
   "/templates/classic": {
-    "hash": "224af1005f8ae8a7",
-    "lastmod": "2026-09-27"
+    "hash": "4909fc024b5bd2b1",
+    "lastmod": "2026-10-24"
   },
   "/templates/cambridge": {
-    "hash": "234040f796b0f0c7",
+    "hash": "0b83a41268addd71",
     "lastmod": "2026-10-24"
   },
   "/templates/vector": {
-    "hash": "77fce8e106124830",
+    "hash": "f612041a859b526f",
     "lastmod": "2026-10-24"
   },
   "/templates/minimal": {
-    "hash": "c9c3ea5ba9abd6a1",
-    "lastmod": "2026-09-27"
+    "hash": "80c27da5635d2cd8",
+    "lastmod": "2026-10-24"
   },
   "/templates/executive": {
-    "hash": "c74fc4b17dc62253",
-    "lastmod": "2026-09-27"
+    "hash": "83bf0e69c4ba80d5",
+    "lastmod": "2026-10-24"
   },
   "/templates/timeline": {
-    "hash": "67717410ccf5ff9a",
-    "lastmod": "2026-09-27"
+    "hash": "93e1be9f065613c1",
+    "lastmod": "2026-10-24"
   },
   "/templates/double": {
-    "hash": "4476181e4f9e58ac",
-    "lastmod": "2026-09-27"
+    "hash": "4a4bff337cd682ab",
+    "lastmod": "2026-10-24"
   },
   "/templates/double-colored": {
-    "hash": "3d300a1286c4ae74",
-    "lastmod": "2026-09-27"
+    "hash": "625ca25aa1805e42",
+    "lastmod": "2026-10-24"
   },
   "/templates/aside": {
-    "hash": "c00deffb80d63ed0",
-    "lastmod": "2026-09-27"
+    "hash": "7c67aa8f94076470",
+    "lastmod": "2026-10-24"
   },
   "/templates/compact": {
-    "hash": "48d338e85d39aac4",
-    "lastmod": "2026-09-27"
+    "hash": "6bc77ba8120a0052",
+    "lastmod": "2026-10-24"
   },
   "/templates/elegant": {
-    "hash": "554f8f85c612b7f9",
-    "lastmod": "2026-09-27"
+    "hash": "a8356d576e0f63c4",
+    "lastmod": "2026-10-24"
   },
   "/templates/contemporary": {
-    "hash": "fd7797f41abd3d30",
-    "lastmod": "2026-09-27"
+    "hash": "20be8d896baf55f8",
+    "lastmod": "2026-10-24"
   },
   "/templates/polished": {
-    "hash": "4e1d3f07bf81465c",
-    "lastmod": "2026-09-27"
+    "hash": "59fdbf98191a351a",
+    "lastmod": "2026-10-24"
   },
   "/templates/technical": {
-    "hash": "813a8b7c689c6267",
-    "lastmod": "2026-09-27"
+    "hash": "b7a93f0d7d783180",
+    "lastmod": "2026-10-24"
   },
   "/templates/creative": {
-    "hash": "a8698fd4792afdf9",
-    "lastmod": "2026-09-27"
+    "hash": "e788b12c8c456b27",
+    "lastmod": "2026-10-24"
   },
   "/templates/ivy": {
-    "hash": "696fc8c46851ec80",
-    "lastmod": "2026-09-27"
+    "hash": "bb3526dc501ce330",
+    "lastmod": "2026-10-24"
   },
   "/templates/onyx": {
-    "hash": "8a9594b94f24aeb2",
-    "lastmod": "2026-09-27"
+    "hash": "1e04b3177ab58b9d",
+    "lastmod": "2026-10-24"
   },
   "/templates/cobalt": {
-    "hash": "6debd5bf4d8b6f0b",
-    "lastmod": "2026-09-27"
+    "hash": "370dac94a3d8af56",
+    "lastmod": "2026-10-24"
   },
   "/templates/academic": {
-    "hash": "38b31efa3e99823b",
-    "lastmod": "2026-09-27"
+    "hash": "ef45c71c9c4fac3b",
+    "lastmod": "2026-10-24"
   },
   "/templates/verdant": {
-    "hash": "fe761a0e06f5ddbb",
-    "lastmod": "2026-09-27"
+    "hash": "928576acf2c84c67",
+    "lastmod": "2026-10-24"
   },
   "/templates/sienna": {
-    "hash": "0fc8f95f5f17c014",
-    "lastmod": "2026-09-27"
+    "hash": "f780540fbd2c8248",
+    "lastmod": "2026-10-24"
   },
   "/templates/newton": {
-    "hash": "ba9fc6c64a3f9b7a",
-    "lastmod": "2026-09-27"
+    "hash": "046513072bb7048f",
+    "lastmod": "2026-10-24"
   },
   "/templates/duet": {
-    "hash": "f2854e2898c575b2",
+    "hash": "6bb6e94500180753",
     "lastmod": "2026-10-24"
   },
   "/templates/slate": {
-    "hash": "19e44192a0d63c7f",
-    "lastmod": "2026-09-27"
+    "hash": "36116c00f20e4672",
+    "lastmod": "2026-10-24"
   },
   "/templates/mercury": {
-    "hash": "cb3a480290d097ce",
-    "lastmod": "2026-09-27"
+    "hash": "09a23284d0fb71d7",
+    "lastmod": "2026-10-24"
   },
   "/templates/halcyon": {
-    "hash": "bd5e2d87691dd080",
-    "lastmod": "2026-09-27"
+    "hash": "8b1a6e363d28e594",
+    "lastmod": "2026-10-24"
   },
   "/templates/graphite": {
-    "hash": "b3e50a8a19ee6000",
-    "lastmod": "2026-09-27"
+    "hash": "e7b07003ab24645a",
+    "lastmod": "2026-10-24"
   },
   "/templates/portrait": {
-    "hash": "745a102324663d5d",
-    "lastmod": "2026-09-27"
+    "hash": "83bf713ba7a6913d",
+    "lastmod": "2026-10-24"
   },
   "/templates/spotlight": {
-    "hash": "5b892386cd538a6d",
-    "lastmod": "2026-09-27"
+    "hash": "bc5c7efe50469923",
+    "lastmod": "2026-10-24"
   },
   "/templates/mono": {
-    "hash": "428581017d26bd5b",
-    "lastmod": "2026-09-27"
+    "hash": "0ca3977f67a4c9cb",
+    "lastmod": "2026-10-24"
   },
   "/templates/opal": {
-    "hash": "16afe926830157b6",
-    "lastmod": "2026-09-27"
+    "hash": "bb802beec5a2024e",
+    "lastmod": "2026-10-24"
   },
   "/templates/plainsong": {
-    "hash": "aa49519a159bfcdc",
-    "lastmod": "2026-09-27"
+    "hash": "12b64b5fb3b5b62c",
+    "lastmod": "2026-10-24"
   },
   "/templates/quire": {
-    "hash": "bd09054dd3dd192b",
-    "lastmod": "2026-09-27"
+    "hash": "0372285d55d06351",
+    "lastmod": "2026-10-24"
   },
   "/templates/scribe": {
-    "hash": "4cd26d3536a43abc",
-    "lastmod": "2026-09-27"
+    "hash": "debee5555e78fdfb",
+    "lastmod": "2026-10-24"
   },
   "/templates/beacon": {
-    "hash": "a63c10422310bea2",
-    "lastmod": "2026-09-27"
+    "hash": "ac9e049c74fb971d",
+    "lastmod": "2026-10-24"
   },
   "/templates/bare": {
-    "hash": "82bd2bae92ce5e71",
-    "lastmod": "2026-09-27"
+    "hash": "09784bad4c91b1d7",
+    "lastmod": "2026-10-24"
   },
   "/templates/signal": {
-    "hash": "bd499a326aa52089",
-    "lastmod": "2026-09-27"
+    "hash": "c1292952ab58d2e7",
+    "lastmod": "2026-10-24"
   },
   "/templates/marker": {
-    "hash": "cd385e828ab7b966",
-    "lastmod": "2026-09-27"
+    "hash": "2d7e05b1eb264b06",
+    "lastmod": "2026-10-24"
   },
   "/templates/console": {
-    "hash": "9d7ebe11c6998626",
-    "lastmod": "2026-09-27"
+    "hash": "1255caa01cc7b56a",
+    "lastmod": "2026-10-24"
   },
   "/templates/margin": {
-    "hash": "d2c2f9026f5ee2f3",
-    "lastmod": "2026-09-27"
+    "hash": "88fa2d069bf602e3",
+    "lastmod": "2026-10-24"
   },
   "/templates/measure": {
-    "hash": "dbcf8f1644d0855f",
-    "lastmod": "2026-09-27"
+    "hash": "57989379e9c833f1",
+    "lastmod": "2026-10-24"
   },
   "/examples": {
     "hash": "5e6649f07993dacc",
@@ -748,35 +748,47 @@
     "lastmod": "2026-10-11"
   },
   "/free-resume-builder": {
-    "hash": "63c0c080c4a265a6",
-    "lastmod": "2026-10-11"
+    "hash": "b91bfc88a159b2ff",
+    "lastmod": "2026-10-24"
   },
   "/ats-resume-checker": {
-    "hash": "634b70e47c337643",
-    "lastmod": "2026-10-11"
+    "hash": "87f2a56d32e51de6",
+    "lastmod": "2026-10-24"
   },
   "/resume-builder-no-sign-up": {
-    "hash": "db8069086f329733",
-    "lastmod": "2026-10-11"
+    "hash": "71a87cdbd81ac366",
+    "lastmod": "2026-10-24"
   },
   "/resume-format": {
-    "hash": "236582fc582f80fd",
+    "hash": "bba8597100db0d72",
     "lastmod": "2026-10-24"
   },
   "/how-to-write-a-resume": {
-    "hash": "c36a6b8c863ed93e",
+    "hash": "f75c5f25a80b88b3",
     "lastmod": "2026-10-24"
   },
   "/resume-for-freshers": {
-    "hash": "1d975c952d034be8",
+    "hash": "f38ac3c0ca210c40",
     "lastmod": "2026-10-24"
   },
   "/cv-template": {
-    "hash": "7ab8f33d8e440c25",
+    "hash": "d98d2816e77dfee1",
     "lastmod": "2026-10-24"
   },
   "/resume-template-word": {
-    "hash": "22af1cc874ca7926",
+    "hash": "f9801929f7ecd6e2",
+    "lastmod": "2026-10-24"
+  },
+  "/resume-summary-examples": {
+    "hash": "ef192cf0838c26ca",
+    "lastmod": "2026-10-24"
+  },
+  "/resume-skills": {
+    "hash": "29c02231a52e3b3a",
+    "lastmod": "2026-10-24"
+  },
+  "/resume-action-verbs": {
+    "hash": "6cddb4467bdc15a5",
     "lastmod": "2026-10-24"
   }
 }
