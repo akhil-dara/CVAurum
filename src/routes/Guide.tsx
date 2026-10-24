@@ -15,7 +15,7 @@ import { useSavedCount } from '@/components/site/HeaderActions'
 import { GUIDES, guideBySlug } from '@/data/guides'
 import { SITE, guidePageMeta } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
-import { linkParts } from '@/lib/inlineLinks'
+import { isExternal, linkParts } from '@/lib/inlineLinks'
 import { guideSections } from '@/data/guideData'
 import { TEMPLATE_COUNT } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
@@ -134,15 +134,20 @@ export function Guide() {
 function Prose({ text }: { text: string }) {
   return (
     <>
-      {linkParts(text).map((p, i) =>
-        typeof p === 'string' ? (
-          p
+      {linkParts(text).map((p, i) => {
+        if (typeof p === 'string') return p
+        const cls = 'text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary'
+        // the project's own repository leaves the app; every other link is a route
+        return isExternal(p.href) ? (
+          <a key={i} className={cls} href={p.href} target="_blank" rel="noopener noreferrer">
+            {p.label}
+          </a>
         ) : (
-          <Link key={i} className="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary" to={p.href}>
+          <Link key={i} className={cls} to={p.href}>
             {p.label}
           </Link>
         )
-      )}
+      })}
     </>
   )
 }

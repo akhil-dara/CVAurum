@@ -31,3 +31,16 @@ describe('links written inside guide prose', () => {
     expect(linkHtml('a <b> [x](javascript:alert(1))', esc)).toBe('a &lt;b&gt; [x](javascript:alert(1))')
   })
 })
+
+describe('the one address outside the site a guide may link to', () => {
+  it('links the project’s own repository, absolute in Markdown, with rel=noopener in HTML', () => {
+    const t = 'Report it on the [source repository](https://github.com/akhil-dara/cvaurum).'
+    expect(linkParts(t)[1]).toEqual({ label: 'source repository', href: 'https://github.com/akhil-dara/cvaurum' })
+    expect(linkHtml(t, esc)).toContain('<a href="https://github.com/akhil-dara/cvaurum" rel="noopener">source repository</a>')
+    expect(linkMarkdown(t, 'https://cvaurum.com')).toContain('(https://github.com/akhil-dara/cvaurum)')
+  })
+  it('refuses any other external address, other GitHub accounts included', () => {
+    expect(linkParts('[x](https://github.com/someone-else/repo)')).toEqual(['[x](https://github.com/someone-else/repo)'])
+    expect(linkParts('[x](https://example.com/a)')).toEqual(['[x](https://example.com/a)'])
+  })
+})

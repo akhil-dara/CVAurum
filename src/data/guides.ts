@@ -829,6 +829,68 @@ export const GUIDES: readonly Guide[] = [
     action: { label: 'Start a résumé', href: '/app' },
     generated: 'verbs',
   },
+  {
+    slug: 'about',
+    title: 'About CVAurum: Who Makes It and How It Works · CVAurum',
+    heading: 'About CVAurum',
+    description:
+      'Who makes CVAurum, how a résumé builder can run with no server, how the example résumés are written, and how every design is checked before it ships.',
+    short: 'About',
+    intro: [
+      `CVAurum is a free, open-source résumé builder that runs entirely in your browser. It has ${TEMPLATE_COUNT} designs, ${SAMPLE_COUNT} complete example résumés, an ATS check, PDF import and PDF, Word and JSON Resume export, with no account, no server and no tracking.`,
+      'It is made by Akhil Dara and published under the AGPL-3.0, so the whole application can be read, run and changed by anyone. Questions, bug reports and suggestions go to the [source repository](https://github.com/akhil-dara/cvaurum) on GitHub.',
+    ],
+    sections: [
+      {
+        heading: 'How a résumé builder works without a server',
+        paragraphs: [
+          'Everything happens in the browser tab: the editor, the ATS check, PDF import (including reading a scanned page on your device) and the export that draws the PDF. Your résumés are saved in the browser’s own storage on your device, and a backup file moves them anywhere you like.',
+          'Nothing you type is sent anywhere. The site’s content-security policy does not allow the page to contact any other server, the fonts are part of the app rather than fetched, and there is no analytics script. You can confirm it in your browser’s network panel while you edit.',
+        ],
+      },
+      {
+        heading: 'How the example résumés are written',
+        paragraphs: [
+          'Every example is a complete résumé for a real job, written to the same rules it asks a reader to follow. Those rules are checked automatically every time the site is built: no first person, no filler at the start of a bullet, bullets of a readable length, most bullets carrying a figure, skills grouped into named sets, and dates in order.',
+          'The people, employers, addresses, phone numbers and figures are invented; email addresses and phone numbers use ranges reserved for fiction, so none of them can reach a real person. Universities, professional bodies and certifications are real, as they would be on any résumé. Each example also carries notes on why it works, and every one of those points has to refer to something actually on that résumé.',
+        ],
+      },
+      {
+        heading: 'How every design is checked',
+        paragraphs: [
+          'Before a release, every design is exported and the files are checked by machine, not by eye alone:',
+        ],
+        list: [
+          'The text in the PDF is the same, word for word, as the text the ATS check reads from the editor',
+          'Every export is a tagged PDF/UA-1 file and an archival PDF/A-2B file, checked with the veraPDF validator',
+          'Every design’s text meets WCAG 2.2 AA contrast at its defaults, measured on the exported file',
+          'No text is hidden, covered or split in a way that would confuse a résumé parser',
+          'A PDF exported from each design can be imported back into the editor intact',
+        ],
+      },
+      {
+        heading: 'What it does not do',
+        paragraphs: [
+          'It does not write a résumé for you, sync between devices or keep a copy anywhere but your own browser. That is the trade for having no server: the work is yours, and so is the backup.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Who is behind CVAurum?',
+        a: 'It is made by Akhil Dara and developed in the open on GitHub, where every change to the application can be read.',
+      },
+      {
+        q: 'How is CVAurum paid for?',
+        a: 'It costs very little to run: the site is a set of static files and your browser does the work. There is no paid plan, no advertising and no data to sell.',
+      },
+      {
+        q: 'How do I report a problem or ask for a feature?',
+        a: 'Open an issue on the [source repository](https://github.com/akhil-dara/cvaurum). Because there is no account, there is no support inbox tied to your résumés; nothing about them reaches anyone.',
+      },
+    ],
+    action: { label: 'Start a résumé', href: '/app' },
+  },
 ]
 
 export function guideBySlug(slug: string): Guide | undefined {
