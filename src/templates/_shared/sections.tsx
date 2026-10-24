@@ -379,6 +379,34 @@ function Bullets({
     <ul className="rm-bullets rm-bullets-edit" ref={ulRef} onBlur={onListBlur}>
       {items.map((h, bi) => (
         <li key={bi} className="rm-bullet-row">
+          {/* The remove button comes BEFORE the text, though it sits after it
+              on the page (absolute, right and top set). After the text it was
+              still a box in the line, and with justified text a bullet's last
+              line was no longer its last: "actually ... booked." stretched
+              across the whole measure on the canvas, measured on 63 of 75
+              designs (2026-10-24). */}
+          {onRemove && (
+            <button
+              type="button"
+              className="rm-bullet-del no-print"
+              contentEditable={false}
+              onMouseDown={stop}
+              onClick={() => {
+                // Blur the focused bullet first: otherwise React keeps the focused
+                // (index-keyed) editable's stale DOM text after the splice, so a
+                // DIFFERENT bullet appears to vanish. The `deleting` guard stops the
+                // resulting list-blur from also pruning (which would re-index `bi`).
+                deleting.current = true
+                ;(document.activeElement as HTMLElement | null)?.blur()
+                onRemove(bi)
+                deleting.current = false
+              }}
+              aria-label="Remove bullet"
+              title="Remove bullet"
+            >
+              ×
+            </button>
+          )}
           <Ed
             edit={edit}
             value={h}
@@ -417,28 +445,6 @@ function Bullets({
             apply={(c, v) => setItem?.(c, bi, v)}
             placeholder="e.g. Cut deploy time 40% by automating the CI pipeline"
           />
-          {onRemove && (
-            <button
-              type="button"
-              className="rm-bullet-del no-print"
-              contentEditable={false}
-              onMouseDown={stop}
-              onClick={() => {
-                // Blur the focused bullet first: otherwise React keeps the focused
-                // (index-keyed) editable's stale DOM text after the splice, so a
-                // DIFFERENT bullet appears to vanish. The `deleting` guard stops the
-                // resulting list-blur from also pruning (which would re-index `bi`).
-                deleting.current = true
-                ;(document.activeElement as HTMLElement | null)?.blur()
-                onRemove(bi)
-                deleting.current = false
-              }}
-              aria-label="Remove bullet"
-              title="Remove bullet"
-            >
-              ×
-            </button>
-          )}
         </li>
       ))}
       {onAdd && (
