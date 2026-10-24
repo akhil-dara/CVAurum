@@ -1,3 +1,4 @@
+import { useEditorStore } from '@/store/useEditorStore'
 import { createPortal } from 'react-dom'
 import { useState, useEffect } from 'react'
 import { ChevronUp,
@@ -25,8 +26,10 @@ import {
   moveSectionTo,
   nextSectionPlace,
   sectionLabel,
+  type EmptySectionsPref,
   type SectionPlace,
 } from '@/lib/sections'
+import { Segmented } from './fields/Controls'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { SectionBoard } from './SectionBoard'
 import { SectionItemsEditor } from './SectionItemEditors'
@@ -76,12 +79,15 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
       m.layout.aside = aside
       m.layout.footer = footer
     })
-  const toggleHidden = (key: string) =>
+  const toggleHidden = (key: string) => {
+    // shown again: it stays on the canvas even while empty
+    if (layout.hidden.includes(key)) useEditorStore.getState().markFresh(key)
     updateMetadata((m) => {
       const set = new Set(m.layout.hidden)
       set.has(key) ? set.delete(key) : set.add(key)
       m.layout.hidden = [...set]
     })
+  }
   // The move menu cycles the places a section can live: main, sidebar,
   // footer strip and back on two columns; main, footer strip and back on
   // one. The same helper the canvas gear and its drag use, so a move here
@@ -124,6 +130,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
     }
   }
   const addStandard = (key: string) => {
+    useEditorStore.getState().markFresh(key)
     updateMetadata((m) => {
       // A section the footer strip already holds stays there.
       if (!m.layout.main.includes(key) && !m.layout.aside.includes(key) && !m.layout.footer.includes(key))
@@ -135,6 +142,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   }
   const addCustom = (name?: string) => {
     const id = uid()
+    useEditorStore.getState().markFresh(customKey(id))
     updateDoc((d) => {
       d.content.custom.push({ id, name: name || 'Custom Section', items: [] })
       d.metadata.layout.main.push(customKey(id))
@@ -189,6 +197,8 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
           Drag a section between the main column, the sidebar and the footer strip, or use its ⋯ menu.
         </p>
       )}
+
+      <EmptySectionsChoice />
 
       {addOpen && (
         <SectionGallery
@@ -374,6 +384,35 @@ function SectionCard({
           <SectionItemsEditor doc={doc} sectionKey={sectionKey} />
         </div>
       )}
+    </div>
+  )
+}
+
+/** Whether the page you edit shows the sections that hold nothing yet
+ *  (lib/sections emptySectionsShown). Kept in this browser, not the résumé:
+ *  it changes what you see while editing, never what prints. */
+function EmptySectionsChoice() {
+  const pref = useEditorStore((s) => s.emptySections)
+  const setPref = useEditorStore((s) => s.setEmptySections)
+  return (
+    <div className="space-y-1.5 border-t border-border pt-3">
+      <label className="label">Empty sections on the page</label>
+      <Segmented<EmptySectionsPref>
+        value={pref}
+        options={[
+          { value: 'auto', label: 'Auto' },
+          { value: 'show', label: 'Show' },
+          { value: 'hide', label: 'Hide' },
+        ]}
+        onChange={setPref}
+      />
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {pref === 'auto'
+          ? 'Shown while your résumé is mostly empty, then left out so the page reads like the PDF. Empty sections never print.'
+          : pref === 'show'
+            ? 'Every section is on the page, empty or not. Empty ones never print.'
+            : 'Only sections with something in them are on the page, like the PDF. Find the rest here.'}
+      </p>
     </div>
   )
 }

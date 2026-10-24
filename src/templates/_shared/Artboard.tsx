@@ -9,7 +9,7 @@ import { contactLabel, contactLines, contactsInSidebar, type ContactLine } from 
 import type { RenderMode, TemplateConfig } from '@/types/template'
 import { fontStack, ensureFont } from '@/data/fonts'
 import { MM_TO_PX, PAGE_DIMENSIONS } from '@/types/metadata'
-import { metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
+import { emptySectionsShown, metaColumnOn, resolveOrder, sectionLabel } from '@/lib/sections'
 import { cn, safeHref } from '@/lib/utils'
 import { headingCaseClasses, headingVars, typeScaleVars } from '@/lib/typeStyle'
 import {
@@ -1818,7 +1818,18 @@ export function Artboard({
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
   // with their inline "Add item" affordance; print/thumbnail show content only.
   const editing = !!edit
-  const { main, aside, footer } = useMemo(() => resolveOrder(doc, { includeEmpty: editing }), [doc, editing])
+  // Editing shows empty sections by the author's choice (emptySectionsShown),
+  // and always the ones just added; print and thumbnails never do.
+  const emptyPref = useEditorStore((s) => s.emptySections)
+  const fresh = useEditorStore((s) => s.freshSections)
+  const { main, aside, footer } = useMemo(
+    () =>
+      resolveOrder(doc, {
+        includeEmpty: editing && emptySectionsShown(emptyPref, doc.content),
+        keepEmpty: editing ? (k) => fresh.includes(k) : undefined,
+      }),
+    [doc, editing, emptyPref, fresh]
+  )
   const twoCol = doc.metadata.layout.columns === 2 && aside.length > 0
   const t = doc.metadata.typography
 

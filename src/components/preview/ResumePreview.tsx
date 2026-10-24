@@ -250,6 +250,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     [doc.metadata.layout.main, doc.metadata.layout.aside]
   )
   const addStandard = (key: string) => {
+    useEditorStore.getState().markFresh(key)
     updateMetadata((m) => {
       if (!m.layout.main.includes(key) && !m.layout.aside.includes(key)) m.layout.main.push(key)
       m.layout.hidden = m.layout.hidden.filter((k) => k !== key)
@@ -258,6 +259,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   }
   const addCustom = (name?: string) => {
     const id = uid()
+    useEditorStore.getState().markFresh(customKey(id))
     updateDoc((d) => {
       d.content.custom.push({ id, name: name || 'Custom Section', items: [] })
       d.metadata.layout.main.push(customKey(id))

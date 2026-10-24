@@ -94,7 +94,11 @@ describe('the footer strip', () => {
   })
 
   it('an empty footer section shows on the canvas while editing but never prints', () => {
-    const doc = createDocument({ sample: true })
+    // A résumé still mostly blank keeps its empty sections on the canvas to
+    // be filled (emptySectionsShown 'auto'); a filled one leaves them out.
+    // Both preferences are covered in lib/sections.test - a server render
+    // reads the store's initial state, so this checks the default.
+    const doc = createDocument({})
     doc.metadata.layout.footer = ['languages']
     doc.content.languages = []
     const printed = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="print" />)
@@ -103,5 +107,10 @@ describe('the footer strip', () => {
     const editing = renderToStaticMarkup(<TemplateRenderer doc={doc} mode="preview" edit={edit} editMeta={edit} />)
     expect(editing).toContain('class="rm-footer')
     expect(editing).toContain('data-section="languages"')
+    const full = createDocument({ sample: true })
+    full.metadata.layout.footer = ['languages']
+    full.content.languages = []
+    const auto = renderToStaticMarkup(<TemplateRenderer doc={full} mode="preview" edit={edit} editMeta={edit} />)
+    expect(auto).not.toContain('data-section="languages"')
   })
 })

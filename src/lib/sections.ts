@@ -425,7 +425,7 @@ export function seedSectionOrder(metadata: Metadata, content: ResumeContent): Me
 
 export function resolveOrder(
   doc: ResumeDocument,
-  opts?: { includeEmpty?: boolean }
+  opts?: { includeEmpty?: boolean; keepEmpty?: (key: string) => boolean }
 ): { main: string[]; aside: string[]; footer: string[] } {
   const { layout } = doc.metadata
   const { content } = doc
@@ -435,7 +435,10 @@ export function resolveOrder(
   // In edit mode (`includeEmpty`), keep every non-hidden section the user has
   // added so an empty section still renders on the canvas with its inline
   // "Add item" affordance. In print/thumb, only content-bearing sections show.
-  const keep = (k: string) => !hidden.has(k) && (opts?.includeEmpty || sectionHasContent(k, content))
+  // `keepEmpty` holds back one empty section the canvas must still show
+  // while the rest are left out: one the author has just added.
+  const keep = (k: string) =>
+    !hidden.has(k) && (opts?.includeEmpty || opts?.keepEmpty?.(k) || sectionHasContent(k, content))
 
   let main = layout.main.filter(keep)
   let aside = twoCol ? layout.aside.filter(keep) : []
@@ -456,4 +459,24 @@ export function resolveOrder(
     aside = []
   }
   return { main, aside, footer }
+}
+
+export type EmptySectionsPref = 'auto' | 'show' | 'hide'
+
+/**
+ * Whether the editing canvas shows the sections that hold nothing yet.
+ *
+ * It always did, each one a heading over an "+ Add" line: a scaffold a new
+ * résumé needs, and on a filled one a run of headings the PDF never prints -
+ * five of them took 245px at the foot of a real three-page résumé
+ * (2026-10-24). Auto keeps the scaffold while fewer than two sections hold
+ * anything, and leaves the empties out after; Show and Hide are the author's
+ * to choose. A section added this session stays regardless (resolveOrder's
+ * keepEmpty), so it never vanishes before it can be filled.
+ */
+export function emptySectionsShown(pref: EmptySectionsPref, content: ResumeContent): boolean {
+  if (pref === 'show') return true
+  if (pref === 'hide') return false
+  const filled = allSectionKeys(content).filter((k) => sectionHasContent(k, content)).length
+  return filled < 2
 }

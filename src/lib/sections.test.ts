@@ -100,3 +100,27 @@ describe('the date column is on only while it has something to show', () => {
     expect(metaColumnOn(doc.metadata, doc.content)).toBe('none')
   })
 })
+
+describe('which empty sections the editing canvas shows', () => {
+  const filled = () => createDocument({ sample: true })
+  const blank = () => createDocument({})
+  it('Auto: shows them while the résumé is mostly blank, and leaves them out once it is filled', async () => {
+    const { emptySectionsShown } = await import('./sections')
+    expect(emptySectionsShown('auto', blank().content)).toBe(true)
+    expect(emptySectionsShown('auto', filled().content)).toBe(false)
+  })
+  it('Show and Hide do as they say, whatever the résumé holds', async () => {
+    const { emptySectionsShown } = await import('./sections')
+    expect(emptySectionsShown('show', filled().content)).toBe(true)
+    expect(emptySectionsShown('hide', blank().content)).toBe(false)
+  })
+  it('keeps a section added this session on the canvas while it is still empty', () => {
+    const doc = filled()
+    doc.content.publications = []
+    doc.metadata.layout.main.push('publications')
+    const off = resolveOrder(doc, { includeEmpty: false, keepEmpty: () => false })
+    const fresh = resolveOrder(doc, { includeEmpty: false, keepEmpty: (k) => k === 'publications' })
+    expect(off.main).not.toContain('publications')
+    expect(fresh.main).toContain('publications')
+  })
+})

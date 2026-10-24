@@ -3,6 +3,17 @@ import { create } from 'zustand'
 import type { FitResult } from '@/lib/fitReadout'
 import type { FitTrialFn, Suggestion } from '@/lib/fitSuggest'
 import type { ContrastGroup, ContrastReport } from '@/lib/a11y'
+import type { EmptySectionsPref } from '@/lib/sections'
+
+const EMPTY_KEY = 'cvaurum:empty-sections'
+function readEmptyPref(): EmptySectionsPref {
+  try {
+    const v = localStorage.getItem(EMPTY_KEY)
+    return v === 'show' || v === 'hide' ? v : 'auto'
+  } catch {
+    return 'auto'
+  }
+}
 
 /** The per-section visual style fields the style painter copies. */
 export type CopiedStyle = Record<string, string>
@@ -58,6 +69,13 @@ interface EditorState {
   previewExact: boolean
   /** dim everything except the section under the cursor (zen editing) */
   focusMode: boolean
+  /** Whether the editing canvas shows sections with nothing in them
+   *  (lib/sections emptySectionsShown); this browser's choice, not the
+   *  document's. */
+  emptySections: EmptySectionsPref
+  /** Sections added (or shown again) this session: kept on the canvas while
+   *  empty, whatever emptySections says, so they never vanish unfilled. */
+  freshSections: string[]
   /** style painter clipboard — a section's visual style, ready to paint */
   copiedStyle: CopiedStyle | null
   /** recruiter skim heatmap overlay on the canvas */
@@ -90,6 +108,8 @@ interface EditorState {
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
   setFocusMode: (v: boolean) => void
+  setEmptySections: (v: EmptySectionsPref) => void
+  markFresh: (key: string) => void
   setCopiedStyle: (v: CopiedStyle | null) => void
   setSkimView: (v: boolean) => void
   setPdfExporting: (v: boolean) => void
@@ -116,6 +136,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   skimView: false,
   previewExact: false,
   focusMode: false,
+  emptySections: readEmptyPref(),
+  freshSections: [],
   pdfExporting: false,
 
   setLeftTab: (leftTab) => set({ leftTab }),
@@ -188,6 +210,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setAtsView: (atsView) => set({ atsView }),
   setPreviewExact: (previewExact) => set({ previewExact }),
   setFocusMode: (focusMode) => set({ focusMode }),
+  setEmptySections: (emptySections) => {
+    try {
+      localStorage.setItem(EMPTY_KEY, emptySections)
+    } catch {
+      /* private mode: the choice lasts this session */
+    }
+    set({ emptySections })
+  },
+  markFresh: (key) => {
+    if (!get().freshSections.includes(key)) set({ freshSections: [...get().freshSections, key] })
+  },
   setCopiedStyle: (copiedStyle) => set({ copiedStyle }),
   setSkimView: (skimView) => set({ skimView }),
   setPdfExporting: (pdfExporting) => set({ pdfExporting }),
