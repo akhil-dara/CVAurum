@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'hybrid working',
     'office relocation',
   ],
+  guide: {
+    why: [
+      'Cost savings are itemised: £63k taken out of running costs by retendering cleaning, print, catering and confidential waste shows exactly which contracts the office manager controls.',
+      'The office move is told by its outcome, 90 desks live on the Monday and no chargeable hours lost, which is how a consultancy partner judges whether a move went well.',
+      'Hybrid working is turned into income: occupancy from 41% to 68% and a released floor sublet for £48k a year is a facilities result a finance director will notice.',
+      'The restaurant years at The Bell & Barrow are kept short but measured, rostering 28 staff and cutting wastage from 6.1% to 2.8%, so the career change reads as transferable operations experience.',
+    ],
+    faq: [
+      {
+        q: 'What should an office manager CV include in the UK?',
+        a: 'Premises and facilities, supplier contracts and budgets, health and safety duties, and the systems you run. Give each a result in pounds, desks or occupancy, and list IOSH Managing Safely or a first aid certificate if you hold them.',
+      },
+      {
+        q: 'How to move from hospitality into office management on a CV?',
+        a: 'Put the office role first and keep the hospitality job to two bullets that show rotas, budgets and stock control with figures. A short summary line naming the change helps a reader see the link without a separate explanation.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nadia Chowdhury',

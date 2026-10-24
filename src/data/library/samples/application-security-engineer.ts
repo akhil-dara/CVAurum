@@ -24,6 +24,19 @@ export const sample: LibrarySample = {
     'security engineer UK',
     'secure code review',
   ],
+  guide: {
+    why: [
+      'Findings are written as what was stopped and how fast: an authentication bypass on 240,000 policy accounts closed within 36 hours, then checked against 14 months of logs. That is the incident judgement a senior AppSec hire is tested on.',
+      'Fixes are framed by class, not instance. Parameterising queries across 60 endpoints “closing the whole class rather than the single report” shows the engineering habit that separates a security engineer from a tester.',
+      'The CV keeps British conventions, “threat modelling”, “authorisation”, a First Class Honours from Cardiff University, which suits the UK employers this sample is written for.',
+      'OSCP and CREST Registered Penetration Tester sit beside an OWASP Bristol Chapter talk, so the offensive credentials and the teaching both have outside evidence.',
+    ],
+    faq: [
+      { q: 'Which certifications matter on an application security engineer CV in the UK?', a: 'CREST registrations are widely asked for by UK consultancies and regulated buyers, and OSCP is recognised everywhere. List the certification name, issuer and year; cloud or secure-coding certificates help when the role is in-house.' },
+      { q: 'How do you write security findings on a CV without sharing sensitive details?', a: 'Describe the class of issue, the scale and the response, not the client or the exploit: “an authentication bypass on 240,000 accounts, closed within 36 hours”. Leave out client names unless they are public and keep CVE references to ones already disclosed.' },
+      { q: 'How long should an AppSec engineer CV be?', a: 'Two pages is normal in the UK for eight or more years. Spend the space on recent in-house work and the measurable change it made, and keep older consultancy or development roles to two or three bullets each.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Rhys Calderwood',

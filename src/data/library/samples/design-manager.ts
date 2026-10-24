@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'hiring designers',
     'director of product design',
   ],
+  guide: {
+    why: [
+      'The promotion at Ardenfield Software is shown as two entries, Design Manager then Director of Design, so a reader sees the jump in scope instead of one long role with a single title.',
+      'Team results are counted the way a hiring manager counts them: grown “from four to sixteen”, 15 of the 16 still in post after two years, attrition at 6%. Retention is the proof that the hiring loop worked.',
+      'Design outcomes carry business figures: activation “from 38% to 64%” and $4.1M in annual recurring revenue tie the onboarding redesign to money, which is what a product leadership panel will ask about.',
+      'Craft is still visible at manager level: the permissions model designed while managing seven designers, and WCAG 2.1 AA across 180 screens, show the hands-on depth behind the leadership claims.',
+    ],
+    faq: [
+      {
+        q: 'How long should a design manager resume be?',
+        a: 'Two pages is normal once you have ten or more years and several years of managing. Spend the first page on the leadership roles, with team size and retention, and keep individual-contributor roles to two or three bullets each.',
+      },
+      {
+        q: 'Should a design manager resume include a portfolio link?',
+        a: 'Yes. Put it in the header beside email and LinkedIn. For a manager, the portfolio should show team work and decisions you led, such as a design system or a redesign, with your role in each made clear.',
+      },
+      {
+        q: 'What metrics belong on a design manager resume?',
+        a: 'Two kinds: team metrics (headcount grown, retention, promotions, hiring loop results) and product metrics (activation, conversion, revenue, time saved). Each leadership role should carry at least one of each.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Lena Quintero',

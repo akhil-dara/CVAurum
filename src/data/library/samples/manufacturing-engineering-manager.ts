@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'lean manufacturing',
     'automotive production',
   ],
+  guide: {
+    why: [
+      'The summary gives the scale of the job in three figures, three plants, 46 engineers and technicians and a ₹42 crore expansion that lifted output 38%, before any method is named.',
+      'Capital is reported against budget and date: commissioned six weeks ahead of start-of-production, and 14 machines inside a ₹31 crore budget, which is how a plant head is judged on projects.',
+      'TPM is described as an organisational change, “a line-owner responsibility rather than a maintenance one”, with OEE across 11 cells from 58% to 79%, and the Japan Institute of Plant Maintenance award confirms it.',
+      'People results sit in the bullets: 18 engineers hired and attrition from 24% to 9% show the leadership side of a head of manufacturing engineering role.',
+    ],
+    faq: [
+      {
+        q: 'How long should a manufacturing manager resume be?',
+        a: 'Two pages for seventeen years. Spend most of the first page on the last two roles, and keep the early production-engineer years to two bullets each, enough to show the shop-floor start.',
+      },
+      {
+        q: 'What achievements should a plant engineering head put on a resume?',
+        a: 'Capacity and output gained, conversion cost reduced, OEE and downtime, capital projects against budget and schedule, and team growth or attrition. Give each a rupee or percentage figure and the number of plants or cells it covered.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Sameer Phatak',

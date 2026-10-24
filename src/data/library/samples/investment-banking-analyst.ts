@@ -26,6 +26,28 @@ export const sample: LibrarySample = {
     'ACA ICAEW',
     'CFA candidate',
   ],
+  guide: {
+    why: [
+      'Deals are told one by one with size and outcome: a £310m carve-out signed at 8.4x EBITDA against an initial range of 7.2x to 7.9x, which is how deal teams discuss their own work.',
+      'Process metrics show the analyst ran the work: 74 parties approached, 11 NDAs signed and four binding offers on the £95m sale.',
+      'The route through transaction services at Ashdown Levett LLP is presented as an asset, 19 buy-side diligence engagements and a £2.1m EBITDA normalisation that reset a price.',
+      'Qualifications are compact and relevant: the ACA from ICAEW passed at first attempt, CFA progress, and a First from the University of Warwick.',
+    ],
+    faq: [
+      {
+        q: 'How long should an investment banking CV be in the UK?',
+        a: 'One page. Banks expect a tight CV with deals listed by size, sector and your role. Education goes near the top for analysts, with grades.',
+      },
+      {
+        q: 'Should an investment banking CV list deal values?',
+        a: 'Yes, where they are public or can be described without naming the client, such as a £310m packaging carve-out. Give your role in each deal and one result, like the multiple achieved.',
+      },
+      {
+        q: 'Can you move into investment banking from audit or transaction services?',
+        a: 'Yes, and a CV should show it plainly: diligence engagements, modelling work and chartered status such as ACA. Lead with the deal work, not audit duties.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Callum Wetherby',

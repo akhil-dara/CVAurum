@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'distillation troubleshooting',
     'Aspen Plus',
   ],
+  guide: {
+    why: [
+      'The distillation redesign is written as an investment case: yield up 4.2 points, steam down 38,000 lb/hr and a “fourteen-month payback on $2.6M”, the language a plant manager uses to approve capital.',
+      'Process safety gets numbers too: 19 HAZOPs facilitated and 240 of 261 recommendations closed inside the two-year PSM cycle, against 61% before, which matters for any role at a PSM-covered site.',
+      'Uptime is counted in production terms, unplanned outages cut from five a year to one and 22 production days added, so reliability work reads as output rather than maintenance.',
+      'The Louisiana PE license, AIChE HAZOP facilitation training and OSHA 30-Hour General Industry sit together, matching the credentials senior process roles in refining and chemicals ask for.',
+    ],
+    faq: [
+      {
+        q: 'Should a process engineer resume include a PE license?',
+        a: 'Yes, with the discipline, state and year, such as Professional Engineer (Chemical), Louisiana. It matters most for senior roles that sign off on relief systems, design changes or management of change.',
+      },
+      {
+        q: 'What should a senior process engineer resume include?',
+        a: 'Improvements stated as yield, energy, throughput or outages avoided, with cost and payback where known; process safety work such as HAZOPs and PSM; and simulation tools like Aspen Plus or HYSYS.',
+      },
+      {
+        q: 'How long should a process engineer resume be?',
+        a: 'Two pages for thirteen years across several plants. Keep each role to the units you owned and three or four results, and leave out routine duties every process engineer performs.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Miguel Ocampo',

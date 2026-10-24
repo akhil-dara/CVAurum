@@ -24,6 +24,7 @@ import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
 import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { pageDates } from './seoDates'
+import { linkHtml, linkMarkdown } from './inlineLinks'
 import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
 import { CUSTOMIZE } from '@/data/customize'
 
@@ -834,15 +835,15 @@ export function guideStaticHtml(slug: string): string {
   const NL = '\n'
   const sections = g.sections
     .map((sec) => {
-      const paras = sec.paragraphs.map((p) => `      <p>${esc(p)}</p>`).join(NL)
+      const paras = sec.paragraphs.map((p) => `      <p>${linkHtml(p, esc)}</p>`).join(NL)
       const list = sec.list
-        ? `${NL}      <ul>${NL}${sec.list.map((li) => `        <li>${esc(li)}</li>`).join(NL)}${NL}      </ul>`
+        ? `${NL}      <ul>${NL}${sec.list.map((li) => `        <li>${linkHtml(li, esc)}</li>`).join(NL)}${NL}      </ul>`
         : ''
       return `    <section>${NL}      <h2>${esc(sec.heading)}</h2>${NL}${paras}${list}${NL}    </section>`
     })
     .join(NL)
-  const faq = g.faq.map((f) => `      <dt>${esc(f.q)}</dt>${NL}      <dd>${esc(f.a)}</dd>`).join(NL)
-  const intro = g.intro.map((p) => `    <p>${esc(p)}</p>`).join(NL)
+  const faq = g.faq.map((f) => `      <dt>${esc(f.q)}</dt>${NL}      <dd>${linkHtml(f.a, esc)}</dd>`).join(NL)
+  const intro = g.intro.map((p) => `    <p>${linkHtml(p, esc)}</p>`).join(NL)
   const siblings = guideSiblings(g)
     .map((x) => `<a href="/${x.slug}">${esc(x.short)}</a>`)
     .join(' · ')
@@ -866,14 +867,14 @@ export function guideMarkdown(slug: string): string {
   const PARA = '\n\n'
   const sections = g.sections
     .map((sec) => {
-      const list = sec.list ? PARA + sec.list.map((li) => `- ${li}`).join(NL) : ''
-      return `## ${sec.heading}${PARA}${sec.paragraphs.join(PARA)}${list}`
+      const list = sec.list ? PARA + sec.list.map((li) => `- ${linkMarkdown(li, SITE)}`).join(NL) : ''
+      return `## ${sec.heading}${PARA}${sec.paragraphs.map((p) => linkMarkdown(p, SITE)).join(PARA)}${list}`
     })
     .join(PARA)
-  const faq = g.faq.map((f) => `**${f.q}**${PARA}${f.a}`).join(PARA)
+  const faq = g.faq.map((f) => `**${f.q}**${PARA}${linkMarkdown(f.a, SITE)}`).join(PARA)
   return `# ${g.heading}
 
-${g.intro.join(PARA)}
+${g.intro.map((p) => linkMarkdown(p, SITE)).join(PARA)}
 
 ${g.action.label}: ${SITE}${g.action.href}
 

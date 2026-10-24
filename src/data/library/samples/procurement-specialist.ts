@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'cost savings',
     'tendering',
   ],
+  guide: {
+    why: [
+      'Savings are qualified the way finance checks them: £1.9m across three tenders, “signed off by finance against the prior-year baseline”, which heads off the first question any procurement lead asks.',
+      'The size of the book is stated up front, £14m across nine UK sites and four categories, so a reader knows the scale before reading a single saving.',
+      'Supplier consolidation is shown with its operational effect, 240 MRO suppliers down to 46 and requisition-to-order from nine days to two, not just a lower supplier count.',
+      'MCIPS chartered status sits in certificates alongside the modern slavery questionnaire in a bullet, showing the governance side UK employers now expect from procurement.',
+    ],
+    faq: [
+      {
+        q: 'Is MCIPS needed on a procurement CV in the UK?',
+        a: 'Many mid-level UK procurement roles ask for MCIPS or progress toward it. List it with the year, and if you are still studying, write the CIPS level reached, such as the Level 4 Diploma, so screening software and recruiters can see it.',
+      },
+      {
+        q: 'How should savings be shown on a procurement CV?',
+        a: 'Give the annualised figure, the method (tender, renegotiation, consolidation) and the baseline it was measured against. Say whether finance validated it, and note any service level or quality measure that held steady.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Imogen Farrell',

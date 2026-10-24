@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'automotive embedded',
     'ISO 26262',
   ],
+  guide: {
+    why: [
+      'Each bullet is measured in the units firmware is judged by: boot time “from 1.9s to 260ms”, standby draw from 18mA to 0.7mA, an interrupt handler from 40 microseconds to 9. That precision is the skill being hired.',
+      'Field scale is stated plainly: the state-of-charge estimator runs on 180,000 vehicles with error under 2%, against 11% drift from the coulomb-counting model it replaced.',
+      'Safety work is named by standard and level: the ISO 26262 ASIL-B gap analysis taken from 23 findings to none, which is what an automotive employer screens for.',
+      'The Patents section lists two applications filed with the Indian Patent Office, one covering the thermal model on 180,000 vehicles, which gives a senior engineer evidence of original design beyond delivery.',
+    ],
+    faq: [
+      {
+        q: 'What skills should an embedded software engineer resume include?',
+        a: 'Group them as languages (C, C++, Python, Rust), platforms (ARM Cortex-M, FreeRTOS, Zephyr, CAN), and practice (ISO 26262, hardware-in-the-loop testing, low-power design, bootloaders and OTA). Back each one with a bullet.',
+      },
+      {
+        q: 'How long should a senior embedded engineer resume be in India?',
+        a: 'Two pages for nine or more years of experience. Keep personal details to contact information and skip a photo, date of birth and declaration line unless the employer asks for them.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Shalini Prabhakar',

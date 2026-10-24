@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'hardware rollout',
     'risk and dependency management',
   ],
+  guide: {
+    why: [
+      'The summary closes on one delivery with all three measures attached: 4,200 vehicles in 14 cities, three weeks early and 8% under a ₹6.4 crore budget, which is the scope, schedule and cost a program manager is hired to hold.',
+      'Process changes are written as before-and-after numbers: the firmware release train cut “from six weeks to 12 days” and mid-quarter scope added taken from 31% to 9% show governance that changed outcomes, not meetings attended.',
+      'Release quality is stated as a streak: “the last nine shipped without a rollback” after four rollbacks the year before, which answers the question every engineering leader asks of a program manager.',
+      'The Varnika Foods role is kept and marked as a contract, with all 42 plant sign-offs closed before the audit window, so the short tenure reads as a finished engagement rather than a gap.',
+    ],
+    faq: [
+      {
+        q: 'How long should a program manager resume be?',
+        a: 'One dense page or a light second page both work at around seven years with three employers; two pages are normal after that. Spend the space on the most recent programme’s scope, budget and dates, and cut early roles to two bullets.',
+      },
+      {
+        q: 'Should a program manager resume list PMP and Scrum certifications?',
+        a: 'Yes, in a certifications section with the year. In India many hiring teams filter program roles on PMP. Back each one with a bullet that shows the practice, such as a risk register or a release train, so it reads as more than a badge.',
+      },
+      {
+        q: 'Should an Indian program manager resume include CGPA?',
+        a: 'After five or more years it is optional. A strong figure such as an 8.2 CGPA from an NIT can stay on one line under the degree, but education should sit below work experience, never above it.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Rohit Iyer',

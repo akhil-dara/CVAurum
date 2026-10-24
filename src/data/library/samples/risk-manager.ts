@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'portfolio monitoring',
     'chartered accountant risk',
   ],
+  guide: {
+    why: [
+      'The scorecard bullet gives both the model metric and the business outcome: Gini lifted “from 0.38 to 0.56” on 240,000 accounts and 12-month default on new business from 3.1% to 1.7%.',
+      'Results are set against a benchmark: gross NPA held at 2.4% through the 2020 moratorium, “against a sector average near 6%”, which lets a credit committee judge the work without extra context.',
+      'The Ind AS 109 expected credit loss documentation accepted “with no model-risk observation” shows the regulatory side of the job that a senior credit risk role is measured on.',
+      'The articleship at Bhide Karnik & Co. stays, with ₹4.2 crore of misclassified advances found, and CA and FRM sit in the headline, explaining the audit instinct in the later roles.',
+    ],
+    faq: [
+      {
+        q: "Should a CA's resume for a risk role include the articleship?",
+        a: 'Yes, briefly. Two bullets on audits and findings show where the audit instinct comes from, and Indian employers expect to see the articleship. Keep it at the end of the work history once there are senior roles above it.',
+      },
+      {
+        q: 'What should a credit risk manager resume include?',
+        a: 'Book size, portfolio outcomes (default rates, gross NPA, recoveries), model metrics such as Gini, and the rules you worked under, such as RBI prudential norms and Ind AS 109. Certifications like FRM belong near the top.',
+      },
+      {
+        q: 'How long should a senior risk manager resume be?',
+        a: 'Two pages for eleven or more years. Give the current role up to five bullets and older roles two or three; a publication or a CA rank can stay as single lines.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Neha Bhandari',

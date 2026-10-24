@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'Python',
     'market risk',
   ],
+  guide: {
+    why: [
+      'The backtest-to-live gap is stated as a number, narrowed “from 180 to 35 basis points a year”, which answers the first question any portfolio manager asks of quant research: does it survive real trading.',
+      'The look-ahead bias found at Brightmoor Asset Management is credited for stopping two strategies before launch, research discipline a reader values as much as the 1.4% annualised the equity model added.',
+      'Reproducibility is written as a standard others use: every backtest “reproduces from one command against pinned data”, which signals seniority on a buy-side team where research has to be audited.',
+      'Credentials stay short and relevant: CFA and FRM, an Oxford MSc with Distinction and a Warwick First, listed once and without coursework, as is usual on a senior UK CV.',
+    ],
+    faq: [
+      {
+        q: 'How long should a quant CV be in the UK?',
+        a: 'Two pages for a senior quant with around nine years; one page for graduates. Keep education brief once you have live trading results, and leave a full publications list off unless the role is research-led.',
+      },
+      {
+        q: 'Should a quantitative analyst CV list programming languages?',
+        a: 'Yes, in a short skills group, naming Python, C++ or kdb+/q exactly as you use them. The bullets should then show what the code did, for example cutting a nightly risk run from six hours to 40 minutes.',
+      },
+      {
+        q: 'Does a quant analyst CV need a photo or date of birth in the UK?',
+        a: 'No. UK CVs leave out photos, date of birth and marital status. Name, location, email, phone and a LinkedIn or GitHub link are enough for the header.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Tobias Renshaw',

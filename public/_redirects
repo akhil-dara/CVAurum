@@ -18,6 +18,11 @@
 /free-resume-builder/          /free-resume-builder          301
 /ats-resume-checker/           /ats-resume-checker           301
 /resume-builder-no-sign-up/    /resume-builder-no-sign-up    301
+/resume-format/                /resume-format                301
+/how-to-write-a-resume/        /how-to-write-a-resume        301
+/resume-for-freshers/          /resume-for-freshers          301
+/cv-template/                  /cv-template                  301
+/resume-template-word/         /resume-template-word         301
 /templates/:id/      /templates/:id      301
 /examples/:slug/     /examples/:slug     301
 

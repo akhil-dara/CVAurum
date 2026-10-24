@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'perioperative services',
     'MHA',
   ],
+  guide: {
+    why: [
+      'Access is measured with the industry’s own metric: third-next-available appointment time from 24 days to 9 across 31 clinics. A health system board knows exactly what that number means.',
+      'Labour cost is shown with the method: agency staffing spend from $8.4M to $2.1M after an internal float pool of 74 nurses and medical assistants.',
+      'Patient experience has a hard number too, state-escalated grievances from 31 a year to 6, which covers quality as well as finance.',
+      'Credentials that hospital boards screen for, FACHE and the CMPE, sit alongside the M.H.A. from The Ohio State University and an ACHE Regent Award.',
+    ],
+    faq: [
+      {
+        q: 'What should a healthcare administrator resume include?',
+        a: 'Scope (sites, staff, budget), access and throughput results, cost savings, quality and compliance outcomes, and credentials such as FACHE. Each senior role should show one result from each of operations, finance and quality.',
+      },
+      {
+        q: 'Is FACHE worth listing on a healthcare executive resume?',
+        a: 'Yes. Put it after your name or in a certifications section. Many hospital and health system searches for director and vice president roles list it as preferred.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Terrence Vaughn',

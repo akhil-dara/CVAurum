@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'query tuning',
     'disaster recovery',
   ],
+  guide: {
+    why: [
+      'The page leads with the measures a DBA is judged on: 99.98% availability across 60 production instances, no unplanned data loss, and no failed quarterly restore test.',
+      'Tuning is explained, not just claimed: the nightly claims batch fell from 5 hours 40 minutes to 51 minutes by rewriting four cursor-driven procedures as set-based operations.',
+      'Recovery is tested, not promised: a 15-minute recovery point and a 22-minute failover drill run by the on-call rota, plus a restore test that found three of eleven backups failing silently.',
+      'The Oracle-to-PostgreSQL migration at Crestwater Software is sized and costed, 4 TB moved and $260,000 a year of licensing removed with 40 minutes of downtime.',
+    ],
+    faq: [
+      { q: 'What should a database administrator resume include?', a: 'The platforms and number of instances you run, availability and recovery figures, performance work with before and after timings, and security or audit results. List certifications such as DP-300 or Oracle OCP and the scripting tools you automate with.' },
+      { q: 'How do you move from systems administrator to DBA?', a: 'Take on backups, patching and database tickets in your current role, learn one platform deeply, and earn a certification for it. On the résumé, keep the sysadmin role and show the automation and reliability work that led into databases.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Dionne Baptiste',

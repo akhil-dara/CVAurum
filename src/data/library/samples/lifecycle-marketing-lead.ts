@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'churn reduction',
     'marketing automation',
   ],
+  guide: {
+    why: [
+      'The headline number is a retention number: 90-day churn cut from 34% to 21% appears in both the summary and the first role, so the change a head of lifecycle is hired for is read twice.',
+      'Each channel is costed against what it replaced: WhatsApp at ₹0.41 a message, “a ninth of the cost of the paid social it displaced”, which is the argument a finance team will want to hear.',
+      'The four roles read as a progression, from subject-line tests at Rangmala Retail to triggered journeys at Nirvaha Payments to a team of eleven at Sootra Wellness, so twelve years show growing scope rather than repetition.',
+      'Platforms are named in their own group (Braze, Salesforce Marketing Cloud, Segment, Snowflake), and the Salesforce certificate backs the one most job descriptions ask for.',
+    ],
+    faq: [
+      {
+        q: 'How long should a head of CRM resume be?',
+        a: 'Two pages is right with twelve years behind you. Give the current role five bullets and the earliest roles two each, and keep the education to one line per degree so the space goes to retention results.',
+      },
+      {
+        q: 'What metrics belong on a lifecycle marketing resume?',
+        a: 'Churn and repeat revenue first, because those are what the role owns. Then channel economics (cost per message, revenue per send), deliverability (inbox placement), and reactivation revenue. Give a before and after for each rather than a single percentage.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ananya Deshpande',

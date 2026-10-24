@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'first CV no experience',
     'Level 3 apprenticeship',
   ],
+  guide: {
+    why: [
+      'Education leads the page with predicted grades, “Predicted A*AB” in maths, physics and design technology, which is what an apprenticeship screener checks first when there is no full-time work history to read.',
+      'The Greenpower school racer is written as engineering, with a result and a measurement: the car finished 4th of 23 at the East Midlands heat and the loom lost 2.3 kg through a single fused distribution block.',
+      'The Saturday job at Ashbourne Cycles reads as workshop experience, 15 to 20 bicycles a week including hydraulic brake bleeds and wheel builds, rather than as filler part-time work.',
+      'The soldering safety sheet written for the youth engineering club, with no burns in the 14 months since, shows the safety habit an engineering employer looks for in a school leaver.',
+    ],
+    faq: [
+      {
+        q: 'How do you write a CV for an apprenticeship with no experience?',
+        a: 'Lead with education and predicted grades, then use part-time work, school projects, clubs and volunteering as evidence. Give each a result, such as a race placing or a repair count, and keep the whole CV to one page.',
+      },
+      {
+        q: 'Should predicted grades go on an apprenticeship CV?',
+        a: 'Yes. In the UK, list predicted A-level or BTEC grades marked as predicted, with completed GCSEs below them. Bring forward the subjects the apprenticeship asks for, usually maths and a science for engineering.',
+      },
+      {
+        q: 'How long should a school leaver CV be?',
+        a: 'One page. A short personal statement, education, then experience and projects is enough. Leave out a photo, date of birth and references, which UK employers do not expect on a CV.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Callum Doherty',

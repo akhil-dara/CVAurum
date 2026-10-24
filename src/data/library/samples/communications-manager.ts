@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'share of voice',
     'return to work after career break',
   ],
+  guide: {
+    why: [
+      'Coverage is measured, not listed: 78 stories placed in 2024, three national features that drove 61,000 site sessions in a week, and trade-press share of voice from 8% to 17%.',
+      'The stove recall bullet shows crisis handling with specifics, 9,000 units and all 12 outlet enquiries answered inside four hours, which is what a hiring manager probes in interview.',
+      'The 14-month career break has its own entry with freelance retainers and the Accreditation in Public Relations earned during it, so the gap reads as productive.',
+      'Internal comms gets a figure too: a newsletter read by 84% of staff replacing a deck that 9% opened, showing range beyond media relations.',
+    ],
+    faq: [
+      { q: 'What should a communications manager resume include?', a: 'Media placements with outlet tiers, share of voice or message pull-through, crisis or issues work with timings, and internal or executive communications. Name the measurement tools you use and any accreditation such as APR.' },
+      { q: 'How do you measure PR results on a resume?', a: 'Use counts and change over time: placements per year, national versus trade coverage, share of voice before and after, traffic or enquiries a story drove. Avoid ad-value equivalents, which most communications leaders no longer accept.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Erin Doherty',

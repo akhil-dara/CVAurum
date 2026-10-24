@@ -25,6 +25,18 @@ export const sample: LibrarySample = {
     'return to work after a career break',
     'typography',
   ],
+  guide: {
+    why: [
+      'Design work is measured in business terms: the dairy rebuild covers 1,400 SKUs and 9,000 outlets, and unaided recall moved from 22% to 47%. Senior brand roles are hired on outcomes like that, not on style.',
+      'The career break has its own entry with what was done in it, a Devanagari lettering course that became the Shopfront Lettering Archive, so no reader is left to guess at the gap.',
+      'Running Kaarigar Studio is written with commercial figures, 31 identity projects, twelve repeat clients and margin above 40%, which shows the business sense a senior in-house role needs.',
+      'Packaging operations get as much space as identity: a new SKU press-ready “in five days instead of nineteen” and ₹34 lakh a year cut from rework speak to FMCG brand teams directly.',
+    ],
+    faq: [
+      { q: 'Does a brand designer need a resume if they have a portfolio?', a: 'Yes. The portfolio shows the work; the résumé shows scale, results and how you worked with marketing and print. Link the portfolio near your name and keep the résumé to the facts a portfolio cannot carry, such as SKU counts and outcomes.' },
+      { q: 'How do you explain a career break on a designer resume?', a: 'Give it its own dated entry, one line on the reason if you wish, and anything you did in it: courses, personal projects, freelance work. A clear entry reads better than a gap the reader has to work out from dates.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Meher Bhandari',

@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'insolvency IBC',
     'arbitration associate',
   ],
+  guide: {
+    why: [
+      'Every result names its forum and its relief: ad-interim relief in 41 of 60 interim applications before the Bombay High Court is how a disputes partner measures an associate.',
+      'Money recovered leads the summary: ₹18.4 crore through a Section 9 petition settled before admission shows commercial judgement as well as advocacy.',
+      'Practice management counts too: the cause-list tracker after which “no listing has been missed since” and drafts falling from four rounds to one show the associate can be trusted with a docket of 30 to 35 matters.',
+      'The skills are grouped by forum, practice area and drafting type, so a recruiter searching for NCLT Mumbai or writ petitions finds them without reading every bullet.',
+    ],
+    faq: [
+      {
+        q: 'What should a litigation lawyer resume include in India?',
+        a: 'Your year of enrolment and Bar Council, the forums you appear before, the practice areas, and for each role the relief obtained or amounts recovered. Keep confidential client names out and describe the client by sector instead.',
+      },
+      {
+        q: 'Should an advocate resume list cases by name?',
+        a: 'Only reported judgments or public matters you are free to name, and only if you argued or drafted them. Otherwise describe the matter by type, forum and value, as this résumé does with the ₹42 crore construction arbitration.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Aparna Sathe',

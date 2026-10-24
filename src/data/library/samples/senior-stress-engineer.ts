@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'FAA certification',
     'damage tolerance',
   ],
+  guide: {
+    why: [
+      'Certification evidence is the deliverable, so the headline result is acceptance: a composite wing-to-body fairing substantiation accepted by the FAA “with no findings across 340 pages of analysis”.',
+      'Weight savings come with the margin that was held: 41 lb per aircraft removed from the empennage “while holding every margin above 0.05”, the trade-off a structures lead needs to see.',
+      'In-service work is included, cracking on 62 delivered shipsets traced to a fastener edge-margin shortfall and all 62 returned to service, which shows judgement beyond new-design analysis.',
+      'Two conference papers sit in their own section, and the Designated Engineering Representative appointment for Structures is listed with the FAA as issuer, outside evidence of seniority.',
+    ],
+    faq: [
+      {
+        q: 'What software should a stress engineer resume list?',
+        a: 'The solvers and pre-processors used on certification work, such as MSC Nastran, Patran, Abaqus and HyperMesh, plus NASGRO for damage tolerance and any Python scripting. Show at least one in a bullet with its result.',
+      },
+      {
+        q: 'Should a stress engineer resume include publications?',
+        a: 'Yes, in a short publications section, when they are conference papers or journal articles on analysis methods or test correlation. Give the title, venue and year, and note co-authorship.',
+      },
+      {
+        q: 'How long should an aerospace stress engineer resume be?',
+        a: 'Two pages for a senior engineer. Lead with certification programs and accepted submittals, keep early analyst roles to two bullets, and list FAA delegations and PE licensure under certifications.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Adrian Petrossian',

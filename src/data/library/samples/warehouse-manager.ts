@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'warehouse safety',
     'FMCG logistics',
   ],
+  guide: {
+    why: [
+      'Throughput growth is stated against a fixed space, daily dispatch “from 38,000 to 61,000 units in the same footprint”, which shows capacity won through layout and method rather than square footage.',
+      'Shrinkage brought from 0.42% to 0.07% of dispatched value, with the controls named (daily blind cycle counts and a two-person seal check), gives loss figures a site head can verify.',
+      'Safety is counted in days, 1,040 without a lost-time injury after the forklift licensing programme, and backed by the NEBOSH certificate in the certifications list.',
+      'The path from Shift Supervisor at Marwar Logistics Park to commissioning a 90,000 sq ft site in 11 weeks shows the floor-level experience behind running a 260-staff centre.',
+    ],
+    faq: [
+      {
+        q: 'What should a warehouse manager resume include?',
+        a: 'Site size, staff and shift count, units dispatched per day, inventory accuracy, shrinkage, dock-to-stock time and safety record. Name the WMS you have run, such as SAP EWM, and any site you commissioned.',
+      },
+      {
+        q: 'Which certifications help a warehouse manager resume in India?',
+        a: 'Inventory and safety credentials carry the most weight: CPIM from ASCM, the NEBOSH International General Certificate, and any forklift or safety programme you have run. List each with the year.',
+      },
+      {
+        q: 'Should a senior warehouse manager resume show degree percentages?',
+        a: 'It is optional at senior level; one line with the degree and score is fine. A distance MBA is worth listing, because it shows management study alongside full-time operations work.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Arvind Deshpande',

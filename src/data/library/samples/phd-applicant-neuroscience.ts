@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'undergraduate research CV',
     'publications and posters',
   ],
+  guide: {
+    why: [
+      'The summary names the technique, the preparation and the target field (chronic two-photon imaging in mouse barrel cortex, systems neuroscience for fall 2027), which is how admissions committees match applicants to faculty.',
+      'Research contributions are specific about ownership: running imaging and analysis for a 14-animal study and a spine detector with 96% agreement against two blinded scorers show independent work, not just lab hours.',
+      'Publications are listed in full with author position, a first-author bioRxiv preprint and a fourth-author Journal of Neurophysiology paper, the format an academic CV is expected to follow.',
+      'Teaching and mentoring appear with numbers, two sections of 24 students and incoming undergraduates trained in stereotaxic surgery, signalling readiness for a PhD teaching requirement.',
+    ],
+    faq: [
+      {
+        q: 'Should a PhD application use a CV or a resume?',
+        a: 'A CV. Graduate programs expect an academic CV with education first, then research experience, publications and preprints, presentations, awards and teaching. It can run past one page, but every entry should be research-relevant.',
+      },
+      {
+        q: 'How to list a preprint or paper in review on a PhD application CV?',
+        a: 'List preprints under publications with the server name (bioRxiv) and date, and mark your author position. Papers under review can go in a separate “Manuscripts in review” line without naming the journal if it is not yet accepted.',
+      },
+      {
+        q: 'Should GPA go on a graduate school CV?',
+        a: 'Yes. Put the overall GPA beside the degree, and add a major GPA only if it is noticeably higher. Admissions committees read it alongside research experience, so keep it short and let the research sections carry the CV.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Mara Lindqvist',

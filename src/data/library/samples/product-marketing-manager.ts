@@ -23,6 +23,24 @@ export const sample: LibrarySample = {
     'competitive intelligence',
     'product launch',
   ],
+  guide: {
+    why: [
+      'Positioning is measured by sales results: repositioning around data access moved win rate against the incumbent from 22% to 41%, the clearest proof a product marketer can offer.',
+      'Launches are reported in pipeline and time, $4.2M in 90 days and the year-one target passed in month seven, which ties product marketing directly to revenue.',
+      'Pricing and packaging appear as a result, 62% of new logos on the platform tier and average contract value from $31k to $48k, a senior-level responsibility shown with numbers.',
+      'Enablement is backed by research, battlecards from 40 win-loss interviews that cut competitive sales cycles from 94 to 71 days, matching the summary’s promise of evidence over adjectives.',
+    ],
+    faq: [
+      {
+        q: 'What should a product marketing manager resume include?',
+        a: 'Positioning and messaging work with its effect on win rate, launches with pipeline or adoption figures, pricing and packaging changes, and sales enablement with conversion results. Name the market (B2B SaaS, a vertical) and the size of the product you supported.',
+      },
+      {
+        q: 'How long should a senior product marketing resume be?',
+        a: 'Two pages at most for nine years. Give the current role four or five bullets, earlier roles two or three, and drop demand-generation detail older than ten years unless the role you want includes it.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Naomi Feldstein',

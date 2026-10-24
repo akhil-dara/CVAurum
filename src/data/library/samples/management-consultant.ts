@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'operating model design',
     'strategy consultant UK',
   ],
+  guide: {
+    why: [
+      'Savings are stated as delivered, not identified: £24M annualised across three programmes, and on the freight diagnostic £6.8M found with £4.2M “banked within the year”, a distinction partners look for.',
+      'Each client result keeps a guardrail beside it, payroll from 11.2% to 9.4% of sales “with customer service scores unchanged”, which shows the cut did not move the cost somewhere else.',
+      'At engagement manager level, selling matters: £3.1M of follow-on work and a six-week diagnostic turned into a two-year mandate show the step from delivering to growing an account.',
+      'Two published papers on field service and store payroll come straight from the client work, where first-time fix rose from 68% to 86%, so the thought leadership is grounded in delivery.',
+    ],
+    faq: [
+      {
+        q: 'How long should a management consultant CV be in the UK?',
+        a: 'Two pages for an engagement manager with nine years. Earlier roles such as a first planning job can shrink to one bullet, and education fits on two lines with the class of degree, which UK firms still read.',
+      },
+      {
+        q: 'How should a consultant show client work on a CV without naming clients?',
+        a: 'Describe the client by sector and size (“a 340-store retailer”, “a water utility”) and give the result in the client’s own metric. That keeps confidentiality and still lets a reader judge the scale of the work.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Fiona Attwell',

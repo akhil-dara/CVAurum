@@ -22,6 +22,24 @@ export const sample: LibrarySample = {
     'trial preparation',
     'entry level legal support',
   ],
+  guide: {
+    why: [
+      'Discovery is shown at scale: narrowing 410,000 documents to 38,000 and saving roughly 900 reviewer hours tells a litigation team the paralegal can run review, not just code documents.',
+      'The filing record is a count with no exceptions, 190 filings with no rejected submissions and no missed deadlines, which answers the one risk every attorney worries about when delegating.',
+      'The Certified Paralegal (CP) credential and the ABA-approved certificate sit on the page together, which is what many US firms screen for at this level.',
+      'Systems are named as the job descriptions name them, Relativity, PACER, CM/ECF and Westlaw, so the résumé matches a keyword search for e-discovery and federal filing.',
+    ],
+    faq: [
+      {
+        q: 'What skills should a litigation paralegal resume list?',
+        a: 'Split them into case management (docketing, CM/ECF filing, trial preparation), discovery (privilege logs, Bates numbering, productions) and systems (Relativity, PACER, Westlaw). Then prove the important ones in bullets with volumes and deadlines.',
+      },
+      {
+        q: 'Should a paralegal resume include a certification?',
+        a: 'Yes, if you hold one. A NALA Certified Paralegal or similar credential belongs in its own section near the top or bottom, with the year earned. A paralegal certificate from an ABA-approved program goes under education.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Camille Okafor',

@@ -24,6 +24,19 @@ export const sample: LibrarySample = {
     'SQL Python portfolio',
     'entry level analyst',
   ],
+  guide: {
+    why: [
+      'The capstone carries a finding, not a stack: three routes accounting for 41% of delays over ten minutes, from 14 months of arrival data. That is what a hiring manager wants a bootcamp project to prove.',
+      'Education leads because the Riverlight Data Academy certificate is the newest qualification, and “620 hours” tells a reader how serious the program was without overselling it.',
+      'The dental practice years are rewritten as analysis, no-shows cut from 14% to 5% and $58,000 of denied claims recovered, so the career change reads as the same skill in a new setting.',
+      'The part-time contract at Hilliard Trails Conservancy shows paid data work already underway, with 1,340 duplicate households removed before a mailing, which answers the first doubt about any bootcamp graduate.',
+    ],
+    faq: [
+      { q: 'Should a bootcamp graduate put education first on a resume?', a: 'Yes, when the bootcamp is the main evidence for the new role and the earlier career is in a different field. Once you have a year of paid analyst work, move experience to the top.' },
+      { q: 'How do you describe a bootcamp project on a data analyst resume?', a: 'State the question, the data and the finding with a number, then the tools: “14 months of arrival data; three routes caused 41% of long delays; Python, pandas, Tableau”. Link the write-up if it is public.' },
+      { q: 'How do career changers show transferable experience on a data analyst resume?', a: 'Rewrite earlier roles around the measuring and deciding you did: rates you tracked, money you recovered, reports you built. Keep each role to two or three bullets so the data work stays the focus.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Devon Asare',

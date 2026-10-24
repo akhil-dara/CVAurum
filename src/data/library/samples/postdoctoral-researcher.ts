@@ -23,6 +23,24 @@ export const sample: LibrarySample = {
     'research associate',
     'faculty job application',
   ],
+  guide: {
+    why: [
+      'The summary gives the three numbers a faculty search reads first: twelve peer-reviewed papers, five as first author, an NIH F32 fellowship, and 210 undergraduates taught as instructor of record.',
+      'Funding is reported the way reviewers judge it, $186k scored in the 8th percentile on first submission, which signals the applicant can win grants independently.',
+      'CalciumTrace, used by 19 labs across six countries and described in a first-author methods paper, shows research infrastructure that others depend on.',
+      'Mentoring has outcomes, three undergraduates on submitted manuscripts and two now in PhD programs, which supports a teaching statement with evidence.',
+    ],
+    faq: [
+      {
+        q: 'Should a postdoc use a resume or a CV?',
+        a: 'A CV for academic jobs and fellowships, with full publication list, funding, teaching and talks. For industry roles, cut it to a two-page résumé that leads with skills and results and keeps only the most relevant papers.',
+      },
+      {
+        q: 'How should publications be ordered on a postdoc CV?',
+        a: 'Reverse chronological within one list, with your name in bold and first or co-first authorship marked. Add citation counts or notes such as an accompanying preview only for the papers where they help, and keep preprints in a separate group.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Elena Márquez, PhD',

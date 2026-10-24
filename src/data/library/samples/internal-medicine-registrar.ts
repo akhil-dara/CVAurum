@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'GMC registered doctor',
     'NHS doctor CV',
   ],
+  guide: {
+    why: [
+      'The audit is written as a result, not a duty: median time from blood gas to NIV fell from 4 hours 10 minutes to 96 minutes after the escalation-form redesign.',
+      'Training milestones a UK panel checks are on the first lines: GMC registration, MRCP(UK) complete, and the current Specialty Registrar (ST4) post.',
+      'Procedural numbers are given, about 90 ultrasound-guided aspirations and 30 indwelling catheter insertions a year, which supports the respiratory specialty interest.',
+      'Teaching is measured too: registrar teaching attendance from 40% to 88% over two rotations, which counts for a portfolio and for consultant interviews later.',
+    ],
+    faq: [
+      {
+        q: 'How long should a medical registrar CV be in the UK?',
+        a: 'Two to four pages is common for a registrar, longer than most CVs because audits, publications and procedures all count. Keep each entry short and lead with training posts and qualifications.',
+      },
+      {
+        q: 'What should a doctor’s CV include for specialty training?',
+        a: 'GMC status, postgraduate exams such as MRCP, training posts in order, audits and quality improvement with results, teaching, publications and presentations, and life support courses such as ALS.',
+      },
+      {
+        q: 'Should a medical CV include the GMC number?',
+        a: 'Many applications ask for it on the form, so a CV can state full registration and offer the number on request. Never include patient details in audit or case descriptions.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Rhiannon Kelsall',

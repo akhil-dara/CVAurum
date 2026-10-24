@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'commercial manager infrastructure',
     'extension of time claim',
   ],
+  guide: {
+    why: [
+      'Claims are given in rupees and outcome: ₹31 crore recovered across three FIDIC-based EPC packages, “all settled at conciliation without arbitration”, which tells a project director how disputes are handled.',
+      'Notice discipline is measured, claim notices inside the 28-day window on 94% of events against 52% before. That one figure shows a contracts lead who protects entitlement before it is lost.',
+      'The move from Site Engineer is the spine of the résumé: quantifying a ₹3.2 crore rate-variation entitlement the site team had written off is shown as the reason for the switch.',
+      'The Post Graduate Diploma from the Indian Law Institute sits beside a B.E. from College of Engineering, Pune, giving the legal and technical grounding infrastructure employers ask for.',
+    ],
+    faq: [
+      { q: 'What should a contracts manager resume include for infrastructure projects?', a: 'The contract forms you administer (FIDIC, EPC, item-rate), the size of the portfolio, claims prepared and recovered with outcomes, and dispute routes used. Add notice and correspondence discipline, bank guarantee handling and tools such as SAP MM or Primavera P6.' },
+      { q: 'How can a site engineer move into contracts management?', a: 'Start with measurement, billing and variation work on site, keep records that support claims, and take a course in FIDIC or contract law. On the résumé, show a claim or entitlement you quantified as the turning point into the role.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Arvind Thakkar',

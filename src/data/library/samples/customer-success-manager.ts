@@ -23,6 +23,18 @@ export const sample: LibrarySample = {
     'returning to work after a career break',
     'onboarding and QBRs',
   ],
+  guide: {
+    why: [
+      'The book is sized first, 38 accounts worth £9M of recurring revenue, so gross renewal from 81% to 94% reads against a real portfolio rather than a vague “customer base”.',
+      'Expansion is traced to a cause: £1.3M grown, “61% of it traced to a usage report” flagging accounts near their licence ceiling, which shows commercial method rather than luck.',
+      'The year as a full-time carer is its own entry, with CCXP and two SQL courses completed during it, so the CV answers the gap question before an interviewer asks it.',
+      'Churn work is shown with a hit rate: seven signals defined, and 12 of 16 red accounts saved in 2025, the kind of figure a UK SaaS hiring manager will test in interview.',
+    ],
+    faq: [
+      { q: 'What metrics should a customer success manager CV include?', a: 'Gross and net retention or renewal rate, expansion revenue, the size of your book in accounts and recurring revenue, and time to first value. Pick the three your next employer reports on and show before and after figures.' },
+      { q: 'How do you explain a career break on a customer success CV?', a: 'Add a dated entry titled Career break with a one-line reason, if you are comfortable sharing it, and anything you completed: certifications, courses, volunteering. Then let the results before and after the break carry the page.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Eleanor Whitcombe',

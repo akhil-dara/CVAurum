@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'school leadership',
     'academic administration',
   ],
+  guide: {
+    why: [
+      'The three measures a school board hires on run through every role: enrolment grown “from 1,240 to 1,860”, a Class XII pass rate held at 100% for five years, and teacher attrition cut from 19% to 6%.',
+      'Results are tied to a named intervention, a daily 40-minute remedial block that lifted Class X mathematics and science averages by 11 and 9 points, so the outcome reads as leadership rather than a strong cohort.',
+      'The ladder from Post Graduate Teacher, Physics to Principal is shown as four dated roles with the physics results kept, which matters to a management committee hiring a head who can still judge classroom practice.',
+      'The RTE quota bullet, 128 places opened with attendance for those students held above 92%, shows the compliance and community side of a CBSE principal’s job beside the board results.',
+    ],
+    faq: [
+      {
+        q: 'What should a school principal resume include?',
+        a: 'Roll size, staff numbers and budget for the current school, board results over several years, staff retention, and any affiliation, inspection or compliance work. Add the B.Ed. or M.Ed. and any school leadership certificates.',
+      },
+      {
+        q: "How long should a principal's resume be?",
+        a: 'Two pages for a career of twenty years or more. Give the current headship the most space, keep teaching roles to two bullets each, and avoid a separate page listing routine duties.',
+      },
+      {
+        q: 'Should a CBSE principal resume list awards?',
+        a: 'Yes, when they are state or board level, such as a state award for best principal, with the awarding body, the year and a one-line citation. Internal school awards can be left out at this level.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Vikram Nandakumar',

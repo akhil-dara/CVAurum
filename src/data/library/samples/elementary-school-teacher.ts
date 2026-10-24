@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'new teacher resume',
     'classroom teacher',
   ],
+  guide: {
+    why: [
+      'Student progress is given as counts a principal can check: 19 of 24 students meeting the spring reading benchmark against 11 at the September screening. Counts are clearer than percentages for a single class.',
+      'The class context is stated up front, a 480-student school and a class with seven students on IEPs or 504 plans, so the reading gains read as earned in a demanding room.',
+      'Family work is shown as a result, chronic absence cut “from 17% to 6%” by calling every family, which speaks to the attendance problem many schools are hiring to fix.',
+      'The Ohio Resident Educator License, Primary (K-5) and the Orton-Gillingham Classroom Educator credential sit in their own section, so licensing is clear before a reader reaches the bullets.',
+    ],
+    faq: [
+      {
+        q: 'How long should an elementary teacher resume be?',
+        a: 'One page for a teacher in the first few years. Use it for your license, your current class with measurable student progress, and student teaching or long-term substitute work.',
+      },
+      {
+        q: 'Should a new teacher resume include student teaching?',
+        a: 'Yes, for the first two or three years. Put it under education with the grade level and class size, or as a role if it was a full year. Drop it once you have several years of your own classroom.',
+      },
+      {
+        q: 'What should an elementary teacher resume include about results?',
+        a: 'Reading or math benchmark counts at the start and end of the year, students moved off intervention lists, attendance changes and units you wrote that other teachers now use. Name the assessment, such as DIBELS or running records.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Hallie Brennan',

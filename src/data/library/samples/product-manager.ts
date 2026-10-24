@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'career change into product',
     'roadmap and pricing',
   ],
+  guide: {
+    why: [
+      'Launches are measured in the user’s and the business’s terms: self-serve plan changes now carry 71% of upgrades and billing tickets fell from 340 a month to 96.',
+      'Revenue is named where it exists, $1.4M recovered by rebuilding dunning, which shows a billing product manager who owns money as well as features.',
+      'Discovery is shown by what it stopped: 22 of 30 interviews killed a usage-based tier and saved a two-quarter build, a decision hiring managers rarely see on a résumé.',
+      'The Support Operations Lead role at Fernhill Health is not hidden; sorting 14,000 tickets into nine root causes is early product work, and it explains the move into product.',
+    ],
+    faq: [
+      {
+        q: 'What should a product manager resume focus on?',
+        a: 'Outcomes from things you shipped or decided: adoption, revenue, retention, support load or time saved, each tied to a launch. Show discovery (interviews, data) behind at least one decision, and keep tools and frameworks to a short skills section.',
+      },
+      {
+        q: 'How to move into product management from customer support on a resume?',
+        a: 'Keep the support role and write it around patterns you found and fixed with engineering, with ticket volumes and the share of contacts removed. Then show your first product role building directly on that domain knowledge.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nia Okonkwo',

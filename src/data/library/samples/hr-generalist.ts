@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'benefits administration',
     'return to work after career break',
   ],
+  guide: {
+    why: [
+      'Turnover is the headline: voluntary turnover from 29% to 17% at Sandera Health Partners, with the method, a 30-60-90 onboarding plan and stay interviews at month four.',
+      'The sixteen-month family care break is stated in the summary, and the volunteer role during it, training 24 volunteers on a helpline, shows skills kept in use.',
+      'Employee relations is counted rather than described: 34 cases closed at an average 11-day cycle time, none advancing past agency intake.',
+      'Compliance results such as OSHA recordable incidents from 14 a year to five and a third-party audit sample of 120 files cleared in full show the risk side of generalist work.',
+    ],
+    faq: [
+      {
+        q: 'What should an HR generalist resume include?',
+        a: 'Results across the HR lifecycle: hiring and retention, employee relations cases, benefits and payroll accuracy, and compliance. Add SHRM-CP or PHR in a certifications section and name the HRIS you used.',
+      },
+      {
+        q: 'How do you show a career break on an HR resume?',
+        a: 'Name it once with dates, in the summary or as a short entry, and add any volunteer or study work from that time. Then let the role that followed show results since your return.',
+      },
+      {
+        q: 'Is SHRM-CP or PHR better on an HR generalist resume?',
+        a: 'Either is recognised by US employers, and listing both is fine if you hold both. Check the job ad, as some name one in particular.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Renata Silva',

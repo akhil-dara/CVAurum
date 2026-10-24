@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'research grants',
     'PhD supervision',
   ],
+  guide: {
+    why: [
+      'The three measures an academic hiring panel reads first are in the summary: £1.2m in current grant income, three modules convened for 420 students, and nine PhD students supervised to completion.',
+      'Grants are named and sized, including a £780k NERC standard grant on peatland carbon flux, so a panel can judge research income without asking for a separate funding list.',
+      'Publications are cut to four selected from 34, each with an authorship role or citation count, which keeps the CV to two pages for a teaching-and-research post.',
+      'Teaching is evidenced with numbers too: module evaluation from 3.4 to 4.5 of 5, the MSc in Catchment Science recruiting 28 at first intake, and Senior Fellow of the Higher Education Academy status.',
+    ],
+    faq: [
+      {
+        q: 'How long should an academic CV be in the UK?',
+        a: 'For a lecturer application, two to three pages with a selected publications list is common, with a full list available on request. Read the person specification and order the sections to match it.',
+      },
+      {
+        q: 'What should a university lecturer CV include?',
+        a: 'Teaching (modules convened, student numbers, evaluation), research (grant income with funder and amount, selected publications), supervision completions, academic service, and teaching fellowships such as FHEA or SFHEA.',
+      },
+      {
+        q: 'Should a lecturer CV list every publication?',
+        a: 'Not for most applications. List four to six selected outputs with your authorship role and state the total, for example “selected from 34”. Choose outputs that fit the post and the research group.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Dr Iona Greaves',

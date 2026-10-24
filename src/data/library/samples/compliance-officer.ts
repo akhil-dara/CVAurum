@@ -23,6 +23,18 @@ export const sample: LibrarySample = {
     'SMCR',
     'Consumer Duty',
   ],
+  guide: {
+    why: [
+      'The headline result has two sides: false positives cut by 62% while the suspicious-activity conversion rate rose from 3% to 11%. Showing that quality improved, not just volume, is what an MLRO looks for.',
+      'Regulatory vocabulary is used precisely for a UK reader: SMCR certification for 96 staff, a skilled-person review with 34 of 36 findings closed, and Consumer Duty board reports “accepted without amendment”.',
+      'The KYC Analyst role at Braemar Trust Services is kept short but specific, 600 enhanced due diligence files and nine relationships exited, which grounds the later manager role in casework.',
+      'CAMS and the International Diploma in Anti Money Laundering are both listed with issuers, the two credentials most UK financial crime job adverts name.',
+    ],
+    faq: [
+      { q: 'What should a compliance officer CV include in the UK?', a: 'The type of firm and its regulator, what you own (monitoring, screening, risk assessment, training), and before-and-after figures for alerts, backlogs and findings closed. Name regimes precisely, SMCR, Consumer Duty, the Money Laundering Regulations, and list ICA or ACAMS qualifications.' },
+      { q: 'Is CAMS or an ICA diploma better for a compliance CV?', a: 'Both are recognised in the UK. The ICA diplomas are common in UK banks and payments firms, while CAMS is better known internationally. If you hold one, list it with the year; if you hold both, list both.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Femi Adebanjo',

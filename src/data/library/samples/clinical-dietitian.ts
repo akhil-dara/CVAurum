@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'return to work after career break',
     'M.Sc dietetics',
   ],
+  guide: {
+    why: [
+      'Clinical outcomes are measured the way a hospital audits them: time from ICU admission to first feed cut from 38 hours to 19, and serum phosphate within target rising from 44% to 68% in the renal clinic.',
+      'The planned career break has its own entry, and the part-time return at Vaidyanath Multispeciality Hospital is written as real caseload, about 45 bariatric outpatients a month, so the gap reads as managed.',
+      'Registration with the Indian Dietetic Association, “renewed 2025”, is in certificates beside the Nutrition Support Practitioner Programme, the credentials hospital HR checks first in India.',
+      'Two papers, one reviewing 120 dialysis patients and one auditing 210 ventilated patients, show the head-of-department work extends to audit and research, which matters for a teaching hospital.',
+    ],
+    faq: [
+      { q: 'What should a clinical dietitian resume include in India?', a: 'Your RD registration and its renewal year, your degrees with marks or CGPA, the wards and patient groups you cover (ICU, renal, diabetes, bariatric), and outcomes such as screening rates or lab values. Add languages, since patient counselling depends on them.' },
+      { q: 'How do you return to dietetics after a career break?', a: 'Renew your registration, take a recognised update course, and consider a part-time return role first. On the résumé, give the break its own dated entry with what you completed during it so a hiring panel sees the gap was planned.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Shalini Menon',

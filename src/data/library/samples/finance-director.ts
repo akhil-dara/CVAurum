@@ -26,6 +26,24 @@ export const sample: LibrarySample = {
     'healthcare finance',
     'CPA MBA',
   ],
+  guide: {
+    why: [
+      'Forecast accuracy is stated against history: the 2025 plan closed “within 1.4% of the revenue forecast, the tightest of the last six plans”. Boards hire finance directors for that kind of reliability.',
+      'Cash results sit beside profit: days in receivables from 62 to 38 freed $21M of cash, and the payer contract restructure added $9.2M of annual contribution. Both are numbers a CEO repeats.',
+      'Three sectors, healthcare at Larkspur Health Partners, software and a dairy cooperative, are each shown with the finance problem specific to them, such as margin volatility cut from 4.2 points to 1.6 through hedging.',
+      'The board treasurer role is quantified too, a $140k deficit turned into a balanced budget, showing governance experience outside the day job.',
+    ],
+    faq: [
+      {
+        q: 'What should a finance director resume include?',
+        a: 'Team size and scope, plan and forecast accuracy, cash and working capital results, financing or deal work, and board reporting. Name the systems (NetSuite, Workday Adaptive Planning) and the CPA or MBA in the header or a credentials section.',
+      },
+      {
+        q: 'How long should a finance director resume be?',
+        a: 'Two pages. Senior roles get four or five bullets each; audit and early roles can shrink to one or two lines that show where your technical accounting came from.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Tessa Lindgren',

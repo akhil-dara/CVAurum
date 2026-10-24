@@ -25,6 +25,18 @@ export const sample: LibrarySample = {
     'CCRA certification',
     'site management',
   ],
+  guide: {
+    why: [
+      'Monitoring is measured the way a sponsor asks at bid defense: 213 findings closed at a mean 9 days against a target of 21, and the query rate per subject cut from 4.8 to 1.6.',
+      'The consent version error caught at three sites, with 46 patients re-consented before a reportable deviation, shows the judgement that separates a senior CRA from one who completes visit reports.',
+      'The FDA inspection closed with no Form 483 observations is the single strongest line for a sponsor-side reader, and it is kept as one plain bullet rather than dressed up.',
+      'CCRA certification and ICH-GCP E6(R3) training renewed in 2026 sit in certificates, with Medidata Rave and Veeva Vault eTMF named in systems, so screening checks pass at a glance.',
+    ],
+    faq: [
+      { q: 'What should a clinical research associate resume include?', a: 'Therapeutic areas and trial phases, number of sites and visit frequency, and sponsor metrics: findings resolved, query rates, time to first patient in, inspection outcomes. List GCP training with its renewal date and the EDC and eTMF systems you use.' },
+      { q: 'How do you move from clinical research coordinator to CRA?', a: 'Show site-side work in monitoring terms: enrollment conversion, audit findings, consent and regulatory binders kept inspection-ready. A CCRA or similar certification and a co-monitoring period help, and many CRAs start at a CRO in an entry-level monitoring post.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Bethany Kohl',

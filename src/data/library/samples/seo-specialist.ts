@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'content strategy',
     'SEO executive',
   ],
+  guide: {
+    why: [
+      'Traffic growth is tied to the change that caused it: non-brand organic sessions “from 310,000 to 1.1 million a month” after the destination templates were rebuilt around a single internal-linking hub.',
+      'The log file bullet shows technical depth with a finding and a result: 61% of crawl budget going to filtered URLs, and indexed pages lifted from 38,000 to 71,000 once they were blocked.',
+      'Peak Routes, a side project with 41,000 sessions a month on 180 pages, gives a hiring manager something to probe in an interview and shows search ideas tested outside a job brief.',
+      'Commercial value shows at agency level too: the technical audit template Halcombe Digital still sells at £2,400, bought 70 times in two years, turns a process into revenue.',
+    ],
+    faq: [
+      {
+        q: 'What should an SEO specialist CV include?',
+        a: 'Organic sessions, indexed pages, rankings or conversions, each tied to the change that moved them; technical work such as log files, crawl budget and Core Web Vitals; and the tools you use, grouped in a short skills section.',
+      },
+      {
+        q: 'Should an SEO CV include a personal website?',
+        a: 'Yes, if it is a live site you built or grew. Give its traffic and rankings in one line; it shows your methods working on a site you control, without needing a client’s permission to share results.',
+      },
+      {
+        q: 'How long should an SEO specialist CV be in the UK?',
+        a: 'One to two pages; at five years, two is usual. Leave out a photo and date of birth, and keep early marketing roles to the one or two results that relate to search.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Imogen Farrar',

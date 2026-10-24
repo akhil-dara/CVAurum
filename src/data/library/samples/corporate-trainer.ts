@@ -23,6 +23,18 @@ export const sample: LibrarySample = {
     'L&D associate',
     'trainer resume India',
   ],
+  guide: {
+    why: [
+      'Training is measured by learning, not attendance: a rebuilt Java track raised average assessment scores from 61% to 78%, and 96% of 148 trainees cleared the exit assessment first time.',
+      'The Software Engineer role at Orbitspan Technologies is kept because it is why engineers take the trainer seriously, and it shows the internal move came after the 2024 cohort scored highest on record.',
+      'The 22 graded lab exercises and shared marking rubric show programme design, the skill that separates a trainer who runs sessions from one who builds a curriculum.',
+      'SQL Drills, used by 640 learners and three engineering colleges, plus the CTT+ certification give outside evidence of teaching quality for an entry-level trainer.',
+    ],
+    faq: [
+      { q: 'What should a corporate trainer resume include?', a: 'The programmes you run, who attends and how many, and outcomes such as pass rates, assessment scores or time to productivity. Add the materials you designed, the subjects you are qualified to teach, and any training certification such as CTT+.' },
+      { q: 'How do you move from software engineering into technical training in India?', a: 'Mentor new hires or run internal sessions first, then ask to join the learning and development team. On the résumé, keep the engineering role and show the teaching you did alongside it with numbers, such as cohorts mentored and their scores.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nikhil Raghavan',

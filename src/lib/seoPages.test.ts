@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { TEMPLATES, TEMPLATE_MAP, getTemplate, templatePath } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { GUIDES } from '@/data/guides'
+import { linkMarkdown } from './inlineLinks'
 import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { examplesPageMeta, samplePageImage } from '@/lib/seoLibrary'
@@ -852,11 +853,12 @@ describe('the guides', () => {
       for (const sec of g.sections) {
         expect(html).toContain(`<h2>${htmlEscape(sec.heading)}</h2>`)
         expect(md).toContain(`## ${sec.heading}`)
-        for (const li of sec.list ?? []) expect(md).toContain(`- ${li}`)
+        // in-prose links (lib/inlineLinks) are absolute in the Markdown twin
+        for (const li of sec.list ?? []) expect(md).toContain(`- ${linkMarkdown(li, 'https://cvaurum.com')}`)
       }
       for (const f of g.faq) {
         expect(html).toContain(htmlEscape(f.q))
-        expect(md).toContain(f.a)
+        expect(md).toContain(linkMarkdown(f.a, 'https://cvaurum.com'))
       }
       // no literal escape left behind by a template string
       expect(html).not.toMatch(/\\n|\$\{/)

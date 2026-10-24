@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'patent portfolio strategy',
     'associate general counsel IP',
   ],
+  guide: {
+    why: [
+      'Portfolio growth is paired with cost control: 140 to 480 issued patents “while holding outside counsel spend flat”, which is the trade-off a General Counsel watches.',
+      'Litigation results are specific: three inter partes reviews instituted on all three and a dismissal for no payment. Outcomes, not caseload, are what a legal leadership hire is judged on.',
+      'IP is shown as revenue, a $14M annual licensing line from nine cross-license agreements, which moves the function from cost centre to contributor.',
+      'The Hardware Design Engineer role at Wrenfield Instruments, with two patents as inventor, gives the technical grounding behind a patent attorney leading a robotics portfolio.',
+    ],
+    faq: [
+      {
+        q: 'What should an in-house IP counsel resume include?',
+        a: 'Portfolio size and growth, prosecution results such as allowance rate, dispute outcomes, licensing revenue and spend managed. List bar admissions and USPTO registration in a credentials section.',
+      },
+      {
+        q: 'Should a patent attorney resume list a technical degree?',
+        a: 'Yes. The technical degree qualifies you for patent bar registration and tells a reader which art units you can handle. Put it under education beside the law degree, and list technical fields in skills.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Hannah Lindqvist',

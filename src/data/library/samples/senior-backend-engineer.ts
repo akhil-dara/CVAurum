@@ -18,6 +18,28 @@ export const sample: LibrarySample = {
   blurb:
     'Eight years of distributed systems work, told through what each system did for the business rather than what it was built with.',
   keywords: ['backend engineer', 'distributed systems', 'Go', 'Kubernetes', 'payments', 'senior software engineer'],
+  guide: {
+    why: [
+      'The summary leads with a single reliability result, failed transactions “from 1.2% to 0.08%”, and the bullet behind it adds the money: about $340k a year of duplicate-charge refunds ended.',
+      'Latency is given with the percentile and both values, p99 settlement “from 2.4s to 310ms”, the level of precision a senior engineer can be asked to defend in an interview.',
+      'Ledgerkit sits under projects with 1,400 stars and 31 contributors, giving outside evidence of the Go and event sourcing skills claimed in the skills list.',
+      'Operational work counts here: the on-call runbook that halved paging volume and the connection-pool leak behind six months of Monday-morning outages show ownership beyond feature work.',
+    ],
+    faq: [
+      {
+        q: 'How long should a senior software engineer resume be?',
+        a: 'One page works up to about ten years; two pages are fine beyond that when each role has measurable results. Cut early roles to two bullets and drop coursework entirely.',
+      },
+      {
+        q: 'Should a backend engineer resume link to GitHub?',
+        a: 'Yes, if it holds work you would discuss in an interview, such as a maintained open-source project. Link it in the header and list the project with a usage measure, like stars, contributors or adopters.',
+      },
+      {
+        q: 'What skills should a senior backend engineer resume list?',
+        a: 'Languages (Go, Python, SQL), systems (Kubernetes, Kafka, PostgreSQL, gRPC) and practices such as event sourcing or incident review. Keep it to what you have run in production, and use the job post’s wording.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Marcus Whitfield',

@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'observability',
     'incident response',
   ],
+  guide: {
+    why: [
+      'Alerting work is priced in pages and recovery time: 400 host-level alerts replaced with 38 service-level objectives, pages from 61 a week to 9, and mean time to recovery “from 41 minutes to 7”.',
+      'Cost engineering sits next to reliability, $1.4M a year cut by right-sizing 220 workloads and moving batch reconciliation onto spot capacity, which is how SRE work earns its budget.',
+      'The restore verification job that found 3 of 11 database backups failing silently is a small bullet with a large point: it shows the habit of testing what everyone assumes works.',
+      'Failover is described as proven, not just built: multi-region failover for a claims API at 12,000 requests a second, tested quarterly by shifting real traffic in a game day.',
+    ],
+    faq: [
+      {
+        q: 'What metrics should a site reliability engineer resume include?',
+        a: 'Mean time to recovery, page volume, SLO attainment, repeat incident rate, deploy time and cloud spend. Give before and after values and the change that moved them, because engineering managers compare these across candidates.',
+      },
+      {
+        q: 'Should an SRE resume list certifications?',
+        a: 'List the ones that match the stack, such as AWS Certified Solutions Architect or Terraform Associate, with the year. They support the bullets but do not replace evidence of running production systems.',
+      },
+      {
+        q: 'How long should an SRE resume be?',
+        a: 'One page up to about eight years; two pages for nine or more with several platforms. Keep tools in a grouped skills section and spend the bullets on outcomes.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nadia Belanger',

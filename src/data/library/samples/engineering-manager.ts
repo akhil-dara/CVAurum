@@ -24,6 +24,27 @@ export const sample: LibrarySample = {
     'delivery predictability',
     'staff engineer to manager',
   ],
+  guide: {
+    why: [
+      'People results are treated as engineering results: offer acceptance from 52% to 86%, attrition cut from 22% to 4%, and promotion calibration for 40 engineers. A hiring panel for managers looks for exactly these.',
+      'Predictability has a number, committed work landing on schedule “from 54% to 91%”, with the method that moved it. Most manager résumés claim better delivery; this one shows the before and after.',
+      'The Staff Software Engineer role at Ellerby Analytics keeps the technical record visible, 2.4 billion events a month and dashboards from 9s to 1.1s, which supports the claim of still being “in every design review”.',
+    ],
+    faq: [
+      {
+        q: 'What should an engineering manager resume focus on?',
+        a: 'Team outcomes and delivery outcomes side by side: hiring, retention and promotions, then shipping speed, reliability and revenue. Keep one technical line per role so a panel can see you can still judge design work.',
+      },
+      {
+        q: 'How long should an engineering manager resume be?',
+        a: 'Two pages is usual with ten or more years. The current management role gets the most bullets; early engineering roles can drop to two bullets each.',
+      },
+      {
+        q: 'Should an engineering manager resume list technical skills?',
+        a: 'Yes, in a short group: the languages, data stores and cloud your teams used. Put leadership and delivery skills first, since those are what the role is hired for.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Gwen Marchetti',

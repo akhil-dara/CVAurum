@@ -23,6 +23,24 @@ export const sample: LibrarySample = {
     'freelance motion design',
     'brand video',
   ],
+  guide: {
+    why: [
+      'Motion is measured by what it changed for the business: the onboarding sequence that cut first-week churn from 34% to 21% across 260,000 members argues for animation as product work, not decoration.',
+      'Production efficiency is shown with a before and after, weekly renders from nine hours to 40 minutes, which matters to a studio manager as much as the look of the work.',
+      'The freelance years are counted rather than glossed over: 60 spots across 19 clients with 94% accepted on the first or second cut makes three independent years read as a track record.',
+      'Kinetic Kit, downloaded 11,000 times, and the “Reel” link in the header let a reviewer see the craft that the bullets describe.',
+    ],
+    faq: [
+      {
+        q: 'Does a motion designer need a resume if they have a reel?',
+        a: 'Yes. The reel shows the craft, and the résumé shows scope, clients, tools and results, which is what gets the reel opened. Link the reel at the top of the page with a clear label and keep it under two minutes.',
+      },
+      {
+        q: 'Which software should a motion designer resume list?',
+        a: 'Lead with After Effects and your 3D package (Cinema 4D, Blender) and renderer, then editing and finishing tools such as Premiere Pro and DaVinci Resolve, and Lottie or Figma if you work on product UI.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Theo Marchetti',

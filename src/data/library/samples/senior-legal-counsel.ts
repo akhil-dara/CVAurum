@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'contract playbook',
     'return to work after career break',
   ],
+  guide: {
+    why: [
+      'The contracting result is given in the units a General Counsel tracks: time to signature “from 34 days to 9” across 240 contracts a year, and £1.1M of unmanaged indemnity exposure removed.',
+      'The nine-month career break is dated and explained, with the practising certificate kept current and the CIPP/E completed, and the Fernhill Legal Consulting part-time role shows the route back into practice.',
+      'Cost to the business is stated: external counsel spend cut by £280k a year by bringing data protection and routine procurement work in-house, the case for an in-house hire made in one line.',
+      'Admission as a Solicitor of the Senior Courts of England and Wales and the Kettering Mayne LLP years are kept short, giving the private-practice grounding without crowding the in-house work.',
+    ],
+    faq: [
+      {
+        q: 'How long should a legal counsel CV be in the UK?',
+        a: 'Two pages for a senior lawyer. Lead with the current in-house role, keep private practice to the type of work and one or two results, and state admission and practising certificate details clearly.',
+      },
+      {
+        q: "How do you explain a career break on a lawyer's CV?",
+        a: 'Give it its own dated entry with a one-line reason, and show you stayed current: a practising certificate held, a qualification such as CIPP/E, or part-time consultancy on the way back.',
+      },
+      {
+        q: 'Should an in-house lawyer CV include chargeable hours?',
+        a: 'Only for private-practice roles, and only as one figure, since it shows workload. For in-house roles, measure contracts closed, time to signature, external spend saved or audit findings closed instead.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Iona Fairhurst',

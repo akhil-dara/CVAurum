@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'charity design',
     'UK graduate designer',
   ],
+  guide: {
+    why: [
+      'Design work is tied to an organisation’s outcome: advance ticket sales rose 23% after the season brochure and emails moved to one grid and one colour system. Print designers rarely show results this clearly.',
+      'Cost savings are given in pounds, £8,400 off annual print spend by standardising paper stocks, which matters to the charities and small venues this CV is aimed at.',
+      'Freelance work is treated as a role with real terms: six independent Manchester businesses, fees from £400 to £2,200, and a pricing fix after two overruns.',
+      'The degree show award, Best Student Publication from Manchester Metropolitan University, is given with its field of 74 entries, so it reads as a measured achievement.',
+    ],
+    faq: [
+      {
+        q: 'Should a graphic designer CV include a portfolio link?',
+        a: 'Yes, near the top with your email. In the UK a CV for a design role is usually read alongside the portfolio, so make sure the projects named on the CV appear there too.',
+      },
+      {
+        q: 'How should a graphic designer CV show freelance work?',
+        a: 'List it as one entry titled Freelance with the dates, the kind of clients and the number of projects. Add one or two bullets with results or fees, rather than a list of every client.',
+      },
+      {
+        q: 'Should a graphic designer CV be creatively designed?',
+        a: 'A clean, well-set layout shows typographic skill better than heavy decoration. Keep it readable as plain text too, since many employers pass CVs through a screening system before a person sees them.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Freya Ashcombe',

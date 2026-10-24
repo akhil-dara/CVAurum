@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'M&A and portfolio review',
     'strategic planning leader',
   ],
+  guide: {
+    why: [
+      'The two-year General Manager, Aftermarket Parts role sits in the middle of a strategy career, and its bullets prove operating credibility: margin “from 11% to 17%” with flat headcount. Strategy hires with P&L time are rare and this résumé makes it visible.',
+      'Deals are given a count and a value, four acquisitions worth $210M, and the largest is named for what it did: the $96M deal that opened a European service footprint.',
+      'The portfolio review bullet shows the hard call: two product lines retired because they took 19% of R&D spend for 3% of gross profit. A strategy leader is hired to make that kind of decision and defend it with numbers.',
+      'Three roles at Marrowstone Industrial Systems are listed separately, showing a path from corporate development to director, with the Kellogg MBA and consulting years at Thornbury & Crane as the foundation.',
+    ],
+    faq: [
+      {
+        q: 'How should a director of strategy resume show impact?',
+        a: 'Tie each strategic decision to a financial result: revenue mix shifted, margin recovered, deals closed with their value, spend redirected. Planning and analysis without an outcome reads as consulting support rather than leadership.',
+      },
+      {
+        q: 'Should a strategy resume include consulting experience?',
+        a: 'Yes, but keep it short at director level. Two bullets with the number of engagements and one quantified client result are enough; the space belongs to the in-house roles where you owned the decisions.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Lena Marchetti',

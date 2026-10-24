@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'NHS rotational physiotherapist',
     'musculoskeletal outpatients',
   ],
+  guide: {
+    why: [
+      'One year into a Band 5 rotation, the summary still leads with a service change, a hip and knee class that freed six one-to-one slots a week, which is what NHS shortlisting looks for beyond competence.',
+      'Patient safety is measured: 340 patients cleared on stairs with 3 fall-related readmissions against a ward baseline of 11 gives a clinical outcome, not a list of duties.',
+      'Pre-registration placements have their own section with caseloads, from intensive care to community rehabilitation with Tredowr Care Group, so each rotation area is evidenced before the first post.',
+      'HCPC registration and chartered membership (MCSP) appear as certificates, answering the two eligibility checks every UK physiotherapy post makes.',
+    ],
+    faq: [
+      {
+        q: 'How long should a Band 5 physiotherapist CV be?',
+        a: 'Two pages at most. Include HCPC registration, placements with settings and caseloads, any assistant or care work, and a short skills section. NHS applications also need the supporting statement, so keep the CV factual and match it to the person specification.',
+      },
+      {
+        q: 'Should a newly qualified physiotherapist list placements on a CV?',
+        a: 'Yes. Give each placement its setting, length and caseload, and one result or responsibility. For a newly qualified physiotherapist they are the main clinical evidence, so list them under their own heading rather than under education.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nadia Osman',

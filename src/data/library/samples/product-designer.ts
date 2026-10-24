@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'career change to design',
     'SaaS product design',
   ],
+  guide: {
+    why: [
+      'Each redesign is measured by user behaviour and support cost: enrollment completion from 54% to 88% and support calls down 64% show design judged on outcomes, not on screens produced.',
+      'Research is visible in the bullets, 22 usability sessions behind the claim status timeline that took tickets from 1,900 a month to 410, so the process and the result appear together.',
+      'The Front-End Engineer years at Kettlebrook Commerce are kept, and framed as an advantage: a React component set that became the first version of the design system.',
+      'Accessibility runs through the page, 61 contrast and focus failures fixed for WCAG 2.1 AA and the Formcheck extension, which matters for healthcare and enterprise products.',
+    ],
+    faq: [
+      {
+        q: 'Does a product designer resume need a portfolio link?',
+        a: 'Yes. Put it in the header with a plain label, and make sure the case studies match the bullets on the résumé. The résumé gives the outcomes, and the portfolio shows the process behind two or three of them.',
+      },
+      {
+        q: 'How to show a career change from engineering to product design?',
+        a: 'List the engineering role under its real title and write its bullets around design-adjacent work: prototyping in code, component libraries, collaboration with designers. A sentence in the summary can name the switch directly.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Maya Thornbury',

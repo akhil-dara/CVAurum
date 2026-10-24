@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'editorial',
     'blog strategy',
   ],
+  guide: {
+    why: [
+      'Writing is measured in pipeline, not word count: organic sessions from 4,200 to 26,000 a month, and organic sourcing 31% of demo requests at Tathya Analytics.',
+      'The SEO work is shown as results a marketing lead can check: a 40-article cluster ranking on page one for 17 of its 22 target keywords, with Ahrefs and Google Search Console in the skills.',
+      'The Alaap Media reporting years are kept and measured in readers, a reader survey of 2,900 responses and page views up 38%, so the career change explains why the writing works.',
+      'The Shelf Life newsletter, 3,100 subscribers with no paid promotion, gives a portfolio piece a hiring manager can read before the interview.',
+    ],
+    faq: [
+      { q: 'What should a content marketing resume include?', a: 'Traffic, rankings and conversions tied to your content, the formats you write (long-form, case studies, newsletters), and the SEO and analytics tools you use. Link two or three published pieces; in India, a portfolio link is often checked before the call.' },
+      { q: 'How do journalists move into content marketing?', a: 'Keep the reporting roles and measure them in readers and output, then show the first marketing results in traffic and leads. Learn keyword research and analytics tools, and present a newsletter or blog you run as proof you can grow an audience.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Meghna Bhattacharya',

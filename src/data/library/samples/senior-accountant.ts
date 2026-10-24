@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'ASC 606',
     'account reconciliation',
   ],
+  guide: {
+    why: [
+      'The career break is its own dated entry, “Full-time family caregiving”, with the CPA license kept active and 80 hours of continuing education noted, so a reader never has to guess at the gap.',
+      'Close speed is the headline: a three-entity monthly close cut “from eleven business days to six” by moving 40 recurring journal entries onto a schedule, the measure a controller cares about most.',
+      'Audit results are stated as outcomes, the first clean external audit in four years and an ASC 606 policy accepted without adjustment, which answers any doubt about readiness after a break.',
+      'Dollar recoveries, $190k of understated accumulated depreciation and $128k of under-billed common area maintenance, show the reconciliation work paying for itself.',
+    ],
+    faq: [
+      {
+        q: 'How do you explain a career break on an accounting resume?',
+        a: 'List it as a dated entry with a one-line reason, and show you stayed current: an active CPA license and continuing education hours. Then let the roles after the break show results, so the gap reads as planned.',
+      },
+      {
+        q: 'What should a senior accountant resume include?',
+        a: 'Month-end close ownership and days to close, reconciliations, audit outcomes, standards applied such as ASC 606 or US GAAP, and the systems used, like NetSuite or Sage Intacct. Put the CPA in the headline if you hold it.',
+      },
+      {
+        q: 'Should a CPA put the license number on a resume?',
+        a: 'No. Name the license and the issuing state board with the year; employers verify it with the board. Mark it active if there has been a break, so the reader does not assume it lapsed.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Marisol Quintero',

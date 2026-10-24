@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'ISTQB',
     'software tester',
   ],
+  guide: {
+    why: [
+      'The Playwright suite is described by what it caught, not how big it is: escaped defects “from 19 a quarter to 4”, with 118 flows finishing in 9 minutes, the measure a QA lead actually reports upward.',
+      'Flaky tests are dealt with head-on: the quarantine rule took suite reliability from 86% to 99.2%, a detail that shows the judgement automation engineers are hired for beyond writing scripts.',
+      'The Rowan Diagnostics years are cut to two bullets that already look like QA work, CLIA protocol with an error rate below 0.3% and a Python script replacing a paper checklist, so the career change reads as continuity.',
+      'The contract test that caught a field rename which would have dropped 3,000 appointments turns an abstract skill into a single, concrete save a hiring manager remembers.',
+    ],
+    faq: [
+      {
+        q: 'How do you write a QA resume when changing careers?',
+        a: 'Keep the earlier job but shorten it to the bullets that show testing habits: following protocol, documenting errors, automating a manual check. Put the QA roles first and lead the summary with what your automation has shipped or caught since the switch.',
+      },
+      {
+        q: 'Is ISTQB certification worth putting on a QA automation resume?',
+        a: 'Yes for entry-level roles, since many US job posts list it as preferred. Put the ISTQB Foundation Level in a certifications section with the year; it carries more weight beside a bullet showing a working test suite.',
+      },
+      {
+        q: 'What tools should a QA automation engineer resume list?',
+        a: 'Group them: frameworks (Playwright, Cypress, pytest), API and load testing (Postman, k6), languages (TypeScript, Python) and CI. Name the frameworks the job post names, and make sure each appears in at least one bullet with a result.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Devon Castellano',

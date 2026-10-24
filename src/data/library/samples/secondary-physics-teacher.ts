@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'second in science',
     'A-level physics',
   ],
+  guide: {
+    why: [
+      'Each change to the department carries a result: GCSE physics grade 5+ “from 58% to 74%” across three cohorts, and A-level uptake from 19 students to 34, with girls from 4 to 13.',
+      'The Vantis Instrumentation role is kept to two bullets, one of them the schools outreach that reached 600 pupils, so the engineering years explain the move into teaching rather than interrupt it.',
+      'QTS and a PGCE from the University of Leeds are stated plainly, with the NPQ in Leading Teacher Development, which is what a head of science checks before shortlisting for a second-in-department post.',
+      'Mentoring through the ECF is written as an outcome, two early career teachers who both “passed induction on schedule”, showing readiness for middle leadership without overstating it.',
+    ],
+    faq: [
+      {
+        q: 'How long should a teacher CV be in the UK?',
+        a: 'Two pages is standard. Many schools also ask for an application form and a supporting statement, so the CV can stay focused on roles, results and qualifications rather than a teaching philosophy.',
+      },
+      {
+        q: 'Should a teacher CV include exam results?',
+        a: 'Yes, where the class or department results are yours to claim: GCSE grade 5+ rates, A-level outcomes, subject uptake. Say over how many cohorts, and compare against the starting point rather than national averages.',
+      },
+      {
+        q: 'How do you show a career change on a teaching CV?',
+        a: 'Keep the earlier job, cut it to one or two lines that connect to teaching, such as outreach, training or subject expertise, and put QTS and the PGCE where they are easy to find so the switch reads as complete.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ellis Whitmore',

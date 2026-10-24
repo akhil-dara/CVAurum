@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'CPA CMA',
     'manufacturing finance',
   ],
+  guide: {
+    why: [
+      'Close speed is given as a before and after, “from fourteen days to five”, with the method: eliminations moved into the ERP and 26 spreadsheet handoffs retired.',
+      'The standard-costing rebuild across 4,800 part numbers exposed $2.1M of margin and repriced 340 loss-making items. It shows the controller as a source of profit, not only of reports.',
+      'Control work is concrete: 71 key controls documented and six significant deficiencies closed in two cycles, which is what a SOX-readiness employer is looking for.',
+      'Both credentials, Certified Public Accountant and Certified Management Accountant, appear in the header label and the certificates, signalling financial and cost accounting depth for a manufacturing controller role.',
+    ],
+    faq: [
+      {
+        q: 'What should a financial controller resume include?',
+        a: 'Close timeline, team size, control and audit results, systems implemented and the business result of costing or working capital work. Include credentials such as CPA or CMA beside your name.',
+      },
+      {
+        q: 'Is a CMA useful on a controller resume?',
+        a: 'In manufacturing and other cost-heavy industries, yes. It signals cost accounting and performance management skills beside the CPA’s reporting and audit grounding.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Garrett Pemberton',

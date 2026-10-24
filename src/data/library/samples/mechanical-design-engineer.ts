@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'B.Tech mechanical',
     'sheet metal design',
   ],
+  guide: {
+    why: [
+      'Design work is tied to the shop floor: eleven brackets redrawn onto three common blanks cut machining time 34% and removed ₹18 lakh of scrap, which shows a designer who thinks about how parts are made.',
+      'Analysis results carry their constraint: 2.3 kg taken out of a gearbox cross-member “while holding the 1.8 mm deflection limit” shows the engineering judgement behind the Ansys work.',
+      'GD&T is shown solving a real problem, 47 supplier drawing queries closed by rewriting datum schemes, and the ASME Y14.5 and CSWP certificates confirm the skill.',
+      'With two years of work, the SUPRA SAEINDIA chassis and the regenerative damper project still earn space because each carries a measured result, 7.4 kg saved and 41 W recovered.',
+    ],
+    faq: [
+      {
+        q: 'Which software should a mechanical design engineer resume list?',
+        a: 'The CAD packages you design in (SolidWorks, Siemens NX, CATIA, Creo), the analysis tool (Ansys or similar), and drafting standards such as GD&T to ASME Y14.5. Name the ones the job description asks for and show each in a bullet.',
+      },
+      {
+        q: 'Should a mechanical engineer with two years of experience keep college projects on the resume?',
+        a: 'Keep one or two if they are relevant and measured, such as a formula student chassis or a final-year design project, and drop them once work bullets fill the page. Indian employers at this level still read the CGPA, so leave it beside the B.Tech.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Rohan Gokhale',

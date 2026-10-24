@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'ROAS',
     'app install campaigns',
   ],
+  guide: {
+    why: [
+      'The headline pairs cost with volume, acquisition cost from ₹740 to ₹410 while monthly installs grew 2.4 times, which rules out the easy explanation that spend was simply cut.',
+      'Measurement is treated as a skill: geo holdout tests that showed brand search was 62% incremental rather than 98% freed ₹3.1 crore, the kind of finding that marks a senior buyer.',
+      'Fraud control sits beside growth, fraudulent installs from 11% to 1.4% after blocking 130 sub-publishers, which matters for an app-install budget of ₹22 crore.',
+      'Each role states budget and efficiency together, from a ₹9 lakh monthly search budget at Vriksha Organics to ₹1.4 crore a month at Kaarigar Living, so the growth in responsibility is plain.',
+    ],
+    faq: [
+      {
+        q: 'What metrics should a performance marketing resume show?',
+        a: 'Budget managed, acquisition cost or cost per funded account, return on ad spend, volume (installs, orders) and incrementality where you have tested it. Pair each cost metric with a volume metric so a reader can see efficiency did not come from shrinking spend.',
+      },
+      {
+        q: 'Do Google Ads and Meta certifications matter on a resume?',
+        a: 'They are a useful baseline for junior roles and a keyword match for screening software, but at senior level the budget, results and testing method carry more weight. List them in a short certificates section with the year.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Karthik Vaidyanathan',

@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'college junior resume',
     'SolidWorks intern',
   ],
+  guide: {
+    why: [
+      'One internship is enough when it has numbers: setup time per changeover from 22 minutes to 9 and a 4.3% scrap rate traced to a worn locating pin show an intern who fixed things on a live cell.',
+      'Formula SAE is written like engineering work, 1.9 kg cut from the front uprights at a 1.6 safety factor and a valving error caught by 14 shaker-rig tests, ending with the 9th of 111 finish.',
+      'The machine shop job proves safety and responsibility, 120 students signed off on the lathe and mill with no recordable injury, which manufacturing employers weigh heavily for interns.',
+      'Education at the University of Michigan sits first with the GPA and relevant courses, the order US internship recruiters expect from a third-year student.',
+    ],
+    faq: [
+      {
+        q: 'What should a mechanical engineering internship resume include?',
+        a: 'Education with GPA and graduation date, any internship or shop job, design projects such as Formula SAE or Baja, and a skills list of CAD, analysis and shop tools. Keep it to one page and give each project a measured result.',
+      },
+      {
+        q: 'Should a college student put GPA on an engineering resume?',
+        a: 'Yes if it is 3.0 or higher, since many US internship postings screen on it. Write it to two decimal places beside the degree, and leave it off rather than rounding a lower figure up.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Theo Brandt',

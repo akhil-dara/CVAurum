@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'civil engineering graduate',
     'Revit',
   ],
+  guide: {
+    why: [
+      'The lead project is described by what the design saved: a 1,400 m² teaching block where reworked bracing saved 31 tonnes of steel against the tender scheme. That is a design decision, not just a drawing task.',
+      'Quality is shown through review outcomes: 60 reinforced-concrete transfer beams “without a resubmission” and 14 temporary-works designs approved first time, which is what a senior engineer looks for in a graduate.',
+      'Chartership progress is clear: Graduate Member (GMIStructE), the IStructE route named in the summary, and the Temporary Works Coordinator certificate from CITB.',
+      'The MEng research project gives a measured finding, 8% residual drift against the 15% assumed by design guidance, showing the analytical depth behind the First Class Honours.',
+    ],
+    faq: [
+      {
+        q: 'How long should a graduate structural engineer CV be?',
+        a: 'Two pages at most in the UK, and one is fine for a first role. Cover your degree and placement, then the projects you designed with their size, material and your part in them.',
+      },
+      {
+        q: 'Should a graduate engineer CV include a placement year?',
+        a: 'Yes, as its own entry with the firm, length and two or three results. A year in industry often holds the strongest evidence a graduate has, especially approved designs or site work.',
+      },
+      {
+        q: 'What software should a structural engineer CV list?',
+        a: 'The analysis and modelling tools you use day to day, such as Tekla Structural Designer, Robot, Revit and AutoCAD, plus the Eurocodes you design to. Show each one in a project bullet.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Isla Fairbairn',

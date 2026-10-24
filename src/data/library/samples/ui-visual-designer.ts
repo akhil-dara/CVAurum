@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'design systems',
     'Figma portfolio',
   ],
+  guide: {
+    why: [
+      'Visual choices are tied to behaviour: the lesson screen rebuilt around a single primary action raised sessions that finish a lesson “from 47% to 71%”, design judged by what users then did.',
+      'The type-scale bullet, 31 one-off text sizes replaced with six on an eight-point spacing grid, gives a concrete sense of craft that a list of software never could.',
+      'Kolam Type, a Tamil and Latin typeface downloaded 5,800 times, and the Chennai Signboards archive keep the craft in projects, where a design lead can see taste and output together.',
+      'The dual-script Tamil and English layout, fixed after the first version broke onto three lines on five-inch screens, is specific to a regional product and hard to claim without having done it.',
+    ],
+    faq: [
+      {
+        q: 'Should a UI designer resume include a portfolio link?',
+        a: 'Yes, in the header and labelled clearly. The résumé states what changed and what happened afterwards; the portfolio shows the screens. Point the link at a page of selected work rather than a full archive.',
+      },
+      {
+        q: 'Should a fresher designer in India put CGPA on the resume?',
+        a: 'Yes, for the first two or three years, as one line under the degree, such as 8.6 CGPA for a B.Des. Many Indian employers screen on it for entry-level roles; drop it once there are several years of work.',
+      },
+      {
+        q: 'What skills should a UI designer resume list?',
+        a: 'Group them: visual (typography, grids, colour, iconography), interface (design systems, prototyping, responsive layout) and tools (Figma, Illustrator, After Effects). Keep the tool list short and show the skills in bullets.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Kavya Iyer',

@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'feature store',
     'recommender systems',
   ],
+  guide: {
+    why: [
+      'The summary measures the model by what changed for patients, urgent referrals reaching a clinician in 40 minutes rather than six hours, not by an offline accuracy score.',
+      'Production engineering gets equal weight with modelling: training-serving skew cut from 4.1% to 0.3% and a shadow-deployment pipeline that caught two regressions show the work a model needs after it is trained.',
+      'Cost is part of the result: distilling a 340M-parameter classifier into a 22M student cut inference cost 64% with no loss of recall, which is the trade-off an ML team lead wants to see judged.',
+      'Driftgauge, with 1,900 stars and 24 contributors, gives outside evidence of the same drift-monitoring skill the Bramblewick Retail Group bullet describes.',
+    ],
+    faq: [
+      {
+        q: 'How long should a machine learning engineer CV be in the UK?',
+        a: 'Two pages at most. With seven years, give the current role four bullets and earlier ones two or three, and leave out photo, date of birth and nationality, which UK CVs do not carry.',
+      },
+      {
+        q: 'Should a machine learning engineer resume list model accuracy?',
+        a: 'Only beside a live outcome. Offline scores mean little to a hiring manager on their own; pair a metric with what it changed in production, such as returns, response time or cost, and say how the model was deployed and monitored.',
+      },
+      {
+        q: 'Should open-source projects go on an ML engineer resume?',
+        a: 'Yes, when they are used by others. Give the project a line with adoption figures (stars, contributors, downloads) and the stack, and link the repository from the header so a reviewer can read the code.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Samir Qureshi',

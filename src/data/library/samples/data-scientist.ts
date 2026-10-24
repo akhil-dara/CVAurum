@@ -24,6 +24,19 @@ export const sample: LibrarySample = {
     'Python',
     'energy analytics',
   ],
+  guide: {
+    why: [
+      'Model accuracy is translated into money: forecast error from 4.8% to 2.9% is “about $6.1m a year in avoided imbalance charges”, which lets a non-technical reader weigh the work.',
+      'The career break is a dated entry with Harvard Extension School coursework and two open-source releases, and the return at three days a week is stated, so the gap is explained and then left behind.',
+      'Rigour is shown, not claimed: rewriting the backtest revealed two years of reported accuracy had been “optimistic by 0.6 points”. Admitting that is the senior judgement teams hire for.',
+      'Two publications, one on load forecasts under rooftop solar and one on scores “a care team can act on”, match the two domains on the page and back the summary’s eleven years.',
+    ],
+    faq: [
+      { q: 'What should a senior data scientist resume focus on?', a: 'Models in production, who depends on them, and their effect in business terms: money saved, risk reduced, decisions changed. Add the standards you set for others, such as review or backtesting rules, and mentoring results. Keep the tool list short.' },
+      { q: 'How do you return to data science after a career break?', a: 'Keep skills current with a course or open-source work, and consider a part-time return if offered. On the résumé, list the break as a dated entry with what you did, then put the strongest post-return results in the summary.' },
+      { q: 'How long should a data scientist resume be?', a: 'Two pages is fine with ten or more years, provided the first page carries the recent work and its results. Publications and projects can go on page two; early analyst roles need only one or two bullets.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Naomi Adeyemi',

@@ -26,6 +26,28 @@ export const sample: LibrarySample = {
     'community management',
     'short-form video',
   ],
+  guide: {
+    why: [
+      'Growth is stated with its conditions: TikTok “from 3,000 to 141,000 followers in ten months”, with 14 videos past 100,000 views shot on a phone and no paid promotion.',
+      'Engagement is compared with a benchmark, a 6.8% average rate against a 2.1% category benchmark, which tells a hiring manager the number is good instead of leaving them to guess.',
+      'Social is tied to sales: the pecan cold brew, launched from a recurring comment-section request, sold 19,000 units in its first month, the link between community and revenue that is easy to leave out.',
+      'Second Rack, a personal TikTok with 38,000 followers and four paid brand partnerships, shows an entry-level candidate who already negotiates and invoices like a professional.',
+    ],
+    faq: [
+      {
+        q: 'What should a social media manager resume include?',
+        a: 'Follower growth with the time period, engagement rates against a benchmark, any sales or leads tied to social, and the tools you produce with, such as CapCut or Premiere Pro. Link a portfolio or the accounts you ran.',
+      },
+      {
+        q: 'Should a social media resume include a personal account?',
+        a: 'Yes, if it has real numbers: followers, views or paid partnerships. List it as a project with one line of results; it shows content skills on an account you fully control.',
+      },
+      {
+        q: 'How do you write a social media manager resume with little experience?',
+        a: 'Use part-time, freelance and volunteer work as full entries with numbers, such as posts scheduled or followers gained for a client. Keep it to one page and lead with your strongest growth result.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Camila Restrepo',

@@ -23,6 +23,24 @@ export const sample: LibrarySample = {
     'first job resume India',
     'accounting fresher',
   ],
+  guide: {
+    why: [
+      'Part-time work is treated as real accounting: about 380 vouchers a month in Tally and books closed by the fourth working day, down from the eleventh.',
+      'One result shows judgement beyond data entry: Rs 6.8 lakh of unmatched GST input credit reconciled and recovered in the 2025-26 filings.',
+      'The CA Foundation (cleared) certificate and the B.Com (Hons) by distance from the University of Delhi are both shown, explaining how study and work fit together.',
+      'Even the evening counter job at Shanti Sweets and Bakers carries a result, closing the till to the rupee across ten months, which signals accuracy with cash.',
+    ],
+    faq: [
+      {
+        q: 'What should an accounts fresher resume include in India?',
+        a: 'Education with percentages, any accounting work including part-time or family business, software such as Tally Prime and Excel, and GST or TDS tasks you have handled. Add CA Foundation or similar exams if cleared.',
+      },
+      {
+        q: 'Should part-time jobs go on a fresher resume?',
+        a: 'Yes, especially if they involve accounts, cash or customers. Give each one a measured result, such as books closed faster or receivables reduced.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Jyoti Rathore',

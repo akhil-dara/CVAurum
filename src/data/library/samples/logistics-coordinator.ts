@@ -26,6 +26,24 @@ export const sample: LibrarySample = {
     'on-time delivery',
     'logistics resume India',
   ],
+  guide: {
+    why: [
+      'Two years of work is shown at lane level: the Pune–Nagpur milk run cut from 71 hours to 44 with on-time delivery rising from 86% to 96% is a change a hiring manager can picture on a map.',
+      'Cost per shipment on short lanes from ₹96 to ₹74 shows an entry-level coordinator already negotiating with carriers, which is the step most freshers have not taken.',
+      'The Measures skill group (on-time delivery, cost per shipment, RTO rate, dock turnaround) names the numbers the role is judged on, and each is backed in a bullet, such as return-to-origin volume cut by 31%.',
+      'The CLTD and Six Sigma Green Belt certificates give a B.Com graduate formal supply-chain credentials to sit beside the experience.',
+    ],
+    faq: [
+      {
+        q: 'How to write a logistics coordinator resume with little experience?',
+        a: 'Describe each change you made to a route, schedule or process with a before and after: hours, rupees per shipment, exceptions closed. Two roles with three or four such bullets each say more than a list of daily duties.',
+      },
+      {
+        q: 'Which certifications help a logistics resume in India?',
+        a: 'ASCM’s CLTD or CSCP for supply chain, a Six Sigma Green Belt for process work, and SAP MM if the employer runs SAP. List the issuer and year, and show the skill in use in at least one bullet.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Rhea Kulkarni',

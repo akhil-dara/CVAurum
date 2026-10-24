@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'floodplain management',
     'hydrology and hydraulics',
   ],
+  guide: {
+    why: [
+      'The headline outcome survives a reference check: a levee accreditation study that removed 1,240 properties from the FEMA special flood hazard area and about $1.9M a year in insurance premiums.',
+      'Permitting is stated as a record, 21 culvert and bridge replacements permitted through the Corps and state fish agencies “without a second review cycle”, which is what public-agency clients value.',
+      'Business development is part of the role: $6.2M in state resilience grants won for three clients and a portfolio of about $4M in annual fees, the measures a consulting firm promotes on.',
+      'PE licensure in three states and the Certified Floodplain Manager credential sit in certifications, and coaching four engineers to their PE shows the mentoring expected of a senior engineer.',
+    ],
+    faq: [
+      {
+        q: 'Should a civil engineer resume list PE licenses in several states?',
+        a: 'Yes, in one line naming each state, such as Professional Engineer (Civil) in Oregon, Washington and Idaho, with the year of first licensure. Multi-state licensure matters to consulting firms bidding across state lines.',
+      },
+      {
+        q: 'What software should a water resources engineer resume list?',
+        a: 'The hydrology and hydraulics models used on delivered projects, such as HEC-RAS 1D and 2D, HEC-HMS and EPA SWMM, plus GIS and CAD tools. Show at least one in a bullet with its result.',
+      },
+      {
+        q: 'How long should a senior civil engineer resume be?',
+        a: 'Two pages for thirteen years. Consulting firms often keep a separate project list, so keep the résumé to outcomes per role and offer a project sheet if asked.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Naomi Strandberg',

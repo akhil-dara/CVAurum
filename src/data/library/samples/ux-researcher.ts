@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'research operations',
     'usability testing',
   ],
+  guide: {
+    why: [
+      'The summary names a decision, not a method: the discovery that stopped a “$2.1M scheduling rebuild” and moved the budget to the intake queue, the outcome research leaders are hired for.',
+      'Method and result are paired: contextual inquiry plus a one-page task analysis cut a nurse handoff from 6.4 minutes to 2.8, so the reader sees how the research reached the product.',
+      'Research operations are costed: a standing panel of 340 clinicians took recruitment from three weeks to four days and ended $96k a year of panel-vendor spend.',
+      'Influence is measured, 21 roadmap items citing a study by name and 30 designers and product managers trained at Larkspur Systems to moderate sessions, showing reach beyond a single researcher.',
+    ],
+    faq: [
+      {
+        q: 'What should a senior UX researcher resume include?',
+        a: 'Decisions the research changed, with the business effect; the methods behind them; research operations built, such as panels or repositories; and the size of the team led. Link a portfolio of case studies.',
+      },
+      {
+        q: 'Should a UX researcher resume include publications?',
+        a: 'Yes, if there are journal papers or conference talks; list them in a short section with title, venue and year. They support seniority but should not crowd out work outcomes.',
+      },
+      {
+        q: 'How long should a UX researcher resume be?',
+        a: 'One to two pages; at nine years with four roles, two is reasonable. Keep the earliest research associate role to two bullets and spend the space on recent decisions.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Imani Sowande',

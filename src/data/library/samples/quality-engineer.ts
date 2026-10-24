@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'supplier quality engineer',
     'ASQ CQE',
   ],
+  guide: {
+    why: [
+      'Results are stated in the units a Tier-1 customer quality manager tracks: customer PPM from 840 to 96, cost of poor quality from 2.1% to 0.9% of sales, and IATF 16949 findings cut from eleven to two minors.',
+      'The 8D bullet names the root cause, a deburring step, and the money it ended, “₹62 lakh of annual debit notes”, which shows structured problem solving finished rather than started.',
+      'The Thendral Metalworks production role stays on the page, with a 34-operator shift and schedule adherence lifted to 94%, giving the later containment and inspection work its shop-floor credibility.',
+      'Credentials are layered by weight: ASQ Certified Quality Engineer, IATF 16949 internal auditor and an ISO 9001 lead auditor, each matching a keyword supplier quality job posts filter on.',
+    ],
+    faq: [
+      {
+        q: 'What should a quality engineer resume include?',
+        a: 'The quality metrics you moved (PPM, COPQ, audit findings, on-time PPAP), the core tools you used (APQP, PFMEA, control plans, MSA, 8D) and your audit credentials. For automotive roles, name IATF 16949 explicitly, since recruiters search for it.',
+      },
+      {
+        q: 'Should a quality engineer resume in India show percentage marks?',
+        a: 'For mid-level roles one line with the degree score, such as 78.4%, is common and harmless. After about ten years it can be dropped; experience and certifications carry the page.',
+      },
+      {
+        q: 'How do you show an 8D on a quality engineer resume?',
+        a: 'In one bullet: the problem, the root cause found, and the measured effect, such as debit notes ended or PPM reduced. Skip listing every discipline; the reader wants to see that the problem stayed closed.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Divya Sundaresan',

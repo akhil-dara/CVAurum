@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'CFA Level I',
     'financial modeling',
   ],
+  guide: {
+    why: [
+      'The summary leads with one measured improvement, forecast error “from 11% to 4%”, which tells an FP&A hiring manager the analyst changes models rather than only updating them.',
+      'Time saved and errors caught are both counted: 14 hours of consolidation replaced by a 20-minute refresh, and a $420k freight accrual error found before it reached the board pack.',
+      'The Cook County Budget Explorer project shows Power BI and SQL used on public data with an audience of roughly 4,000 visitors, a useful addition for an entry-level candidate.',
+      'The CFA Program pass and the 3.7 GPA from University of Illinois Urbana-Champaign are kept short, because two years of results already do the work.',
+    ],
+    faq: [
+      {
+        q: 'Should an entry-level financial analyst resume include GPA?',
+        a: 'Yes in the first two or three years if it is 3.5 or higher. After that, drop it and let the work results carry the education section.',
+      },
+      {
+        q: 'What skills should a financial analyst resume list?',
+        a: 'Analysis skills (forecasting, variance analysis, three-statement modeling), tools (Excel, Power Query, Power BI, SQL) and the ERP or planning system you used, such as NetSuite or Anaplan. Show each in a bullet.',
+      },
+      {
+        q: 'Should CFA progress go on a financial analyst resume?',
+        a: 'Yes. List passed levels in a certifications section with the year, or note that you are a candidate for the next level. It signals commitment to finance even in a corporate FP&A role.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Devin Aguilar',

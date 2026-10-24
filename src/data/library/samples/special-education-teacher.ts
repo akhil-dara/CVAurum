@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'structured literacy',
     'returning to teaching',
   ],
+  guide: {
+    why: [
+      'Compliance is stated plainly for a case manager: 26 IEPs with every annual and triennial meeting on time and no due-process filings in five years, the record a special education director checks first.',
+      'Student growth is measured, caseload students meeting annual reading goals “from 54% to 81%” after a move to weekly curriculum-based measurement, so the method and the result arrive together.',
+      'The two-year break appears through the Rose City Family Support Network, sitting with 40 families in IEP meetings, so the gap reads as related advocacy work rather than time away.',
+      'Co-teaching results are compared fairly: students with IEPs passed the Grade 7 math state assessment at 63% against 38% in sections without co-teaching.',
+    ],
+    faq: [
+      {
+        q: 'How do you explain a career break on a teaching resume?',
+        a: 'Name the break and its reason in one line, and show anything relevant done during it, such as advocacy, tutoring or part-time contracts. Keep the license current and list the renewal date so a district sees no lapse.',
+      },
+      {
+        q: 'What certifications go on a special education teacher resume?',
+        a: 'Your state special education license with its endorsement and renewal year, plus training such as Orton-Gillingham, structured literacy or crisis intervention. Assessment tools you administer, like the WJ-IV or KTEA-3, belong in skills.',
+      },
+      {
+        q: 'What should a special education teacher resume include?',
+        a: 'Caseload size, IEP compliance record, student progress against goals, co-teaching or inclusion results, and training given to colleagues. Use measures the district already reports, such as goal attainment rates.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Dana Whitlock',

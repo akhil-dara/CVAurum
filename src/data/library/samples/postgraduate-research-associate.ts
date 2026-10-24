@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'academic resume India',
     'water quality research',
   ],
+  guide: {
+    why: [
+      'The summary states the post wanted and the start date, a funded research post in drinking-water quality from June 2027, so a principal investigator can match the applicant to a project at once.',
+      'Research volume is specific, 96 fixed-bed column experiments and 42 community wells over three seasons, and each is tied to the paper it produced in Journal of Water Process Engineering.',
+      'Lab troubleshooting carries a before and after: the ICP-MS digestion routine rebuilt after 14% of samples failed spike recovery shows the care a funded project depends on.',
+      'The Rs 2,800 turbidity logger that tracked a nephelometer within 6% over 90 days shows field engineering on a budget, a strong signal for applied water research.',
+    ],
+    faq: [
+      {
+        q: 'What should a JRF or research associate CV include in India?',
+        a: 'Education with CGPA for each degree, GATE or NET score, research experience with the instruments and methods used, publications with author position, and conference presentations. Put the thesis topic and supervisor area under the M.Tech entry.',
+      },
+      {
+        q: 'Should an M.Tech fresher CV list GATE rank?',
+        a: 'Yes. For funded research posts and PSU or institute hiring, the GATE rank or score is a common eligibility check. List the year, paper and All India Rank under awards or achievements.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ankit Barman',

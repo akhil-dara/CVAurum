@@ -23,6 +23,18 @@ export const sample: LibrarySample = {
     'e-commerce analytics',
     'fresher data analyst',
   ],
+  guide: {
+    why: [
+      'Every dashboard is followed by what changed once it existed: the Power BI category report replaced 90 minutes of spreadsheet work with a four-minute refresh that 40 category managers read.',
+      'The strongest bullet is an investigation, not a report: a 9% fall in repeat orders traced to a coupon rule, with about ₹1.4 crore of annual revenue restored. That is the analysis hiring managers want from a junior analyst.',
+      'Technical care shows too: query cost on the three heaviest dashboards cut 62% by partitioning the orders table, which sets this résumé apart from report-builders.',
+      'Mandi Watch, a public dashboard for 14 crops across 60 Maharashtra markets with about 3,100 monthly visitors, gives a fresher-level candidate work anyone can open.',
+    ],
+    faq: [
+      { q: 'What should a fresher data analyst resume include in India?', a: 'SQL, Excel and one BI tool shown in use, your degree with CGPA, an internship with figures, and one or two projects with a link. Recruiters in India often screen on CGPA and certifications such as PL-300, so list them clearly.' },
+      { q: 'Should a data analyst resume include a portfolio project?', a: 'Yes, especially in the first two years. Choose one that uses real data and has users or a finding, give its scale and tools, and link it. One strong live project is worth more than several course exercises.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ananya Deshmukh',

@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'operations leadership',
     'supply chain director',
   ],
+  guide: {
+    why: [
+      'One unit measure runs through the whole résumé: cost per delivered order from ₹94 to ₹58. Using a single metric across roles makes fourteen years easy to compare.',
+      'Quality rose with cost falling: on-time delivery from 88.6% to 97.4% while volume grew 2.7 times. Showing both answers the obvious question about cost cuts.',
+      'Scale is stated in Indian units a reader can place, 9.4 lakh orders a month and 1,100 people in nine cities, which sets the size of the job before the bullets.',
+      'Promoting six of nine city managers from the floor, with attrition at 4% against a 22% market rate, shows the leadership side of an operations role.',
+    ],
+    faq: [
+      {
+        q: 'What metrics should a head of operations resume show?',
+        a: 'Cost per unit or order, on-time delivery, throughput, contact or complaint rate and frontline attrition. Pick one or two that run through every role so a reader can see the trend.',
+      },
+      {
+        q: 'Are PMP and Six Sigma useful on an operations resume in India?',
+        a: 'They help with screening for large employers and are worth a line in certifications. Results in the bullets matter more, so keep them short.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Sanjana Iyer',

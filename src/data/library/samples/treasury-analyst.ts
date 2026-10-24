@@ -27,6 +27,28 @@ export const sample: LibrarySample = {
     'asset liability management',
     'MBA finance',
   ],
+  guide: {
+    why: [
+      'The summary leads with the refinancing a treasurer asks about first, ₹380 crore of term debt at 85 basis points below the prior rate, and the bullet adds the ₹3.2 crore a year it saves.',
+      'Cash forecasting is measured in idle money, balances taken “from ₹64 crore to ₹18 crore” with ₹1.4 crore a year of yield added, which turns a 13-week forecast into a result.',
+      'The engineering-to-finance switch is never explained away: the B.E. from College of Engineering Guindy and the MBA from Great Lakes Institute of Management simply sit together, and the bullets make the case.',
+      'Regulatory work at Neytal Finance Limited, quarterly asset-liability statements for the Reserve Bank of India and a 1-to-30-day bucket gap closed, shows NBFC treasury experience beyond corporate cash.',
+    ],
+    faq: [
+      {
+        q: 'What should a treasury analyst resume include?',
+        a: 'Debt book size, refinancing or borrowing cost in basis points, cash forecasting accuracy or idle balances, hedging outcomes and regulatory filings. Name the systems you used, such as SAP Treasury or Kyriba, in a skills group.',
+      },
+      {
+        q: 'Should a treasury resume in India mention CFA levels passed?',
+        a: 'Yes, state the exact level, such as passed Level II of the CFA Program, with the year. Do not write CFA alone unless you hold the charter; Indian finance employers check.',
+      },
+      {
+        q: 'Should an engineer moving into finance explain the switch on a resume?',
+        a: 'No explanation is needed if the MBA and the finance roles carry results. List both degrees plainly, put finance experience first, and let a line such as a refinancing in basis points show the fit.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Karthik Raghavan',

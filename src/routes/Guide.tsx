@@ -15,6 +15,7 @@ import { useSavedCount } from '@/components/site/HeaderActions'
 import { GUIDES, guideBySlug } from '@/data/guides'
 import { SITE, guidePageMeta } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
+import { linkParts } from '@/lib/inlineLinks'
 import { TEMPLATE_COUNT } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
 
@@ -61,7 +62,7 @@ export function Guide() {
           </h1>
           {g.intro.map((p, i) => (
             <p key={i} className="mt-3 text-[15px] leading-relaxed text-foreground">
-              {p}
+              <Prose text={p} />
             </p>
           ))}
           {g.tool === 'ats-check' ? (
@@ -78,13 +79,15 @@ export function Guide() {
               <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{sec.heading}</h2>
               {sec.paragraphs.map((p, i) => (
                 <p key={i} className="mt-2.5 text-[15px] leading-relaxed text-foreground">
-                  {p}
+                  <Prose text={p} />
                 </p>
               ))}
               {sec.list && (
                 <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed text-foreground marker:text-muted-foreground">
                   {sec.list.map((li) => (
-                    <li key={li}>{li}</li>
+                    <li key={li}>
+                      <Prose text={li} />
+                    </li>
                   ))}
                 </ul>
               )}
@@ -97,7 +100,9 @@ export function Guide() {
               {g.faq.map((f) => (
                 <div key={f.q} className="p-4">
                   <dt className="text-[15px] font-medium">{f.q}</dt>
-                  <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+                  <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    <Prose text={f.a} />
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -121,5 +126,22 @@ export function Guide() {
 
       <SiteFooter />
     </div>
+  )
+}
+
+/** A guide's sentence with its `[label](/path)` links (lib/inlineLinks). */
+function Prose({ text }: { text: string }) {
+  return (
+    <>
+      {linkParts(text).map((p, i) =>
+        typeof p === 'string' ? (
+          p
+        ) : (
+          <Link key={i} className="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary" to={p.href}>
+            {p.label}
+          </Link>
+        )
+      )}
+    </>
   )
 }

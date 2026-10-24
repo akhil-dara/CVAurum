@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'consulting resume India',
     'operations to strategy',
   ],
+  guide: {
+    why: [
+      'The summer internship is written as an outcome: 1,400 household interviews became “the basis of a Rs 40 crore launch plan”, which is the result a final-placement recruiter asks about first.',
+      'Four years at Varsha Energy Systems are not hidden behind the degree: rework from 6.1% to 1.8% and Rs 11 crore of contracts held flat through a 14% copper rise give the pre-MBA work real weight.',
+      'Education sits above work, as IIM placement résumés expect for a current student, with the CGPA shown on both the MBA and the B.E.',
+      'The volunteer line, a Rs 38 per-metre gap closed for a 600-member weavers collective, shows the same costing skill used outside a company.',
+    ],
+    faq: [
+      {
+        q: 'Should an MBA resume be one page?',
+        a: 'Yes. Indian B-school placement cells and most recruiters expect one page. Keep two or three bullets per role, put education first while you are a student, and move hobbies and school marks off the page unless they are distinctive.',
+      },
+      {
+        q: 'Should an MBA resume include CAT percentile and CGPA?',
+        a: 'Yes for campus placements in India. Put the CGPA for each degree beside it and the CAT percentile under awards or scholastic achievements; firms shortlisting at IIMs often screen on both.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ishita Bhandari',

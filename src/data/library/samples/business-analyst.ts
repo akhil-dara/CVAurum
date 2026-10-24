@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'SQL and Power BI',
     'collections analytics',
   ],
+  guide: {
+    why: [
+      'Each Sanchay Credit bullet ties the analysis to what changed: 180,000 repayment records showed morning calls recovered 23% more, and the calling roster was redrawn across every branch.',
+      'Delivery work is counted honestly: 34 requirements written, 19 defects caught in UAT and “four surfaced after release”. Admitting the four makes the 19 more believable to a hiring manager.',
+      'A two-year résumé keeps a final-year project because it earns its place: the Repayment Propensity Model captured 68% of defaults and placed second of 46, which supports the 8.6 CGPA in Statistics.',
+      'The Tarangi Retail role is cut to two bullets, one of them a ₹18 lakh markdown loss reduced 61%, so the first job adds evidence without crowding the current one.',
+    ],
+    faq: [
+      { q: 'What skills should an entry-level business analyst resume show?', a: 'SQL, Excel and a BI tool such as Power BI, plus the business side: requirements gathering, process mapping, UAT and BRD writing. In India, add the domain you know (lending, retail, insurance) since many BA roles are hired by industry.' },
+      { q: 'Should a business analyst fresher include CGPA and college projects?', a: 'Include CGPA in the first two or three years, especially above 7.5, and keep one project if it shows real analysis with a result. Drop both once you have more work results than space.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ananya Deshpande',

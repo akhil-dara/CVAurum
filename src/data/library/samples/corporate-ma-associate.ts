@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'venture financing',
     'law firm associate resume',
   ],
+  guide: {
+    why: [
+      'Deals are written as what the negotiation won: diligence on a $410M carve-out found a $6.2M change-of-control exposure that “became a purchase-price adjustment in the buyer’s favor”.',
+      'Volume and reliability are both shown: nine purchase agreements averaging $85M, eight signed inside the target window and none reopened after closing.',
+      'The Sutherland Reach Capital analyst role is kept because modeling 22 leveraged buyouts explains why a fourth-year associate can read a deal financially.',
+      'Bar admission sits in certificates with the year and court, Admitted to the New York State Bar in 2023, and the J.D. lists Fordham Law Review, which law firm recruiters check first.',
+    ],
+    faq: [
+      { q: 'What should a corporate M&A associate resume include?', a: 'Bar admissions, class year, and a short deal list or bullets with deal type, size and your role: diligence, drafting, negotiation, closing. Add law review or moot court in education and any prior finance experience that helps you read the numbers.' },
+      { q: 'Should a lawyer resume include a representative deal list?', a: 'Yes, for transactional roles. Describe deals by type, sector and value without client names unless the deal is public. A list of four to eight recent matters, or bullets as on this résumé, lets a hiring partner judge level quickly.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Naomi Brandt',

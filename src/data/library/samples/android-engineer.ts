@@ -22,6 +22,18 @@ export const sample: LibrarySample = {
     'app performance',
     'offline-first',
   ],
+  guide: {
+    why: [
+      'Every bullet carries a number the product team also tracked: abandonment from 34% to 11%, app size from 61MB to 24MB, p90 cold start under 1.2s. That reads as an engineer who ships for users, not one who collects libraries.',
+      'Tools appear inside results rather than in a list: the offline-first cart is built “in Room and WorkManager”, and 90 screens move to Jetpack Compose with UI code cut 38%, so each skill is shown in use.',
+      'The Fernpath Media role is labelled “part-time” with its twenty hours a week stated, which keeps the five-year claim honest and still lets the Java-to-Kotlin conversion count.',
+      'The Rainier Code Collective teaching, with 34 of 41 graduates in paid engineering work, adds mentoring evidence that a mid-level engineer aiming at senior roles needs.',
+    ],
+    faq: [
+      { q: 'What should an Android developer resume include?', a: 'Kotlin and the Jetpack libraries you have shipped with (Compose, Room, WorkManager, Hilt), the size of the apps you worked on, and the performance or product numbers you moved: crash rate, cold start, app size, conversion. A Play Store or GitHub link helps if the work is public.' },
+      { q: 'Should an Android resume list every library used?', a: 'No. Keep one short Android skills line with the libraries that matter for the role and let the bullets show them in use. A long list of every dependency tells a reviewer little about what you can build.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Jordan Feltz',

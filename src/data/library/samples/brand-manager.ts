@@ -25,6 +25,18 @@ export const sample: LibrarySample = {
     'campaign management',
     'shopper marketing',
   ],
+  guide: {
+    why: [
+      'Results are given in the measures FMCG uses: value share from 4.1% to 6.3%, distribution from 41% to 68%, unprompted awareness from 19% to 31%. Impressions and engagement are left out because a category director will not ask for them.',
+      'The Kingsmere Beverages role states what is owned before what was done: a £46M range of four SKUs, its P&L and two direct reports, which sets the scale for every bullet below.',
+      'Spend is paired with return. The £2.1M television burst “paid it back 1.7 times inside the year”, and sampling ran at 19p a contact against a 34p benchmark, showing commercial discipline as well as creativity.',
+      'The Windlow Home graduate programme is held to two bullets, the right weight six years in, while the CIM Level 6 Diploma sits in certificates for UK readers who look for it.',
+    ],
+    faq: [
+      { q: 'What should a brand manager CV include in the UK?', a: 'The brand and its size, what you own (P&L, agencies, reports), and results in share, distribution, rate of sale and awareness. Add listings won with named retailer types, campaign budgets with payback, and a CIM qualification if you hold one.' },
+      { q: 'How long should a brand manager CV be?', a: 'Two pages at most. With six years or so, one full page plus a short second is common: the current role takes most of the space and graduate scheme rotations need only a line or two.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Oliver Brathwaite',

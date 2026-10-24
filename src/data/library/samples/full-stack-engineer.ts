@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'software engineer India',
     'TypeScript',
   ],
+  guide: {
+    why: [
+      'The checkout rebuild is described by its failure rate, order drop-off at peak “from 8% to 0.05% across three festive sales”, which is the result an e-commerce employer actually feels.',
+      'One bullet covers the whole stack in a single feature: the UPI refund flow’s React screens, ledger entries and reconciliation job, settling 11,000 refunds a month. That is what full-stack means in practice.',
+      'The path from Varnika Software Services to a product team at Kestrel Commerce is visible, with results at each step, so six years read as growth rather than a list of employers.',
+      'The Invoice Kit project, with 480 stars and use by about 60 small businesses, shows domain knowledge of GST invoicing that Indian retail and fintech teams value.',
+    ],
+    faq: [
+      {
+        q: 'How should a full-stack engineer resume show both frontend and backend?',
+        a: 'Pick bullets that cross the stack, a feature you built from screen to database, and give it a measured result. Then group skills as languages, stack and practice rather than listing every library.',
+      },
+      {
+        q: 'Should an Indian software engineer resume include CGPA after six years?',
+        a: 'It can stay as a short line beside the degree, but it no longer carries weight. Move education to the end and let production results lead.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Karthik Rajagopal',

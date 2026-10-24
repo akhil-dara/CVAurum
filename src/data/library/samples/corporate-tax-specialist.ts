@@ -25,6 +25,18 @@ export const sample: LibrarySample = {
     'capital allowances',
     'HMRC enquiry',
   ],
+  guide: {
+    why: [
+      'Every bullet ends in a figure recovered or a deadline met: £412,000 across three R&D claims, one defended through an HMRC enquiry “without reduction”, and every CT600 of the 2025 cycle filed on time.',
+      'The Winterbourne Housing Group role is labelled a nine-month contract, so no reader wonders why it was short, and it still carries £96,000 of input tax recovered.',
+      'CTA and ACCA are in the title line and certificates, the pairing UK tax hirers filter for, while “Passed all thirteen ACCA examinations” alongside a full caseload shows workload.',
+      'The honorary treasurer role adds accounts for a charity with £240,000 of income, filed on time for four consecutive years, useful evidence for practices with not-for-profit clients.',
+    ],
+    faq: [
+      { q: 'What qualifications should a corporate tax CV show in the UK?', a: 'CTA is the specialist tax qualification most firms ask for, often alongside ACA or ACCA. List each with the year, and mention ATT or study in progress if you are still qualifying. Put them near the top, as tax hirers screen on them first.' },
+      { q: 'How do you write a short contract role on a CV?', a: 'Label it in the job title, for example “Interim Tax Accountant (nine-month contract)”, and give it two or three bullets with results. A labelled contract reads as a planned move; an unexplained short role invites questions.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Yasmin Okonkwo',

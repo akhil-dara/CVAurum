@@ -382,18 +382,20 @@ describe('every sample is written the way it tells the reader to write', () => {
  */
 describe('the advice under a sample is about that sample', () => {
   const withGuide = () => LIBRARY.filter((s) => s.guide)
-  const sampleText = (s: LibrarySample) =>
-    [
-      ...prose(s).map((p) => p.text),
-      ...s.content.work.flatMap((w) => [w.position, w.name]),
-      ...s.content.education.flatMap((e) => [e.institution, e.studyType, e.area]),
-      ...s.content.skills.flatMap((g) => [g.name, ...(g.keywords ?? [])]),
-      ...s.content.certificates.map((c) => c.name),
-      ...s.content.projects.map((p) => p.name),
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
+  // Every word on the résumé - publications, awards, placements, scores and
+  // custom sections included. Reading only bullets and names turned true
+  // points about a sample's papers or placements away, and pushed the advice
+  // towards the generic (2026-10-24).
+  const sampleText = (s: LibrarySample) => {
+    const out: string[] = []
+    const walk = (v: unknown) => {
+      if (typeof v === 'string') out.push(plain(v))
+      else if (Array.isArray(v)) v.forEach(walk)
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk)
+    }
+    walk(s.content)
+    return out.join(' ').toLowerCase()
+  }
 
   it('has three or four points and two or three questions, each worth reading', () => {
     const bad: string[] = []
@@ -426,7 +428,10 @@ describe('the advice under a sample is about that sample', () => {
       for (const w of s.guide!.why) {
         const figures = w.match(/\d[\d,.]*\s?%?/g) ?? []
         const quoted = [...w.matchAll(/[“"']([^”"']{4,})[”"']/g)].map((m) => m[1])
-        const names = [...w.matchAll(/\b[A-Z][\w&+.-]*(?:\s+[A-Z][\w&+.-]*)*/g)].map((m) => m[0]).filter((n) => n.length > 3)
+        // a name closing a sentence keeps no full stop ("…at Northwind.")
+        const names = [...w.matchAll(/\b[A-Z][\w&+.-]*(?:\s+[A-Z][\w&+.-]*)*/g)]
+          .map((m) => m[0].replace(/[.,;:-]+$/, ''))
+          .filter((n) => n.length > 3)
         const tied =
           figures.some((f) => text.includes(f.trim().replace(/\s/g, ''))) ||
           quoted.some((q) => text.includes(q.toLowerCase())) ||

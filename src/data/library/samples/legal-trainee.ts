@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'AIBE',
     'BA LLB resume',
   ],
+  guide: {
+    why: [
+      'With no matters of its own yet, the summary leads with a deal: the documents for a ₹6 crore seed round “that signed three weeks after the term sheet”, which tells a partner the trainee can already carry a drafting job to close.',
+      'Due diligence is written as a finding, not a task: three unregistered charges across 14 targets “changed the indemnity position”, the kind of catch a corporate team hires a trainee to make.',
+      'Both the All India Bar Examination and enrolment with the Bar Council of Delhi sit in certificates, answering the first eligibility question a firm asks of a 2025 graduate.',
+      'The moot result carries a number, Best Memorial among 42 teams, and sits in awards so the internships and the current role keep the top of the page.',
+    ],
+    faq: [
+      {
+        q: 'Should a law fresher resume include CGPA?',
+        a: 'Yes, for the first two or three years. Indian firms screen on the university and the CGPA, so put it beside the B.A. LL.B. entry as written on the marksheet (here “CGPA 8.2/10”). Drop it once you have a few years of matters to show instead.',
+      },
+      {
+        q: 'How should a legal trainee list internships on a resume?',
+        a: 'List only the ones that produced work you can describe, newest first, and name the output: contracts reviewed, notices drafted, an evidence index compiled. Five internships can collapse into one line in the summary, as here, with the assessment internship given its own entry.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Tanvi Raikar',

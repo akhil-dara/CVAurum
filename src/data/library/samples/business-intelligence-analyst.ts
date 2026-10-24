@@ -23,6 +23,18 @@ export const sample: LibrarySample = {
     'healthcare analytics',
     'reporting analyst',
   ],
+  guide: {
+    why: [
+      'The career change happened inside Ridgehaven Health Partners, and the CV shows both titles under one employer, so the move from Operations Coordinator to analyst reads as a promotion earned by the scheduling model.',
+      'Accuracy work is shown, not claimed: an overlapping join double-counted 11% of no-shows, and the corrected 17% rate changed how three clinics staffed Fridays. That is the bullet a BI manager remembers.',
+      'Power BI appears in a result, Monday preparation cut “from six hours to 20 minutes”, and the PL-300 certificate backs it, so the main tool is both used and verified.',
+      'The metric definitions page that settled “what counts as a completed visit” after two years of argument shows the governance side of BI that entry-level candidates rarely evidence.',
+    ],
+    faq: [
+      { q: 'How do you move into a business intelligence analyst role from operations?', a: 'Show the reporting you already did in operations, with numbers: a model that cut overtime, a reconciliation that recovered money. Learn SQL and one BI tool properly, add a certification such as PL-300, and ask for an internal move if your employer has an analytics team.' },
+      { q: 'What should a BI analyst resume include?', a: 'The dashboards or reports you own and who uses them, the tools (Power BI or Tableau, SQL, DAX), and results such as time saved or errors found. One bullet on metric definitions or data quality shows you can be trusted with numbers.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Delaney Foster',

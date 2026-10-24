@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'SAP IBP',
     'logistics analytics',
   ],
+  guide: {
+    why: [
+      'Forecasting work is stated as the error it removed, weighted forecast error “from 31% to 18%”, and how: a rebuilt statistical baseline in Python plus a weekly consensus review with sales.',
+      'Inventory savings come with the service level that was protected, $2.4m of working capital released while fill rate held at 98.2%, the trade-off a planning manager weighs.',
+      'Lane Cost Explorer, used by 30 planners in two divisions, is the one place a tool is the point, and its adoption into the annual carrier bid gives it business weight.',
+      'Freight savings are tied to a single decision, $780k a year from consolidating 11 LTL lanes into weekly truckloads, with nine lanes live inside the year.',
+    ],
+    faq: [
+      {
+        q: 'What skills should a supply chain analyst resume list?',
+        a: 'Group them: planning (demand forecasting, S&OP, safety stock), analysis (SQL, Python, Excel modeling, Power BI) and systems (SAP IBP, Kinaxis). Show each major skill in a bullet tied to a planning decision.',
+      },
+      {
+        q: 'Are certifications like CSCP worth adding to a supply chain resume?',
+        a: 'Yes. ASCM credentials such as CSCP, and a Six Sigma Green Belt, are widely recognized in US supply chain hiring. List them with the year; they matter most when moving into senior planning roles.',
+      },
+      {
+        q: 'How long should a supply chain analyst resume be?',
+        a: 'One page for five years or less, with three or four bullets per recent role. A side project can stay if it has users or savings attached to it.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Jordan Okafor',

@@ -22,6 +22,28 @@ export const sample: LibrarySample = {
     'accessibility',
     'return to work after a career break',
   ],
+  guide: {
+    why: [
+      'Accessibility is shown as an outcome: all 31 findings from an external audit cleared against WCAG 2.2, and the store rating raised from 3.4 to 4.6 at Quillon Bank.',
+      'Performance and reliability are measured: cold start from 2.9s to 900ms and crash-free sessions from 99.1% to 99.87%, numbers an iOS lead checks first.',
+      'The eleven-month career break is listed with what continued during it: four releases of an open-source Swift package and 130 issues answered.',
+      'The Keyring project, with 2,100 stars and use in three published banking apps, shows security-sensitive Swift work outside the day job.',
+    ],
+    faq: [
+      {
+        q: 'How long should an iOS engineer CV be in the UK?',
+        a: 'One or two pages. One page is enough with seven years if each role has three or four measured bullets. Leave out a photo and personal details beyond contact information.',
+      },
+      {
+        q: 'How should an iOS CV explain a career break?',
+        a: 'Give it a dated entry with a one-line reason and anything you kept up, such as open-source releases or courses. A short, plain entry avoids questions about the gap.',
+      },
+      {
+        q: 'What skills should an iOS engineer resume list?',
+        a: 'Swift and Objective-C, SwiftUI and UIKit, concurrency, persistence such as Core Data, testing tools such as XCTest, and practices like accessibility and release management.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Freya Halloran',

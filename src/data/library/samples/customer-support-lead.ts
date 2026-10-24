@@ -25,6 +25,18 @@ export const sample: LibrarySample = {
     'Zendesk',
     'support operations',
   ],
+  guide: {
+    why: [
+      'Response time is shown against load: median first response from nine hours to 38 minutes “while monthly tickets rose from 4,100 to 8,600”, which proves the gain came from the operation, not a quiet quarter.',
+      'Quality is held next to speed, first-contact resolution from 54% to 78% and CSAT at 4.7 of 5 across 31,000 rated tickets, so the faster queue is not read as rushed answers.',
+      'People leadership has a number: agent attrition cut from 41% to 14% with a three-tier career ladder, the result a director hiring a senior support lead weighs most.',
+      'The help center is costed, 3,200 tickets a month deflected and $420k a year off cost to serve, which speaks to finance as well as the support team.',
+    ],
+    faq: [
+      { q: 'What metrics should a customer support lead resume include?', a: 'First response time, first-contact resolution, CSAT, ticket volume and team size, plus cost measures such as deflection or cost per ticket. Show each with a before and after, and give volume alongside so the change has context.' },
+      { q: 'What skills go on a support team lead resume?', a: 'Queue and SLA design, workforce scheduling, escalation management, knowledge base ownership and coaching, plus the help desk tools you run, such as Zendesk, Intercom or Jira Service Management. Show hiring and retention results to prove the leadership side.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Adrian Voss',

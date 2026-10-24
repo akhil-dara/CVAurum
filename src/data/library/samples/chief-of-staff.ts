@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'post-merger integration',
     'strategy to operations',
   ],
+  guide: {
+    why: [
+      'The role is measured by what closed, not meetings attended: decisions closed within two weeks rose from 44% to 91%, and on-time delivery of committed work from 52% to 87%.',
+      'The $38M acquisition is written with the result that matters a year later, 90 employees integrated at 94% retention, which is the evidence a CEO needs before handing over the next deal.',
+      'Board work is concrete: 14 consecutive board packages and the deck cut from 62 slides to 24 by moving detail into a pre-read, a small change any board member would notice.',
+      'The Salter & Vaughn consulting years show the analytical base, $9.4M of overlap found in a merger model, while the part-time MBA at Boston University is marked as in progress rather than implied as finished.',
+    ],
+    faq: [
+      { q: 'What should a chief of staff resume include?', a: 'The size of the company and who you report to, the operating rhythm you own (planning, board materials, executive meetings), and measurable outcomes: on-time delivery, decisions closed, deals or integrations landed. Strategy or consulting background belongs below with one or two numbers per role.' },
+      { q: 'How do you show impact as a chief of staff when the work is behind the scenes?', a: 'Pick changes that would not have happened without you and give before and after figures: a planning process rebuilt, a board deck shortened, a decision log that raised the share of decisions closed. Name the result, not the meetings.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Adrian Vogel',

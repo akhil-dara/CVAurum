@@ -23,6 +23,24 @@ export const sample: LibrarySample = {
     'first job after college',
     'recent college graduate',
   ],
+  guide: {
+    why: [
+      'With no paid job yet, the capstone does the work of one: nine years of records across 72 counties merged into an index a city housing committee cited, which is analyst work with a real user.',
+      'The student fund is reported like a job, an eight-person research team and 11.4% returned against a 9.1% benchmark, so leadership and judgement have a number attached.',
+      'The VITA volunteering adds accuracy under a deadline, 96 returns with none rejected on quality review, a trait analyst hiring managers screen for.',
+      'Tools are tied to projects (Python, pandas and Tableau on the rent index, R on the dairy pricing paper), so the skills list is backed by work a reviewer can open on GitHub.',
+    ],
+    faq: [
+      {
+        q: 'How to write a resume with no work experience?',
+        a: 'Lead with education, then projects and leadership roles written exactly like jobs: what you built, for whom, and the result. A capstone, a student organization and volunteer work with numbers can fill one page convincingly.',
+      },
+      {
+        q: 'Should a new graduate business analyst resume include a summary?',
+        a: 'A two-sentence summary helps when you have no job titles to scan: name the degree, the role you want and your strongest piece of work. Skip generic traits and keep it specific to the analyst roles you are applying for.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nadia Herrera',

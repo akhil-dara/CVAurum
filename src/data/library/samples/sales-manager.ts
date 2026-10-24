@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'territory growth',
     'payments and fintech sales',
   ],
+  guide: {
+    why: [
+      'Both halves of the job sit in the summary: territory revenue grown “from ₹41 crore to ₹78 crore” and representative attrition cut from 38% to 11%, the two numbers a sales director weighs together.',
+      'Forecast accuracy, moved from plus or minus 34% to plus or minus 9%, shows management of the pipeline as well as the quota, which separates a regional manager from a top seller.',
+      'Two titles at Ravira Payments are listed separately, Area Sales Manager and then Regional Sales Manager, so the promotion and the 121% and 116% of target that earned it are visible without a line saying so.',
+      'Growth is broken into named sources, Punjab opened from zero to ₹11 crore through four distributor partnerships and a 190-store grocery group won, so the headline number can be questioned in an interview.',
+    ],
+    faq: [
+      {
+        q: 'How should a sales manager resume show targets?',
+        a: 'State the target and the result together, such as 121% of target, and give revenue growth in rupees with the time period. Add team measures such as attrition or ramp time, because a sales manager is hired for the team as much as the number.',
+      },
+      {
+        q: 'Should a sales manager resume in India include MBA CGPA?',
+        a: 'At senior level it is optional. One line such as 7.9 CGPA under the MBA does no harm, but sales results, awards and team size matter far more and should sit above education.',
+      },
+      {
+        q: 'How long should a sales manager resume be?',
+        a: 'Two pages for twelve or more years with several promotions. Give the current role five bullets and early roles one or two; a sales officer job from a decade ago needs only its strongest number.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Harpreet Sandhu',

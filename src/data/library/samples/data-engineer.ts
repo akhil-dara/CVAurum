@@ -16,6 +16,18 @@ export const sample: LibrarySample = {
   blurb:
     'Six years of pipeline work in Indian fintech, including a contract stint, measured in freshness, cost and failed runs.',
   keywords: ['data engineer', 'Spark', 'Kafka', 'Airflow', 'data pipeline', 'fintech data', 'Databricks'],
+  guide: {
+    why: [
+      'Every bullet pairs a system with its scale and a result: “2.1 billion transaction events a day” and “from 14 hours to nine minutes” tell a hiring manager the size of the work before the tools.',
+      'The summary leads with the one change a next employer would want repeated, a 14-hour reconciliation turned into a stream, rather than a list of technologies.',
+      'Cost sits beside engineering: ₹48 lakh a year taken off the cluster bill reads as business judgement, which is what separates an experienced data engineer from a pipeline builder.',
+      'The Orenda Marketplace contract is labelled and written like a permanent job, a first warehouse delivered in nine months and 180 pipelines the client still runs, so the short tenure raises no questions.',
+    ],
+    faq: [
+      { q: 'How long should a data engineer resume be?', a: 'One page up to about eight years of experience, two after that. Keep the earliest roles to two bullets each and spend the space on the systems you ran most recently and their scale.' },
+      { q: 'Which skills should a data engineer resume list?', a: 'Group them: languages (SQL, Python, Scala), processing (Spark, Kafka, Flink), orchestration (Airflow), and the cloud warehouse you used. Name the versions or platforms the job description names, and show each one in a bullet too.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Rohit Nambiar',

@@ -25,6 +25,18 @@ export const sample: LibrarySample = {
     'internal audit',
     'GST reconciliation',
   ],
+  guide: {
+    why: [
+      'The articleship is written as finished work: “31 statutory and tax audit assignments” and a GST reconciliation workbook that recovered ₹38 lakh, so three years of training read as experience.',
+      'Money found is stated with its consequence. The ₹1.2 crore revenue cut-off misstatement led to a restatement “before the audit report was signed”, which is the judgement an engagement partner hires for.',
+      'The Chartered Accountancy qualification sits first in education with “Both groups cleared at first attempt”, the detail Indian audit firms look for, ahead of an 8.4 CGPA in the B.Com.',
+      'The DISA certificate and SAP FICO, Tally Prime and CaseWare in the skills section show the systems side that IT audit and controls testing now ask for.',
+    ],
+    faq: [
+      { q: 'How should a newly qualified CA write a resume?', a: 'Lead with the qualification and attempt record, then treat the articleship as a job: number of assignments, industries, and two or three results with figures. Add post-qualification work above it, and list Ind AS, GST and audit software you have used.' },
+      { q: 'Should a CA fresher mention attempts and ranks on a resume?', a: 'Yes, when they help. Clearing both groups at first attempt or holding an all-India rank is worth a line in education. If it took more attempts, leave the count out and let the articleship results carry the page.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Sanika Kulkarni',

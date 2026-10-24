@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'OEE improvement',
     'process engineer',
   ],
+  guide: {
+    why: [
+      'The lead number is OEE on a named asset, a nine-press molding cell raised from 61% to 84% in eleven months, converted into about $1.1M a year of capacity a plant manager can budget against.',
+      'Each process fix gives its root cause: scrap from 6.8% to 1.9% by correcting gate location and a 40°F melt-temperature drift shows engineering diagnosis rather than a lucky trend.',
+      'Quality-system language is used in context: PPAP launches holding every characteristic above 1.67 Cpk and IQ/OQ/PQ resin qualification match the terms medical and automotive job ads ask for.',
+      'The Six Sigma Green Belt and CMfgE certificates back up the SMED and SPC work in the bullets, so the credentials read as earned on the floor.',
+    ],
+    faq: [
+      {
+        q: 'What should a manufacturing engineer resume include?',
+        a: 'The lines and processes you own, then results in plant metrics: OEE, scrap rate, changeover time, downtime and ppm defects, each with a before and after. Add quality systems (PPAP, PFMEA, ISO 13485) and the CAD and SPC tools you use.',
+      },
+      {
+        q: 'Do certifications matter on a manufacturing engineer resume?',
+        a: 'A Six Sigma Green Belt or Black Belt and SME’s CMfgE are commonly listed in US postings. Put them in a certifications section with the issuer and year, and show a project that used the method in a bullet.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Renata Alvarez',

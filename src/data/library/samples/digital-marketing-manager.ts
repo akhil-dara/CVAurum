@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'email marketing',
     'DTC',
   ],
+  guide: {
+    why: [
+      'The headline result is efficiency under growth: customer acquisition cost “from $64 to $38” while monthly paid spend rose from $310k to $720k. Cutting cost while spend doubles is harder than cutting it while spend shrinks, and the bullet says both.',
+      'Each channel is reported in its own currency: return on ad spend held at 4.1 in paid search, open rate 14% to 29% in email, conversion 1.8% to 2.6% from landing page tests. That shows fluency across the whole funnel.',
+      'The test record is honest: 34 landing page tests, “of which nine won”. Admitting a win rate reads as real experimentation practice rather than a list of successes.',
+      'The certificates, Google Ads Search Certification and Meta Certified Digital Marketing Associate, match the two platforms the bullets spend most money on, so they confirm the experience rather than replace it.',
+    ],
+    faq: [
+      {
+        q: 'What skills should a digital marketing manager resume list?',
+        a: 'Group them as channels (paid search, paid social, email and SMS), platforms (Google Ads, Meta Ads Manager, GA4, Klaviyo, Shopify) and measurement (A/B testing, incrementality, cohort LTV, SQL). Name the platforms the job ad names.',
+      },
+      {
+        q: 'Should a digital marketing resume show budget size?',
+        a: 'Yes. The budget you managed tells a hiring manager the scale of decisions you made. State the annual or monthly figure once, in the summary or the current role, and pair it with what it returned.',
+      },
+      {
+        q: 'Are marketing certifications worth putting on a resume?',
+        a: 'Platform certifications such as Google Ads or Meta are worth a short line in a certificates section, especially at specialist and manager level. They support results in the bullets but do not stand in for them.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nadia Okafor',

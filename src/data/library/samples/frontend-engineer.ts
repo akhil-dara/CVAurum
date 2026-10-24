@@ -24,6 +24,24 @@ export const sample: LibrarySample = {
     'junior frontend developer',
     'web accessibility',
   ],
+  guide: {
+    why: [
+      'Performance is measured on the devices users actually hold: first contentful paint “from 4.1s to 1.3s on entry-level Android”. Stating the device class shows an understanding of the audience, not only the framework.',
+      'User-facing results come before tools: tickets about lost lessons fell from 40 a month to 2 after the IndexedDB offline store, which proves the feature solved a real problem.',
+      'The Devanagari Input Kit project adds open-source evidence with reach: 4,200 mappings in 9kB gzipped, adopted by a portal taking 30,000 filings a year.',
+      'For two years of experience the 8.4 CGPA from College of Engineering Pune still appears, which Indian employers often filter on for early-career hires.',
+    ],
+    faq: [
+      {
+        q: 'What should a junior frontend developer resume show?',
+        a: 'Two or three measured results per role: load times, frame rates, bundle size, accessibility fixes, test coverage. Add one project with real users. A skills list alone gives a reviewer nothing to compare.',
+      },
+      {
+        q: 'Should a frontend resume list every framework used?',
+        a: 'No. List the stack you used in production (React, TypeScript, Next.js) and practices such as accessibility and testing. Leave out libraries you only touched in tutorials.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ananya Deshmukh',

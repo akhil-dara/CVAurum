@@ -18,6 +18,28 @@ export const sample: LibrarySample = {
   blurb:
     'Eight years of critical care, including a year of travel contracts, written as patient outcomes rather than units worked.',
   keywords: ['registered nurse', 'ICU nurse', 'critical care nurse', 'charge nurse', 'travel nurse resume', 'BSN CCRN'],
+  guide: {
+    why: [
+      'Every bullet names the unit measure that moved: door-to-antibiotic “from 71 minutes to 38 across 240 admissions”, CAUTI from 3.1 to 0.9 per 1,000 catheter days, pressure injuries from nine a year to two.',
+      'Precepting is written as retention, 13 of 14 new graduate nurses still on the unit at one year against a house average of six in ten, which tells a nurse manager the charge role carries teaching weight.',
+      'The Wayfinder Health Staffing travel year is shown as three 13-week contracts with a full assignment after two days of orientation, turning agency work into evidence of adaptability.',
+      'The RN License, marked active and multistate compact, sits with CCRN, ACLS and TNCC, exactly where a nurse recruiter checks before reading anything else.',
+    ],
+    faq: [
+      {
+        q: 'Should a nurse resume include license numbers?',
+        a: 'Name the license, the state and whether it is active or compact, but leave the number off; employers verify it through the board of nursing. Add certifications such as CCRN, ACLS and BLS with their dates.',
+      },
+      {
+        q: 'How do you list travel nurse contracts on a resume?',
+        a: 'Group them under the staffing agency as one entry, list the host cities and note the contract length, such as three 13-week contracts. Bullets should show what you did across sites rather than repeating each assignment.',
+      },
+      {
+        q: 'How long should an ICU nurse resume be?',
+        a: 'One page for new graduates; two pages are fine after several years, when licenses, certifications and unit outcomes need room. Keep each role to three or four bullets with measured results.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Alyssa Corbin',

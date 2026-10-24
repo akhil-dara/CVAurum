@@ -26,6 +26,24 @@ export const sample: LibrarySample = {
     'data strategy',
     'India',
   ],
+  guide: {
+    why: [
+      'Cost is shown against growth: platform cost cut 41%, about ₹6.8 crore a year, “in a year when daily event volume doubled”. A head of data is judged on spend as much as on models.',
+      'Adoption is measured, not asserted: 300 hand-built dashboards replaced by 40 governed data products, and weekly report users rising from 180 to 610.',
+      'A model is tied to business margin: the pricing-elasticity model on 70,000 products added 1.9 points of gross margin, which a CFO can check.',
+      'People results close the case for leadership: regretted attrition from 26% to 9%, and at Marigold Insight six analysts hired, four of whom now lead teams.',
+    ],
+    faq: [
+      {
+        q: 'What should a head of data resume include?',
+        a: 'Team size and structure, platform cost and reliability, adoption of data products, at least one model tied to revenue or margin, and people results such as attrition or promotions. Give money in the currency of the market, crore and lakh for India.',
+      },
+      {
+        q: 'How long should a head of data resume be?',
+        a: 'Two pages. Give the current role five bullets and early analyst roles one or two lines each.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Meera Raghavan',

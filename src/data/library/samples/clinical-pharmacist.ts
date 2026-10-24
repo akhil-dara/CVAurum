@@ -24,6 +24,19 @@ export const sample: LibrarySample = {
     'medication reconciliation',
     'registered pharmacist India',
   ],
+  guide: {
+    why: [
+      'Stewardship results are given in the unit an infection control committee uses: restricted carbapenem days of therapy down 34% in 12 months, “with no adverse signal at mortality review”.',
+      'Safety interventions are counted and qualified: 148 dosing errors prevented, 41 of them renal adjustments, and 47 of 310 reconciliation discrepancies judged clinically significant by the treating unit.',
+      'Registration is stated the way Indian recruiters expect, Maharashtra State Pharmacy Council with the number on request, beside a Pharm.D with 8.4 CGPA from Poona College of Pharmacy.',
+      'The anticoagulation clinic shows initiative beyond the ward: 210 warfarin patients followed and time in therapeutic range raised from 48% to 67%.',
+    ],
+    faq: [
+      { q: 'What skills go on a clinical pharmacist resume?', a: 'Ward and ICU rounds, medication reconciliation, renal and hepatic dosing, therapeutic drug monitoring and antimicrobial stewardship, plus safety work such as high-alert medication protocols. Show each with a figure in a bullet: charts reviewed, errors prevented, days of therapy reduced.' },
+      { q: 'Should a pharmacist resume include the registration number?', a: 'State the council and that the number is available on request; give the number itself only on an application form that asks for it. Include the renewal year so the reader knows it is current.' },
+      { q: 'Is a Pharm.D enough to become a clinical pharmacist in India?', a: 'It is the usual route for hospital clinical roles, especially with an internship in general medicine or specialty wards. Experience on an ICU or stewardship round and a certificate in antimicrobial stewardship make a candidate easier to place.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Anuja Kulkarni',

@@ -18,6 +18,19 @@ export const sample: LibrarySample = {
   blurb:
     'Modern analytics stack work told in outcomes: 480 tested models, 38% less warehouse spend, one agreed definition of on-time.',
   keywords: ['analytics engineer', 'dbt', 'Snowflake', 'data modeling', 'semantic layer', 'SQL', 'data warehouse'],
+  guide: {
+    why: [
+      'The scale of the work comes first: “480 models and 1,900 tests” and a full refresh in 22 minutes tell a data lead the size and health of the dbt project before any tool list does.',
+      'Cost is written in money as well as percent. Cutting warehouse spend 38%, “about $214,000 a year”, by re-clustering the four largest fact tables shows the engineering choice behind the saving.',
+      'The semantic-layer bullet names a business outcome, one definition of on-time delivery and “nine conflicting spreadsheets” retired, which is the part of analytics engineering hiring managers find hardest to test in interview.',
+      'The path from Marketing Analyst at Larkspur Media to Analytics Engineer at Fernwood Logistics is kept in order, so the move from reporting to owning models reads as a progression rather than a title change.',
+    ],
+    faq: [
+      { q: 'What skills should an analytics engineer resume list?', a: 'Group them: modeling (dbt, dimensional modeling, SQL), platform (Snowflake or BigQuery, Airflow, Fivetran), and analysis or BI tools (Looker, Tableau, Python). Then show the important ones in bullets, for example the size of the dbt project you run and how it is tested.' },
+      { q: 'Are dbt and Snowflake certifications worth adding to a resume?', a: 'They help when they back up experience already on the page. The dbt Analytics Engineering Certification and SnowPro Core are recognised by data teams, but list them in a certificates section below the work, not in place of bullets about real models.' },
+      { q: 'How is an analytics engineer resume different from a data analyst resume?', a: 'An analyst résumé is judged on findings and decisions; an analytics engineer résumé is judged on the models, tests and definitions other people rely on. Lead with what you built and keep running, its size, its reliability and its cost.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ruben Ortega',

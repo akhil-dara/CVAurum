@@ -25,6 +25,24 @@ export const sample: LibrarySample = {
     'teacher to instructional design',
     'learning design India',
   ],
+  guide: {
+    why: [
+      'Course redesigns are measured by learner outcomes: the Grade 8 algebra course went from 41% to 68% completion after rebuilding around faded worked examples.',
+      'A randomised trial of spaced quizzing across 3,200 learners, raising 30-day retention by 22 points, shows evidence-based practice rather than content production alone.',
+      'The teaching years at Hillcrest Public School are kept with results, the Grade 10 board average from 68% to 79%, which explains the subject expertise behind the design work.',
+      'Tools named in skills, Articulate Storyline, SCORM and xAPI, sit next to the CPTD and CPACC certifications, covering both authoring and accessibility.',
+    ],
+    faq: [
+      {
+        q: 'How do teachers move into instructional design on a resume?',
+        a: 'Keep the teaching role, but write its bullets as design work: materials you built, results they moved, and anything you digitised. Then lead with a summary that names the design role you are targeting.',
+      },
+      {
+        q: 'What should an instructional designer resume show?',
+        a: 'Completion, assessment and retention results from courses you designed, the authoring tools you use, and the standards you follow such as SCORM or accessibility. Link a portfolio of storyboards or modules.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Meghna Sarkar',

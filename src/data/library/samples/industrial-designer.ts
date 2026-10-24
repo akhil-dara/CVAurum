@@ -26,6 +26,24 @@ export const sample: LibrarySample = {
     'human factors',
     'UK industrial design',
   ],
+  guide: {
+    why: [
+      'User outcomes are measured in a trial: correct first use of the inhaler grip from 61% to 92% across 240 patients, which is the evidence a medical device employer needs.',
+      'Commercial results sit beside design: a unit cost of £14.20 against a £16 target, and £180,000 of tooling saved on the kettle range by sharing one base moulding.',
+      'Regulatory competence is specific: human-factors evidence written for the technical file, the IEC 62366-1 certificate, and two submissions without a deficiency letter.',
+      'A UK registered design for the one-handed inhaler grip shows the work at Brackenhill Medical was original enough to protect, which few mid-level designers can point to.',
+    ],
+    faq: [
+      {
+        q: 'Should an industrial designer CV include a portfolio?',
+        a: 'Yes. Link it in the header. On the CV itself, give each project a measurable result, such as usability, unit cost or tooling spend, so the portfolio and CV support each other.',
+      },
+      {
+        q: 'What skills should an industrial designer CV list?',
+        a: 'Design (concept, CMF, human factors), engineering (SolidWorks, surfacing, injection moulding, tooling), prototyping methods and any standards you work to, such as ISO 13485 for medical devices.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Nadia Farrow',

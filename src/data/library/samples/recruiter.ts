@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'career change into recruiting',
     'entry level recruiter',
   ],
+  guide: {
+    why: [
+      'The summary carries the three numbers a recruiting manager reads first: 41 roles filled, a median 34-day time to hire against a 45-day desk average, and 92% of placements still in seat at twelve months.',
+      'Process changes come with funnel metrics: the nine-question intake scorecard lifted submit-to-interview “from 28% to 51%”, which shows a recruiter who improves the pipeline, not only fills it.',
+      'The Cedar & Vane Outfitters job is written as hiring work, 38 seasonal staff hired and turnover cut from 44% to 26%, so the move from retail reads as one continuous story.',
+      'Cost per hire falling from $6,200 to $4,050 through outbound sourcing gives an agency or in-house reader a direct business case alongside the placement count.',
+    ],
+    faq: [
+      {
+        q: 'How do you write a recruiter resume with no recruiting experience?',
+        a: 'Find the hiring work in your current job: interviews run, people onboarded, turnover changed. Write those as bullets with numbers, and add a credential such as the SHRM Talent Acquisition Specialty Credential to show commitment to the switch.',
+      },
+      {
+        q: 'What metrics should a recruiter resume include?',
+        a: 'Roles filled, time to hire, retention of placements at six or twelve months, submit-to-interview ratio and cost per hire. Compare each with a desk or team average where you can, so the reader knows whether the number is good.',
+      },
+      {
+        q: 'Which applicant tracking systems should go on a recruiter resume?',
+        a: 'The ones you have used, such as Greenhouse, Lever or Workday Recruiting, in a short systems group. Match the system named in the job post if you know it, and keep sourcing tools in the same group.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Talia Brennan',

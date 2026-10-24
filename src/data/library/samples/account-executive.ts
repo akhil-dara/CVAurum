@@ -22,6 +22,19 @@ export const sample: LibrarySample = {
     'new business sales',
     'B2B closing role',
   ],
+  guide: {
+    why: [
+      'Attainment is stated against the number it was measured on: “$3.2M in new ARR against a $2.4M quota” lets a sales leader work out 133% without trusting an adjective, and the summary adds “the best result on a nine-person team”.',
+      'Each Wrenmark bullet names the lever as well as the result. Moving the security review “to week two” explains the cycle falling from 94 days to 61, which tells a hiring manager the method will travel to a new territory.',
+      'The SDR years are kept to two bullets but still carry figures, 312 qualified meetings and a connect rate lifted from 9% to 16%, so the climb from prospecting to closing reads as earned.',
+      'President’s Club sits in awards, backed by “First of nine mid-market representatives on new ARR”, so the recognition confirms the bullets instead of standing in for them.',
+    ],
+    faq: [
+      { q: 'What should an account executive resume include?', a: 'Quota and attainment for each year, average deal size, sales cycle length and the segment sold into. Add the CRM and sales tools you used (Salesforce, Gong, Outreach) and any qualification method such as MEDDPICC, but let the numbers lead every role.' },
+      { q: 'How do you show quota attainment on a sales resume?', a: 'Give both figures, the quota and what you closed, plus the period: “$3.2M against a $2.4M quota in 2025”. A percentage alone hides the size of the number; a rank on the team, if it is true and recent, adds the context a hiring manager will ask about.' },
+      { q: 'Should an account executive resume list sales awards?', a: 'Yes, in a short awards section with the year and what the award was for. President’s Club or a rookie award is worth a line, but the bullets above should already show the results that earned it.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Grant Halloway',

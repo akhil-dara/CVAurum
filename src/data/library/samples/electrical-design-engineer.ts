@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'LV distribution design',
     'Amtech ProDesign',
   ],
+  guide: {
+    why: [
+      'The career break is listed as an entry of its own, with IET membership and the BS 7671 Amendment 2 update course kept current. Naming the gap and showing CPD continued answers the question before an interviewer asks it.',
+      'Savings are framed in the terms a building-services client cares about: 190 kVA off the connected load avoided a DNO supply upgrade quoted at £310,000.',
+      'Projects are given value and sector, such as a £24m community diagnostic centre “energised on programme with no post-handover remedials”, which tells a UK reader the healthcare experience and the delivery record in one line.',
+      'Professional standing is explicit: Incorporated Engineer (IEng MIET), working towards CEng, and mentoring graduates through the IET Monitored Professional Development Scheme.',
+    ],
+    faq: [
+      {
+        q: 'How long should an electrical design engineer CV be in the UK?',
+        a: 'Two pages is standard for a UK engineering CV with five or more years of experience. Lead with project value, sector and the systems you designed, and leave out a photo, date of birth and marital status.',
+      },
+      {
+        q: 'How do you explain a career break on an engineering CV?',
+        a: 'List it as a dated entry with a one-line reason, then show what kept your competence current: institution membership, CPD, regulation updates such as BS 7671 amendments. Follow it with the role that brought you back.',
+      },
+      {
+        q: 'What software should an electrical design engineer CV list?',
+        a: 'The design and calculation tools the practice uses: Amtech ProDesign or Trimble Nova for cable sizing, Dialux for lighting, Revit MEP and AutoCAD for drawings. Show at least one in a bullet with a result.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Sian Merriweather',

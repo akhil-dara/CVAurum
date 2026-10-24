@@ -24,6 +24,18 @@ export const sample: LibrarySample = {
     'retail to tech',
     'part-time masters CV',
   ],
+  guide: {
+    why: [
+      'The support-desk role proves the switch is already working: closing 82% of tickets without escalation against a 64% desk average, and shipping the fix for a time-zone fault behind eight months of complaints.',
+      'Retail years are written for a development team: a paper rota replaced by a scheduling model saved £26,000 a year, and the Rota Planner project shows the same problem rebuilt in Java and Spring Boot.',
+      'The conversion MSc at Manchester Metropolitan University leads with a 76% average across four modules and is marked as part-time alongside full employment, which tells a UK employer about workload as well as grades.',
+      'An open-source fix with 14 tests, merged and released in March 2026, gives outside evidence of code review and testing that a career changer otherwise struggles to show.',
+    ],
+    faq: [
+      { q: 'How should a career changer write a junior developer CV in the UK?', a: 'Put the newest technical evidence first: a conversion degree, a tech-adjacent job, projects with real users. Keep earlier roles but rewrite them around problems solved and systems built, two or three bullets each, and drop duties a dev team would not care about.' },
+      { q: 'Is a conversion MSc worth putting first on a CV?', a: 'Yes, while it is the main evidence for the new career. Give the grade or average so far, the modules that match the job, and say if it is part-time. Once you have a year of developer work, move experience above it.' },
+    ],
+  },
   content: content({
     basics: {
       name: 'Gemma Hollis',

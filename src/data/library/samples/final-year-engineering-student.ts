@@ -24,6 +24,28 @@ export const sample: LibrarySample = {
     'software internship',
     'fresher resume India',
   ],
+  guide: {
+    why: [
+      'Education comes first, with the 8.7 CGPA and Class XII result of 91.3% shown, which is the order campus placement screens expect for a B.Tech student.',
+      'Internship bullets are measured like a full-time engineer’s: refunds stuck past 24 hours cut “from 310 a week to 12”, page load from 4.1s to 600ms. That shows real production work at Saptaflow Technologies, not shadowing.',
+      'Hostelmate is a project with users, 900 residents and 11 months without a lost billing cycle, which proves a student can ship and maintain software rather than finish a course assignment.',
+      'The Smart India Hackathon runner-up award is given with team size and the 36-hour timeframe, so the reader knows what was built and under what conditions.',
+    ],
+    faq: [
+      {
+        q: 'Should a fresher resume in India include CGPA?',
+        a: 'Yes. Put the CGPA beside the degree, and Class XII and Class X percentages if they are strong or the employer asks for them. Most campus placement filters use a CGPA cut-off.',
+      },
+      {
+        q: 'How long should a final-year student resume be?',
+        a: 'One page. Order it as education, internships, projects, skills and awards, and give each internship two or three bullets with a measured result.',
+      },
+      {
+        q: 'Should a student resume include a summary?',
+        a: 'A two-line summary helps if it says something specific: degree, graduation date, CGPA and the strongest internship result. Skip it if it would only say you are hardworking and eager to learn.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Aarav Kulkarni',

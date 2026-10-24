@@ -23,6 +23,28 @@ export const sample: LibrarySample = {
     'emergency imaging',
     'career change paramedic',
   ],
+  guide: {
+    why: [
+      'The summary leads with one clinical result, stroke door-to-CT cut “from 19 minutes to 11 across 260 activations”, which ties a technologist’s workflow change directly to patient outcomes.',
+      'Dose is reported as carefully as speed: the trauma pan-scan rebuild cut dose-length product 27% with no repeat study, showing ALARA practice rather than only claiming it in the skills list.',
+      'The paramedic years at Balcones Ridge EMS stay, with 1,400 calls and 60 cardiac arrests, and a skills group headed “From prehospital care” explains why this technologist is trusted in a trauma bay.',
+      'Credentials are spelled out the way a hiring system checks them: ARRT registration in (R) and (CT), the Texas license marked active, and BLS and ACLS with renewal dates.',
+    ],
+    faq: [
+      {
+        q: 'What certifications go on a radiologic technologist resume?',
+        a: 'Your ARRT registration with each modality credential, such as (R) and (CT), the state license and whether it is active, and BLS or ACLS. List renewal years, because employers verify these before an interview.',
+      },
+      {
+        q: 'How do you write a radiologic technologist resume after a career change?',
+        a: 'Keep the earlier role but write it in terms an imaging department values: patient assessment, emergency response, protocol writing. Put the radiography degree and clinical hours in education, and lead the page with imaging results.',
+      },
+      {
+        q: 'Should a radiologic technologist resume list clinical hours?',
+        a: 'Early in a career, yes: a line such as 1,860 clinical hours under the degree shows hands-on volume. After a few years in post, exam volumes and outcomes in the work section matter more.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Dominic Reyes',

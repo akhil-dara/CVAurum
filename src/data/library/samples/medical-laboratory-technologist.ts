@@ -23,6 +23,24 @@ export const sample: LibrarySample = {
     'clinical biochemistry',
     'NABL ISO 15189',
   ],
+  guide: {
+    why: [
+      'Turnaround is the lead metric: haematology from 5 hours 20 minutes to 3 hours 5 minutes at a 260-sample-a-day laboratory is the number a lab manager and the clinicians waiting on results both care about.',
+      'Quality control is shown as practice, not a keyword: Levey-Jennings review for 18 analytes held inside two standard deviations for seven quarters reads as someone a NABL audit can rely on.',
+      'Troubleshooting is traced to a cause, a potassium drift pinned to a single centrifuge rotor that had caused 40 to 60 spurious flags a month, which shows the technologist reads the analyser output rather than just running it.',
+      'The certificates cover what an Indian lab hires against: state registration with the Karnataka State Allied and Healthcare Council, an ISO 15189 internal auditor course and biosafety training.',
+    ],
+    faq: [
+      {
+        q: 'What skills should a medical lab technologist resume list?',
+        a: 'Group bench skills (haematology, biochemistry, coagulation, blood bank), quality skills (Westgard rules, Levey-Jennings charts, external quality assurance, ISO 15189) and systems (LIS, barcode tracking). Name analyser brands only if the job ad does.',
+      },
+      {
+        q: 'Should a B.Sc MLT resume include the registration number?',
+        a: 'List the registration and the council that issued it, but you can write “number on request” as this résumé does, since the number is usually checked during hiring. Include 12th marks only early in your career.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Meghna Bhat',

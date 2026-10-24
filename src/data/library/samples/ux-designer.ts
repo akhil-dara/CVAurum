@@ -25,6 +25,28 @@ export const sample: LibrarySample = {
     'Figma',
     'mobile app design',
   ],
+  guide: {
+    why: [
+      'Each design change is measured in a metric the product team already tracks: UPI failed first attempts “from 19% to 6%” across 4.2 million monthly users, and KYC drop-off from 41% to 17%.',
+      'Research in Hindi and Kannada is shown as a working method, a monthly review with eight speakers whose wording changes removed the top two reasons for support calls.',
+      'The Android-first component kit used by four squads, taking a new screen from six days to two, shows design systems work measured in delivery speed rather than in component counts.',
+      'Constraints are named up front, entry-level Android phones and unreliable networks, which tells a fintech hiring manager this designer has worked inside the limits of real users.',
+    ],
+    faq: [
+      {
+        q: 'What should a UX designer resume include?',
+        a: 'The product and its scale, each design change with the metric it moved, the research methods used, and a portfolio link. Tools such as Figma belong in a short skills group rather than in the bullets.',
+      },
+      {
+        q: 'Should a UX designer resume in India mention regional languages?',
+        a: 'Yes, when you research or design in them. Name the languages in the summary or in a bullet tied to a result; for products serving users outside English, it is a real hiring advantage.',
+      },
+      {
+        q: 'How long should a UX designer resume be?',
+        a: 'One page up to about seven years, with the portfolio carrying the visual detail. Keep junior studio roles to two bullets and give the space to the most recent product work.',
+      },
+    ],
+  },
   content: content({
     basics: {
       name: 'Ananya Deshmukh',
