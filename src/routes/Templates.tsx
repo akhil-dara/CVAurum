@@ -462,7 +462,7 @@ function TemplateCard({
               onClick={onPick}
               aria-label={`Start a résumé in ${tpl.name} — ${tpl.description}`}
               title={`Use the ${tpl.name} template`}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-primary"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium relative before:absolute before:-inset-2 before:content-[''] text-muted-foreground transition hover:border-primary/50 hover:text-primary"
             >
               Use <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </button>

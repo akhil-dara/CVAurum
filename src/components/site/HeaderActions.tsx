@@ -31,7 +31,7 @@ export function PhoneResumesLink() {
     // button measured 142px and pushed a 360px page sideways.
     <Link className="btn-outline btn-sm gap-1.5 whitespace-nowrap px-2 sm:hidden" to="/app" aria-label={`My resumes, ${n} saved`}>
       <span aria-hidden>My resumes</span>
-      <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold leading-4 text-primary-foreground tabular-nums" aria-hidden>
+      <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-4 text-primary-foreground tabular-nums" aria-hidden>
         {n}
       </span>
     </Link>

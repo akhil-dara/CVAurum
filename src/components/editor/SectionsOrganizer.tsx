@@ -271,7 +271,7 @@ function SectionCard({
       <div className="flex items-center gap-1 px-1.5 py-1.5">
         <button
           type="button"
-          className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
+          className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing coarse:-m-2.5 coarse:p-2.5"
           {...handle.attributes}
           {...handle.listeners}
           aria-label="Drag to reorder"
@@ -295,7 +295,7 @@ function SectionCard({
         ) : (
           <button type="button" className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left hover:bg-muted/50" onClick={onToggle}>
             <span className="truncate text-sm font-medium">{label}</span>
-            {count > 0 && <span className="rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">{count}</span>}
+            {count > 0 && <span className="rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground">{count}</span>}
           </button>
         )}
         <button type="button" className="btn-icon h-9 w-9 md:h-7 md:w-7" onClick={onHide} title={hidden ? 'Show section' : 'Hide section'}>

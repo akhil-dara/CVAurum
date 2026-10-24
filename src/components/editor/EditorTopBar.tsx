@@ -119,7 +119,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
       <input
         value={doc.title}
         onChange={(e) => setTitle(e.target.value)}
-        className="min-w-[4rem] flex-1 text-ellipsis sm:w-44 sm:max-w-[40vw] sm:flex-initial rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40 sm:w-44 sm:max-w-[40vw]"
+        className="min-w-[4rem] flex-1 text-ellipsis sm:w-44 sm:max-w-[40vw] sm:flex-initial rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
         aria-label="Resume title"
       />
 
@@ -141,7 +141,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
           {/* zoom */}
           <div className="flex items-center rounded-lg bg-muted p-0.5">
-            <button className="btn-icon h-7 w-7" onClick={zoomOut} title="Zoom out">
+            <button className="btn-icon h-7 w-7" onClick={zoomOut} aria-label="Zoom out" title="Zoom out">
               <ZoomOut className="h-4 w-4" />
             </button>
             {/* the readout and Fit yield between md and lg so the title keeps
@@ -149,13 +149,15 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
             <span className="hidden w-12 text-center text-xs tabular-nums text-muted-foreground lg:inline">
               {autoFit ? 'Fit' : `${Math.round(zoom * 100)}%`}
             </span>
-            <button className="btn-icon h-7 w-7" onClick={zoomIn} title="Zoom in">
+            <button className="btn-icon h-7 w-7" onClick={zoomIn} aria-label="Zoom in" title="Zoom in">
               <ZoomIn className="h-4 w-4" />
             </button>
             <button
               className="btn-icon hidden h-7 w-7 lg:flex"
               data-active={autoFit}
               onClick={() => setAutoFit(!autoFit)}
+              aria-label="Fit to width"
+              aria-pressed={autoFit}
               title="Fit to width"
             >
               <Maximize className="h-4 w-4" />

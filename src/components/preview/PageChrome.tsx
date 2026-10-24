@@ -311,7 +311,7 @@ export function PageChromeOverlay({
       {badgeTops.map((top, i) => (
         <div
           key={`badge-${i}`}
-          className="pointer-events-none absolute right-2.5 rounded-full border border-border bg-surface/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-soft backdrop-blur-sm"
+          className="pointer-events-none absolute right-2.5 rounded-full border border-border bg-surface/90 px-2 py-0.5 text-[11px] font-medium text-muted-foreground shadow-soft backdrop-blur-sm"
           style={{ top: top + 10 }}
           data-page-chrome="badge"
           data-page-index={i + 1}

@@ -24,7 +24,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
           {b.image && (
             <button
               type="button"
-              className="mt-1 block w-full text-center text-[10px] text-muted-foreground hover:text-foreground"
+              className="mt-1 block w-full text-center text-[11px] text-muted-foreground hover:text-foreground"
               onClick={() =>
                 updateDoc((d) => {
                   d.metadata.layout.showPhoto = !d.metadata.layout.showPhoto
@@ -44,7 +44,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
                 c.basics.name = v
               })
             }
-            placeholder="Alex Morgan"
+            placeholder="Your name"
           />
           <TextField
             label="Headline / title"
@@ -54,7 +54,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
                 c.basics.label = v
               })
             }
-            placeholder="Senior Software Engineer"
+            placeholder="e.g. Product Manager"
           />
         </div>
       </div>
@@ -78,7 +78,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
               c.basics.phone = v
             })
           }
-          placeholder="(555) 123-4567"
+          placeholder="Phone number"
         />
       </Row>
       <Row>
@@ -90,7 +90,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
               c.basics.location = { ...c.basics.location, city: v }
             })
           }
-          placeholder="San Francisco"
+          placeholder="City"
         />
         <TextField
           label="Region / State"
@@ -100,7 +100,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
               c.basics.location = { ...c.basics.location, region: v }
             })
           }
-          placeholder="CA"
+          placeholder="Region or state"
         />
       </Row>
       <TextField
@@ -184,7 +184,7 @@ function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: () =>
         ) : (
           <div className="flex flex-col items-center gap-1">
             <ImagePlus className="h-6 w-6" />
-            <span className="text-[10px] font-medium">Add photo</span>
+            <span className="text-[11px] font-medium">Add photo</span>
           </div>
         )}
       </button>

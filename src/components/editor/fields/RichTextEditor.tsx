@@ -151,7 +151,7 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
             className="fixed z-[75] w-64 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-float"
             style={{ top: menu.top, left: menu.left }}
           >
-            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Insert</div>
+            <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Insert</div>
             {menu.items.map((c, i) => (
               <button
                 key={c.title}
@@ -230,7 +230,7 @@ function Toolbar({ editor, withLists }: { editor: Editor; withLists: boolean }) 
       <TBtn title="Link" active={editor.isActive('link')} onClick={setLink}>
         <Link2 className="h-3.5 w-3.5" />
       </TBtn>
-      <span className="ml-auto pr-1 text-[10px] text-muted-foreground">Type <kbd className="rounded border border-border px-1">/</kbd> to insert</span>
+      <span className="ml-auto pr-1 text-[11px] text-muted-foreground">Type <kbd className="rounded border border-border px-1">/</kbd> to insert</span>
     </div>
   )
 }

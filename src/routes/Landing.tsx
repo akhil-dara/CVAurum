@@ -385,33 +385,30 @@ export function Landing() {
           </div>
         </section>
 
-        {/* privacy callout */}
+        {/* privacy: set as a statement, not a card. The call to start lives
+            once, at the foot of the page; here the only link is the proof. */}
         <section id="privacy" className="mx-auto max-w-6xl px-6 py-16 land-reveal">
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface p-8 sm:p-12">
-            <div className="grid items-center gap-8 md:grid-cols-[auto,1fr]">
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-2xl text-white"
-                style={{ background: GOLD }}
+          <div className="grid gap-8 border-t border-border pt-10 md:grid-cols-[minmax(0,5fr),minmax(0,6fr)] md:gap-16">
+            <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
+              Your résumé never leaves your device
+            </h2>
+            <div className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+              <p>
+                Most online builders upload your career history to their servers. CVAurum doesn't have a server.
+                Your content, your photo and your exports are made and kept in your browser.
+              </p>
+              <p className="mt-3">
+                A backup file holds every résumé and restores them anywhere. The code is open, so you can check all of
+                this yourself.
+              </p>
+              <a
+                className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-foreground underline decoration-border underline-offset-4 transition hover:decoration-foreground"
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
               >
-                <ShieldCheck className="h-8 w-8" />
-              </div>
-              <div>
-                <h2 className="font-display text-3xl font-semibold sm:text-4xl">Your résumé never leaves your device</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Most online builders upload your career history to their servers. CVAurum doesn't have a server.
-                  Everything — your content, your photo, your exports — is created and stored locally in your browser.
-                  You can back it all up to a single file and restore it anywhere. It's open source, so you can verify
-                  exactly that.
-                </p>
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button className="btn-primary btn-sm" onClick={() => create(false)}>
-                    <Plus className="h-4 w-4" /> Create my resume
-                  </button>
-                  <a className="btn-outline btn-sm" href={REPO_URL} target="_blank" rel="noreferrer">
-                    <Github className="h-4 w-4" /> View the source
-                  </a>
-                </div>
-              </div>
+                <Github className="h-4 w-4" /> Read the source
+              </a>
             </div>
           </div>
         </section>
@@ -419,7 +416,7 @@ export function Landing() {
         {/* faq */}
         <section id="faq" className="mx-auto max-w-3xl px-6 pb-16 land-reveal">
           <h2 className="font-display text-center text-3xl font-semibold sm:text-4xl">Questions</h2>
-          <div className="mt-6 space-y-3">
+          <div className="mt-8 divide-y divide-border border-y border-border">
             {SITE.faq.map((f) => (
               <Faq key={f.q} q={f.q} a={f.a} />
             ))}
@@ -556,12 +553,12 @@ function ReelPages({ items, index, width }: { items: { id: string; doc: ResumeDo
 
 function Faq({ q, a }: { q: string; a: string }) {
   return (
-    <details className="group rounded-xl border border-border bg-surface px-5 py-4">
-      <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium">
+    <details className="group py-1">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-4 py-3 text-[15px] font-medium marker:hidden [&::-webkit-details-marker]:hidden">
         {q}
-        <span className="ml-4 text-muted-foreground transition group-open:rotate-45">+</span>
+        <span aria-hidden className="shrink-0 text-lg leading-none text-muted-foreground transition group-open:rotate-45">+</span>
       </summary>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{a}</p>
+      <p className="max-w-2xl pb-4 text-sm leading-relaxed text-muted-foreground">{a}</p>
     </details>
   )
 }
@@ -748,7 +745,7 @@ function HeroCinema({
             Already have one?{' '}
             <button
               onClick={onImportPdf}
-              className="inline-flex items-center gap-1 font-medium text-amber-300/90 underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-amber-300/90 underline-offset-2 hover:underline relative before:absolute before:-inset-2 before:content-['']"
             >
               <FileUp className="h-3.5 w-3.5" /> Import your PDF
             </button>{' '}

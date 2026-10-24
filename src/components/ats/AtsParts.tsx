@@ -48,7 +48,7 @@ export function Ring({ value, label, size = 92 }: { value: number; label?: strin
         <span className="text-xl font-bold tabular-nums" style={{ color: scoreColor(value) }}>
           {value}
         </span>
-        {label && <span className="text-[10px] text-muted-foreground">{label}</span>}
+        {label && <span className="text-[11px] text-muted-foreground">{label}</span>}
       </div>
     </div>
   )

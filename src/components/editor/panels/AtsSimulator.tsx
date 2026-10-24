@@ -104,7 +104,7 @@ export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
           })}
         </div>
       </div>
-      <p className="text-[10px] leading-snug text-muted-foreground">
+      <p className="text-[11px] leading-snug text-muted-foreground">
         Honest approximations for guidance — not a claim about any vendor's current internals. Verify the extracted text in “What an ATS sees”.
       </p>
     </div>

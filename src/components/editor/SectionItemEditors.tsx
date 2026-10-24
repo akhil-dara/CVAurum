@@ -475,7 +475,7 @@ function ItemFields({
             label="Location"
             value={item.location}
             onChange={set('location')}
-            placeholder="San Francisco, CA"
+            placeholder="City, Region"
           />
           <Row>
             <DateField label="Start" value={item.startDate} onChange={set('startDate')} />

@@ -102,7 +102,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Filters
           {filter.tags.length + (filter.atsOnly ? 1 : 0) > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
               {filter.tags.length + (filter.atsOnly ? 1 : 0)}
             </span>
           )}
@@ -331,7 +331,7 @@ function TemplateCard({
           <span className="text-[13px] font-medium text-foreground">{tpl.name}</span>
           {tpl.atsSafe && (
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-medium text-success"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-success"
               title="Parses cleanly in ATS"
             >
               <ShieldCheck className="h-3 w-3" />

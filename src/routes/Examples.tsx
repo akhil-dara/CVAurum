@@ -302,7 +302,7 @@ export function Examples() {
               <label className="inline-flex h-10 items-center gap-2 rounded-md border border-input bg-surface px-3 text-sm shadow-soft">
                 <span className="text-muted-foreground">Sort</span>
                 <select
-                  className="bg-transparent font-medium text-foreground focus-visible:outline-none"
+                  className="h-full cursor-pointer bg-transparent font-medium text-foreground focus-visible:outline-none"
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
                   aria-label="Sort the examples"
