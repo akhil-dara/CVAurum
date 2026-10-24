@@ -22,6 +22,7 @@ import { orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLi
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
+import { pageDates } from './seoDates'
 import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
 import { CUSTOMIZE } from '@/data/customize'
 
@@ -884,9 +885,10 @@ export function guideJsonLd(slug: string): string {
         '@type': 'WebPage',
         '@id': url,
         url,
+        ...pageDates(url),
         name: g.heading,
         description: trimToWords(g.description),
-        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
+        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'CVAurum' },
       },
       breadcrumbList([
         { name: 'Home', path: '/' },
@@ -1044,6 +1046,7 @@ export function breadcrumbJsonLd(id: string): string {
         '@type': 'WebPage',
         '@id': url,
         url,
+        ...pageDates(url),
         name: `${tpl.name} resume template`,
         primaryImageOfPage: {
           '@type': 'ImageObject',
@@ -1096,9 +1099,10 @@ export function galleryJsonLd(): string {
         '@type': 'CollectionPage',
         '@id': url,
         url,
+        ...pageDates(url),
         name: `${TEMPLATES.length} resume templates`,
         description: trimToWords(GALLERY_INTRO),
-        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
+        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'CVAurum' },
       },
       breadcrumbList([
         { name: 'Home', path: '/' },
@@ -1131,9 +1135,10 @@ export function promptsJsonLd(): string {
         '@type': 'CollectionPage',
         '@id': url,
         url,
+        ...pageDates(url),
         name: `${PROMPTS.length} resume prompts for an AI assistant`,
         description: trimToWords(PROMPTS_INTRO),
-        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/`, url: `${SITE}/`, name: 'CVAurum' },
+        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'CVAurum' },
       },
       breadcrumbList([
         { name: 'Home', path: '/' },

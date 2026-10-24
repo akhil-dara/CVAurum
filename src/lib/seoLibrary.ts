@@ -16,6 +16,7 @@ import { LIBRARY } from '@/data/library'
 import { CATEGORY_LABELS, LIBRARY_CATEGORIES, REGION_LABELS, SENIORITY_LABELS } from '@/data/library/types'
 import type { LibraryCategory, LibrarySample } from '@/data/library/types'
 import { relatedSamples } from '@/data/library/related'
+import { pageDates } from './seoDates'
 import { TEMPLATE_MAP, getTemplate, templatePath } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
@@ -428,6 +429,7 @@ export function sampleBreadcrumbJsonLd(slug: string): string {
         '@type': 'WebPage',
         '@id': url,
         url,
+        ...pageDates(url),
         name: `${s.role} résumé example`,
         primaryImageOfPage: {
           '@type': 'ImageObject',
@@ -490,9 +492,10 @@ export function examplesJsonLd(): string {
         '@type': 'CollectionPage',
         '@id': url,
         url,
+        ...pageDates(url),
         name: `${LIBRARY.length} résumé examples`,
         description: trim(EXAMPLES_INTRO),
-        isPartOf: { '@type': 'WebSite', '@id': `${HOST}/`, url: `${HOST}/`, name: 'CVAurum' },
+        isPartOf: { '@type': 'WebSite', '@id': `${HOST}/#website`, url: `${HOST}/`, name: 'CVAurum' },
       },
       {
         '@type': 'BreadcrumbList',
