@@ -147,3 +147,15 @@ export function formatFitReadout(metadata: Metadata, result: FitResult | null): 
   const cramped = s.body < LEGIBLE_BODY_PT ? ` · ${pt(s.body)} is below what prints legibly — a page more would keep it readable` : ''
   return `${head}: body ${pt(s.body)}${lead}, headings ${pt(s.heading)}, name ${pt(s.name)}, gaps ${pt(s.sectionGap)} / ${pt(s.entryGap)} · ${pages}, ${fill}${short}${cramped}`
 }
+
+/**
+ * How the chip over the page words a text size the fit shrank. "Slightly
+ * smaller" was said of every shrink, 10.5pt printed at 7.6pt included
+ * (2026-10-24): the words now scale with the shrink, and a size below what
+ * prints legibly is called small and flagged.
+ */
+export function shrinkWords(body: number, set: number): { words: string; warn: boolean } {
+  if (body < LEGIBLE_BODY_PT) return { words: 'small text', warn: true }
+  if (body < set * 0.9) return { words: 'text smaller', warn: false }
+  return { words: 'text slightly smaller', warn: false }
+}

@@ -4,7 +4,7 @@ import type { Metadata } from '@/types/metadata'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
-import { suggestFits } from '@/lib/fitSuggest'
+import { explainShort, suggestFits } from '@/lib/fitSuggest'
 import { effectiveFloorPt } from '@/lib/fitReadout'
 import type { Suggestion } from '@/lib/fitSuggest'
 import { Slider, Toggle, Segmented } from '../fields/Controls'
@@ -203,6 +203,8 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
   const busy = useEditorStore((s) => s.fitSuggesting)
   const setFitOffers = useEditorStore((s) => s.setFitOffers)
   const setFitSuggesting = useEditorStore((s) => s.setFitSuggesting)
+  const shortWhy = useEditorStore((s) => s.fitShort)
+  const setFitShort = useEditorStore((s) => s.setFitShort)
   const [checked, setChecked] = useState(false)
   const run = useRef<() => void>(() => undefined)
   run.current = async () => {
@@ -210,6 +212,7 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
     setFitSuggesting(true)
     try {
       setFitOffers(await suggestFits(doc, trial, result))
+      setFitShort(await explainShort(doc, trial, result))
     } catch {
       setFitOffers([])
     } finally {
@@ -227,8 +230,19 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
     setChecked(false)
   }, [doc])
   const short = result && result.pages > doc.metadata.page.fit.target
+  const pt = (x: number) => `${Math.round(x * 10) / 10}pt`
   return (
     <div className="space-y-2" data-testid="fit-suggest">
+      {/* Why, before what to do about it: "won't fit" alone, then "Nothing
+          better within your rules", was a dead end (2026-10-24). */}
+      {short && shortWhy && (
+        <p className="rounded-lg bg-amber-500/10 px-2.5 py-2 text-xs leading-snug text-foreground" data-testid="fit-why">
+          {shortWhy.body != null
+            ? `${shortWhy.pages} page${shortWhy.pages === 1 ? '' : 's'} needs text at ${pt(shortWhy.body)}, below your ${pt(shortWhy.floor)} floor.`
+            : `${shortWhy.pages} page${shortWhy.pages === 1 ? '' : 's'} can't be reached at any text size: there is more on the page than fits.`}{' '}
+          {offers.length ? 'These would get there:' : 'Shorten a few bullets, or leave a section out from its ⋯ menu.'}
+        </p>
+      )}
       {offers.map((o) => (
         <div
           key={o.id}
@@ -242,7 +256,7 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
         </div>
       ))}
       {busy && <p className="text-[11px] leading-snug text-muted-foreground">Measuring moves…</p>}
-      {!busy && offers.length === 0 && (checked || short) && (
+      {!busy && offers.length === 0 && checked && !short && (
         <p className="text-[11px] leading-snug text-muted-foreground">Nothing better within your rules.</p>
       )}
       <button type="button" className="btn-secondary btn-sm w-full" disabled={busy || !trial || !result} onClick={() => run.current()}>

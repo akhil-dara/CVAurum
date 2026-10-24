@@ -3,7 +3,7 @@ import type { ResumeDocument } from '@/types/document'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
-import { fitSizesPt } from '@/lib/fitReadout'
+import { fitSizesPt, shrinkWords } from '@/lib/fitReadout'
 
 /** Opens the Design panel at the Magic fit card, from anywhere. */
 export function openMagicFit() {
@@ -64,6 +64,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
   const body = result ? fitSizesPt(doc.metadata, result.fit).body : setPt
   const shrunk = !!result && body < setPt - 0.05
   const short = result && result.pages > doc.metadata.page.fit.target
+  const said = shrinkWords(body, setPt)
   return (
     <>
       {/* Said the way a job seeker thinks about it - does it fit, and was
@@ -85,7 +86,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
           {!result
             ? 'Magic fit'
             : shrunk
-              ? <>Fits {pages} · <span className="phone:hidden">text slightly smaller ({pt(body)})</span><span className="desk:hidden">{pt(body)}</span></>
+              ? <>Fits {pages} · <span className={`phone:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{said.words} ({pt(body)})</span><span className={`desk:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{pt(body)}</span></>
               : `Fits ${pages} · text ${pt(body)}`}
         </span>
         {short && (

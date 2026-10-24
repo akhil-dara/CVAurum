@@ -55,7 +55,7 @@ import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
 import { countPagesForFit, measurePages, sectionsFromY } from '@/lib/pdf/pageMeasure'
 import { preparePrintTree } from '@/lib/pdf/prepareTree'
-import { suggestFitOn, suggestFits } from '@/lib/fitSuggest'
+import { explainShort, suggestFitOn, suggestFits } from '@/lib/fitSuggest'
 import { FitChip } from './FitChip'
 import { ContrastChip } from './ContrastChip'
 
@@ -366,6 +366,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const fitResultLive = useEditorStore((s) => s.fitResult)
   const setFitOffers = useEditorStore((s) => s.setFitOffers)
   const setFitSuggesting = useEditorStore((s) => s.setFitSuggesting)
+  const setFitShort = useEditorStore((s) => s.setFitShort)
   const suggestReq = useRef(0)
   useEffect(() => {
     const myReq = ++suggestReq.current
@@ -376,6 +377,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const needOff = !autoFit && !!r && r.pages > 1 && r.lastPageFill < 0.35
     if (!need && !needOff) {
       setFitOffers([])
+      setFitShort(null)
       setFitSuggesting(false)
       return
     }
@@ -385,7 +387,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       setFitSuggesting(true)
       try {
         const offers = need ? await suggestFits(doc, trial, r!) : [await suggestFitOn(doc, trial, r!)].filter((o) => o !== null)
-        if (myReq === suggestReq.current) setFitOffers(offers)
+        const short = need ? await explainShort(doc, trial, r!) : null
+        if (myReq === suggestReq.current) {
+          setFitOffers(offers)
+          setFitShort(short)
+        }
       } catch {
         if (myReq === suggestReq.current) setFitOffers([])
       } finally {
@@ -393,7 +399,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       }
     }, 1200)
     return () => clearTimeout(id)
-  }, [fitResultLive, doc, autoFit, setFitOffers, setFitSuggesting])
+  }, [fitResultLive, doc, autoFit, setFitOffers, setFitSuggesting, setFitShort])
 
   // The live contrast check (src/lib/a11y). It reads the PRINT tree, the DOM
   // the export is painted from, rather than the canvas: the canvas carries

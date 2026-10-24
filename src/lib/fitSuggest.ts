@@ -1,7 +1,7 @@
 import type { ResumeDocument } from '@/types/document'
 import type { FitResult } from './fitReadout'
-import { LEGIBLE_BODY_PT, fitSizesPt } from './fitReadout'
-import { moveSection, sectionLabel } from './sections'
+import { LEGIBLE_BODY_PT, effectiveFloorPt, fitSizesPt } from './fitReadout'
+import { moveSection, sectionHasContent, sectionLabel } from './sections'
 
 /** A candidate document measured the way the preview measures the real one:
  *  the same search, the same paginator, the same rules. */
@@ -28,6 +28,16 @@ const FLOOR_MIN = 6
 /** The smallest body a relax offer may propose: below this the page is
  *  not a résumé anyone wants (measured: a 7.25pt file offered 6pt). */
 const RELAX_MIN_BODY = 8
+/** The narrowest page margin a move may propose, in mm. */
+const MIN_MARGIN = 10
+/** Sections a résumé can most easily do without, in the order a move tries
+ *  leaving them out. Leaving out hides the section; its content is kept. */
+const EXPENDABLE = ['interests', 'references', 'volunteer', 'publications', 'languages', 'awards', 'certificates', 'projects']
+/** Trials spent on leaving sections out, and offers made from them. */
+const HIDE_TRIALS = 3
+const HIDE_OFFERS = 2
+/** At most this many sections left out together by the combined move. */
+const COMBO_SECTIONS = 4
 
 const pages = (n: number) => `${n} page${n === 1 ? '' : 's'}`
 const pct = (x: number) => `${Math.round(x * 100)}%`
@@ -49,7 +59,7 @@ function columnOf(doc: ResumeDocument, key: string): string[] | null {
  *  nearly empty last page one place up. Each candidate costs one trial; the
  *  caller runs this on request only. */
 export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, current: FitResult): Promise<Suggestion[]> {
-  const offers: { s: Suggestion; pages: number; fill: number }[] = []
+  const offers: { s: Suggestion; pages: number; fill: number; body: number }[] = []
   const target = doc.metadata.page.fit.target
 
   // Pull up: one page fewer with the same rules. When the target is already
@@ -71,6 +81,7 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
         },
         pages: r.pages,
         fill: r.lastPageFill,
+        body: s.body,
       })
     }
   }
@@ -116,6 +127,7 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
         },
         pages: a.pages,
         fill: a.lastPageFill,
+        body: aBody,
       })
       break
     }
@@ -142,11 +154,107 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
         },
         pages: r.pages,
         fill: r.lastPageFill,
+        body: fitSizesPt(c.metadata, r.fit).body,
       })
     }
   }
 
-  offers.sort((a, b) => a.pages - b.pages || b.fill - a.fill)
+  // Beyond type and spacing: when the target is out of reach, the two moves
+  // that free the most room without touching a word - narrower margins, and
+  // leaving out a section the résumé can most easily do without. Each is
+  // measured, and offered only when it reaches the target by itself.
+  if (current.pages > target) {
+    const margin = doc.metadata.page.margin
+    if (margin > MIN_MARGIN) {
+      const m = Math.max(MIN_MARGIN, Math.round(margin * 0.7))
+      const c = structuredClone(doc)
+      c.metadata.page.margin = m
+      const r = await trial(c)
+      if (r.pages <= target) {
+        const body = fitSizesPt(c.metadata, r.fit).body
+        offers.push({
+          s: {
+            id: `margin-${m}`,
+            label: `Narrower margins (${m} mm): fits ${pages(r.pages)}, text ${pt(body)}`,
+            mutate: (d) => {
+              d.metadata.page.margin = m
+            },
+          },
+          pages: r.pages,
+          fill: r.lastPageFill,
+          body,
+        })
+      }
+    }
+    const l = doc.metadata.layout
+    const placed = [...l.main, ...l.aside, ...(l.footer ?? [])]
+    let tries = 0
+    let found = 0
+    for (const key of EXPENDABLE) {
+      if (tries >= HIDE_TRIALS || found >= HIDE_OFFERS) break
+      if (!placed.includes(key) || l.hidden.includes(key) || !sectionHasContent(key, doc.content)) continue
+      tries++
+      const c = structuredClone(doc)
+      c.metadata.layout.hidden = [...l.hidden, key]
+      const r = await trial(c)
+      if (r.pages > target) continue
+      found++
+      const body = fitSizesPt(c.metadata, r.fit).body
+      offers.push({
+        s: {
+          id: `hide-${key}`,
+          label: `Leave out ${sectionLabel(key, doc)}: fits ${pages(r.pages)}, text ${pt(body)}`,
+          mutate: (d) => {
+            if (!d.metadata.layout.hidden.includes(key)) d.metadata.layout.hidden.push(key)
+          },
+        },
+        pages: r.pages,
+        fill: r.lastPageFill,
+        body,
+      })
+    }
+  }
+
+  // Together: a résumé well over its target (1.8 pages asked for one) is
+  // rarely brought in by one move. When none did, margins and the least
+  // essential sections are taken in turn, cumulatively, and the first
+  // combination that reaches the target is offered.
+  if (current.pages > target && !offers.some((o) => o.pages <= target && /^(margin|hide)-/.test(o.s.id))) {
+    const l = doc.metadata.layout
+    const placed = [...l.main, ...l.aside, ...(l.footer ?? [])]
+    const narrower = doc.metadata.page.margin > MIN_MARGIN ? Math.max(MIN_MARGIN, Math.round(doc.metadata.page.margin * 0.7)) : null
+    const left: string[] = []
+    for (const key of EXPENDABLE) {
+      if (left.length >= COMBO_SECTIONS) break
+      if (!placed.includes(key) || l.hidden.includes(key) || !sectionHasContent(key, doc.content)) continue
+      left.push(key)
+      const c = structuredClone(doc)
+      if (narrower !== null) c.metadata.page.margin = narrower
+      c.metadata.layout.hidden = [...l.hidden, ...left]
+      const r = await trial(c)
+      if (r.pages > target) continue
+      const body = fitSizesPt(c.metadata, r.fit).body
+      const keys = [...left]
+      const names = keys.map((k) => sectionLabel(k, doc)).join(', ')
+      offers.push({
+        s: {
+          id: `combo-${keys.join('-')}`,
+          label: `${narrower !== null ? 'Narrower margins and leave out' : 'Leave out'} ${names}: fits ${pages(r.pages)}, text ${pt(body)}`,
+          mutate: (d) => {
+            if (narrower !== null) d.metadata.page.margin = narrower
+            for (const k of keys) if (!d.metadata.layout.hidden.includes(k)) d.metadata.layout.hidden.push(k)
+          },
+        },
+        pages: r.pages,
+        fill: r.lastPageFill,
+        body,
+      })
+      break
+    }
+  }
+
+  // fewest pages first; among those, the move that keeps the text largest
+  offers.sort((a, b) => a.pages - b.pages || b.body - a.body || b.fill - a.fill)
   return offers.slice(0, MAX_OFFERS).map((o) => o.s)
 }
 
@@ -184,4 +292,26 @@ export async function suggestFitOn(doc: ResumeDocument, trial: FitTrialFn, curre
       d.metadata.page.fit.minBody = floor
     },
   }
+}
+
+/**
+ * Why the page target is out of reach, measured: the body size the target
+ * would need with the floor let down to its lowest (null when even that
+ * cannot reach it), beside the floor that stopped the fit. The card says it
+ * in words instead of "Nothing better within your rules" - a dead end a
+ * two-page résumé asked for one page used to meet (2026-10-24).
+ */
+export async function explainShort(
+  doc: ResumeDocument,
+  trial: FitTrialFn,
+  current: FitResult
+): Promise<{ pages: number; body: number | null; floor: number } | null> {
+  const target = doc.metadata.page.fit.target
+  if (current.pages <= target) return null
+  const floor = doc.metadata.page.fit.minBody ?? Math.round(effectiveFloorPt(doc.metadata) * 10) / 10
+  const c = structuredClone(doc)
+  c.metadata.page.fit.minBody = FLOOR_MIN
+  const r = await trial(c)
+  const body = r.pages <= target ? Math.round(fitSizesPt(c.metadata, r.fit).body * 10) / 10 : null
+  return { pages: target, body, floor }
 }

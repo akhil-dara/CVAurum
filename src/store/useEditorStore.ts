@@ -44,6 +44,9 @@ interface EditorState {
   fitOffers: Suggestion[]
   /** True while the preview is measuring candidate moves. */
   fitSuggesting: boolean
+  /** Why the page target is out of reach, measured (fitSuggest explainShort):
+   *  the body the target would need, null when no size reaches it. */
+  fitShort: { pages: number; body: number | null; floor: number } | null
   /** What every run of words on the page measures against what it stands on
    *  (src/lib/a11y), read off the print tree the export is painted from once
    *  the fit has settled, with its findings gathered by the setting that
@@ -82,6 +85,7 @@ interface EditorState {
   setFitTrial: (fn: FitTrialFn | null) => void
   setFitOffers: (offers: Suggestion[]) => void
   setFitSuggesting: (v: boolean) => void
+  setFitShort: (v: { pages: number; body: number | null; floor: number } | null) => void
   setContrast: (r: { report: ContrastReport; groups: ContrastGroup[] } | null) => void
   setAtsView: (v: boolean) => void
   setPreviewExact: (v: boolean) => void
@@ -105,6 +109,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   fitTrial: null,
   fitOffers: [],
   fitSuggesting: false,
+  fitShort: null,
   contrast: null,
   atsView: false,
   copiedStyle: null,
@@ -171,6 +176,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const cur = get().fitOffers
     if (cur.length === fitOffers.length && cur.every((o, i) => o.id === fitOffers[i].id && o.label === fitOffers[i].label)) return
     set({ fitOffers })
+  },
+  setFitShort: (fitShort) => {
+    const cur = get().fitShort
+    if (cur === fitShort || (cur && fitShort && cur.pages === fitShort.pages && cur.body === fitShort.body && cur.floor === fitShort.floor)) return
+    set({ fitShort })
   },
   setFitSuggesting: (fitSuggesting) => {
     if (get().fitSuggesting !== fitSuggesting) set({ fitSuggesting })

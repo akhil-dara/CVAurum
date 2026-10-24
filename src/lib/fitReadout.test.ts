@@ -144,3 +144,12 @@ describe('the fit, in a job seeker’s words', () => {
     expect(formatFitSummary(m, { fit: { type: 1, space: 1 }, pages: 2, lastPageFill: 0.23 })).toBe('Off · 2 pages at your 10pt')
   })
 })
+
+describe('how the chip words a shrunk text size', () => {
+  it('calls a small shrink slight, a larger one plain, and a size below legible small', async () => {
+    const { shrinkWords } = await import('./fitReadout')
+    expect(shrinkWords(9.6, 10)).toEqual({ words: 'text slightly smaller', warn: false })
+    expect(shrinkWords(8.6, 10)).toEqual({ words: 'text smaller', warn: false })
+    expect(shrinkWords(7.6, 10.5)).toEqual({ words: 'small text', warn: true })
+  })
+})
