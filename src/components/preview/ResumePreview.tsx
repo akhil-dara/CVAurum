@@ -41,7 +41,7 @@
 import { watchOptionalReveal } from './optionalReveal'
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Maximize, ZoomIn, ZoomOut } from 'lucide-react'
+import { Maximize, PencilLine, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { PAGE_DIMENSIONS, MM_TO_PX } from '@/types/metadata'
 import { ensureFontsReady } from '@/data/fonts'
@@ -115,13 +115,27 @@ function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
       return false
     }
   })
+  // One voice at a time on a first visit: the tip waits until the tour's
+  // invite has been answered (EditorTour finish), not beside it.
+  const [tourSettled, setTourSettled] = useState(() => {
+    try {
+      return !!localStorage.getItem('cvaurum:tour:v2')
+    } catch {
+      return true
+    }
+  })
+  useEffect(() => {
+    const on = () => setTourSettled(true)
+    window.addEventListener('cvaurum:tour-settled', on)
+    return () => window.removeEventListener('cvaurum:tour-settled', on)
+  }, [])
   const c = doc.content
   const blank =
     !c.basics.name &&
     !c.basics.summary &&
     !c.work.some((w) => w.position || w.name) &&
     !c.education.some((e) => e.institution || e.area)
-  if (dismissed || !blank) return null
+  if (dismissed || !blank || !tourSettled) return null
   const close = () => {
     setDismissed(true)
     try {
@@ -133,10 +147,10 @@ function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
   return (
     <div className="flex justify-center px-6 pt-5">
       <div className="flex w-full max-w-[210mm] items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
-        <span aria-hidden>✍️</span>
+        <PencilLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
         <span className="min-w-0">
           Click any <strong>gray hint</strong> on the page to type there — only what you fill in prints. Type{' '}
-          <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">/</kbd> inside a bullet for
+          <kbd className="rounded border border-border bg-muted px-1 font-mono text-[11px]">/</kbd> inside a bullet for
           quick inserts, and hover a section for its <strong>Style</strong> button.
         </span>
         <button className="btn-icon h-6 w-6 shrink-0" onClick={close} aria-label="Dismiss tip" title="Got it">

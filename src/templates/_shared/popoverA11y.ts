@@ -6,13 +6,22 @@ import { useEffect, useRef } from 'react'
  * closes it from anywhere; on close, focus returns to the control that opened
  * it instead of being dropped on <body>.
  */
-export function usePopoverA11y(open: boolean, onClose: () => void, panelRef: React.RefObject<HTMLElement | null>) {
+export function usePopoverA11y(
+  open: boolean,
+  onClose: () => void,
+  panelRef: React.RefObject<HTMLElement | null>,
+  /** The control that opened the popover, when that is not what had focus: a
+   *  canvas button that never takes focus on a click (it would steal the
+   *  caret) handed focus back to whatever had it before - another section's
+   *  button (critique round 3, 2026-10-24). */
+  opener?: React.RefObject<HTMLElement | null>
+) {
   const restore = useRef<HTMLElement | null>(null)
   const close = useRef(onClose)
   close.current = onClose
   useEffect(() => {
     if (!open) return
-    restore.current = document.activeElement as HTMLElement | null
+    restore.current = opener?.current ?? (document.activeElement as HTMLElement | null)
     const t = setTimeout(() => {
       const panel = panelRef.current
       if (!panel) return

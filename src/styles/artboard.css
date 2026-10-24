@@ -3506,13 +3506,36 @@
   .mode-preview .rm-bullets-edit {
     position: relative;
   }
+  /* "+ bullet" sits in the left gutter beside the last bullet, as a round
+     "+": hung below the list it lay over the next entry's title, because the
+     space between two entries is a few pixels (critique round 3). The gutter
+     beside a list measured 20px at its narrowest across all 75 designs
+     (Duet), 39px or more on every other; the mark is 16px and touches the
+     list's edge, so the pointer crosses no dead strip on its way there. Its
+     words stay in the button for a screen reader; only the eye sees "+". */
   .mode-preview .rm-bullets-edit > .rm-bullet-addrow {
     position: absolute;
-    left: 0;
-    top: 100%;
+    right: 100%;
+    bottom: 0;
     margin: 0;
     z-index: 6;
     pointer-events: none;
+  }
+  .mode-preview .rm-bullets-edit > .rm-bullet-addrow .rm-add-btn {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 999px;
+    font-size: 0;
+    line-height: 0;
+  }
+  .mode-preview .rm-bullets-edit > .rm-bullet-addrow .rm-add-btn::before {
+    content: '+';
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 600;
   }
   .mode-preview .rm-section:is(:hover, :focus-within) .rm-add-entry-row,
   .mode-preview :is(.rm-item, .rm-mini):is(:hover, :focus-within) .rm-bullet-addrow,

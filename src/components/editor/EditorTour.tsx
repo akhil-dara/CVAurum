@@ -142,6 +142,9 @@ export function EditorTour() {
       /* ignore */
     }
     setOpen(false)
+    // the canvas tip waits for this: a first visit used to get the invite,
+    // the tip and the Templates panel all at once (critique round 3)
+    window.dispatchEvent(new Event('cvaurum:tour-settled'))
   }
 
   if (!open) {

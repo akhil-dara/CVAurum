@@ -83,22 +83,18 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
       >
         <Wand2 className="h-3.5 w-3.5 text-primary" aria-hidden />
         <span className="whitespace-nowrap">
+          {/* Out of reach is said once, as what is true: "Fits 2 pages ·
+              won't fit" contradicted itself (critique round 3). */}
           {!result
             ? 'Magic fit'
+            : short
+              ? `${pages} · ${doc.metadata.page.fit.target} page${doc.metadata.page.fit.target === 1 ? '' : 's'} out of reach`
             : shrunk
               ? <>Fits {pages} · <span className={`phone:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{said.words} ({pt(body)})</span><span className={`desk:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{pt(body)}</span></>
               : `Fits ${pages} · text ${pt(body)}`}
         </span>
-        {short && (
-          <span
-            className="rounded-full bg-amber-500/15 px-1.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300"
-            title="Your page target can't be reached within your rules"
-          >
-            won't fit
-          </span>
-        )}
         {offers.length > 0 && (
-          <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+          <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
             {offers.length} {offers.length === 1 ? 'move' : 'moves'}
           </span>
         )}

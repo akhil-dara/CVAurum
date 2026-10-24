@@ -520,7 +520,8 @@ export function SectionGear({
   })
   const panelRef = useRef<HTMLDivElement>(null)
   // Escape closes; focus moves in on open and back to the gear on close.
-  usePopoverA11y(open, () => setOpen(false), panelRef)
+  const openerRef = useRef<HTMLElement | null>(null)
+  usePopoverA11y(open, () => setOpen(false), panelRef, openerRef)
 
   // Docked: one inspector at a time; it leaves when the panel under it
   // changes (another tab, the panel closed) or the window is resized, and
@@ -539,12 +540,16 @@ export function SectionGear({
       if (s.leftTab !== ed.leftTab || !s.leftOpen) setOpen(false)
     })
     window.addEventListener('cvaurum:style-dock', other)
+    window.addEventListener('cvaurum:style-close', close)
     window.addEventListener('resize', close)
     return () => {
       sec?.removeAttribute('data-styling')
       unsub()
       window.removeEventListener('cvaurum:style-dock', other)
+      window.removeEventListener('cvaurum:style-close', close)
       window.removeEventListener('resize', close)
+      // the rail stops showing "no tab" once this inspector leaves
+      window.dispatchEvent(new CustomEvent('cvaurum:style-undock', { detail: sectionKey }))
     }
   }, [open, pos.dock, sectionKey])
 
@@ -734,6 +739,7 @@ export function SectionGear({
     })
 
   const openPopover = (e: React.MouseEvent) => {
+    openerRef.current = e.currentTarget as HTMLElement
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
     // clientWidth excludes the page scrollbar — innerWidth would tuck the panel
     // underneath it on Windows (the clipping users saw).

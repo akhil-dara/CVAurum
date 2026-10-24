@@ -12,7 +12,7 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
 import { FONTS } from '@/data/fonts'
-import { BODY_SECTION_KEYS, DEFAULT_LABELS } from '@/lib/sections'
+import { ADD_LABEL, BODY_SECTION_KEYS, DEFAULT_LABELS, pushNewItem, sectionLabel } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -57,6 +57,25 @@ function rememberRecent(id: string) {
   } catch {
     /* private mode */
   }
+}
+
+/** Scroll the canvas to a section and put the caret in its first field, or
+ *  in the first field of its last entry (the one an "Add" just appended).
+ *  Waits two frames: the mode switch and the new entry both render first. */
+function reachSection(key: string, where: 'first' | 'last') {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const sec = document.querySelector<HTMLElement>(`[data-tour="canvas"] [data-section="${key}"]`)
+    if (!sec) return
+    const fields = [...sec.querySelectorAll<HTMLElement>('[contenteditable="true"]')]
+    let target = fields[0]
+    if (where === 'last') {
+      const entries = sec.querySelectorAll<HTMLElement>('[data-item-id]')
+      const last = entries[entries.length - 1]
+      target = last?.querySelector<HTMLElement>('[contenteditable="true"]') ?? fields[fields.length - 1]
+    }
+    sec.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    target?.focus({ preventScroll: true })
+  }))
 }
 
 export function CommandPalette({ doc }: { doc: ResumeDocument }) {
@@ -172,6 +191,32 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     }
 
     // add sections (only ones not already on the resume)
+    // sections on the page: jump to one, or add an entry to it. Both land
+    // the caret in the section, so the palette is a way to reach a field,
+    // not only a list of switches.
+    const onPage = [...doc.metadata.layout.main, ...doc.metadata.layout.aside].filter((k) => !doc.metadata.layout.hidden.includes(k))
+    for (const key of onPage) {
+      const name = sectionLabel(key, doc)
+      cmds.push({
+        id: `goto-${key}`,
+        group: 'Go to',
+        label: `Go to ${name}`,
+        run: () => { ed.setPreviewExact(false); ed.setAtsView(false); reachSection(key, 'first') },
+      })
+      if (key === 'summary') continue
+      const entry = ADD_LABEL[key] ?? 'entry'
+      cmds.push({
+        id: `add-entry-${key}`,
+        group: 'Add',
+        label: `Add ${entry} to ${name}`,
+        run: () => {
+          ed.setPreviewExact(false); ed.setAtsView(false)
+          useResumeStore.getState().updateContent((c) => pushNewItem(c, key))
+          reachSection(key, 'last')
+        },
+      })
+    }
+
     const present = new Set([...doc.metadata.layout.main, ...doc.metadata.layout.aside])
     for (const key of BODY_SECTION_KEYS.filter((k) => !present.has(k))) {
       cmds.push({
@@ -233,17 +278,26 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
               if (e.key === 'ArrowUp') { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)) }
               if (e.key === 'Enter') { e.preventDefault(); runSel(sel) }
             }}
-            placeholder="Type a command — template, font, accent, section, export…"
+            placeholder="Type a command or a section — template, font, accent, export…"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-list"
+            aria-activedescendant={results[sel] ? `palette-opt-${sel}` : undefined}
+            aria-autocomplete="list"
             className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             aria-label="Search commands"
           />
-          <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">Esc</kbd>
+          <kbd className="rounded border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground">Esc</kbd>
         </div>
-        <div ref={listRef} className="max-h-[46vh] overflow-y-auto overscroll-contain p-1.5">
+        <div ref={listRef} id="palette-list" role="listbox" aria-label="Commands" className="max-h-[46vh] overflow-y-auto overscroll-contain p-1.5">
           {results.length === 0 && <div className="px-3 py-6 text-center text-sm text-muted-foreground">No matching command.</div>}
           {results.map((c, i) => (
             <button
               key={c.id}
+              id={`palette-opt-${i}`}
+              role="option"
+              aria-selected={i === sel}
+              tabIndex={-1}
               className={`flex min-h-[40px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
               // mouseMOVE, not mouseenter: when the list re-renders under a
               // stationary cursor, mouseenter fires and silently steals the
@@ -252,7 +306,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
               onClick={() => runSel(i)}
             >
               <span className="flex min-w-0 items-center gap-2.5">
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{c.group}</span>
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{c.group}</span>
                 <span className="truncate">{c.label}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">

@@ -1,5 +1,6 @@
 import { FileText, Palette, LayoutTemplate, Target, PanelLeftClose, PanelLeft, Eye } from 'lucide-react'
 import { useEditorStore, type LeftTab } from '@/store/useEditorStore'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const TABS: { id: LeftTab; label: string; icon: typeof FileText }[] = [
@@ -16,6 +17,20 @@ const TABS: { id: LeftTab; label: string; icon: typeof FileText }[] = [
  */
 export function LeftRail() {
   const { leftTab, setLeftTab, leftOpen, toggleLeft, setLeftOpen } = useEditorStore()
+  // A section's Style inspector docks over the panel. While it is there no
+  // tab is lit - the panel the rail would point at is covered - and any tab,
+  // the lit one included, closes the inspector to show its panel again.
+  const [docked, setDocked] = useState<string | null>(null)
+  useEffect(() => {
+    const on = (e: Event) => setDocked((e as CustomEvent<string>).detail)
+    const off = (e: Event) => setDocked((k) => (k === (e as CustomEvent<string>).detail ? null : k))
+    window.addEventListener('cvaurum:style-dock', on)
+    window.addEventListener('cvaurum:style-undock', off)
+    return () => {
+      window.removeEventListener('cvaurum:style-dock', on)
+      window.removeEventListener('cvaurum:style-undock', off)
+    }
+  }, [])
   return (
     <nav
       data-tour="nav"
@@ -29,12 +44,14 @@ export function LeftRail() {
     >
       {TABS.map((t) => {
         const Icon = t.icon
-        const active = leftOpen && leftTab === t.id
+        const active = leftOpen && leftTab === t.id && !docked
         return (
           <button
             key={t.id}
             data-tour={t.id === 'templates' || t.id === 'design' ? t.id : undefined}
+            aria-current={active ? 'page' : undefined}
             onClick={() => {
+              if (docked) window.dispatchEvent(new Event('cvaurum:style-close'))
               setLeftTab(t.id)
               setLeftOpen(true)
             }}

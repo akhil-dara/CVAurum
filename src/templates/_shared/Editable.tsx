@@ -220,12 +220,13 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
       if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySlash(m.items[m.index]); return }
       if (e.key === 'Escape') { e.preventDefault(); setMenu(null); return }
     }
-    // Escape takes back what was typed since the field was entered, then
-    // leaves it - the way any text field behaves. It used to keep the edit:
-    // a heading renamed by mistake stayed renamed (critique, 2026-10-23).
-    // Edits commit 300ms after the last keystroke, so a commit may already
-    // have gone through: with the original back in the field, the commit on
-    // leaving it (onBlur) writes it back and undoes that too.
+    // Escape takes back what was typed since the field was entered. It used to
+    // keep the edit (a heading renamed by mistake stayed renamed, critique
+    // 2026-10-23), then it left the field as well - which dropped keyboard
+    // focus to the page, so a screen-reader user lost their place on every
+    // undo (critique round 3, 2026-10-24). It now stays: the text is put back,
+    // the caret sits at its end, and the original is written straight back
+    // in case a commit (300ms after the last keystroke) already went through.
     if (e.key === 'Escape') {
       e.preventDefault()
       if (timer.current) clearTimeout(timer.current)
@@ -234,9 +235,13 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
       if (el && original !== null) {
         if (rich) el.innerHTML = sanitizeHtml(original)
         else el.textContent = original
+        if (original !== value) onChange(original)
+        const sel = window.getSelection()
+        if (sel) {
+          sel.selectAllChildren(el)
+          sel.collapseToEnd()
+        }
       }
-      atFocus.current = null
-      ;(e.target as HTMLElement).blur()
       return
     }
     if (e.key !== 'Enter') return
