@@ -24,9 +24,15 @@ function previousRenderedSibling(el: Element): Element | null {
 }
 
 export function resolveForcedCutsPx(root: HTMLElement, pins: PageBreakPin[]): number[] {
+  return [...new Set(resolveForcedPins(root, pins).map((p) => p.y))].sort((a, b) => a - b)
+}
+
+/** The same cuts, each with the pin that made it, so the canvas can name
+ *  the break that left a page's foot blank and offer to remove it. */
+export function resolveForcedPins(root: HTMLElement, pins: PageBreakPin[]): { y: number; pin: PageBreakPin }[] {
   if (!pins.length) return []
   const rootTop = root.getBoundingClientRect().top
-  const out = new Set<number>()
+  const out: { y: number; pin: PageBreakPin }[] = []
   for (const pin of pins) {
     const section = root.querySelector<HTMLElement>(`.rm-section[data-section="${CSS.escape(pin.section)}"]`)
     if (!section) continue
@@ -41,7 +47,7 @@ export function resolveForcedCutsPx(root: HTMLElement, pins: PageBreakPin[]): nu
     const prevBottom = prev ? prev.getBoundingClientRect().bottom : rect.top
     const gapTop = Math.min(prevBottom, rect.top)
     const y = (gapTop + rect.top) / 2 - rootTop
-    if (y > 0) out.add(y)
+    if (y > 0) out.push({ y, pin })
   }
-  return [...out].sort((a, b) => a - b)
+  return out.sort((a, b) => a.y - b.y)
 }

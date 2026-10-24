@@ -37,6 +37,19 @@
 import type { CSSProperties } from 'react'
 import { pageFootText, type PageNumberStyle } from '@/lib/pageWords'
 import { OPEN_PAGE_FOOT } from '@/templates/_shared/FootGear'
+import { useResumeStore } from '@/store/useResumeStore'
+import { togglePagePin } from '@/lib/pageBreakPins'
+import type { PageBreakPin } from '@/types/metadata'
+
+/** Paper a page leaves blank because a "Start on new page" pin sent what
+ *  followed to the next page (edit canvas only). */
+export interface PageBlank {
+  page: number
+  top: number
+  height: number
+  pin: PageBreakPin
+  label: string
+}
 
 /** Height (CSS px) of the REAL gap the editor opens above each
  *  `data-page-start` element (artboard.css `--rm-page-gap` must match) —
@@ -164,7 +177,9 @@ export function PageChromeOverlay({
   feet = [],
   sheetLook,
   pageRects = [],
+  blanks = [],
 }: {
+  blanks?: PageBlank[]
   /** The frame and grid the design repeats on every page, and each page's
    *  paper (edit canvas only, and only when every break opened a real gap). */
   sheetLook?: PageSheetLook | null
@@ -268,6 +283,42 @@ export function PageChromeOverlay({
             )
           })
         : null}
+
+      {/* The blank a pinned break leaves at a page's foot: the PDF prints it
+          as empty paper, so the canvas shows it as such, marked, with what
+          moved and the one click that takes the break away. */}
+      {blanks.map((b) => (
+        <div
+          key={`blank-${b.page}`}
+          className="pointer-events-none absolute flex items-center justify-center rounded-md"
+          style={{
+            top: b.top + 6,
+            height: Math.max(0, b.height - 12),
+            left: 24,
+            right: 24,
+            border: '1px dashed rgb(100 116 139 / 0.45)',
+            backgroundImage:
+              'repeating-linear-gradient(135deg, rgb(100 116 139 / 0.09) 0 6px, transparent 6px 14px)',
+          }}
+          data-page-chrome="blank"
+          data-page-index={b.page}
+        >
+          <div className="pointer-events-auto flex max-w-[90%] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12px] text-slate-600 shadow-sm ring-1 ring-slate-200">
+            <span className="min-w-0 truncate">
+              Left blank in the PDF: <span className="font-medium text-slate-800">{b.label}</span> starts on page {b.page + 1}
+            </span>
+            <button
+              type="button"
+              className="shrink-0 rounded-full border border-slate-300 bg-white px-2.5 py-0.5 font-medium text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
+              onClick={() =>
+                useResumeStore.getState().updateMetadata((m) => togglePagePin(m.page.breaks, b.pin.section, b.pin.itemId))
+              }
+            >
+              Remove break
+            </button>
+          </div>
+        </div>
+      ))}
 
       {footLook
         ? feet.map((f) => (

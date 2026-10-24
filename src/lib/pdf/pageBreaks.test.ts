@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { resolveForcedCutsPx } from './pageBreaks'
+import { resolveForcedCutsPx, resolveForcedPins } from './pageBreaks'
 
 /**
  * The resolver reads a live document tree through three DOM calls only -
@@ -108,5 +108,18 @@ describe('resolveForcedCutsPx with an entry pin', () => {
       { section: 'work', itemId: 'w2' },
     ])
     expect(cuts).toEqual([210])
+  })
+})
+
+describe('resolveForcedPins', () => {
+  it('pairs each cut with the pin that made it, in page order, so the canvas can name the break', () => {
+    const pins = resolveForcedPins(root() as unknown as HTMLElement, [
+      { section: 'education' },
+      { section: 'work', itemId: 'w2' },
+    ])
+    expect(pins).toEqual([
+      { y: 210, pin: { section: 'work', itemId: 'w2' } },
+      { y: 440, pin: { section: 'education' } },
+    ])
   })
 })

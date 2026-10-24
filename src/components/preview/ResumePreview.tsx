@@ -48,8 +48,9 @@ import { ensureFontsReady } from '@/data/fonts'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useIsPhone, useMediaQuery } from '@/hooks/useIsPhone'
-import { clamp, uid } from '@/lib/utils'
-import { BODY_SECTION_KEYS, customKey } from '@/lib/sections'
+import { clamp, htmlToText, uid } from '@/lib/utils'
+import { BODY_SECTION_KEYS, customKey, findItem, sectionLabel } from '@/lib/sections'
+import type { PageBreakPin } from '@/types/metadata'
 import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
@@ -72,14 +73,14 @@ import {
   exceedsOnePage,
   onePageMarginMm,
 } from '@/lib/pdf/metrics'
-import { resolveForcedCutsPx } from '@/lib/pdf/pageBreaks'
+import { resolveForcedPins } from '@/lib/pdf/pageBreaks'
 import {
   collectSectionAnchors,
   collectSectionAnchorsByKey,
   mapCutToEditAnchor,
   mapCutToEditSpace,
 } from './pageChromeMap'
-import { PAGE_GAP_PX } from './PageChrome'
+import { PAGE_GAP_PX, type PageBlank } from './PageChrome'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
@@ -230,6 +231,18 @@ function snapClearOfInk(y: number, root: HTMLElement, scale: number): number | n
   return bestDist <= MAX_NUDGE ? best : null
 }
 
+/** What a pinned break moved to the next page, in the words the page uses:
+ *  the entry's own title where the pin is on one, else the section's name. */
+function pinLabel(doc: ResumeDocument, pin: PageBreakPin): string {
+  const section = sectionLabel(pin.section, doc)
+  if (!pin.itemId) return section
+  const it = findItem(doc.content, pin.section, pin.itemId)?.item as Record<string, unknown> | undefined
+  const title = ['position', 'name', 'institution', 'title', 'organization', 'language'].map((k) => it?.[k]).find(
+    (v): v is string => typeof v === 'string' && v.trim().length > 0
+  )
+  return title ? htmlToText(title) : section
+}
+
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
   const fitToWidth = useEditorStore((s) => s.autoFit)
@@ -362,7 +375,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         fitRulesOf(candidate.metadata)
       )
       const r = root()
-      const m = r ? measurePages(r, ph, marginMm) : { pages: Number.POSITIVE_INFINITY, lastPageFill: 0, lastPageSections: [] }
+      const pins = candidate.metadata.page.autoFit ? [] : candidate.metadata.page.breaks
+      const m = r ? measurePages(r, ph, marginMm, pins) : { pages: Number.POSITIVE_INFINITY, lastPageFill: 0, lastPageSections: [] }
       setTrialDoc(null)
       return { fit, pages: m.pages, lastPageFill: m.lastPageFill, lastPageSections: m.lastPageSections }
     }
@@ -643,8 +657,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const [pageFeet, setPageFeet] = useState<PageFootCopy[]>([])
   const [sheetLook, setSheetLook] = useState<PageSheetLook | null>(null)
   const [pageRects, setPageRects] = useState<{ top: number; bottom: number }[]>([])
+  const [pageBlanks, setPageBlanks] = useState<PageBlank[]>([])
   useEffect(() => {
     const clearOverlay = () => {
+      setPageBlanks((prev) => (prev.length ? [] : prev))
       setFootLook((prev) => (prev ? null : prev))
       setPageFeet((prev) => (prev.length ? [] : prev))
       setSheetLook((prev) => (prev ? null : prev))
@@ -653,7 +669,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       setPageBadgeTops((prev) => (prev.length ? [] : prev))
       setPagePageCount((prev) => (prev !== 1 ? 1 : prev))
       // close any real page gaps the last run opened
-      innerRef.current?.querySelectorAll('[data-page-start]').forEach((el) => el.removeAttribute('data-page-start'))
+      innerRef.current?.querySelectorAll<HTMLElement>('[data-page-start]').forEach((el) => {
+        el.removeAttribute('data-page-start')
+        el.style.removeProperty('--rm-gap-slack')
+      })
     }
     // 2026-08-17 spec 1b/2: the overlay now renders in EVERY canvas state
     // that genuinely paginates — auto-fit docs whose fit FAILED (fitScale
@@ -680,7 +699,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       // `exceedsOnePage` is the export's own gate (render.tsx), shared here
       // so the two can never independently re-derive (and diverge on) this
       // arithmetic again.
-      if (!exceedsOnePage(contentHeightPx, pageH, onePageMarginMm(doc.metadata))) {
+      // A pin can force a second page onto a résumé that fits on one, and the
+      // export prints it (render.tsx); this gate returned before pins were
+      // read, so the canvas and the chip said one page while the PDF had two
+      // (2026-10-24). With pins in play, pagination below decides.
+      const pinsInPlay = !autoFit && doc.metadata.page.breaks.length > 0
+      if (!pinsInPlay && !exceedsOnePage(contentHeightPx, pageH, onePageMarginMm(doc.metadata))) {
         clearOverlay()
         setFitResult({ fit: fitRef.current, pages: 1, lastPageFill: contentHeightPx / pageH, lastPageSections: [] })
         return
@@ -690,6 +714,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         // (walk.ts / sectionKeep.ts): without it this overlay would draw cuts
         // inside sections and entries the export holds whole.
         preparePrintTree(printRoot)
+        const forcedPins = autoFit ? [] : resolveForcedPins(printRoot, doc.metadata.page.breaks)
         const combinedBlocks = extractPageBlocks(printRoot, usablePageHeightPx)
         const result = paginate({
           blocks: combinedBlocks,
@@ -702,7 +727,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           // Pins resolve on the SAME portal geometry the export resolves its
           // sheet with — parity by construction. Auto-fit ON ignores pins
           // (spec 1b), matching render.tsx exactly.
-          forcedCutsPx: autoFit ? [] : resolveForcedCutsPx(printRoot, doc.metadata.page.breaks),
+          forcedCutsPx: forcedPins.map((p) => p.y),
         })
         // The readout's numbers: the fit the portal is drawn at, the true page
         // count, and how much of the last page the content reaches.
@@ -716,6 +741,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           lastPageSections: sectionsFromY(printRoot, result.cutsPx.length ? result.cutsPx[result.cutsPx.length - 1] : 0),
         })
         if (result.cutsPx.length === 0) {
+          clearOverlay()
           setPageSeparators([])
           setPageBadgeTops([0])
           setPagePageCount(result.pageCount)
@@ -765,6 +791,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           anchors[i] ? null : mapCutToEditSpace(mappingBlocks, y, printRoot, printAnchors, editRoot, editAnchorsByKey)
         )
         for (const el of editRoot.querySelectorAll('[data-page-start]')) el.removeAttribute('data-page-start')
+        const pinAt = result.cutsPx.map((cut) => forcedPins.find((p) => Math.abs(p.y - cut) < 0.5)?.pin)
         // The paper either side of each gap: the page's bottom margin, then
         // the next page's top margin, as the export leaves them.
         const paperBelow = padding.topPx
@@ -792,6 +819,23 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             // the design draws on every page - known only where every break
             // opened a real gap; one it had to guess leaves them export-only.
             const rects: { top: number; bottom: number }[] = []
+            const blanks: PageBlank[] = []
+            // The paper a page leaves blank under its last line: each gap
+            // grows until the page above it is one sheet tall, so a canvas
+            // page is the height of the printed one. Without it a "Start on
+            // new page" left half a page empty in the PDF and none on the
+            // canvas (2026-10-24). Measured here, on the canvas, because the
+            // canvas page also carries edit-only rows the print tree has not.
+            // Single column only: two columns open their gap in the main
+            // column alone, and half a page of it would slide the sidebar
+            // out of line. Reading a rect lays the page out again, so an
+            // anchor's measured top already includes the gaps grown above it;
+            // `shift` carries that growth to the positions mapped beforehand.
+            // The grown gaps are dropped and re-measured in this one frame:
+            // dropped earlier, a frame painted without them, the canvas
+            // shrank, and that re-ran this effect for ever.
+            for (const el of editRoot.querySelectorAll<HTMLElement>('[style*="--rm-gap-slack"]')) el.style.removeProperty('--rm-gap-slack')
+            let shift = 0
             let pageTop = 0
             let exact = true
             for (let i = 0; i < result.cutsPx.length; i++) {
@@ -799,11 +843,27 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
               if (el) {
                 // `grey` is where the gap's grey ends and the next page's paper
                 // begins; the page's own margin runs down from there.
-                const grey = (el.getBoundingClientRect().top - rootRect.top) / scaleNow - paperBelow
+                let grey = (el.getBoundingClientRect().top - rootRect.top) / scaleNow - paperBelow
+                const slack = mainOnlyBlocks ? 0 : Math.max(0, Math.round(pageH - (grey - PAGE_GAP_PX - pageTop)))
+                if (slack > 0) (el as HTMLElement).style.setProperty('--rm-gap-slack', `${slack}px`)
+                grey += slack
+                shift += slack
                 separators.push({ y: grey - PAGE_GAP_PX / 2 })
                 badgeTops.push(grey)
                 if (look) feet.push({ page: i + 1, top: grey - PAGE_GAP_PX - look.insetPx - look.heightPx })
                 rects.push({ top: pageTop, bottom: grey - PAGE_GAP_PX })
+                // A pinned break's blank paper is marked and named, with the
+                // way to undo it; a natural break's leftover is plain paper.
+                const pin = pinAt[i]
+                if (pin && slack >= 24) {
+                  blanks.push({
+                    page: i + 1,
+                    top: grey - PAGE_GAP_PX - padding.bottomPx - slack,
+                    height: slack,
+                    pin,
+                    label: pinLabel(doc, pin),
+                  })
+                }
                 pageTop = grey
               } else if (fallbackYs[i] != null) {
                 // Interpolated, so it can land in the MIDDLE of a chip or a
@@ -815,13 +875,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 // judgement this module already makes when it suppresses a
                 // separator it cannot place.
                 exact = false
-                const snapped = snapClearOfInk(fallbackYs[i]!, editRoot, scaleNow)
+                const snapped = snapClearOfInk(fallbackYs[i]! + shift, editRoot, scaleNow)
                 // The badge marks the page whether or not a rule can be drawn.
                 if (snapped !== null) separators.push({ y: snapped, thin: true })
-                badgeTops.push(snapped ?? fallbackYs[i]!)
+                badgeTops.push(snapped ?? fallbackYs[i]! + shift)
               } else {
                 exact = false
-                badgeTops.push(result.cutsPx[i] * badgeScale)
+                badgeTops.push(result.cutsPx[i] * badgeScale + shift)
               }
             }
             rects.push({ top: pageTop, bottom: editRoot.offsetHeight })
@@ -833,6 +893,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             setPageFeet(feet)
             setSheetLook(exact ? readPageSheet(editRoot, scaleNow) : null)
             setPageRects(exact ? rects : [])
+            setPageBlanks(blanks)
             // The margin gaps grew the canvas — keep the white sheet sized.
             if (innerRef.current) setContentH(innerRef.current.scrollHeight)
           })
@@ -1086,6 +1147,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 feet={pageFeet}
                 sheetLook={exactCanvas ? null : sheetLook}
                 pageRects={pageRects}
+                blanks={exactCanvas ? [] : pageBlanks}
               />
             </div>
           </div>

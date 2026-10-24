@@ -663,7 +663,11 @@
    shows where each page really ends and starts. Edit canvas only — print never carries .mode-preview, so
    export geometry is untouched. */
 .mode-preview [data-page-start] {
-  margin-top: calc(var(--rm-gap-paper-above, 0px) + var(--rm-page-gap, 28px) + var(--rm-gap-paper-below, 0px));
+  /* --rm-gap-slack: the paper the printed page leaves blank under its last
+     line, so the canvas page is as tall as the PDF's (ResumePreview). */
+  margin-top: calc(
+    var(--rm-gap-slack, 0px) + var(--rm-gap-paper-above, 0px) + var(--rm-page-gap, 28px) + var(--rm-gap-paper-below, 0px)
+  );
 }
 .rm-section:last-child {
   margin-bottom: 0;
@@ -3365,6 +3369,20 @@
 .mode-preview .rm-bullet-del:focus-visible {
   opacity: 1;
   pointer-events: auto;
+}
+/* The button sits just past the row's right edge, so the pointer crossed a
+   strip that belonged to neither on its way there: the row lost :hover, the
+   button hid and went inert under the pointer, and it could never be clicked
+   unless the bullet had the caret (2026-10-24, "vanishing like magic"). A hit
+   bridge on the button spans the strip; it is inert while the button is, and
+   live exactly when the button shows. */
+.mode-preview .rm-bullet-del::before {
+  content: '';
+  position: absolute;
+  top: -0.15em;
+  bottom: -0.15em;
+  right: 100%;
+  width: 0.45em;
 }
 .mode-preview .rm-bullet-addrow {
   list-style: none;

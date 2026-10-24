@@ -1,6 +1,8 @@
 import { extractPageBlocks } from './walk'
 import { preparePrintTree } from './prepareTree'
 import { paginate } from './paginate'
+import { resolveForcedCutsPx } from './pageBreaks'
+import type { PageBreakPin } from '@/types/metadata'
 import { computeUsablePageHeightPx, computeFirstPageUsablePageHeightPx, findMainColumnPaddingPx, exceedsOnePage } from './metrics'
 
 export interface PageMeasure {
@@ -17,7 +19,7 @@ export interface PageMeasure {
  *  page, else the export's own paginator on the same blocks and budgets.
  *  The preview's overlay, its readout and Magic fit's trials all read this
  *  one routine, so none of them can disagree with the PDF on a page count. */
-export function measurePages(printRoot: HTMLElement, pageH: number, marginMm: number, forcedCutsPx: number[] = []): PageMeasure {
+export function measurePages(printRoot: HTMLElement, pageH: number, marginMm: number, pins: PageBreakPin[] = []): PageMeasure {
   // The painter draws a tree whose unsupported characters are substituted and
   // whose hyphenated words are held whole; both change where lines wrap, so a
   // measurement taken before them describes a different document.
@@ -26,7 +28,10 @@ export function measurePages(printRoot: HTMLElement, pageH: number, marginMm: nu
   const usable = computeUsablePageHeightPx(pageH, padding)
   const first = computeFirstPageUsablePageHeightPx(pageH, padding)
   const contentHeightPx = printRoot.getBoundingClientRect().height
-  if (!exceedsOnePage(contentHeightPx, pageH, marginMm)) {
+  // Pins resolve on the prepared tree, as the export resolves them, and can
+  // force a second page onto content that fits on one.
+  const forcedCutsPx = resolveForcedCutsPx(printRoot, pins)
+  if (!forcedCutsPx.length && !exceedsOnePage(contentHeightPx, pageH, marginMm)) {
     // The sheet against the page, the comparison the fit itself makes: a
     // full page reads 100%, not 104% (against the usable height it did).
     return { pages: 1, lastPageFill: contentHeightPx / pageH, lastPageSections: [], cutsPx: [], contentHeightPx }
