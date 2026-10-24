@@ -22,6 +22,7 @@ import { orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLi
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
+import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { pageDates } from './seoDates'
 import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
 import { CUSTOMIZE } from '@/data/customize'
@@ -258,7 +259,12 @@ function cardList(list: readonly TemplateConfig[]): string {
  */
 export function staticHtml(id: string): string {
   const tpl = must(id)
-  const others = ORDERED.filter((t) => t.id !== id)
+  // Twelve related designs and the examples shown in this one, not a list of
+  // all 74 others: every design page carried the same 74 links, and with the
+  // shared paragraphs that made the pages about 91% the same text (2026-10-24
+  // audit). The gallery still links every design in one hop.
+  const related = relatedTemplateIds(id, 12).map((rid) => must(rid))
+  const inThisDesign = EXAMPLES_BY_TEMPLATE[id] ?? []
   return `<main class="seo-static">
     <p><a href="/templates">Resume templates</a> › ${htmlEscape(tpl.name)}</p>
     <h1>${htmlEscape(tpl.name)} resume template</h1>
@@ -274,11 +280,18 @@ ${CUSTOMIZE.items.map((i) => `        <li>${htmlEscape(i)}</li>`).join('\n')}
       </ul>
     </section>
     <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} resume templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete resume examples</a></p>
-    <nav aria-label="Every other resume template">
-      <h2>The other ${others.length} designs</h2>
+${inThisDesign.length ? `    <section>
+      <h2>Résumé examples in the ${htmlEscape(tpl.name)} design</h2>
       <ul>
-${linkList(others)}
+${inThisDesign.map((s) => `        <li><a href="/examples/${s.slug}">${htmlEscape(s.role)} resume example</a></li>`).join('\n')}
       </ul>
+    </section>
+` : ''}    <nav aria-label="Related resume templates">
+      <h2>Related designs</h2>
+      <ul>
+${linkList(related)}
+      </ul>
+      <p><a href="/templates">See all ${TEMPLATES.length} resume templates</a></p>
     </nav>
   </main>`
 }

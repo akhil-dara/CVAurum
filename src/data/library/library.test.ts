@@ -449,3 +449,12 @@ describe('the advice under a sample is about that sample', () => {
     expect(bad).toEqual([])
   })
 })
+
+describe('the generated list of examples per design', () => {
+  it('matches the samples, so a design page links exactly the examples shown in it', async () => {
+    const { EXAMPLES_BY_TEMPLATE } = await import('./byTemplate')
+    const expected: Record<string, { slug: string; role: string }[]> = {}
+    for (const s of [...LIBRARY].sort((a, b) => a.slug.localeCompare(b.slug))) (expected[s.template] ??= []).push({ slug: s.slug, role: s.role })
+    expect(EXAMPLES_BY_TEMPLATE).toEqual(expected)
+  })
+})

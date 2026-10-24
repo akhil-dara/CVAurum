@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { TEMPLATES, TEMPLATE_MAP, getTemplate, templatePath } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { GUIDES } from '@/data/guides'
+import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { examplesPageMeta, samplePageImage } from '@/lib/seoLibrary'
 import {
@@ -130,11 +131,14 @@ describe('the HTML a crawler reads without running the app', () => {
     expect(html).toContain('<h1>Broadsheet resume template</h1>')
   })
 
-  it('links to every OTHER design in the collection', () => {
+  it('links twelve related designs, not all of them, and the examples shown in this one', () => {
+    // all 74 others on every page made the design pages ~91% the same text;
+    // the gallery links every design in one hop instead
     const linked = templateLinks(html)
-    expect(linked).toHaveLength(TEMPLATES.length - 1)
-    expect(new Set(linked).size).toBe(TEMPLATES.length - 1)
+    expect(linked).toHaveLength(12)
+    expect(new Set(linked).size).toBe(12)
     expect(linked).not.toContain('broadsheet')
+    for (const ex of EXAMPLES_BY_TEMPLATE.broadsheet ?? []) expect(html).toContain(`href="/examples/${ex.slug}"`)
     // a link carries the design's public slug (templatePath)
     for (const seg of linked) expect(TEMPLATES.find((t) => (t.slug ?? t.id) === seg), seg).toBeTruthy()
   })
@@ -778,8 +782,8 @@ describe('the crawl path without JavaScript', () => {
       const l = links(staticHtml(id))
       expect(l.has('/templates'), id).toBe(true)
       expect(l.has('/examples'), id).toBe(true)
-      // …and to every other design, which is what makes 68 pages one set.
-      expect(templateLinks(staticHtml(id)), id).toHaveLength(TEMPLATES.length - 1)
+      // …and to twelve related designs; the gallery joins the whole set
+      expect(templateLinks(staticHtml(id)), id).toHaveLength(12)
     }
   })
 
@@ -811,7 +815,16 @@ describe('the guides', () => {
   it('each answers one search at its own address, listed with the public pages', async () => {
     const { GUIDES } = await import('@/data/guides')
     const seo = await import('@/lib/seoPages')
-    expect(GUIDES.map((g) => g.slug)).toEqual(['free-resume-builder', 'ats-resume-checker', 'resume-builder-no-sign-up'])
+    expect(GUIDES.map((g) => g.slug)).toEqual([
+      'free-resume-builder',
+      'ats-resume-checker',
+      'resume-builder-no-sign-up',
+      'resume-format',
+      'how-to-write-a-resume',
+      'resume-for-freshers',
+      'cv-template',
+      'resume-template-word',
+    ])
     const paths = seo.publicUrlPaths()
     for (const g of GUIDES) expect(paths).toContain(`/${g.slug}`)
     const map = seo.sitemapXml('2026-01-01')
