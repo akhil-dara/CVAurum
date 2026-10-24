@@ -728,6 +728,9 @@ function contactsClass(doc: ResumeDocument, inSidebar = false): string {
     style === 'stacked' ? 'rm-contacts-stacked' : '',
     style === 'strip' ? `rm-contacts-strip rm-strip-${stripCols}${full ? ` rm-links-${contactLinks ?? 'ledger'}` : ''}` : '',
     style === 'pills' ? 'rm-contacts-pills' : '',
+    // A plain line of contacts: the only arrangement a design's own mark
+    // between them belongs on (templates.css).
+    lined ? 'rm-contacts-inline' : '',
     lined && contactSeparator && contactSeparator !== 'none' ? 'rm-contacts-sep' : '',
     lined && contactSeparator === 'node' ? 'rm-contacts-node' : '',
   ]

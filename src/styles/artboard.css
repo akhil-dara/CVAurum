@@ -342,8 +342,21 @@
    punctuation it is. Stacked rows never take one. */
 .rm-contacts.rm-contacts-sep:not(.rm-contacts-stacked) .rm-contact:not(:last-child)::after {
   content: var(--rm-contact-sep, '·');
-  margin-left: 0.5em;
+  /* The same air on both sides of the mark. It used to take 0.5em on its
+     left and the row's whole column gap (1.1em, or a template's own) on its
+     right, so it sat glued to the contact before it and far from the one
+     after - in every design that separates its contacts (2026-10-24). The
+     row's column gap is zeroed below and the mark carries both sides; the
+     left loses the contact's own 5px icon gap, which already stands there. */
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
   opacity: 0.5;
+}
+/* Stronger than any template's own gap on the row (those are three classes
+   deep), so no design can put its spacing back on one side only. Only the
+   COLUMN gap: a wrapped second line keeps its row gap. */
+.rm-root .rm-contacts.rm-contacts-sep.rm-contacts-sep:not(.rm-contacts-stacked) {
+  column-gap: 0;
 }
 
 /* ---- the contact line's other arrangements (layout.contactStyle) --------
@@ -482,7 +495,9 @@
 .rm-contacts.rm-contacts-node .rm-contact:not(:last-child)::after {
   opacity: 1;
   font-size: 0.8em;
-  margin-left: 0.7em;
+  /* In the node's own (smaller) em, so 0.75em here is the 0.6em of a plain
+     mark: the same air either side. */
+  --rm-sep-space: 0.75em;
 }
 .rm-root :is(.rm-header-standard, .rm-header-centered, .rm-header-compact, .rm-header-display, .rm-header-split, .rm-header-kicker):not(.rm-header-art)
   .rm-contacts-node .rm-contact:not(:last-child)::after {

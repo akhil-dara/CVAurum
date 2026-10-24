@@ -612,6 +612,14 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
     expect(box.wPx).toBe(620.375) // browser-resolved flex width, untouched
   })
 
+  it("adds the ::after's own margin-left: a contact separator with air before it is drawn there, not glued to the contact", () => {
+    // A contact (inline-flex, 5px gap) whose separator mark carries
+    // margin-left. Without the margin the PDF set the mark 5px after the
+    // contact while the page set it 5px + margin after (2026-10-24).
+    const box = pseudoBox(cs({ marginLeft: '2.8px' }), host, '::after', flexHostCs({ columnGap: '5px' }), textSpanBox)
+    expect(box.xPx).toBeCloseTo(49.125 + 65.063 + 5 + 2.8, 2)
+  })
+
   it('vertically centers a flex-item pseudo per align-items:center, not pinned to the row top', () => {
     const box = pseudoBox(cs({ height: '1.5px' }), host, '::after', flexHostCs(), textSpanBox)
     expect(box.yPx).toBeCloseTo(149.094, 2) // host.yPx(141.344) + (host.hPx(17) - hPx(1.5)) / 2

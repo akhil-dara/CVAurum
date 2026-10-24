@@ -962,7 +962,9 @@ export function pseudoBox(
 
   if (isRow) {
     if (which === '::after' && lastChildBox) {
-      xPx = lastChildBox.xPx + lastChildBox.wPx + (parsePx(hostCs!.columnGap) || 0)
+      // Flex margins add to the gap, as in the column case below: a
+      // separator's margin-left is the air between it and the contact.
+      xPx = lastChildBox.xPx + lastChildBox.wPx + (parsePx(hostCs!.columnGap) || 0) + (parsePx(cs.marginLeft) || 0)
     }
     if (hostCs!.alignItems === 'center') yPx = host.yPx + (host.hPx - hPx) / 2
     else if (hostCs!.alignItems === 'flex-end') yPx = host.yPx + host.hPx - hPx
@@ -1378,7 +1380,13 @@ function borderBoxSize(el: Element, cs: CSSStyleDeclaration): { wPx: number; hPx
  */
 function lastFlowChildBox(el: HTMLElement, root: HTMLElement): Box | null {
   for (let n = el.lastChild; n; n = n.previousSibling) {
-    if (n.nodeType === Node.ELEMENT_NODE) return boxOf(n as Element, root)
+    if (n.nodeType === Node.ELEMENT_NODE) {
+      // Only a child the row actually lays out: one taken out of flow or
+      // not drawn at all has a box somewhere else, and the mark followed it.
+      const ccs = getComputedStyle(n as Element)
+      if (ccs.display === 'none' || ccs.position === 'absolute' || ccs.position === 'fixed') continue
+      return boxOf(n as Element, root)
+    }
     if (n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim()) {
       const range = document.createRange()
       range.selectNodeContents(n)

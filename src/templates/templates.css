@@ -49,10 +49,20 @@
   font-style: italic;
   font-weight: 400;
 }
-.tpl-classic .rm-contact + .rm-contact::before {
+/* Marks between contacts (2026-10-24): each design's own mark sits AFTER
+   a contact with the same air on both sides, on an inline line only, and
+   gives way to the author's chosen separator (.rm-contacts-sep). Drawn
+   before each contact with air on its right alone, it leaned on the
+   contact before it, opened a wrapped line, and doubled up with a chosen
+   separator. The row's column gap is zeroed so the mark owns the spacing. */
+.tpl-classic .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-classic .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '•';
-  margin-right: 12px;
   opacity: 0.5;
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 
 /* ===================================================== Aurum (signature) */
@@ -137,10 +147,14 @@
   font-weight: 400;
   font-style: italic;
 }
-.tpl-vector .rm-contact + .rm-contact::before {
+.tpl-vector .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-vector .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '|';
-  margin-right: 0.5em;
   color: var(--rm-contact-color, var(--rm-muted));
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 /* Small-caps section label over a full-width rule — the signature Jake's look. */
 .tpl-vector .rm-section-title {
@@ -257,10 +271,14 @@
   font-style: italic;
   font-weight: 400;
 }
-.tpl-harvard .rm-contact + .rm-contact::before {
+.tpl-harvard .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-harvard .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '•';
-  margin-right: 0.5em;
   color: var(--rm-contact-color, var(--rm-muted));
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 .tpl-harvard .rm-section-title {
   text-align: left;
@@ -338,10 +356,14 @@
   font-style: italic;
   font-weight: 400;
 }
-.tpl-garamond .rm-contact + .rm-contact::before {
+.tpl-garamond .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-garamond .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '•';
-  margin-right: 0.5em;
   color: var(--rm-contact-color, var(--rm-muted));
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 .tpl-garamond .rm-section-title {
   letter-spacing: 0.12em;
@@ -364,10 +386,14 @@
   font-weight: 400;
 }
 /* Bullet-separated, centered contact line (no icons) — RenderCV's connections row. */
-.tpl-cambridge .rm-contact + .rm-contact::before {
+.tpl-cambridge .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-cambridge .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '•';
-  margin-right: 0.5em;
   color: var(--rm-contact-color, var(--rm-muted));
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 /* Signature heading: bold title followed by a rule running to the right edge. */
 .tpl-cambridge .rm-section-title {
@@ -643,10 +669,14 @@
   font-style: italic;
   font-weight: 400;
 }
-.tpl-ivy .rm-contact + .rm-contact::before {
+.tpl-ivy .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-ivy .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '|';
-  margin-right: 12px;
   opacity: 0.4;
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 
 /* ===================================================== Onyx (monochrome) */
@@ -684,10 +714,14 @@
   font-weight: 400;
   color: var(--rm-headline-color, var(--rm-text));
 }
-.tpl-academic .rm-contact + .rm-contact::before {
+.tpl-academic .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-academic .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '·';
-  margin-right: 12px;
   opacity: 0.5;
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 
 /* ===================================================== Verdant (green sidebar) */
@@ -763,10 +797,14 @@
   border-bottom: 1.5px solid var(--rm-text);
   padding-bottom: 0.5em;
 }
-.tpl-newton .rm-contact + .rm-contact::before {
+.tpl-newton .rm-contacts-inline:not(.rm-contacts-sep) {
+  column-gap: 0;
+}
+.tpl-newton .rm-contacts-inline:not(.rm-contacts-sep) .rm-contact:not(:last-child)::after {
   content: '·';
-  margin-right: 0.7em;
   opacity: 0.5;
+  margin-left: calc(var(--rm-sep-space, 0.6em) - 5px);
+  margin-right: var(--rm-sep-space, 0.6em);
 }
 
 /* ===================================================== Deedy (two-column) */
