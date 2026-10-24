@@ -294,6 +294,7 @@ export function sampleStaticHtml(slug: string): string {
     <article>
 ${resumeHtml(s)}
     </article>
+${guideHtml(s)}
     <nav aria-label="Nearby examples">
       <h2>Similar résumé examples</h2>
       <ul>
@@ -405,7 +406,31 @@ export function sampleMarkdown(slug: string): string {
     for (const g of c.skills) lines.push(`- **${plain(g.name)}**: ${(g.keywords ?? []).join(', ')}`)
     lines.push('')
   }
+  if (s.guide) {
+    lines.push('---', '', `## Why this ${s.role} résumé works`, '')
+    for (const w of s.guide.why) lines.push(`- ${w}`)
+    lines.push('', `## ${s.role} résumé: common questions`, '')
+    for (const f of s.guide.faq) lines.push(`### ${f.q}`, '', f.a, '')
+  }
   return lines.join('\n')
+}
+
+/** The advice under a sample (LibrarySample.guide), for a reader without
+ *  scripts: why it works, then the role's common questions. */
+function guideHtml(s: LibrarySample): string {
+  if (!s.guide) return ''
+  const why = s.guide.why.map((w) => `        <li>${htmlEscape(w)}</li>`).join('\n')
+  const faq = s.guide.faq.map((f) => `      <h3>${htmlEscape(f.q)}</h3>\n      <p>${htmlEscape(f.a)}</p>`).join('\n')
+  return `    <section>
+      <h2>Why this ${htmlEscape(s.role)} résumé works</h2>
+      <ul>
+${why}
+      </ul>
+    </section>
+    <section>
+      <h2>${htmlEscape(s.role)} résumé: common questions</h2>
+${faq}
+    </section>`
 }
 
 /* ------------------------------------------------------ structured data */

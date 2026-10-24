@@ -374,3 +374,78 @@ describe('every sample is written the way it tells the reader to write', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * The advice under a sample (LibrarySample.guide). It is what makes an
+ * example page more than a specimen, so it is held to rules a generic
+ * paragraph could not pass: every point is about THIS résumé.
+ */
+describe('the advice under a sample is about that sample', () => {
+  const withGuide = () => LIBRARY.filter((s) => s.guide)
+  const sampleText = (s: LibrarySample) =>
+    [
+      ...prose(s).map((p) => p.text),
+      ...s.content.work.flatMap((w) => [w.position, w.name]),
+      ...s.content.education.flatMap((e) => [e.institution, e.studyType, e.area]),
+      ...s.content.skills.flatMap((g) => [g.name, ...(g.keywords ?? [])]),
+      ...s.content.certificates.map((c) => c.name),
+      ...s.content.projects.map((p) => p.name),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+  it('has three or four points and two or three questions, each worth reading', () => {
+    const bad: string[] = []
+    for (const s of withGuide()) {
+      const g = s.guide!
+      if (g.why.length < 3 || g.why.length > 4) bad.push(`${s.slug}: ${g.why.length} points`)
+      if (g.faq.length < 2 || g.faq.length > 3) bad.push(`${s.slug}: ${g.faq.length} questions`)
+      for (const w of g.why) if (w.length < 60 || w.length > 340) bad.push(`${s.slug}: point of ${w.length} chars`)
+      for (const f of g.faq) {
+        if (!f.q.trim().endsWith('?')) bad.push(`${s.slug}: question without a question mark`)
+        if (f.a.length < 60 || f.a.length > 480) bad.push(`${s.slug}: answer of ${f.a.length} chars`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+
+  it('never speaks in the first person', () => {
+    const PRONOUN = /(^|[^A-Za-z])(my|mine|we|our|ours|I)([^A-Za-z]|$)/
+    const bad: string[] = []
+    for (const s of withGuide()) for (const t of [...s.guide!.why, ...s.guide!.faq.flatMap((f) => [f.q, f.a])]) if (PRONOUN.test(t)) bad.push(`${s.slug}: ${t.slice(0, 80)}`)
+    expect(bad).toEqual([])
+  })
+
+  it('ties every point to something actually on the page', () => {
+    // a figure, a quoted phrase or a named role, employer, skill or credential
+    // from the résumé - so no point could be pasted onto another sample
+    const bad: string[] = []
+    for (const s of withGuide()) {
+      const text = sampleText(s)
+      for (const w of s.guide!.why) {
+        const figures = w.match(/\d[\d,.]*\s?%?/g) ?? []
+        const quoted = [...w.matchAll(/[“"']([^”"']{4,})[”"']/g)].map((m) => m[1])
+        const names = [...w.matchAll(/\b[A-Z][\w&+.-]*(?:\s+[A-Z][\w&+.-]*)*/g)].map((m) => m[0]).filter((n) => n.length > 3)
+        const tied =
+          figures.some((f) => text.includes(f.trim().replace(/\s/g, ''))) ||
+          quoted.some((q) => text.includes(q.toLowerCase())) ||
+          names.some((n) => text.includes(n.toLowerCase()))
+        if (!tied) bad.push(`${s.slug}: ${w.slice(0, 90)}`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+
+  it('never repeats a point from one sample on another', () => {
+    const seen = new Map<string, string>()
+    const bad: string[] = []
+    for (const s of withGuide())
+      for (const w of s.guide!.why) {
+        const k = w.toLowerCase().replace(/[^a-z]/g, '').slice(0, 80)
+        if (seen.has(k)) bad.push(`${s.slug} repeats ${seen.get(k)}`)
+        seen.set(k, s.slug)
+      }
+    expect(bad).toEqual([])
+  })
+})

@@ -15,7 +15,7 @@
  */
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, ChevronRight, ShieldCheck, Wand2 } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, ShieldCheck, Wand2 } from 'lucide-react'
 import { getSample } from '@/data/library'
 // Written beside the images themselves, so the size in the markup is the size
 // of the file on disk and a page never reserves the wrong box for it.
@@ -238,6 +238,35 @@ function Example({ sample }: { sample: LibrarySample }) {
           </div>
 
         </div>
+
+        {/* The advice that makes the page more than a specimen
+            (LibrarySample.guide): why it works, then the role's questions. */}
+        {sample.guide && (
+          <div className="mt-14 grid gap-10 border-t border-border pt-8 lg:grid-cols-2">
+            <section>
+              <h2 className="text-lg font-semibold tracking-tight">Why this {sample.role} résumé works</h2>
+              <ul className="mt-4 space-y-3">
+                {sample.guide.why.map((w) => (
+                  <li key={w} className="flex gap-2.5 text-sm leading-relaxed text-foreground">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-success" aria-hidden />
+                    <span>{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section>
+              <h2 className="text-lg font-semibold tracking-tight">{sample.role} résumé: common questions</h2>
+              <div className="mt-4 space-y-5">
+                {sample.guide.faq.map((f) => (
+                  <div key={f.q}>
+                    <h3 className="text-sm font-semibold">{f.q}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
 
         {related.length > 0 && (
           <section className="mt-14 border-t border-border pt-8">

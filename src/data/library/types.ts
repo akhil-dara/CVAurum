@@ -86,6 +86,17 @@ export interface LibrarySample {
   content: ResumeContent
   /** Per-sample polish applied after the template's own defaults. */
   tweaks?: (m: Metadata) => void
+  /**
+   * What a reader adapting this résumé should know, shown under it on its
+   * page: why it works, each point tied to a line of THIS résumé, and the
+   * questions people ask about a résumé for this role. A page that held only
+   * the specimen ranked as thin; the advice is what makes it a page.
+   * Held to the library's content rules (library.test.ts).
+   */
+  guide?: {
+    why: string[]
+    faq: { q: string; a: string }[]
+  }
 }
 
 /**
