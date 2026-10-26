@@ -32,6 +32,7 @@ import { fitLineHeight } from '@/lib/fitOnePage'
 
 const FIT_AS_SET: FitVector = { type: 1, space: 1 }
 import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
+import { settleLooseLines } from '@/lib/pdf/looseLines'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
 import { Ed, EdMeta, type EditFn, type MetaEditFn } from './Editable'
@@ -1954,6 +1955,8 @@ export function Artboard({
     // else, but it must be settled before keywords are measured against it.
     fitHeadingWords(rootRef.current)
     applyKeywordFit(rootRef.current)
+    // Last: it only chooses alignment, never a line break (looseLines.ts).
+    settleLooseLines(rootRef.current)
   })
   // ...and again once the document's own faces have actually loaded. The pass
   // above fires with whatever the browser had at the time, which for a

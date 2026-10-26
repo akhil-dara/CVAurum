@@ -1,5 +1,6 @@
 import { keepHyphenatedWordsWhole } from './hyphens'
 import { substituteUnsupportedChars } from './charFallback'
+import { settleLooseLines } from './looseLines'
 
 /**
  * Put a print tree into the state the painter will actually draw, before
@@ -29,4 +30,7 @@ export function preparePrintTree(root: Element | null | undefined): void {
   if (!root) return
   substituteUnsupportedChars(root)
   keepHyphenatedWordsWhole(root)
+  // After the passes that move line breaks: which justified paragraphs open
+  // gaps too wide depends on where their lines end (looseLines.ts).
+  settleLooseLines(root)
 }

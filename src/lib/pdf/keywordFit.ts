@@ -20,6 +20,7 @@
  * render, so the two wrap identically. Doing it only to the export's DOM makes
  * the PDF disagree with the preview it was previewed from.
  */
+import { settleLooseLines } from './looseLines'
 import { ensureFontsReady } from '@/data/fonts'
 
 /** Terms that must survive whole, plus the last-word-and-separator pair
@@ -241,6 +242,7 @@ export function refitWhenFontsReady(root: HTMLElement, families: (string | undef
     // measured against it (same order as the layout effect's own pass).
     fitHeadingWords(root)
     applyKeywordFit(root)
+    settleLooseLines(root)
   })
   return () => {
     cancelled = true

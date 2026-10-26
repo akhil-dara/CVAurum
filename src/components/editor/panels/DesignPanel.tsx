@@ -18,6 +18,7 @@ import type { ElementColorKey } from '@/lib/elementColors'
 import { getTemplate } from '@/templates/registry'
 import { applyDensity, densityOf, type Density } from '@/lib/density'
 import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
+import { justifiedBlocks } from '@/lib/pdf/looseLines'
 import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
 
 const BULLET_OPTIONS = [
@@ -445,6 +446,7 @@ note={notes[r.key]}
             Justified squares off the right edge of summaries and bullets. Headings, dates and the sidebar keep their
             own edge.
           </p>
+          {m.typography.align === 'justify' && <JustifyReport doc={doc} />}
         </div>
         <div>
           <label className="label">Heading case</label>
@@ -1469,6 +1471,61 @@ function DensityChoice() {
           ? 'Custom: tuned by hand below. Pick one to set text size, line height, spacing and margins together.'
           : 'Sets text size, line height, spacing and margins together, from this design’s own. Fine-tune any of them below.'}
       </p>
+    </div>
+  )
+}
+
+/**
+ * What justification is doing to this page, read off the canvas: how many
+ * paragraphs fell back to flush-left because their gaps ran past twice a
+ * space (lib/pdf/looseLines.ts), and whether the lines are too long to
+ * justify evenly in the first place - the cause of most wide gaps. Read after
+ * the canvas settles from an edit; nothing here changes the document.
+ */
+function JustifyReport({ doc }: { doc: ResumeDocument }) {
+  const [state, setState] = useState<{ ragged: number; total: number; chars: number } | null>(null)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const root = document.querySelector<HTMLElement>('[data-tour="canvas"] .rm-root')
+      if (!root) return
+      const blocks = justifiedBlocks(root).filter((b) => (b.textContent ?? '').trim().length > 0)
+      const total = blocks.length
+      const ragged = root.querySelectorAll('[data-ragged]').length
+      // Characters per line, counted from the page's own text: each
+      // paragraph of two lines or more, its length over its full lines (the
+      // last runs half a line on average), and the median of those.
+      const perLine: number[] = []
+      for (const b of blocks) {
+        const lh = parseFloat(getComputedStyle(b).lineHeight)
+        const scale = b.offsetHeight > 0 ? b.getBoundingClientRect().height / b.offsetHeight : 1
+        const lines = lh > 0 ? Math.round(b.getBoundingClientRect().height / scale / lh) : 0
+        if (lines >= 2) perLine.push((b.textContent ?? '').trim().length / (lines - 0.5))
+      }
+      perLine.sort((a, c) => a - c)
+      const chars = perLine.length ? Math.round(perLine[Math.floor(perLine.length / 2)]) : 0
+      setState({ ragged, total, chars })
+    }, 600)
+    return () => clearTimeout(t)
+  }, [doc])
+  if (!state) return null
+  const long = state.chars > 85
+  if (!state.ragged && !long) return null
+  return (
+    <div className="mt-2 rounded-md border border-border bg-muted/40 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground" role="status">
+      {state.ragged > 0 && (
+        <p>
+          <span className="font-medium text-foreground">
+            {state.ragged} of {state.total} paragraphs set flush-left:
+          </span>{' '}
+          justified, their spaces opened past twice a normal space. The page and the PDF match.
+        </p>
+      )}
+      {long && (
+        <p className={state.ragged ? 'mt-1' : undefined}>
+          Lines run about {state.chars} characters; justified text spaces evenly at 65–75. A larger text size or wider
+          margins shorten them.
+        </p>
+      )}
     </div>
   )
 }
