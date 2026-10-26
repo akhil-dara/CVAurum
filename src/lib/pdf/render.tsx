@@ -141,7 +141,17 @@ function raf2(): Promise<void> {
   })
 }
 
-export async function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> {
+/** One render at a time. The page preview renders the same PDF the export
+ *  does, and this module keeps per-render state (the page count the export
+ *  reports, the dev hooks); two renders interleaved would mix it. */
+let renderQueue: Promise<unknown> = Promise.resolve()
+export function renderResumePdf(doc: ResumeDocument): Promise<Uint8Array> {
+  const run = renderQueue.then(() => renderResumePdfNow(doc))
+  renderQueue = run.catch(() => undefined)
+  return run
+}
+
+async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
   // An example seeds a few fields whose value the page never prints - an
   // entry's `url` is the only one - so an author can carry the example's for
   // months without ever seeing it. The JSON and Word exports already drop

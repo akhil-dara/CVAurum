@@ -81,6 +81,7 @@ import {
   mapCutToEditSpace,
 } from './pageChromeMap'
 import { PAGE_GAP_PX, type PageBlank } from './PageChrome'
+import { PdfPages } from './PdfPages'
 import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
@@ -260,6 +261,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // that reaches 300%, not a page that cannot be touched. Only the Preview
   // mode shows the print render, on any device.
   const exactCanvas = previewExact
+  // Preview shows the PDF's own pages (PdfPages.tsx). Browser automation keeps
+  // the continuous print layout: the export harnesses screenshot and measure
+  // that DOM, which is what the PDF is cut from.
+  const pdfPages = exactCanvas && typeof navigator !== 'undefined' && !navigator.webdriver
   const focusMode = useEditorStore((s) => s.focusMode)
   const skimView = useEditorStore((s) => s.skimView)
   const updateContent = useResumeStore((s) => s.updateContent)
@@ -1106,6 +1111,10 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           either edge, and `min-w-full` keeps the sheet centered whenever the
           canvas is the wider one. */}
         <div className="flex min-h-full w-max min-w-full justify-center px-6 py-8">
+          {pdfPages ? (
+            <PdfPages doc={doc} zoom={effectiveZoom} />
+          ) : (
+          <>
           {/* reserves scaled space */}
           <div style={{ width: pageW * effectiveZoom, height: sheetH * effectiveZoom }}>
             <div
@@ -1169,6 +1178,8 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
               />
             </div>
           </div>
+          </>
+          )}
         </div>
         {/* The canvas's own zoom, at the foot of the scrollport: a finger-driven
             screen has no bar cluster, and neither does a bar under 768px. It

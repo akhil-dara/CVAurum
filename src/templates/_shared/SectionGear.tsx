@@ -523,9 +523,9 @@ export function SectionGear({
   const openerRef = useRef<HTMLElement | null>(null)
   usePopoverA11y(open, () => setOpen(false), panelRef, openerRef)
 
-  // Docked: one inspector at a time; it leaves when the panel under it
-  // changes (another tab, the panel closed) or the window is resized, and
-  // the section it styles is outlined on the page while it is open.
+  // Docked: one inspector at a time, at the right edge with the canvas
+  // narrowed beside it; it leaves when the window is resized, and the section
+  // it styles is outlined on the page while it is open.
   useEffect(() => {
     if (!open || !pos.dock) return
     const sec = document.querySelector<HTMLElement>(`[data-tour="canvas"] [data-section="${sectionKey}"]`)
@@ -535,23 +535,18 @@ export function SectionGear({
       if ((e as CustomEvent).detail !== sectionKey) setOpen(false)
     }
     const close = () => setOpen(false)
-    const ed = useEditorStore.getState()
-    const unsub = useEditorStore.subscribe((s) => {
-      if (s.leftTab !== ed.leftTab || !s.leftOpen) setOpen(false)
-    })
+    document.documentElement.style.setProperty('--style-dock-w', `${pos.width}px`)
     window.addEventListener('cvaurum:style-dock', other)
     window.addEventListener('cvaurum:style-close', close)
     window.addEventListener('resize', close)
     return () => {
       sec?.removeAttribute('data-styling')
-      unsub()
+      document.documentElement.style.removeProperty('--style-dock-w')
       window.removeEventListener('cvaurum:style-dock', other)
       window.removeEventListener('cvaurum:style-close', close)
       window.removeEventListener('resize', close)
-      // the rail stops showing "no tab" once this inspector leaves
-      window.dispatchEvent(new CustomEvent('cvaurum:style-undock', { detail: sectionKey }))
     }
-  }, [open, pos.dock, sectionKey])
+  }, [open, pos.dock, pos.width, sectionKey])
 
   const layout = doc.metadata.layout
   const base = sectionBase(sectionKey)
@@ -750,26 +745,19 @@ export function SectionGear({
       setOpen(true)
       return
     }
-    // Desktop: an inspector over the side panel. Floated beside the gear it
-    // had nowhere to go on a laptop - the page fills the canvas - and opened
-    // ON the section it styles, hiding the very lines a change was for
-    // (2026-10-24). Docked, the whole page stays in view and scrolls freely.
+    // Desktop: an inspector docked at the right edge, the canvas narrowed
+    // beside it. Floated beside the gear it had nowhere to go on a laptop -
+    // the page fills the canvas - and opened ON the section it styles
+    // (2026-10-24); docked over the left panel it took the Content panel
+    // away and sat where nobody looks for a style inspector (2026-10-26).
     if (variant === 'canvas' && document.documentElement.getAttribute('data-layout') === 'desk') {
-      const dock = () => {
-        const pr = document.querySelector<HTMLElement>('[data-tour="panel"]')?.getBoundingClientRect()
-        if (!pr || pr.width < 260 || pr.width > vw * 0.5) return false
+      const cr = document.querySelector<HTMLElement>('[data-tour="canvas"]')?.getBoundingClientRect()
+      const width = 340
+      // room for the inspector and a page still worth reading beside it
+      if (cr && cr.width - width >= 480) {
         window.dispatchEvent(new CustomEvent('cvaurum:style-dock', { detail: sectionKey }))
-        setPos({ top: pr.top, left: pr.left, maxH: pr.height, sheet: false, dock: true, width: pr.width })
+        setPos({ top: cr.top, left: vw - width, maxH: vh - cr.top, sheet: false, dock: true, width })
         setOpen(true)
-        return true
-      }
-      const ed = useEditorStore.getState()
-      if (ed.leftOpen && dock()) return
-      if (!ed.leftOpen) {
-        ed.setLeftOpen(true)
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          if (!dock()) floatBeside(r, vw, vh)
-        }))
         return
       }
     }
@@ -957,7 +945,7 @@ export function SectionGear({
                 pos.sheet
                   ? 'fixed inset-x-0 bottom-0 z-[61] flex flex-col rounded-t-2xl border-t border-border bg-surface text-foreground shadow-float'
                   : pos.dock
-                    ? 'fixed z-[61] flex flex-col border-r border-border bg-surface text-foreground focus:outline-none'
+                    ? 'fixed z-[61] flex flex-col border-l border-border bg-surface text-foreground shadow-float focus:outline-none'
                     : 'fixed z-[61] flex w-[308px] flex-col rounded-xl border border-border bg-surface text-foreground shadow-float'
               }
               style={

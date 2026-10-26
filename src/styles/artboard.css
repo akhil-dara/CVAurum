@@ -3887,12 +3887,17 @@
     box-shadow 0.12s ease,
     background 0.12s ease;
 }
+/* Outlines, not box-shadows: a wrapped field is one inline element in
+   several line boxes, and a shadow ringed each line on its own - at a tight
+   line height the rings crossed the lines above and below (2026-10-26). An
+   outline is drawn as one contour around all of them. */
 .mode-preview .rm-editable:hover {
-  box-shadow: 0 0 0 1px var(--rm-edit-hint);
+  outline: 1px solid var(--rm-edit-hint);
+  outline-offset: 1px;
 }
 .mode-preview .rm-editable:focus {
-  outline: none;
-  box-shadow: 0 0 0 1.5px var(--rm-edit-focus);
+  outline: 1.5px solid var(--rm-edit-focus);
+  outline-offset: 1px;
   background: var(--rm-edit-focus-wash);
 }
 .mode-preview .rm-editable:empty::before {
