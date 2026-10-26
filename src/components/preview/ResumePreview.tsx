@@ -828,13 +828,19 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             // canvas page also carries edit-only rows the print tree has not.
             // Single column only: two columns open their gap in the main
             // column alone, and half a page of it would slide the sidebar
-            // out of line. Reading a rect lays the page out again, so an
-            // anchor's measured top already includes the gaps grown above it;
-            // `shift` carries that growth to the positions mapped beforehand.
-            // The grown gaps are dropped and re-measured in this one frame:
-            // dropped earlier, a frame painted without them, the canvas
-            // shrank, and that re-ran this effect for ever.
-            for (const el of editRoot.querySelectorAll<HTMLElement>('[style*="--rm-gap-slack"]')) el.style.removeProperty('--rm-gap-slack')
+            // out of line.
+            //
+            // The gaps already grown stay where they are while this measures:
+            // the natural place of each break is its measured place less the
+            // slack currently above and in it (`had`), and every new value is
+            // written only after the last read. Clearing the gaps to measure
+            // shortened the canvas, the scroller pulled its scroll position
+            // up to fit, and every rect read after that was off by the slack
+            // cleared - so alternate runs saw no need for any and the page
+            // "danced" between two layouts for ever (2026-10-26, after a
+            // delete near the foot of a long résumé).
+            const writes: [HTMLElement, number][] = []
+            let had = 0
             let shift = 0
             let pageTop = 0
             let exact = true
@@ -843,9 +849,11 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
               if (el) {
                 // `grey` is where the gap's grey ends and the next page's paper
                 // begins; the page's own margin runs down from there.
-                let grey = (el.getBoundingClientRect().top - rootRect.top) / scaleNow - paperBelow
-                const slack = mainOnlyBlocks ? 0 : Math.max(0, Math.round(pageH - (grey - PAGE_GAP_PX - pageTop)))
-                if (slack > 0) (el as HTMLElement).style.setProperty('--rm-gap-slack', `${slack}px`)
+                const cur = parseFloat((el as HTMLElement).style.getPropertyValue('--rm-gap-slack')) || 0
+                had += cur
+                let grey = (el.getBoundingClientRect().top - rootRect.top) / scaleNow - paperBelow - had + shift
+                                const slack = mainOnlyBlocks ? 0 : Math.max(0, Math.round(pageH - (grey - PAGE_GAP_PX - pageTop)))
+                if (slack !== cur) writes.push([el as HTMLElement, slack])
                 grey += slack
                 shift += slack
                 separators.push({ y: grey - PAGE_GAP_PX / 2 })
@@ -875,14 +883,24 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
                 // judgement this module already makes when it suppresses a
                 // separator it cannot place.
                 exact = false
-                const snapped = snapClearOfInk(fallbackYs[i]! + shift, editRoot, scaleNow)
+                const snapped = snapClearOfInk(fallbackYs[i]! - had + shift, editRoot, scaleNow)
                 // The badge marks the page whether or not a rule can be drawn.
                 if (snapped !== null) separators.push({ y: snapped, thin: true })
-                badgeTops.push(snapped ?? fallbackYs[i]! + shift)
+                badgeTops.push(snapped ?? fallbackYs[i]! - had + shift)
               } else {
                 exact = false
-                badgeTops.push(result.cutsPx[i] * badgeScale + shift)
+                badgeTops.push(result.cutsPx[i] * badgeScale - had + shift)
               }
+            }
+            // Gaps left on elements that no longer open a page are inert (the
+            // margin needs [data-page-start]) but would come back with stale
+            // values; drop them, then write the new ones - reads are done.
+            for (const old of editRoot.querySelectorAll<HTMLElement>('[style*="--rm-gap-slack"]')) {
+              if (!old.hasAttribute('data-page-start')) old.style.removeProperty('--rm-gap-slack')
+            }
+            for (const [el, v] of writes) {
+              if (v > 0) el.style.setProperty('--rm-gap-slack', `${v}px`)
+              else el.style.removeProperty('--rm-gap-slack')
             }
             rects.push({ top: pageTop, bottom: editRoot.offsetHeight })
             if (look) feet.push({ page: result.pageCount, top: editRoot.offsetHeight - look.insetPx - look.heightPx })
