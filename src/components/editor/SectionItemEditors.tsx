@@ -1,3 +1,4 @@
+import { entryLogos, setEntryLogos, type LogoEntry } from '@/lib/entryLogos'
 import { useState } from 'react'
 import { deleteItem } from '@/store/deleteItem'
 import { GripVertical, Trash2, Plus, ChevronDown, CopyPlus } from 'lucide-react'
@@ -9,7 +10,7 @@ import { newItem, removeItem, duplicateItem, entryBadgeOn, metaColumnOn, ADD_LAB
 import { railLabel } from '@/lib/rail'
 import { SortableList } from './SortableList'
 import { TextField, TextAreaField, DateField, TagInput, RatingField, Row, Labeled } from './fields/Inputs'
-import { LogoPicker } from './fields/LogoPicker'
+import { LogoPicker, LogosPicker } from './fields/LogoPicker'
 import { RichTextLazy as RichTextEditor } from './fields/RichTextLazy'
 import { BulletsEditor } from './fields/BulletsEditor'
 import { Segmented, Select, Toggle } from './fields/Controls'
@@ -508,7 +509,15 @@ function ItemFields({
             onChange={set('summary')}
             placeholder="One or two lines on the scope of the role (optional) — also editable right on the resume"
           />
-          <LogoPicker label="Company logo" value={item.logo} onChange={set('logo')} />
+          <LogosPicker
+            label="Company logo"
+            logos={entryLogos(item)}
+            onLogos={(next) =>
+              patch((it) => {
+                setEntryLogos(it as LogoEntry, next)
+              })
+            }
+          />
           <BadgeRow sectionKey={sectionKey} item={item} patch={patch} />
           <BulletsEditor label="Achievements" items={item.highlights ?? []} onChange={set('highlights')} />
         </>
@@ -591,7 +600,15 @@ function ItemFields({
             <TextField label="Grade / GPA" value={item.score} onChange={set('score')} placeholder={names.scoreHint} />
           </Row>
           <TagInput label="Relevant courses" value={item.courses ?? []} onChange={set('courses')} />
-          <LogoPicker label="Institution logo" value={item.logo} onChange={set('logo')} />
+          <LogosPicker
+            label="Institution logo"
+            logos={entryLogos(item)}
+            onLogos={(next) =>
+              patch((it) => {
+                setEntryLogos(it as LogoEntry, next)
+              })
+            }
+          />
           <BadgeRow sectionKey={sectionKey} item={item} patch={patch} />
         </>
       )
