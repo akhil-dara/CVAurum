@@ -220,7 +220,7 @@ function seoPages(): Plugin {
       // phone (Lighthouse, 2026-10-24). Announced here, on this page alone -
       // index.html is every page's shell, and only this one shows it.
       const heroPreload =
-        '<link rel="preload" as="image" href="/art/hero-veins-1280.webp" imagesrcset="/art/hero-veins-1280.webp 1280w, /art/hero-veins-1920.webp 1920w" imagesizes="100vw" fetchpriority="high" />\n  </head>'
+        '<link rel="preload" as="image" href="/art/hero-daylight-1280.webp" imagesrcset="/art/hero-daylight-1280.webp 1280w, /art/hero-daylight-1920.webp 1920w" imagesizes="100vw" fetchpriority="high" />\n  </head>'
       fs.writeFileSync(
         path.join(OUT, 'index.html'),
         shell.replace(rootRe, `$1\n${seo.landingStaticHtml()}\n    $2`).replace('</head>', heroPreload)

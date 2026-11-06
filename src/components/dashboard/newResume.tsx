@@ -39,9 +39,13 @@ export function useResumeActions() {
     // What to call it. A résumé started from the "Registered Nurse" example
     // arriving in the list as "My Resume" is a list of identical names the
     // moment someone tries two.
-    title?: string
+    title?: string,
+    // Name and job title typed before there was a résumé (the homepage hero).
+    basics?: { name?: string; label?: string }
   ) => {
     const doc = createDocument({ sample: sample || !!content, content, title })
+    if (basics?.name) doc.content.basics.name = basics.name
+    if (basics?.label) doc.content.basics.label = basics.label
     if (templateId) doc.metadata = applyTemplateToMetadata(doc.metadata, getTemplate(templateId).defaults)
     // Persona polish (per-section styles, badges…) — applied after the template
     // defaults so sample resumes demonstrate the customization system.

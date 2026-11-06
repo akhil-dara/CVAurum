@@ -5,35 +5,27 @@
  */
 import { SkipLink } from '@/components/ui/SkipLink'
 import { CreateButton, HeaderThemeToggle, PhoneResumesLink } from '@/components/site/HeaderActions'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion'
-import { FileText, Plus, FileUp, ShieldCheck, ArrowRight, Github, Check, Minus } from 'lucide-react'
+import { FileText, Plus, ArrowRight, Github, Check, Minus } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
-import { createDocument } from '@/data/defaults'
-import type { ResumeDocument } from '@/types/document'
-import { applyTemplateToMetadata } from '@/lib/templateApply'
-import { TEMPLATE_COUNT, getTemplate } from '@/templates/registry'
+import { TEMPLATE_COUNT, TEMPLATES } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { SITE } from '@/data/siteCopy'
-import { PreviewThumb } from '@/components/preview/PreviewThumb'
-import { HoverZoom } from '@/components/preview/HoverZoom'
+import { HeroTypeOnce } from '@/components/landing/HeroTypeOnce'
+import { TemplateCarousel } from '@/components/landing/TemplateCarousel'
 import { Logo } from '@/components/ui/Logo'
 import { SiteMenuButton } from '@/components/site/SiteMenu'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
 
-const GOLD = 'linear-gradient(135deg,#8a5a12,#d4982f,#f7d774)'
 const REPO_URL = 'https://github.com/akhil-dara/cvaurum'
-
-/** Templates shown live (with sample content) in the showcase strip. */
-// Four of the signature six (each a different structure) beside two classics
-// (a light two-column and a dark sidebar), so the strip shows the range.
-const SHOWCASE = ['broadsheet', 'marquee', 'atlas', 'chronicle', 'clarity', 'sapphire']
 
 /** The comparison rows, from the one place the page's words live. */
 const COMPARISON = SITE.comparison
+
+const SIGNATURE_COUNT = TEMPLATES.filter((t) => t.tags.includes('signature')).length
 
 export function Landing() {
   useTitle('CVAurum — Free Open-Source Resume Builder (Local, Private, ATS-Ready)')
@@ -43,35 +35,6 @@ export function Landing() {
   const pdfRef = useRef<HTMLInputElement>(null)
   const [chooser, setChooser] = useState(false)
   const [sampleOpen, setSampleOpen] = useState(false)
-  // The sticky nav sits on the dark hero first, then on token-colored sections.
-  // A light glass bar over the hero looks like a rendering glitch — so the nav
-  // wears ink glass while the hero is under it and swaps to theme glass after.
-  const [overHero, setOverHero] = useState(true)
-  useEffect(() => {
-    const onScroll = () => {
-      const hero = document.getElementById('hero-stage')
-      setOverHero(window.scrollY < (hero ? hero.offsetHeight : 600) - 56)
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
-    }
-  }, [])
-
-  // Throwaway sample docs (one per showcased template) for the live thumbnails.
-  const showcase = useMemo(
-    () =>
-      SHOWCASE.map((id) => {
-        const d = createDocument({ sample: true })
-        d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
-        return { id, doc: d }
-      }),
-    []
-  )
-
   const hasResumes = library.length > 0
 
   return (
@@ -92,42 +55,38 @@ export function Landing() {
       />
 
       <SkipLink />
-      {/* nav — ink glass over the hero, theme glass past it */}
+      {/* nav */}
       <header
-        className={`sticky top-0 z-30 border-b transition-colors duration-300 ${overHero ? '' : 'backdrop-blur '}${
-          overHero
-            ? 'border-white/10 bg-[#0a0c12]/[0.97] text-white [&_.btn-ghost]:text-white/85 [&_.btn-ghost:hover]:bg-white/10 [&_.btn-outline]:border-white/25 [&_.btn-outline]:bg-transparent [&_.btn-outline]:text-white [&_.btn-outline:hover]:bg-white/10'
-            : 'border-border bg-background/80'
-        }`}
+        className="sticky top-0 z-30 border-b backdrop-blur border-border bg-background/80"
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Logo to="/" />
           <nav
-            className={`hidden items-center gap-5 whitespace-nowrap text-sm md:flex lg:gap-6 ${overHero ? 'text-white/60' : 'text-muted-foreground'}`}
+            className={`hidden items-center gap-5 whitespace-nowrap text-sm md:flex lg:gap-6 text-muted-foreground`}
           >
             {/* The site chrome's rule (SiteChrome.tsx): md carries the pages,
                 and the in-page anchors come back once there is room (xl here:
                 this header also carries GitHub, the theme and My resumes). At 768px this row held
                 five links, wrapped "How it works" onto three lines and pushed
                 the Create button off the edge (831px of page in 768). */}
-            <a href="#how" className={`hidden transition xl:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <a href="#how" className={`hidden transition xl:inline hover:text-foreground`}>
               How it works
             </a>
-            <Link to="/templates" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <Link to="/templates" className={`transition hover:text-foreground`}>
               Templates
             </Link>
-            <Link to="/examples" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <Link to="/examples" className={`transition hover:text-foreground`}>
               Examples
             </Link>
             {/* every other page's header offers it (SiteChrome.tsx); this one
                 built its own and left it out */}
-            <Link to="/prompts" className={`transition ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <Link to="/prompts" className={`transition hover:text-foreground`}>
               Prompts
             </Link>
-            <a href="#compare" className={`hidden transition xl:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <a href="#compare" className={`hidden transition xl:inline hover:text-foreground`}>
               Compare
             </a>
-            <a href="#privacy" className={`hidden transition xl:inline ${overHero ? 'hover:text-white' : 'hover:text-foreground'}`}>
+            <a href="#privacy" className={`hidden transition xl:inline hover:text-foreground`}>
               Privacy
             </a>
           </nav>
@@ -159,13 +118,51 @@ export function Landing() {
       </header>
 
       <main>
-        {/* hero — the cinematic stage */}
-        <HeroCinema
-          onCreate={() => create(false)}
+        {/* hero: type your name, watch real pages wear it */}
+        <HeroTypeOnce
+          onStart={({ templateId, name, role }) =>
+            create(false, templateId, undefined, undefined, name ? `${name}'s Resume` : undefined, { name, label: role })
+          }
           onSample={() => setSampleOpen(true)}
           onImportPdf={() => pdfRef.current?.click()}
-          covered={chooser || sampleOpen}
         />
+
+        {/* the template shelf, straight after the hero */}
+        <section id="templates" className="border-b border-border py-14 sm:py-16" aria-labelledby="templates-title">
+          <div className="mx-auto mb-7 flex max-w-6xl flex-wrap items-end justify-between gap-3 px-4 sm:px-6">
+            <div>
+              <h2 id="templates-title" className="font-display text-3xl font-semibold sm:text-4xl">
+                Start from a recruiter-ready template
+              </h2>
+              <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+                Every design exports real, selectable text an ATS reads word for word. Pick one to start; switch any
+                time and your content stays. Not sure what to write?{' '}
+                <Link className="text-primary underline-offset-2 hover:underline" to="/examples">
+                  Read {SAMPLE_COUNT} full examples
+                </Link>
+                .
+              </p>
+            </div>
+            <Link className="btn-ghost btn-sm" to="/templates">
+              See all {TEMPLATE_COUNT} <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <TemplateCarousel onPick={(id) => create(true, id)} />
+        </section>
+
+        {/* The Signature collection: structures built for this app, under the plain shelf. */}
+        <section id="signature" className="border-b border-border bg-surface-muted/40 py-14 sm:py-16" aria-labelledby="signature-title">
+          <div className="mx-auto mb-2 max-w-6xl px-4 sm:px-6">
+            <h2 id="signature-title" className="font-display text-3xl font-semibold sm:text-4xl">
+              The Signature collection
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+              {SIGNATURE_COUNT} designs with page structures of their own, made for this app and held to the same rule as every other: the
+              text an ATS reads is word for word what you wrote.
+            </p>
+          </div>
+          <TemplateCarousel onPick={(id) => create(true, id)} tabs={[{ tag: 'signature', label: 'Signature' }]} label="Signature designs" />
+        </section>
 
         {/* how it works */}
         <section id="how" className="border-y border-border bg-surface-muted/40">
@@ -195,78 +192,6 @@ export function Landing() {
             </ol>
           </div>
         </section>
-
-        {/* template showcase */}
-        {/* A full-bleed band of the paper art behind the template strip: ivory
-            with one gold stroke in the light theme, charcoal sheets with gold
-            edges in the dark one. Feathered top and bottom so it reads as a
-            place on the page, not a slab. */}
-        <div className="relative">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden"
-            style={{ maskImage: 'linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent)', WebkitMaskImage: 'linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent)' }}
-          >
-            <img
-              src="/art/band-ivory-stroke-1280.webp"
-              srcSet="/art/band-ivory-stroke-1280.webp 1280w, /art/band-ivory-stroke-1920.webp 1920w"
-              sizes="100vw"
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover opacity-80 dark:hidden"
-            />
-            <img
-              src="/art/band-sheets-1280.webp"
-              srcSet="/art/band-sheets-1280.webp 1280w, /art/band-sheets-1920.webp 1920w"
-              sizes="100vw"
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 hidden h-full w-full object-cover opacity-60 dark:block"
-            />
-          </div>
-        <section id="templates" className="relative mx-auto max-w-6xl px-6 py-14 land-reveal">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <h2 className="font-display text-3xl font-semibold sm:text-4xl">Start from a recruiter-ready template</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Click any design to start editing — switch anytime, your content stays. Not sure what to write?{' '}
-                <Link className="text-primary underline-offset-2 hover:underline" to="/examples">
-                  Read {SAMPLE_COUNT} full examples
-                </Link>
-                .
-              </p>
-            </div>
-            <Link className="btn-ghost btn-sm hidden sm:inline-flex" to="/templates">
-              See all {TEMPLATE_COUNT} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6" data-nosnippet>
-            {showcase.map(({ id, doc }) => (
-              // A card this size can be recognised but not read. Dwelling on
-              // one floats a large render beside it, the same way the example
-              // picker and the editor's gallery do - it was the only one of
-              // the three showing thumbnails with no way to see the design.
-              <HoverZoom key={id} doc={doc} label={getTemplate(id).name}>
-                <button
-                  onClick={() => create(true, id)}
-                  className="group block w-full overflow-hidden rounded-xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:shadow-card"
-                  title={`Use the ${getTemplate(id).name} template`}
-                >
-                  <div className="aspect-[210/297] overflow-hidden">
-                    <PreviewThumb doc={doc} width={210} />
-                  </div>
-                  <div className="flex items-center justify-between border-t border-border px-2.5 py-1.5">
-                    <span className="text-xs font-medium text-slate-800">{getTemplate(id).name}</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                  </div>
-                </button>
-              </HoverZoom>
-            ))}
-          </div>
-        </section>
-        </div>
 
         {/* The proof: what makes the file different, shown on a real page.
             It replaces four icon tiles (private, ATS, export, offline) that
@@ -522,35 +447,6 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
   )
 }
 
-/**
- * The hero reel's pages, stacked so a change of design never flickers.
- *
- * Each tick used to mount a fresh full-resume render and fade it in while the
- * old one faded out: the new page painted its first frames mid-fade, both
- * layers sat near half opacity at the crossing (the stage showed through),
- * and the card behind swapped with no fade at all. Now the previous, current
- * and next pages stay mounted; the next one is already laid out, invisible,
- * before its turn, so a tick only fades it in ON TOP of a page that stays
- * fully opaque beneath it.
- */
-function ReelPages({ items, index, width }: { items: { id: string; doc: ResumeDocument }[]; index: number; width: number }) {
-  const n = items.length
-  const layers = [(index - 1 + n) % n, index, (index + 1) % n]
-  return (
-    <>
-      {layers.map((i, slot) => (
-        <div
-          key={items[i].id}
-          className="absolute inset-0 bg-white transition-opacity duration-500 ease-out"
-          style={{ opacity: slot === 2 ? 0 : 1, zIndex: slot === 1 ? 2 : slot === 0 ? 1 : 0 }}
-        >
-          <PreviewThumb doc={items[i].doc} width={width} />
-        </div>
-      ))}
-    </>
-  )
-}
-
 function Faq({ q, a }: { q: string; a: string }) {
   return (
     <details className="group py-1">
@@ -560,263 +456,5 @@ function Faq({ q, a }: { q: string; a: string }) {
       </summary>
       <p className="max-w-2xl pb-4 text-sm leading-relaxed text-muted-foreground">{a}</p>
     </details>
-  )
-}
-
-/**
- * The cinematic hero: a self-contained dark stage with a drifting aurora,
- * a shimmering headline, and a mouse-parallax 3D fan of live template cards.
- * Pure CSS + framer-motion (zero external assets); honors reduced-motion.
- */
-function HeroCinema({
-  onCreate,
-  onSample,
-  onImportPdf,
-  covered,
-}: {
-  onCreate: () => void
-  onSample: () => void
-  onImportPdf: () => void
-  /** A dialog is over the stage. Its backdrop is translucent, so a loop
-   *  still playing underneath shimmers through the blur and reads as the
-   *  page flickering - and it competes for frames with the four resume
-   *  previews the dialog is busy rendering. */
-  covered: boolean
-}) {
-  const reduce = useReducedMotion()
-  // The backdrop loop and the reel run only while the hero is on screen.
-  const heroRef = useRef<HTMLElement | null>(null)
-  const heroInView = useInView(heroRef, { amount: 0.05 })
-  const onScreen = !reduce && heroInView
-  // The morph reel: identical sample content flowing through contrasting
-  // designs — the template engine demonstrating itself.
-  // Some frames also show a choice the page offers on top of any design - a
-  // labelled contact strip, pills, contacts beside the name, headings on a
-  // rail, dates in the company line - so the reel shows the controls too, not
-  // only the templates.
-  const morph = useMemo(
-    () =>
-      (
-        // It opens on the Signature designs - the ones nothing else has -
-        // then shows the choices any design takes on top. A light page leads:
-        // the hero is dark, and a dark page first read as an empty stage.
-        [
-          ['broadsheet', 'Signature', null],
-          ['measure', 'typeset to a baseline', null],
-          ['marquee', 'Signature', null],
-          ['folio-noir', 'Signature', null],
-          ['clarity', 'labelled contacts', (m) => void (m.layout.contactStyle = 'strip')],
-          ['sapphire', 'contact pills', (m) => void (m.layout.contactStyle = 'pills')],
-          ['crest', 'headings on a rail', (m) => void (m.layout.headingPlacement = 'side')],
-          ['keystone', 'Signature', null],
-          ['halcyon', 'dates in the company line', (m) => void (m.layout.dateAlign = 'inline')],
-        ] as [string, string, ((m: ResumeDocument['metadata']) => void) | null][]
-      ).map(([id, note, tweak]) => {
-        const d = createDocument({ sample: true })
-        d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
-        tweak?.(d.metadata)
-        return { id, name: getTemplate(id).name, note, doc: d }
-      }),
-    []
-  )
-  const [ti, setTi] = useState(0)
-  useEffect(() => {
-    // The crossfade mounted a fresh full-resume render every few seconds
-    // FOREVER - scrolled past, tab hidden, it kept spending a frame budget
-    // nobody was watching. It ticks only while the hero is on screen and the
-    // tab is visible.
-    if (reduce || !heroInView || covered) return
-    const t = setInterval(() => {
-      if (!document.hidden) setTi((i) => (i + 1) % morph.length)
-    }, 5500)
-    return () => clearInterval(t)
-  }, [reduce, morph.length, heroInView, covered])
-  // The still's slow drift is only for the moments the video is not carrying
-  // the motion: it stops the instant the loop is playing (two animated
-  // full-stage layers were measured as a second, redundant cost).
-  const [loopReady, setLoopReady] = useState(false)
-  // Paused, not unmounted: closing the dialog resumes the loop where it
-  // stood instead of re-fetching and re-decoding it. A hidden tab counts as
-  // covered - a background tab decoding video is pure waste.
-  const loopRef = useRef<HTMLVideoElement | null>(null)
-  useEffect(() => {
-    const v = loopRef.current
-    if (!v) return
-    const sync = () => {
-      if (covered || document.hidden) v.pause()
-      else void v.play().catch(() => {})
-    }
-    sync()
-    document.addEventListener('visibilitychange', sync)
-    return () => document.removeEventListener('visibilitychange', sync)
-  }, [covered])
-  return (
-    <section
-      ref={heroRef}
-      id="hero-stage"
-      className={`relative overflow-hidden bg-[#0a0c12] text-white${covered ? ' hero-covered' : ''}`}
-    >
-      {/* Backdrop art: black paper threaded with gold. A still for everyone;
-          for viewers who allow motion, a slow loop of the same scene fades in
-          over it (a palindrome, so it never pops at the seam) and the whole
-          layer drifts against the pointer. Overscaled a touch so the parallax
-          never shows an edge. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <img
-          src="/art/hero-veins-1280.webp"
-          srcSet="/art/hero-veins-1280.webp 1280w, /art/hero-veins-1920.webp 1920w"
-          sizes="100vw"
-          alt=""
-          decoding="async"
-          className={`absolute inset-0 h-full w-full object-cover opacity-90${reduce || loopReady ? '' : ' hero-still-drift'}`}
-        />
-        {onScreen && (
-          <video
-            ref={loopRef}
-            className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-[1400ms] data-[ready=true]:opacity-90"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster="/art/hero-veins-1280.webp"
-            disablePictureInPicture
-            disableRemotePlayback
-            onCanPlay={(e) => {
-              e.currentTarget.dataset.ready = 'true'
-              setLoopReady(true)
-            }}
-          >
-            <source src="/art/hero-loop-veins.webm" type="video/webm" />
-            <source src="/art/hero-loop-veins.mp4" type="video/mp4" />
-          </video>
-        )}
-      </div>
-      {/* legibility: the copy column stays ink-dark, the edges vignette */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(90deg, rgba(10,12,18,.86) 0%, rgba(10,12,18,.62) 42%, rgba(10,12,18,.28) 100%), radial-gradient(120% 80% at 50% 115%, rgba(10,12,18,.92), transparent 60%)',
-        }}
-      />
-      {/* One ambient layer - the backdrop above - and the reel. The pointer
-          glow, three drifting aurora blobs, a dot grid, parallax, a 3D tilt,
-          a shimmering headline and three bobbing glass chips all ran here at
-          once (critique, 2026-10-23): a stage busier than the product on it. */}
-      {/* Two columns from lg: at a 768px tablet the headline was squeezed to
-          one word per line beside a card hanging off the edge. */}
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[1.05fr_1fr] lg:py-28">
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Local-first · Free · Open source
-          </span>
-          {/* Set in the face of Folio Noir, a Signature design: the page is
-              typeset like the résumés it makes, not lit like any other app. */}
-          <h1
-            className="font-display mt-6 text-5xl font-semibold leading-[0.98] sm:text-7xl"
-           
-          >
-            A resume this beautiful
-            <br />
-            never leaves your <span style={{ color: '#e2b04f' }}>browser</span>.
-          </h1>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-white/70">
-            {TEMPLATE_COUNT} designs, a built-in ATS check, and a real vector PDF, made and kept entirely in your
-            browser. Free, with nothing to sign up for.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-[#1c1503] shadow-[0_6px_18px_-8px_rgba(0,0,0,0.6)] transition hover:scale-[1.03] active:scale-[0.99]"
-              style={{ background: GOLD }}
-              onClick={onCreate}
-            >
-              <Plus className="h-4 w-4" /> Create my resume
-            </button>
-            <button
-              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/[0.12]"
-              onClick={onSample}
-            >
-              <FileText className="h-4 w-4" /> Start with an example
-            </button>
-          </div>
-          <p className="mt-5 text-xs text-white/50">
-            Already have one?{' '}
-            <button
-              onClick={onImportPdf}
-              className="inline-flex items-center gap-1 font-medium text-amber-300/90 underline-offset-2 hover:underline relative before:absolute before:-inset-2 before:content-['']"
-            >
-              <FileUp className="h-3.5 w-3.5" /> Import your PDF
-            </button>{' '}
-            — parsed entirely on your device.
-          </p>
-
-          {/* phones: the same live morph, compact — the product stays visible */}
-          <div className="mt-10 flex justify-center lg:hidden" aria-hidden data-nosnippet>
-            <div className="relative w-64 overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_24px_60px_-18px_rgba(0,0,0,0.8)]">
-              <div className="relative aspect-[210/297] overflow-hidden">
-                <ReelPages items={morph} index={ti} width={256} />
-              </div>
-              {/* Inside the card's edges and allowed to wrap: on one line it ran
-                  wider than the card on a phone and was cut at the left
-                  ("apphire · contact pills", reported 2026-09-26). */}
-              <div className="pointer-events-none absolute inset-x-2 bottom-2 flex justify-end">
-                <span className="inline-flex max-w-full items-start gap-1.5 rounded-2xl border border-white/20 bg-[#0a0c12]/85 px-2.5 py-1 text-[10px] font-medium leading-snug text-white shadow-lg backdrop-blur">
-                  <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: '#d4982f' }} />
-                  <span>
-                    {morph[ti].name}
-                    {morph[ti].note ? ` · ${morph[ti].note}` : ''}, same content
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* the product, demonstrated: ONE resume re-skinning itself live */}
-        <div className="hidden [perspective:1400px] lg:block" aria-hidden data-nosnippet>
-          <div className="relative mx-auto h-[34rem] w-[30rem]" style={{ transformStyle: 'preserve-3d' }}>
-            {/* depth: the NEXT design waits behind */}
-            <div
-              className="absolute left-20 top-8 w-[24rem] overflow-hidden rounded-xl border border-white/10 opacity-35 shadow-2xl"
-              style={{ transform: 'translateZ(-70px) rotate(5deg)' }}
-            >
-              <div className="relative aspect-[210/297] overflow-hidden bg-white">
-                <ReelPages items={morph} index={(ti + 1) % morph.length} width={384} />
-              </div>
-            </div>
-
-            {/* front card — crossfades between templates */}
-            <div
-              className="absolute left-0 top-0 w-[26rem] overflow-hidden rounded-xl border border-white/15 bg-white shadow-[0_30px_90px_-20px_rgba(0,0,0,0.8)]"
-              style={{ transform: 'translateZ(50px) rotate(-2deg)' }}
-            >
-              <div className="relative aspect-[210/297] overflow-hidden">
-                <ReelPages items={morph} index={ti} width={416} />
-              </div>
-              {/* live template name — proof it's the same content, restyled */}
-              <div className="pointer-events-none absolute bottom-3 right-3">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={morph[ti].id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.4 }}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-[#0a0c12]/85 px-3 py-1 text-[11px] font-medium text-white shadow-lg backdrop-blur"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#d4982f' }} />
-                    {morph[ti].name}
-                    {morph[ti].note ? ` · ${morph[ti].note}` : ''}, same content
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
   )
 }
