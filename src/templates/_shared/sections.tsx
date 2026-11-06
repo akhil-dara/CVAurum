@@ -1011,8 +1011,10 @@ function ItemHead({
             shape={opts?.badgeShape}
             setBadge={opts?.setBadge}
           />
-        ) : logoOk ? (
-          <img className="rm-item-logo" src={logoOk} alt="" aria-hidden />
+        ) : logos.length === 1 ? (
+          // The one logo the entry shows, wherever it is stored: an entry left
+          // as {logo: '', logoExtras: [B]} shows B on the canvas, so prints B.
+          <img className="rm-item-logo" src={logos[0]} alt="" aria-hidden />
         ) : badge ? (
           <span className="rm-item-badge" aria-hidden>
             {badge}

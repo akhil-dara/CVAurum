@@ -65,6 +65,17 @@ describe('several logos on one entry', () => {
     expect(edu).toContain(`<img class="rm-item-logo" src="${A}"`)
   })
 
+  it('prints the one logo an entry shows even when it is stored as an extra', () => {
+    // {logo: '', logoExtras: [B]} - an older tab removing the first logo
+    // leaves this. The canvas shows B; the page it prints must too.
+    const html = render((d) => {
+      d.content.education[0].logo = ''
+      d.content.education[0].logoExtras = [B]
+    })
+    const edu = sectionHtml(html, 'education')
+    expect(edu).toContain(`<img class="rm-item-logo" src="${B}"`)
+  })
+
   it('gives an entry with no mark no gutter', () => {
     const html = render(() => {})
     const firstWork = sectionHtml(html, 'work').match(/<article class="([^"]+)"/)

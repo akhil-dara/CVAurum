@@ -4086,7 +4086,7 @@
    there: written without its condition, this top-aligned every title row in
    every design, and a date in a smaller face sat up to 6px above the title's
    baseline on the canvas and in the export (review, 2026-09-27). */
-.rm-item-head:has(> .rm-item-badge, > .rm-item-logo, > .rm-logo-btn) {
+.rm-item-head:has(> .rm-item-badge, > .rm-item-logo, > .rm-logo-btn, > .rm-item-logos) {
   align-items: flex-start;
 }
 
@@ -4140,16 +4140,10 @@
 .rm-item.rm-has-mark > .rm-item-head .rm-item-logos .rm-logo-btn {
   position: static;
 }
-/* A narrow sidebar has no room for a full row beside its titles: the row
-   is held to a third of the column and its marks shrink together, rather
-   than wrap onto the title. */
-.rm-col-aside .rm-item-logos {
-  max-width: 33%;
-}
-.rm-col-aside .rm-item-logos > * {
-  flex: 0 1 var(--rm-badge-size, 1.65em);
-  min-width: 0;
-}
+/* No sidebar special case: the row sits inside the gutter reserved for it,
+   so it can never reach the title. Shrinking it there (a third of the head,
+   once) squeezed three marks into 8x20 slivers in print and overlapped them
+   on the canvas while the gutter stayed full width (review, 2026-11-07). */
 /* inside the edit-mode logo button, the mark itself stays in normal flow -
    without this the img is itself pulled to the gutter, out of its own button,
    which collapses to 0x0 and leaves the img with no size basis (measured:

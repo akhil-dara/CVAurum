@@ -2762,7 +2762,7 @@
 /* entries with a logo/badge: shift the mark gutter past the rail + dot */
 .rm-root .rm-section.lay-ov-timeline .rm-section-body > .rm-item.rm-has-mark {
   --rm-mark-left: 1.25em;
-  padding-left: calc(1.25em + var(--rm-badge-size, 1.65em) + 0.5em);
+  padding-left: calc(1.25em + var(--rm-mark-gutter) + 0.5em);
 }
 /* cards: each entry on its own soft card (adapts to light & dark pages).
    The card is a GROUND, 4% of the page's ink laid under the entry's own
@@ -2786,7 +2786,7 @@
 /* …and with a mark, the gutter starts inside the card's own padding */
 .rm-root .rm-section.lay-ov-cards .rm-section-body > .rm-item.rm-has-mark {
   --rm-mark-left: 0.85em;
-  padding-left: calc(0.85em + var(--rm-badge-size, 1.65em) + 0.5em);
+  padding-left: calc(0.85em + var(--rm-mark-gutter) + 0.5em);
 }
 /* grid: entries in two columns (great for certifications / awards / education) */
 .rm-root .rm-section.lay-ov-grid .rm-section-body {
