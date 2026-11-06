@@ -5,6 +5,7 @@
  * (<Ed>) and write straight back to the store; otherwise they render plain so
  * print/thumbnail stay clean.
  */
+import { isLocalImg } from '@/lib/entryLogos'
 import { runItemDelete } from './itemActions'
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -576,7 +577,6 @@ function Bullets({
 const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
 
 /** Locally-encoded image only — remote URLs would break zero-external-requests. */
-const isLocalImg = (s?: string) => !!s && /^(data:image\/|blob:)/i.test(s)
 /** Entries showing a logo/badge get a left "mark gutter" so the whole entry
  *  (title, org, meta, bullets) keeps ONE aligned left edge. */
 const markClass = (logo?: string, badge?: string) => (isLocalImg(logo) || badge ? ' rm-has-mark' : '')

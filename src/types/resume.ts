@@ -61,6 +61,9 @@ export const WorkSchema = z.object({
   name: z.string().optional().default(''), // company
   /** small company logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
+  /** the second and third logos, for a joint venture or a dual role - same
+   *  local-only deal as `logo` (CVAurum extension; lib/entryLogos.ts) */
+  logoExtras: z.array(z.string()).optional(),
   /** per-entry badge override: absent follows the section's showBadges
    *  setting; true/false forces it for this entry (CVAurum extension) */
   badge: z.boolean().optional(),
@@ -83,6 +86,9 @@ export const EducationSchema = z.object({
   institution: z.string().optional().default(''),
   /** small institution logo, locally-encoded data URI only (CVAurum extension) */
   logo: z.string().optional(),
+  /** the second and third logos, for a joint or dual degree - same
+   *  local-only deal as `logo` (CVAurum extension; lib/entryLogos.ts) */
+  logoExtras: z.array(z.string()).optional(),
   /** per-entry badge override (see WorkSchema.badge) */
   badge: z.boolean().optional(),
   /** the rail's numerals and the word beneath them, when the author set
