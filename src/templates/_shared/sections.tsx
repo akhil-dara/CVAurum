@@ -10,13 +10,15 @@ import {
   addEntryLogo,
   entryLogos,
   isLocalImg,
+  logoButtonLabel,
   moveEntryLogo,
+  placeMenu,
   removeEntryLogo,
   replaceEntryLogo,
   type LogoEntry,
 } from '@/lib/entryLogos'
 import { runItemDelete } from './itemActions'
-import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
+import { Fragment, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2, ChevronUp, ChevronDown, X } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -585,7 +587,6 @@ function Bullets({
 /** First letter of the org/name — the ATS-safe stand-in for a company logo. */
 const badgeLetter = (s?: string) => (s || '').trim().charAt(0).toUpperCase()
 
-/** Locally-encoded image only — remote URLs would break zero-external-requests. */
 /** Entries showing a logo/badge get a left "mark gutter" so the whole entry
  *  (title, org, meta, bullets) keeps ONE aligned left edge. */
 const markClass = (logo?: string, badge?: string) => (isLocalImg(logo) || badge ? ' rm-has-mark' : '')
@@ -659,6 +660,7 @@ function CanvasLogo({
   shape,
   setBadge,
   more,
+  who,
 }: {
   logo?: string
   badge?: string
@@ -675,15 +677,24 @@ function CanvasLogo({
     onMove?: (dir: -1 | 1) => void
     canLeft?: boolean
     canRight?: boolean
-    /** "logo 2 of 3", for the button's name when there are several */
-    position?: string
+    /** This logo's place among the entry's logos, for the button's name */
+    n?: number
+    of?: number
   }
+  /** Whose logo it is - the entry's title - for the button's name */
+  who?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [menu, setMenu] = useState<{ top: number; left: number } | null>(null)
+  const [menu, setMenu] = useState<{ top: number; left: number; anchor: { top: number; bottom: number; left: number } } | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   usePopoverA11y(menu != null, () => setMenu(null), menuRef)
+  useLayoutEffect(() => {
+    const el = menuRef.current
+    if (!menu || !el) return
+    const at = placeMenu(menu.anchor, { w: el.offsetWidth, h: el.offsetHeight }, { w: window.innerWidth, h: window.innerHeight })
+    if (at.top !== menu.top || at.left !== menu.left) setMenu({ ...menu, ...at })
+  }, [menu])
   // Which way the next picked file goes: replacing this logo, or added beside it.
   const addingRef = useRef(false)
 
@@ -718,10 +729,10 @@ function CanvasLogo({
     // "+ Logo" chip) skips ahead, where picking a file is the whole point.
     if (logo || badge) {
       const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-      setMenu({
-        top: Math.min(r.bottom + 6, window.innerHeight - 240),
-        left: Math.max(8, Math.min(r.left, window.innerWidth - 248)),
-      })
+      const anchor = { top: r.top, bottom: r.bottom, left: r.left }
+      // A first guess at the menu's size; the layout effect below measures the
+      // real one (it grew past 240px once the several-logo actions joined it).
+      setMenu({ ...placeMenu(anchor, { w: 224, h: 300 }, { w: window.innerWidth, h: window.innerHeight }), anchor })
     } else {
       inputRef.current?.click()
     }
@@ -736,7 +747,7 @@ function CanvasLogo({
         onMouseDown={(e) => e.preventDefault()}
         onClick={onClick}
         title={logo ? 'Change or remove this logo' : 'Add a small logo (company / institution mark)'}
-        aria-label={logo ? `Change or remove logo${more?.position ? ` (${more.position})` : ''}` : 'Add logo'}
+        aria-label={logo ? logoButtonLabel(who, more?.n ?? 1, more?.of ?? 1) : 'Add logo'}
       >
         {logo ? (
           <img className="rm-item-logo" src={logo} alt="" aria-hidden />
@@ -948,24 +959,53 @@ function ItemHead({
   // Several logos (issue #8) draw as one row in the mark gutter. One logo, or
   // none, keeps exactly the markup it always had.
   const logos = entryLogos({ logo, logoExtras })
+  // After a logo is moved, added or removed, focus goes to that logo's button
+  // in the new order: the button that opened the menu may now show another
+  // logo, or be gone (one logo and several are drawn differently).
+  const headRef = useRef<HTMLDivElement>(null)
+  const focusLogo = useRef<number | null>(null)
+  useEffect(() => {
+    const at = focusLogo.current
+    if (at == null) return
+    focusLogo.current = null
+    const btns = headRef.current?.querySelectorAll<HTMLElement>('.rm-logo-btn')
+    if (btns?.length) btns[Math.max(0, Math.min(at, btns.length - 1))].focus({ preventScroll: true })
+  })
   const addHint =
     logoKind === 'education' ? 'For a joint or dual degree' : logoKind === 'work' ? 'For a joint venture or dual role' : undefined
   const markFor = (src: string, i: number) => (
     <CanvasLogo
-      key={i}
+      key={`${src.slice(-24)}:${logos.slice(0, i).filter((x) => x === src).length}`}
+      who={linkLabel}
       logo={src}
       badge={badge}
-      onChange={(v) => edit!((c) => setLogos!(c, (it) => (v ? replaceEntryLogo(it, i, v) : removeEntryLogo(it, i))))}
+      onChange={(v) => {
+        focusLogo.current = v ? i : Math.max(0, i - 1)
+        edit!((c) => setLogos!(c, (it) => (v ? replaceEntryLogo(it, i, v) : removeEntryLogo(it, i))))
+      }}
       size={opts?.badgeSize}
       shape={opts?.badgeShape}
       setBadge={opts?.setBadge}
       more={{
         addHint,
-        onAdd: logos.length < MAX_ENTRY_LOGOS ? (v) => edit!((c) => setLogos!(c, (it) => addEntryLogo(it, v))) : undefined,
-        onMove: logos.length > 1 ? (dir) => edit!((c) => setLogos!(c, (it) => moveEntryLogo(it, i, dir))) : undefined,
+        onAdd:
+          logos.length < MAX_ENTRY_LOGOS
+            ? (v) => {
+                focusLogo.current = logos.length
+                edit!((c) => setLogos!(c, (it) => addEntryLogo(it, v)))
+              }
+            : undefined,
+        onMove:
+          logos.length > 1
+            ? (dir) => {
+                focusLogo.current = i + dir
+                edit!((c) => setLogos!(c, (it) => moveEntryLogo(it, i, dir)))
+              }
+            : undefined,
         canLeft: i > 0,
         canRight: i < logos.length - 1,
-        position: logos.length > 1 ? `logo ${i + 1} of ${logos.length}` : undefined,
+        n: i + 1,
+        of: logos.length,
       }}
     />
   )
@@ -993,7 +1033,7 @@ function ItemHead({
     ) : null
   return (
     <>
-      <div className="rm-item-head">
+      <div className="rm-item-head" ref={headRef}>
         {logos.length > 1 ? (
           <span className="rm-item-logos" data-logos={logos.length}>
             {edit && setLogos

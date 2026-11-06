@@ -9,6 +9,9 @@ import {
   addEntryLogo,
   entryLogos,
   moveEntryLogo,
+  moveLogoTo,
+  logoButtonLabel,
+  placeMenu,
   dropNonDataLogos,
   removeEntryLogo,
   sanitizeEntryLogos,
@@ -83,5 +86,39 @@ describe('cleaning logos that arrive from outside', () => {
     dropNonDataLogos(it)
     expect(it.logo).toBe(B)
     expect(it.logoExtras).toEqual([C])
+  })
+})
+
+describe('moveLogoTo (drag reorder in the panel)', () => {
+  it('moves one logo to another slot, keeping the rest in order', () => {
+    expect(moveLogoTo([A, B, C], 0, 2)).toEqual([B, C, A])
+    expect(moveLogoTo([A, B, C], 2, 0)).toEqual([C, A, B])
+    expect(moveLogoTo([A, B, C], 1, 1)).toEqual([A, B, C])
+  })
+  it('ignores a slot that is not there', () => {
+    expect(moveLogoTo([A, B], 0, 5)).toEqual([A, B])
+    expect(moveLogoTo([A, B], -1, 0)).toEqual([A, B])
+  })
+})
+
+describe('logoButtonLabel', () => {
+  it('names the logo by the entry it marks, and its place among several', () => {
+    expect(logoButtonLabel('William & Mary', 2, 2)).toBe('Change or remove logo 2 of 2: William & Mary')
+    expect(logoButtonLabel('Vertex Labs', 1, 1)).toBe('Change or remove logo: Vertex Labs')
+    expect(logoButtonLabel(undefined, 1, 3)).toBe('Change or remove logo 1 of 3')
+    expect(logoButtonLabel('  ', 1, 1)).toBe('Change or remove logo')
+  })
+})
+
+describe('placeMenu (the canvas logo menu stays on screen)', () => {
+  const view = { w: 1280, h: 800 }
+  it('opens below the logo when it fits', () => {
+    expect(placeMenu({ top: 100, bottom: 130, left: 300 }, { w: 224, h: 300 }, view)).toEqual({ top: 136, left: 300 })
+  })
+  it('opens above the logo when there is no room below', () => {
+    expect(placeMenu({ top: 700, bottom: 730, left: 300 }, { w: 224, h: 300 }, view)).toEqual({ top: 394, left: 300 })
+  })
+  it('pins to the window when it fits neither way, and never runs off the right edge', () => {
+    expect(placeMenu({ top: 200, bottom: 230, left: 1200 }, { w: 224, h: 700 }, { w: 1280, h: 720 })).toEqual({ top: 12, left: 1048 })
   })
 })

@@ -86,3 +86,35 @@ export function dropNonDataLogos(it: LogoEntry): void {
     [it.logo, ...(it.logoExtras ?? [])].filter((s): s is string => !!s && /^data:image\//i.test(s))
   )
 }
+
+/** The list with the logo at `from` moved to `to` (the panel's drag reorder). */
+export function moveLogoTo(list: readonly string[], from: number, to: number): string[] {
+  const next = list.slice()
+  if (from < 0 || from >= next.length || to < 0 || to >= next.length || from === to) return next
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
+
+/** A canvas logo button's accessible name: which logo, and whose. */
+export function logoButtonLabel(who: string | undefined, n: number, of: number): string {
+  const which = of > 1 ? `logo ${n} of ${of}` : 'logo'
+  const name = (who ?? '').trim()
+  return `Change or remove ${which}${name ? `: ${name}` : ''}`
+}
+
+/** Where a popover menu opens beside its anchor so it stays in the window:
+ *  below if it fits, else above, else as low as the window allows. */
+export function placeMenu(
+  anchor: { top: number; bottom: number; left: number },
+  menu: { w: number; h: number },
+  view: { w: number; h: number },
+  gap = 6,
+  pad = 8
+): { top: number; left: number } {
+  const below = anchor.bottom + gap
+  const above = anchor.top - gap - menu.h
+  const top = below + menu.h <= view.h - pad ? below : above >= pad ? above : Math.max(pad, view.h - menu.h - pad)
+  const left = Math.max(pad, Math.min(anchor.left, view.w - menu.w - pad))
+  return { top, left }
+}

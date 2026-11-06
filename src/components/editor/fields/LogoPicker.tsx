@@ -2,12 +2,12 @@
  * Tiny per-entry logo picker (company / institution mark). Stores a downscaled
  * data URI in the document — nothing is ever uploaded anywhere.
  */
-import { useRef, useState } from 'react'
+import { useRef, useState, type DragEvent } from 'react'
 import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import { downscaleDataUrl } from '@/lib/image'
 import { ImageCropper } from '../ImageCropper'
 import { Labeled } from './Inputs'
-import { MAX_ENTRY_LOGOS } from '@/lib/entryLogos'
+import { MAX_ENTRY_LOGOS, moveLogoTo } from '@/lib/entryLogos'
 
 export function LogoPicker({
   label = 'Logo',
@@ -129,10 +129,13 @@ export function LogosPicker({
       /* unreadable image - leave as-is */
     }
   }
-  const move = (i: number, dir: -1 | 1) => {
-    const next = logos.slice()
-    ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
-    onLogos(next)
+  const move = (i: number, dir: -1 | 1) => onLogos(moveLogoTo(logos, i, i + dir))
+  // Drag a thumbnail onto another to put it there (a mouse's way to reorder;
+  // the arrows stay for keyboards and touch, where HTML drag does not run).
+  const onDrop = (to: number) => (e: DragEvent) => {
+    e.preventDefault()
+    const from = Number(e.dataTransfer.getData('text/x-cvaurum-logo'))
+    if (Number.isInteger(from)) onLogos(moveLogoTo(logos, from, to))
   }
   return (
     <Labeled label={logos.length > 1 ? 'Logos' : label}>
@@ -163,19 +166,30 @@ export function LogosPicker({
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
             ) : null}
-            <span className="relative">
+            <span
+              className="relative"
+              draggable={logos.length > 1}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/x-cvaurum-logo', String(i))
+                e.dataTransfer.effectAllowed = 'move'
+              }}
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes('text/x-cvaurum-logo')) e.preventDefault()
+              }}
+              onDrop={onDrop(i)}
+            >
               <button
                 type="button"
                 className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white transition hover:border-primary/60 coarse:h-11 coarse:w-11"
                 onClick={() => open(i)}
-                title="Replace logo"
+                title={logos.length > 1 ? 'Replace logo, or drag to reorder' : 'Replace logo'}
                 aria-label={logos.length > 1 ? `Replace logo ${i + 1} of ${logos.length}` : 'Replace logo'}
               >
                 <img src={src} alt="" className="h-full w-full object-contain p-0.5" />
               </button>
               <button
                 type="button"
-                className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-surface text-muted-foreground shadow-sm hover:text-danger coarse:h-6 coarse:w-6"
+                className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-surface text-muted-foreground shadow-sm before:absolute before:-inset-1.5 before:content-[''] hover:text-danger coarse:h-6 coarse:w-6 coarse:before:-inset-2.5"
                 onClick={() => onLogos(logos.filter((_, j) => j !== i))}
                 aria-label={logos.length > 1 ? `Remove logo ${i + 1}` : 'Remove logo'}
                 title="Remove logo"

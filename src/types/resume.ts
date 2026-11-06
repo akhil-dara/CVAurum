@@ -56,6 +56,14 @@ export const BasicsSchema = z.object({
 
 /* ------------------------------------------------------------ section items */
 
+/** Extra entry logos (issue #8). Forgiving on import: a value that is not a
+ *  string is dropped on its own, and a field that is not a list is dropped,
+ *  rather than the whole entry failing to parse and vanishing. */
+const LogoExtrasSchema = z.preprocess(
+  (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : undefined),
+  z.array(z.string()).optional()
+)
+
 export const WorkSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional().default(''), // company
@@ -63,7 +71,7 @@ export const WorkSchema = z.object({
   logo: z.string().optional(),
   /** the second and third logos, for a joint venture or a dual role - same
    *  local-only deal as `logo` (CVAurum extension; lib/entryLogos.ts) */
-  logoExtras: z.array(z.string()).optional(),
+  logoExtras: LogoExtrasSchema,
   /** per-entry badge override: absent follows the section's showBadges
    *  setting; true/false forces it for this entry (CVAurum extension) */
   badge: z.boolean().optional(),
@@ -88,7 +96,7 @@ export const EducationSchema = z.object({
   logo: z.string().optional(),
   /** the second and third logos, for a joint or dual degree - same
    *  local-only deal as `logo` (CVAurum extension; lib/entryLogos.ts) */
-  logoExtras: z.array(z.string()).optional(),
+  logoExtras: LogoExtrasSchema,
   /** per-entry badge override (see WorkSchema.badge) */
   badge: z.boolean().optional(),
   /** the rail's numerals and the word beneath them, when the author set

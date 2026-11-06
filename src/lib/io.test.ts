@@ -293,3 +293,17 @@ describe('values an example seeded never leave as the author’s own', () => {
     expect(marks['work.w9.url']).toBe('https://x.example')
   })
 })
+
+describe('a malformed extra logo in an imported file', () => {
+  it('drops only the bad value, never the whole entry', () => {
+    const doc = fromJsonResume({
+      basics: { name: 'A' },
+      work: [{ name: 'Vertex', position: 'Engineer', logo: 'data:image/png;base64,AA', logoExtras: [123, 'data:image/png;base64,BB', null] }],
+      education: [{ institution: 'State', logoExtras: 'nope' }],
+    })
+    expect(doc.content.work).toHaveLength(1)
+    expect(doc.content.work[0].logoExtras).toEqual(['data:image/png;base64,BB'])
+    expect(doc.content.education).toHaveLength(1)
+    expect(doc.content.education[0].logoExtras).toBeUndefined()
+  })
+})
