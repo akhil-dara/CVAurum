@@ -472,6 +472,57 @@ export function resolveOrder(
   return { main, aside, footer }
 }
 
+/**
+ * The sections the Content panel lists, in the page's order: resolveOrder's
+ * columns with nothing left out for being empty or hidden (the panel is where
+ * an empty section is filled and a hidden one is shown again).
+ *
+ * It listed only the keys named in the layout, while the page also shows
+ * every section that holds content - a sample's languages, an import's
+ * skills, what a sidebar held on a design with one column. Those were on the
+ * page and missing from the panel, so their editor could not be reached
+ * (issue #12, a language's fluency). Reordering in the panel writes these
+ * lists back, which adopts such a section into the layout for good.
+ */
+export function panelColumns(doc: ResumeDocument): { main: string[]; aside: string[]; footer: string[] } {
+  return panelColumnsOf(doc.metadata.layout, doc.content)
+}
+
+type ColumnLayout = Pick<Metadata['layout'], 'main' | 'aside' | 'footer' | 'hidden' | 'columns'>
+
+function panelColumnsOf(layout: ColumnLayout, content: ResumeContent): { main: string[]; aside: string[]; footer: string[] } {
+  const twoCol = layout.columns === 2
+  const footerSet = new Set(layout.footer)
+  const main = layout.main.filter((k) => !footerSet.has(k))
+  const aside = twoCol ? layout.aside.filter((k) => !footerSet.has(k) && !main.includes(k)) : []
+  const placed = new Set([...main, ...aside, ...layout.footer])
+  // The page appends what holds content and sits in no list; a hidden key
+  // the page leaves out still belongs in the panel, after them.
+  const hidden = new Set(layout.hidden)
+  for (const k of allSectionKeys(content)) {
+    if (!placed.has(k) && !hidden.has(k) && sectionHasContent(k, content)) {
+      main.push(k)
+      placed.add(k)
+    }
+  }
+  for (const k of layout.hidden) if (!placed.has(k)) main.push(k)
+  return { main, aside, footer: [...layout.footer] }
+}
+
+/**
+ * Write the page's order into the layout lists, changing nothing the page
+ * shows. Every move works on those lists, and a section the page shows
+ * without naming it - appended for holding content, or a sidebar section on
+ * a one-column design - moved within a list the page was not reading, so its
+ * arrows did nothing. Call before any move. Mutates `layout`.
+ */
+export function adoptShownSections(layout: ColumnLayout, content: ResumeContent): void {
+  const cols = panelColumnsOf(layout, content)
+  layout.main = cols.main
+  if (layout.columns === 2) layout.aside = cols.aside
+  else layout.aside = layout.aside.filter((k) => !cols.main.includes(k))
+}
+
 export type EmptySectionsPref = 'auto' | 'show' | 'hide'
 
 /**

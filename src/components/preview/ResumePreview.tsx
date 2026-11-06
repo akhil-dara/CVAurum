@@ -49,7 +49,7 @@ import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useIsPhone, useMediaQuery } from '@/hooks/useIsPhone'
 import { clamp, htmlToText, uid } from '@/lib/utils'
-import { BODY_SECTION_KEYS, customKey, findItem, sectionLabel } from '@/lib/sections'
+import { BODY_SECTION_KEYS, customKey, findItem, panelColumns, sectionLabel } from '@/lib/sections'
 import type { PageBreakPin } from '@/types/metadata'
 import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
@@ -274,13 +274,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   // "Add section" gallery, opened from the inline "+ Add section" control on the
   // canvas. Reuses the exact same flow as the left-panel section organizer.
   const [addOpen, setAddOpen] = useState(false)
-  const available = useMemo(
-    () =>
-      BODY_SECTION_KEYS.filter(
-        (k) => !doc.metadata.layout.main.includes(k) && !(doc.metadata.layout.aside ?? []).includes(k)
-      ),
-    [doc.metadata.layout.main, doc.metadata.layout.aside]
-  )
+  // Not what the page already shows - a section it appended for holding
+  // content included (panelColumns) - nor what the layout already names.
+  const available = useMemo(() => {
+    const cols = panelColumns(doc)
+    const shown = new Set([...cols.main, ...cols.aside, ...cols.footer, ...doc.metadata.layout.main, ...doc.metadata.layout.aside])
+    return BODY_SECTION_KEYS.filter((k) => !shown.has(k))
+  }, [doc])
   const addStandard = (key: string) => {
     useEditorStore.getState().markFresh(key)
     updateMetadata((m) => {

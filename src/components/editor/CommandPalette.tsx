@@ -12,7 +12,7 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
 import { FONTS } from '@/data/fonts'
-import { ADD_LABEL, BODY_SECTION_KEYS, DEFAULT_LABELS, pushNewItem, sectionLabel } from '@/lib/sections'
+import { ADD_LABEL, BODY_SECTION_KEYS, DEFAULT_LABELS, panelColumns, pushNewItem, sectionLabel } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
@@ -194,7 +194,10 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     // sections on the page: jump to one, or add an entry to it. Both land
     // the caret in the section, so the palette is a way to reach a field,
     // not only a list of switches.
-    const onPage = [...doc.metadata.layout.main, ...doc.metadata.layout.aside].filter((k) => !doc.metadata.layout.hidden.includes(k))
+    // What the page shows, including a section the layout never named
+    // (panelColumns): it was missing from Go to and offered again under Add.
+    const shownCols = panelColumns(doc)
+    const onPage = [...shownCols.main, ...shownCols.aside, ...shownCols.footer].filter((k) => !doc.metadata.layout.hidden.includes(k))
     for (const key of onPage) {
       const name = sectionLabel(key, doc)
       cmds.push({
@@ -219,7 +222,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
       })
     }
 
-    const present = new Set([...doc.metadata.layout.main, ...doc.metadata.layout.aside])
+    const present = new Set([...shownCols.main, ...shownCols.aside, ...shownCols.footer, ...doc.metadata.layout.main, ...doc.metadata.layout.aside])
     for (const key of BODY_SECTION_KEYS.filter((k) => !present.has(k))) {
       cmds.push({
         id: `add-${key}`,

@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Columns2, X } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
-import { moveSectionTo, sectionLabel } from '@/lib/sections'
+import { moveSectionTo, sectionLabel, panelColumns, adoptShownSections } from '@/lib/sections'
 import type { ResumeDocument } from '@/types/document'
 
 /**
@@ -61,8 +61,8 @@ export function ColumnBalanceHint({
 
   const twoCol = doc.metadata.layout.columns === 2
   const movable = useMemo(
-    () => doc.metadata.layout.main.filter((k) => !KEEP_IN_MAIN.has(k)),
-    [doc.metadata.layout.main]
+    () => panelColumns(doc).main.filter((k) => !KEEP_IN_MAIN.has(k) && !doc.metadata.layout.hidden.includes(k)),
+    [doc]
   )
 
   useEffect(() => {
@@ -110,6 +110,7 @@ export function ColumnBalanceHint({
 
   const moveToSidebar = (key: string) => {
     useResumeStore.getState().updateMetadata((m) => {
+      adoptShownSections(m.layout, doc.content)
       moveSectionTo(m.layout, key, 'aside', m.layout.aside.length)
     })
     setOpen(false)

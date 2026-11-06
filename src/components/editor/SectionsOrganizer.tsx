@@ -25,6 +25,8 @@ import {
   moveSection,
   moveSectionTo,
   nextSectionPlace,
+  panelColumns,
+  adoptShownSections,
   sectionLabel,
   type EmptySectionsPref,
   type SectionPlace,
@@ -55,7 +57,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   // section card is what puts one on screen for a phone to look at.
   useEffect(() => {
     const onShow = () => {
-      const first = doc.metadata.layout.main[0] ?? doc.metadata.layout.aside[0]
+      const first = panelColumns(doc).main[0] ?? doc.metadata.layout.aside[0]
       if (!first) return
       setExpanded(first)
       // The expanded card's Style row is usually below the fold - the whole
@@ -72,11 +74,17 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
 
   const layout = doc.metadata.layout
   const twoCol = layout.columns === 2
+  // What the page shows, in its order - not only what the layout names
+  // (panelColumns: issue #12).
+  const cols = panelColumns(doc)
 
   const setColumns = (main: string[], aside: string[], footer: string[]) =>
     updateMetadata((m) => {
       m.layout.main = main
-      m.layout.aside = aside
+      // One column shows no sidebar, so the board hands back none: keep the
+      // sidebar list for a later two-column design, less what now sits in
+      // the main list, or a two-column page would show it twice.
+      m.layout.aside = twoCol ? aside : m.layout.aside.filter((k) => !main.includes(k) && !footer.includes(k))
       m.layout.footer = footer
     })
   const toggleHidden = (key: string) => {
@@ -94,6 +102,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   // takes the key out of every other place in the same step.
   const moveColumn = (key: string) =>
     updateMetadata((m) => {
+      adoptShownSections(m.layout, doc.content)
       const to = nextSectionPlace(m.layout, key, m.layout.columns === 2)
       moveSectionTo(m.layout, key, to, m.layout[to].length)
     })
@@ -154,7 +163,11 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
   // Buttons as well as drag - the grip is unusable on a phone, where the
   // browser claims the gesture for scrolling, and this panel is the ONLY
   // place a phone can reorder sections at all.
-  const shiftSection = (key: string, dir: -1 | 1) => updateMetadata((m) => moveSection(m.layout, key, dir))
+  const shiftSection = (key: string, dir: -1 | 1) =>
+    updateMetadata((m) => {
+      adoptShownSections(m.layout, doc.content)
+      moveSection(m.layout, key, dir)
+    })
 
   const renderCard = (key: string, handle: { attributes: Record<string, unknown>; listeners: Record<string, unknown> | undefined }) => (
     <SectionCard
@@ -173,16 +186,17 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
     />
   )
 
+  const shown = new Set([...cols.main, ...cols.aside, ...cols.footer])
   const available = BODY_SECTION_KEYS.filter(
-    (k) => !layout.main.includes(k) && !layout.aside.includes(k) && !layout.footer.includes(k)
+    (k) => !shown.has(k) && !layout.main.includes(k) && !layout.aside.includes(k) && !layout.footer.includes(k)
   )
 
   return (
     <div className="space-y-4">
       <SectionBoard
-        main={layout.main}
-        aside={layout.aside}
-        footer={layout.footer}
+        main={cols.main}
+        aside={cols.aside}
+        footer={cols.footer}
         twoCol={twoCol}
         onChange={setColumns}
         renderCard={renderCard}

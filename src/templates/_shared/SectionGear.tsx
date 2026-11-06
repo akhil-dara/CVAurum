@@ -18,7 +18,7 @@ import { useEditorStore } from '@/store/useEditorStore'
 import { usePopoverA11y } from './popoverA11y'
 import type { ResumeDocument } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
-import { sectionLabel, moveSection, moveSectionTo } from '@/lib/sections'
+import { sectionLabel, moveSection, moveSectionTo, panelColumns, adoptShownSections } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 import { HAS_DATES, HAS_TIMELINE, HAS_ENTRY_ORG, HAS_KEYWORDS, HAS_LINK, HAS_LOCATION, STYLE_FIELDS, headingAlignLocked, keepEntriesOn, paintStyle, sectionBase } from './sectionClasses'
 import { SECTION_NUMBER_STYLES } from './sectionNumeral'
@@ -684,6 +684,7 @@ export function SectionGear({
 
   const move = () =>
     editMeta((m) => {
+      adoptShownSections(m.layout, doc.content)
       const to: 'main' | 'aside' = m.layout.main.includes(sectionKey) ? 'aside' : 'main'
       moveSectionTo(m.layout, sectionKey, to, m.layout[to].length)
     })
@@ -691,26 +692,32 @@ export function SectionGear({
   // move, through the same helper, so the key leaves every other place.
   const moveFooter = () =>
     editMeta((m) => {
+      adoptShownSections(m.layout, doc.content)
       const to: 'main' | 'footer' = m.layout.footer.includes(sectionKey) ? 'main' : 'footer'
       moveSectionTo(m.layout, sectionKey, to, m.layout[to].length)
     })
 
   // Inline reordering (2026-08-17 inline-reorder spec): arrows move one step
   // within this section's column via the same shared helper every control
-  // surface uses. Position for the disabled state comes straight from the
-  // layout arrays; a content-appended key missing from both sits at the
-  // visual end of main, so only its up-arrow is live.
-  const colArr = layout.main.includes(sectionKey)
-    ? layout.main
-    : layout.aside.includes(sectionKey)
-      ? layout.aside
-      : layout.footer.includes(sectionKey)
-        ? layout.footer
+  // surface uses. Position for the disabled state comes from the columns the
+  // page shows (panelColumns), which include a section the layout never
+  // named; the move adopts that order first, so the step is the one seen.
+  const shownCols = panelColumns(doc)
+  const colArr = shownCols.main.includes(sectionKey)
+    ? shownCols.main
+    : shownCols.aside.includes(sectionKey)
+      ? shownCols.aside
+      : shownCols.footer.includes(sectionKey)
+        ? shownCols.footer
         : null
   const colIdx = colArr ? colArr.indexOf(sectionKey) : -1
   const atTop = colArr ? colIdx === 0 : false
   const atBottom = colArr ? colIdx === colArr.length - 1 : true
-  const moveStep = (dir: -1 | 1) => editMeta((m) => moveSection(m.layout, sectionKey, dir))
+  const moveStep = (dir: -1 | 1) =>
+    editMeta((m) => {
+      adoptShownSections(m.layout, doc.content)
+      moveSection(m.layout, sectionKey, dir)
+    })
 
   // Style painter: copy this section's visual style, then paint it onto another
   // section (or all of them). Only the visual-style fields travel; each
@@ -730,7 +737,8 @@ export function SectionGear({
   const pasteStyle = () => editMeta((m) => applyStyleTo(m, sectionKey))
   const paintAll = () =>
     editMeta((m) => {
-      for (const key of [...m.layout.main, ...m.layout.aside, ...m.layout.footer]) applyStyleTo(m, key)
+      const cols = panelColumns(doc)
+      for (const key of [...cols.main, ...cols.aside, ...cols.footer]) applyStyleTo(m, key)
     })
 
   const openPopover = (e: React.MouseEvent) => {

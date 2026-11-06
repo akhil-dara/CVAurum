@@ -3,6 +3,7 @@ import { createDocument } from '@/data/defaults'
 import type { ResumeDocument } from '@/types/document'
 import type { FitResult } from './fitReadout'
 import { explainShort, suggestFitOn, suggestFits } from './fitSuggest'
+import { BODY_SECTION_KEYS } from './sections'
 
 const docWith = (main: string[], target: 1 | 2 | 3 = 1) => {
   const d = createDocument({ sample: true })
@@ -13,6 +14,11 @@ const docWith = (main: string[], target: 1 | 2 | 3 = 1) => {
   d.metadata.page.autoFit = true
   d.metadata.page.fit.target = target
   d.metadata.typography.fontSize = 10
+  // Only the listed sections: the page also shows any section that holds
+  // content (resolveOrder), and the suggestions now work on what it shows.
+  for (const k of BODY_SECTION_KEYS) if (!main.includes(k)) (d.content as unknown as Record<string, unknown[]>)[k] = []
+  if (!main.includes('summary')) d.content.basics.summary = ''
+  d.content.custom = []
   return d
 }
 const res = (pages: number, lastPageFill: number, type = 1, space = 1, lastPageSections: string[] = []): FitResult => ({

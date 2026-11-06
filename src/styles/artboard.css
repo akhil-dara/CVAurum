@@ -3372,6 +3372,22 @@
   --rm-edit-danger: #dc2626;
 }
 
+/* A level meter on the editing canvas is its own control (sections.tsx
+   Proficiency): pointer and focus marks only - an outline, so the meter keeps
+   the box the PDF prints. */
+.mode-preview .rm-level-edit {
+  cursor: pointer;
+  border-radius: 3px;
+}
+.mode-preview .rm-level-edit:hover {
+  outline: 1px solid var(--rm-edit-hint);
+  outline-offset: 2px;
+}
+.mode-preview .rm-level-edit:focus-visible {
+  outline: 1.5px solid var(--rm-edit-focus);
+  outline-offset: 2px;
+}
+
 /* Bullet tools: move up, move down, remove - one cluster past the end of
    the line (editable preview only). */
 .mode-preview .rm-bullet-row {

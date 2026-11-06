@@ -1,5 +1,5 @@
 /** Small shared building blocks used by section renderers across all templates. */
-import { Fragment, memo, type ReactNode } from 'react'
+import { Fragment, memo, type HTMLAttributes, type ReactNode } from 'react'
 import {
   Mail,
   Phone,
@@ -44,10 +44,17 @@ export const RichText = memo(function RichText({
   return <div className={`rm-rich ${className ?? ''}`} dangerouslySetInnerHTML={{ __html: noBreakCompoundsHtml(sanitizeHtml(html)) }} />
 })
 
+/** What a meter carries on the editing canvas to be its own control
+ *  (sections.tsx Proficiency): a slider's role and handlers on the meter's
+ *  root, so the editable meter is the same box, in the same place, as the
+ *  printed one. */
+type MeterAttrs = HTMLAttributes<HTMLSpanElement>
+const meterClass = (base: string, a?: MeterAttrs) => (a?.className ? `${base} ${a.className}` : base)
+
 /** 0–max filled dots (proficiency). */
-export function Dots({ value = 0, max = 5 }: { value?: number; max?: number }) {
+export function Dots({ value = 0, max = 5, attrs }: { value?: number; max?: number; attrs?: MeterAttrs }) {
   return (
-    <span className="rm-dots" aria-hidden>
+    <span aria-hidden {...attrs} className={meterClass('rm-dots', attrs)}>
       {Array.from({ length: max }).map((_, i) => (
         <span key={i} className={`rm-dot ${i < value ? 'on' : ''}`} />
       ))}
@@ -68,9 +75,9 @@ export const STAR_PATH = 'M12 2.5l2.95 6.3 6.9.75-5.1 4.7 1.4 6.85L12 17.6l-6.15
  * read from the element's colour, so the page and the PDF now draw the
  * same shape.
  */
-export function Stars({ value = 0, max = 5 }: { value?: number; max?: number }) {
+export function Stars({ value = 0, max = 5, attrs }: { value?: number; max?: number; attrs?: MeterAttrs }) {
   return (
-    <span className="rm-stars" aria-hidden>
+    <span aria-hidden {...attrs} className={meterClass('rm-stars', attrs)}>
       {Array.from({ length: max }).map((_, i) => (
         <span key={i} className={`rm-star ${i < value ? 'on' : ''}`}>
           <svg viewBox="0 0 24 24" focusable="false">
@@ -83,10 +90,10 @@ export function Stars({ value = 0, max = 5 }: { value?: number; max?: number }) 
 }
 
 /** Horizontal proficiency bar. */
-export function LevelBar({ value = 0, max = 5 }: { value?: number; max?: number }) {
+export function LevelBar({ value = 0, max = 5, attrs }: { value?: number; max?: number; attrs?: MeterAttrs }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100))
   return (
-    <span className="rm-level-track" aria-hidden>
+    <span aria-hidden {...attrs} className={meterClass('rm-level-track', attrs)}>
       <span className="rm-level-fill" style={{ width: `${pct}%` }} />
     </span>
   )

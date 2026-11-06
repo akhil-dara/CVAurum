@@ -271,12 +271,65 @@ function singleDate(
 
 type ProfStyle = 'dots' | 'bars' | 'stars' | 'text' | 'none'
 
-/** Render a 0–5 rating as the chosen meter (only for meter styles). */
-function Proficiency({ rating, style }: { rating?: number; style: ProfStyle }) {
+/**
+ * Render a 0–5 rating as the chosen meter (only for meter styles).
+ *
+ * On the editing canvas (`onRate`) the meter is also its own control: click a
+ * dot, star or point on the bar to set the level, or use the arrow keys. A
+ * language or skill group drawn with a meter showed only the picture, and
+ * nothing on the page changed it (issue #12). The slider's attributes go on
+ * the meter's own root, so it keeps the box and place the PDF prints.
+ */
+function Proficiency({
+  rating,
+  style,
+  onRate,
+  label,
+}: {
+  rating?: number
+  style: ProfStyle
+  onRate?: (n: number) => void
+  label?: string
+}) {
   if (rating == null) return null
-  if (style === 'stars') return <Stars value={rating} />
-  if (style === 'bars') return <LevelBar value={rating} />
-  return <Dots value={rating} />
+  const max = 5
+  const attrs = onRate
+    ? {
+        role: 'slider',
+        tabIndex: 0,
+        'aria-hidden': false,
+        'aria-label': `${label || 'Level'}: level`,
+        'aria-valuemin': 0,
+        'aria-valuemax': max,
+        'aria-valuenow': rating,
+        'aria-valuetext': `${rating} of ${max}`,
+        title: `Level ${rating} of ${max}. Click to change.`,
+        className: 'rm-level-edit',
+        contentEditable: false,
+        onMouseDown: (e: React.MouseEvent) => e.preventDefault(),
+        onClick: (e: React.MouseEvent<HTMLSpanElement>) => {
+          const r = e.currentTarget.getBoundingClientRect()
+          if (r.width <= 0) return
+          const n = Math.min(max, Math.max(1, Math.ceil(((e.clientX - r.left) / r.width) * max)))
+          // Clicking the only filled unit empties the meter.
+          onRate(n === rating && n === 1 ? 0 : n)
+        },
+        onKeyDown: (e: React.KeyboardEvent) => {
+          const step: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }
+          let next: number | null = null
+          if (e.key in step) next = rating + step[e.key]
+          else if (e.key === 'Home') next = 0
+          else if (e.key === 'End') next = max
+          else if (/^[0-5]$/.test(e.key)) next = Number(e.key)
+          if (next === null) return
+          e.preventDefault()
+          onRate(Math.min(max, Math.max(0, next)))
+        },
+      }
+    : undefined
+  if (style === 'stars') return <Stars value={rating} attrs={attrs} />
+  if (style === 'bars') return <LevelBar value={rating} attrs={attrs} />
+  return <Dots value={rating} attrs={attrs} />
 }
 
 /** A 0-5 level as the whole number a ring shows in its centre. */
@@ -2218,7 +2271,19 @@ function Skills({
                     </Fragment>
                   ))}
                 </span>
-                <Proficiency rating={s.rating} style={prof} />
+                <Proficiency
+                  rating={s.rating}
+                  style={prof}
+                  label={s.name}
+                  onRate={
+                    edit
+                      ? (n) =>
+                          edit((c) => {
+                            c.skills[i].rating = n
+                          })
+                      : undefined
+                  }
+                />
               </div>
               <ItemMove edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
               <ItemDelete edit={edit} sectionKey="skills" id={s.id} label={ADD_LABEL.skills} />
@@ -2250,7 +2315,19 @@ function Skills({
             {showMeter ? (
               <div className="rm-level">
                 {nameEl}
-                <Proficiency rating={s.rating} style={prof} />
+                <Proficiency
+                  rating={s.rating}
+                  style={prof}
+                  label={s.name}
+                  onRate={
+                    edit
+                      ? (n) =>
+                          edit((c) => {
+                            c.skills[i].rating = n
+                          })
+                      : undefined
+                  }
+                />
               </div>
             ) : (
               nameEl
@@ -2419,7 +2496,19 @@ function Languages({
                 ) : (
                   <span className="rm-mini-title">{l.language}</span>
                 )}
-                <Proficiency rating={l.rating} style={prof} />
+                <Proficiency
+                  rating={l.rating}
+                  style={prof}
+                  label={l.language}
+                  onRate={
+                    edit
+                      ? (n) =>
+                          edit((c) => {
+                            c.languages[i].rating = n
+                          })
+                      : undefined
+                  }
+                />
               </div>
             ) : (
               <div className="rm-item-head">

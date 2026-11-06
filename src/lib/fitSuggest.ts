@@ -1,7 +1,7 @@
 import type { ResumeDocument } from '@/types/document'
 import type { FitResult } from './fitReadout'
 import { LEGIBLE_BODY_PT, effectiveFloorPt, fitSizesPt } from './fitReadout'
-import { moveSection, sectionHasContent, sectionLabel } from './sections'
+import { adoptShownSections, moveSection, panelColumns, sectionHasContent, sectionLabel } from './sections'
 
 /** A candidate document measured the way the preview measures the real one:
  *  the same search, the same paginator, the same rules. */
@@ -45,11 +45,13 @@ const pt = (x: number) => `${Math.round(x * 10) / 10}pt`
 const outcome = (r: FitResult) =>
   r.pages === 1 ? `1 page, ${pct(r.lastPageFill)} full` : `${pages(r.pages)}, page ${r.pages} is ${pct(r.lastPageFill)} full`
 
+/** The column a section sits in as the page shows it (panelColumns), so a
+ *  section the layout never named can still be offered a move. */
 function columnOf(doc: ResumeDocument, key: string): string[] | null {
-  const l = doc.metadata.layout
+  const l = panelColumns(doc)
   if (l.main.includes(key)) return l.main
   if (l.aside.includes(key)) return l.aside
-  if (l.footer?.includes(key)) return l.footer
+  if (l.footer.includes(key)) return l.footer
   return null
 }
 
@@ -142,6 +144,7 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
       if (at <= 0) continue
       const above = col[at - 1]
       const c = structuredClone(doc)
+      adoptShownSections(c.metadata.layout, c.content)
       moveSection(c.metadata.layout, key, -1)
       const r = await trial(c)
       const better = r.pages < current.pages || (r.pages === current.pages && r.lastPageFill >= current.lastPageFill + GAIN)
@@ -150,7 +153,10 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
         s: {
           id: `move-${key}`,
           label: `Move ${sectionLabel(key, doc)} above ${sectionLabel(above, doc)}: ${outcome(r)}`,
-          mutate: (d) => moveSection(d.metadata.layout, key, -1),
+          mutate: (d) => {
+            adoptShownSections(d.metadata.layout, d.content)
+            moveSection(d.metadata.layout, key, -1)
+          },
         },
         pages: r.pages,
         fill: r.lastPageFill,

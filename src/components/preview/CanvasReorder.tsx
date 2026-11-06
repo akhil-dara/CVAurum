@@ -37,7 +37,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { GripVertical, ArrowUp, ArrowDown, CopyPlus, ScissorsLineDashed } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
-import { moveSectionTo, moveEntry, sectionLabel, duplicateItem } from '@/lib/sections'
+import { moveSectionTo, moveEntry, sectionLabel, duplicateItem, adoptShownSections } from '@/lib/sections'
 import { hasPagePin, togglePagePin } from '@/lib/pageBreakPins'
 import { cn } from '@/lib/utils'
 
@@ -224,6 +224,7 @@ export function CanvasReorder({ rootRef }: { rootRef: RefObject<HTMLDivElement |
           const store = useResumeStore.getState()
           if (d.kind === 'section') {
             store.updateMetadata((m) => {
+              if (store.doc) adoptShownSections(m.layout, store.doc.content)
               const arr = m.layout[s.col].filter((k) => k !== d.key)
               const idx = s.nextKey ? arr.indexOf(s.nextKey) : arr.length
               moveSectionTo(m.layout, d.key, s.col, idx >= 0 ? idx : arr.length)
