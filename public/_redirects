@@ -12,6 +12,9 @@
 # take a public slug of their own; the old address follows them. Listed
 # before the rules with placeholders, which the host would read first.
 /templates/deedy     /templates/duet     301
+# A link elsewhere carries a stray semicolon after the skill file; the host
+# turns it into %3B and answers 404, which search reported as a soft 404.
+/skills/cvaurum/SKILL.md%3B    /skills/cvaurum/SKILL.md    301
 /templates/          /templates          301
 /examples/           /examples           301
 /prompts/            /prompts            301

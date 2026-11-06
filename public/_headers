@@ -55,8 +55,12 @@
 # for them. Plain text is what every reader accepts; the words are the same.
 # The charset is stated because the files carry accented letters (résumé) and
 # a reader left to guess reads them as mojibake.
+# noindex: each twin repeats a page that is indexed in its own right, so in
+# search results it competed with that page (a template's .md showed up beside
+# the template). Readers that fetch the files directly are not affected.
 /*.md
   Content-Type: text/plain; charset=utf-8
+  X-Robots-Tag: noindex
 /llms.txt
   Content-Type: text/plain; charset=utf-8
 /llms-full.txt
