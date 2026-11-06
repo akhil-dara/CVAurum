@@ -550,6 +550,14 @@ describe('the document shape an assistant is handed', () => {
     )
   })
 
+  it('names the extra entry logos among CVAurum’s additions, with their limit and local-image rule', () => {
+    const md = documentShapeMarkdown()
+    const additions = md.slice(md.indexOf('CVAurum’s additions'.replace('’', "'")))
+    expect(additions).toContain('`logoExtras`')
+    expect(md).toMatch(/`logoExtras`[^.]*two more/)
+    expect(md).toMatch(/any `logo` or `logoExtras` entry must be a `data:image\//)
+  })
+
   it('is published where the prompts point, inside SKILL.md', () => {
     const skill = skillMd()
     expect(SCHEMA_DOC).toBe('https://cvaurum.com/skills/cvaurum/SKILL.md')
