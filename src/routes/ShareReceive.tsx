@@ -4,6 +4,7 @@
  * for the passphrase and decrypt on-device; the result is saved as a new local
  * résumé. Nothing is ever uploaded.
  */
+import { sanitizeEntryLogos, type LogoEntry } from '@/lib/entryLogos'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, ShieldCheck, AlertTriangle, Lock } from 'lucide-react'
@@ -33,7 +34,7 @@ export function ShareReceive() {
     doc.updatedAt = Date.now()
     doc.content.basics.image = await sanitizeImportedImage(doc.content.basics.image)
     for (const list of [doc.content.work, doc.content.education, doc.content.volunteer]) {
-      for (const it of list as { logo?: string }[]) if (it.logo) it.logo = await sanitizeImportedImage(it.logo)
+      for (const it of list as LogoEntry[]) await sanitizeEntryLogos(it, sanitizeImportedImage)
     }
     await saveDoc(doc)
     await useAppStore.getState().refreshLibrary()

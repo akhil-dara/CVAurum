@@ -16,6 +16,7 @@
  * well above the OWASP-2023 floor) over a random 16-byte salt, fresh 12-byte IV.
  * No network, no dependency — WebCrypto + the native Compression Streams API.
  */
+import type { LogoEntry } from './entryLogos'
 import type { ResumeDocument } from '@/types/document'
 
 const PBKDF2_ITERS = 600_000
@@ -54,14 +55,17 @@ export function stripImages(doc: ResumeDocument): ResumeDocument {
   const d: ResumeDocument = JSON.parse(JSON.stringify(doc))
   if (d.content?.basics) d.content.basics.image = ''
   for (const list of [d.content?.work, d.content?.education, d.content?.volunteer]) {
-    for (const it of (list ?? []) as { logo?: string }[]) if (it.logo) it.logo = ''
+    for (const it of (list ?? []) as LogoEntry[]) {
+      if (it.logo) it.logo = ''
+      delete it.logoExtras
+    }
   }
   return d
 }
 export function hasImages(doc: ResumeDocument): boolean {
   if (doc.content?.basics?.image) return true
   for (const list of [doc.content?.work, doc.content?.education, doc.content?.volunteer]) {
-    for (const it of (list ?? []) as { logo?: string }[]) if (it.logo) return true
+    for (const it of (list ?? []) as LogoEntry[]) if (it.logo || it.logoExtras?.length) return true
   }
   return false
 }

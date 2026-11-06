@@ -4,6 +4,7 @@
  * another browser/machine — instead of exporting resumes one by one. Restore is
  * defensive: invalid entries are skipped, never the whole import.
  */
+import { dropNonDataLogos, type LogoEntry } from './entryLogos'
 import { uid, downloadBlob } from '@/lib/utils'
 import { RETIRED_AVATARS } from './storage'
 import { ResumeDocumentSchema, type ResumeDocument } from '@/types/document'
@@ -111,9 +112,7 @@ export async function importFullBackup(file: File, mode: 'merge' | 'replace' = '
     // external image requests on render — this path never re-encodes images.
     if (d.content.basics.image && RETIRED_AVATARS.includes(d.content.basics.image)) d.content.basics.image = ''
     for (const list of [d.content.work, d.content.education, d.content.volunteer]) {
-      for (const it of list as { logo?: string }[]) {
-        if (it.logo && !/^data:image\//i.test(it.logo)) it.logo = ''
-      }
+      for (const it of list as LogoEntry[]) dropNonDataLogos(it)
     }
     if (d.content.basics.image && !/^data:image\//i.test(d.content.basics.image)) {
       d.content.basics.image = ''

@@ -4,6 +4,7 @@
  * round-trip with the wider JSON Resume ecosystem. Import is defensive: a single
  * bad field or item never throws away the whole resume.
  */
+import { sanitizeEntryLogos, type LogoEntry } from './entryLogos'
 import { withProfileAddresses } from '@/lib/profileAddress'
 import { z } from 'zod'
 import { uid, downloadBlob, resumeFilename } from '@/lib/utils'
@@ -338,9 +339,7 @@ export async function importDocumentFromFile(file: File): Promise<ResumeDocument
   doc.content.basics.image = await sanitizeImportedImage(doc.content.basics.image)
   // Entry logos are attacker-controllable on import too — same funnel.
   for (const list of [doc.content.work, doc.content.education, doc.content.volunteer]) {
-    for (const it of list as { logo?: string }[]) {
-      if (it.logo) it.logo = await sanitizeImportedImage(it.logo)
-    }
+    for (const it of list as LogoEntry[]) await sanitizeEntryLogos(it, sanitizeImportedImage)
   }
   return doc
 }

@@ -62,3 +62,27 @@ export function moveEntryLogo(it: LogoEntry, index: number, dir: -1 | 1): void {
   ;[logos[index], logos[to]] = [logos[to], logos[index]]
   setEntryLogos(it, logos)
 }
+
+/** Every logo an imported file or a received link brings, through `clean`
+ *  (io.ts sanitizeImportedImage: local data URLs only, re-encoded), then
+ *  stored with the usual cap. The extras are attacker-controllable exactly
+ *  as the first logo is. */
+export async function sanitizeEntryLogos(it: LogoEntry, clean: (s?: string) => Promise<string>): Promise<void> {
+  const kept: string[] = []
+  for (const s of [it.logo, ...(it.logoExtras ?? [])]) {
+    if (!s) continue
+    const c = await clean(s)
+    if (c) kept.push(c)
+  }
+  setEntryLogos(it, kept)
+}
+
+/** A restored backup is never re-encoded, so it keeps data URLs only: a
+ *  remote one would fire a request on render, and a blob URL from another
+ *  session points at nothing. */
+export function dropNonDataLogos(it: LogoEntry): void {
+  setEntryLogos(
+    it,
+    [it.logo, ...(it.logoExtras ?? [])].filter((s): s is string => !!s && /^data:image\//i.test(s))
+  )
+}
