@@ -33,6 +33,7 @@ import { fitLineHeight } from '@/lib/fitOnePage'
 const FIT_AS_SET: FitVector = { type: 1, space: 1 }
 import { applyKeywordFit, fitHeadingWords, refitWhenFontsReady } from '@/lib/pdf/keywordFit'
 import { settleLooseLines } from '@/lib/pdf/looseLines'
+import { entryLogos } from '@/lib/entryLogos'
 import { SectionBody } from './sections'
 import { CONTACT_ICON_CHOICES, ContactIcons, contactIcon, prettyUrl, cleanEmail, Deco } from './atoms'
 import { Ed, EdMeta, type EditFn, type MetaEditFn } from './Editable'
@@ -1625,12 +1626,17 @@ function Section({
   // element, so overrides scope themselves without any extra CSS.
   const BADGE_SIZE: Record<string, string> = { s: '1.3em', m: '1.65em', l: '2.3em' }
   const BADGE_RADIUS: Record<string, string> = { rounded: '0.28em', circle: '9999px', square: '0px' }
+  // Several logos on one entry (issue #8) widen the section's mark gutter to
+  // the entry with the most, so every marked entry's text keeps one left edge.
+  // Unset - today's gutter exactly - unless some entry has more than one.
+  const markCount = sectionMarkCount(doc, sectionKey)
   const secStyle =
-    ss?.bulletStyle || ss?.badgeSize || ss?.badgeShape
+    ss?.bulletStyle || ss?.badgeSize || ss?.badgeShape || markCount > 1
       ? ({
           ...(ss?.bulletStyle ? { '--rm-bullet-type': BULLET_TYPE[ss.bulletStyle] } : {}),
           ...(ss?.badgeSize ? { '--rm-badge-size': BADGE_SIZE[ss.badgeSize] } : {}),
           ...(ss?.badgeShape ? { '--rm-badge-radius': BADGE_RADIUS[ss.badgeShape] } : {}),
+          ...(markCount > 1 ? { '--rm-mark-count': markCount } : {}),
         } as CSSProperties)
       : undefined
   // A running number opens the heading of every section in the body, counted
@@ -1794,6 +1800,14 @@ export function SectionPreview({
       <Section sectionKey={sectionKey} doc={doc} config={config} noMeta />
     </div>
   )
+}
+
+/** The most logos any one entry in this section shows (1 when none has more). */
+function sectionMarkCount(doc: ResumeDocument, key: string): number {
+  if (key !== 'work' && key !== 'education') return 1
+  let most = 1
+  for (const it of doc.content[key]) most = Math.max(most, entryLogos(it).length)
+  return most
 }
 
 export function Artboard({

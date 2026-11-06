@@ -5,7 +5,16 @@
  * (<Ed>) and write straight back to the store; otherwise they render plain so
  * print/thumbnail stay clean.
  */
-import { isLocalImg } from '@/lib/entryLogos'
+import {
+  MAX_ENTRY_LOGOS,
+  addEntryLogo,
+  entryLogos,
+  isLocalImg,
+  moveEntryLogo,
+  removeEntryLogo,
+  replaceEntryLogo,
+  type LogoEntry,
+} from '@/lib/entryLogos'
 import { runItemDelete } from './itemActions'
 import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -649,6 +658,7 @@ function CanvasLogo({
   size,
   shape,
   setBadge,
+  more,
 }: {
   logo?: string
   badge?: string
@@ -656,12 +666,26 @@ function CanvasLogo({
   size?: string
   shape?: string
   setBadge?: (key: 'badgeSize' | 'badgeShape', v: string) => void
+  /** Where an entry can carry several logos (issue #8): the actions that
+   *  add a further logo and move this one. Absent on entries that hold one. */
+  more?: {
+    /** "For a joint or dual degree" / "For a joint venture or dual role" */
+    addHint?: string
+    onAdd?: (src: string) => void
+    onMove?: (dir: -1 | 1) => void
+    canLeft?: boolean
+    canRight?: boolean
+    /** "logo 2 of 3", for the button's name when there are several */
+    position?: string
+  }
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<{ top: number; left: number } | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   usePopoverA11y(menu != null, () => setMenu(null), menuRef)
+  // Which way the next picked file goes: replacing this logo, or added beside it.
+  const addingRef = useRef(false)
 
   const pick = (file?: File) => {
     // Deliberately permissive about the TYPE. An .ai file is reported as
@@ -678,7 +702,9 @@ function CanvasLogo({
     setCropSrc(null)
     try {
       const { downscaleDataUrl } = await import('@/lib/image')
-      onChange(await downscaleDataUrl(dataUrl, 128))
+      const out = await downscaleDataUrl(dataUrl, 128)
+      if (addingRef.current && more?.onAdd) more.onAdd(out)
+      else onChange(out)
     } catch {
       /* unreadable image — keep whatever was there */
     }
@@ -710,7 +736,7 @@ function CanvasLogo({
         onMouseDown={(e) => e.preventDefault()}
         onClick={onClick}
         title={logo ? 'Change or remove this logo' : 'Add a small logo (company / institution mark)'}
-        aria-label={logo ? 'Change or remove logo' : 'Add logo'}
+        aria-label={logo ? `Change or remove logo${more?.position ? ` (${more.position})` : ''}` : 'Add logo'}
       >
         {logo ? (
           <img className="rm-item-logo" src={logo} alt="" aria-hidden />
@@ -753,11 +779,53 @@ function CanvasLogo({
                 className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                 onClick={() => {
                   setMenu(null)
+                  addingRef.current = false
                   inputRef.current?.click()
                 }}
               >
                 {logo ? 'Replace logo' : 'Add logo'}
               </button>
+              {logo && more?.onAdd ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                  onClick={() => {
+                    setMenu(null)
+                    addingRef.current = true
+                    inputRef.current?.click()
+                  }}
+                >
+                  Add another logo
+                  {more.addHint ? <span className="text-[11px] text-muted-foreground">{more.addHint}</span> : null}
+                </button>
+              ) : null}
+              {logo && more?.onMove && more.canLeft ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                  onClick={() => {
+                    setMenu(null)
+                    more.onMove?.(-1)
+                  }}
+                >
+                  Move left
+                </button>
+              ) : null}
+              {logo && more?.onMove && more.canRight ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                  onClick={() => {
+                    setMenu(null)
+                    more.onMove?.(1)
+                  }}
+                >
+                  Move right
+                </button>
+              ) : null}
               {logo ? (
                 <button
                   type="button"
@@ -835,6 +903,9 @@ function ItemHead({
   logo,
   edit,
   setLogo,
+  logoExtras,
+  setLogos,
+  logoKind,
   href,
   setHref,
   linkLabel,
@@ -851,8 +922,15 @@ function ItemHead({
   rail?: RailLabel | null
   badge?: string
   logo?: string
+  /** The entry's second and third logos (issue #8; lib/entryLogos.ts). */
+  logoExtras?: string[]
   edit?: EditFn
   setLogo?: Apply
+  /** Present where the entry can carry several logos: applies a change to
+   *  the entry's logos through the lib/entryLogos.ts helpers. */
+  setLogos?: (c: ResumeDocument['content'], change: (it: LogoEntry) => void) => void
+  /** Which hint "Add another logo" carries. */
+  logoKind?: 'education' | 'work'
   /** The section's own settings - the mark's size and shape, and the setter
    *  the canvas menu writes them back through. */
   opts?: SecOpts
@@ -867,6 +945,30 @@ function ItemHead({
   // A real uploaded logo wins over the letter badge. Locally-encoded only —
   // remote URLs would break the zero-external-requests promise.
   const logoOk = logo && /^(data:image\/|blob:)/i.test(logo) ? logo : undefined
+  // Several logos (issue #8) draw as one row in the mark gutter. One logo, or
+  // none, keeps exactly the markup it always had.
+  const logos = entryLogos({ logo, logoExtras })
+  const addHint =
+    logoKind === 'education' ? 'For a joint or dual degree' : logoKind === 'work' ? 'For a joint venture or dual role' : undefined
+  const markFor = (src: string, i: number) => (
+    <CanvasLogo
+      key={i}
+      logo={src}
+      badge={badge}
+      onChange={(v) => edit!((c) => setLogos!(c, (it) => (v ? replaceEntryLogo(it, i, v) : removeEntryLogo(it, i))))}
+      size={opts?.badgeSize}
+      shape={opts?.badgeShape}
+      setBadge={opts?.setBadge}
+      more={{
+        addHint,
+        onAdd: logos.length < MAX_ENTRY_LOGOS ? (v) => edit!((c) => setLogos!(c, (it) => addEntryLogo(it, v))) : undefined,
+        onMove: logos.length > 1 ? (dir) => edit!((c) => setLogos!(c, (it) => moveEntryLogo(it, i, dir))) : undefined,
+        canLeft: i > 0,
+        canRight: i < logos.length - 1,
+        position: logos.length > 1 ? `logo ${i + 1} of ${logos.length}` : undefined,
+      }}
+    />
+  )
   const column = metaColumnOf(opts)
   // The margin takes the entry's own date - and the location, where the
   // section put it beside the date - out of the head row. It is the same
@@ -892,7 +994,15 @@ function ItemHead({
   return (
     <>
       <div className="rm-item-head">
-        {edit && setLogo ? (
+        {logos.length > 1 ? (
+          <span className="rm-item-logos" data-logos={logos.length}>
+            {edit && setLogos
+              ? logos.map(markFor)
+              : logos.map((src, i) => <img key={i} className="rm-item-logo" src={src} alt="" aria-hidden />)}
+          </span>
+        ) : edit && setLogos && logos.length === 1 ? (
+          markFor(logos[0], 0)
+        ) : edit && setLogo ? (
           <CanvasLogo
             logo={logoOk}
             badge={badge}
@@ -1483,7 +1593,7 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
         )
         return (
           <article
-            className={`rm-item rm-keep${markClass(w.logo, entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`}
+            className={`rm-item rm-keep${markClass(entryLogos(w)[0], entryBadgeOn(w, opts) ? badgeLetter(w.name || w.position) : undefined)}`}
             key={w.id}
             data-item-id={w.id}
           >
@@ -1497,10 +1607,13 @@ function Work({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; opts?: 
               linkLabel={w.position || w.name}
               rail={railLabel('work', w, today)}
               logo={w.logo}
+              logoExtras={w.logoExtras}
+              logoKind="work"
               edit={edit}
               setLogo={(c, v) => {
                 c.work[i].logo = v
               }}
+              setLogos={(c, change) => change(c.work[i])}
               title={orgFirst ? company() : position()}
               loc={withDate ? place : undefined}
               date={dateInSub(opts) ? undefined : when}
@@ -1680,7 +1793,7 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
         )
         return (
           <article
-            className={`rm-item rm-keep${markClass(e.logo, entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`}
+            className={`rm-item rm-keep${markClass(entryLogos(e)[0], entryBadgeOn(e, opts) ? badgeLetter(e.institution || e.area) : undefined)}`}
             key={e.id}
             data-item-id={e.id}
           >
@@ -1694,10 +1807,13 @@ function Education({ doc, edit, opts }: { doc: ResumeDocument; edit?: EditFn; op
               linkLabel={e.institution || e.area}
               rail={railLabel('education', e, today)}
               logo={e.logo}
+              logoExtras={e.logoExtras}
+              logoKind="education"
               edit={edit}
               setLogo={(c, v) => {
                 c.education[i].logo = v
               }}
+              setLogos={(c, change) => change(c.education[i])}
               title={orgFirst ? (headIsDegree ? degree : school()) : edit ? degreeFields : title}
               loc={withDate ? place : undefined}
               date={dateInSub(opts) ? undefined : when}

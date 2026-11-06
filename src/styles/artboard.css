@@ -4095,9 +4095,26 @@
    aligned left edge. Without this, only the title was pushed right, which
    read as a big ragged gap. --rm-mark-left lets padded layouts (timeline,
    cards) shift the gutter inward instead of fighting over padding. */
+/* Registered as a length so it is resolved ONCE, on the entry, in the
+   entry's own em: unregistered, every element that read it re-resolved its
+   em in its own font size, and a title row and the company line under it
+   sat a few pixels apart - 1px with one logo, 4px with three (measured on
+   the year-rail layout, 2026-11-07). */
+@property --rm-mark-gutter {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+/* Several logos on one entry (issue #8) widen the gutter for the whole
+   section: --rm-mark-count is the most logos any entry in it shows, set on
+   the section by Artboard only when that is more than one. Unset, every
+   width below is exactly today's. */
 .rm-item.rm-has-mark,
 .rm-mini.rm-has-mark {
-  padding-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
+  --rm-mark-gutter: calc(
+    var(--rm-mark-count, 1) * var(--rm-badge-size, 1.65em) + (var(--rm-mark-count, 1) - 1) * 0.25em
+  );
+  padding-left: calc(var(--rm-mark-left, 0em) + var(--rm-mark-gutter) + 0.5em);
 }
 /* The mark anchors to the HEAD (its positioned ancestor) and hangs one full
    gutter-width to its left — which is exactly the gutter start no matter how
@@ -4105,11 +4122,33 @@
 .rm-item.rm-has-mark > .rm-item-head .rm-item-logo,
 .rm-item.rm-has-mark > .rm-item-head .rm-item-badge,
 .rm-item.rm-has-mark > .rm-item-head .rm-logo-btn,
+.rm-item.rm-has-mark > .rm-item-head .rm-item-logos,
 .rm-mini.rm-has-mark > .rm-item-head .rm-item-logo,
 .rm-mini.rm-has-mark > .rm-item-head .rm-logo-btn {
   position: absolute;
-  left: calc(-1 * (var(--rm-badge-size, 1.65em) + 0.5em));
+  left: calc(-1 * (var(--rm-mark-gutter, var(--rm-badge-size, 1.65em)) + 0.5em));
   top: 0.05em;
+}
+/* The row itself: marks side by side, each at the section's mark size, in
+   the order the author set. Inside it no mark is positioned on its own. */
+.rm-item-logos {
+  display: flex;
+  gap: 0.25em;
+  align-items: flex-start;
+}
+.rm-item.rm-has-mark > .rm-item-head .rm-item-logos .rm-item-logo,
+.rm-item.rm-has-mark > .rm-item-head .rm-item-logos .rm-logo-btn {
+  position: static;
+}
+/* A narrow sidebar has no room for a full row beside its titles: the row
+   is held to a third of the column and its marks shrink together, rather
+   than wrap onto the title. */
+.rm-col-aside .rm-item-logos {
+  max-width: 33%;
+}
+.rm-col-aside .rm-item-logos > * {
+  flex: 0 1 var(--rm-badge-size, 1.65em);
+  min-width: 0;
 }
 /* inside the edit-mode logo button, the mark itself stays in normal flow -
    without this the img is itself pulled to the gutter, out of its own button,
@@ -5156,7 +5195,10 @@
   .rm-section-body
   > .rm-item.rm-has-mark
   > :not(.rm-meta-cell):not(.rm-item-move):not(.rm-item-del) {
-  margin-left: calc(var(--rm-mark-left, 0em) + var(--rm-badge-size, 1.65em) + 0.5em);
+  /* The section's mark gutter, not one mark: a row of several logos
+     (issue #8) then starts at the content column's edge instead of running
+     back over the rail's numerals. One logo per entry is today's width. */
+  margin-left: calc(var(--rm-mark-left, 0em) + var(--rm-mark-gutter, var(--rm-badge-size, 1.65em)) + 0.5em);
 }
 /* The gutter's rail is the content column's left edge, and with the padding
    gone every entry starts there - which is the look the column is for. The
