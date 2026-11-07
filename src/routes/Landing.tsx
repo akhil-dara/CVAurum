@@ -7,7 +7,7 @@ import { SkipLink } from '@/components/ui/SkipLink'
 import { CreateButton, HeaderThemeToggle, PhoneResumesLink } from '@/components/site/HeaderActions'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Plus, ArrowRight, Github, Check, Minus } from 'lucide-react'
+import { FileText, Plus, ArrowRight, Github, Check, CircleHelp } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { TEMPLATE_COUNT, TEMPLATES } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
@@ -254,8 +254,8 @@ export function Landing() {
               How it compares, honestly
             </h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
-              Privacy, or open source, or design, or ATS, or offline — most tools pick one. Here's the honest
-              head-to-head.
+              Privacy, open source, design, ATS, offline: what CVAurum does on each, measured, and the question
+              worth asking of any other builder you are weighing.
             </p>
           </div>
           {/* Narrow screens: two columns of prose can't fit, and a sideways scroller hides the
@@ -275,9 +275,9 @@ export function Landing() {
                   </span>
                 </p>
                 <p className="mt-2 flex gap-2 text-sm text-muted-foreground">
-                  <Minus className="mt-0.5 h-4 w-4 shrink-0" />
+                  <CircleHelp className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
-                    <span className="font-semibold">Most builders</span> — {r.others}
+                    <span className="font-semibold">Ask of any other builder</span> — {r.others}
                   </span>
                 </p>
               </div>
@@ -291,7 +291,7 @@ export function Landing() {
                   <th className="px-4 py-3 font-bold text-primary">
                     CVAurum
                   </th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">Most builders</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Ask of any other builder</th>
                 </tr>
               </thead>
               <tbody>

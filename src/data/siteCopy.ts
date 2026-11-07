@@ -42,7 +42,10 @@ export interface SiteCopy {
 export const SITE: SiteCopy = {
   name: 'CVAurum',
   oneLiner: `CVAurum is a free, open-source (AGPL-3.0) résumé builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, ${SAMPLE_COUNT} complete example résumés, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
-  hero: 'A resume this beautiful never leaves your browser.',
+  // The h1 names what the page is: searchers type "free", "open source" and
+  // "resume builder", and the line before this had none of them (SEO audit,
+  // 2026-11-07). The old line lives on as the hero's subhead.
+  hero: 'A free, open-source resume builder that never leaves your browser.',
   steps: [
     {
       title: 'Pick a template',
@@ -62,42 +65,42 @@ export const SITE: SiteCopy = {
     {
       capability: 'Where your data lives',
       cvaurum: 'Only in your browser — no server, no account, no tracking',
-      others: 'Uploaded to a server behind a login',
+      others: 'Does it upload your résumé to its server, behind a login?',
     },
     {
       capability: 'Source code',
       cvaurum: 'Fully open source (AGPL-3.0) — read it, fork it, self-host it',
-      others: 'Closed — you take the privacy claims on faith',
+      others: 'Can you read its code, or only its privacy policy?',
     },
     {
       capability: 'Templates',
       cvaurum: `${TEMPLATE_COUNT} designer templates, restylable section by section`,
-      others: 'A few basic layouts, polish behind a paywall',
+      others: 'How many designs are free, and which sit behind a paywall?',
     },
     {
       capability: 'ATS check',
       cvaurum: 'Built-in deterministic score + job-description keyword match',
-      others: 'None, or an opaque AI score you can’t reproduce',
+      others: 'Does it show which keywords matched, and give the same score twice?',
     },
     {
       capability: 'Offline',
       cvaurum: 'All fonts self-hosted — zero external requests, truly offline',
-      others: 'Pulls fonts/assets from CDNs — still phones home',
+      others: 'Does it still work with the network switched off?',
     },
     {
       capability: 'Export formats',
       cvaurum: 'Vector PDF (PDF/A-2B archival + PDF/UA-1 accessible), Word .docx, and JSON Resume',
-      others: 'PDF only, often a flattened image',
+      others: 'Is the PDF real, selectable text, or a picture of the page?',
     },
     {
       capability: 'Accessibility',
       cvaurum: 'A tagged PDF/UA-1 file, and every design’s text meets WCAG AA contrast — checked live as you edit',
-      others: 'An untagged PDF, with contrast left to chance',
+      others: 'Is the PDF tagged for screen readers?',
     },
     {
       capability: 'Price',
       cvaurum: 'Free, forever — no tiers, no upsell',
-      others: 'Free to start, then paywalled to export',
+      others: 'Is the download free, or only the editor?',
     },
   ],
   faq: [
@@ -115,7 +118,7 @@ export const SITE: SiteCopy = {
     },
     {
       q: 'Where is my data stored?',
-      a: "Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy.",
+      a: "Only in your browser, in its own storage (IndexedDB). Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy.",
     },
     {
       q: 'Will my résumé pass ATS scans?',

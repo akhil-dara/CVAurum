@@ -59,7 +59,7 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The CVAurum mark and name, the words no account, no server, no tracking, the line: a resume this beautiful never leaves your browser, the number of designs and example resumes, and four real resume pages fanned beside them." />
+    <meta property="og:image:alt" content="The CVAurum mark and name, the words no account, no server, no tracking, the line: a free, open-source resume builder that never leaves your browser, the number of designs and example resumes, and four real resume pages fanned beside them." />
     <meta property="og:site_name" content="CVAurum" />
     <meta property="og:locale" content="en_US" />
 
@@ -80,7 +80,7 @@
     <meta name="twitter:title" content="Free Open-Source ATS Resume Builder — CVAurum" />
     <meta name="twitter:description" content="Free, open-source resume builder in your browser: 75 templates, an ATS check, and accessible PDF/UA export with WCAG AA contrast. No sign-up, no server." />
     <meta name="twitter:image" content="https://cvaurum.com/og.png" />
-    <meta name="twitter:image:alt" content="The CVAurum mark and name, the words no account, no server, no tracking, the line: a resume this beautiful never leaves your browser, the number of designs and example resumes, and four real resume pages fanned beside them." />
+    <meta name="twitter:image:alt" content="The CVAurum mark and name, the words no account, no server, no tracking, the line: a free, open-source resume builder that never leaves your browser, the number of designs and example resumes, and four real resume pages fanned beside them." />
 
     <!-- Structured data: rich result for the app -->
     <script type="application/ld+json">
@@ -100,7 +100,7 @@
       "license": "https://www.gnu.org/licenses/agpl-3.0.html",
       "isAccessibleForFree": true,
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "author": { "@type": "Person", "name": "Akhil Dara", "url": "https://github.com/akhil-dara" },
+      "author": { "@type": "Person", "@id": "https://cvaurum.com/#author", "name": "Akhil Dara", "url": "https://github.com/akhil-dara", "sameAs": ["https://github.com/akhil-dara"] },
       "publisher": { "@id": "https://cvaurum.com/#org" },
       "codeRepository": "https://github.com/akhil-dara/cvaurum",
       "softwareHelp": "https://github.com/akhil-dara/cvaurum",
@@ -161,12 +161,17 @@
         {
           "@type": "Question",
           "name": "Where is my data stored?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Only in your browser, using local storage. Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Only in your browser, in its own storage (IndexedDB). Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy." }
         },
         {
           "@type": "Question",
           "name": "Will my résumé pass ATS scans?",
           "acceptedAnswer": { "@type": "Answer", "text": "The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description." }
+        },
+        {
+          "@type": "Question",
+          "name": "Do numbered headings, bullet glyphs and decorative marks break ATS parsing?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Not here, and the answer is measured rather than assumed. Decoration is painted as vector outlines, so it never becomes text: the two designs that print a running number beside each heading export those headings as SUMMARY and EXPERIENCE, with no numeral in the text at all. Across all 75 designs the exported text layer matches the app's own \"what an ATS sees\" preview word for word — nothing missing, nothing added, nothing out of order — which also means the file carries no word your content does not have. Bullet markers are the deliberate exception: each one is real text sitting on the same line as its sentence (623 of them across the 75 designs, none stranded alone on a line), so a list you copy out of the PDF is still a list." }
         },
         {
           "@type": "Question",
@@ -191,7 +196,7 @@
         {
           "@type": "Question",
           "name": "Can I edit on my phone?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The drag-and-drop canvas is a desktop surface, so on a phone the form panel is the editor — and everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, on the page and in the form panel. The page is editable on a phone too (every control gets a finger-sized hit area and the zoom reaches 300%), and the panel is the comfortable route on a small screen — everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop." }
         },
         {
           "@type": "Question",
@@ -211,7 +216,7 @@
         {
           "@type": "Question",
           "name": "How long should my resume be?",
-          "acceptedAnswer": { "@type": "Answer", "text": "For most roles, one page — two if you have 10+ years of experience. CVAurum auto-fits your content to a single page when it's close, and shows live page-break guides so you always know where you stand." }
+          "acceptedAnswer": { "@type": "Answer", "text": "For most roles, one page — two if you have 10+ years of experience. Magic fit sizes type and spacing to the page count you pick (one, two or three) inside rules you set, such as a body size it never goes below and sizes it must keep as set, and tells you exactly what it chose; live page-break guides show where you stand, and Suggest measures a few moves that would fit better." }
         }
       ]
     }

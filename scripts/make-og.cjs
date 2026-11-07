@@ -184,11 +184,11 @@ function cardHtml({ mark, pill, headline, line, host, fan }) {
         <span style="width:11px;height:11px;border-radius:50%;background:#39d98a;flex:none"></span>${esc(pill)}
       </div>
       <div id="headline" style="margin-top:30px;font-size:54px;line-height:1.12;font-weight:800;letter-spacing:-.025em;
-          display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${title}</div>
+          display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">${title}</div>
       <div id="line" style="margin-top:22px;font-size:23px;line-height:1.35;font-weight:500;color:#9aa0ad;
           display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(line)}</div>
     </div>
-    <div style="position:absolute;left:80px;top:545px;font-size:23px;font-weight:700;color:#e0ab3e;white-space:nowrap">${esc(host)}<span style="margin-left:14px;font-size:21px;font-weight:500;color:#6b7280">· free · open source (MIT)</span></div>
+    <div style="position:absolute;left:80px;top:545px;font-size:23px;font-weight:700;color:#e0ab3e;white-space:nowrap">${esc(host)}<span style="margin-left:14px;font-size:21px;font-weight:500;color:#6b7280">· free · open source (AGPL-3.0)</span></div>
   </div>`
 }
 
