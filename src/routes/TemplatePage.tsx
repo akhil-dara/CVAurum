@@ -15,16 +15,12 @@
 import { useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, Check, ChevronRight, Wand2 } from 'lucide-react'
-import { createDocument } from '@/data/defaults'
 import { CUSTOMIZE } from '@/data/customize'
 import { TEMPLATE_NOTES } from '@/data/templateNotes'
 // Written beside the images themselves, so the size in the markup is the size
 // of the file on disk and a page never reserves the wrong box for it.
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
-import { applyTemplateToMetadata } from '@/lib/templateApply'
 import { TEMPLATES, getTemplate, templatePath } from '@/templates/registry'
-import type { ResumeDocument } from '@/types/document'
-import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 // The one code path that starts a résumé and lands in the editor — the same
 // one the gallery card and the landing strip call, so a design started here is
@@ -261,14 +257,22 @@ function Design({ id }: { id: string }) {
   )
 }
 
-/** A neighbour's thumbnail. Its own component so the six documents are built
- *  once each and a hover on one never re-renders the page around it. */
+/** A neighbour's thumbnail: the design's page picture (the same 520px twin the
+ *  gallery uses). Six live renders here pulled in twenty font files and a
+ *  1.5s task on a phone, for cards a reader only glances at (measured
+ *  2026-11-07); the picture is the same page. */
 function RelatedThumb({ id }: { id: string }) {
-  const doc = useMemo<ResumeDocument>(() => {
-    const base = createDocument({ sample: true })
-    return { ...base, metadata: applyTemplateToMetadata(base.metadata, getTemplate(id).defaults) }
-  }, [id])
-  return <PreviewThumb doc={doc} width={150} />
+  return (
+    <img
+      src={`/img/templates/thumb/${id}.webp`}
+      alt=""
+      width={520}
+      height={735}
+      loading="lazy"
+      decoding="async"
+      className="block h-full w-full"
+    />
+  )
 }
 
 /** A /templates/<id> that names no design in the registry — a mistyped URL, or

@@ -48,6 +48,12 @@ export function HeroTypeOnce({
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
   const [chosen, setChosen] = useState(1)
+  // The three pages open as their pictures; the live pages (which re-render as
+  // you type) mount only once someone reaches for the form or the pages.
+  // Mounting them at once was one 1.9s task on a phone that held back the
+  // hero's first paint (LCP 5.8s, measured 2026-11-07).
+  const [live, setLive] = useState(false)
+  const wake = () => setLive(true)
   // Three full pages re-render on a keystroke; deferring keeps typing instant.
   const dName = useDeferredValue(name.trim())
   const dRole = useDeferredValue(role.trim())
@@ -121,6 +127,7 @@ export function HeroTypeOnce({
               <label className="block">
                 <span className="text-xs font-medium text-[#5b5e68] dark:text-muted-foreground">Your name</span>
                 <input
+                  onFocus={wake}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
@@ -132,6 +139,7 @@ export function HeroTypeOnce({
               <label className="block">
                 <span className="text-xs font-medium text-[#5b5e68] dark:text-muted-foreground">Job title</span>
                 <input
+                  onFocus={wake}
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                   autoComplete="organization-title"
@@ -179,6 +187,8 @@ export function HeroTypeOnce({
         <div className="relative order-1 mx-auto w-full max-w-[38rem] lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center" data-nosnippet>
           <div
             role="radiogroup"
+            onPointerEnter={wake}
+            onFocus={wake}
             aria-label="Design to start with"
             className="relative z-10 mx-auto flex w-fit max-w-full gap-1 rounded-full border border-[#e3dfd5] bg-white/85 p-1 shadow-[0_6px_18px_-12px_rgba(22,23,29,0.35)] backdrop-blur-sm dark:border-border dark:bg-surface"
           >
@@ -203,7 +213,11 @@ export function HeroTypeOnce({
               )
             })}
           </div>
-          <div className="relative mx-auto mt-6 w-[min(20rem,54vw)]" style={{ height: 'calc(min(20rem, 54vw) * 1.4143 + 0.5rem)' }}>
+          <div
+            className="relative mx-auto mt-6 w-[min(20rem,54vw)]"
+            style={{ height: 'calc(min(20rem, 54vw) * 1.4143 + 0.5rem)' }}
+            onPointerEnter={wake}
+          >
             {HERO_PAGES.map(({ id }, i) => {
               const slot = SLOTS[slotOf(i)]
               const on = i === chosen
@@ -223,7 +237,20 @@ export function HeroTypeOnce({
                   }`}
                 >
                   <div className="relative aspect-[210/297] overflow-hidden">
-                    <PreviewThumb doc={docs[i]} width={320} />
+                    {live ? (
+                      <PreviewThumb doc={docs[i]} width={320} />
+                    ) : (
+                      <img
+                        src={`/img/templates/thumb/${id}.webp`}
+                        srcSet={`/img/templates/thumb/${id}.webp 520w, /img/templates/${id}.webp 1200w`}
+                        sizes="(min-width: 1024px) 20rem, 54vw"
+                        alt=""
+                        width={520}
+                        height={735}
+                        decoding="async"
+                        className="block h-full w-full"
+                      />
+                    )}
                   </div>
                 </motion.div>
               )

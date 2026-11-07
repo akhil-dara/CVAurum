@@ -7539,3 +7539,28 @@
   src: url(/fonts/latin-modern-roman-700-italic.woff2) format('woff2');
 }
 /* ===== END BUILT FACES ===== */
+
+/* Size-matched stand-ins for the two interface faces, so text set before the
+   web font arrives takes the same room and nothing moves when it swaps in.
+   Measured on the live site (2026-11-07): the homepage heading reflowed 43px
+   (CLS 0.14) and a guide page shifted every section down (CLS 0.68 on one run)
+   when Cormorant / Inter replaced Georgia / Arial. The overrides are the web
+   face's own metrics over a letter-frequency-weighted advance ratio, the
+   method next/font and Fontaine use (scratchpad fallback_metrics.py). Where
+   the local face is missing (Linux, Android) the rule simply finds nothing. */
+@font-face {
+  font-family: 'Cormorant Fallback';
+  src: local('Georgia');
+  size-adjust: 88.38%;
+  ascent-override: 104.55%;
+  descent-override: 32.47%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  size-adjust: 107.31%;
+  ascent-override: 90.27%;
+  descent-override: 22.48%;
+  line-gap-override: 0%;
+}

@@ -40,6 +40,21 @@
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 /og/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+# The bundles under /assets/ carry a hash of their bytes in every name, so a
+# changed file is a new URL: cache them for a year and never revalidate. They
+# went out with max-age=0, so every page view re-asked for every script and
+# stylesheet (measured 2026-11-07).
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+# Fonts keep their names when regenerated (the marks font, the display faces),
+# so not immutable: a month fresh, then served stale while it revalidates.
+/fonts/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
+/fonts-pdf/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
+# Decorative backdrops: the same week-plus-revalidate as the page images.
+/art/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 # Every Markdown file - the twins beside the public pages, SKILL.md, auth.md -
 # goes out as plain text. The host labels .md as text/markdown, and some
 # assistants' page readers refuse that type outright ("Unsupported

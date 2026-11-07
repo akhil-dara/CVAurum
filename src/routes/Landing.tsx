@@ -201,7 +201,9 @@ export function Landing() {
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[minmax(0,22rem)_1fr] land-reveal">
             <figure className="mx-auto w-full max-w-[22rem]">
               <img
-                src="/img/templates/keystone.webp"
+                src="/img/templates/thumb/keystone.webp"
+                srcSet="/img/templates/thumb/keystone.webp 520w, /img/templates/keystone.webp 1200w"
+                sizes="(min-width: 640px) 22rem, 100vw"
                 alt="A page exported from the Keystone design"
                 width={1200}
                 height={1697}

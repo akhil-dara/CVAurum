@@ -322,7 +322,7 @@
    so the site is typeset like the résumés it makes. Headings only; text
    stays in the interface face. */
 .font-display {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Cormorant Garamond', 'Cormorant Fallback', Georgia, serif;
   letter-spacing: -0.01em;
   text-wrap: balance;
 }

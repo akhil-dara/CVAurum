@@ -25,6 +25,9 @@
 
     <!-- LCP: the UI font renders the hero headline — fetch it before CSS asks. -->
     <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" />
+    <!-- The headings' face (latin): requested only once CSS was parsed, it swapped in ~2s late and reflowed
+         the homepage heading (CLS 0.14, measured 2026-11-07). -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/cormorant-garamond-co3bmX5slCNuHLi8bLeY9MK7whWMhyjYqXtK.woff2" />
 
     <!-- Primary SEO. Canonical host is https://cvaurum.com (custom domain on
          Cloudflare Pages). If the domain changes, update it in index.html,
