@@ -8,11 +8,34 @@ import { RefreshCw } from 'lucide-react'
 import { useResumeStore } from '@/store/useResumeStore'
 import { saveDoc } from '@/lib/storage'
 
+/** How often an open, visible tab asks whether a new version was deployed. */
+const CHECK_EVERY_MS = 20 * 60 * 1000
+/** The least time between two checks, however often the tab comes back. */
+const CHECK_GAP_MS = 60 * 1000
+
 export function UpdatePrompt() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW()
+  } = useRegisterSW({
+    // The browser looks for a new worker only when a page loads, so a tab
+    // left open never heard about a deploy (measured: an hour-old tab showed
+    // nothing until it was reloaded). Ask again when the tab comes back into
+    // view, and now and then while it is in view.
+    onRegisteredSW(_url, reg) {
+      if (!reg) return
+      let last = Date.now()
+      const check = () => {
+        if (document.visibilityState !== 'visible' || !navigator.onLine) return
+        if (Date.now() - last < CHECK_GAP_MS) return
+        last = Date.now()
+        void reg.update().catch(() => {})
+      }
+      setInterval(check, CHECK_EVERY_MS)
+      document.addEventListener('visibilitychange', check)
+      window.addEventListener('focus', check)
+    },
+  })
   if (!needRefresh) return null
   const reload = async () => {
     const doc = useResumeStore.getState().doc

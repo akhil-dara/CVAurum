@@ -1,7 +1,8 @@
 /**
  * The homepage's template shelf: real pages, large enough to judge, in a row
  * you scroll or step through, grouped by the kind of résumé people ask for.
- * The plain single-column designs an ATS reads cleanly come first; the
+ * The plainest single-column designs come first (every design exports text an
+ * ATS reads word for word; these are simply the quietest); the
  * Signature designs live in the gallery, not here.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -10,7 +11,10 @@ import { TEMPLATES } from '@/templates/registry'
 import type { TemplateConfig, TemplateTag } from '@/types/template'
 
 export const SHELF_TABS = [
-  { tag: 'ats-safe', label: 'Simple & ATS-safe' },
+  // The registry spells it 'ats-safe', but it marks the plainest layouts, not
+  // an ATS verdict: every design passes. Labelled so the other tabs do not
+  // read as failing (the gallery's own toggle learned this: templateFilter.ts).
+  { tag: 'ats-safe', label: 'Simple' },
   { tag: 'two-column', label: 'Two columns' },
   { tag: 'classic', label: 'Classic' },
   { tag: 'modern', label: 'Modern' },
@@ -24,7 +28,7 @@ const LEAD = ['modern', 'harvard', 'executive', 'cambridge', 'minimal', 'garamon
 const PER_TAB = 14
 
 /** 'two-column' -> 'Two column' (seoPages has the same; importing it would pull that module onto the homepage). */
-const tagLabel = (tag: string) => (tag === 'ats-safe' ? 'ATS-safe' : tag.charAt(0).toUpperCase() + tag.slice(1).replace(/-/g, ' '))
+const tagLabel = (tag: string) => tag.charAt(0).toUpperCase() + tag.slice(1).replace(/-/g, ' ')
 
 export function shelfFor(tag: TemplateTag): TemplateConfig[] {
   const signature = tag === 'signature'
@@ -150,7 +154,7 @@ export function TemplateCarousel({
                 </span>
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
-                {t.tags.filter((g: TemplateTag) => g !== 'premium' && g !== 'photo' && g !== 'bare' && g !== 'signature').slice(0, 3).map(tagLabel).join(' · ')}
+                {t.tags.filter((g: TemplateTag) => g !== 'premium' && g !== 'photo' && g !== 'bare' && g !== 'signature' && g !== 'ats-safe').slice(0, 3).map(tagLabel).join(' · ')}
               </span>
             </button>
           </li>

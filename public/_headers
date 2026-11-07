@@ -7,26 +7,18 @@
 # 'unsafe-inline' under style-src only.
 # Machine-reader discovery on the landing page (RFC 8288 / RFC 9727): the
 # API catalog (which says there is no API), the description, the Markdown
-# twin. Vary: Accept because the host's Markdown-for-agents feature answers
-# a request with Accept: text/markdown from the same URL (a dashboard
-# switch on Cloudflare; the .md twins beside each page are always there).
+# twin (the .md twins beside each page are always there).
+#
+# NO "Vary: Accept" on any page. It was sent for the host's Markdown-for-
+# agents switch (never turned on: Accept: text/markdown gets the HTML), and it
+# broke offline: the service worker looks a precached page up with the
+# browser's own request, whose Accept differs from the one the copy was
+# fetched with, so the lookup missed and /, /templates and /examples failed
+# with no connection (measured live, 2026-11-07). src/lib/offlineHeaders.test.ts
+# keeps it out. If that switch is ever turned on, the worker must be changed
+# to ignore Vary first.
 /
   Link: </.well-known/api-catalog>; rel="api-catalog", </llms.txt>; rel="describedby"; type="text/plain", </index.md>; rel="alternate"; type="text/markdown"
-  Vary: Accept
-/templates
-  Vary: Accept
-/templates/*
-  Vary: Accept
-/examples
-  Vary: Accept
-/examples/*
-  Vary: Accept
-/prompts
-  Vary: Accept
-# The prompt library has a Markdown twin beside it (/prompts.md) like every
-# other public page, so it takes the same Vary.
-/prompts
-  Vary: Accept
 # The pictures of résumés: the full-size page images (/img/templates/<id>.webp,
 # /img/examples/<slug>.webp) and the share cards (/og/<id>.jpg,
 # /og/examples/<slug>.jpg). 350 files — 17.1 MB of page images plus the smaller

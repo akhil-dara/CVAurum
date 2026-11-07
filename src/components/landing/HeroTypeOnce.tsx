@@ -15,7 +15,7 @@ import { SITE } from '@/data/siteCopy'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import type { ResumeDocument } from '@/types/document'
 
-/** Two plain single-column designs an ATS reads cleanly, and one two-column. */
+/** Two plain single-column designs and one two-column (every design reads the same to an ATS). */
 const HERO_PAGES = [
   { id: 'harvard', note: 'Single column' },
   { id: 'modern', note: 'Single column' },
