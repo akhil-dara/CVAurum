@@ -43,6 +43,7 @@ import {
 import { PagePicture } from '@/components/preview/PagePicture'
 import { PageLightbox, type LightboxItem } from '@/components/preview/PageLightbox'
 import {
+  examplesPageMeta,
   samplePageImage,
   samplePageImageHeight,
   sampleImageAlt,
@@ -80,7 +81,8 @@ const SORTS: { value: SortKey; label: string }[] = [
 ]
 
 export function Examples() {
-  useTitle(`${LIBRARY.length} Résumé Examples for Real Jobs — Free to Copy · CVAurum`)
+  // the same title the pre-rendered page carries (lib/seoLibrary)
+  useTitle(examplesPageMeta().title)
   useCanonical(CANONICAL)
   // Arriving from a link in the middle of another page keeps that page's
   // scroll position, and this page is tall enough to hold one.

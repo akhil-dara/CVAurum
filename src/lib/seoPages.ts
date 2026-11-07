@@ -18,16 +18,17 @@ import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
 import { ResumeContentSchema } from '@/types/document'
-import { guideLinksHtml, guideLinksMarkdown, orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLibrary'
+import { fitTitle, guideLinksHtml, guideLinksMarkdown, orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLibrary'
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
+import { PAGE_THUMB_WIDTH, pageThumbHeight } from '@/data/pageThumbs'
 import LASTMOD from '@/data/lastmod.json'
 import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { TEMPLATE_NOTES } from '@/data/templateNotes'
 import { pageDates } from './seoDates'
 import { linkHtml, linkMarkdown, linkText } from './inlineLinks'
 import { guideSections } from '@/data/guideData'
-import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
+import { GUIDES, SHOWCASE_TEMPLATE_IDS, guideBySlug, type Guide } from '@/data/guides'
 import { ABOUT_GUIDE, AUTHOR, GUIDE_GROUPS, GUIDES_HUB, guideKind, templateGuideLinks } from '@/data/guideHub'
 import { CUSTOMIZE } from '@/data/customize'
 
@@ -38,11 +39,13 @@ import { CUSTOMIZE } from '@/data/customize'
  */
 export {
   EXAMPLES_INTRO,
+  TITLE_MAX,
   examplesItemListJsonLd,
   examplesJsonLd,
   examplesMarkdown,
   examplesPageMeta,
   examplesStaticHtml,
+  fitTitle,
   isSampleSlug,
   orderedSampleSlugs,
   sampleBreadcrumbJsonLd,
@@ -146,13 +149,45 @@ export function templateKeyword(tpl: TemplateConfig): string {
   return tpl.tags.includes('two-column') ? `${style} Two-Column` : style
 }
 
+/** The style tags a description names, in the order it names them. */
+const STYLE_WORDS: readonly TemplateTag[] = ['modern', 'classic', 'elegant', 'executive', 'technical', 'creative', 'minimal', 'premium']
+
+/** "a", "a and b", "a, b and c". */
+function andList(words: readonly string[]): string {
+  if (words.length < 2) return words[0] ?? ''
+  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+}
+
+/**
+ * How the page is built, in words, from the design's own tags: its columns,
+ * what sits on it and its styles - "two columns with a photo; modern and
+ * premium in style". Facts the registry records, not the tagline's prose.
+ */
+export function templateStructure(tpl: TemplateConfig): string {
+  const has = (tag: TemplateTag) => tpl.tags.includes(tag)
+  const columns = has('two-column') ? 'two columns' : 'one column'
+  const base = has('signature') ? `a Signature page structure in ${columns}` : columns
+  const extras = [has('photo') && 'a photo', has('timeline') && 'a timeline of roles', has('compact') && 'compact spacing'].filter(
+    (x): x is string => !!x
+  )
+  const styles = STYLE_WORDS.filter(has)
+  return `${base}${extras.length ? ` with ${andList(extras)}` : ''}${has('bare') ? ', nothing on the page but type' : ''}${
+    styles.length ? `; ${andList(styles)} in style` : ''
+  }`
+}
+
 export function templatePageMeta(id: string): PageMeta {
   const tpl = must(id)
   return {
     path: `${templatePath(tpl)}`,
-    // led by the style and layout people search, then the design's own name
-    title: `${templateKeyword(tpl)} Resume Template: ${tpl.name} — Free & ATS-Ready · CVAurum`,
-    description: trimToWords(tpl.description),
+    // led by the style and layout people search, then the design's own name;
+    // the tail goes before the name is cut (fitTitle)
+    title: fitTitle(`${templateKeyword(tpl)} Resume Template: ${tpl.name}`),
+    // The design's facts, not its tagline: the tagline is a line of sales
+    // prose, and the same offer closing it on every page is the point.
+    description: trimToWords(
+      `${templateKeyword(tpl)} resume template (${tpl.name}): ${templateStructure(tpl)}. Free PDF and Word download, no sign-up.`
+    ),
     image: `/og/${tpl.id}.jpg`,
   }
 }
@@ -162,7 +197,7 @@ export function galleryPageMeta(): PageMeta {
   return {
     path: '/templates',
     title: `All ${TEMPLATES.length} Resume Templates — Free & ATS-Ready · CVAurum`,
-    description: trimToWords(GALLERY_INTRO),
+    description: trimToWords(GALLERY_DESCRIPTION),
     // The gallery's own card - a fan of real design pages with the count on
     // it. It fell back to the site card, which shows one design and no count.
     image: '/og/templates.jpg',
@@ -173,6 +208,43 @@ export function galleryPageMeta(): PageMeta {
  *  and the live page say the same thing. */
 export const GALLERY_INTRO =
   'Every design is shown on the same example résumé, so what changes between them is the layout and nothing else. Free, ATS-ready, and yours to edit in the browser.'
+
+/** The gallery's meta description: the count, the kinds of design a search
+ *  names, and the offer. */
+export const GALLERY_DESCRIPTION = `${TEMPLATES.length} free resume templates — simple, modern, two-column and creative — each on the same résumé. PDF and Word download, no sign-up.`
+
+/**
+ * The gallery's designs by style, for the page a crawler reads: a heading per
+ * kind, each design under the first group whose tags it carries, in gallery
+ * order within it - so every design appears exactly once. The ItemList the
+ * page declares walks the same order (galleryJsonLd).
+ */
+const GALLERY_GROUPS: readonly { heading: string; tags: readonly TemplateTag[] }[] = [
+  { heading: 'Signature designs', tags: ['signature'] },
+  { heading: 'Two-column resume templates', tags: ['two-column'] },
+  { heading: 'Simple and minimal resume templates', tags: ['bare', 'minimal', 'compact'] },
+  { heading: 'Classic, elegant and executive resume templates', tags: ['classic', 'elegant', 'executive'] },
+  { heading: 'Technical resume templates', tags: ['technical'] },
+  { heading: 'Creative resume templates', tags: ['creative'] },
+  { heading: 'Modern resume templates', tags: ['modern'] },
+]
+
+export function galleryGroups(): { heading: string; designs: TemplateConfig[] }[] {
+  let left = [...ORDERED]
+  const out: { heading: string; designs: TemplateConfig[] }[] = []
+  for (const g of GALLERY_GROUPS) {
+    const designs = left.filter((t) => g.tags.some((tag) => t.tags.includes(tag)))
+    left = left.filter((t) => !designs.includes(t))
+    if (designs.length) out.push({ heading: g.heading, designs })
+  }
+  if (left.length) out.push({ heading: 'More resume templates', designs: left })
+  return out
+}
+
+/** The gallery's designs in the order its crawler-readable page shows them. */
+function galleryShown(): TemplateConfig[] {
+  return galleryGroups().flatMap((g) => g.designs)
+}
 
 /**
  * The designs closest to this one: most shared style tags first, ties broken by
@@ -284,14 +356,7 @@ ${note ? `    <section>
       <p>${htmlEscape(note.ats)}</p>
     </section>
 ` : ''}    <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
-    <p><strong>${htmlEscape(CUSTOMIZE.switchLine)}</strong></p>
-    <section>
-      <h2>${htmlEscape(CUSTOMIZE.heading)}</h2>
-      <p>${htmlEscape(CUSTOMIZE.intro)}</p>
-      <ul>
-${CUSTOMIZE.items.map((i) => `        <li>${htmlEscape(i)}</li>`).join('\n')}
-      </ul>
-    </section>
+    <p><strong>${htmlEscape(CUSTOMIZE.switchLine)}</strong> ${htmlEscape(CUSTOMIZE.controls)}</p>
     <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} resume templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete resume examples</a></p>
     <p>${guideLinksHtml(templateGuideLinks())}</p>
 ${inThisDesign.length ? `    <section>
@@ -318,10 +383,9 @@ export function galleryStaticHtml(): string {
     <p>${htmlEscape(GALLERY_INTRO)}</p>
     <p><a href="/app">Start a résumé</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a></p>
     <nav aria-label="Every resume template">
-      <h2>Every design</h2>
-      <ul class="seo-cards">
-${cardList(ORDERED)}
-      </ul>
+${galleryGroups()
+  .map((g) => `      <h2>${htmlEscape(g.heading)}</h2>\n      <ul class="seo-cards">\n${cardList(g.designs)}\n      </ul>`)
+  .join('\n')}
     </nav>
   </main>`
 }
@@ -347,7 +411,7 @@ ${GALLERY_INTRO}
 
 ${ORDERED.map((t) => `- [${t.name}](${SITE}${templatePath(t)}) — ${trimToWords(t.description, 140)} (${tagSentence(t.tags)})`).join('\n')}
 
-Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
+Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/about
 `
 }
 
@@ -387,15 +451,9 @@ ${tpl.description}
 - Open in the editor: ${SITE}/app
 - ${guideLinksMarkdown(templateGuideLinks())}
 
-${templateNoteMarkdown(tpl)}## ${CUSTOMIZE.heading}
+${CUSTOMIZE.switchLine} ${CUSTOMIZE.controls}
 
-${CUSTOMIZE.switchLine}
-
-${CUSTOMIZE.intro}
-
-${CUSTOMIZE.items.map((i) => `- ${i}`).join('\n')}
-
-## Related designs
+${templateNoteMarkdown(tpl)}## Related designs
 
 ${related.map((r) => `- [${r.name}](${SITE}${templatePath(r)}) — ${trimToWords(r.description, 120)}`).join('\n')}
 
@@ -833,7 +891,7 @@ ${PROMPTS_SCHEMA_NOTE} The field names are at ${SCHEMA_DOC}, generated from the 
 
 ${blocks}
 
-Import an answer: ${SITE}/app · About CVAurum: ${SITE}/llms.txt
+Import an answer: ${SITE}/app · About CVAurum: ${SITE}/about
 `
 }
 
@@ -905,10 +963,57 @@ function guideTrail(g: Guide): { name: string; path: string }[] {
       ]
 }
 
+/** One design in a guide's showcase row: its page, its 520px picture and the
+ *  picture's own size. */
+export interface ShowcaseCard {
+  id: string
+  name: string
+  path: string
+  thumb: string
+  width: number
+  height: number
+  alt: string
+}
+
+/** The row's heading, with the count from the registry. */
+export const SHOWCASE_HEADING = `A few of the ${TEMPLATES.length} templates`
+
+/**
+ * The designs a guide shows (Guide.showcase), or none. The pages about the
+ * builder itself (/free-resume-builder, /resume-builder-no-sign-up) showed no
+ * design at all, and were the thinnest pages on the site (SEO audit,
+ * 2026-11-07). One list for the page a person reads (src/routes/Guide.tsx),
+ * the pre-rendered HTML and the Markdown twin.
+ */
+export function guideShowcase(slug: string): ShowcaseCard[] {
+  if (!mustGuide(slug).showcase) return []
+  return SHOWCASE_TEMPLATE_IDS.map((id) => {
+    const t = must(id)
+    return {
+      id,
+      name: t.name,
+      path: templatePath(t),
+      thumb: `/img/templates/thumb/${id}.webp`,
+      width: PAGE_THUMB_WIDTH,
+      height: pageThumbHeight(templatePageImageHeight(id)),
+      alt: imageAlt(t),
+    }
+  })
+}
+
 export function guideStaticHtml(slug: string): string {
   const g = mustGuide(slug)
   const esc = htmlEscape
   const NL = '\n'
+  const cards = guideShowcase(slug)
+  const showcase = cards.length
+    ? `${NL}    <section>${NL}      <h2>${esc(SHOWCASE_HEADING)}</h2>${NL}      <ul class="seo-cards">${NL}${cards
+        .map(
+          (c) =>
+            `        <li><a href="${c.path}"><img src="${c.thumb}" width="${c.width}" height="${c.height}" alt="${esc(c.alt)}" loading="lazy" decoding="async">${esc(c.name)}</a></li>`
+        )
+        .join(NL)}${NL}      </ul>${NL}      <p><a href="/templates">See all ${TEMPLATES.length} templates</a></p>${NL}    </section>`
+    : ''
   const sections = guideSections(g)
     .map((sec) => {
       const paras = sec.paragraphs.map((p) => `      <p>${linkHtml(p, esc)}</p>`).join(NL)
@@ -935,7 +1040,7 @@ export function guideStaticHtml(slug: string): string {
     <p>${trail}${esc(g.short)}</p>
     <h1>${esc(g.heading)}</h1>${byline}
 ${intro}
-    <p><a href="${g.action.href}">${esc(g.action.label)}</a></p>
+    <p><a href="${g.action.href}">${esc(g.action.label)}</a></p>${showcase}
 ${sections}
     <h2>Questions</h2>
     <dl>
@@ -958,19 +1063,23 @@ export function guideMarkdown(slug: string): string {
   const faq = g.faq.map((f) => `**${f.q}**${PARA}${linkMarkdown(f.a, SITE)}`).join(PARA)
   const by = guideByline(slug)
   const byline = by ? `${PARA}By ${by.author}${by.label ? ` · Updated ${by.label}` : ''}` : ''
+  const cards = guideShowcase(slug)
+  const showcase = cards.length
+    ? `## ${SHOWCASE_HEADING}${PARA}${cards.map((c) => `- [${c.name}](${SITE}${c.path})`).join(NL)}${PARA}See all ${TEMPLATES.length} templates: ${SITE}/templates${PARA}`
+    : ''
   return `# ${g.heading}${byline}
 
 ${g.intro.map((p) => linkMarkdown(p, SITE)).join(PARA)}
 
 ${g.action.label}: ${SITE}${g.action.href}
 
-${sections}
+${showcase}${sections}
 
 ## Questions
 
 ${faq}
 
-Templates: ${SITE}/templates · Examples: ${SITE}/examples · Prompts: ${SITE}/prompts · All guides: ${SITE}${GUIDES_HUB.path} · About CVAurum: ${SITE}/llms.txt
+Templates: ${SITE}/templates · Examples: ${SITE}/examples · Prompts: ${SITE}/prompts · All guides: ${SITE}${GUIDES_HUB.path} · About CVAurum: ${SITE}/about
 `
 }
 
@@ -1085,7 +1194,7 @@ ${GUIDES_HUB.intro}
 
 ${groups}${about}
 
-Templates: ${SITE}/templates · Examples: ${SITE}/examples · Prompts: ${SITE}/prompts · About CVAurum: ${SITE}/llms.txt
+Templates: ${SITE}/templates · Examples: ${SITE}/examples · Prompts: ${SITE}/prompts · About CVAurum: ${SITE}/about
 `
 }
 
@@ -1322,7 +1431,7 @@ export function galleryJsonLd(): string {
         url,
         ...pageDates(url),
         name: `${TEMPLATES.length} resume templates`,
-        description: trimToWords(GALLERY_INTRO),
+        description: trimToWords(GALLERY_DESCRIPTION),
         isPartOf: { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'CVAurum' },
       },
       breadcrumbList([
@@ -1332,8 +1441,9 @@ export function galleryJsonLd(): string {
       {
         '@type': 'ItemList',
         name: 'Resume templates',
-        numberOfItems: ORDERED.length,
-        itemListElement: ORDERED.map((t, i) => ({
+        // the order the page's cards are in (galleryGroups)
+        numberOfItems: galleryShown().length,
+        itemListElement: galleryShown().map((t, i) => ({
           '@type': 'ListItem',
           position: i + 1,
           name: `${t.name} resume template`,
@@ -1419,6 +1529,10 @@ const SIGNATURE_STRUCTURE: Record<string, string> = {
 
 const SIGNATURE_IDS = ORDERED.filter((t) => t.tags.includes('signature')).map((t) => t.id)
 
+/** The comparison's third column. Its cells are questions to put to another
+ *  builder (siteCopy.ts), not claims about one, and the home page heads it so. */
+const COMPARISON_OTHERS = 'Ask of any other builder'
+
 function esc(s: string): string {
   return htmlEscape(s).replace(/"/g, '&quot;')
 }
@@ -1446,7 +1560,7 @@ ${steps}
     </ol>
     <h2>Head-to-head</h2>
     <table>
-      <thead><tr><th>Capability</th><th>CVAurum</th><th>Most builders</th></tr></thead>
+      <thead><tr><th>Capability</th><th>CVAurum</th><th>${esc(COMPARISON_OTHERS)}</th></tr></thead>
       <tbody>
 ${rows}
       </tbody>
@@ -1486,17 +1600,26 @@ ${signature}
 export function shellHtml(indexHtml: string, title: string): string {
   // The page's own robots tag is REPLACED: added beside it, the shell said
   // noindex and "index, follow" at once (an audit read both, 2026-10-24).
+  // The home page's canonical, og:url and hreflang alternates go too: a
+  // noindex page that names "/" as its canonical says two contradictory
+  // things about itself (SEO audit, 2026-11-07).
   return indexHtml
     .replace(/\s*<meta name="robots"[^>]*>/g, '')
+    .replace(/\s*<link rel="canonical"[^>]*>/g, '')
+    .replace(/\s*<meta property="og:url"[^>]*>/g, '')
+    .replace(/\s*<link rel="alternate" hreflang="[^"]*"[^>]*>/g, '')
     .replace(/<title>[^<]*<\/title>/, `<title>${htmlEscape(title)}</title>\n    <meta name="robots" content="noindex" />`)
 }
 
 /* ---- llms.txt ------------------------------------------------------------
    What a machine reader finds at /llms.txt. The convention is an H1, a
-   blockquote summary and sections of links; this one goes further, because
-   an assistant asked "which resume builder should I use" needs the facts,
-   the limits, every page and the sitemap in one place, in plain prose it
-   can quote. llms-full.txt carries the same plus the long-form sections.
+   blockquote summary and sections of links, and that is what this is: the
+   summary, the facts and limits an assistant asked "which resume builder
+   should I use" quotes, the text-layer answer, and a link to each section of
+   the site. It used to carry every template and a sitemap's worth of URLs
+   too, which made it 35 KB - nearly llms-full.txt's size (SEO audit,
+   2026-11-07). Those lists live in llms-full.txt, which carries everything
+   here plus the long-form sections, and in templates.md and the sitemap.
    Every claim here is true of the code; no superlatives (a test checks). */
 
 function templateLine(t: TemplateConfig): string {
@@ -1532,7 +1655,7 @@ function textLayerBlock(): string {
 function pagesBlock(): string {
   return [
     `- [Home](${SITE}/): what CVAurum is, how it compares with other resume builders, the three steps, privacy, questions and answers.`,
-    `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page.`,
+    `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page. ${SIGNATURE_IDS.length} of them, the Signature collection, change the structure of the page, not only its colours. Every design is listed in ${SITE}/templates.md and ${SITE}/llms-full.txt.`,
     `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example résumés for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
     `- [Prompts](${SITE}/prompts): ${PROMPTS.length} copy-ready prompts for an AI assistant — notes into a résumé, tailoring to a posting, rewriting bullets to name a number, writing the summary, starting from nothing. Each asks for JSON Resume so the answer imports here, and none of them will invent experience.`,
     `- [Guides](${SITE}${GUIDES_HUB.path}): every guide below on one page, the writing guides apart from the pages about the tools.`,
@@ -1546,7 +1669,8 @@ function resourcesBlock(): string {
   return [
     `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example), each naming the picture of the page it stands for — the whole résumé at 1200 px wide.`,
     `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
-    `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file.`,
+    `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file — every feature in detail, every template with its page, the comparison table, the questions and answers, and the public URLs.`,
+    `- [templates.md](${SITE}/templates.md): every template with its page, its tagline and its style tags.`,
     `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/examples.md, ${SITE}/examples/<slug>.md, ${SITE}/prompts.md, ${SITE}/guides.md and ${SITE}/<guide>.md, linked from the page as its text/markdown alternate.`,
     `- [API catalog](${SITE}/.well-known/api-catalog) (RFC 9727): says plainly that there is no HTTP API; the site itself is the service.`,
     `- [Skills index](${SITE}/.well-known/agent-skills/index.json) and [SKILL.md](${SCHEMA_DOC}): how an assistant can help a person use CVAurum, the full field list of the document it should produce (generated from the schemas the importer validates against), and the in-page WebMCP tools it can call.`,
@@ -1606,27 +1730,9 @@ ${audienceBlock()}
 
 ${pagesBlock()}
 
-## Signature designs
-
-${SIGNATURE_IDS.length} designs whose structure is different, not only their colours. The structures they introduce are editable (Atlas's numbers band, Chronicle's year rail):
-
-${signatureLines()}
-
-## Every template
-
-${TEMPLATES.length} designs, every one exporting real selectable text, each on its own page:
-
-${ORDERED.map(templateLine).join('\n')}
-
 ## Machine-readable resources
 
 ${resourcesBlock()}
-
-## Sitemap
-
-${siteUrls().length} of the public URLs in ${SITE}/sitemap.xml; the sitemap and examples.md list every example page as well:
-
-${sitemapBlock()}
 `
 }
 
@@ -1635,7 +1741,7 @@ export function llmsFullTxt(): string {
   const faq = COPY.faq.map((f) => `**${f.q}** ${f.a}`).join('\n\n')
   const steps = COPY.steps.map((s, i) => `${i + 1}. ${s.title}. ${s.body}`).join('\n')
   const table = [
-    '| Capability | CVAurum | Most builders |',
+    `| Capability | CVAurum | ${COMPARISON_OTHERS} |`,
     '| --- | --- | --- |',
     ...COPY.comparison.map((r) => `| ${r.capability} | ${r.cvaurum} | ${r.others} |`),
   ].join('\n')
@@ -1663,7 +1769,7 @@ ${audienceBlock()}
 
 ${steps}
 
-## Head-to-head with most resume builders
+## Head-to-head: what to ask of any other resume builder
 
 ${table}
 

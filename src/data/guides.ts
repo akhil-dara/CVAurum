@@ -53,7 +53,17 @@ export interface Guide {
    *  verbs the bullets open with. Read there, not here, so this file stays
    *  small enough for the router and the footer to import. */
   generated?: 'summaries' | 'skills' | 'verbs'
+  /** A row of designs (SHOWCASE_TEMPLATE_IDS) under the call to action, for
+   *  a page about the builder that otherwise shows none of it. */
+  showcase?: true
 }
+
+/**
+ * The designs a guide with `showcase` shows: plain, calm ones a first-time
+ * visitor can picture their own résumé in. Their page pictures' 520px twins
+ * (/img/templates/thumb/<id>.webp), each linking to the design's own page.
+ */
+export const SHOWCASE_TEMPLATE_IDS: readonly string[] = ['modern', 'harvard', 'executive', 'cambridge', 'clarity', 'minimal']
 
 export const GUIDES: readonly Guide[] = [
   {
@@ -109,6 +119,7 @@ export const GUIDES: readonly Guide[] = [
       },
     ],
     action: { label: 'Start a résumé', href: '/app' },
+    showcase: true,
   },
   {
     slug: 'ats-resume-checker',
@@ -217,6 +228,7 @@ export const GUIDES: readonly Guide[] = [
       },
     ],
     action: { label: 'Open the editor', href: '/app' },
+    showcase: true,
   },
   {
     slug: 'resume-format',

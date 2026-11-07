@@ -202,7 +202,11 @@ function seoPages(): Plugin {
       // The app routes get content-free shells (their own title, noindex),
       // and public/_redirects sends /resume/* and /print/* to the plain
       // shell, so the landing block below never flashes inside the app.
-      fs.writeFileSync(path.join(OUT, 'shell.html'), shell)
+      // shell.html is a shell too (the worker's navigation fallback, and a
+      // public file a crawler can fetch): noindex, and none of the home
+      // page's canonical, og:url or hreflang tags. React sets each route's
+      // title as it renders.
+      fs.writeFileSync(path.join(OUT, 'shell.html'), seo.shellHtml(shell, 'CVAurum'))
       write('app', seo.shellHtml(shell, 'Your Resumes · CVAurum'))
       write('tracker', seo.shellHtml(shell, 'Job Application Tracker · CVAurum'))
       write('r', seo.shellHtml(shell, 'Shared resume · CVAurum'))

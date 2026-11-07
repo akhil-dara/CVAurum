@@ -14,7 +14,7 @@ import { AtsFileCheck } from '@/components/ats/AtsFileCheck'
 import { useSavedCount } from '@/components/site/HeaderActions'
 import { GUIDES, guideBySlug } from '@/data/guides'
 import { guideKind } from '@/data/guideHub'
-import { SITE, guideByline, guidePageMeta } from '@/lib/seoPages'
+import { SHOWCASE_HEADING, SITE, guideByline, guidePageMeta, guideShowcase } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
 import { isExternal, linkParts } from '@/lib/inlineLinks'
 import { guideSections } from '@/data/guideData'
@@ -99,6 +99,7 @@ export function Guide() {
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           )}
+          {g.showcase && <Showcase slug={g.slug} />}
 
           {guideSections(g).map((sec) => (
             <section key={sec.heading} className="mt-10">
@@ -158,6 +159,51 @@ export function Guide() {
 
       <SiteFooter />
     </div>
+  )
+}
+
+/**
+ * A row of designs (Guide.showcase) under the call to action: the page about
+ * the builder shows some of what it builds. The cards are the designs' 520px
+ * page pictures, the same ones the related row on a design page loads, and
+ * the list is the one the pre-rendered page carries (guideShowcase).
+ */
+function Showcase({ slug }: { slug: string }) {
+  const cards = guideShowcase(slug)
+  return (
+    <section className="mt-10">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{SHOWCASE_HEADING}</h2>
+        <Link className="inline-flex items-center gap-1 text-sm text-primary hover:underline" to="/templates">
+          See all {TEMPLATE_COUNT} templates <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+      </div>
+      <ul className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
+        {cards.map((c) => (
+          <li key={c.id}>
+            <Link
+              to={c.path}
+              className="group block overflow-hidden rounded-lg border border-border bg-surface shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-card"
+            >
+              <div data-nosnippet className="aspect-[210/297] overflow-hidden border-b border-border bg-white">
+                <img
+                  src={c.thumb}
+                  alt=""
+                  width={c.width}
+                  height={c.height}
+                  loading="lazy"
+                  decoding="async"
+                  className="block h-full w-full"
+                />
+              </div>
+              <span className="block px-2 py-1.5 text-xs font-medium text-foreground group-hover:text-primary">
+                {c.name}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

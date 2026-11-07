@@ -26,6 +26,7 @@ import {
   tagSentence,
   templatePageMeta,
   templateKeyword,
+  templateStructure,
   trimToWords,
   landingStaticHtml,
   shellHtml,
@@ -45,6 +46,7 @@ import {
   promptsStaticHtml,
   promptsJsonLd,
   galleryJsonLd,
+  galleryGroups,
   lastmodEntry,
   publicUrlPaths,
   publicUrls,
@@ -67,7 +69,7 @@ describe('the head each template page asks for', () => {
   it('names the design, its path and its preview image', () => {
     const meta = templatePageMeta('broadsheet')
     expect(meta.path).toBe('/templates/broadsheet')
-    expect(meta.title).toBe(`${templateKeyword(TEMPLATE_MAP.broadsheet)} Resume Template: Broadsheet — Free & ATS-Ready · CVAurum`)
+    expect(meta.title).toBe(`${templateKeyword(TEMPLATE_MAP.broadsheet)} Resume Template: Broadsheet — Free & Editable · CVAurum`)
     expect(meta.image).toBe('/og/broadsheet.jpg')
   })
 
@@ -81,19 +83,18 @@ describe('the head each template page asks for', () => {
     }
   })
 
-  it('carries the registry description through when it already fits', () => {
-    const short = TEMPLATES.find((t) => t.description.length <= DESC_MAX)!
-    expect(templatePageMeta(short.id).description).toBe(short.description)
-  })
-
-  it('cuts a long one on a word boundary, never mid-word', () => {
-    const long = TEMPLATES.find((t) => t.description.length > DESC_MAX)!
-    const cut = templatePageMeta(long.id).description
-    expect(cut.endsWith('…')).toBe(true)
-    // The kept part is a prefix of the original — nothing invented, no half word.
-    const head = cut.slice(0, -1)
-    expect(long.description.startsWith(head)).toBe(true)
-    expect(long.description[head.length]).toMatch(/[\s,;:.—–-]/)
+  // The tagline is sales prose, and the same tagline-shaped line on every
+  // page said nothing a search could match (SEO audit, 2026-11-07); the
+  // description is the design's own facts instead.
+  it("says the design's facts, not its tagline", () => {
+    for (const tpl of TEMPLATES) {
+      const { description } = templatePageMeta(tpl.id)
+      expect(description, tpl.id).toBe(
+        trimToWords(`${templateKeyword(tpl)} resume template (${tpl.name}): ${templateStructure(tpl)}. Free PDF and Word download, no sign-up.`)
+      )
+      expect(description, tpl.id).not.toContain(tpl.description)
+    }
+    expect(templateStructure(TEMPLATE_MAP.broadsheet)).toBe('a Signature page structure in one column; classic and premium in style')
   })
 
   it('gives every design a distinct title and path', () => {
@@ -493,19 +494,29 @@ describe('llms.txt', () => {
     expect(t).toContain('https://cvaurum.com/templates')
     expect(t).toContain('/llms-full.txt')
   })
-  it('carries the facts, the limits, every template and the sitemap, without superlatives', () => {
+  // An index, not the whole site: the template list and the URL list made
+  // it nearly the size of llms-full.txt (SEO audit, 2026-11-07), so they
+  // live there, and llms.txt links each section.
+  it('carries the facts, the limits and a link to each section, without superlatives', () => {
     const t = llmsTxt()
     for (const f of COPY.facts) expect(t).toContain(`- ${f.label}: `)
     for (const l of COPY.limits) expect(t).toContain(l)
-    for (const tpl of TEMPLATES) expect(t).toContain(`https://cvaurum.com${templatePath(tpl)}`)
+    for (const section of ['/templates', '/templates.md', '/examples', '/prompts', '/guides', '/about'])
+      expect(t, section).toContain(`https://cvaurum.com${section}`)
     expect(t).toContain('https://cvaurum.com/sitemap.xml')
     expect(t).toContain('https://cvaurum.com/robots.txt')
-    // Home, the gallery, one line per design, the library's shelf and the
-    // prompt library - the library's own pages live in the sitemap and
-    // examples.md, not here.
-    expect(siteUrls()).toHaveLength(TEMPLATES.length + 5 + GUIDES.length)
-    for (const u of siteUrls()) expect(t).toContain(`- ${u}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
+  })
+  it('leaves every template and the URL list to llms-full.txt', () => {
+    const t = llmsTxt()
+    const full = llmsFullTxt()
+    for (const tpl of TEMPLATES) expect(t, tpl.id).not.toContain(`https://cvaurum.com${templatePath(tpl)})`)
+    for (const tpl of TEMPLATES) expect(full, tpl.id).toContain(`https://cvaurum.com${templatePath(tpl)}`)
+    // Home, the gallery, one line per design, the library's shelf, the
+    // prompt library, the hub and the guides - the library's own pages live
+    // in the sitemap and examples.md.
+    expect(siteUrls()).toHaveLength(TEMPLATES.length + 5 + GUIDES.length)
+    for (const u of siteUrls()) expect(full).toContain(`- ${u}`)
   })
   // The question people ask about a designed résumé is whether the decoration
   // lands in the text a parser reads. The answer is measured, so it has to be
@@ -725,11 +736,14 @@ describe('the collection pages describe themselves', () => {
     expect(list.itemListElement).toHaveLength(TEMPLATES.length)
     // Each entry names the design's own page picture, not the share card, so
     // the collection is described with the pictures the page carries.
+    // in the order the page shows its cards: grouped by style (galleryGroups)
+    const shown = galleryGroups().flatMap((g) => g.designs.map((d) => d.id))
+    expect([...shown].sort()).toEqual([...allTemplateIds()].sort())
     expect(list.itemListElement.map((i: { url: string }) => i.url)).toEqual(
-      allTemplateIds().map((id) => `https://cvaurum.com${templatePath(TEMPLATE_MAP[id])}`)
+      shown.map((id) => `https://cvaurum.com${templatePath(TEMPLATE_MAP[id])}`)
     )
     expect(list.itemListElement.map((i: { image: string }) => i.image)).toEqual(
-      allTemplateIds().map((id) => `https://cvaurum.com${templatePageImage(id)}`)
+      shown.map((id) => `https://cvaurum.com${templatePageImage(id)}`)
     )
   })
 

@@ -23,6 +23,7 @@ import { SITE as COPY } from '@/data/siteCopy'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { pageThumbHeight } from '@/data/pageThumbs'
 import { sampleGuideLinks, type GuideLink } from '@/data/guideHub'
+import { SAMPLE_COUNT } from '@/data/library/count'
 
 /** Canonical host — the same one siteCopy names, so there is one to change. */
 export const HOST = COPY.links.site
@@ -172,6 +173,27 @@ export function sampleImageAlt(slug: string): string {
 
 const SHORT_REGION: Record<LibrarySample['region'], string> = { india: 'India', us: 'US', uk: 'UK' }
 
+/**
+ * How long a <title> may be. A results page shows about 60-65 characters of
+ * one and cuts the rest; 85 of the site's titles ran past that, so the brand
+ * and the offer were the part nobody saw (SEO audit, 2026-11-07).
+ */
+export const TITLE_MAX = 65
+
+/** The tails a title may carry, longest first: the offer and the brand, then
+ *  the brand alone. */
+const TITLE_TAILS = [' — Free & Editable · CVAurum', ' · CVAurum']
+
+/**
+ * The keyword-first head with the longest tail that still fits TITLE_MAX.
+ * A head too long for even the brand keeps the head whole and drops the
+ * tail: the words someone searched for are the part a cut must not reach.
+ */
+export function fitTitle(head: string, max = TITLE_MAX): string {
+  for (const tail of TITLE_TAILS) if (head.length + tail.length <= max) return `${head}${tail}`
+  return head
+}
+
 export function samplePageMeta(slug: string): SamplePageMeta {
   const s = must(slug)
   // Said the way it is searched: "resume" without its accent, "CV" in the
@@ -183,8 +205,9 @@ export function samplePageMeta(slug: string): SamplePageMeta {
   const region = shared ? ` (${SHORT_REGION[s.region]})` : ''
   return {
     path: `/examples/${s.slug}`,
-    title: `${s.role} ${noun}${region} — Free Template You Can Edit · CVAurum`,
-    description: trim(s.blurb),
+    title: fitTitle(`${s.role} ${noun}${region}`),
+    // What the page is, in the words searched, before the blurb about it.
+    description: trim(`${s.role} ${s.region === 'uk' ? 'CV example' : 'resume example'}: ${s.blurb}`),
     // This sample's own card, not the design's: the preview shows the résumé
     // the page is about.
     image: sampleShareCard(s.slug),
@@ -197,7 +220,7 @@ export const EXAMPLES_INTRO =
 export function examplesPageMeta(): SamplePageMeta {
   return {
     path: '/examples',
-    title: `${LIBRARY.length} Résumé Examples for Real Jobs — Free to Copy · CVAurum`,
+    title: `${SAMPLE_COUNT} Resume Examples by Job — Free to Edit · CVAurum`,
     description: trim(EXAMPLES_INTRO),
     // The library's own card - a fan of real example pages with the count on
     // it. It fell back to the site card, which says nothing about examples.

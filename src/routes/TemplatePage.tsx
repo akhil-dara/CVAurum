@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Check, ChevronRight, Wand2 } from 'lucide-react'
+import { ArrowRight, ChevronRight, Wand2 } from 'lucide-react'
 import { CUSTOMIZE } from '@/data/customize'
 import { TEMPLATE_NOTES } from '@/data/templateNotes'
 // Written beside the images themselves, so the size in the markup is the size
@@ -130,8 +130,13 @@ function Design({ id }: { id: string }) {
               Opens the editor with an example résumé in this design — replace the words with your own. Free, no
               account, and everything stays in this browser.
             </p>
+            {/* A visitor from a search judges the design by one picture; say
+                plainly, beside the button, that the colour, photo and columns
+                they may not like are all switches, before they leave for that
+                reason. Two sentences, not a list: the same list on every
+                design page was half of each page's text (data/customize). */}
             <p className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-3.5 py-3 text-sm leading-relaxed text-foreground">
-              {CUSTOMIZE.switchLine}
+              {CUSTOMIZE.switchLine} <span className="text-muted-foreground">{CUSTOMIZE.controls}</span>
             </p>
             <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border pt-6 text-sm">
               <div>
@@ -207,26 +212,6 @@ function Design({ id }: { id: string }) {
             </div>
           </section>
         )}
-
-        {/* A visitor from a search judges the design by one picture; say
-            plainly that the colour, photo and columns they may not like are
-            all switches, before they leave for that reason. */}
-        <section className="mt-14 border-t border-border pt-8">
-          <h2 className="text-lg font-semibold tracking-tight">{CUSTOMIZE.heading}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{CUSTOMIZE.intro}</p>
-          <ul className="mt-5 grid grid-cols-1 gap-x-8 gap-y-2.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            {CUSTOMIZE.items.map((item) => (
-              <li key={item} className="flex gap-2 leading-relaxed">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <button className="btn-primary mt-6" onClick={() => create(true, tpl.id)}>
-            <Wand2 className="h-4 w-4" />
-            Open it and make it yours
-          </button>
-        </section>
 
         <section className="mt-14 border-t border-border pt-8">
           <div className="flex flex-wrap items-baseline justify-between gap-3">

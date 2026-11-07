@@ -91,7 +91,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'onyx-noir',
     name: 'Onyx Noir',
-    description: 'A full-bleed charcoal résumé with an electric-teal accent and crisp white type — the dark, high-contrast look that turns heads. Selectable text throughout, so it still reads clean for ATS.',
+    description: 'A full-bleed charcoal résumé with an electric-teal accent and crisp white type — the dark, high-contrast look that turns heads. Selectable text throughout.',
     tags: ['single-column', 'creative', 'premium'],
     atsSafe: true,
     class: 'tpl-onyx-noir',
@@ -183,7 +183,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'emblem',
     name: 'Emblem',
-    description: 'A centered single-column with a circular monogram crest over a tracked serif name — formal, balanced, and ruthlessly ATS-clean.',
+    description: 'A centered single-column with a circular monogram crest over a tracked serif name — formal and balanced.',
     tags: ['ats-safe', 'single-column', 'classic', 'premium'],
     atsSafe: true,
     class: 'tpl-emblem',
@@ -218,7 +218,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'onyx-gold',
     name: 'Onyx Gold',
-    description: 'The charcoal résumé in warm gold — the same bold dark canvas with a luxe amber accent. Selectable text, ATS-clean.',
+    description: 'The charcoal résumé in warm gold — the same bold dark canvas with a luxe amber accent. Selectable text throughout.',
     tags: ['single-column', 'creative', 'premium'],
     atsSafe: true,
     class: 'tpl-onyx-gold',
@@ -253,7 +253,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'crest',
     name: 'Crest',
-    description: 'Traditional single-column with a squared monogram crest, centered serif name, and ruled headings — formal and ATS-perfect.',
+    description: 'Traditional single-column with a squared monogram crest, centered serif name, and ruled headings — formal and orderly.',
     tags: ['ats-safe', 'single-column', 'classic'],
     atsSafe: true,
     class: 'tpl-crest',
@@ -306,7 +306,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'aurum',
     name: 'Aurum',
-    description: 'Our signature. Editorial ink layout with a serif name and a hairline gold accent — premium and unmistakably yours, still fully ATS-safe.',
+    description: 'Our signature. Editorial ink layout with a serif name and a hairline gold accent — premium and unmistakably yours.',
     tags: ['ats-safe', 'single-column', 'premium', 'modern'],
     atsSafe: true,
     class: 'tpl-aurum',
@@ -374,7 +374,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'harvard',
     name: 'Harvard',
-    description: 'The classic Harvard format recruiters know: centered serif name, bold uppercase section rules, impeccable structure. Pure black, maximally ATS.',
+    description: 'The classic Harvard format recruiters know: centered serif name, bold uppercase section rules, impeccable structure. Pure black throughout.',
     tags: ['ats-safe', 'single-column', 'classic'],
     atsSafe: true,
     class: 'tpl-harvard',
@@ -395,7 +395,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'garamond',
     name: 'Garamond',
-    description: 'The timeless Garamond résumé recruiters trust — a bold old-style serif name, clean ruled sections, impeccable single-column structure. Classic and ATS-perfect.',
+    description: 'The timeless Garamond résumé recruiters trust — a bold old-style serif name, clean ruled sections, impeccable single-column structure. Classic and restrained.',
     tags: ['ats-safe', 'single-column', 'classic', 'elegant'],
     atsSafe: true,
     class: 'tpl-garamond',
@@ -429,7 +429,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'classic',
     name: 'Oxford',
-    description: 'Timeless serif résumé. Conservative, recruiter-friendly, ATS-perfect.',
+    description: 'Timeless serif résumé. Conservative and recruiter-friendly.',
     tags: ['ats-safe', 'single-column', 'classic'],
     atsSafe: true,
     class: 'tpl-classic',
@@ -463,7 +463,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'vector',
     name: 'Vector',
-    description: 'A single-column technical format: small-caps ruled headings, italic roles and nothing an ATS could misread. A favourite for software roles.',
+    description: 'A single-column technical format: small-caps ruled headings and italic roles. A favourite for software roles.',
     tags: ['ats-safe', 'single-column', 'technical', 'classic'],
     atsSafe: true,
     class: 'tpl-vector',
