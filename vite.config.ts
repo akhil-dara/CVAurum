@@ -187,6 +187,8 @@ function seoPages(): Plugin {
       // example" can land anywhere but the homepage.
       write('examples', pageHtml(shell, seo.SITE, seo.examplesPageMeta(), seo.examplesStaticHtml(), seo.examplesJsonLd()))
       write('prompts', pageHtml(shell, seo.SITE, seo.promptsPageMeta(), seo.promptsStaticHtml(), seo.promptsJsonLd()))
+      // The hub every guide's trail climbs to (/guides).
+      write('guides', pageHtml(shell, seo.SITE, seo.guidesHubPageMeta(), seo.guidesHubStaticHtml(), seo.guidesHubJsonLd()))
       for (const slug of seo.guideSlugs())
         write(slug, pageHtml(shell, seo.SITE, seo.guidePageMeta(slug), seo.guideStaticHtml(slug), seo.guideJsonLd(slug)))
       const slugs = seo.orderedSampleSlugs()
@@ -236,6 +238,7 @@ function seoPages(): Plugin {
       for (const id of ids) writeText(`${seo.templatePageFile(id)}.md`, seo.templateMarkdown(id))
       writeText('examples.md', seo.examplesMarkdown())
       writeText('prompts.md', seo.promptsMarkdown())
+      writeText('guides.md', seo.guidesHubMarkdown())
       for (const slug of seo.guideSlugs()) writeText(`${slug}.md`, seo.guideMarkdown(slug))
       for (const slug of slugs) writeText(path.join('examples', `${slug}.md`), seo.sampleMarkdown(slug))
 
@@ -282,6 +285,7 @@ function machineReadersDev(): Plugin {
     '/templates.md': (seo) => seo.galleryMarkdown(),
     '/examples.md': (seo) => seo.examplesMarkdown(),
     '/prompts.md': (seo) => seo.promptsMarkdown(),
+    '/guides.md': (seo) => seo.guidesHubMarkdown(),
     '/auth.md': (seo) => seo.authMd(),
     '/.well-known/api-catalog': (seo) => seo.apiCatalogJson(),
     '/skills/cvaurum/SKILL.md': (seo) => seo.skillMd(),

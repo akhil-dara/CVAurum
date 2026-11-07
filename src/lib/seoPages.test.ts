@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { TEMPLATES, TEMPLATE_MAP, getTemplate, templatePath } from '@/templates/registry'
 import { htmlEscape } from '@/lib/utils'
 import { GUIDES } from '@/data/guides'
+import { guideKind } from '@/data/guideHub'
 import { linkMarkdown } from './inlineLinks'
 import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
@@ -177,9 +178,9 @@ describe('the HTML a crawler reads without running the app', () => {
 describe('the sitemap', () => {
   const xml = sitemapXml('2026-09-08')
 
-  // Home, the gallery, the example shelf and the prompt library, plus one
-  // page per design and one per example, and the guides at the end.
-  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 4 + GUIDES.length
+  // Home, the gallery, the example shelf, the prompt library and the guides
+  // hub, plus one page per design and one per example, and the guides at the end.
+  const TOTAL = TEMPLATES.length + orderedSampleSlugs().length + 5 + GUIDES.length
 
   it('lists the landing page, both collections and every page in them', () => {
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
@@ -189,10 +190,11 @@ describe('the sitemap', () => {
     const designs = allTemplateIds().map((id) => `https://cvaurum.com${templatePath(TEMPLATE_MAP[id])}`)
     expect(locs.slice(2, 2 + designs.length)).toEqual(designs)
     expect(locs[2 + designs.length]).toBe('https://cvaurum.com/examples')
-    expect(locs.slice(3 + designs.length, -1 - GUIDES.length)).toEqual(
+    expect(locs.slice(3 + designs.length, -2 - GUIDES.length)).toEqual(
       orderedSampleSlugs().map((slug) => `https://cvaurum.com/examples/${slug}`)
     )
-    expect(locs[locs.length - 1 - GUIDES.length]).toBe('https://cvaurum.com/prompts')
+    expect(locs[locs.length - 2 - GUIDES.length]).toBe('https://cvaurum.com/prompts')
+    expect(locs[locs.length - 1 - GUIDES.length]).toBe('https://cvaurum.com/guides')
     expect(locs.slice(-GUIDES.length)).toEqual(GUIDES.map((g) => `https://cvaurum.com/${g.slug}`))
   })
 
@@ -263,13 +265,15 @@ describe('the sitemap', () => {
     const p = [...xml.matchAll(/<priority>([^<]+)<\/priority>/g)].map((m) => m[1])
     expect(p[0]).toBe('1.0')
     // Every collection page ranks above the pages inside it; the prompt
-    // library is one too, and the guides follow it, between the two.
-    const prompts = p.length - 1 - GUIDES.length
+    // library is one too, and so is the guides hub; the guides follow it,
+    // between the two.
+    const prompts = p.length - 2 - GUIDES.length
     expect(p[1]).toBe('0.8')
     expect(p[2 + TEMPLATES.length]).toBe('0.8')
     expect(p[prompts]).toBe('0.8')
+    expect(p[prompts + 1]).toBe('0.8')
     expect(new Set(p.slice(-GUIDES.length))).toEqual(new Set(['0.7']))
-    const collections = new Set([0, 1, 2 + TEMPLATES.length, prompts])
+    const collections = new Set([0, 1, 2 + TEMPLATES.length, prompts, prompts + 1])
     const inner = p.filter((_, i) => !collections.has(i) && i <= prompts)
     expect(new Set(inner)).toEqual(new Set(['0.6']))
   })
@@ -499,7 +503,7 @@ describe('llms.txt', () => {
     // Home, the gallery, one line per design, the library's shelf and the
     // prompt library - the library's own pages live in the sitemap and
     // examples.md, not here.
-    expect(siteUrls()).toHaveLength(TEMPLATES.length + 4 + GUIDES.length)
+    expect(siteUrls()).toHaveLength(TEMPLATES.length + 5 + GUIDES.length)
     for (const u of siteUrls()) expect(t).toContain(`- ${u}`)
     expect(t).not.toMatch(/best|beast|world-class|#1/i)
   })
@@ -807,9 +811,10 @@ describe('the one list of public URLs', () => {
     const paths = publicUrlPaths()
     expect(paths[0]).toBe('/')
     expect(paths[1]).toBe('/templates')
-    expect(paths[paths.length - 1 - GUIDES.length]).toBe('/prompts')
+    expect(paths[paths.length - 2 - GUIDES.length]).toBe('/prompts')
+    expect(paths[paths.length - 1 - GUIDES.length]).toBe('/guides')
     expect(paths.slice(-GUIDES.length)).toEqual(GUIDES.map((g) => `/${g.slug}`))
-    expect(paths).toHaveLength(TEMPLATES.length + orderedSampleSlugs().length + 4 + GUIDES.length)
+    expect(paths).toHaveLength(TEMPLATES.length + orderedSampleSlugs().length + 5 + GUIDES.length)
     expect(publicUrls()).toEqual(paths.map((p) => `https://cvaurum.com${p}`))
   })
 
@@ -883,8 +888,13 @@ describe('the guides', () => {
     const seo = await import('@/lib/seoPages')
     for (const g of GUIDES) {
       const graph = JSON.parse(seo.guideJsonLd(g.slug))['@graph'] as { '@type': string; mainEntity?: unknown[] }[]
-      expect(graph.map((n) => n['@type'])).toEqual(['WebPage', 'BreadcrumbList', 'FAQPage'])
-      expect(graph[2].mainEntity).toHaveLength(g.faq.length)
+      const kind = guideKind(g.slug)
+      expect(graph.map((n) => n['@type'])).toEqual(
+        kind === 'writing'
+          ? ['WebPage', 'Article', 'BreadcrumbList', 'FAQPage']
+          : [kind === 'about' ? 'AboutPage' : 'WebPage', 'BreadcrumbList', 'FAQPage']
+      )
+      expect(graph[graph.length - 1].mainEntity).toHaveLength(g.faq.length)
     }
   })
 })

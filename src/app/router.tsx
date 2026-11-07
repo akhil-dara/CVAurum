@@ -53,6 +53,7 @@ const ExamplesPage = lazyRoute(() => import('@/routes/Examples').then((m) => ({ 
 const ExamplePage = lazyRoute(() => import('@/routes/ExamplePage').then((m) => ({ default: m.ExamplePage })))
 const PromptsPage = lazyRoute(() => import('@/routes/Prompts').then((m) => ({ default: m.Prompts })))
 const GuidePage = lazyRoute(() => import('@/routes/Guide').then((m) => ({ default: m.Guide })))
+const GuidesPage = lazyRoute(() => import('@/routes/Guides').then((m) => ({ default: m.Guides })))
 const EditorRoute = lazyRoute(() => import('@/routes/EditorRoute').then((m) => ({ default: m.EditorRoute })))
 const Tracker = lazyRoute(() => import('@/routes/Tracker').then((m) => ({ default: m.Tracker })))
 const PrintPage = lazyRoute(() => import('@/routes/PrintPage').then((m) => ({ default: m.PrintPage })))
@@ -150,6 +151,7 @@ export const router = createBrowserRouter([
       // checker", "resume builder no sign up" - answered in full
       // (src/data/guides.ts). Listed by slug, not matched by a pattern, so a
       // mistyped address is still a 404.
+      { path: '/guides', element: s(<GuidesPage />) },
       ...GUIDES.map((g) => ({ path: `/${g.slug}`, element: s(<GuidePage />) })),
       { path: '/app', element: s(<Dashboard />) },
       { path: '/resume/:id', element: s(<EditorRoute />) },

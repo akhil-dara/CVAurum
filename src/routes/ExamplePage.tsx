@@ -26,6 +26,8 @@ import { CATEGORY_LABELS, REGION_LABELS, SENIORITY_LABELS, type LibrarySample } 
 import { getTemplate, templatePath } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
+import { WriteYours } from '@/components/site/WriteYours'
+import { sampleGuideLinks } from '@/data/guideHub'
 import { useResumeActions } from '@/components/dashboard/newResume'
 import { cn } from '@/lib/utils'
 import { useSeo } from '@/lib/useSeo'
@@ -188,6 +190,7 @@ function Example({ sample }: { sample: LibrarySample }) {
                 }
               />
             </dl>
+            <WriteYours className="mt-5" links={sampleGuideLinks(sample.region)} />
 
             {/* Counted from the document rather than claimed, so these figures
                 cannot drift from the résumé shown beside them. */}

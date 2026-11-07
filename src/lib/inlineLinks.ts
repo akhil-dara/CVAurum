@@ -39,6 +39,14 @@ export function linkHtml(text: string, esc: (s: string) => string): string {
     .join('')
 }
 
+/** Plain text, each link reduced to its label: for structured data, whose
+ *  text fields are read as prose and would otherwise carry `[label](/path)`. */
+export function linkText(text: string): string {
+  return linkParts(text)
+    .map((p) => (typeof p === 'string' ? p : p.label))
+    .join('')
+}
+
 /** Markdown with every site link made absolute on `site`. */
 export function linkMarkdown(text: string, site: string): string {
   return linkParts(text)

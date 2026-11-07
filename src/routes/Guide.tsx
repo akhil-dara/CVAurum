@@ -13,7 +13,8 @@ import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { AtsFileCheck } from '@/components/ats/AtsFileCheck'
 import { useSavedCount } from '@/components/site/HeaderActions'
 import { GUIDES, guideBySlug } from '@/data/guides'
-import { SITE, guidePageMeta } from '@/lib/seoPages'
+import { guideKind } from '@/data/guideHub'
+import { SITE, guideByline, guidePageMeta } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
 import { isExternal, linkParts } from '@/lib/inlineLinks'
 import { guideSections } from '@/data/guideData'
@@ -36,6 +37,7 @@ export function Guide() {
   }, [slug])
   const saved = useSavedCount()
   if (!g) return null
+  const by = guideByline(g.slug)
   const others = GUIDES.filter((x) => x.slug !== g.slug)
 
   return (
@@ -56,11 +58,34 @@ export function Guide() {
             <Link className="hover:text-foreground" to="/">
               CVAurum
             </Link>{' '}
-            › {g.short}
+            ›{' '}
+            {guideKind(g.slug) !== 'about' && (
+              <>
+                <Link className="hover:text-foreground" to="/guides">
+                  Guides
+                </Link>{' '}
+                ›{' '}
+              </>
+            )}
+            {g.short}
           </nav>
           <h1 className="mt-3 text-[1.6rem] font-semibold leading-[1.15] tracking-tight sm:text-[2.4rem] sm:leading-[1.12]">
             {g.heading}
           </h1>
+          {by && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              By{' '}
+              <a className="hover:text-foreground" href={by.authorUrl} target="_blank" rel="author noopener noreferrer">
+                {by.author}
+              </a>
+              {by.date && (
+                <>
+                  {' '}
+                  · Updated <time dateTime={by.date}>{by.label}</time>
+                </>
+              )}
+            </p>
+          )}
           {g.intro.map((p, i) => (
             <p key={i} className="mt-3 text-[15px] leading-relaxed text-foreground">
               <Prose text={p} />
@@ -115,6 +140,12 @@ export function Guide() {
             </Link>
             <Link className="text-primary hover:underline" to="/examples">
               Read {SAMPLE_COUNT} complete resume examples
+            </Link>
+            <Link className="text-primary hover:underline" to="/prompts">
+              Prompts for an AI assistant
+            </Link>
+            <Link className="text-primary hover:underline" to="/guides">
+              All guides
             </Link>
             {others.map((x) => (
               <Link key={x.slug} className="text-primary hover:underline" to={`/${x.slug}`}>

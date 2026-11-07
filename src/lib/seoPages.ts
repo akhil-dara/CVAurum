@@ -18,16 +18,17 @@ import type { TemplateConfig, TemplateTag } from '@/types/template'
 import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
 import { ResumeContentSchema } from '@/types/document'
-import { orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLibrary'
+import { guideLinksHtml, guideLinksMarkdown, orderedSampleSlugs as librarySlugs, samplePageImage } from '@/lib/seoLibrary'
 import { SAMPLE_COUNT } from '@/data/library/count'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import LASTMOD from '@/data/lastmod.json'
 import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
 import { TEMPLATE_NOTES } from '@/data/templateNotes'
 import { pageDates } from './seoDates'
-import { linkHtml, linkMarkdown } from './inlineLinks'
+import { linkHtml, linkMarkdown, linkText } from './inlineLinks'
 import { guideSections } from '@/data/guideData'
 import { GUIDES, guideBySlug, type Guide } from '@/data/guides'
+import { ABOUT_GUIDE, AUTHOR, GUIDE_GROUPS, GUIDES_HUB, guideKind, templateGuideLinks } from '@/data/guideHub'
 import { CUSTOMIZE } from '@/data/customize'
 
 /**
@@ -292,6 +293,7 @@ ${CUSTOMIZE.items.map((i) => `        <li>${htmlEscape(i)}</li>`).join('\n')}
       </ul>
     </section>
     <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} resume templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete resume examples</a></p>
+    <p>${guideLinksHtml(templateGuideLinks())}</p>
 ${inThisDesign.length ? `    <section>
       <h2>Résumé examples in the ${htmlEscape(tpl.name)} design</h2>
       <ul>
@@ -383,6 +385,7 @@ ${tpl.description}
 - Exports: PDF (vector, selectable text), Word, JSON Resume
 - Price: free, open source (AGPL-3.0); no account, nothing uploaded
 - Open in the editor: ${SITE}/app
+- ${guideLinksMarkdown(templateGuideLinks())}
 
 ${templateNoteMarkdown(tpl)}## ${CUSTOMIZE.heading}
 
@@ -859,6 +862,49 @@ function guideSiblings(g: Guide): Guide[] {
   return GUIDES.filter((x) => x.slug !== g.slug)
 }
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+/** 2026-11-07 as "7 November 2026": spelled out, so no reader has to guess
+ *  which number is the month, and the same on every machine. */
+export function dayLabel(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return `${d} ${MONTHS[m - 1]} ${y}`
+}
+
+export interface GuideByline {
+  author: string
+  authorUrl: string
+  /** YYYY-MM-DD: the day the guide's sources last changed (src/data/lastmod.json). */
+  date?: string
+  /** The same day, written out. */
+  label?: string
+}
+
+/**
+ * Who wrote a writing guide and when it last changed, or null for a page that
+ * is not an article: the tool pages describe the app and /about describes the
+ * site, so a byline there would read as an article's.
+ */
+export function guideByline(slug: string): GuideByline | null {
+  if (guideKind(mustGuide(slug).slug) !== 'writing') return null
+  const date = lastmodEntry(`/${slug}`)?.lastmod
+  return { author: AUTHOR.name, authorUrl: AUTHOR.url, ...(date ? { date, label: dayLabel(date) } : {}) }
+}
+
+/** The trail a guide sits on: every guide under /guides, except About. */
+function guideTrail(g: Guide): { name: string; path: string }[] {
+  return guideKind(g.slug) === 'about'
+    ? [
+        { name: 'Home', path: '/' },
+        { name: g.short, path: `/${g.slug}` },
+      ]
+    : [
+        { name: 'Home', path: '/' },
+        { name: 'Guides', path: GUIDES_HUB.path },
+        { name: g.short, path: `/${g.slug}` },
+      ]
+}
+
 export function guideStaticHtml(slug: string): string {
   const g = mustGuide(slug)
   const esc = htmlEscape
@@ -877,9 +923,17 @@ export function guideStaticHtml(slug: string): string {
   const siblings = guideSiblings(g)
     .map((x) => `<a href="/${x.slug}">${esc(x.short)}</a>`)
     .join(' · ')
+  const trail = guideTrail(g)
+    .slice(0, -1)
+    .map((c) => `<a href="${c.path}">${c.path === '/' ? 'CVAurum' : esc(c.name)}</a> › `)
+    .join('')
+  const by = guideByline(slug)
+  const byline = by
+    ? `${NL}    <p class="byline">By <a href="${by.authorUrl}" rel="author">${esc(by.author)}</a>${by.date ? ` · Updated <time datetime="${by.date}">${by.label}</time>` : ''}</p>`
+    : ''
   return `<main class="seo-static">
-    <p><a href="/">CVAurum</a> › ${esc(g.short)}</p>
-    <h1>${esc(g.heading)}</h1>
+    <p>${trail}${esc(g.short)}</p>
+    <h1>${esc(g.heading)}</h1>${byline}
 ${intro}
     <p><a href="${g.action.href}">${esc(g.action.label)}</a></p>
 ${sections}
@@ -887,7 +941,7 @@ ${sections}
     <dl>
 ${faq}
     </dl>
-    <p><a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · ${siblings}</p>
+    <p><a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${GUIDES_HUB.path}">All guides</a> · ${siblings}</p>
   </main>`
 }
 
@@ -902,7 +956,9 @@ export function guideMarkdown(slug: string): string {
     })
     .join(PARA)
   const faq = g.faq.map((f) => `**${f.q}**${PARA}${linkMarkdown(f.a, SITE)}`).join(PARA)
-  return `# ${g.heading}
+  const by = guideByline(slug)
+  const byline = by ? `${PARA}By ${by.author}${by.label ? ` · Updated ${by.label}` : ''}` : ''
+  return `# ${g.heading}${byline}
 
 ${g.intro.map((p) => linkMarkdown(p, SITE)).join(PARA)}
 
@@ -914,36 +970,154 @@ ${sections}
 
 ${faq}
 
-Templates: ${SITE}/templates · Examples: ${SITE}/examples · About CVAurum: ${SITE}/llms.txt
+Templates: ${SITE}/templates · Examples: ${SITE}/examples · Prompts: ${SITE}/prompts · All guides: ${SITE}${GUIDES_HUB.path} · About CVAurum: ${SITE}/llms.txt
 `
 }
 
-/** A WebPage with its trail, and the page's own questions as FAQPage. */
+const WEBSITE_REF = { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'CVAurum' }
+const ORG_REF = { '@id': `${SITE}/#org` }
+
+/**
+ * The page, its trail and its questions as structured data.
+ *
+ * A writing guide is also an Article by its author, published by the site's
+ * organisation; both are referenced by the @ids the homepage declares, so the
+ * graph names one person and one organisation however many pages it spans.
+ * /about is an AboutPage whose subject is that organisation. A tool page stays
+ * a WebPage: it describes the app, it is not an article.
+ *
+ * FAQ answers are plain text: a guide writes its links as `[label](/path)`,
+ * and that Markdown went into acceptedAnswer verbatim.
+ */
 export function guideJsonLd(slug: string): string {
   const g = mustGuide(slug)
   const url = `${SITE}/${g.slug}`
+  const kind = guideKind(g.slug)
+  const description = trimToWords(g.description)
+  const page = {
+    '@type': kind === 'about' ? 'AboutPage' : 'WebPage',
+    '@id': url,
+    url,
+    ...pageDates(url),
+    name: g.heading,
+    description,
+    isPartOf: WEBSITE_REF,
+    ...(kind === 'about' ? { mainEntity: ORG_REF } : {}),
+  }
+  const article =
+    kind === 'writing'
+      ? [
+          {
+            '@type': 'Article',
+            '@id': `${url}#article`,
+            headline: g.heading,
+            description,
+            ...pageDates(url),
+            author: { '@type': 'Person', '@id': AUTHOR.id, name: AUTHOR.name, url: AUTHOR.url },
+            publisher: ORG_REF,
+            mainEntityOfPage: { '@id': url },
+            image: `${SITE}/og.png`,
+            inLanguage: 'en',
+          },
+        ]
+      : []
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': url,
-        url,
-        ...pageDates(url),
-        name: g.heading,
-        description: trimToWords(g.description),
-        isPartOf: { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'CVAurum' },
-      },
-      breadcrumbList([
-        { name: 'Home', path: '/' },
-        { name: g.short, path: `/${g.slug}` },
-      ]),
+      page,
+      ...article,
+      breadcrumbList(guideTrail(g)),
       {
         '@type': 'FAQPage',
         mainEntity: g.faq.map((f) => ({
           '@type': 'Question',
           name: f.q,
-          acceptedAnswer: { '@type': 'Answer', text: f.a },
+          acceptedAnswer: { '@type': 'Answer', text: linkText(f.a) },
+        })),
+      },
+    ],
+  })
+}
+
+/* ---- The guides hub (/guides, src/data/guideHub.ts) ------------------
+   Every guide on one page, grouped: the writing guides, then the tool pages,
+   then About on its own line. It is the page each guide's trail climbs to. */
+
+/** The guides the hub lists, in its order: writing guides, then the tools. */
+function hubGuides(): Guide[] {
+  return GUIDE_GROUPS.flatMap((grp) => grp.guides)
+}
+
+export function guidesHubPageMeta(): PageMeta {
+  return { path: GUIDES_HUB.path, title: GUIDES_HUB.title, description: trimToWords(GUIDES_HUB.description), image: '/og.png' }
+}
+
+export function guidesHubStaticHtml(): string {
+  const esc = htmlEscape
+  const groups = GUIDE_GROUPS.map(
+    (grp) => `    <section>
+      <h2>${esc(grp.heading)}</h2>
+      <ul>
+${grp.guides.map((g) => `        <li><a href="/${g.slug}">${esc(g.short)}</a> — ${esc(g.description)}</li>`).join('\n')}
+      </ul>
+    </section>`
+  ).join('\n')
+  const about = ABOUT_GUIDE ? `\n    <p><a href="/${ABOUT_GUIDE.slug}">About CVAurum</a> — ${esc(ABOUT_GUIDE.description)}</p>` : ''
+  return `<main class="seo-static">
+    <p><a href="/">CVAurum</a> › Guides</p>
+    <h1>${esc(GUIDES_HUB.heading)}</h1>
+    <p>${esc(GUIDES_HUB.intro)}</p>
+${groups}${about}
+    <p><a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a></p>
+  </main>`
+}
+
+export function guidesHubMarkdown(): string {
+  const groups = GUIDE_GROUPS.map(
+    (grp) => `## ${grp.heading}
+
+${grp.guides.map((g) => `- [${g.short}](${SITE}/${g.slug}): ${g.description}`).join('\n')}`
+  ).join('\n\n')
+  const about = ABOUT_GUIDE ? `\n\n[About CVAurum](${SITE}/${ABOUT_GUIDE.slug}): ${ABOUT_GUIDE.description}` : ''
+  return `# ${GUIDES_HUB.heading}
+
+${GUIDES_HUB.intro}
+
+${groups}${about}
+
+Templates: ${SITE}/templates · Examples: ${SITE}/examples · Prompts: ${SITE}/prompts · About CVAurum: ${SITE}/llms.txt
+`
+}
+
+/** A collection, its trail and an ItemList of the guides, as the gallery declares itself. */
+export function guidesHubJsonLd(): string {
+  const url = `${SITE}${GUIDES_HUB.path}`
+  const list = hubGuides()
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        ...pageDates(url),
+        name: GUIDES_HUB.heading,
+        description: trimToWords(GUIDES_HUB.description),
+        isPartOf: WEBSITE_REF,
+      },
+      breadcrumbList([
+        { name: 'Home', path: '/' },
+        { name: 'Guides', path: GUIDES_HUB.path },
+      ]),
+      {
+        '@type': 'ItemList',
+        name: 'Resume guides',
+        numberOfItems: list.length,
+        itemListElement: list.map((g, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: g.short,
+          url: `${SITE}/${g.slug}`,
         })),
       },
     ],
@@ -1005,6 +1179,7 @@ export function publicUrlPaths(): string[] {
     '/examples',
     ...librarySlugs().map((slug) => `/examples/${slug}`),
     '/prompts',
+    GUIDES_HUB.path,
     ...GUIDES.map((g) => `/${g.slug}`),
   ]
 }
@@ -1061,6 +1236,8 @@ export function sitemapXml(today: string): string {
     // A collection too, of prompts rather than designs; it carries no picture
     // of its own, so it declares none.
     urlEntry(`${SITE}/prompts`, mod('/prompts'), 'weekly', '0.8'),
+    // The hub that lists every guide: a collection of pages, like the two above.
+    urlEntry(`${SITE}${GUIDES_HUB.path}`, mod(GUIDES_HUB.path), 'monthly', '0.8'),
     // The guides: one question each, answered in full. No picture of their own.
     ...GUIDES.map((g) => urlEntry(`${SITE}/${g.slug}`, mod(`/${g.slug}`), 'monthly', '0.7')),
   ]
@@ -1262,7 +1439,7 @@ export function landingStaticHtml(): string {
     <h1>${esc(COPY.hero)}</h1>
     <p>${esc(COPY.oneLiner)}</p>
     <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
-    <p>${GUIDES.map((g) => `<a href="/${g.slug}">${esc(g.short)}</a>`).join(' · ')}</p>
+    <p><a href="${GUIDES_HUB.path}">All guides</a> · ${GUIDES.map((g) => `<a href="/${g.slug}">${esc(g.short)}</a>`).join(' · ')}</p>
     <h2>Three steps</h2>
     <ol>
 ${steps}
@@ -1358,6 +1535,7 @@ function pagesBlock(): string {
     `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page.`,
     `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example résumés for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
     `- [Prompts](${SITE}/prompts): ${PROMPTS.length} copy-ready prompts for an AI assistant — notes into a résumé, tailoring to a posting, rewriting bullets to name a number, writing the summary, starting from nothing. Each asks for JSON Resume so the answer imports here, and none of them will invent experience.`,
+    `- [Guides](${SITE}${GUIDES_HUB.path}): every guide below on one page, the writing guides apart from the pages about the tools.`,
     ...GUIDES.map((g) => `- [${g.short}](${SITE}/${g.slug}): ${g.description}`),
     `- [The app](${SITE}/app): the résumé dashboard and the editor. Nothing to sign up for; the page is private to the visitor's browser and not indexed.`,
     `- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.`,
@@ -1369,7 +1547,7 @@ function resourcesBlock(): string {
     `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example), each naming the picture of the page it stands for — the whole résumé at 1200 px wide.`,
     `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
     `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file.`,
-    `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/examples.md, ${SITE}/examples/<slug>.md and ${SITE}/prompts.md, linked from the page as its text/markdown alternate.`,
+    `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/examples.md, ${SITE}/examples/<slug>.md, ${SITE}/prompts.md, ${SITE}/guides.md and ${SITE}/<guide>.md, linked from the page as its text/markdown alternate.`,
     `- [API catalog](${SITE}/.well-known/api-catalog) (RFC 9727): says plainly that there is no HTTP API; the site itself is the service.`,
     `- [Skills index](${SITE}/.well-known/agent-skills/index.json) and [SKILL.md](${SCHEMA_DOC}): how an assistant can help a person use CVAurum, the full field list of the document it should produce (generated from the schemas the importer validates against), and the in-page WebMCP tools it can call.`,
     `- [auth.md](${SITE}/auth.md): there are no accounts, keys or registration, for people or for agents.`,
@@ -1390,6 +1568,7 @@ export function siteUrls(): string[] {
     `${SITE}/examples`,
     `${SITE}/prompts`,
     // the guides answer the questions this file is most often read for
+    `${SITE}${GUIDES_HUB.path}`,
     ...GUIDES.map((g) => `${SITE}/${g.slug}`),
   ]
 }

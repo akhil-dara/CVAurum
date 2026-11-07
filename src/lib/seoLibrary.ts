@@ -22,6 +22,7 @@ import { htmlEscape } from '@/lib/utils'
 import { SITE as COPY } from '@/data/siteCopy'
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { pageThumbHeight } from '@/data/pageThumbs'
+import { sampleGuideLinks, type GuideLink } from '@/data/guideHub'
 
 /** Canonical host — the same one siteCopy names, so there is one to change. */
 export const HOST = COPY.links.site
@@ -280,6 +281,20 @@ function figure(slug: string, eager: boolean): string {
   return `<figure><img src="${samplePageImage(slug)}" width="${PAGE_IMAGE_WIDTH}" height="${samplePageImageHeight(slug)}" alt="${htmlEscape(sampleImageAlt(slug))}" loading="${eager ? 'eager' : 'lazy'}" decoding="async"><figcaption>${htmlEscape(s.role)} résumé example${tpl ? `, in the ${htmlEscape(tpl.name)} design` : ''}</figcaption></figure>`
 }
 
+/**
+ * "Write yours:" and the guides a design or an example page points at
+ * (data/guideHub). A reader who found one finished résumé usually came to
+ * write their own; these are the pages that say how.
+ */
+export function guideLinksHtml(links: readonly GuideLink[]): string {
+  return `Write yours: ${links.map((l) => `<a href="${l.href}">${htmlEscape(l.label)}</a>`).join(' · ')}`
+}
+
+/** The same line in a Markdown twin, every link absolute. */
+export function guideLinksMarkdown(links: readonly GuideLink[]): string {
+  return `Write yours: ${links.map((l) => `[${l.label}](${HOST}${l.href})`).join(' · ')}`
+}
+
 export function sampleStaticHtml(slug: string): string {
   const s = must(slug)
   const near = relatedSamples(slug, 8)
@@ -291,6 +306,7 @@ export function sampleStaticHtml(slug: string): string {
     <p>${htmlEscape(s.blurb)}</p>
     <p>Written for ${htmlEscape(REGION_LABELS[s.region])}, at ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, in the ${htmlEscape(CATEGORY_LABELS[s.category].toLowerCase())} field${tpl ? `, shown in the <a href="${templatePath(getTemplate(s.template))}">${htmlEscape(tpl.name)}</a> design` : ''}. Every name, employer, address and number below is invented.</p>
     <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} résumé examples</a> · <a href="/templates">Browse the résumé templates</a></p>
+    <p>${guideLinksHtml(sampleGuideLinks(s.region))}</p>
     <article>
 ${resumeHtml(s)}
     </article>
@@ -376,6 +392,7 @@ export function sampleMarkdown(slug: string): string {
     `- Written for: ${REGION_LABELS[s.region]}`,
     `- Design: ${TEMPLATE_MAP[s.template]?.name ?? s.template} (${HOST}${templatePath(getTemplate(s.template))})`,
     `- Open it: ${HOST}/examples/${s.slug}`,
+    `- ${guideLinksMarkdown(sampleGuideLinks(s.region))}`,
     '',
     'Every name, employer, address, phone number and figure below is invented.',
     '',

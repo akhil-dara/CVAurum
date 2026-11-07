@@ -22,6 +22,8 @@ import { TEMPLATE_NOTES } from '@/data/templateNotes'
 import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { TEMPLATES, getTemplate, templatePath } from '@/templates/registry'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
+import { WriteYours } from '@/components/site/WriteYours'
+import { templateGuideLinks } from '@/data/guideHub'
 // The one code path that starts a résumé and lands in the editor — the same
 // one the gallery card and the landing strip call, so a design started here is
 // a design started there.
@@ -153,6 +155,7 @@ function Design({ id }: { id: string }) {
                 <dd className="mt-0.5 font-medium">Free, open source (AGPL-3.0)</dd>
               </div>
             </dl>
+            <WriteYours className="mt-6 border-t border-border pt-5" links={templateGuideLinks()} />
           </div>
 
           <div className="order-2 min-w-0 lg:order-1">

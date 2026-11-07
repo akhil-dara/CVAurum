@@ -1,6 +1,6 @@
 {
   "/": {
-    "hash": "c84536d684a32643",
+    "hash": "40cb88e3da5a33b6",
     "lastmod": "2026-11-07"
   },
   "/templates": {
@@ -746,6 +746,10 @@
   "/prompts": {
     "hash": "27b58cb6b8eeb1f3",
     "lastmod": "2026-10-11"
+  },
+  "/guides": {
+    "hash": "43c736c3c3b496c7",
+    "lastmod": "2026-11-07"
   },
   "/free-resume-builder": {
     "hash": "b91bfc88a159b2ff",

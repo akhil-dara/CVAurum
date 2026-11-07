@@ -130,6 +130,9 @@ export function SiteFooter() {
           <Link className="transition hover:text-foreground" to="/prompts">
             Prompts
           </Link>
+          <Link className="transition hover:text-foreground" to="/guides">
+            Guides
+          </Link>
           <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
             GitHub
           </a>
