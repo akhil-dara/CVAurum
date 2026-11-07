@@ -85,7 +85,9 @@ export const pageImageAlt = (tpl: TemplateConfig) => {
 }
 
 export function Templates() {
-  useTitle(`All ${TEMPLATES.length} Résumé Templates — Free & ATS-Ready · CVAurum`)
+  // The same title the pre-rendered page carries (seoPages galleryPageMeta), so
+  // the tab does not change on load; spelled the way it is searched.
+  useTitle(`All ${TEMPLATES.length} Resume Templates — Free & ATS-Ready · CVAurum`)
   useCanonical(CANONICAL)
   // A reader clicking through from the middle of the landing page must land on
   // the heading and the filters, not somewhere in the middle of the grid: a

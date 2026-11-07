@@ -54,6 +54,7 @@ import {
 } from '@/lib/seoPages'
 import { ResumeContentSchema } from '@/types/document'
 import { SITE as COPY } from '@/data/siteCopy'
+import { plainResume } from './searchSpelling'
 
 /** Every /templates/<id> link in a block of HTML, in order. */
 const templateLinks = (html: string) => [...html.matchAll(/href="\/templates\/([a-z0-9-]+)"/g)].map((m) => m[1])
@@ -669,7 +670,8 @@ describe('the prompt library', () => {
    */
   it('leads with one line, short enough to be the description uncut', () => {
     expect(PROMPTS_INTRO.length).toBeLessThanOrEqual(DESC_MAX)
-    expect(promptsPageMeta().description).toBe(PROMPTS_INTRO)
+    // the description is the intro in the spelling people search (searchSpelling.ts)
+    expect(promptsPageMeta().description).toBe(plainResume(PROMPTS_INTRO))
     expect(PROMPTS_INTRO).not.toContain('…')
     // The loop, in the order it is walked: copy, paste it there, paste it back.
     expect(PROMPTS_INTRO).toMatch(/copy.+paste.+paste/i)
@@ -870,7 +872,7 @@ describe('the guides', () => {
     expect(new Set(GUIDES.map((g) => g.title)).size).toBe(GUIDES.length)
     for (const g of GUIDES) {
       expect(g.description.length, g.slug).toBeLessThanOrEqual(seo.DESC_MAX)
-      expect(seo.guidePageMeta(g.slug).description).toBe(g.description)
+      expect(seo.guidePageMeta(g.slug).description).toBe(plainResume(g.description))
     }
   })
 

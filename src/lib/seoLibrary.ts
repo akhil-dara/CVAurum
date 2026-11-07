@@ -13,6 +13,7 @@
  * imports it, and it is the part worth unit-testing.
  */
 import { LIBRARY } from '@/data/library'
+import { plainResume } from './searchSpelling'
 import { CATEGORY_LABELS, LIBRARY_CATEGORIES, REGION_LABELS, SENIORITY_LABELS } from '@/data/library/types'
 import type { LibraryCategory, LibrarySample } from '@/data/library/types'
 import { relatedSamples } from '@/data/library/related'
@@ -207,7 +208,7 @@ export function samplePageMeta(slug: string): SamplePageMeta {
     path: `/examples/${s.slug}`,
     title: fitTitle(`${s.role} ${noun}${region}`),
     // What the page is, in the words searched, before the blurb about it.
-    description: trim(`${s.role} ${s.region === 'uk' ? 'CV example' : 'resume example'}: ${s.blurb}`),
+    description: plainResume(trim(`${s.role} ${s.region === 'uk' ? 'CV example' : 'resume example'}: ${s.blurb}`)),
     // This sample's own card, not the design's: the preview shows the résumé
     // the page is about.
     image: sampleShareCard(s.slug),
@@ -221,7 +222,7 @@ export function examplesPageMeta(): SamplePageMeta {
   return {
     path: '/examples',
     title: `${SAMPLE_COUNT} Resume Examples by Job — Free to Edit · CVAurum`,
-    description: trim(EXAMPLES_INTRO),
+    description: plainResume(trim(EXAMPLES_INTRO)),
     // The library's own card - a fan of real example pages with the count on
     // it. It fell back to the site card, which says nothing about examples.
     image: '/og/examples.jpg',
@@ -324,20 +325,20 @@ export function sampleStaticHtml(slug: string): string {
   const tpl = TEMPLATE_MAP[s.template]
   return `<main class="seo-static">
     <p><a href="/examples">Résumé examples</a> › ${htmlEscape(s.role)}</p>
-    <h1>${htmlEscape(s.role)} résumé example</h1>
+    <h1>${htmlEscape(s.role)} resume example</h1>
     ${figure(slug, true)}
     <p>${htmlEscape(s.blurb)}</p>
     <p>Written for ${htmlEscape(REGION_LABELS[s.region])}, at ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, in the ${htmlEscape(CATEGORY_LABELS[s.category].toLowerCase())} field${tpl ? `, shown in the <a href="${templatePath(getTemplate(s.template))}">${htmlEscape(tpl.name)}</a> design` : ''}. Every name, employer, address and number below is invented.</p>
-    <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} résumé examples</a> · <a href="/templates">Browse the résumé templates</a></p>
+    <p><a href="/app">Use this example</a> · <a href="/examples">Browse all ${LIBRARY.length} resume examples</a> · <a href="/templates">Browse the résumé templates</a></p>
     <p>${guideLinksHtml(sampleGuideLinks(s.region))}</p>
     <article>
 ${resumeHtml(s)}
     </article>
 ${guideHtml(s)}
     <nav aria-label="Nearby examples">
-      <h2>Similar résumé examples</h2>
+      <h2>Similar resume examples</h2>
       <ul>
-${near.map((r) => `        <li><a href="/examples/${r.slug}">${htmlEscape(r.role)} résumé example</a></li>`).join('\n')}
+${near.map((r) => `        <li><a href="/examples/${r.slug}">${htmlEscape(r.role)} resume example</a></li>`).join('\n')}
       </ul>
     </nav>
   </main>`
@@ -351,13 +352,13 @@ export function examplesStaticHtml(): string {
   })).filter((g) => g.items.length)
   return `<main class="seo-static">
     <p><a href="/">CVAurum</a> › Résumé examples</p>
-    <h1>${LIBRARY.length} résumé examples, written out in full</h1>
+    <h1>${LIBRARY.length} resume examples, written out in full</h1>
     <p>${htmlEscape(EXAMPLES_INTRO)}</p>
     <p><a href="/app">Start a résumé</a> · <a href="/templates">Browse the résumé templates</a> · <a href="/prompts">Prompts for an AI assistant</a></p>
 ${groups
   .map(
     (g) => `    <section>
-      <h2>${htmlEscape(CATEGORY_LABELS[g.category])} résumé examples</h2>
+      <h2>${htmlEscape(CATEGORY_LABELS[g.category])} resume examples</h2>
       <ul class="seo-cards">
 ${g.items
   .map(
@@ -365,7 +366,7 @@ ${g.items
       // Every listed sample shows its own page, lazily: 108 eager images on
       // one shelf would download a hundred résumés nobody scrolled to, and
       // native lazy loading is what Google documents as safe for indexing.
-      `        <li>${figure(s.slug, false)}<p><a href="/examples/${s.slug}">${htmlEscape(s.role)} résumé example</a> — ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, ${htmlEscape(REGION_LABELS[s.region])}</p></li>`
+      `        <li>${figure(s.slug, false)}<p><a href="/examples/${s.slug}">${htmlEscape(s.role)} resume example</a> — ${htmlEscape(SENIORITY_LABELS[s.seniority].toLowerCase())}, ${htmlEscape(REGION_LABELS[s.region])}</p></li>`
   )
   .join('\n')}
       </ul>
@@ -559,7 +560,7 @@ export function examplesJsonLd(): string {
         url,
         ...pageDates(url),
         name: `${LIBRARY.length} résumé examples`,
-        description: trim(EXAMPLES_INTRO),
+        description: plainResume(trim(EXAMPLES_INTRO)),
         isPartOf: { '@type': 'WebSite', '@id': `${HOST}/#website`, url: `${HOST}/`, name: 'CVAurum' },
       },
       {

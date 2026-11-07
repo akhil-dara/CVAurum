@@ -29,6 +29,7 @@ import { pageDates } from './seoDates'
 import { linkHtml, linkMarkdown, linkText } from './inlineLinks'
 import { guideSections } from '@/data/guideData'
 import { GUIDES, SHOWCASE_TEMPLATE_IDS, guideBySlug, type Guide } from '@/data/guides'
+import { plainResume } from './searchSpelling'
 import { ABOUT_GUIDE, AUTHOR, GUIDE_GROUPS, GUIDES_HUB, guideKind, templateGuideLinks } from '@/data/guideHub'
 import { CUSTOMIZE } from '@/data/customize'
 
@@ -185,8 +186,8 @@ export function templatePageMeta(id: string): PageMeta {
     title: fitTitle(`${templateKeyword(tpl)} Resume Template: ${tpl.name}`),
     // The design's facts, not its tagline: the tagline is a line of sales
     // prose, and the same offer closing it on every page is the point.
-    description: trimToWords(
-      `${templateKeyword(tpl)} resume template (${tpl.name}): ${templateStructure(tpl)}. Free PDF and Word download, no sign-up.`
+    description: plainResume(
+      trimToWords(`${templateKeyword(tpl)} resume template (${tpl.name}): ${templateStructure(tpl)}. Free PDF and Word download, no sign-up.`)
     ),
     image: `/og/${tpl.id}.jpg`,
   }
@@ -197,7 +198,7 @@ export function galleryPageMeta(): PageMeta {
   return {
     path: '/templates',
     title: `All ${TEMPLATES.length} Resume Templates — Free & ATS-Ready · CVAurum`,
-    description: trimToWords(GALLERY_DESCRIPTION),
+    description: plainResume(trimToWords(GALLERY_DESCRIPTION)),
     // The gallery's own card - a fan of real design pages with the count on
     // it. It fell back to the site card, which shows one design and no count.
     image: '/og/templates.jpg',
@@ -832,7 +833,7 @@ export function promptsPageMeta(): PageMeta {
   return {
     path: '/prompts',
     title: `${PROMPTS.length} Resume Prompts for AI Assistants — Free · CVAurum`,
-    description: trimToWords(PROMPTS_INTRO),
+    description: plainResume(trimToWords(PROMPTS_INTRO)),
     image: '/og.png',
   }
 }
@@ -912,7 +913,7 @@ export function guideSlugs(): string[] {
 
 export function guidePageMeta(slug: string): PageMeta {
   const g = mustGuide(slug)
-  return { path: `/${g.slug}`, title: g.title, description: trimToWords(g.description), image: '/og.png' }
+  return { path: `/${g.slug}`, title: g.title, description: plainResume(trimToWords(g.description)), image: '/og.png' }
 }
 
 /** The other guides, as links: each page points at its siblings. */
@@ -1158,7 +1159,7 @@ function hubGuides(): Guide[] {
 }
 
 export function guidesHubPageMeta(): PageMeta {
-  return { path: GUIDES_HUB.path, title: GUIDES_HUB.title, description: trimToWords(GUIDES_HUB.description), image: '/og.png' }
+  return { path: GUIDES_HUB.path, title: GUIDES_HUB.title, description: plainResume(trimToWords(GUIDES_HUB.description)), image: '/og.png' }
 }
 
 export function guidesHubStaticHtml(): string {

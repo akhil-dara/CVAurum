@@ -164,7 +164,7 @@ describe('an example page description', () => {
 describe('the template gallery', () => {
   it('describes itself with the count and the kinds of design', () => {
     expect(galleryPageMeta().description).toBe(
-      `${TEMPLATE_COUNT} free resume templates — simple, modern, two-column and creative — each on the same résumé. PDF and Word download, no sign-up.`
+      `${TEMPLATE_COUNT} free resume templates — simple, modern, two-column and creative — each on the same resume. PDF and Word download, no sign-up.`
     )
   })
 
