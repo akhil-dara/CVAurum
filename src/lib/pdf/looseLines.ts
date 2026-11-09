@@ -4,7 +4,7 @@
  * A browser justifies by stretching the spaces of every line but the last,
  * however far that takes them. A line holding a long URL, a product name or
  * only a few words ends up with gaps two or three spaces wide, and on a
- * résumé, where lines are long and words often are too, that is the one
+ * resume, where lines are long and words often are too, that is the one
  * place justified text looks broken (user report, 2026-10-26). There is no
  * CSS for "justify, but not past this much"; this pass measures instead.
  *
@@ -24,7 +24,7 @@
 
 /** Average gap over normal space past which a paragraph goes ragged.
  *  Typesetters hold spaces to about 1.33x; browsers allow anything. On a real
- *  justified résumé (95-character lines, long product names) the median
+ *  justified resume (95-character lines, long product names) the median
  *  paragraph reached 1.81x and a quarter 2.09x, so a tighter limit set half
  *  the page ragged and the alignment read as random. 2.0 catches the gaps a
  *  reader notices - the 3x rivers - and leaves the rest of the page even. */

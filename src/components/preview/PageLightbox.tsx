@@ -1,7 +1,7 @@
 /**
  * See it big.
  *
- * A grid card is 260px wide; a résumé is not readable at 260px. Until now the
+ * A grid card is 260px wide; a resume is not readable at 260px. Until now the
  * only way to judge one was to leave the page — /examples/<slug> or
  * /templates/<id> — or, on a desk only, to hover and wait for a flyout barely
  * larger than the card. A phone had neither: hover does not exist there, and
@@ -150,7 +150,7 @@ export function PageLightbox({
   }, [onClose, step])
 
   // A new picture is a new decode; hold the frame until it lands rather than
-  // flashing the previous résumé's page at the new one's size.
+  // flashing the previous resume's page at the new one's size.
   useEffect(() => setLoaded(false), [item?.src])
 
   if (!item) return null
@@ -297,7 +297,7 @@ export function PageLightbox({
 }
 
 /** The desk's arrows: outside the page on a wide window, over its edge on a
- *  narrow one — never covering the middle of the résumé being read. */
+ *  narrow one — never covering the middle of the resume being read. */
 function NavArrow({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight
   return (

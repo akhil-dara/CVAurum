@@ -94,7 +94,7 @@ describe('the footer strip', () => {
   })
 
   it('an empty footer section shows on the canvas while editing but never prints', () => {
-    // A résumé still mostly blank keeps its empty sections on the canvas to
+    // A resume still mostly blank keeps its empty sections on the canvas to
     // be filled (emptySectionsShown 'auto'); a filled one leaves them out.
     // Both preferences are covered in lib/sections.test - a server render
     // reads the store's initial state, so this checks the default.

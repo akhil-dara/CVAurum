@@ -9,7 +9,7 @@ import { collectResumeLines } from './semantic'
 import { resumeToAtsText } from './atsText'
 
 /**
- * One invariant, stated six ways: the analysis describes the résumé the page
+ * One invariant, stated six ways: the analysis describes the resume the page
  * draws, and nothing else.
  *
  * The defect these cover was not a wrong rule, it was a wrong input. Every
@@ -114,7 +114,7 @@ describe('visibleDocument', () => {
 })
 
 describe('a hidden section contributes nothing', () => {
-  it('…to the résumé text the analysis reads', () => {
+  it('…to the resume text the analysis reads', () => {
     const term = skillOnlyTerm().toLowerCase()
     expect(extractResumeText(sample()).toLowerCase()).toContain(term)
     expect(extractResumeText(hide(['skills'])).toLowerCase()).not.toContain(term)
@@ -162,7 +162,7 @@ describe('a hidden section contributes nothing', () => {
     expect(analyzeWriting(d).bulletCount).toBeGreaterThan(hidden.bulletCount)
   })
 
-  it('…to the semantic matcher’s pool of résumé lines', () => {
+  it('…to the semantic matcher’s pool of resume lines', () => {
     const shown = collectResumeLines(sample())
     const hidden = collectResumeLines(hide(['work']))
     expect(shown.length).toBeGreaterThan(hidden.length)

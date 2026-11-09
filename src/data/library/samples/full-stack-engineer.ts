@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * The services-firm-to-product path, which a lot of Indian résumés have and
+ * The services-firm-to-product path, which a lot of Indian resumes have and
  * few show well. The first job gets two bullets about delivery, the later ones
  * get the business numbers, and the page never repeats a stack list.
  */

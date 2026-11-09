@@ -1,7 +1,7 @@
 /**
  * Recruiter skim heatmap — a deterministic, on-device saliency model of where a
  * ~7-second recruiter skim actually lands. No AI, no network, no randomness:
- * the same résumé always produces the same map, so it's a design tool you can
+ * the same resume always produces the same map, so it's a design tool you can
  * iterate against, not a party trick.
  *
  * Model (eye-tracking-informed, fully explainable):
@@ -55,7 +55,7 @@ interface Heat {
   rank?: number // 1-based, only for the top fixations
 }
 
-/** Structure prior: what kind of résumé anchor is this element? */
+/** Structure prior: what kind of resume anchor is this element? */
 function structureBoost(el: Element): number {
   const c = (sel: string) => el.closest(sel) != null
   if (c('.rm-name')) return 1

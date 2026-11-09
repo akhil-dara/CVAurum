@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Firmware is measured in units nobody else on a résumé uses — milliamps,
+ * Firmware is measured in units nobody else on a resume uses — milliamps,
  * microseconds, boot time — so the bullets keep the unit and then say what it
  * bought: battery life in the field, vehicles taking an update without a visit.
  */

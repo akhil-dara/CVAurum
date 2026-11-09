@@ -3,10 +3,10 @@
  *
  * Someone who talks to an assistant every day already has their history in a
  * chat window rather than in a form, and the shortest path from there to a
- * résumé is a prompt whose answer this app imports. So every prompt here asks
+ * resume is a prompt whose answer this app imports. So every prompt here asks
  * for JSON Resume — which is literally what a CVAurum file is (src/lib/io.ts)
  * — and the page closes the loop itself: paste the answer into the box at the
- * foot and the résumé opens in the editor.
+ * foot and the resume opens in the editor.
  *
  * The prompts themselves live in src/lib/seoPages.ts, not here, because the
  * pre-rendered HTML and the Markdown twin have to be the same text as the
@@ -27,6 +27,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowDown, Check, ChevronDown, ClipboardPaste, Copy, FileJson } from 'lucide-react'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
+import { ALL_GUIDES_LINK } from '@/data/pageLinks'
 import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/dashboard/newResume'
 import { PROMPTS, PROMPTS_INTRO, SCHEMA_DOC, SITE, promptsPageMeta, type PromptEntry } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
@@ -190,6 +191,10 @@ export function Prompts() {
             ·{' '}
             <Link className="text-primary hover:underline" to="/examples">
               Read complete examples
+            </Link>{' '}
+            ·{' '}
+            <Link className="text-primary hover:underline" to={ALL_GUIDES_LINK.href}>
+              {ALL_GUIDES_LINK.label}
             </Link>{' '}
             ·{' '}
             <a className="text-primary hover:underline" href={SCHEMA_DOC.replace(SITE, '')}>
@@ -364,7 +369,7 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
         Paste the answer here
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        It opens as a résumé you can edit. Leaving the code fence on is fine.
+        It opens as a resume you can edit. Leaving the code fence on is fine.
       </p>
       <textarea
         value={text}
@@ -380,7 +385,7 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
       />
       <button type="button" className="btn-primary mt-3 h-11 w-full sm:w-auto sm:px-6" disabled={!body} onClick={go}>
         <FileJson className="h-4 w-4" />
-        Open it as a résumé
+        Open it as a resume
       </button>
     </section>
   )

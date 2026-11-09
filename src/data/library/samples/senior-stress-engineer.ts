@@ -6,7 +6,7 @@ import { brandmark } from '../brandmark'
  * Aerospace structures, where the deliverable is evidence a regulator will
  * accept. Every bullet is written against that: findings raised, submittals
  * accepted first time, mass removed while margins held. The publications
- * section is where conference papers belong on an analyst résumé.
+ * section is where conference papers belong on an analyst resume.
  */
 export const sample: LibrarySample = {
   slug: 'senior-stress-engineer',

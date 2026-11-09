@@ -9,7 +9,7 @@ import { LIBRARY_CATEGORIES, REGIONS, SENIORITIES, type LibrarySample } from './
 
 /**
  * The library is public, indexed, and offered to a stranger as a model of how
- * their own résumé should read. A sample that is merely present fails at that:
+ * their own resume should read. A sample that is merely present fails at that:
  * a bullet with no number in it, a summary written in the first person, a
  * phone number that could ring a real person, an employer that is a real
  * company's name beside an invented employee.
@@ -123,7 +123,7 @@ describe('the sample library is complete', () => {
     ).toEqual([])
   })
 
-  it('parses as résumé content, with nothing the schema would drop', () => {
+  it('parses as resume content, with nothing the schema would drop', () => {
     expect(
       collect((s, fail) => {
         const parsed = ResumeContentSchema.safeParse(s.content)
@@ -266,8 +266,8 @@ describe('every sample is written the way it tells the reader to write', () => {
   })
 
   it('backs the work history with numbers', () => {
-    // Not every bullet needs a figure, but a résumé with none anywhere is the
-    // "responsible for" résumé this library exists to argue against.
+    // Not every bullet needs a figure, but a resume with none anywhere is the
+    // "responsible for" resume this library exists to argue against.
     expect(
       collect((s, fail) => {
         const withNumbers = bullets(s).filter((b) => /\d/.test(b.text)).length
@@ -378,11 +378,11 @@ describe('every sample is written the way it tells the reader to write', () => {
 /**
  * The advice under a sample (LibrarySample.guide). It is what makes an
  * example page more than a specimen, so it is held to rules a generic
- * paragraph could not pass: every point is about THIS résumé.
+ * paragraph could not pass: every point is about THIS resume.
  */
 describe('the advice under a sample is about that sample', () => {
   const withGuide = () => LIBRARY.filter((s) => s.guide)
-  // Every word on the résumé - publications, awards, placements, scores and
+  // Every word on the resume - publications, awards, placements, scores and
   // custom sections included. Reading only bullets and names turned true
   // points about a sample's papers or placements away, and pushed the advice
   // towards the generic (2026-10-24).
@@ -421,7 +421,7 @@ describe('the advice under a sample is about that sample', () => {
 
   it('ties every point to something actually on the page', () => {
     // a figure, a quoted phrase or a named role, employer, skill or credential
-    // from the résumé - so no point could be pasted onto another sample
+    // from the resume - so no point could be pasted onto another sample
     const bad: string[] = []
     for (const s of withGuide()) {
       const text = sampleText(s)

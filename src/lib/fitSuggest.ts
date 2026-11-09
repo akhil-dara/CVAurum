@@ -26,11 +26,11 @@ const MAX_OFFERS = 3
 /** The lowest floor the rules allow (the slider's bottom). */
 const FLOOR_MIN = 6
 /** The smallest body a relax offer may propose: below this the page is
- *  not a résumé anyone wants (measured: a 7.25pt file offered 6pt). */
+ *  not a resume anyone wants (measured: a 7.25pt file offered 6pt). */
 const RELAX_MIN_BODY = 8
 /** The narrowest page margin a move may propose, in mm. */
 const MIN_MARGIN = 10
-/** Sections a résumé can most easily do without, in the order a move tries
+/** Sections a resume can most easily do without, in the order a move tries
  *  leaving them out. Leaving out hides the section; its content is kept. */
 const EXPENDABLE = ['interests', 'references', 'volunteer', 'publications', 'languages', 'awards', 'certificates', 'projects']
 /** Trials spent on leaving sections out, and offers made from them. */
@@ -56,7 +56,7 @@ function columnOf(doc: ResumeDocument, key: string): string[] | null {
 }
 
 /** Measures a few concrete moves and returns the ones that come out better
- *  than the current fit, best first, at most three: pulling the résumé onto
+ *  than the current fit, best first, at most three: pulling the resume onto
  *  one page fewer (when the target allows it), and moving a section on a
  *  nearly empty last page one place up. Each candidate costs one trial; the
  *  caller runs this on request only. */
@@ -167,7 +167,7 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
 
   // Beyond type and spacing: when the target is out of reach, the two moves
   // that free the most room without touching a word - narrower margins, and
-  // leaving out a section the résumé can most easily do without. Each is
+  // leaving out a section the resume can most easily do without. Each is
   // measured, and offered only when it reaches the target by itself.
   if (current.pages > target) {
     const margin = doc.metadata.page.margin
@@ -221,7 +221,7 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
     }
   }
 
-  // Together: a résumé well over its target (1.8 pages asked for one) is
+  // Together: a resume well over its target (1.8 pages asked for one) is
   // rarely brought in by one move. When none did, margins and the least
   // essential sections are taken in turn, cumulatively, and the first
   // combination that reaches the target is offered.
@@ -265,13 +265,13 @@ export async function suggestFits(doc: ResumeDocument, trial: FitTrialFn, curren
 }
 
 /** With the fit off, the last page is "a few lines" below this fill: worth
- *  measuring whether the résumé fits a page fewer at a readable size. */
+ *  measuring whether the resume fits a page fewer at a readable size. */
 const SPILL = 0.35
 /** The smallest text an unasked "fit on fewer pages" may propose. */
 const OFFER_MIN_BODY = 9
 
 /**
- * The one offer made while Magic fit is OFF: a résumé whose last page holds a
+ * The one offer made while Magic fit is OFF: a resume whose last page holds a
  * few spilled lines, told it fits a page fewer and at what size - and only
  * when that size is 9pt or more, so the offer never trades a page for text
  * too small to read. Taking it turns the fit on at that target with a 9pt
@@ -305,7 +305,7 @@ export async function suggestFitOn(doc: ResumeDocument, trial: FitTrialFn, curre
  * would need with the floor let down to its lowest (null when even that
  * cannot reach it), beside the floor that stopped the fit. The card says it
  * in words instead of "Nothing better within your rules" - a dead end a
- * two-page résumé asked for one page used to meet (2026-10-24).
+ * two-page resume asked for one page used to meet (2026-10-24).
  */
 export async function explainShort(
   doc: ResumeDocument,

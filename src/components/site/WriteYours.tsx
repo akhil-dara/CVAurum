@@ -4,9 +4,9 @@ import type { GuideLink } from '@/data/guideHub'
 import { cn } from '@/lib/utils'
 
 /**
- * "Write yours:" and two or three guides, on a design or an example page.
- * The same links as the pre-rendered HTML (guideLinksHtml in seoLibrary), from
- * the same list (data/guideHub).
+ * "Write yours:" and the guides, tool pages and hub link on a design or an
+ * example page. The same links as the pre-rendered HTML (guideLinksHtml in
+ * seoLibrary), from the same list (data/pageLinks).
  */
 export function WriteYours({ links, className }: { links: readonly GuideLink[]; className?: string }) {
   return (

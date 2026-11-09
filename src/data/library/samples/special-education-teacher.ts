@@ -3,7 +3,7 @@ import { content } from '../types'
 
 /**
  * A returner. Two years out for family caregiving sit between the sixth and
- * seventh years of teaching, and the résumé names the break plainly through
+ * seventh years of teaching, and the resume names the break plainly through
  * the advocacy work done during it rather than leaving a hole in the dates.
  */
 export const sample: LibrarySample = {

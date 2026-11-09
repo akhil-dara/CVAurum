@@ -1,7 +1,7 @@
 /**
  * Per-ATS parse simulator — the marquee panel. Shows how five real applicant-
  * tracking systems (Workday, Greenhouse, Lever, Taleo, iCIMS) each read the
- * résumé, with a per-system parse score, the profile it would extract, and the
+ * resume, with a per-system parse score, the profile it would extract, and the
  * specific structural risks. Fully on-device and deterministic.
  */
 import { useMemo, useState } from 'react'
@@ -48,7 +48,7 @@ export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        A deterministic simulation of how major ATS platforms read your résumé. The weakest one gates you — it currently scores{' '}
+        A deterministic simulation of how major ATS platforms read your resume. The weakest one gates you — it currently scores{' '}
         <span className="font-semibold" style={{ color: worst >= 85 ? VERDICT_RING.clean : worst >= 65 ? VERDICT_RING.minor : VERDICT_RING.risk }}>{worst}</span>.
       </p>
 

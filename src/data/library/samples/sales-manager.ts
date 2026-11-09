@@ -5,7 +5,7 @@ import { brandmark } from '../brandmark'
 /**
  * Senior, India. A sales manager is judged on two things at once — the number
  * and the team that has to hit it — so both are on the page, including the
- * attrition figure most sales résumés leave off.
+ * attrition figure most sales resumes leave off.
  */
 export const sample: LibrarySample = {
   slug: 'sales-manager',

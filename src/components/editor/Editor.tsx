@@ -75,7 +75,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Save this résumé's PDF fonts on the device while there IS a connection,
+  // Save this resume's PDF fonts on the device while there IS a connection,
   // so that it exports without one. Idle, silent, once per set of families.
   const faces = documentFaces(doc.metadata).join('|')
   useEffect(() => {
@@ -101,7 +101,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id])
 
-  // The skip link lands in the résumé's first field, putting the page on
+  // The skip link lands in the resume's first field, putting the page on
   // screen first where the panel covers it (a phone, or a narrow window).
   const skipToPage = () => {
     if (leftOpen && !split) setLeftOpen(false)
@@ -112,7 +112,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      <SkipLink label="Skip to your résumé" onSkip={skipToPage} />
+      <SkipLink label="Skip to your resume" onSkip={skipToPage} />
       <EditorTopBar doc={doc} />
       <PdfExportStatus />
       <div className="flex min-h-0 flex-1 flex-col desk:flex-row">
@@ -159,7 +159,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
         </AnimatePresence>
         <main
           data-tour="canvas"
-          aria-label="Your résumé"
+          aria-label="Your resume"
           className={cn(
             // While a section's Style inspector is docked at the right edge
             // (SectionGear), the canvas gives up its width, so the page

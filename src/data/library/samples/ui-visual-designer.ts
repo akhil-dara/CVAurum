@@ -4,7 +4,7 @@ import { brandmark } from '../brandmark'
 import { portrait } from '../avatar'
 
 /**
- * Two years in. The trap for a visual designer this early is a résumé that
+ * Two years in. The trap for a visual designer this early is a resume that
  * lists software; this one answers "what changed on the screen, and what
  * happened afterwards" for every line, and keeps the craft in the projects.
  */
@@ -35,7 +35,7 @@ export const sample: LibrarySample = {
     faq: [
       {
         q: 'Should a UI designer resume include a portfolio link?',
-        a: 'Yes, in the header and labelled clearly. The résumé states what changed and what happened afterwards; the portfolio shows the screens. Point the link at a page of selected work rather than a full archive.',
+        a: 'Yes, in the header and labelled clearly. The resume states what changed and what happened afterwards; the portfolio shows the screens. Point the link at a page of selected work rather than a full archive.',
       },
       {
         q: 'Should a fresher designer in India put CGPA on the resume?',

@@ -43,7 +43,7 @@ function chosenAll<T extends object>(cur: T, prev: T, next: T, base: T): T {
   for (const k of new Set([...Object.keys(c), ...Object.keys(n)])) {
     const v = c[k]
     if (v !== null && typeof v === 'object') continue
-    // Still the schema's own value is no choice either: a blank résumé
+    // Still the schema's own value is no choice either: a blank resume
     // carries the base text colour and an empty heading font, and read as
     // choices they put dark body text on every dark design.
     out[k] = v === b[k] ? n[k] : chosen(v, p[k], n[k])
@@ -182,7 +182,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       headingWeight: cur.typography.headingWeight ?? defaults.typography.headingWeight,
       // The document-wide heading treatment is the author's the same way the
       // case and the weights are: an author who set every section title to a
-      // filled block meant the résumé, not the design they had at the time.
+      // filled block meant the resume, not the design they had at the time.
       // Undecided stays undecided, and the new template's own stands.
       headingStyle: cur.typography.headingStyle,
       // The air under a heading and the weight of its rule stay too; an
@@ -244,7 +244,7 @@ export function applyTemplateToMetadata(cur: Metadata, defaults: TemplateDefault
       // whether to number, never in what figures.
       sectionNumberStyle: cur.layout.sectionNumberStyle,
       // The keyword separator and the section icon style are the document's
-      // house style (a new résumé starts on middots and folio icons), not a
+      // house style (a new resume starts on middots and folio icons), not a
       // design's: most designs never state either and only inherit the
       // schema's older values, so they travel with the document unchanged.
       keywordSeparator: cur.layout.keywordSeparator,

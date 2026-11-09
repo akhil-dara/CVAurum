@@ -91,7 +91,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'onyx-noir',
     name: 'Onyx Noir',
-    description: 'A full-bleed charcoal résumé with an electric-teal accent and crisp white type — the dark, high-contrast look that turns heads. Selectable text throughout.',
+    description: 'A full-bleed charcoal resume with an electric-teal accent and crisp white type — the dark, high-contrast look that turns heads. Selectable text throughout.',
     tags: ['single-column', 'creative', 'premium'],
     atsSafe: true,
     class: 'tpl-onyx-noir',
@@ -218,7 +218,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'onyx-gold',
     name: 'Onyx Gold',
-    description: 'The charcoal résumé in warm gold — the same bold dark canvas with a luxe amber accent. Selectable text throughout.',
+    description: 'The charcoal resume in warm gold — the same bold dark canvas with a luxe amber accent. Selectable text throughout.',
     tags: ['single-column', 'creative', 'premium'],
     atsSafe: true,
     class: 'tpl-onyx-gold',
@@ -395,7 +395,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'garamond',
     name: 'Garamond',
-    description: 'The timeless Garamond résumé recruiters trust — a bold old-style serif name, clean ruled sections, impeccable single-column structure. Classic and restrained.',
+    description: 'The timeless Garamond resume recruiters trust — a bold old-style serif name, clean ruled sections, impeccable single-column structure. Classic and restrained.',
     tags: ['ats-safe', 'single-column', 'classic', 'elegant'],
     atsSafe: true,
     class: 'tpl-garamond',
@@ -429,7 +429,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'classic',
     name: 'Oxford',
-    description: 'Timeless serif résumé. Conservative and recruiter-friendly.',
+    description: 'Timeless serif resume. Conservative and recruiter-friendly.',
     tags: ['ats-safe', 'single-column', 'classic'],
     atsSafe: true,
     class: 'tpl-classic',
@@ -810,7 +810,7 @@ export const TEMPLATES: TemplateConfig[] = [
     id: 'deedy',
     slug: 'duet',
     name: 'Duet',
-    description: 'A tight, bold two-column résumé: a narrow sidebar of skills and links beside a dense main column, red rules and capitalised headings.',
+    description: 'A tight, bold two-column resume: a narrow sidebar of skills and links beside a dense main column, red rules and capitalised headings.',
     tags: ['two-column', 'modern', 'technical'],
     atsSafe: true,
     class: 'tpl-deedy',
@@ -1479,7 +1479,7 @@ export const TEMPLATES: TemplateConfig[] = [
     id: 'scribe',
     name: 'Scribe',
     description:
-      'The classic typeset résumé: a centred serif name over a hairline, uppercase headings on full rules, roles in italic, and bullets indented under each entry.',
+      'The classic typeset resume: a centred serif name over a hairline, uppercase headings on full rules, roles in italic, and bullets indented under each entry.',
     tags: ['ats-safe', 'single-column', 'bare', 'classic'],
     atsSafe: true,
     class: 'tpl-scribe',
@@ -1721,7 +1721,7 @@ export const TEMPLATES: TemplateConfig[] = [
   {
     id: 'measure',
     name: 'Measure',
-    /* Every number below was read off the text layer of a résumé set by a
+    /* Every number below was read off the text layer of a resume set by a
      * typesetting engine, not estimated: A4, a 43.2pt (0.6in) side margin,
      * a 10pt body on a 12.0pt baseline (1.2 - the classic ratio), a 20.7pt
      * name, a 9.0pt contact line, and section titles at the BODY size,
@@ -1779,7 +1779,7 @@ export const TEMPLATES: TemplateConfig[] = [
      * measured rather than assumed, off the exported files: our painter
      * spreads a justified line word by word (paint.ts justifiedPieces), so
      * every word space in the PDF can be read exactly. Over six example
-     * résumés plus a twelve-line paragraph of prose, the loosest line on any
+     * resumes plus a twelve-line paragraph of prose, the loosest line on any
      * page carried 5.05pt word spaces - 2.0x the then-face's natural 2.50pt.
      * The source page, set by the engine and WITH hyphenation, carries
      * 5.46pt spaces on its own loosest line and one space of 8.43pt. So the
@@ -1791,7 +1791,7 @@ export const TEMPLATES: TemplateConfig[] = [
      * THE FACE CHANGE MOVED THESE NUMBERS, because this face sets the widest
      * word space in the registry: 333/1000 em against the old face's 250, so
      * 3.33pt natural at a 10pt body rather than 2.50pt. Re-measured on the
-     * engineer example's exported page (ONE page, not the six-résumé corpus
+     * engineer example's exported page (ONE page, not the six-resume corpus
      * the 5.05pt above came from - so the two are not strictly comparable):
      * 61 word spaces, median 4.31pt, loosest 8.50pt. That loosest space is
      * 2.6x the natural one, and it lands within 0.07pt of the single 8.43pt

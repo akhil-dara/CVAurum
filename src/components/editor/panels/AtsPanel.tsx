@@ -244,7 +244,7 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
   // What the preview measured about the rendered document: how many pages it
   // really came to, and the body size Magic fit really settled on. Without
   // these the analysis estimates the page count from the word count, which
-  // called a full one-page résumé two pages often enough to matter.
+  // called a full one-page resume two pages often enough to matter.
   const fitResult = useEditorStore((s) => s.fitResult)
   const measured = useMemo<AtsMeasurement>(
     () => (fitResult ? { pages: fitResult.pages, bodyPt: fitSizesPt(doc.metadata, fitResult.fit).body } : {}),

@@ -8,7 +8,7 @@ import { pageImage, pageImageAlt, pageImageHeight } from './Templates'
 /**
  * The gallery says a design's picture in its own words rather than calling
  * lib/seoPages, because seoPages reaches lib/seoLibrary, which imports the
- * 108-résumé library — a 476 KB chunk this route does not load today
+ * 108-resume library — a 476 KB chunk this route does not load today
  * (measured in dist, 2026-09-15). A duplicate that nothing checks drifts, and
  * the drift would be invisible: the wall and the design's own page would
  * describe the same file differently, and only a screen-reader user would ever

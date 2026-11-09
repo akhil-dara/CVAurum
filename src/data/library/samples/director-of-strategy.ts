@@ -26,7 +26,7 @@ export const sample: LibrarySample = {
   ],
   guide: {
     why: [
-      'The two-year General Manager, Aftermarket Parts role sits in the middle of a strategy career, and its bullets prove operating credibility: margin “from 11% to 17%” with flat headcount. Strategy hires with P&L time are rare and this résumé makes it visible.',
+      'The two-year General Manager, Aftermarket Parts role sits in the middle of a strategy career, and its bullets prove operating credibility: margin “from 11% to 17%” with flat headcount. Strategy hires with P&L time are rare and this resume makes it visible.',
       'Deals are given a count and a value, four acquisitions worth $210M, and the largest is named for what it did: the $96M deal that opened a European service footprint.',
       'The portfolio review bullet shows the hard call: two product lines retired because they took 19% of R&D spend for 3% of gross profit. A strategy leader is hired to make that kind of decision and defend it with numbers.',
       'Three roles at Marrowstone Industrial Systems are listed separately, showing a path from corporate development to director, with the Kellogg MBA and consulting years at Thornbury & Crane as the foundation.',

@@ -35,7 +35,7 @@ export const sample: LibrarySample = {
     faq: [
       {
         q: 'Does a product designer resume need a portfolio link?',
-        a: 'Yes. Put it in the header with a plain label, and make sure the case studies match the bullets on the résumé. The résumé gives the outcomes, and the portfolio shows the process behind two or three of them.',
+        a: 'Yes. Put it in the header with a plain label, and make sure the case studies match the bullets on the resume. The resume gives the outcomes, and the portfolio shows the process behind two or three of them.',
       },
       {
         q: 'How to show a career change from engineering to product design?',

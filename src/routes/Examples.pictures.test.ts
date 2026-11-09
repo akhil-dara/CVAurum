@@ -6,7 +6,7 @@ import { samplePageImage, samplePageImageHeight, sampleImageAlt, sampleThumbImag
 import { PAGE_IMAGE_HEIGHT } from '@/data/pageImages'
 
 /**
- * The shelf now shows files instead of rendering 108 résumés, so a file that
+ * The shelf now shows files instead of rendering 108 resumes, so a file that
  * is not there is a card that never paints — and nothing in the app would say
  * so. Before, a missing picture only cost a crawler a broken <img> on a page
  * almost nobody visits; now it is the library itself.

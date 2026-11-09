@@ -44,7 +44,7 @@ export const NOTES_B: Record<string, TemplateNote> = {
   },
   compact: {
     suits:
-      'Quartz suits people with a long or crowded history to fit on one page: senior engineers, consultants with many engagements, operations leads, nurses and tradespeople with many certifications. Its smaller type and tight spacing buy room for an extra role or two. On a short early-career résumé the density leaves empty space at the foot; a roomier design fills the page better.',
+      'Quartz suits people with a long or crowded history to fit on one page: senior engineers, consultants with many engagements, operations leads, nurses and tradespeople with many certifications. Its smaller type and tight spacing buy room for an extra role or two. On a short early-career resume the density leaves empty space at the foot; a roomier design fills the page better.',
     layout:
       'Quartz is one column set in Roboto at a small size with tight line and section spacing. The header is a single line, name in bold with the job title after a dash, then contact details with icons in a wrapping row. Section headings are small grey capitals beside an icon tile, followed by a thin grey rule running to the right margin. Colour is muted charcoal throughout; skills are inline lists grouped by category.',
     ats:
@@ -92,11 +92,11 @@ export const NOTES_B: Record<string, TemplateNote> = {
   },
   ivy: {
     suits:
-      'Scholar suits graduate school applicants, law students, finance and consulting candidates, and anyone applying where a traditional Times-style résumé is the norm, such as investment banking or government. It is as much at home for an undergraduate with one internship as for a partner-level professional. It will not help a designer show visual skill.',
+      'Scholar suits graduate school applicants, law students, finance and consulting candidates, and anyone applying where a traditional Times-style resume is the norm, such as investment banking or government. It is as much at home for an undergraduate with one internship as for a partner-level professional. It will not help a designer show visual skill.',
     layout:
       'Scholar centres the name in a large, widely spaced serif, the title beneath and contact details in a row divided by thin vertical bars, with no icons. Section headings are small capitals in a deep brown-black, left-aligned, followed by a thin rule to the margin. Everything is set in Tinos, a serif with Times-compatible letter widths, in near-black; colour barely appears beyond the heading tone and language dots.',
     ats:
-      'Scholar is about as safe as it gets for parsers: one column, a serif every system handles, no icons, standard headings and inline skills. The vertical bars in the contact row are separators, so each item reads as its own value. If a firm asks for a Times New Roman résumé, Tinos matches its letter widths, so line breaks and page length come out the same.',
+      'Scholar is about as safe as it gets for parsers: one column, a serif every system handles, no icons, standard headings and inline skills. The vertical bars in the contact row are separators, so each item reads as its own value. If a firm asks for a Times New Roman resume, Tinos matches its letter widths, so line breaks and page length come out the same.',
   },
   onyx: {
     suits:
@@ -116,7 +116,7 @@ export const NOTES_B: Record<string, TemplateNote> = {
   },
   academic: {
     suits:
-      'Academia suits PhD candidates, postdocs, lecturers, researchers and scientists applying for faculty, fellowship or research posts, as well as graduate school applicants. It has room for publications, talks, grants and teaching, which a short résumé usually lacks. For an industry job the same design works as a two-page résumé, though a brisker layout may serve better.',
+      'Academia suits PhD candidates, postdocs, lecturers, researchers and scientists applying for faculty, fellowship or research posts, as well as graduate school applicants. It has room for publications, talks, grants and teaching, which a short resume usually lacks. For an industry job the same design works as a two-page resume, though a brisker layout may serve better.',
     layout:
       'Academia centres a bold Source Serif name, the title and a row of contact details divided by small dots, with no icons. Section headings are small capitals in slate grey with a thin grey rule running to the right margin. The whole page, headings included, is set in Source Serif 4 at a comfortable size and line spacing. Colour stays in slate and grey, and skills are inline lists with bold labels.',
     ats:
@@ -136,7 +136,7 @@ export const NOTES_B: Record<string, TemplateNote> = {
     layout:
       'Sienna centres a Spectral serif name above the title in widely spaced grey capitals and a single row of contact details with no icons, then a short terracotta rule. Section headings are centred, letter-spaced terracotta capitals with no lines. Body text is Spectral throughout, generously spaced, and terracotta returns in bullets, the link marker, project tags and language dots.',
     ats:
-      'Sienna is a single column with centred headings, which parsers read the same as left-aligned ones. With no icons and no panels, the text layer is clean and predictable. The serif is embedded and selectable. Because spacing is generous, a long career runs long; trimming bullets on older roles keeps the résumé to one or two pages.',
+      'Sienna is a single column with centred headings, which parsers read the same as left-aligned ones. With no icons and no panels, the text layer is clean and predictable. The serif is embedded and selectable. Because spacing is generous, a long career runs long; trimming bullets on older roles keeps the resume to one or two pages.',
   },
   newton: {
     suits:
@@ -172,7 +172,7 @@ export const NOTES_B: Record<string, TemplateNote> = {
   },
   halcyon: {
     suits:
-      'Halcyon suits nurses, therapists, teachers, hospitality staff, customer service leads and junior professionals in countries where a photo is expected on a résumé. Its pale cyan sidebar is friendly and fresh. Candidates in the US, UK or Canada can use it with the photo turned off.',
+      'Halcyon suits nurses, therapists, teachers, hospitality staff, customer service leads and junior professionals in countries where a photo is expected on a resume. Its pale cyan sidebar is friendly and fresh. Candidates in the US, UK or Canada can use it with the photo turned off.',
     layout:
       'Halcyon has a white main column on the left and a pale cyan sidebar on the right, about a third wide, edged with a fine line. A round, medium-size photo is switched on by default and appears once a picture is added. The name is large Figtree with a teal title and icon contact lines. Headings are letter-spaced teal capitals beside an icon tile. The sidebar holds rounded teal skill pills, language dots, certifications and awards.',
     ats:
@@ -196,7 +196,7 @@ export const NOTES_B: Record<string, TemplateNote> = {
   },
   spotlight: {
     suits:
-      'Spotlight suits event planners, brand ambassadors, hospitality and retail managers, trainers, presenters and creative freelancers who want a photo and a bold header without giving up a single, easy-to-read column. It works well in markets where a photo on a résumé is customary.',
+      'Spotlight suits event planners, brand ambassadors, hospitality and retail managers, trainers, presenters and creative freelancers who want a photo and a bold header without giving up a single, easy-to-read column. It works well in markets where a photo on a resume is customary.',
     layout:
       'Spotlight opens with a violet-to-magenta gradient banner with rounded lower corners, carrying the name, title and contact row in white Poppins, with a round photo once a picture is added. One column runs below. Each heading has a short violet bar, an icon tile and violet capitals. Skill and project tags are small violet pills grouped by category, and languages use violet dots.',
     ats:

@@ -268,7 +268,7 @@ function readOpen(title: string, fallback: boolean): boolean {
  * The Design panel is seven of these and about a thousand lines of controls —
  * the layout group alone is longer than a screen twice over — so finding the
  * one setting you came for meant scrolling past every setting you did not.
- * Each group now folds, and remembers: fold away the ones your résumé is done
+ * Each group now folds, and remembers: fold away the ones your resume is done
  * with and they stay folded next time.
  *
  * `defaultOpen` false is for the refinements (per-element colour overrides,

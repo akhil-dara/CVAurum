@@ -44,7 +44,7 @@ export function Guide() {
     <div className="min-h-full bg-background">
       <SiteHeader
         action={
-          // On a phone with saved résumés "My resumes" takes this place; the
+          // On a phone with saved resumes "My resumes" takes this place; the
           // page repeats its own call to action under the heading.
           <Link className={`btn-primary btn-sm${saved ? ' hidden sm:inline-flex' : ''}`} to={g.action.href}>
             {g.action.label}

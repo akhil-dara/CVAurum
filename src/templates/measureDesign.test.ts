@@ -67,7 +67,7 @@ describe('the Measure design states the page it was measured from', () => {
 describe('picking the design actually hands the document its identity', () => {
   const fresh = () => applyTemplateToMetadata(defaultMetadata(), measure.defaults)
 
-  it('a résumé that never chose gets the justification, the weight and the separator', () => {
+  it('a resume that never chose gets the justification, the weight and the separator', () => {
     const m = fresh()
     expect(m.typography.align).toBe('justify')
     expect(m.typography.headingWeight).toBe('regular')

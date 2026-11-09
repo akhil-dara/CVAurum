@@ -6,7 +6,7 @@
  * "Broadsheet resume template" — the phrase people actually type. This route
  * gives every design a page of its own: its name as the heading, its full
  * description, what it is good for, a preview big enough to judge, one button
- * that starts a résumé in it, and links onward to the designs nearest it.
+ * that starts a resume in it, and links onward to the designs nearest it.
  *
  * The head is set from the same `templatePageMeta` the build step writes into
  * the pre-rendered file, so what a crawler is served and what a reader gets can
@@ -23,8 +23,9 @@ import { PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { TEMPLATES, getTemplate, templatePath } from '@/templates/registry'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { WriteYours } from '@/components/site/WriteYours'
-import { templateGuideLinks } from '@/data/guideHub'
-// The one code path that starts a résumé and lands in the editor — the same
+import { templateUseLabel, writeYoursTemplateLinks } from '@/data/pageLinks'
+import { EXAMPLES_BY_TEMPLATE } from '@/data/library/byTemplate'
+// The one code path that starts a resume and lands in the editor — the same
 // one the gallery card and the landing strip call, so a design started here is
 // a design started there.
 import { useResumeActions } from '@/components/dashboard/newResume'
@@ -90,6 +91,8 @@ function Design({ id }: { id: string }) {
   const { create } = useResumeActions()
 
   const related = useMemo(() => relatedTemplateIds(id).map((rid) => getTemplate(rid)), [id])
+  // the example resumes whose sample is set in this design (data/library)
+  const examples = EXAMPLES_BY_TEMPLATE[id] ?? []
 
   return (
     <div className="min-h-full bg-background">
@@ -108,11 +111,11 @@ function Design({ id }: { id: string }) {
 
         {/*
           The copy comes first in the DOM (its <h1> is the page's heading, and a
-          preview is a full résumé render carrying headings of its own), and
+          preview is a full resume render carrying headings of its own), and
           `order` puts the preview on the left from the large breakpoint up.
 
           grid-cols-1 is not decoration: without an explicit single-column track
-          the implicit one sizes to max-content, and a résumé page's intrinsic
+          the implicit one sizes to max-content, and a resume page's intrinsic
           width is ~560px — which gave a 375px phone a 578px document and a
           sideways scrollbar.
         */}
@@ -122,12 +125,17 @@ function Design({ id }: { id: string }) {
             <p className="mt-1.5 text-sm font-medium text-primary">{tagSentence(tpl.tags)}</p>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{tpl.description}</p>
 
-            <button className="btn-primary mt-6 w-full sm:w-auto" onClick={() => create(true, tpl.id)}>
-              <Wand2 className="h-4 w-4" />
-              Use this template
+            {/* The button names the design (an anchor that says what it
+                starts), so it may wrap on a phone rather than overflow. */}
+            <button
+              className="btn-primary mt-6 h-auto min-h-[2.25rem] w-full whitespace-normal py-2 text-center sm:w-auto"
+              onClick={() => create(true, tpl.id)}
+            >
+              <Wand2 className="h-4 w-4 shrink-0" />
+              {templateUseLabel(tpl.name)}
             </button>
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Opens the editor with an example résumé in this design — replace the words with your own. Free, no
+              Opens the editor with an example resume in this design — replace the words with your own. Free, no
               account, and everything stays in this browser.
             </p>
             {/* A visitor from a search judges the design by one picture; say
@@ -160,14 +168,14 @@ function Design({ id }: { id: string }) {
                 <dd className="mt-0.5 font-medium">Free, open source (AGPL-3.0)</dd>
               </div>
             </dl>
-            <WriteYours className="mt-6 border-t border-border pt-5" links={templateGuideLinks()} />
+            <WriteYours className="mt-6 border-t border-border pt-5" links={writeYoursTemplateLinks()} />
           </div>
 
           <div className="order-2 min-w-0 lg:order-1">
             {/* The design, as the picture the export actually produces.
 
                 The page image, not the share card and not a rendering.
-                /og/<id>.jpg is 1200x630 landscape - the résumé inside it is
+                /og/<id>.jpg is 1200x630 landscape - the resume inside it is
                 430x560, with body type about six pixels tall, which is a link
                 preview and not something anyone can read. This is the whole
                 page at 1200px wide, shown at about 560: finer than the
@@ -189,7 +197,7 @@ function Design({ id }: { id: string }) {
               />
             </figure>
             <p className="mt-2.5 text-center text-[11px] text-muted-foreground">
-              Shown on the same example résumé every design in the gallery uses.
+              Shown on the same example resume every design in the gallery uses.
             </p>
           </div>
         </div>
@@ -210,6 +218,22 @@ function Design({ id }: { id: string }) {
               <h2 className="text-base font-semibold tracking-tight">How it reads to an ATS</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{note.ats}</p>
             </div>
+          </section>
+        )}
+
+        {/* The same list as the pre-rendered page: only when there is one. */}
+        {examples.length > 0 && (
+          <section className="mt-14 border-t border-border pt-8">
+            <h2 className="text-lg font-semibold tracking-tight">Resume examples set in the {tpl.name} design</h2>
+            <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              {examples.map((s) => (
+                <li key={s.slug}>
+                  <Link className="text-primary hover:underline" to={`/examples/${s.slug}`}>
+                    {s.role} resume example
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

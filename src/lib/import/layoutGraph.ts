@@ -283,7 +283,7 @@ function collapseTracking(text: string): string {
  */
 const runningTextItems = (items: Item[]): Item[] => items.filter((it) => it.str.trim().length > 1)
 
-/** One word of a date as a résumé sets it: a month, a year, a numeric date,
+/** One word of a date as a resume sets it: a month, a year, a numeric date,
  *  "Present" and its kin, or the dash and "to" between two of them. */
 const DATE_WORD =
   /^(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?|\d{4}|\d{1,2}[/.-]\d{2,4}|present|current|now|today|to|till|[-–—])$/i

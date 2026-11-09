@@ -4,7 +4,7 @@ import { brandmark } from '../brandmark'
 
 /**
  * A career changer. The earlier career is kept — shortened to two bullets that
- * show the same habits the new job wants — and the résumé answers the question
+ * show the same habits the new job wants — and the resume answers the question
  * a reader always asks of a switch: what has been shipped since.
  */
 export const sample: LibrarySample = {

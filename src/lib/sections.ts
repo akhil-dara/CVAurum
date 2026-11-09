@@ -529,8 +529,8 @@ export type EmptySectionsPref = 'auto' | 'show' | 'hide'
  * Whether the editing canvas shows the sections that hold nothing yet.
  *
  * It always did, each one a heading over an "+ Add" line: a scaffold a new
- * résumé needs, and on a filled one a run of headings the PDF never prints -
- * five of them took 245px at the foot of a real three-page résumé
+ * resume needs, and on a filled one a run of headings the PDF never prints -
+ * five of them took 245px at the foot of a real three-page resume
  * (2026-10-24). Auto keeps the scaffold while fewer than two sections hold
  * anything, and leaves the empties out after; Show and Hide are the author's
  * to choose. A section added this session stays regardless (resolveOrder's

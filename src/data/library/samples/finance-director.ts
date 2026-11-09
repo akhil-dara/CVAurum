@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * A lead résumé has a second job: proving the person can run a function, not
+ * A lead resume has a second job: proving the person can run a function, not
  * just a model. So the first bullet of the current role states team size and
  * scope, and the ones after it are the outcomes that only a function owner can
  * claim — a plan landed, a facility priced, cash pulled out of receivables.

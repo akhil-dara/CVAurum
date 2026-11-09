@@ -632,7 +632,7 @@ function inheritSvgPaint(parent: SvgPaintState, node: SvgNode): SvgPaintState | 
  * svg's DIRECT children and only six shape kinds, then returned "drawn" if it
  * had recognised ANY of them: the library's drawn portraits (avatar.ts) are an
  * `<ellipse>` head and a `<g>` of glasses among ordinary paths and circles, so
- * every example résumé that shows a face exported the backdrop, the hair and
+ * every example resume that shows a face exported the backdrop, the hair and
  * the eyes with no head under them. A partial drawing is the worst outcome
  * available — it looks like ink to every gate that only asks whether the box
  * is empty — so anything unrecognised now refuses the image outright and
@@ -787,7 +787,7 @@ export function svgLogoOps(
     const sizePx = parseFloat(textEl.attr('font-size') || '0') * scaleY
     if (sizePx > 0) {
       // Draw with the DOCUMENT's own font, not the SVG's declared one (our
-      // marks say Arial) — only the résumé's chosen fonts get embedded in
+      // marks say Arial) — only the resume's chosen fonts get embedded in
       // the PDF, so an arbitrary family from the SVG source would throw at
       // export time (PdfFontMissingError) instead of just looking slightly
       // off.
@@ -800,7 +800,7 @@ export function svgLogoOps(
       const xPx = anchor === 'middle' ? cx - width / 2 : anchor === 'end' ? cx - width : cx
       const baselinePx = box.yPx + (parseFloat(textEl.attr('y') || '0') - vbY) * scaleY
       const fill = parseHexColor(textEl.attr('fill') || '') || { r: 1, g: 1, b: 1, a: 1 }
-      // DECORATIVE: this is the logo mark's monogram letter, not résumé
+      // DECORATIVE: this is the logo mark's monogram letter, not resume
       // content — paint.ts draws it as vector glyph outlines so it can't
       // leak into the extractable text layer (see types.ts's TextRun.isDecorative).
       // widthPx: 0 — no measured DOM rect backs this synthesized run (see
@@ -834,7 +834,7 @@ export function svgLogoOps(
  *  shape text.ts builds for real runs, reused for generated content (pseudo
  *  ::before/::after text, synthesized list markers). Always DECORATIVE: every
  *  caller (pseudoOps, markerOps) synthesizes a separator/bullet glyph, never
- *  real résumé content (confirmed exhaustively against templates.css's own
+ *  real resume content (confirmed exhaustively against templates.css's own
  *  `content:` declarations — see the task-10b report) — see types.ts's
  *  TextRun.isDecorative. */
 function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx: number): TextRun | null {
@@ -1656,7 +1656,7 @@ export function svgShapeToPathD(tag: string, attr: (name: string) => string | nu
       // Same two-arc trace as `circle`, with the two radii kept apart. The
       // library's drawn portraits build every head out of one of these
       // (avatar.ts), and an unconverted ellipse used to leave the face with
-      // no head under the hair and eyes in every exported example résumé.
+      // no head under the hair and eyes in every exported example resume.
       // SVG 2's `auto` (one radius standing in for the other) is honoured
       // because a missing attribute is what `auto` means.
       const cx = num('cx'),
@@ -2092,7 +2092,7 @@ function tagPageChromeOps(ops: DrawOp[], contentHeightPx: number): void {
 /**
  * DOM-derived `PageBlock[]` for the native-multipage-pdf plan's pagination
  * engine (paginate.ts — READ ITS JSDoc first, its shape is the binding
- * contract this function fills in). Walks the SAME rendered résumé DOM
+ * contract this function fills in). Walks the SAME rendered resume DOM
  * `buildDrawList` walks (print-mode for export, the live editable canvas for
  * the WYSIWYG preview — both share the exact `.rm-section`/`.rm-item`/
  * `.rm-skill-group`/`.rm-mini`/`.rm-chips` class vocabulary sections.tsx and
@@ -2822,7 +2822,7 @@ function collectInk(el: Element, rootTop: number, out: PageBlock[]): void {
  * correct geometry, but PageBlock is y-ONLY, so the Y-only pagination model
  * reads that as overlapping ink. Confirmed live against the running app's
  * canvas (task-2 review): the unmodified dev sanity-warn fired ~11 times on
- * one ordinary long-form résumé, once per bolded line — this is not a rare
+ * one ordinary long-form resume, once per bolded line — this is not a rare
  * edge case, it fires on every inline-formatted line.
  *
  * Merges ADJACENT `'line'` blocks whose vertical spans overlap or coincide

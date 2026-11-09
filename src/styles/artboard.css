@@ -157,7 +157,7 @@
 }
 /* A two-column page is a whole sheet tall, so its sidebar band runs to the
    foot of the paper. `min-height: 100%` above resolves against a root that
-   was only as tall as its content, and on a short résumé the band stopped
+   was only as tall as its content, and on a short resume the band stopped
    56-83% of the way down on 16 of the 17 two-column designs - a white block
    under a navy band (usability test, 2026-09-26). The root becomes the
    column the body stretches in, as the footer designs' root already is.
@@ -180,7 +180,7 @@
 /* Two-column gutter (2026-08-19). Both columns used to apply the FULL page
    margin on their INNER edges, so the space between the two text blocks was
    twice the page margin — measured at 98px against a 49px margin, while a
-   reference two-column résumé runs ~40px. That stole width from the narrow
+   reference two-column resume runs ~40px. That stole width from the narrow
    sidebar (37% of its column went to padding, leaving skills to wrap after a
    word or two) and read as a hole down the middle of the page. The inner
    edges now share ONE gutter instead; outer edges keep the page margin. */
@@ -890,7 +890,7 @@
 .mode-thumbnail .rm-visual-hide {
   display: none;
 }
-/* A thumbnail is a whole page: a short résumé on a dark design left the
+/* A thumbnail is a whole page: a short resume on a dark design left the
    white of the thumbnail's frame showing under its last line, a strip of
    blank paper on a black sheet (Folio Noir in the homepage reel). */
 .rm-root.mode-thumbnail {
@@ -2576,7 +2576,7 @@
    look and draws a frame, a grid and a foot for every page on that page's
    own paper (PageChrome.tsx). */
 /* On the canvas the layer reaches the foot of the sheet, whatever its
-   length: a résumé the export fits onto one page at a smaller size still
+   length: a resume the export fits onto one page at a smaller size still
    shows at the size the author set, longer than a page, and a foot pinned
    one page down ran through its words. */
 .mode-preview .rm-running {
@@ -3358,7 +3358,7 @@
 
 /* Editor ink (editable preview only). The canvas's own marks - hover
    outlines, the caret's field, the bullet tools - are the editor talking, not
-   the résumé, so they never borrow the design's accent: on a red design an
+   the resume, so they never borrow the design's accent: on a red design an
    accent ring and tint made every edit look like an error and washed the line
    being edited (2026-10-24). Graphite for "you can edit this", the app's own
    gold for "you are editing this", red only under the pointer on a remove. */
@@ -3594,7 +3594,7 @@
 }
 /* With a mouse the add rows take NO room on the page. In the flow, hidden
    until hover, they still held their height: measured on a real three-page
-   résumé, 215px of "+ Add …" rows and 150px of "+ bullet" rows - nearly half
+   resume, 215px of "+ Add …" rows and 150px of "+ bullet" rows - nearly half
    a page of air between sections that the PDF does not have (2026-10-24).
    They hang below their section or entry instead, over the gap, inert until
    that section or entry is under the pointer (a hanging control that took
@@ -3677,15 +3677,15 @@
   background: rgb(15 23 42 / 0.06);
 }
 
-/* ---- the page at rest: tools where you work, the résumé everywhere else ----
+/* ---- the page at rest: tools where you work, the resume everywhere else ----
    Critique, 2026-10-23: in edit mode every section carried a Style pill, a
    hide eye and a link glyph, every entry a grey "Brief role overview" line
-   and a "+ bullet" chip - the sample résumé alone held 43 remove buttons -
+   and a "+ bullet" chip - the sample resume alone held 43 remove buttons -
    so the page read as a control panel rather than the document it prints.
 
    1. Tool ink. The add controls drew in the document's own accent at 70%
       (measured 2.7:1 for "+ bullet", 3.1:1 for "+ Add section"), which made
-      them read as part of the résumé and failed AA. They take the neutral
+      them read as part of the resume and failed AA. They take the neutral
       ink the Style pill already uses, at full strength, and turn to the
       accent only under the pointer. */
 .mode-preview .rm-add-btn,

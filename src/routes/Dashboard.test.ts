@@ -116,7 +116,7 @@ describe('computeStorageNotice', () => {
  * the first moment the reader can act on it.
  */
 describe('the durability warning and an empty library', () => {
-  it('says nothing when there are no résumés to lose', () => {
+  it('says nothing when there are no resumes to lose', () => {
     expect(
       computeStorageNotice({
         durability: 'denied',
@@ -129,7 +129,7 @@ describe('the durability warning and an empty library', () => {
   })
 
   it('says it the moment there is one, however new', () => {
-    // Unlike backup staleness, this one does not wait for the résumé to settle:
+    // Unlike backup staleness, this one does not wait for the resume to settle:
     // a browser that has refused durable storage can drop it today.
     expect(
       computeStorageNotice({
@@ -143,10 +143,10 @@ describe('the durability warning and an empty library', () => {
   })
 })
 
-describe('résumés this browser holds but cannot show', () => {
-  // The list used to leave such a résumé out without a word, and a failed
+describe('resumes this browser holds but cannot show', () => {
+  // The list used to leave such a resume out without a word, and a failed
   // read showed an empty library as though there were nothing to lose.
-  it('says nothing when every stored résumé is shown', () => {
+  it('says nothing when every stored resume is shown', () => {
     expect(unreadableResumes({ stored: 3, shown: 3, failed: false })).toBeNull()
     expect(unreadableResumes({ stored: 0, shown: 0, failed: false })).toBeNull()
   })

@@ -1,5 +1,5 @@
 /**
- * Secure, serverless résumé sharing — a link that carries the résumé INSIDE the
+ * Secure, serverless resume sharing — a link that carries the resume INSIDE the
  * URL's #fragment, which browsers never send to any server.
  *
  * THREAT MODEL. A fragment isn't sent over the network, but it IS stored in

@@ -42,7 +42,7 @@ export const sample: LibrarySample = {
       },
       {
         q: 'How long should a senior civil engineer resume be?',
-        a: 'Two pages for thirteen years. Consulting firms often keep a separate project list, so keep the résumé to outcomes per role and offer a project sheet if asked.',
+        a: 'Two pages for thirteen years. Consulting firms often keep a separate project list, so keep the resume to outcomes per role and offer a project sheet if asked.',
       },
     ],
   },

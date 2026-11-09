@@ -17,7 +17,7 @@ import type { Region } from '@/data/library/types'
 const TOOL_SLUGS: readonly string[] = ['free-resume-builder', 'ats-resume-checker', 'resume-builder-no-sign-up']
 
 /**
- * writing: advice on writing a résumé; an article with an author and a date.
+ * writing: advice on writing a resume; an article with an author and a date.
  * tool:    what the builder or its ATS check does; a plain page.
  * about:   who makes the site.
  */
@@ -55,9 +55,9 @@ export const GUIDES_HUB = {
   path: '/guides',
   title: 'Resume Guides: Format, Summary, Skills and Templates · CVAurum',
   heading: 'Resume guides',
-  description: `${ofKind('writing').length} guides to writing a resume (format, summary, skills, action verbs, CV and Word templates), plus the free resume builder and ATS checker.`,
+  description: `${ofKind('writing').length} guides to writing a resume (format, summary, skills, action verbs, CV and Word templates), plus ${ofKind('tool').length} free tools: the resume builder, the ATS checker and building with no sign-up.`,
   intro:
-    'Each guide answers one question about a resume on one page, with links to complete example résumés and designs where they help. The tool pages say what CVAurum’s builder and ATS check do. All of it is free to read and free to use, with no account.',
+    'Each guide answers one question about a resume on one page, with links to complete example resumes and designs where they help. The tool pages say what CVAurum’s builder and ATS check do. All of it is free to read and free to use, with no account.',
 } as const
 
 /** One guide as a link: its address and its short name. */
@@ -73,13 +73,13 @@ function linksTo(slugs: readonly string[]): GuideLink[] {
   })
 }
 
-/** What a design page points at: writing the résumé that goes in the design. */
+/** What a design page points at: writing the resume that goes in the design. */
 export function templateGuideLinks(): GuideLink[] {
   return linksTo(['how-to-write-a-resume', 'resume-format', 'resume-template-word'])
 }
 
 /**
- * What an example page points at: the parts of a résumé an example shows
+ * What an example page points at: the parts of a resume an example shows
  * best. A sample written for the UK is a CV there, so it also points at the
  * CV guide.
  */

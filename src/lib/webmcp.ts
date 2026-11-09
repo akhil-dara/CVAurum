@@ -2,7 +2,7 @@
  * In-page tools for an assistant that lives in the browser (WebMCP:
  * navigator.modelContext). Three actions, all of them things a person can
  * do by hand on the same page, all acting only in this browser: list the
- * designs, open one, start a résumé from a JSON Resume document. Nothing is
+ * designs, open one, start a resume from a JSON Resume document. Nothing is
  * sent anywhere; the storage is the visitor's own. A browser without the
  * API gets nothing registered and nothing loaded.
  */
@@ -23,7 +23,7 @@ export function registerWebMcpTools(): AbortController | null {
   const tools: ToolDef[] = [
     {
       name: 'list_resume_templates',
-      description: 'List every résumé template CVAurum offers: id, name, what it is for, layout, and the page that shows it.',
+      description: 'List every resume template CVAurum offers: id, name, what it is for, layout, and the page that shows it.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       execute: async () => {
         const { TEMPLATES, templatePath } = await import('@/templates/registry')
@@ -43,7 +43,7 @@ export function registerWebMcpTools(): AbortController | null {
     },
     {
       name: 'open_resume_template',
-      description: 'Open the page of one résumé template by its id (from list_resume_templates), where a person can read about it and start a résumé in that design.',
+      description: 'Open the page of one resume template by its id (from list_resume_templates), where a person can read about it and start a resume in that design.',
       inputSchema: { type: 'object', properties: { id: { type: 'string', description: 'The template id' } }, required: ['id'], additionalProperties: false },
       execute: async (input) => {
         const id = String(input.id || '')
@@ -58,7 +58,7 @@ export function registerWebMcpTools(): AbortController | null {
     {
       name: 'create_resume_from_json_resume',
       description:
-        'Create a new résumé in this browser from a JSON Resume document (https://jsonresume.org/schema), optionally in a named template, and open it in the editor. Nothing leaves the browser.',
+        'Create a new resume in this browser from a JSON Resume document (https://jsonresume.org/schema), optionally in a named template, and open it in the editor. Nothing leaves the browser.',
       inputSchema: {
         type: 'object',
         properties: {

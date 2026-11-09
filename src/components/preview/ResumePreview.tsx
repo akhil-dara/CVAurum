@@ -107,7 +107,7 @@ const raf2 = () =>
 /**
  * One-time helper for a BLANK resume: teaches the three canvas moves.
  * Deliberately in NORMAL FLOW above the page (not a floating overlay) — as an
- * overlay it covered the résumé header and repainted badly while scrolling.
+ * overlay it covered the resume header and repainted badly while scrolling.
  */
 function BlankCanvasTip({ doc }: { doc: ResumeDocument }) {
   const [dismissed, setDismissed] = useState(() => {
@@ -704,7 +704,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
       // `exceedsOnePage` is the export's own gate (render.tsx), shared here
       // so the two can never independently re-derive (and diverge on) this
       // arithmetic again.
-      // A pin can force a second page onto a résumé that fits on one, and the
+      // A pin can force a second page onto a resume that fits on one, and the
       // export prints it (render.tsx); this gate returned before pins were
       // read, so the canvas and the chip said one page while the PDF had two
       // (2026-10-24). With pins in play, pagination below decides.
@@ -843,7 +843,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             // up to fit, and every rect read after that was off by the slack
             // cleared - so alternate runs saw no need for any and the page
             // "danced" between two layouts for ever (2026-10-26, after a
-            // delete near the foot of a long résumé).
+            // delete near the foot of a long resume).
             const writes: [HTMLElement, number][] = []
             let had = 0
             let shift = 0
@@ -1106,7 +1106,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         {/* `w-max min-w-full`, not `w-full`: a centered flex row that is exactly
           the scrollport's width pushes a wider child out BOTH sides, and the
           left overflow of a centered box cannot be scrolled to — zoomed past
-          fit, the résumé's left margin (the name, the whole left column) was
+          fit, the resume's left margin (the name, the whole left column) was
           simply unreachable. Sized to its content instead, the row scrolls to
           either edge, and `min-w-full` keeps the sheet centered whenever the
           canvas is the wider one. */}

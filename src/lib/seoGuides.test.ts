@@ -127,7 +127,15 @@ describe('design and example pages link to the guides', () => {
 
   it('gives every design page at least two guide links', () => {
     for (const id of allTemplateIds()) expect(guideLinks(staticHtml(id)).length, id).toBeGreaterThanOrEqual(2)
-    expect(guideLinks(staticHtml(allTemplateIds()[0]))).toEqual(['/how-to-write-a-resume', '/resume-format', '/resume-template-word'])
+    // the writing guides first, then the three tool pages (src/data/pageLinks)
+    expect(guideLinks(staticHtml(allTemplateIds()[0]))).toEqual([
+      '/how-to-write-a-resume',
+      '/resume-format',
+      '/resume-template-word',
+      '/free-resume-builder',
+      '/resume-builder-no-sign-up',
+      '/ats-resume-checker',
+    ])
   })
 
   it('gives every example page at least two, and a UK sample the CV guide', () => {
@@ -136,7 +144,14 @@ describe('design and example pages link to the guides', () => {
     const us = LIBRARY.find((s) => s.region === 'us')!
     expect(guideLinks(sampleStaticHtml(uk.slug))).toContain('/cv-template')
     expect(guideLinks(sampleStaticHtml(us.slug))).not.toContain('/cv-template')
-    expect(guideLinks(sampleStaticHtml(us.slug))).toEqual(['/resume-summary-examples', '/resume-skills', '/resume-action-verbs'])
+    expect(guideLinks(sampleStaticHtml(us.slug))).toEqual([
+      '/resume-summary-examples',
+      '/resume-skills',
+      '/resume-action-verbs',
+      '/free-resume-builder',
+      '/resume-builder-no-sign-up',
+      '/ats-resume-checker',
+    ])
   })
 })
 

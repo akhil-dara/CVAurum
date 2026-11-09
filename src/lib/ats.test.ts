@@ -5,7 +5,7 @@ import { analyzeResume, type AtsCheck } from './ats'
 import type { FileFacts } from './fileFacts'
 
 /**
- * The analysis is the thing a person acts on before sending a résumé out, so
+ * The analysis is the thing a person acts on before sending a resume out, so
  * a rule that fires on the wrong document costs them an afternoon of edits
  * that made it worse. Each one is held to the case it is actually for.
  */
@@ -338,7 +338,7 @@ describe('passive voice', () => {
     expect(find(withBullets(['Cleared a suspense balance that had been carried for three years.']), 'passiveVoice').status).toBe('pass')
   })
 
-  it('leaves "is" and "are" alone, because on a résumé they are adjectives', () => {
+  it('leaves "is" and "are" alone, because on a resume they are adjectives', () => {
     expect(find(withBullets(['The team is dedicated to a weekly release cadence and holds to it.']), 'passiveVoice').status).toBe('pass')
   })
 })
@@ -435,7 +435,7 @@ describe('the report as a whole', () => {
     }
   })
 
-  it('scores the sample résumé well, since it is what the product recommends', () => {
+  it('scores the sample resume well, since it is what the product recommends', () => {
     // If the document this app ships as its own example cannot score well
     // against its own analysis, one of the two is wrong.
     expect(analyzeResume(doc(), { pages: 1, bodyPt: 10.5 }).score).toBeGreaterThanOrEqual(80)
@@ -575,7 +575,7 @@ describe('a PDF from elsewhere, judged as a file', () => {
     expect(r.checks.some((c) => c.id === 'template')).toBe(false)
   })
 
-  it('fails a picture of a résumé, and weighs it above any rule about the words', () => {
+  it('fails a picture of a resume, and weighs it above any rule about the words', () => {
     const c = find(d(), 'textLayer', { file: facts({ scannedPages: [1] }) })
     expect(c.status).toBe('fail')
     expect(c.weight).toBeGreaterThan(2)

@@ -4,7 +4,7 @@ import type { TemplateNote } from './index'
 export const NOTES_A: Record<string, TemplateNote> = {
   clarity: {
     suits:
-      'Clarity fits mid-career and senior people in tech, product, consulting and operations whose résumé carries a lot of structure: several roles, projects with links, certifications and a degree worth a GPA. It rewards a reader who scans for employers and numbers, such as an engineering manager or an in-house recruiter at a scale-up.',
+      'Clarity fits mid-career and senior people in tech, product, consulting and operations whose resume carries a lot of structure: several roles, projects with links, certifications and a degree worth a GPA. It rewards a reader who scans for employers and numbers, such as an engineering manager or an in-house recruiter at a scale-up.',
     layout:
       'Two columns on plain white: a wide main column on the left and a narrow right rail split off by a thin vertical line. The bold Poppins name sits over a blue title and an icon contact row. Headings are uppercase with a heavy grey rule beneath; entries are parted by dotted lines; employers and schools print in accent blue; skills in the rail are underlined words grouped by category; Lato carries the body. An optional rounded photo is supported.',
     ats:
@@ -12,7 +12,7 @@ export const NOTES_A: Record<string, TemplateNote> = {
   },
   obsidian: {
     suits:
-      'Obsidian is for people applying where a dark, considered document reads as taste rather than risk: fintech, crypto, design-led product teams, agencies and founders sending a résumé directly to a hiring lead. For a bank, a law firm or a public-sector portal, a light design is the safer pick.',
+      'Obsidian is for people applying where a dark, considered document reads as taste rather than risk: fintech, crypto, design-led product teams, agencies and founders sending a resume directly to a hiring lead. For a bank, a law firm or a public-sector portal, a light design is the safer pick.',
     layout:
       'A single column on a near-black page. The Archivo name is set in white over a gold title and a plain contact line, closed by a hairline rule. Section labels are small gold capitals with wide tracking. Summary, each job, each degree and each project sit inside their own rounded dark card with a faint border, and skills follow as grouped grey chips. Gold also marks bullets, employers and the language dots.',
     ats:
@@ -20,7 +20,7 @@ export const NOTES_A: Record<string, TemplateNote> = {
   },
   'onyx-noir': {
     suits:
-      'Onyx Noir suits developers, data people, security engineers and product designers who want a high-contrast, screen-first résumé, for startups and technical teams that read on a monitor. It works best for two to ten years of experience, where one dense column holds everything without crowding.',
+      'Onyx Noir suits developers, data people, security engineers and product designers who want a high-contrast, screen-first resume, for startups and technical teams that read on a monitor. It works best for two to ten years of experience, where one dense column holds everything without crowding.',
     layout:
       'One column on a charcoal page with crisp off-white Inter type and an electric-teal accent. The name is large and left-aligned, the title is teal, and the contacts carry small icons. Each heading is spaced uppercase followed by a teal rule running to the margin. Skill categories are labelled in teal over grey chips, languages use teal dots, and dates sit flush right on every entry.',
     ats:
@@ -28,7 +28,7 @@ export const NOTES_A: Record<string, TemplateNote> = {
   },
   cascade: {
     suits:
-      'Cascade is for people who want colour and a photo without losing order: marketing, customer success, hospitality, healthcare and early-career applicants across Europe, the Middle East and Asia, where a photo on a résumé is common. It is less fitting for US or UK roles where photos are discouraged.',
+      'Cascade is for people who want colour and a photo without losing order: marketing, customer success, hospitality, healthcare and early-career applicants across Europe, the Middle East and Asia, where a photo on a resume is common. It is less fitting for US or UK roles where photos are discouraged.',
     layout:
       'Two columns with a deep-teal sidebar on the left, about a third of the page wide, holding an optional circular photo, skills as outlined chips grouped by category, languages with dot meters, certifications and awards in near-white type. The white main column opens with the name, a teal title and an icon contact block, then experience, projects and education under teal uppercase headings with a thin rule and a small icon badge.',
     ats:
@@ -100,7 +100,7 @@ export const NOTES_A: Record<string, TemplateNote> = {
   },
   ribbon: {
     suits:
-      'Ribbon suits marketing, product, UX, communications and startup applicants who want one strong colour moment and an otherwise plain page. The banner gives a recruiter an instant name and contact line, which helps in a stack of printed or on-screen résumés.',
+      'Ribbon suits marketing, product, UX, communications and startup applicants who want one strong colour moment and an otherwise plain page. The banner gives a recruiter an instant name and contact line, which helps in a stack of printed or on-screen resumes.',
     layout:
       'A full-width indigo band across the top carries the name, title and icon contact line in white. Below it, one white column runs with indigo uppercase headings followed by a pale indigo rule. Skills sit as pale indigo chips under bold category labels, languages show indigo dots, and dates align right. Inter throughout at a medium density.',
     ats:
@@ -124,7 +124,7 @@ export const NOTES_A: Record<string, TemplateNote> = {
   },
   'aurum-editorial': {
     suits:
-      'Aurum Editorial suits writers, editors, publishers, curators, architects, and senior people in luxury, arts and culture who want an elegant, literary page. The centred small-caps name reads like a masthead, which works for a cover-letter-and-résumé pair sent to a person.',
+      'Aurum Editorial suits writers, editors, publishers, curators, architects, and senior people in luxury, arts and culture who want an elegant, literary page. The centred small-caps name reads like a masthead, which works for a cover-letter-and-resume pair sent to a person.',
     layout:
       'A single centred-header column. The name is set in gold Cormorant Garamond small caps, with a tracked uppercase title and one contact line beneath. Section headings are Cormorant small caps in mixed case, each with an icon badge and a single hairline gold rule. Body text is Source Sans 3, skills print inline by category, and dates sit flush right.',
     ats:
@@ -148,7 +148,7 @@ export const NOTES_A: Record<string, TemplateNote> = {
   },
   harvard: {
     suits:
-      'Harvard is for students, new graduates, and applicants to investment banking, consulting, law, policy and academia, where a plain black serif résumé is the expected format. Recruiters in these fields read it fast because every section sits where they look for it.',
+      'Harvard is for students, new graduates, and applicants to investment banking, consulting, law, policy and academia, where a plain black serif resume is the expected format. Recruiters in these fields read it fast because every section sits where they look for it.',
     layout:
       'One column in pure black Source Serif 4. The name is bold and centred, the title sits beneath it, and contacts run in a centred line separated by dots. Headings are bold tracked uppercase with a full-width black rule. Skills are inline lists by category, languages use black dots, and dates are flush right. No colour, no badges, tight spacing.',
     ats:

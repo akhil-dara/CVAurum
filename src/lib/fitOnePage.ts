@@ -131,7 +131,7 @@ export async function fitOnePageScale(
  * One page is impossible — so aim for the FEWEST pages instead of giving up.
  *
  * This used to restore full size and let the document paginate naturally,
- * which produced a cliff: measured on a real résumé, two extra work entries
+ * which produced a cliff: measured on a real resume, two extra work entries
  * still fitted ONE page, and a third produced THREE (last page 28% full),
  * because "doesn't fit one page" threw away all the shrinking. A user who
  * asked to fit one page wants compact output; the honest approximation of
@@ -351,7 +351,7 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
     // preview paint it as one (their gate, exceedsOnePage, allows even a
     // margin more), so the paginator is not asked. Asking it here declared a
     // page two for content that only reached into the bottom padding, and a
-    // résumé the old fit put on one page fell back to two (pdf gate,
+    // resume the old fit put on one page fell back to two (pdf gate,
     // folio-noir after the gate's template sequence: 1074px in a 1123px page).
     // Past the page height the true count decides, as the old fallback did.
     if (withinPage(h, pageH)) return 1
@@ -426,7 +426,7 @@ export async function fitToPages(input: FitInput, rules: FitRules): Promise<FitV
   /* One target. Returns null when even the end of the shrink path does not
    * meet it. A target above the author's own is the fewest-pages fallback:
    * the page is kept at the origin or shrunk, never grown to FILL the extra
-   * page (measured: a one-page résumé the floor could not fit grew to both
+   * page (measured: a one-page resume the floor could not fit grew to both
    * ceilings and came out as two pages with the second three-quarters full). */
   const search = async (target: number, allowGrow: boolean): Promise<FitVector | null> => {
     if (await fitsWithin(origin, target)) {

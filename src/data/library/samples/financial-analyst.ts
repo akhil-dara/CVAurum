@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Two years in, and the résumé still has to earn the interview on results. Every
+ * Two years in, and the resume still has to earn the interview on results. Every
  * bullet here names a forecast, a reconciliation or a report that changed, and
  * the education block does the work a longer history would otherwise do.
  */

@@ -1,8 +1,20 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import LASTMOD from '@/data/lastmod.json'
-import { nextLastmod, sourceHashes, todayUtc } from '@/lib/lastmodHash'
-import { lastmodEntry, publicUrlPaths, sitemapXml } from '@/lib/seoPages'
+import { nextLastmod, sourceHashes, sourceParts, todayUtc } from '@/lib/lastmodHash'
+import {
+  allTemplateIds,
+  examplesPageMeta,
+  galleryGroups,
+  galleryPageMeta,
+  lastmodEntry,
+  orderedSampleSlugs,
+  publicUrlPaths,
+  samplePageMeta,
+  sitemapXml,
+  templatePageFile,
+  templatePageMeta,
+} from '@/lib/seoPages'
 
 /** The repository root, the way the generator script sees it. */
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
@@ -104,5 +116,40 @@ describe('the sitemap reads the file rather than the clock', () => {
   it('exposes the entry behind each one', () => {
     for (const url of URLS) expect(lastmodEntry(url), url).toEqual(recorded[url])
     expect(lastmodEntry('/app')).toBeNull()
+  })
+})
+
+/**
+ * A retitled page is a changed page: a results page shows the title and the
+ * description, and IndexNow only submits pages dated recently. The hashes
+ * used to cover ids and sample sources only, so 95 retitled examples kept
+ * their October date (SEO audit, 2026-11-09).
+ */
+describe('what a page hash is made of', () => {
+  const parts = sourceParts(ROOT)
+  const head = (m: { title: string; description: string }) => JSON.stringify([m.title, m.description])
+  const designPaths = allTemplateIds().map((id) => `/${templatePageFile(id)}`)
+  const samplePaths = orderedSampleSlugs().map((slug) => `/examples/${slug}`)
+
+  it('includes the title and description each page is built with', () => {
+    for (const id of allTemplateIds()) expect(parts[`/${templatePageFile(id)}`], id).toContain(head(templatePageMeta(id)))
+    for (const slug of orderedSampleSlugs()) expect(parts[`/examples/${slug}`], slug).toContain(head(samplePageMeta(slug)))
+    expect(parts['/templates']).toContain(head(galleryPageMeta()))
+    expect(parts['/examples']).toContain(head(examplesPageMeta()))
+  })
+
+  it('includes how the gallery groups its designs', () => {
+    const groups = JSON.stringify(galleryGroups().map((g) => [g.heading, g.designs.map((t) => t.id)]))
+    expect(parts['/templates']).toContain(groups)
+  })
+
+  it('dates each collection by the newest of its pages', () => {
+    for (const [collection, members] of [
+      ['/templates', designPaths],
+      ['/examples', samplePaths],
+    ] as const) {
+      const newest = [collection, ...members].map((u) => recorded[u].lastmod).sort().pop()
+      expect(recorded[collection].lastmod, collection).toBe(newest)
+    }
   })
 })

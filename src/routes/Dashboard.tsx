@@ -83,7 +83,7 @@ export function computeStorageNotice({
   // Nothing to warn about until there is something to lose. The durability
   // notice used to fire on an empty library: an orange "it may clear your
   // resumes" above the page title, on a first visit, offering to back up
-  // nothing. Unlike backup staleness it does NOT wait for the résumé to settle
+  // nothing. Unlike backup staleness it does NOT wait for the resume to settle
   // — a browser that has refused durable storage can drop it the same day.
   if (!library.length) return null
   if (durability === 'denied' && now - dismissedAt.durability > FOURTEEN_DAYS_MS) return 'durability'
@@ -94,7 +94,7 @@ export function computeStorageNotice({
   return null
 }
 
-/** How many résumés this browser holds but the list cannot show - 'all' when
+/** How many resumes this browser holds but the list cannot show - 'all' when
  *  the library could not be read at all - or null when nothing is missing. */
 export function unreadableResumes(report: LoadReport): number | 'all' | null {
   if (report.failed) return 'all'
@@ -102,7 +102,7 @@ export function unreadableResumes(report: LoadReport): number | 'all' | null {
   return missing > 0 ? missing : null
 }
 
-/** Résumés stored here that cannot be opened: never left out in silence, and
+/** Resumes stored here that cannot be opened: never left out in silence, and
  *  always one tap from a file that keeps every word of them. */
 function UnreadableNotice({ count, onSave }: { count: number | 'all'; onSave: () => void }) {
   const message =
@@ -380,7 +380,7 @@ export function Dashboard() {
             <button
               className="btn-ghost btn-sm"
               onClick={() => pdfRef.current?.click()}
-              title="Import an existing PDF résumé — parsed in your browser, never uploaded"
+              title="Import an existing PDF resume — parsed in your browser, never uploaded"
             >
               <FileUp className="h-4 w-4" /> Import PDF
             </button>
@@ -462,7 +462,7 @@ export function Dashboard() {
   )
 }
 
-/** Résumés deleted in the last month: restorable as they were, or erased for
+/** Resumes deleted in the last month: restorable as they were, or erased for
  *  good on a second, deliberate click. Hidden when there are none. */
 function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; onChanged: () => Promise<void> }) {
   const toast = useAppStore((s) => s.toast)
@@ -559,7 +559,7 @@ function EmptyState({
       </div>
       <h2 className="mt-4 text-lg font-semibold">No resumes yet</h2>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        Create your first résumé from a blank canvas or a ready-made example — it stays private to this browser.
+        Create your first resume from a blank canvas or a ready-made example — it stays private to this browser.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <button className="btn-primary btn-sm" onClick={onNew}>
@@ -577,7 +577,7 @@ function EmptyState({
         </button>
       </div>
       <p className="mt-3 text-xs text-muted-foreground/70">
-        Import a JSON Resume file — or use Import PDF above to bring in an existing PDF résumé.
+        Import a JSON Resume file — or use Import PDF above to bring in an existing PDF resume.
       </p>
     </div>
   )
@@ -615,7 +615,7 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
   }
   const remove = async () => {
     // Moved to Recently deleted, never erased on the spot: the Undo is right
-    // here, and the résumé stays restorable for a month below the library.
+    // here, and the resume stays restorable for a month below the library.
     setMenu(false)
     await trashDoc(doc.id)
     await onChanged()

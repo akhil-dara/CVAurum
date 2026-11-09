@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 /**
  * The pieces of an ATS report that look the same wherever a report is read:
- * in the editor's panel, about the résumé on the canvas, and on the checker
+ * in the editor's panel, about the resume on the canvas, and on the checker
  * page, about a PDF someone dropped there.
  */
 

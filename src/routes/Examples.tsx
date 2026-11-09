@@ -1,12 +1,12 @@
 /**
  * The example library (/examples).
  *
- * Every sample résumé in the collection, with a search and three facets whose
+ * Every sample resume in the collection, with a search and three facets whose
  * state lives in the query string — a filtered shelf is a link someone can
  * send, and the back button walks it.
  *
  * A card shows the PICTURE of that sample's exported page, not a live render
- * of it: 108 live résumés cost 10.5s of main-thread task time to browse and
+ * of it: 108 live resumes cost 10.5s of main-thread task time to browse and
  * still left 61 of the cards as grey sketches (measured on the production
  * build, 2026-09-15). See PagePicture for the whole measurement. The picture
  * is made from the same sample "Use this example" starts, so the two still
@@ -52,6 +52,7 @@ import {
 } from '@/lib/seoLibrary'
 import { PAGE_THUMB_WIDTH } from '@/data/pageThumbs'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
+import { ALL_GUIDES_LINK } from '@/data/pageLinks'
 import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
 import { useCanonical } from '@/lib/useCanonical'
@@ -120,7 +121,7 @@ export function Examples() {
     return sort === 'az' ? [...matched].sort((a, b) => a.role.localeCompare(b.role)) : matched
   }, [filter, sort])
   // Filtering while a card is open would leave the index pointing at a
-  // different résumé than the one being read; close instead.
+  // different resume than the one being read; close instead.
   useEffect(() => setBigIndex(null), [shown])
 
   const big: LightboxItem[] = useMemo(
@@ -217,7 +218,7 @@ export function Examples() {
           {LIBRARY.length} resume examples, written out in full
         </h1>
         <p className="mt-3.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Complete résumés for real jobs — every bullet naming something that happened and what it changed. Open any one
+          Complete resumes for real jobs — every bullet naming something that happened and what it changed. Open any one
           in the editor and put your own history in its place.
         </p>
 
@@ -372,6 +373,13 @@ export function Examples() {
             )}
           </div>
         </div>
+        {/* The guides answer what goes on the page; /guides lists them all. */}
+        <p className="mt-10 border-t border-border pt-5 text-sm text-muted-foreground">
+          Writing what goes in it?{' '}
+          <Link className="text-primary hover:underline" to={ALL_GUIDES_LINK.href}>
+            {ALL_GUIDES_LINK.label}
+          </Link>
+        </p>
       </main>
 
       <SiteFooter />

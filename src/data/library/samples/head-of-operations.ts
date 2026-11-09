@@ -27,7 +27,7 @@ export const sample: LibrarySample = {
   ],
   guide: {
     why: [
-      'One unit measure runs through the whole résumé: cost per delivered order from ₹94 to ₹58. Using a single metric across roles makes fourteen years easy to compare.',
+      'One unit measure runs through the whole resume: cost per delivered order from ₹94 to ₹58. Using a single metric across roles makes fourteen years easy to compare.',
       'Quality rose with cost falling: on-time delivery from 88.6% to 97.4% while volume grew 2.7 times. Showing both answers the obvious question about cost cuts.',
       'Scale is stated in Indian units a reader can place, 9.4 lakh orders a month and 1,100 people in nine cities, which sets the size of the job before the bullets.',
       'Promoting six of nine city managers from the floor, with attrition at 4% against a 22% market rate, shows the leadership side of an operations role.',

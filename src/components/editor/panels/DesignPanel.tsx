@@ -948,7 +948,7 @@ note={notes[r.key]}
             have drawn an unspaced, untinted span. The base stylesheet sets
             the numeral on all of them now (artboard.css), so the reason for
             the gate is gone and the answer is the same everywhere: numbering
-            is a choice about the résumé, not a property of the design.
+            is a choice about the resume, not a property of the design.
             A second, older copy of this same switch sat further down the
             group under its own gate. One field written from two rows meant
             the panel offered the identical switch twice on the two numbered

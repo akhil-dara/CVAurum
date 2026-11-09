@@ -45,7 +45,7 @@ interface Section {
   lines: Line[]
 }
 
-/** Labels that head a block of bullets inside one job, common in résumés from India. */
+/** Labels that head a block of bullets inside one job, common in resumes from India. */
 const ENTRY_LABEL =
   /^(roles?\s*(and|&)\s*responsibilit\w*|responsibilities|key\s*responsibilities|duties|achievements|key\s*achievements|highlights)\s*:?$/i
 
@@ -573,7 +573,7 @@ function parseHeader(header: Line[], content: ResumeContent) {
 
 /**
  * Recover any basics the header pass missed — the name/contact block often sits
- * outside the "header" section on two-column résumés (a sidebar heading can come
+ * outside the "header" section on two-column resumes (a sidebar heading can come
  * first in reading order), so fall back to scanning the whole document. Only
  * fills fields that are still empty, so a header hit always wins.
  */
@@ -622,7 +622,7 @@ function recoverMissingBasics(content: ResumeContent, allLines: Line[], g: Layou
     // "Languages: TypeScript" or a heading can never be mistaken for it.
     const NAME_SHAPE = /^[A-Za-z][A-Za-z.'’-]+(?: [A-Za-z][A-Za-z.'’-]+){1,3}$/
     // Scan the whole first page (not just reading-order-early lines): on a
-    // two-column résumé the name sits in the main column, after the sidebar in
+    // two-column resume the name sits in the main column, after the sidebar in
     // reading order, but it is the LARGEST text on the page. Pick biggest font,
     // tie-break topmost.
     const firstPage = allLines[0]?.page ?? 0
@@ -667,7 +667,7 @@ export const sectionLeftX = (lines: Line[]): number => {
 
 /**
  * A line is a highlight (bullet) if it carries a bullet glyph OR is indented past
- * the section's left margin. Many résumés — including CVAurum's own export —
+ * the section's left margin. Many resumes — including CVAurum's own export —
  * render bullets via a hanging indent with no glyph in the text layer, so
  * indentation is the only reliable signal.
  */
@@ -732,7 +732,7 @@ function makeIsHighlight(lines: Line[], g: LayoutGraph): (l: Line) => boolean {
  * several lines, each surfacing as its own Line — so "…dashboards in Power BI to"
  * + "monitor SLA compliance…" is really one bullet. A continuation is a highlight
  * with no bullet glyph that follows a bullet which didn't end at a sentence
- * boundary (or, when the résumé uses glyph bullets, any glyph-less highlight).
+ * boundary (or, when the resume uses glyph bullets, any glyph-less highlight).
  */
 function mergeHighlights(lines: Line[]): string[] {
   const raw = lines.map((l) => ({ glyph: isBullet(l.text), text: stripBullet(l.text) }))
@@ -987,7 +987,7 @@ function parseEducation(lines: Line[], g: LayoutGraph): ResumeContent['education
 
 export function parseSkills(lines: Line[]): ResumeContent['skills'] {
   // Dedupe (case-insensitive), drop junk/sentence-length entries, and cap per
-  // group — some ATS-stuffed résumés list hundreds of comma-separated keywords.
+  // group — some ATS-stuffed resumes list hundreds of comma-separated keywords.
   const clean = (arr: string[]): string[] => {
     const seen = new Set<string>()
     const out: string[] = []

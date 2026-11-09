@@ -3,7 +3,7 @@ import { content } from '../types'
 import { portrait } from '../avatar'
 
 /**
- * A manager's résumé has to answer two questions at once: what the team
+ * A manager's resume has to answer two questions at once: what the team
  * shipped, and what changed about the team. Every role here carries at least
  * one of each, and the promotion inside one company is shown as two entries.
  */

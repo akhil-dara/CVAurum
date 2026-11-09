@@ -5,7 +5,7 @@ import type { ResumeContent } from '@/types/document'
  * What a dropped PDF is like as a FILE: the part of an ATS check that the
  * words cannot answer.
  *
- * A résumé made in the editor is exported by this product, so its file is
+ * A resume made in the editor is exported by this product, so its file is
  * known good and these questions are never asked of it. A PDF someone brings
  * from elsewhere is the opposite case: its words may be fine and its file
  * unreadable. Everything here is measured from the file itself while it is

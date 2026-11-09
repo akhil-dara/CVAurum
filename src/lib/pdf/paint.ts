@@ -660,7 +660,7 @@ async function embedImage(
  *    types.ts): this is the ONLY layer painted for them, so a logo letter
  *    stays pixel-identical without ever entering the extractable text layer
  *    an ATS reads (task-10b brief, defect B — a logo's monogram letter was
- *    showing up mid-sentence in real résumé content, e.g. "EXPERIENCE V
+ *    showing up mid-sentence in real resume content, e.g. "EXPERIENCE V
  *    Senior Software Engineer").
  *
  * ONLY decorative runs take this path. Tracked (letter-spaced) and small-caps
@@ -952,7 +952,7 @@ async function paintTrackedRun(
  * the caller's print-export fallback exists exactly to catch that case.
  * DECORATIVE text (see `isDecorative`) is tolerant like every other cosmetic
  * op: losing a logo's monogram letter is not the same class of failure as
- * losing résumé content.
+ * losing resume content.
  *
  * `captureDecoBoxes` (task 15) is the dev-only gate-instrumentation hook:
  * when the CALLER passes an array (render.tsx does so only behind

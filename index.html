@@ -37,12 +37,12 @@
     <meta name="keywords" content="free resume builder, open source resume builder, private resume builder, offline resume builder, ATS resume builder, resume builder no sign up, local resume builder, JSON Resume" />
     <meta name="author" content="Akhil Dara" />
     <meta name="application-name" content="CVAurum" />
-    <!-- max-image-preview:large is what lets a result show the résumé page
+    <!-- max-image-preview:large is what lets a result show the resume page
          image at full width. Without it Google is documented to fall back to
          a thumbnail-sized preview, which is the whole point of rendering a
          1200px-wide picture of every design and every example. No
          max-video-preview: the site has no video. No max-snippet either —
-         the résumé text itself is deliberately marked data-nosnippet, so a
+         the resume text itself is deliberately marked data-nosnippet, so a
          longer snippet is not something these pages are asking for. -->
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
@@ -89,7 +89,7 @@
       "@type": "SoftwareApplication",
       "@id": "https://cvaurum.com/#app",
       "name": "CVAurum",
-      "description": "CVAurum is a 100% client-side, open-source, privacy-first resume builder. Build ATS-ready resumes entirely in your browser with no server, no account, and no tracking. Includes 75 premium data-driven templates, local PDF résumé import (with on-device OCR), a deterministic ATS score, job-description keyword matching, and exports to crisp vector PDF (tagged PDF/UA-1 and archival PDF/A-2B, with every design's text meeting WCAG 2.2 AA contrast), WYSIWYG Word, and JSON Resume.",
+      "description": "CVAurum is a 100% client-side, open-source, privacy-first resume builder. Build ATS-ready resumes entirely in your browser with no server, no account, and no tracking. Includes 75 premium data-driven templates, local PDF resume import (with on-device OCR), a deterministic ATS score, job-description keyword matching, and exports to crisp vector PDF (tagged PDF/UA-1 and archival PDF/A-2B, with every design's text meeting WCAG 2.2 AA contrast), WYSIWYG Word, and JSON Resume.",
       "url": "https://cvaurum.com/",
       "softwareVersion": "3.0.0",
       "applicationCategory": "BusinessApplication",
@@ -103,11 +103,11 @@
       "author": { "@type": "Person", "@id": "https://cvaurum.com/#author", "name": "Akhil Dara", "url": "https://github.com/akhil-dara", "sameAs": ["https://github.com/akhil-dara"] },
       "publisher": { "@id": "https://cvaurum.com/#org" },
       "codeRepository": "https://github.com/akhil-dara/cvaurum",
-      "softwareHelp": "https://github.com/akhil-dara/cvaurum",
+      "softwareHelp": { "@type": "CreativeWork", "url": "https://github.com/akhil-dara/cvaurum#readme" },
       "featureList": [
         "75 premium templates",
         "Built-in deterministic ATS check with job-description keyword matching",
-        "Import an existing PDF résumé, read on your own device",
+        "Import an existing PDF resume, read on your own device",
         "Export to crisp vector PDF, Word (.docx) and JSON Resume",
         "Works fully offline — self-hosted fonts, no external requests",
         "No account, no server, no tracking"
@@ -132,8 +132,26 @@
         "name": "CVAurum",
         "url": "https://cvaurum.com/",
         "logo": "https://cvaurum.com/icon-512.png",
+        "description": "The open-source project behind CVAurum, a resume builder that runs entirely in the browser.",
+        "founder": { "@id": "https://cvaurum.com/#author" },
         "sameAs": ["https://github.com/akhil-dara/cvaurum"]
       }
+    }
+    </script>
+
+    <!-- The home page itself, tied to the app it presents (every inner page
+         declares its WebPage; this one did not - audit, 2026-11-09). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": "https://cvaurum.com/",
+      "url": "https://cvaurum.com/",
+      "name": "CVAurum — Free Open-Source Resume Builder",
+      "isPartOf": { "@id": "https://cvaurum.com/#website" },
+      "about": { "@id": "https://cvaurum.com/#app" },
+      "mainEntity": { "@id": "https://cvaurum.com/#app" },
+      "inLanguage": "en"
     }
     </script>
 
@@ -165,7 +183,12 @@
         },
         {
           "@type": "Question",
-          "name": "Will my résumé pass ATS scans?",
+          "name": "Does CVAurum work offline?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. After one visit with a connection it installs as a web app and works with none at all: the editor, every design, the ATS check and PDF and Word export run on your device. Each design keeps its PDF fonts once you have opened or exported it online, so open the designs you plan to use before you go offline." }
+        },
+        {
+          "@type": "Question",
+          "name": "Will my resume pass ATS scans?",
           "acceptedAnswer": { "@type": "Answer", "text": "The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description." }
         },
         {
@@ -175,7 +198,7 @@
         },
         {
           "@type": "Question",
-          "name": "Can I move my résumé to another computer?",
+          "name": "Can I move my resume to another computer?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser." }
         },
         {
@@ -196,7 +219,7 @@
         {
           "@type": "Question",
           "name": "Can I edit on my phone?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes, on the page and in the form panel. The page is editable on a phone too (every control gets a finger-sized hit area and the zoom reaches 300%), and the panel is the comfortable route on a small screen — everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes, on the page and in the form panel. The page is editable on a phone too (every control gets a finger-sized hit area and the zoom reaches 300%), and the panel is the comfortable route on a small screen — everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and the page and the panel edit the same resume. To carry it to a laptop, use a backup file, a JSON Resume file or an encrypted link — nothing syncs on its own, because there is no server." }
         },
         {
           "@type": "Question",
@@ -210,7 +233,7 @@
         },
         {
           "@type": "Question",
-          "name": "Is the text on my résumé easy to read for everyone?",
+          "name": "Is the text on my resume easy to read for everyone?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes, and it is measured rather than assumed. Every design’s text meets WCAG 2.2 AA contrast at its defaults, checked on the exported PDF against what each word actually stands on — coloured headers, bands, gradients, art and cards included. If a colour you choose falls short, a chip over the page says so, names the setting responsible and offers the nearest colour that passes everywhere that setting paints; nothing changes until you click." }
         },
         {
@@ -227,12 +250,12 @@
     <noscript>
       <main style="max-width:760px;margin:0 auto;padding:48px 20px;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;line-height:1.6">
         <!-- h2, not h1: the pre-rendered page carries the one h1 (seoPages landingStaticHtml) -->
-        <h2>CVAurum is a free, open-source résumé builder that runs in your browser</h2>
+        <h2>CVAurum is a free, open-source resume builder that runs in your browser</h2>
         <p>This page needs JavaScript to run the editor. Turn it on for this site and reload, and you can start writing straight away: no account, nothing to install.</p>
         <h2>What it does</h2>
-        <p>You write on the page itself, in one of 75 templates, and the PDF you download matches what you see. A check reads the résumé the way an applicant tracking system does and compares it with a job description. You can export a PDF with real, selectable text, a Word file, or JSON Resume.</p>
-        <h2>Where your résumé is kept</h2>
-        <p>On your device, in this browser's storage. There is no server holding a copy and no analytics. A backup file saves every résumé at once and restores them anywhere. An existing PDF résumé can be imported; it is read on your device, not uploaded.</p>
+        <p>You write on the page itself, in one of 75 templates, and the PDF you download matches what you see. A check reads the resume the way an applicant tracking system does and compares it with a job description. You can export a PDF with real, selectable text, a Word file, or JSON Resume.</p>
+        <h2>Where your resume is kept</h2>
+        <p>On your device, in this browser's storage. There is no server holding a copy and no analytics. A backup file saves every resume at once and restores them anywhere. An existing PDF resume can be imported; it is read on your device, not uploaded.</p>
         <p>The code is open under the AGPL-3.0: <a href="https://github.com/akhil-dara/cvaurum">github.com/akhil-dara/cvaurum</a>.</p>
       </main>
     </noscript>

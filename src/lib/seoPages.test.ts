@@ -299,6 +299,30 @@ describe('related designs', () => {
   it('answers for every design in the registry', () => {
     for (const tpl of TEMPLATES) expect(relatedTemplateIds(tpl.id).length, tpl.id).toBe(6)
   })
+
+  /**
+   * Ranking by shared tags alone sent most designs' neighbour slots to the
+   * same few: elegant, timeline, sienna and a dozen more were chosen by one
+   * or two pages, and a page few pages link to is a page a crawler rarely
+   * reaches (SEO audit, 2026-11-09).
+   */
+  it('chooses every design as a neighbour on at least three other pages', () => {
+    const inbound = new Map(TEMPLATES.map((t) => [t.id, 0]))
+    for (const tpl of TEMPLATES) for (const r of relatedTemplateIds(tpl.id)) inbound.set(r, inbound.get(r)! + 1)
+    const thin = [...inbound].filter(([, n]) => n < 3).map(([id, n]) => `${id}: ${n}`)
+    expect(thin).toEqual([])
+  })
+
+  it('still only offers a design that shares a tag with the page', () => {
+    for (const tpl of TEMPLATES) {
+      const mine = new Set(tpl.tags)
+      for (const r of relatedTemplateIds(tpl.id)) expect(getTemplate(r).tags.some((t) => mine.has(t)), `${tpl.id} -> ${r}`).toBe(true)
+    }
+  })
+
+  it('gives the longer list the same six first', () => {
+    for (const tpl of TEMPLATES) expect(relatedTemplateIds(tpl.id, 12).slice(0, 6), tpl.id).toEqual(relatedTemplateIds(tpl.id))
+  })
 })
 
 describe('breadcrumb structured data', () => {
@@ -519,7 +543,7 @@ describe('llms.txt', () => {
     expect(siteUrls()).toHaveLength(TEMPLATES.length + 5 + GUIDES.length)
     for (const u of siteUrls()) expect(full).toContain(`- ${u}`)
   })
-  // The question people ask about a designed résumé is whether the decoration
+  // The question people ask about a designed resume is whether the decoration
   // lands in the text a parser reads. The answer is measured, so it has to be
   // findable in the file an assistant reads, not only on the page.
   it('carries the measured account of what reaches the text layer', () => {
@@ -544,7 +568,7 @@ describe('llms.txt', () => {
  * The prompt library at /prompts.
  *
  * A prompt that names a field the importer does not read produces an answer
- * that silently loses half a résumé, so the field names are the thing worth
+ * that silently loses half a resume, so the field names are the thing worth
  * testing: they are generated from the same Zod schemas io.ts validates
  * against, and no prompt is allowed to spell one out itself.
  */
@@ -612,12 +636,12 @@ describe('the prompt library', () => {
     // The prohibition is spelled differently in each prompt because each one
     // is written, not templated — what every one of them has to carry is an
     // explicit refusal to add something the person did not give it.
-    const refusal = /\b(do not (invent|guess|add)|may not invent|without adding anything|only what (is in|I told you|the résumé)|built only from)\b/i
+    const refusal = /\b(do not (invent|guess|add)|may not invent|without adding anything|only what (is in|I told you|the resume)|built only from)\b/i
     for (const p of PROMPTS) expect(p.prompt, p.id).toMatch(refusal)
   })
 
   // Every field name a prompt mentions has to exist, or the answer arrives
-  // with that part of the résumé dropped on import.
+  // with that part of the resume dropped on import.
   it('never names a field the schema does not have', () => {
     const known = new Set<string>(['meta', 'meta.cvaurum'])
     for (const line of documentShape()) {

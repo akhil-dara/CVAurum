@@ -13,7 +13,7 @@ export const sample: LibrarySample = {
   region: 'us',
   template: 'onyx',
   blurb:
-    'An early-career paralegal résumé measured in document volumes, filing counts and deadlines held rather than duties listed.',
+    'An early-career paralegal resume measured in document volumes, filing counts and deadlines held rather than duties listed.',
   keywords: [
     'litigation paralegal',
     'paralegal resume',
@@ -27,7 +27,7 @@ export const sample: LibrarySample = {
       'Discovery is shown at scale: narrowing 410,000 documents to 38,000 and saving roughly 900 reviewer hours tells a litigation team the paralegal can run review, not just code documents.',
       'The filing record is a count with no exceptions, 190 filings with no rejected submissions and no missed deadlines, which answers the one risk every attorney worries about when delegating.',
       'The Certified Paralegal (CP) credential and the ABA-approved certificate sit on the page together, which is what many US firms screen for at this level.',
-      'Systems are named as the job descriptions name them, Relativity, PACER, CM/ECF and Westlaw, so the résumé matches a keyword search for e-discovery and federal filing.',
+      'Systems are named as the job descriptions name them, Relativity, PACER, CM/ECF and Westlaw, so the resume matches a keyword search for e-discovery and federal filing.',
     ],
     faq: [
       {

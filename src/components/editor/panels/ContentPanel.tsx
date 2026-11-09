@@ -6,7 +6,7 @@ import { BasicsEditor } from '../BasicsEditor'
 import { SectionsOrganizer } from '../SectionsOrganizer'
 
 /**
- * Is the top of the résumé already answered?
+ * Is the top of the resume already answered?
  *
  * A name and one way to be reached is the whole job of this block. When it is
  * done, the person who opened Content came for the SECTIONS — and those sat
@@ -19,7 +19,7 @@ export function basicsDone(doc: ResumeDocument): boolean {
 }
 
 export function ContentPanel({ doc }: { doc: ResumeDocument }) {
-  // Open on a résumé that still needs it, folded on one that does not. Only the
+  // Open on a resume that still needs it, folded on one that does not. Only the
   // FIRST render decides: a person who opens it keeps it open while they work.
   const [openBasics, setOpenBasics] = useState(() => !basicsDone(doc))
   const b = doc.content.basics

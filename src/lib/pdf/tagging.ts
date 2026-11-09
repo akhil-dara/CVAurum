@@ -17,7 +17,7 @@
  *
  * Role derivation is deliberately DOM-driven rather than heuristic: the
  * templates already carry the semantics we need in their class names, so a
- * heading is whatever the résumé renders as a heading, on all 52 templates.
+ * heading is whatever the resume renders as a heading, on all 52 templates.
  */
 import type { TagRole } from './types'
 import { linkTarget } from './links'

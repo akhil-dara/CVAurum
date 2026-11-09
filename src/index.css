@@ -319,7 +319,7 @@
 }
 
 /* The homepage's display voice: the face of Folio Noir, a Signature design,
-   so the site is typeset like the résumés it makes. Headings only; text
+   so the site is typeset like the resumes it makes. Headings only; text
    stays in the interface face. */
 .font-display {
   font-family: 'Cormorant Garamond', 'Cormorant Fallback', Georgia, serif;

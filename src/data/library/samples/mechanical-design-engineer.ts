@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Two years out of a B.Tech, so the résumé has to earn its page on detail
+ * Two years out of a B.Tech, so the resume has to earn its page on detail
  * rather than scope: part counts, scrap dropped, drawings released. The
  * projects section carries the university work that a hiring manager for a
  * design office still reads at this stage.

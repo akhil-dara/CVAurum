@@ -8,7 +8,7 @@
  * pixels, and a feed shows that card at half again. Nothing on it could be
  * read. Nine designs had no card at all, and seven more were pictures of a
  * bug: they were generated while the PDF renderer was dropping most of its
- * glyphs, so they showed an empty résumé with a name on top.
+ * glyphs, so they showed an empty resume with a name on top.
  *
  * So the card keeps the page - a shared link should show the design - and
  * spends the empty two thirds on type large enough to survive a feed. The
@@ -19,7 +19,7 @@
  * and screenshotted. One engine draws everything.
  *
  * JPEG, deliberately, though every measurement says lossless WebP is smaller
- * and exact for a résumé page (see scripts/make-page-images.cjs): this file is
+ * and exact for a resume page (see scripts/make-page-images.cjs): this file is
  * an og:image, and the link-preview readers do not take WebP. Between them
  * they document JPG, PNG and GIF, and one of the big ones has been measured
  * showing nothing at all for a WebP card.
@@ -66,7 +66,7 @@ const CATALOGUE = async () => {
     templates: reg.TEMPLATES.map((t) => ({
       kind: 'templates',
       id: t.id,
-      eyebrow: 'Résumé template',
+      eyebrow: 'Resume template',
       title: t.name,
       desc: t.description,
       tags: (t.tags || []).slice(0, 3).map(tagLabel),
@@ -75,7 +75,7 @@ const CATALOGUE = async () => {
     examples: lib.LIBRARY.map((s) => ({
       kind: 'examples',
       id: s.slug,
-      eyebrow: `Résumé example · ${types.CATEGORY_LABELS[s.category]}`,
+      eyebrow: `Resume example · ${types.CATEGORY_LABELS[s.category]}`,
       title: s.role,
       desc: s.blurb,
       tags: [types.SENIORITY_LABELS[s.seniority], types.REGION_LABELS[s.region], reg.TEMPLATE_MAP[s.template]?.name].filter(Boolean),

@@ -3,7 +3,7 @@
  *
  * Everything in the ATS panel - the score, the per-system simulation, the
  * keyword match against a job description, the writing coach and the "what an
- * ATS sees" text view - is a claim about the résumé the author is looking at.
+ * ATS sees" text view - is a claim about the resume the author is looking at.
  * It was not. The analysis read `doc.content` straight through, while the page
  * draws only the sections `resolveOrder` puts in the main column, the sidebar
  * and the footer strip. A section the author hid kept feeding the score, the

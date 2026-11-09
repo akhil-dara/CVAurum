@@ -8,13 +8,17 @@
 # 57 URLs sat in the index as "alternative page with proper canonical tag",
 # which is crawl budget spent on duplicates. A 301 says the slashed form is
 # not coming back, which is the truth: it has never been a page of this site.
-# Renamed designs keep their id (stored in every résumé that uses it) but
+# Renamed designs keep their id (stored in every resume that uses it) but
 # take a public slug of their own; the old address follows them. Listed
 # before the rules with placeholders, which the host would read first.
 /templates/deedy     /templates/duet     301
+/templates/deedy/    /templates/duet     301
 # A link elsewhere carries a stray semicolon after the skill file; the host
 # turns it into %3B and answers 404, which search reported as a soft 404.
 /skills/cvaurum/SKILL.md%3B    /skills/cvaurum/SKILL.md    301
+# Same cause, same fix: a sentence in llms-full.txt ran "...sitemap.xml; the
+# sitemap..." and the crawler kept the semicolon (Search Console 404, 2026-11-09).
+/sitemap.xml%3B                /sitemap.xml                301
 /templates/          /templates          301
 /examples/           /examples           301
 /prompts/            /prompts            301
@@ -39,8 +43,8 @@
 # /shell.html 200`) so the landing copy inside index.html could not flash
 # while the bundle loaded. This host does not implement the 200 rewrite - it
 # serves only real redirects - so it turned each rule into a 307 to /shell,
-# and every saved résumé's own URL answered with the 404 page. Reloading the
-# editor, sharing a link to a résumé and the print route were all broken in
+# and every saved resume's own URL answered with the 404 page. Reloading the
+# editor, sharing a link to a resume and the print route were all broken in
 # production by a rule meant to smooth a flash.
 #
 # Without them the host's single-page-application fallback serves index.html

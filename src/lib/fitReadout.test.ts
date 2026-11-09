@@ -22,7 +22,7 @@ describe('fitRulesOf', () => {
       priority: 'type',
       lock: { name: false, headline: false, contacts: false, sectionGap: false, leading: false },
     }
-    // A saved résumé's rules: exactly what the search always got, and none of Auto's.
+    // A saved resume's rules: exactly what the search always got, and none of Auto's.
     expect(fitRulesOf(m)).toMatchObject({ target: 2, minBody: 11, fontSize: 10, priority: 'type', auto: false, pinned: false })
     expect(fitRulesOf(m).grow).toBeUndefined()
     expect(fitRulesOf(m).spaceMin).toBeUndefined()
@@ -65,7 +65,7 @@ describe('formatFitReadout', () => {
     // page is drawn at, and the one a reader is least likely to guess.
     expect(line).toBe('Fitted: body 9.4pt, leading 1.19 from 1.28, headings 11.3pt, name 23.3pt, gaps 8.5pt / 5.1pt · 1 page, 98% full')
   })
-  it('says “As set” when nothing moved, and names the last page on a longer résumé', () => {
+  it('says “As set” when nothing moved, and names the last page on a longer resume', () => {
     const m = meta()
     m.page.fit.target = 2
     const line = formatFitReadout(m, { fit: { type: 1, space: 1 }, pages: 2, lastPageFill: 0.23 })

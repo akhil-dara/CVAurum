@@ -152,7 +152,7 @@ interface CreateOpts {
   /** Start with Magic fit on, as the page a picture showed (an example, a
    *  template's sample). Defaults to `sample`. Content read from a file
    *  passes `sample` for its section layout and `fitted: false`: it prints
-   *  at the size set, as a blank résumé does. */
+   *  at the size set, as a blank resume does. */
   fitted?: boolean
 }
 
@@ -176,12 +176,12 @@ export function createDocument(opts: CreateOpts = {}): ResumeDocument {
   const seeded = opts.sample ? markSeeded(content) : {}
 
   // Magic fit's starting state (2026-09-26, reported: "content grows and the
-  // page shrinks instead of going onto page 2"). A résumé started from
+  // page shrinks instead of going onto page 2"). A resume started from
   // nothing or brought from a file prints at the size set, and the floor
   // waiting for when the author turns the fit on is 9pt rather than two
   // thirds of the body. One started from a picture is the fitted page that
   // picture showed (69 of the 108 examples reach one page only that way),
-  // with the fit's old floor. Saved résumés keep whatever they stored.
+  // with the fit's old floor. Saved resumes keep whatever they stored.
   const fitted = opts.fitted ?? !!opts.sample
   const metadata = defaultMetadata({ ...opts.metadata, layout: { main, showPhoto: !!opts.sample, ...(opts.metadata?.layout ?? {}) } })
   metadata.page.autoFit = fitted

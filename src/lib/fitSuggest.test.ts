@@ -29,7 +29,7 @@ const res = (pages: number, lastPageFill: number, type = 1, space = 1, lastPageS
 })
 
 describe('suggestFits', () => {
-  it('offers to pull a résumé onto fewer pages when a trial at the smaller target fits', async () => {
+  it('offers to pull a resume onto fewer pages when a trial at the smaller target fits', async () => {
     const doc = docWith(['experience', 'education', 'skills'], 2)
     const trial = async (c: ResumeDocument) => {
       if (c.metadata.page.fit.target === 2) return res(2, 0.25) // a reorder trial: no help
@@ -179,7 +179,7 @@ describe('suggestFits', () => {
 })
 
 describe('suggestFits — moves beyond type and spacing', () => {
-  // A two-page résumé asked for one page, at a 9pt floor, used to end in
+  // A two-page resume asked for one page, at a 9pt floor, used to end in
   // "Nothing better within your rules": one page needed ~7.6pt, and the only
   // levers the offers knew were the floor and section order (2026-10-24).
   const twoPages = () => {
@@ -246,7 +246,7 @@ describe('suggestFits — moves beyond type and spacing', () => {
     expect(applied.metadata.page.margin).toBe(13)
     expect(applied.metadata.layout.hidden).toEqual(expect.arrayContaining(['interests', 'awards']))
   })
-  it('makes no new move when the résumé already meets its target', async () => {
+  it('makes no new move when the resume already meets its target', async () => {
     let n = 0
     const out = await suggestFits(twoPages(), async () => (n++, res(1, 0.9)), res(1, 0.9))
     expect(out.filter((o) => /^(margin|hide)-/.test(o.id))).toEqual([])

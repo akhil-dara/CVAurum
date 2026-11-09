@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Two years in, and the page still has numbers on it: an early-career résumé
+ * Two years in, and the page still has numbers on it: an early-career resume
  * works when the bullets say what the work changed for the people using it —
  * paint times on cheap phones, tickets that stopped arriving — rather than
  * listing the frameworks the person has touched.

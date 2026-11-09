@@ -19,7 +19,7 @@ export function NotFound() {
       <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
         <code className="rounded bg-muted px-1.5 py-0.5 text-[13px] text-foreground">{pathname}</code> is not a page
         CVAurum has. The link may be out of date, or a character may be missing. Nothing of yours is affected: your
-        résumés stay in this browser.
+        resumes stay in this browser.
       </p>
       <nav className="mt-2 flex flex-wrap justify-center gap-3" aria-label="Where to go instead">
         <Link className="btn-primary btn-sm" to="/app">

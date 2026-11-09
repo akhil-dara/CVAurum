@@ -15,7 +15,7 @@ import { PAGE_IMAGE_WIDTH, PAGE_IMAGE_HEIGHT } from '@/data/pageImages'
  *  - the width/height pair and the box's aspect ratio keep the grid from
  *    jumping as files land, and both come from the generated map rather than
  *    a guess: A4 and US Letter are different shapes.
- *  - an alt that is a real sentence, because a picture of a résumé is the
+ *  - an alt that is a real sentence, because a picture of a resume is the
  *    content of these cards, not decoration.
  *
  * Rendered to markup, which is all this repo's runner can do (vitest.config.ts:
@@ -37,12 +37,12 @@ describe('the page picture on a card', () => {
 
   it('is an async-decoded image at the picture’s own intrinsic size once shown', () => {
     const html = renderToStaticMarkup(
-      <PagePicture src="/img/examples/registered-nurse.webp" height={height} alt="A résumé page" eager />
+      <PagePicture src="/img/examples/registered-nurse.webp" height={height} alt="A resume page" eager />
     )
     expect(html).toContain('decoding="async"')
     expect(html).toContain(`width="${PAGE_IMAGE_WIDTH}"`)
     expect(html).toContain(`height="${height}"`)
-    expect(html).toContain('alt="A résumé page"')
+    expect(html).toContain('alt="A resume page"')
     expect(html).toContain('src="/img/examples/registered-nurse.webp"')
     // The cards already on screen are not held back by the gate or by lazy.
     expect(html).toContain('loading="eager"')
@@ -50,7 +50,7 @@ describe('the page picture on a card', () => {
 
   it('reserves the picture’s own aspect ratio, so nothing shifts as it lands', () => {
     const html = renderToStaticMarkup(
-      <PagePicture src="/img/templates/broadsheet.webp" height={1553} alt="A résumé page" eager />
+      <PagePicture src="/img/templates/broadsheet.webp" height={1553} alt="A resume page" eager />
     )
     // 1553 is US Letter at 1200 wide; a box built for A4 would letterbox it.
     expect(html).toContain(`aspect-ratio:${PAGE_IMAGE_WIDTH} / 1553`)
@@ -60,7 +60,7 @@ describe('the page picture on a card', () => {
     const html = renderToStaticMarkup(
       <PagePicture src="/img/examples/registered-nurse.webp" height={height} alt="x" eager />
     )
-    // Half a résumé painted over the sketch reads as a broken card.
+    // Half a resume painted over the sketch reads as a broken card.
     expect(html).toContain('opacity-0')
     expect(html).toContain('animate-pulse')
   })

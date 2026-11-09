@@ -47,14 +47,14 @@ interface Step {
 const STEPS: Step[] = [
   { title: 'Welcome — a quick tour 👋', body: 'Thirty seconds on where everything is. Skip it anytime and reopen it from the “?” in the top bar.' },
   { sel: '[data-tour="panel"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Fill in your details', body: 'Type your name, experience and skills here. Empty sections show an “Add” button — nothing is hidden.' },
-  { sel: '[data-tour="canvas"]', mobileShow: { panelOpen: false }, title: 'Or edit on the page', body: 'Click any text on the résumé to edit it right there. What you see is exactly what you download.', mobileBody: 'This is the page itself — tap any text to edit it. The Content tab below reopens the full forms; everything you type lands here instantly.' },
-  { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: `${TEMPLATE_COUNT} designs, one résumé`, body: 'Hover a design for a full-size preview with your own content; click to switch. Nothing is retyped, and every design can be restyled afterwards.', mobileBody: 'Tap any design to switch. Nothing is retyped, and every design can be restyled afterwards.' },
+  { sel: '[data-tour="canvas"]', mobileShow: { panelOpen: false }, title: 'Or edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you download.', mobileBody: 'This is the page itself — tap any text to edit it. The Content tab below reopens the full forms; everything you type lands here instantly.' },
+  { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: `${TEMPLATE_COUNT} designs, one resume`, body: 'Hover a design for a full-size preview with your own content; click to switch. Nothing is retyped, and every design can be restyled afterwards.', mobileBody: 'Tap any design to switch. Nothing is retyped, and every design can be restyled afterwards.' },
   { sel: '[data-tour="design"]', mobileShow: { tab: 'design', panelOpen: true }, title: 'Make it yours', body: 'Design changes colours, fonts, the header, the contact line and where it sits, heading styles, where dates and language levels go, one or two columns, spacing and page size — on any template.' },
   { sel: '[data-tour="canvas"]', mobileSel: '.rm-panel-gear .rm-section-gear', mobileShow: { tab: 'content', panelOpen: true, event: 'cvaurum:tour-show-style' }, title: 'Restyle one section', body: 'Hover a section and press its “Style” pill to change just that section: heading, icon, entry layout, date position. The eye beside it hides the section.', mobileBody: 'This “Style” button restyles one section — heading, icon, entry layout, date position. The ⋯ menu renames, hides or removes it.' },
-  { sel: '[data-tour="checks"]', mobileShow: { panelOpen: false }, title: 'Your size, your pages, readable', body: 'This chip says how your résumé prints: how many pages, and the text size. If Magic fit has made the text smaller to fit, it says so, and one tap prints it at your size instead. Beside it, a check that every line is easy to read.' },
+  { sel: '[data-tour="checks"]', mobileShow: { panelOpen: false }, title: 'Your size, your pages, readable', body: 'This chip says how your resume prints: how many pages, and the text size. If Magic fit has made the text smaller to fit, it says so, and one tap prints it at your size instead. Beside it, a check that every line is easy to read.' },
   { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Preview shows exactly what exports. ATS shows the plain text an applicant-tracking system reads, how five kinds of system would split it into fields, and a keyword match against the job.' },
   { sel: '[data-tour="palette"]', title: `Do anything with ${shortcutLabel('Ctrl+K', isMac())}`, body: `Press ${shortcutLabel('Ctrl+K', isMac())} for a command palette — switch designs, fonts and colours, add sections, change mode. In a summary, type “/” for quick inserts.`, desktopOnly: true },
-  { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link: the résumé is sealed with a passphrase inside the link and never touches a server.' },
+  { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link: the resume is sealed with a passphrase inside the link and never touches a server.' },
   { sel: '[data-tour="export"]', title: 'Download, free', body: 'PDF or Word, unlimited, no account, no watermark. The PDF is real selectable text, tagged for screen readers (PDF/UA-1) and archival (PDF/A-2B).' },
 ]
 
@@ -74,7 +74,7 @@ export function EditorTour() {
       /* private mode — just behave as unseen */
     }
     // A first visit is invited, not taken on the tour: it used to open itself,
-    // dimmed over the author's résumé, before they had done anything - eleven
+    // dimmed over the author's resume, before they had done anything - eleven
     // cards of lecture. A small card offers it; either answer settles it.
     if (!seen) {
       const t = setTimeout(() => setInvite(true), 1200)

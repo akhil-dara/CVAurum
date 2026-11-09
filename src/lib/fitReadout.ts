@@ -27,7 +27,7 @@ export interface FitResult {
 export const AUTO_TYPE_MIN_PT = 9
 export const AUTO_MAX_SHRINK = 0.94
 export const AUTO_SPACE_MIN = 0.8
-/** The floor for a page count on a new résumé when the author set none. */
+/** The floor for a page count on a new resume when the author set none. */
 export const PAGES_APP_FLOOR_PT = 8.5
 export function autoFloorPt(setPt: number): number {
   return Math.min(setPt, Math.max(AUTO_TYPE_MIN_PT, Math.round(setPt * AUTO_MAX_SHRINK * 100) / 100))
@@ -36,7 +36,7 @@ export function autoFloorPt(setPt: number): number {
 /**
  * The document's rules as the fit search reads them - the ONE place the
  * preview, the exporter and the trials all read, so they agree by
- * construction. A saved résumé (mode 'pages', floor 'author' or none) maps
+ * construction. A saved resume (mode 'pages', floor 'author' or none) maps
  * exactly as it always did.
  */
 export function fitRulesOf(metadata: Metadata): FitRules {
@@ -78,7 +78,7 @@ export interface FitSizesPt {
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
 /**
- * The body size below which a printed résumé stops being comfortable to read.
+ * The body size below which a printed resume stops being comfortable to read.
  *
  * The same number the analysis panel fails a document on, named once so the
  * two cannot drift: a fit that quietly produced a size the app's own report

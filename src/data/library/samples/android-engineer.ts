@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * A mobile résumé that resists listing libraries: every bullet is a number the
+ * A mobile resume that resists listing libraries: every bullet is a number the
  * product team also cared about — install size, cold start, the share of people
  * who finished the flow — and the part-time first job is labelled as one.
  */

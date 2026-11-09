@@ -55,7 +55,7 @@ export const PageSchema = z.object({
    *  page, type and spacing together, and no floor of the author's own: the
    *  search's own 0.66 of the body then). Measured: the engineer example
    *  reaches one page on a 9.7pt template only at 0.70 of the body (6.8pt),
-   *  so a 7pt default floor spilled it onto two pages, and a saved résumé
+   *  so a 7pt default floor spilled it onto two pages, and a saved resume
    *  must not re-fit differently after an update. The card opens up the
    *  rest; a floor the author sets is honoured exactly. */
   fit: z
@@ -63,7 +63,7 @@ export const PageSchema = z.object({
       target: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
       minBody: z.number().min(6).max(12).nullable().default(null),
       priority: z.enum(['spacing', 'both', 'type']).default('both'),
-      /** 'auto' (new résumés from 2026-09-26): print at the size set, and fit
+      /** 'auto' (new resumes from 2026-09-26): print at the size set, and fit
        *  only to save a nearly empty last page. 'pages': reach `target`. */
       mode: z.enum(['auto', 'pages']).default('pages'),
       /** Who chose `minBody`: the app's own floor, or the author. Only an
@@ -131,7 +131,7 @@ export const ThemeSchema = z.object({
  * set it - the document's default (typography.headingStyle) and a section's
  * own (layout.sectionSettings[key].headingStyle) - so the two can never
  * drift into offering a style the other drops. Widened, never renamed: an
- * unknown value fails the whole document parse and a stored résumé would
+ * unknown value fails the whole document parse and a stored resume would
  * come back on defaults.
  */
 export const HEADING_STYLES = [
@@ -163,7 +163,7 @@ export const TypographySchema = z.object({
   headingScale: z.number().min(1).max(2.4).default(1.5),
   /** The name as an exact multiple of the body size. Left unset, the name is
    *  derived from headingScale, which cannot go below 2.17x the body - too
-   *  large for a plain résumé, where the name sits about 1.7x the body. Set,
+   *  large for a plain resume, where the name sits about 1.7x the body. Set,
    *  it says the size outright. Optional, so no existing document moves. */
   nameScale: z.number().min(1.1).max(3.2).optional(),
   /** section title size as a multiple of the body size (1.06 is what the page always drew) */
@@ -192,7 +192,7 @@ export const TypographySchema = z.object({
    *  keeps the template's own, which is what a section's Auto has always
    *  meant. This is a DEFAULT, not an override: a section that set its own
    *  headingStyle still wins. Restyling the headings of a nine-section
-   *  résumé through the gear alone measured 27 clicks and 9 hovers (driven
+   *  resume through the gear alone measured 27 clicks and 9 hovers (driven
    *  on the sample document, 2026-09-14); the only one-gesture route was the
    *  style painter's "All", which clears all 16 style fields before it
    *  paints and so takes every other per-section choice down with it. */
@@ -439,7 +439,7 @@ export const LayoutSchema = z.object({
    */
   /** What sits between the keywords of a skill group, a course list or an
    *  interest: the middot the page always drew, or a comma, which is what a
-   *  plain résumé uses. Defaults to the middot, so no existing file moves. */
+   *  plain resume uses. Defaults to the middot, so no existing file moves. */
   keywordSeparator: z.enum(['middot', 'comma', 'pipe', 'slash', 'space']).default('middot'),
   sectionIconStyle: z.enum(['folio', 'chip', 'plain', 'filled', 'circle', 'outline', 'none']).default('folio'),
   /** How large the section-heading badge is, for every icon style. */

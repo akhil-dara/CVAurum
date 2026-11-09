@@ -45,20 +45,20 @@ export function EditorRoute() {
   }
   if (status === 'missing' || !doc) {
     return (
-      // Résumés live in the browser that made them, so the usual reason is a
+      // Resumes live in the browser that made them, so the usual reason is a
       // link opened somewhere else, or site data that was cleared. Say so,
       // and point at the one place that can bring it back: a backup file.
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-foreground">
         <div className="max-w-sm text-center">
-          <h1 className="text-lg font-semibold">This résumé isn’t in this browser</h1>
+          <h1 className="text-lg font-semibold">This resume isn’t in this browser</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Résumés are saved only in the browser that made them. If you opened this link on another device or browser,
-            or cleared this site’s data, it can’t be found here. A backup file brings it back: open your résumés and
+            Resumes are saved only in the browser that made them. If you opened this link on another device or browser,
+            or cleared this site’s data, it can’t be found here. A backup file brings it back: open your resumes and
             choose <span className="font-medium text-foreground">Restore from backup</span>.
           </p>
         </div>
         <Link to="/app" className="btn-primary">
-          Open your résumés
+          Open your resumes
         </Link>
       </div>
     )

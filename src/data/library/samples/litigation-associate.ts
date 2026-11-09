@@ -15,7 +15,7 @@ export const sample: LibrarySample = {
   region: 'india',
   template: 'garnet',
   blurb:
-    'A disputes lawyer’s résumé built on forums, relief obtained and amounts recovered — not a list of statutes read in law school.',
+    'A disputes lawyer’s resume built on forums, relief obtained and amounts recovered — not a list of statutes read in law school.',
   keywords: [
     'litigation associate',
     'disputes lawyer India',
@@ -38,7 +38,7 @@ export const sample: LibrarySample = {
       },
       {
         q: 'Should an advocate resume list cases by name?',
-        a: 'Only reported judgments or public matters you are free to name, and only if you argued or drafted them. Otherwise describe the matter by type, forum and value, as this résumé does with the ₹42 crore construction arbitration.',
+        a: 'Only reported judgments or public matters you are free to name, and only if you argued or drafted them. Otherwise describe the matter by type, forum and value, as this resume does with the ₹42 crore construction arbitration.',
       },
     ],
   },

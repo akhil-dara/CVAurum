@@ -65,7 +65,7 @@ copy never flashes inside the app.
 
   `primaryImageOfPage` always names the page's **own** 1200px page picture
   (`/img/templates/<id>.webp`, `/img/examples/<slug>.webp`), which matters
-  because those pages also list every other design or a hundred other résumés.
+  because those pages also list every other design or a hundred other resumes.
 
 ### The crawl path without JavaScript
 

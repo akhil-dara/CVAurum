@@ -58,7 +58,7 @@ export const OUTPUT_CONDITION = 'sRGB IEC61966-2.1'
  * (1/2/3), because part 4 identifies itself with a revision year and no
  * conformance letter. The file was genuinely conformant — veraPDF
  * auto-detected and certified it — but a claim no mainstream reader can read
- * is not worth much on a résumé, and PDF 1.7 additionally keeps the legacy
+ * is not worth much on a resume, and PDF 1.7 additionally keeps the legacy
  * Info dictionary that PDF/A-4 forbids.
  *
  * `a4-ua2` targets PDF 2.0 (PDF/A-4 + PDF/UA-2) — the newest ISO parts, for
@@ -118,7 +118,7 @@ let profilePromise: Promise<Uint8Array | null> | null = null
  * The sRGB profile for the PDF/A OutputIntent: the build-time-inlined copy
  * first (no network, no failure mode), the same-origin fetch only if that
  * ever stops resolving. Returns null rather than throwing when neither is
- * available: a résumé that exports without an OutputIntent is a normal,
+ * available: a resume that exports without an OutputIntent is a normal,
  * readable PDF that simply is not PDF/A — far better than an export that
  * fails outright over a colour profile.
  */
@@ -222,7 +222,7 @@ export function applyPdfAConformance(pdfDoc: PDFDocument, icc: Uint8Array | null
   }
 
   // A file identifier is required. Derived from the document's own metadata
-  // so the same résumé rendered twice in the same second is stable, and no
+  // so the same resume rendered twice in the same second is stable, and no
   // randomness sneaks into the output.
   const id = PDFHexString.of(fileIdHex(idSeed))
   pdfDoc.context.trailerInfo.ID = pdfDoc.context.obj([id, id])

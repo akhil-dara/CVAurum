@@ -12,7 +12,7 @@ Measured, 2026-09-16, over every bundled face (see the coverage probe in
     U+25C6 ◆  diamond          0/158,  0/257
 
 So three of the seven bullet styles are already drawn by whatever family the
-résumé is set in, and four are not drawn by ANY of them. The canvas hid that
+resume is set in, and four are not drawn by ANY of them. The canvas hid that
 for two of them by asking the browser for UA list markers (`list-style-type:
 circle` / `square`), which are shapes rather than glyphs and so carry no text
 at all; the exporter answered with a vector dot plus an INVISIBLE text twin so

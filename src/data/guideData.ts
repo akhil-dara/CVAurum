@@ -8,7 +8,7 @@ import type { Guide, GuideSection } from './guides'
  * every summary, every role's skills, and the verbs the bullets open with -
  * the library's own writing, gathered by what people search for. Kept out of
  * guides.ts because the router and the site footer import that file and must
- * not carry a hundred résumés; this one is read only where the library
+ * not carry a hundred resumes; this one is read only where the library
  * already is (the guide route and the build).
  */
 
@@ -43,7 +43,7 @@ function summaries(): GuideSection[] {
 
 function skills(): GuideSection[] {
   return shelves().map((g) => ({
-    heading: `Skills on ${g.label.toLowerCase()} résumés`,
+    heading: `Skills on ${g.label.toLowerCase()} resumes`,
     paragraphs: [],
     list: g.items
       .filter((s) => s.content.skills.length)

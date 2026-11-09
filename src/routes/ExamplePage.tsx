@@ -5,8 +5,8 @@
  * search engine can rank for "resume examples" and nothing it can rank for
  * "data analyst resume example India" — the phrase people actually type. This
  * route gives every sample a page of its own: the job it is written for, the
- * résumé at a size that can be read, a panel counting how it is built, one
- * button that starts a résumé from it, and the samples nearest it.
+ * resume at a size that can be read, a panel counting how it is built, one
+ * button that starts a resume from it, and the samples nearest it.
  *
  * The head is set from the same `samplePageMeta` the build step writes into
  * the pre-rendered file, so what a crawler is served and what a reader gets
@@ -27,7 +27,7 @@ import { getTemplate, templatePath } from '@/templates/registry'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { WriteYours } from '@/components/site/WriteYours'
-import { sampleGuideLinks } from '@/data/guideHub'
+import { sampleEditLabel, writeYoursSampleLinks } from '@/data/pageLinks'
 import { useResumeActions } from '@/components/dashboard/newResume'
 import { cn } from '@/lib/utils'
 import { useSeo } from '@/lib/useSeo'
@@ -105,11 +105,13 @@ function Example({ sample }: { sample: LibrarySample }) {
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{sample.blurb}</p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
+              {/* Named for the job (an anchor that says what it opens), so
+                  a long title wraps rather than running off a phone. */}
               <button
-                className="btn-primary"
+                className="btn-primary h-auto min-h-[2.25rem] max-w-full whitespace-normal py-2 text-left"
                 onClick={() => create(true, sample.template, sample.content, sample.tweaks, `${sample.role} resume`)}
               >
-                <Wand2 className="h-4 w-4" /> Use this example
+                <Wand2 className="h-4 w-4 shrink-0" /> {sampleEditLabel(sample)}
               </button>
               <Link className="btn-outline" to="/examples">
                 All examples
@@ -117,18 +119,18 @@ function Example({ sample }: { sample: LibrarySample }) {
             </div>
           </div>
 
-          {/* Then the résumé itself. On a phone it used to come after every
+          {/* Then the resume itself. On a phone it used to come after every
               word below, which put the thing the visitor searched for a full
               screen past the fold. */}
           <div className="order-2 min-w-0 lg:order-1 lg:row-span-2">
-            {/* The résumé, as the picture the export actually produces.
+            {/* The resume, as the picture the export actually produces.
 
                 Not a rendering of it: this is the file the pre-rendered HTML
                 and the link card both point at, it is the page a reader would
                 get if they exported it, and it is the only thing here an image
                 search can see. At 1200px wide, shown at about 560, it also
                 resolves finer than the rendering it replaced - and the page no
-                longer lays out a whole résumé to show one.
+                longer lays out a whole resume to show one.
 
                 The height is read rather than assumed: A4 and US Letter give
                 different aspect ratios, so it is recorded per sample when the
@@ -153,7 +155,7 @@ function Example({ sample }: { sample: LibrarySample }) {
 
           <div className="order-3">
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Opens the editor with this résumé in place — replace the words with your own. Free, no account, and
+              Opens the editor with this resume in place — replace the words with your own. Free, no account, and
               everything stays in this browser. Every name, employer and number in it is invented.
             </p>
 
@@ -190,10 +192,10 @@ function Example({ sample }: { sample: LibrarySample }) {
                 }
               />
             </dl>
-            <WriteYours className="mt-5" links={sampleGuideLinks(sample.region)} />
+            <WriteYours className="mt-5" links={writeYoursSampleLinks(sample.region)} />
 
             {/* Counted from the document rather than claimed, so these figures
-                cannot drift from the résumé shown beside them. */}
+                cannot drift from the resume shown beside them. */}
             <section className="mt-7 rounded-xl border border-border bg-surface-muted p-4">
               <h2 className="text-sm font-semibold tracking-tight">How this one is built</h2>
               <div className="mt-3.5 grid grid-cols-3 gap-3">
@@ -235,7 +237,7 @@ function Example({ sample }: { sample: LibrarySample }) {
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
               <span>
                 Every person, employer, address, phone number and figure on this page is invented. Universities,
-                professional bodies and certifications are real, as they are on any résumé.
+                professional bodies and certifications are real, as they are on any resume.
               </span>
             </p>
           </div>
@@ -247,7 +249,7 @@ function Example({ sample }: { sample: LibrarySample }) {
         {sample.guide && (
           <div className="mt-14 grid gap-10 border-t border-border pt-8 lg:grid-cols-2">
             <section>
-              <h2 className="text-lg font-semibold tracking-tight">Why this {sample.role} résumé works</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Why this {sample.role} resume works</h2>
               <ul className="mt-4 space-y-3">
                 {sample.guide.why.map((w) => (
                   <li key={w} className="flex gap-2.5 text-sm leading-relaxed text-foreground">
@@ -258,7 +260,7 @@ function Example({ sample }: { sample: LibrarySample }) {
               </ul>
             </section>
             <section>
-              <h2 className="text-lg font-semibold tracking-tight">{sample.role} résumé: common questions</h2>
+              <h2 className="text-lg font-semibold tracking-tight">{sample.role} resume: common questions</h2>
               <div className="mt-4 space-y-5">
                 {sample.guide.faq.map((f) => (
                   <div key={f.q}>
@@ -280,7 +282,7 @@ function Example({ sample }: { sample: LibrarySample }) {
               </Link>
             </div>
             {/* The link is on the TITLE, and a pseudo-element stretches it over
-                the card. Wrapping the whole card in one put the résumé's own
+                the card. Wrapping the whole card in one put the resume's own
                 contact links inside an anchor — anchors do not nest, and the
                 browser said so on every render. */}
             <ul className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">

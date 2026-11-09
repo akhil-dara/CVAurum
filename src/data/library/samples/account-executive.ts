@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Mid level, US. A quota-carrying seller, so the résumé is read for numbers
+ * Mid level, US. A quota-carrying seller, so the resume is read for numbers
  * first: attainment against a stated number, deal size, cycle length, and what
  * changed to move them. Awards sit at the bottom where they belong.
  */
@@ -13,7 +13,7 @@ export const sample: LibrarySample = {
   seniority: 'mid',
   region: 'us',
   template: 'emblem',
-  blurb: 'A quota-carrying seller whose résumé leads with attainment, deal size and cycle time rather than adjectives.',
+  blurb: 'A quota-carrying seller whose resume leads with attainment, deal size and cycle time rather than adjectives.',
   keywords: [
     'account executive',
     'mid-market account executive',

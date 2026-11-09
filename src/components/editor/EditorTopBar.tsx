@@ -60,13 +60,13 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
   }
 
   /**
-   * The résumé as running text, on the clipboard.
+   * The resume as running text, on the clipboard.
    *
    * Copying from the PDF gives a line per line of the PAGE, because that is
    * what a page is - paste it into an application form and every sentence
    * arrives broken. The same document reflowed into paragraphs is something
    * this app already computes for the ATS panel, and which now matches the
-   * exported file word for word, so it is the same résumé either way.
+   * exported file word for word, so it is the same resume either way.
    *
    * Falls back to a hidden textarea and execCommand where the async clipboard
    * is refused: a permission prompt is not worth a copy button.
@@ -78,7 +78,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
     const text = resumeToAtsText(d)
     try {
       await navigator.clipboard.writeText(text)
-      toast('Résumé copied as plain text')
+      toast('Resume copied as plain text')
     } catch {
       const ta = document.createElement('textarea')
       ta.value = text
@@ -88,7 +88,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
       ta.select()
       const ok = document.execCommand('copy')
       ta.remove()
-      toast(ok ? 'Résumé copied as plain text' : 'Could not reach the clipboard')
+      toast(ok ? 'Resume copied as plain text' : 'Could not reach the clipboard')
     }
   }
   // PDF is generated in-app by the native renderer (crisp, selectable, exact -
@@ -209,7 +209,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
           className="btn-icon hidden sm:flex"
           onClick={() => window.dispatchEvent(new Event('cvaurum:open-share'))}
           title="Share privately"
-          aria-label="Share résumé privately"
+          aria-label="Share resume privately"
         >
           <Share2 className="h-[18px] w-[18px]" />
         </button>
@@ -371,7 +371,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
 /**
  * Where the work is, said plainly. "Saved" alone over-promised: the only copy
- * of a résumé lives in this browser, and a browser that has not granted
+ * of a resume lives in this browser, and a browser that has not granted
  * durable storage may clear it (a real incident wiped a phone's library). It
  * says "Saved in this browser", and only when the work is really at risk -
  * storage not guaranteed and no recent backup - does it turn amber and offer
@@ -384,7 +384,7 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
   const [cardOpen, setCardOpen] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   usePopoverA11y(cardOpen, () => setCardOpen(false), cardRef)
-  // how many résumés this browser holds: a blank one alone has nothing to lose
+  // how many resumes this browser holds: a blank one alone has nothing to lose
   const [stored, setStored] = useState(1)
   useEffect(() => {
     let alive = true
@@ -434,7 +434,7 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
         <button
           type="button"
           className="hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-medium text-foreground hover:bg-warning/20 sm:flex"
-          title="Saved only in this browser, which has not promised to keep it. Download a backup so a cleared browser cannot lose your résumés."
+          title="Saved only in this browser, which has not promised to keep it. Download a backup so a cleared browser cannot lose your resumes."
           onClick={backUp}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
@@ -455,7 +455,7 @@ function SaveStatus({ dirty, content }: { dirty: boolean; content: ResumeDocumen
                 <ShieldAlert className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden /> Saved only in this browser
               </p>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                A phone may clear a browser&rsquo;s storage. A backup file keeps every résumé; open it from My resumes to
+                A phone may clear a browser&rsquo;s storage. A backup file keeps every resume; open it from My resumes to
                 bring them all back.
               </p>
               <button type="button" className="btn-primary btn-sm mt-3 w-full" onClick={backUp}>

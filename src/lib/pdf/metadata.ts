@@ -1,12 +1,12 @@
 /**
  * PDF document metadata — the Info dictionary, the XMP packet, and the
- * accessibility keys every exported résumé carries.
+ * accessibility keys every exported resume carries.
  *
  * 2026-08-19 user report: our exports advertised
  * `pdf-lib (https://github.com/Hopding/pdf-lib)` as both Creator and Producer
  * and set NOTHING else — no Title, no Author, no language — while a
  * competitor's export (inspected byte-for-byte) carried Title/Creator/Producer
- * plus `/Lang (en-US)`. A résumé is a document about a PERSON: the file's own
+ * plus `/Lang (en-US)`. A resume is a document about a PERSON: the file's own
  * properties are read by ATS pipelines, document managers, and screen readers,
  * and "pdf-lib" in the Producer field tells a recruiter which npm package
  * built the file instead of who the file is about.
@@ -24,7 +24,7 @@ export const PDF_CREATOR = 'CVAurum'
 export const PDF_PRODUCER = 'CVAurum (https://cvaurum.com)'
 /** Keyword ceiling — metadata is for identification, not keyword stuffing. */
 const MAX_KEYWORDS = 32
-/** Résumés we render are English-language documents unless one says otherwise. */
+/** Resumes we render are English-language documents unless one says otherwise. */
 const DEFAULT_LANGUAGE = 'en-US'
 
 /** A PDF/A identification claim: a part, plus EITHER a revision year

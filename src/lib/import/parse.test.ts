@@ -1240,7 +1240,7 @@ describe('work — a date closing the company line (2026-09-24)', () => {
   })
 })
 
-describe('a résumé laid out the way many are in India (2026-09-24)', () => {
+describe('a resume laid out the way many are in India (2026-09-24)', () => {
   // Shapes measured on a real third-party PDF: the ATS report read its
   // degree as a Skills heading, its summary's "BigQuery, PySpark" as the
   // candidate's city, "Hyderabad,India" as part of the company, an icon'd

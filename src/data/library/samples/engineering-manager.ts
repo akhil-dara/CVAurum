@@ -27,7 +27,7 @@ export const sample: LibrarySample = {
   guide: {
     why: [
       'People results are treated as engineering results: offer acceptance from 52% to 86%, attrition cut from 22% to 4%, and promotion calibration for 40 engineers. A hiring panel for managers looks for exactly these.',
-      'Predictability has a number, committed work landing on schedule “from 54% to 91%”, with the method that moved it. Most manager résumés claim better delivery; this one shows the before and after.',
+      'Predictability has a number, committed work landing on schedule “from 54% to 91%”, with the method that moved it. Most manager resumes claim better delivery; this one shows the before and after.',
       'The Staff Software Engineer role at Ellerby Analytics keeps the technical record visible, 2.4 billion events a month and dashboards from 9s to 1.1s, which supports the claim of still being “in every design review”.',
     ],
     faq: [

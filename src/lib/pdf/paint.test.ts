@@ -536,7 +536,7 @@ describe('paintOps — decorative runs draw vector glyph outlines, never real te
 
   it('still propagates a font-embed failure for REAL (non-decorative) content', async () => {
     const ops: DrawOp[] = [
-      { kind: 'text', run: baseRun({ text: 'Real résumé content', isDecorative: false, family: 'Nonexistent Font' }) },
+      { kind: 'text', run: baseRun({ text: 'Real resume content', isDecorative: false, family: 'Nonexistent Font' }) },
     ]
     await expect(renderContentStream(ops)).rejects.toThrow()
   })

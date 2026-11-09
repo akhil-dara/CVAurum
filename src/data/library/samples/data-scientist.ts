@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
     ],
     faq: [
       { q: 'What should a senior data scientist resume focus on?', a: 'Models in production, who depends on them, and their effect in business terms: money saved, risk reduced, decisions changed. Add the standards you set for others, such as review or backtesting rules, and mentoring results. Keep the tool list short.' },
-      { q: 'How do you return to data science after a career break?', a: 'Keep skills current with a course or open-source work, and consider a part-time return if offered. On the résumé, list the break as a dated entry with what you did, then put the strongest post-return results in the summary.' },
+      { q: 'How do you return to data science after a career break?', a: 'Keep skills current with a course or open-source work, and consider a part-time return if offered. On the resume, list the break as a dated entry with what you did, then put the strongest post-return results in the summary.' },
       { q: 'How long should a data scientist resume be?', a: 'Two pages is fine with ten or more years, provided the first page carries the recent work and its results. Publications and projects can go on page two; early analyst roles need only one or two bullets.' },
     ],
   },

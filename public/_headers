@@ -19,7 +19,7 @@
 # to ignore Vary first.
 /
   Link: </.well-known/api-catalog>; rel="api-catalog", </llms.txt>; rel="describedby"; type="text/plain", </index.md>; rel="alternate"; type="text/markdown"
-# The pictures of résumés: the full-size page images (/img/templates/<id>.webp,
+# The pictures of resumes: the full-size page images (/img/templates/<id>.webp,
 # /img/examples/<slug>.webp) and the share cards (/og/<id>.jpg,
 # /og/examples/<slug>.jpg). 350 files — 17.1 MB of page images plus the smaller
 # cards — regenerated only when a design or a sample is redrawn.
@@ -60,7 +60,7 @@
 # assistants' page readers refuse that type outright ("Unsupported
 # content-type: text/markdown"), so they could not read the very files written
 # for them. Plain text is what every reader accepts; the words are the same.
-# The charset is stated because the files carry accented letters (résumé) and
+# The charset is stated because the files carry non-ASCII letters (names in the samples, typographic quotes) and
 # a reader left to guess reads them as mojibake.
 # noindex: each twin repeats a page that is indexed in its own right, so in
 # search results it competed with that page (a template's .md showed up beside
@@ -70,8 +70,15 @@
   X-Robots-Tag: noindex
 /llms.txt
   Content-Type: text/plain; charset=utf-8
+# llms-full.txt repeats the pages' own text for assistants; the pages are
+# what should be indexed, so it says noindex (crawled-not-indexed already).
 /llms-full.txt
   Content-Type: text/plain; charset=utf-8
+  X-Robots-Tag: noindex
+# Discovery files for programs, not pages for people: noindex, so search
+# stops listing them as crawled-not-indexed pages (Search Console, 2026-11-09).
+/.well-known/*
+  X-Robots-Tag: noindex
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 /.well-known/agent-skills/index.json

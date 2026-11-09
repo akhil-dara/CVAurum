@@ -1,7 +1,7 @@
 /**
  * Semantic JD match (opt-in) — the meaning-level companion to keyword matching.
  * A small sentence-embedding model (MiniLM) checks whether each requirement in
- * the job description is actually EXPRESSED somewhere in the résumé, even when
+ * the job description is actually EXPRESSED somewhere in the resume, even when
  * the words differ ("built CI pipelines" ≈ "automated build & deploy").
  *
  * Strictly optional: the ~34 MB engine (self-hosted, never a third-party CDN)
@@ -44,7 +44,7 @@ function ItemRow({ it }: { it: SemanticItem }) {
       <div className="min-w-0">
         <p className="text-xs leading-snug">{it.jd}</p>
         <p className="mt-0.5 truncate text-[11px] leading-snug text-muted-foreground" title={it.best}>
-          closest in your résumé ({Math.round(it.sim * 100)}%): {it.best}
+          closest in your resume ({Math.round(it.sim * 100)}%): {it.best}
         </p>
       </div>
     </div>
@@ -57,7 +57,7 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
   const [report, setReport] = useState<SemanticReport | null>(null)
   const [error, setError] = useState('')
   const runId = useRef(0)
-  // The résumé at the time of the last run — a "Re-check" refreshes against edits.
+  // The resume at the time of the last run — a "Re-check" refreshes against edits.
   const docRef = useRef(doc)
   docRef.current = doc
 
@@ -83,7 +83,7 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
 
   const hasJd = jd.trim().length >= 40
 
-  // Auto-run when enabled and the JD changes (debounced). Résumé edits are
+  // Auto-run when enabled and the JD changes (debounced). Resume edits are
   // re-checked on demand — recomputing per keystroke would burn CPU for nothing.
   useEffect(() => {
     if (phase === 'off' || !hasJd) return
@@ -101,7 +101,7 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
           <h4 className="text-sm font-semibold">Semantic match <span className="font-normal text-muted-foreground">(optional)</span></h4>
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Goes beyond keywords: a small on-device language model checks whether each JD requirement is actually <em>expressed</em> in your résumé — even when the wording differs (&ldquo;built CI pipelines&rdquo; ≈ &ldquo;automated build &amp; deploy&rdquo;).
+          Goes beyond keywords: a small on-device language model checks whether each JD requirement is actually <em>expressed</em> in your resume — even when the wording differs (&ldquo;built CI pipelines&rdquo; ≈ &ldquo;automated build &amp; deploy&rdquo;).
         </p>
         <button className="btn-primary btn-sm w-full" onClick={() => { setSemanticEnabled(true); setPhase('idle') }}>
           Enable — one-time ~34&nbsp;MB download
@@ -131,7 +131,7 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
           </button>
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Ready — paste a job description above and I&apos;ll check, requirement by requirement, whether your résumé expresses its <em>meaning</em>, not just its keywords.
+          Ready — paste a job description above and I&apos;ll check, requirement by requirement, whether your resume expresses its <em>meaning</em>, not just its keywords.
         </p>
       </div>
     )
@@ -162,7 +162,7 @@ export function SemanticMatchCard({ doc, jd }: { doc: ResumeDocument; jd: string
       {phase === 'working' && (
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">
-            {progress ? `Loading the on-device model — ${progress.file} ${progress.pct}%` : 'Reading your résumé and the JD…'}
+            {progress ? `Loading the on-device model — ${progress.file} ${progress.pct}%` : 'Reading your resume and the JD…'}
           </p>
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress?.pct ?? 30}%` }} />

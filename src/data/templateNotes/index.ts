@@ -4,7 +4,7 @@ import { NOTES_C } from './c'
 
 /**
  * What a design is for, written for the design's own page: who it suits, how
- * its page is built, and how it reads to a résumé parser.
+ * its page is built, and how it reads to a resume parser.
  *
  * Every design page carried the same paragraphs and the same link list, so
  * the 75 pages were about 91% the same text (2026-10-24 audit); this is the
@@ -17,7 +17,7 @@ export interface TemplateNote {
   suits: string
   /** How the page is built: columns, header, headings, type, where colour sits. */
   layout: string
-  /** How it reads to a résumé parser, and anything to know when choosing it. */
+  /** How it reads to a resume parser, and anything to know when choosing it. */
   ats: string
 }
 

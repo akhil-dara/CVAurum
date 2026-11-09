@@ -12,7 +12,7 @@ import { CheckGroups, Ring, scoreColor } from './AtsParts'
 /**
  * The checker, on the checker's page: drop a PDF and get the report here.
  *
- * Someone who searched for an ATS checker came to check a résumé they already
+ * Someone who searched for an ATS checker came to check a resume they already
  * have, not to start building one - so the report is the destination, and
  * the editor is an offer at the end of it. The file is read on this device
  * and nothing is saved unless they take that offer.
@@ -36,7 +36,7 @@ export function AtsFileCheck() {
   const take = async (file?: File) => {
     if (!file || stage.kind === 'reading') return
     if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) {
-      setStage({ kind: 'error', note: 'That is not a PDF. Export your résumé to PDF and drop that file here.' })
+      setStage({ kind: 'error', note: 'That is not a PDF. Export your resume to PDF and drop that file here.' })
       return
     }
     setStage({ kind: 'reading', note: 'Reading your PDF on this device…' })
@@ -56,7 +56,7 @@ export function AtsFileCheck() {
         return
       }
       const name = result.content.basics.name?.trim()
-      const doc = createDocument({ content: result.content, sample: true, fitted: false, title: name ? `${name} — Resume` : 'Imported résumé' })
+      const doc = createDocument({ content: result.content, sample: true, fitted: false, title: name ? `${name} — Resume` : 'Imported resume' })
       setStage({ kind: 'done', fileName: file.name, result, doc })
       requestAnimationFrame(() => document.getElementById('ats-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
     } catch (e) {
@@ -85,7 +85,7 @@ export function AtsFileCheck() {
       }`}
     >
       <FileUp className="mx-auto h-8 w-8 text-primary" aria-hidden />
-      <p className="mt-3 text-[15px] font-medium">Drop your résumé PDF here</p>
+      <p className="mt-3 text-[15px] font-medium">Drop your resume PDF here</p>
       <p className="mt-1 text-sm text-muted-foreground">
         You get the report on this page: what a parser reads, what it misses, and what to fix. Scanned PDFs work too.
       </p>
@@ -163,7 +163,7 @@ function Report({ stage, onReset }: { stage: Extract<Stage, { kind: 'done' }>; o
           </button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Nothing has been saved. The editor opens this résumé with every fault below marked, in any of the designs.
+          Nothing has been saved. The editor opens this resume with every fault below marked, in any of the designs.
         </p>
       </div>
 
@@ -177,7 +177,7 @@ function Report({ stage, onReset }: { stage: Extract<Stage, { kind: 'done' }>; o
         <h3 id="jd-match" className="flex items-center gap-2 text-base font-semibold">
           <Target className="h-4 w-4 text-primary" aria-hidden /> Match it to a job
         </h3>
-        <p className="mt-1 text-sm text-muted-foreground">Paste the job description to see which of its keywords the résumé has, and which it lacks.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Paste the job description to see which of its keywords the resume has, and which it lacks.</p>
         <label className="sr-only" htmlFor="jd-text">
           Job description
         </label>

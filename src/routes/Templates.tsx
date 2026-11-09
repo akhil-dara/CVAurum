@@ -5,13 +5,13 @@
  * filtered view is a link someone can send, and the back button walks it.
  *
  * Each card is the PICTURE of that design's exported page (see PagePicture),
- * not a live render of one: 68 live résumés cost 7.7s of main-thread task time
+ * not a live render of one: 68 live resumes cost 7.7s of main-thread task time
  * to browse on a desk and 9.9s on a phone, measured on the production build,
  * 2026-09-15. A card loads the 520px twin of that picture (pageThumb below),
  * not the 1200px file: 2.03 MB for the whole wall against 6.50 MB.
  * Clicking the picture opens it full size, where "Use this design"
  * is one of the two actions; the "Use" button beside the name is unchanged and
- * still starts a résumé in one click.
+ * still starts a resume in one click.
  */
 import { CreateButton } from '@/components/site/HeaderActions'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -25,6 +25,7 @@ import { PageLightbox, type LightboxItem } from '@/components/preview/PageLightb
 import { PAGE_IMAGE_HEIGHT, PAGE_IMAGE_WIDTH } from '@/data/pageImages'
 import { PAGE_THUMB_WIDTH, pageThumbHeight as thumbHeight } from '@/data/pageThumbs'
 import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
+import { ALL_GUIDES_LINK } from '@/data/pageLinks'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
 import { useCanonical } from '@/lib/useCanonical'
@@ -55,10 +56,10 @@ const tagLabel = (tag: TemplateTag) => {
 }
 
 /**
- * The picture of a résumé page in this design, and what to call it.
+ * The picture of a resume page in this design, and what to call it.
  *
  * Deliberately NOT `templatePageImage`/`imageAlt` from lib/seoPages, which say
- * exactly this: seoPages imports lib/seoLibrary, which imports the 108-résumé
+ * exactly this: seoPages imports lib/seoLibrary, which imports the 108-resume
  * library — a 476 KB chunk (measured in dist, 2026-09-15) that this route has
  * no other reason to load, and does not load today. The words below are the
  * same words those helpers produce, tag for tag; if one side changes, the
@@ -73,7 +74,7 @@ export const pageImageHeight = (tpl: TemplateConfig) => PAGE_IMAGE_HEIGHT[`templ
  * for the width and scripts/make-page-images.cjs for the format). The 1200px
  * file above is still what the lightbox opens and what this design's own page
  * shows. Spelled out here for the same reason `pageImage` is — lib/seoPages
- * says exactly this, and reaching it would pull the 108-résumé library into
+ * says exactly this, and reaching it would pull the 108-resume library into
  * this route; if one side moves, move both.
  */
 export const pageThumb = (tpl: TemplateConfig) => `/img/templates/thumb/${tpl.id}.webp`
@@ -81,7 +82,7 @@ export const pageThumbHeight = (tpl: TemplateConfig) => thumbHeight(pageImageHei
 const tagWords = (tpl: TemplateConfig) => tpl.tags.filter((t) => t !== STRICT_TAG).map(tagLabel).join(' · ')
 export const pageImageAlt = (tpl: TemplateConfig) => {
   const tags = tagWords(tpl).toLowerCase()
-  return `A full résumé page in the ${tpl.name} template${tags ? `: ${tags}` : ''}`
+  return `A full resume page in the ${tpl.name} template${tags ? `: ${tags}` : ''}`
 }
 
 export function Templates() {
@@ -182,7 +183,7 @@ export function Templates() {
           {TEMPLATES.length} resume templates, all free
         </h1>
         <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-3">
-          Every design below is shown on the same example résumé, so what changes between cards is the layout and
+          Every design below is shown on the same example resume, so what changes between cards is the layout and
           nothing else. Pick one to start editing — your content carries over if you switch later.
         </p>
 
@@ -228,6 +229,13 @@ export function Templates() {
             ))}
           </div>
         )}
+        {/* The guides answer what goes on the page; /guides lists them all. */}
+        <p className="mt-10 border-t border-border pt-5 text-sm text-muted-foreground">
+          Writing what goes in it?{' '}
+          <Link className="text-primary hover:underline" to={ALL_GUIDES_LINK.href}>
+            {ALL_GUIDES_LINK.label}
+          </Link>
+        </p>
       </main>
 
       <SiteFooter />
@@ -397,13 +405,13 @@ function StrictToggle({
 }
 
 /**
- * One design, as the picture of a résumé page set in it.
+ * One design, as the picture of a resume page set in it.
  *
  * The card is a plain box, not a button: interactive content inside a button
  * is not valid HTML and a parser may unwrap it, and this card holds three
  * controls — the picture, the name's link, and "Use".
  *
- * The picture used to START a résumé on click. It opens the page full size
+ * The picture used to START a resume on click. It opens the page full size
  * now: a 260px card cannot be judged, and clicking the only thing on the card
  * that shows the design in order to leave the page was the wrong default. Both
  * actions live inside the lightbox, and "Use" beside the name is untouched.
@@ -462,7 +470,7 @@ function TemplateCard({
             <button
               type="button"
               onClick={onPick}
-              aria-label={`Start a résumé in ${tpl.name} — ${tpl.description}`}
+              aria-label={`Start a resume in ${tpl.name} — ${tpl.description}`}
               title={`Use the ${tpl.name} template`}
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium relative before:absolute before:-inset-2 before:content-[''] text-muted-foreground transition hover:border-primary/50 hover:text-primary"
             >

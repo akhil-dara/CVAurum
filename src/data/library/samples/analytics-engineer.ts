@@ -28,7 +28,7 @@ export const sample: LibrarySample = {
     faq: [
       { q: 'What skills should an analytics engineer resume list?', a: 'Group them: modeling (dbt, dimensional modeling, SQL), platform (Snowflake or BigQuery, Airflow, Fivetran), and analysis or BI tools (Looker, Tableau, Python). Then show the important ones in bullets, for example the size of the dbt project you run and how it is tested.' },
       { q: 'Are dbt and Snowflake certifications worth adding to a resume?', a: 'They help when they back up experience already on the page. The dbt Analytics Engineering Certification and SnowPro Core are recognised by data teams, but list them in a certificates section below the work, not in place of bullets about real models.' },
-      { q: 'How is an analytics engineer resume different from a data analyst resume?', a: 'An analyst résumé is judged on findings and decisions; an analytics engineer résumé is judged on the models, tests and definitions other people rely on. Lead with what you built and keep running, its size, its reliability and its cost.' },
+      { q: 'How is an analytics engineer resume different from a data analyst resume?', a: 'An analyst resume is judged on findings and decisions; an analytics engineer resume is judged on the models, tests and definitions other people rely on. Lead with what you built and keep running, its size, its reliability and its cost.' },
     ],
   },
   content: content({

@@ -8,7 +8,7 @@
  * already short (usability test, 2026-09-26). An address-shaped value is now
  * stored as the address, exactly as typed; `safeHref` and the PDF's
  * `linkTarget` already put https:// in front of a bare domain wherever a link
- * is made. Saved résumés carrying the old shape are moved on load.
+ * is made. Saved resumes carrying the old shape are moved on load.
  */
 
 /** A domain with a real top-level part, optionally a path, and no spaces. */
@@ -25,7 +25,7 @@ export function profileFromTyped(typed: string): { url: string; username: string
 
 type WithProfiles = { basics: { profiles?: Array<{ url?: string; username?: string }> } }
 
-/** Moves an address a résumé stored as a username into its address. */
+/** Moves an address a resume stored as a username into its address. */
 export function withProfileAddresses<T extends WithProfiles>(content: T): T {
   for (const p of content.basics.profiles ?? []) {
     if (!(p.url || '').trim() && looksLikeAddress(p.username || '')) {

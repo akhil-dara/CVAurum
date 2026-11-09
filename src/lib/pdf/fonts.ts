@@ -432,7 +432,7 @@ export class PdfFontCache {
    * The embedded font for (family, weight) — or, when `trackingEm` is nonzero,
    * a per-(family, weight, trackingEm) VARIANT of it whose advance widths carry
    * the tracking (see `widenAdvances`). One embed per distinct variant per
-   * document, same as the plain cut; a résumé uses a handful at most (a
+   * document, same as the plain cut; a resume uses a handful at most (a
    * section title's tracking, a name's negative tracking, and the reduced size
    * a small-caps piece needs), and each is subset to the glyphs it draws.
    */

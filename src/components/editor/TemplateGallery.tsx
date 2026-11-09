@@ -60,7 +60,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   const phone = usePhoneLayout()
   const [previewing, setPreviewing] = useState<(typeof TEMPLATES)[number] | null>(null)
   // Local, not in the URL: this is a panel inside a document being edited, and
-  // the address bar belongs to the résumé rather than to what the panel is
+  // the address bar belongs to the resume rather than to what the panel is
   // showing at the moment.
   const [filter, setFilter] = useState<TemplateFilter>(EMPTY_FILTER)
   const [chipsOpen, setChipsOpen] = useState(false)
@@ -197,7 +197,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
 /**
  * The phone's full-size look: the same render the desktop's hover flyout
  * shows, as a sheet with a Close and a "Use this design". The thumbnails
- * draw the whole résumé at about 4px type, which cannot be judged.
+ * draw the whole resume at about 4px type, which cannot be judged.
  */
 function PreviewSheet({
   tpl,

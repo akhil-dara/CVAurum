@@ -5,9 +5,9 @@ import { typeFloor } from './fitOnePage'
 import type { Metadata } from '@/types/metadata'
 
 /**
- * Smart fit (2026-09-26): a new résumé prints at the size set and fits only
+ * Smart fit (2026-09-26): a new resume prints at the size set and fits only
  * to save a nearly empty last page, never below its own floor; an author's
- * minimum is exact; a saved résumé fits exactly as it always did.
+ * minimum is exact; a saved resume fits exactly as it always did.
  */
 const meta = (fit: Partial<Metadata['page']['fit']>, fontSize = 9.6): Metadata => {
   const m = defaultMetadata()
@@ -44,7 +44,7 @@ describe('fitRulesOf', () => {
     expect(fitRulesOf(meta({ mode: 'pages', minBodyBy: 'app', minBody: null }, 8)).minBody).toBe(8)
   })
 
-  it('a page count on a new résumé: floor min(set, 8.5), no growth', () => {
+  it('a page count on a new resume: floor min(set, 8.5), no growth', () => {
     const r = fitRulesOf(meta({ mode: 'pages', minBodyBy: 'app', minBody: null, target: 1 }))
     expect(r.minBody).toBe(8.5)
     expect(r.grow).toBe(false)
@@ -56,7 +56,7 @@ describe('fitRulesOf', () => {
     expect(fitRulesOf(meta({ mode: 'pages', minBodyBy: 'author', minBody: 11 }, 7.25)).minBody).toBe(11)
   })
 
-  it('a saved résumé fits as it always did: no floor of its own (0.66 of the body), growth allowed', () => {
+  it('a saved resume fits as it always did: no floor of its own (0.66 of the body), growth allowed', () => {
     const r = fitRulesOf(defaultMetadata())
     expect(r.minBody).toBeNull()
     expect(r.grow).not.toBe(false)

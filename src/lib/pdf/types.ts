@@ -50,13 +50,13 @@ export interface TextRun {
    */
   widthPx: number
   /**
-   * True for text that is DECORATION rather than résumé content — SVG logo
+   * True for text that is DECORATION rather than resume content — SVG logo
    * monogram marks and CSS `::before`/`::after` separator glyphs. paint.ts
    * draws these as vector glyph outlines (fontkit) instead of a real PDF
    * text-showing operator, so they stay pixel-identical without polluting the
    * extractable text layer an ATS reads (see GitHub issue #4 and the task-10b
    * brief, defect B). Real DOM text (text.ts's extractRuns) is always `false`
-   * — never touch this rule for actual résumé content, and a LIST MARKER is
+   * — never touch this rule for actual resume content, and a LIST MARKER is
    * actual content: it is the only thing saying where one item ends and the
    * next begins, so walk.ts's `markerOps` draws it as ordinary visible text.
    */

@@ -1,5 +1,5 @@
 /**
- * How safe a saved résumé is, in the two moments it matters: while editing
+ * How safe a saved resume is, in the two moments it matters: while editing
  * (the top bar's saved state) and right after the first export (the moment
  * someone first cares about their work). Everything is stored only in this
  * browser; a browser that has not granted durable storage may clear it.
@@ -19,7 +19,7 @@ export function saveAtRisk(durability: DurabilityStatus, lastBackup: number, now
   return !lastBackup || now - lastBackup > BACKUP_FRESH_DAYS * 24 * 60 * 60 * 1000
 }
 
-/** Offer to back up every résumé after an export, once, to someone who has
+/** Offer to back up every resume after an export, once, to someone who has
  *  never made a backup. */
 export function offerBackupAfterExport({ lastBackup, offered }: { lastBackup: number; offered: boolean }): boolean {
   return !lastBackup && !offered
@@ -37,7 +37,7 @@ export function readLastBackup(): number {
 const SECTIONS = ['summary', 'work', 'education', 'projects', 'skills', 'languages', 'certificates', 'awards', 'publications', 'volunteer', 'interests', 'references']
 
 /** Whether a cleared browser would cost anybody anything: a word typed into
- *  this résumé, or other résumés kept here. A brand-new blank one alone is
+ *  this resume, or other resumes kept here. A brand-new blank one alone is
  *  not worth a warning. */
 export function hasWorkToLose(content: ResumeContent, libraryCount: number): boolean {
   if (libraryCount > 1) return true

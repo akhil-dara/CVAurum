@@ -102,8 +102,8 @@ describe('requestDurability / getDurabilityStatus', () => {
   })
 })
 
-describe('a stored résumé is never dropped for one bad field', () => {
-  // A résumé that failed validation was "recovered" by parsing the very same
+describe('a stored resume is never dropped for one bad field', () => {
+  // A resume that failed validation was "recovered" by parsing the very same
   // content and metadata again, which failed again; the dashboard then left it
   // out without a word while it sat in storage. One field a later version
   // cannot read must cost that field, never the document.
@@ -137,16 +137,16 @@ describe('a stored résumé is never dropped for one bad field', () => {
     expect(doc.content.work[1].highlights).toEqual(raw.content.work[1].highlights)
   })
 
-  it('gives up only on something that is not a résumé at all', async () => {
+  it('gives up only on something that is not a resume at all', async () => {
     const { parseStoredDoc } = await import('./storage')
     expect(parseStoredDoc({ hello: 'world' } as never)).toBeNull()
   })
 })
 
-describe('a deleted résumé can be brought back for a month', () => {
-  // Deleting a whole résumé used to be a browser confirm and a hard delete:
+describe('a deleted resume can be brought back for a month', () => {
+  // Deleting a whole resume used to be a browser confirm and a hard delete:
   // the one action that loses the most had the weakest safety net, after a
-  // real incident of résumés disappearing from a phone.
+  // real incident of resumes disappearing from a phone.
   const DAY = 24 * 60 * 60 * 1000
   it('keeps it for 30 days', async () => {
     const { trashExpired, TRASH_DAYS } = await import('./storage')

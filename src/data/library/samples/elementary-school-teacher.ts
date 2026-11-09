@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * The hardest résumé in education to write well: two years in, almost no
+ * The hardest resume in education to write well: two years in, almost no
  * seniority to lean on, so every line has to carry a class size, a screening
  * score or an attendance figure instead.
  */

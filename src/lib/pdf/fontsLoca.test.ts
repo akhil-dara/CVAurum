@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
  * saw the right words; the parity gates compare geometry and saw the right
  * boxes; contrast, charset and selectable all passed. Seven templates —
  * Plainsong, Scribe, Ivy, Garamond, Elegant, Aurum Editorial and Folio Noir —
- * exported a résumé a person could not read, and it took rasterizing the
+ * exported a resume a person could not read, and it took rasterizing the
  * native PDF and looking at it to notice.
  *
  * So the invariant is asserted on the FILES, where it is cheap and total:

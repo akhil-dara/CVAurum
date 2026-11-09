@@ -26,12 +26,12 @@ const UA =
 const ROOT = path.resolve(__dirname, '..')
 const OUT_DIR = path.join(ROOT, 'public', 'fonts')
 const CSS_OUT = path.join(ROOT, 'src', 'styles', 'fonts.css')
-// Every script a résumé written in Europe is likely to need. Google splits a
+// Every script a resume written in Europe is likely to need. Google splits a
 // family into disjoint per-script files and the browser fetches only the
-// ones a page's text touches (unicode-range), so a Latin-only résumé costs
+// ones a page's text touches (unicode-range), so a Latin-only resume costs
 // nothing extra; the PDF builder (scripts/make-pdf-fonts.py) merges all of a
 // family's files into one embeddable TTF. Before this, only latin and
-// latin-ext were kept, and a Cyrillic résumé exported with every Cyrillic
+// latin-ext were kept, and a Cyrillic resume exported with every Cyrillic
 // letter dropped, whatever font was chosen (issue #10).
 const KEEP = new Set(['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext', 'greek', 'greek-ext', 'vietnamese'])
 

@@ -33,7 +33,7 @@ function terms(query: string): string[] {
 /**
  * Everything a reader could reasonably type to find this sample: the job it is
  * written for, what it shows, the words it was filed under, and the person's
- * own job title. Not the résumé's full text — a search for "Python" should
+ * own job title. Not the resume's full text — a search for "Python" should
  * find the samples filed under Python, not every one that mentions it once.
  */
 function haystack(s: LibrarySample): string {

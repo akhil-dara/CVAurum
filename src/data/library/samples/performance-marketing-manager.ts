@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * A paid-media résumé that survives a numbers-first interview: budget held,
+ * A paid-media resume that survives a numbers-first interview: budget held,
  * cost per acquisition moved, and the incrementality work that proved the
  * platform numbers were wrong before anyone was asked to trust them.
  */

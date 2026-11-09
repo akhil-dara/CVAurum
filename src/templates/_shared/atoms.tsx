@@ -70,7 +70,7 @@ export const STAR_PATH = 'M12 2.5l2.95 6.3 6.9.75-5.1 4.7 1.4 6.85L12 17.6l-6.15
  * ★ character: no bundled font carries that glyph, so the exporter, which
  * draws decorative text from the embedded font's outlines, printed every
  * star as a crossed missing-glyph box while the canvas showed a system
- * font's star (measured on an imported résumé, 2026-09-09). The walker
+ * font's star (measured on an imported resume, 2026-09-09). The walker
  * paints inline <svg><path> already (the ring meters use it), with the fill
  * read from the element's colour, so the page and the PDF now draw the
  * same shape.

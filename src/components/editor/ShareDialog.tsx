@@ -1,5 +1,5 @@
 /**
- * Share a résumé as a SECURE link. The résumé rides inside the URL #fragment
+ * Share a resume as a SECURE link. The resume rides inside the URL #fragment
  * (never sent to a server) and is ALWAYS AES-256-GCM encrypted — the passphrase
  * is never in the link, so even a cached/logged link is unreadable without it.
  * Opens on the `cvaurum:open-share` event.
@@ -57,12 +57,12 @@ export function ShareDialog({ doc }: { doc: ResumeDocument }) {
   const nativeShare = async () => {
     if (!link) return
     const nav = navigator as Navigator & { share?: (d: unknown) => Promise<void> }
-    if (nav.share) { try { await nav.share({ title: `${doc.content.basics.name || 'My'} résumé`, text: 'Here is my résumé (password-protected — I’ll send the passphrase separately):', url: link.url }) } catch { /* cancelled */ } }
+    if (nav.share) { try { await nav.share({ title: `${doc.content.basics.name || 'My'} resume`, text: 'Here is my resume (password-protected — I’ll send the passphrase separately):', url: link.url }) } catch { /* cancelled */ } }
     else copyLink()
   }
   const whatsapp = () => {
     if (!link) return
-    window.open(`https://wa.me/?text=${encodeURIComponent(`My résumé (password-protected): ${link.url}`)}`, '_blank', 'noopener')
+    window.open(`https://wa.me/?text=${encodeURIComponent(`My resume (password-protected): ${link.url}`)}`, '_blank', 'noopener')
   }
 
   return createPortal(
@@ -77,7 +77,7 @@ export function ShareDialog({ doc }: { doc: ResumeDocument }) {
         <div className="max-h-[74vh] overflow-y-auto p-5">
           <p className="mb-4 flex items-start gap-1.5 rounded-lg bg-emerald-500/10 p-2.5 text-xs leading-relaxed text-emerald-700 dark:text-emerald-300">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Your résumé is AES-256 encrypted <em>inside</em> the link and never uploaded. The passphrase is never in the link — so even if the link is cached or logged anywhere, it can’t be opened without it.</span>
+            <span>Your resume is AES-256 encrypted <em>inside</em> the link and never uploaded. The passphrase is never in the link — so even if the link is cached or logged anywhere, it can’t be opened without it.</span>
           </p>
 
           {/* passphrase */}

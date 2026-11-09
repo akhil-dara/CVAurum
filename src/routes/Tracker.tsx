@@ -117,7 +117,7 @@ export function Tracker() {
               <p className="text-sm font-medium text-foreground">Nothing tracked yet</p>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 Add a job to any column with its <span className="font-medium text-foreground">+</span>, then drag it
-                across as you hear back. Like your résumés, it stays in this browser.
+                across as you hear back. Like your resumes, it stays in this browser.
               </p>
             </div>
           )}

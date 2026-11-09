@@ -65,7 +65,7 @@ BEGIN = "/* ===== BUILT FACES (scripts/make-built-fonts.py owns this region) ===
 END = "/* ===== END BUILT FACES ===== */"
 
 # cu2qu's error budget, in font units per 1000 em — fontmake's own default.
-# 1 unit is 0.001 em, i.e. 0.0105 pt at the 10.5 pt a résumé body is set at,
+# 1 unit is 0.001 em, i.e. 0.0105 pt at the 10.5 pt a resume body is set at,
 # which is a fifth of a device pixel at 96 dpi. The conversion is not visible.
 MAX_ERR = 1.0
 

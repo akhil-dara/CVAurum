@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * The placement-season résumé: degree first because it is the strongest thing
+ * The placement-season resume: degree first because it is the strongest thing
  * on the page, two summer internships on the rail, and two projects that other
  * people actually use. Six real things, one page.
  */

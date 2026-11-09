@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
     ],
     faq: [
       { q: 'What should a database administrator resume include?', a: 'The platforms and number of instances you run, availability and recovery figures, performance work with before and after timings, and security or audit results. List certifications such as DP-300 or Oracle OCP and the scripting tools you automate with.' },
-      { q: 'How do you move from systems administrator to DBA?', a: 'Take on backups, patching and database tickets in your current role, learn one platform deeply, and earn a certification for it. On the résumé, keep the sysadmin role and show the automation and reliability work that led into databases.' },
+      { q: 'How do you move from systems administrator to DBA?', a: 'Take on backups, patching and database tickets in your current role, learn one platform deeply, and earn a certification for it. On the resume, keep the sysadmin role and show the automation and reliability work that led into databases.' },
     ],
   },
   content: content({

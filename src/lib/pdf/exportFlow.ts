@@ -42,7 +42,7 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
         offered = true // no storage to remember the offer in: do not nag
       }
       if (offerBackupAfterExport({ lastBackup: readLastBackup(), offered })) {
-        toast(`${done}. Your résumés live only in this browser - keep a backup too.`, 'success', {
+        toast(`${done}. Your resumes live only in this browser - keep a backup too.`, 'success', {
           label: 'Back up',
           run: async () => {
             const { exportFullBackup } = await import('@/lib/backup')

@@ -85,7 +85,7 @@ describe('the landing page anchors', () => {
   })
 })
 
-describe('the reader’s own résumés', () => {
+describe('the reader’s own resumes', () => {
   it('shows how many are saved', () => {
     const item = (n: number) => siteMenuItems({ repoUrl: REPO, libraryCount: n }).find((i) => i.key === 'app')
     expect(item(3)?.note).toBe('3')

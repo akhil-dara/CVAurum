@@ -168,7 +168,7 @@ export function Landing() {
         <section id="how" className="border-y border-border bg-surface-muted/40">
           <div className="mx-auto max-w-6xl px-6 py-14 land-reveal">
             <div className="text-center">
-              <h2 className="font-display text-3xl font-semibold sm:text-4xl">Three steps to a polished résumé</h2>
+              <h2 className="font-display text-3xl font-semibold sm:text-4xl">Three steps to a polished resume</h2>
               <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
                 No sign-up, no setup. Everything happens right here in your browser.
               </p>
@@ -229,7 +229,7 @@ export function Landing() {
               <dl className="mt-8 divide-y divide-border border-y border-border">
                 {[
                   ['Real text', 'Every word is selectable and searchable, and the text an ATS reads is the text you wrote, checked word for word on every design.'],
-                  ['About 60 KB', 'A one-page résumé weighs about as much as a short email: drawn in vectors, with only the letters it uses embedded.'],
+                  ['About 60 KB', 'A one-page resume weighs about as much as a short email: drawn in vectors, with only the letters it uses embedded.'],
                   ['Accessible and archive-ready', 'Exports follow PDF/UA, the standard screen readers rely on, and PDF/A, the one archives keep.'],
                 ].map(([term, body]) => (
                   <div key={term} className="grid gap-1 py-4 sm:grid-cols-[15rem_1fr] sm:gap-6">
@@ -317,7 +317,7 @@ export function Landing() {
         <section id="privacy" className="mx-auto max-w-6xl px-6 py-16 land-reveal">
           <div className="grid gap-8 border-t border-border pt-10 md:grid-cols-[minmax(0,5fr),minmax(0,6fr)] md:gap-16">
             <h2 className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
-              Your résumé never leaves your device
+              A private resume builder: your resume never leaves your device
             </h2>
             <div className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
               <p>
@@ -325,7 +325,7 @@ export function Landing() {
                 Your content, your photo and your exports are made and kept in your browser.
               </p>
               <p className="mt-3">
-                A backup file holds every résumé and restores them anywhere. The code is open, so you can check all of
+                A backup file holds every resume and restores them anywhere. The code is open, so you can check all of
                 this yourself.
               </p>
               <a
@@ -362,7 +362,7 @@ export function Landing() {
               Start yours. It stays here.
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-              No account, no upload, nothing to pay. Your résumé is saved in this browser as you type.
+              No account, no upload, nothing to pay. Your resume is saved in this browser as you type.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <button className="btn-primary" onClick={() => create(false)}>

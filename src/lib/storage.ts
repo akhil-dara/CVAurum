@@ -27,9 +27,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   onboarded: false,
 }
 
-/** What the last library load found: how many résumés this browser holds,
+/** What the last library load found: how many resumes this browser holds,
  *  how many could be shown, and whether reading failed outright. The
- *  dashboard says so when they differ - a résumé that cannot be opened was
+ *  dashboard says so when they differ - a resume that cannot be opened was
  *  once left out of the list without a word. */
 export interface LoadReport {
   stored: number
@@ -43,7 +43,7 @@ export function getLoadReport(): LoadReport {
   return lastLoad
 }
 
-/** Every stored résumé exactly as it sits in this browser, read or not. */
+/** Every stored resume exactly as it sits in this browser, read or not. */
 export async function loadRawDocs(): Promise<unknown[]> {
   const allKeys = await keys(store)
   const docKeys = allKeys.filter((k) => typeof k === 'string' && (k as string).startsWith(DOC_PREFIX))
@@ -130,11 +130,11 @@ export async function deleteDoc(id: string): Promise<void> {
 }
 
 /* ---- Recently deleted ----------------------------------------------------
- * Deleting a whole résumé moves it here rather than erasing it: kept as
+ * Deleting a whole resume moves it here rather than erasing it: kept as
  * `trash:<id>` for TRASH_DAYS, restorable exactly as it was, then dropped on
  * the next library visit. It was a browser confirm and a hard delete - the
  * action that loses the most had the weakest safety net, after a real
- * incident of résumés disappearing from a phone. Trashed résumés are not
+ * incident of resumes disappearing from a phone. Trashed resumes are not
  * part of the library, a backup or the raw "save a copy" file. */
 const TRASH_PREFIX = 'trash:'
 export const TRASH_DAYS = 30
@@ -144,7 +144,7 @@ export interface TrashedDoc {
   deletedAt: number
 }
 
-/** True once a résumé deleted at `deletedAt` has been kept its full month.
+/** True once a resume deleted at `deletedAt` has been kept its full month.
  *  A missing or future stamp never expires: a clock that is wrong must not
  *  be what erases someone's work. */
 export function trashExpired(deletedAt: number, now: number): boolean {
@@ -152,17 +152,17 @@ export function trashExpired(deletedAt: number, now: number): boolean {
   return now - deletedAt > TRASH_DAYS * 24 * 60 * 60 * 1000
 }
 
-/** Moves a résumé to Recently deleted. */
+/** Moves a resume to Recently deleted. */
 export async function trashDoc(id: string): Promise<void> {
   const raw = await get(DOC_PREFIX + id, store)
   if (!raw) return
   // written before the original goes: a failure between the two leaves the
-  // résumé in both places, never in neither
+  // resume in both places, never in neither
   await set(TRASH_PREFIX + id, { doc: raw, deletedAt: Date.now() }, store)
   await del(DOC_PREFIX + id, store)
 }
 
-/** Puts a deleted résumé back in the library. */
+/** Puts a deleted resume back in the library. */
 export async function restoreTrashed(id: string): Promise<boolean> {
   const entry = await get<{ doc: unknown }>(TRASH_PREFIX + id, store)
   if (!entry?.doc) return false
@@ -171,7 +171,7 @@ export async function restoreTrashed(id: string): Promise<boolean> {
   return true
 }
 
-/** Erases a deleted résumé for good. */
+/** Erases a deleted resume for good. */
 export async function deleteTrashedForever(id: string): Promise<void> {
   await del(TRASH_PREFIX + id, store)
 }
@@ -265,12 +265,12 @@ function dropAt(root: unknown, path: PropertyKey[]): boolean {
 
 /**
  * Validate & coerce a stored doc; null only for something that is not a
- * résumé at all.
+ * resume at all.
  *
- * A stored résumé must never vanish for one value this version cannot read
+ * A stored resume must never vanish for one value this version cannot read
  * (a setting a later or earlier version wrote, an entry field of the wrong
  * shape). The old recovery parsed the very same content and metadata a
- * second time, failed again, and the dashboard left the résumé out without a
+ * second time, failed again, and the dashboard left the resume out without a
  * word while it sat in storage. Now each value the schema rejects is removed
  * - its default takes its place - and the parse is tried again; a value
  * whose removal is not enough (a required field) takes its parent with it,

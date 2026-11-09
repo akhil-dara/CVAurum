@@ -136,7 +136,7 @@ export const FONT_MAP: Record<string, FontDef> = Object.fromEntries(FONTS.map((f
 
 /**
  * Bundled families that draw the scripts a Latin-only family cannot, one
- * chain per category: the category's own face first (a serif résumé keeps a
+ * chain per category: the category's own face first (a serif resume keeps a
  * serif Cyrillic), then Inter, which covers Cyrillic, Greek and Vietnamese
  * in full. These sit in the CSS stack right after the chosen family, so the
  * browser draws a Cyrillic letter with them instead of with whatever system
@@ -157,11 +157,11 @@ export const SCRIPT_FALLBACKS: Record<FontCategory, string[]> = {
  * and all 257 web-font subset files, 0 of each. Generated outright by
  * scripts/make-marks-font.py, so its licence is this repository's own.
  *
- * It is deliberately NOT in `FONTS` — nobody should be able to set a résumé in
+ * It is deliberately NOT in `FONTS` — nobody should be able to set a resume in
  * it — and NOT in `SCRIPT_FALLBACKS`, which is about scripts and whose members
  * must draw Cyrillic, Greek and Vietnamese. It is appended to every chain
  * below instead, so it is the LAST thing tried: the bullet, en dash and angle
- * quote every family already has keep coming from the résumé's own face, and
+ * quote every family already has keep coming from the resume's own face, and
  * only the four marks nothing has fall through to this.
  *
  * Both sides read the chain: the browser through `fontStack` (the CSS the

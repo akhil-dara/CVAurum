@@ -37,7 +37,7 @@ export const sample: LibrarySample = {
       },
       {
         q: 'Should a B.Sc MLT resume include the registration number?',
-        a: 'List the registration and the council that issued it, but you can write “number on request” as this résumé does, since the number is usually checked during hiring. Include 12th marks only early in your career.',
+        a: 'List the registration and the council that issued it, but you can write “number on request” as this resume does, since the number is usually checked during hiring. Include 12th marks only early in your career.',
       },
     ],
   },

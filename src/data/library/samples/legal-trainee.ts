@@ -15,7 +15,7 @@ export const sample: LibrarySample = {
   region: 'india',
   template: 'sapphire',
   blurb:
-    'A first-year corporate trainee’s résumé, where moots, the assessment internship and drafted documents carry the weight.',
+    'A first-year corporate trainee’s resume, where moots, the assessment internship and drafted documents carry the weight.',
   keywords: [
     'legal trainee',
     'junior advocate',

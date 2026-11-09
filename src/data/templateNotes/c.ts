@@ -20,7 +20,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   broadsheet: {
     suits:
-      'Broadsheet is for writers, editors, communications leads, researchers and policy people who want a résumé with authority and a sense of print. It also serves senior generalists whose page is mostly prose. Its numbered sections reward a résumé with a clear order; it is less at home with a dozen short sections.',
+      'Broadsheet is for writers, editors, communications leads, researchers and policy people who want a resume with authority and a sense of print. It also serves senior generalists whose page is mostly prose. Its numbered sections reward a resume with a clear order; it is less at home with a dozen short sections.',
     layout:
       'One column on warm off-white paper. The name runs huge and centred in a high-contrast display serif, the role sits beneath in spaced red capitals, and the contacts form a byline between a heavy rule and a thin one. Each section opens with a red two-digit number and a red sans title over a full black rule. Body text is a readable serif; employers are picked out in red.',
     ats:
@@ -36,9 +36,9 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   atlas: {
     suits:
-      'Atlas suits data-minded and technical people whose impact is countable: data scientists, product managers, growth and operations leads, engineers and analysts. The numbers band rewards a résumé with real quantities behind it. A career told mainly through narrative or portfolio work gets less from it.',
+      'Atlas suits data-minded and technical people whose impact is countable: data scientists, product managers, growth and operations leads, engineers and analysts. The numbers band rewards a resume with real quantities behind it. A career told mainly through narrative or portfolio work gets less from it.',
     layout:
-      'A navy-to-teal gradient band carries the name in Montserrat, the role in tracked capitals and the contacts in two short columns at the right. Below it sits a row of four figures, such as years and companies, read from the résumé itself. Then one column with teal-barred headings, teal dates flush right, and skills as grey chips; skills given a level are drawn as rings.',
+      'A navy-to-teal gradient band carries the name in Montserrat, the role in tracked capitals and the contacts in two short columns at the right. Below it sits a row of four figures, such as years and companies, read from the resume itself. Then one column with teal-barred headings, teal dates flush right, and skills as grey chips; skills given a level are drawn as rings.',
     ats:
       'The page body is one column of real text and reads in order. The four figures in the numbers band and any ring values are decoration: a reader sees them, a parser does not, so nothing there is double-counted or misread. Make sure each figure also appears in a bullet if it matters.',
   },
@@ -52,7 +52,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   'folio-noir': {
     suits:
-      'Folio Noir is for creative and cultural roles where a dark, gallery-like page fits the work: art directors, photographers, curators, architects, fashion and luxury brand people. It makes a strong portfolio cover. It is the wrong pick when a résumé will be printed in an office or read by a conservative panel.',
+      'Folio Noir is for creative and cultural roles where a dark, gallery-like page fits the work: art directors, photographers, curators, architects, fashion and luxury brand people. It makes a strong portfolio cover. It is the wrong pick when a resume will be printed in an office or read by a conservative panel.',
     layout:
       'Gold on near-black. A band of dark art with gold veining sits across the top above a light serif name, a gold role line in tracked capitals and a single line of contacts with no icons. Section titles are gold sans capitals with a gold hairline running out to the edge. Each entry\'s dates sit in a narrow margin column on the right, divided from the text by a thin vertical line.',
     ats:
@@ -60,7 +60,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   terrace: {
     suits:
-      'Terrace suits calm, senior profiles in sustainability, healthcare, education leadership, policy and consulting, where a composed page signals judgement. The side-heading layout favours a résumé with a handful of substantial sections over one with many short ones.',
+      'Terrace suits calm, senior profiles in sustainability, healthcare, education leadership, policy and consulting, where a composed page signals judgement. The side-heading layout favours a resume with a handful of substantial sections over one with many short ones.',
     layout:
       'Three stepped bands of green cross the top: the darkest carries the name in bold Chivo, the middle one the role in tracked capitals, the lightest the contacts in one row. Below, on warm paper, each section title sits small and right-aligned in its own narrow column, with a thin green-grey line and a ring marker joining it to the text beside it. Employers are set in green.',
     ats:
@@ -92,11 +92,11 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   meridian: {
     suits:
-      'Meridian suits product, design, platform and climate-tech people who want a modern page with restraint. It reads well for mid-level and senior candidates who let the content lead. The dark masthead is a strong opener; keep that in mind if the résumé will be printed on a home printer.',
+      'Meridian suits product, design, platform and climate-tech people who want a modern page with restraint. It reads well for mid-level and senior candidates who let the content lead. The dark masthead is a strong opener; keep that in mind if the resume will be printed on a home printer.',
     layout:
       'A near-black band the width of the page carries the name in a geometric display face, the role in a bright green mono line and contacts separated by slashes. Below, on white, each section opens with a short dark green bar before a tracked mono title, with wide space between sections. Dates are green mono at the right, bullets are small green squares, and the name repeats at the foot.',
     ats:
-      'The masthead text is real text on a dark ground and extracts as normal. The eyebrow bars and the footer name are decoration. A single column with generous gaps means fewer words per page than the denser designs, so tighten bullets if a two-page résumé spills to a third.',
+      'The masthead text is real text on a dark ground and extracts as normal. The eyebrow bars and the footer name are decoration. A single column with generous gaps means fewer words per page than the denser designs, so tighten bullets if a two-page resume spills to a third.',
   },
   schematic: {
     suits:
@@ -108,9 +108,9 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   volta: {
     suits:
-      'Volta suits growth, sales engineering, analytics and product people who lead with results. The numbers band works best when the résumé has hard figures behind it. It is energetic, so a quieter design may serve better for academic, medical or legal readers.',
+      'Volta suits growth, sales engineering, analytics and product people who lead with results. The numbers band works best when the resume has hard figures behind it. It is energetic, so a quieter design may serve better for academic, medical or legal readers.',
     layout:
-      'A cobalt band across the top carries a small letterhead line. The name follows in a bold geometric display face, then the role in spaced cobalt mono and contacts divided by pipes. A ruled band of four figures drawn from the résumé sits on a pale blue ground. Section heads pair cobalt numerals with the display face and a thin rule, and every date is set in the display face in cobalt.',
+      'A cobalt band across the top carries a small letterhead line. The name follows in a bold geometric display face, then the role in spaced cobalt mono and contacts divided by pipes. A ruled band of four figures drawn from the resume sits on a pale blue ground. Section heads pair cobalt numerals with the display face and a thin rule, and every date is set in the display face in cobalt.',
     ats:
       'The four figures, letterhead, numerals and page foot are decoration and stay out of the parsed text, so they never collide with real dates. Dates in the display face are real text and extract normally. The body runs in a single column, top to bottom.',
   },
@@ -124,7 +124,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   plainsong: {
     suits:
-      'Plainsong is for anyone who wants the most familiar résumé format done well: graduates, engineers, finance and operations staff, public-sector applicants. It is the safe default for online portals and for readers who expect a conventional page and judge only the content.',
+      'Plainsong is for anyone who wants the most familiar resume format done well: graduates, engineers, finance and operations staff, public-sector applicants. It is the safe default for online portals and for readers who expect a conventional page and judge only the content.',
     layout:
       'A centred serif name in Tinos, the role and contacts centred below, then one column in slate ink. Section headings are bold serif capitals on a full-width rule. There are no icons, chips, meters or colour; skills are plain comma lists after bold labels, and language levels are shown in words if given. Spacing is tight but even.',
     ats:
@@ -136,7 +136,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
     layout:
       'Merriweather set small and tight throughout, with a centred name, centred role and centred contacts. Each section heading is in bold serif capitals with a full rule beneath it. Entries are close together and bullets are small dots. There is no colour beyond slate ink and no ornament, so all the density goes to words.',
     ats:
-      'A single serif column with no decoration extracts cleanly and in order. The small size is a reading concern rather than a parsing one; if the résumé is short, a roomier design will read more easily, and the density setting can open the spacing here too.',
+      'A single serif column with no decoration extracts cleanly and in order. The small size is a reading concern rather than a parsing one; if the resume is short, a roomier design will read more easily, and the density setting can open the spacing here too.',
   },
   scribe: {
     suits:
@@ -156,7 +156,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   bare: {
     suits:
-      'Bare is for people who want the page to disappear behind the writing: senior individual contributors, writers, researchers and anyone whose sentences do the work. It is also a sound choice when an employer asks for a plain résumé.',
+      'Bare is for people who want the page to disappear behind the writing: senior individual contributors, writers, researchers and anyone whose sentences do the work. It is also a sound choice when an employer asks for a plain resume.',
     layout:
       'No rules, no marks and no colour. The name is set large and bold at the left, the role and contacts follow in slate and grey, and section headings are small bold tracked capitals separated from the next section by space alone. Entries carry bold titles, right-aligned dates and small round bullets.',
     ats:
@@ -180,7 +180,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   console: {
     suits:
-      'Console suits software, infrastructure, data and security engineers who want their résumé to look like well-kept notes. It is quiet and efficient, a good fit for technical readers who skim fast and care only about what was built.',
+      'Console suits software, infrastructure, data and security engineers who want their resume to look like well-kept notes. It is quiet and efficient, a good fit for technical readers who skim fast and care only about what was built.',
     layout:
       'IBM Plex Sans throughout at a small, even size. A modest bold name, then the role and a grey contact line. Section headings are bold slate words in sentence case with light tracking and no rule. Labels and dates use one grade of grey, everything else is near-black, and there is no ornament anywhere on the page.',
     ats:
@@ -188,7 +188,7 @@ export const NOTES_C: Record<string, TemplateNote> = {
   },
   margin: {
     suits:
-      'Margin is for technical and analytical roles where a reader wants to find a section quickly: engineers, data analysts, researchers and technical program managers. The left edge works as an index, which helps on a two-page résumé.',
+      'Margin is for technical and analytical roles where a reader wants to find a section quickly: engineers, data analysts, researchers and technical program managers. The left edge works as an index, which helps on a two-page resume.',
     layout:
       'A plain name, role and contact line across the top. Below, each section name stands in a wide left margin in bold, tracked IBM Plex Sans, and the section\'s content runs in a single column to its right. Thin grey rules separate the sections across the full width. There is no colour beyond slate and grey.',
     ats:

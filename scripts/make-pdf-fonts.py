@@ -74,7 +74,7 @@ def parse_font_faces(css_text: str) -> list[tuple[str, int, str, str]]:
 
 # Google serves each family as SEVERAL woff2 subsets (latin, latin-ext, ...).
 # They are disjoint on-disk, but the BROWSER unions them at render time via
-# each @font-face block's unicode-range, so a résumé using Polish/Czech/
+# each @font-face block's unicode-range, so a resume using Polish/Czech/
 # Hungarian/Croatian/Turkish letters renders correctly on screen. A static
 # PDF-embeddable TTF can't do that per-run unicode-range trick, so below we
 # MERGE every subset file for a (family, weight) into one TTF instead of
@@ -192,7 +192,7 @@ def to_short_loca(font: TTFont, label: str) -> TTFont:
     extractable text and a correct ToUnicode map, so every text-layer check
     passes; it simply draws almost none of the glyphs. Four families shipped
     that way (Tinos, Arimo, EB Garamond, Cormorant Garamond) and seven
-    templates exported an unreadable résumé.
+    templates exported an unreadable resume.
 
     Short loca stores each glyph offset as a uint16 of half-offsets, so it can
     only address ~128 KB of glyf. Whether a font fits is a property of its

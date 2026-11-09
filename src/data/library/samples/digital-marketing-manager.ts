@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * The generalist acquisition résumé: one person holding paid, email and site
+ * The generalist acquisition resume: one person holding paid, email and site
  * conversion for a direct-to-consumer brand. Every bullet resolves to a number
  * a CFO would recognise — cost per customer, revenue share, spend.
  */

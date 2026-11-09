@@ -194,7 +194,7 @@ function SiteMenuSheet({
   )
 }
 
-/** The theme switch as a row. On a phone with saved résumés the header gives
+/** The theme switch as a row. On a phone with saved resumes the header gives
  *  the switch's place to "My resumes" (HeaderActions.tsx), so it lives here
  *  for everyone on a phone. */
 function ThemeRow() {

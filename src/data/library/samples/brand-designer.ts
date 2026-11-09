@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
       'Packaging operations get as much space as identity: a new SKU press-ready “in five days instead of nineteen” and ₹34 lakh a year cut from rework speak to FMCG brand teams directly.',
     ],
     faq: [
-      { q: 'Does a brand designer need a resume if they have a portfolio?', a: 'Yes. The portfolio shows the work; the résumé shows scale, results and how you worked with marketing and print. Link the portfolio near your name and keep the résumé to the facts a portfolio cannot carry, such as SKU counts and outcomes.' },
+      { q: 'Does a brand designer need a resume if they have a portfolio?', a: 'Yes. The portfolio shows the work; the resume shows scale, results and how you worked with marketing and print. Link the portfolio near your name and keep the resume to the facts a portfolio cannot carry, such as SKU counts and outcomes.' },
       { q: 'How do you explain a career break on a designer resume?', a: 'Give it its own dated entry, one line on the reason if you wish, and anything you did in it: courses, personal projects, freelance work. A clear entry reads better than a gap the reader has to work out from dates.' },
     ],
   },

@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Mid level, US. An analyst's résumé fails when it lists tools, so every line
+ * Mid level, US. An analyst's resume fails when it lists tools, so every line
  * here names the planning decision the analysis changed and what the number
  * moved to. The side project is the one place a tool is allowed to be the point.
  */

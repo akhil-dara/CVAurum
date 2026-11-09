@@ -2,8 +2,8 @@ import type { ResumeContent } from '@/types/document'
 import type { Metadata } from '@/types/metadata'
 
 /**
- * The résumé sample library: a browsable collection of complete, believable
- * résumés, one page each, that a visitor can read and open in the editor.
+ * The resume sample library: a browsable collection of complete, believable
+ * resumes, one page each, that a visitor can read and open in the editor.
  *
  * Every person, company, address, phone number and email in here is invented.
  * Phone numbers use the ranges reserved for fiction (555 in North America,
@@ -11,7 +11,7 @@ import type { Metadata } from '@/types/metadata'
  * valid mobile series), and every address is on example.com. Employers are
  * invented too: a sample is just as useful with a made-up firm, and inventing
  * them keeps other companies' names and marks out of a public, MIT-licensed
- * repository. Universities and schools are real, as they are in any résumé.
+ * repository. Universities and schools are real, as they are in any resume.
  */
 
 /** The shelves the library is browsed by. */
@@ -58,7 +58,7 @@ export const SENIORITY_LABELS: Record<Seniority, string> = {
   lead: 'Lead & above',
 }
 
-/** Where the résumé is written for: it changes the phone shape, the address,
+/** Where the resume is written for: it changes the phone shape, the address,
  *  the spelling, the degree names and what a reader expects to see. */
 export const REGIONS = ['india', 'us', 'uk'] as const
 export type Region = (typeof REGIONS)[number]
@@ -72,7 +72,7 @@ export const REGION_LABELS: Record<Region, string> = {
 export interface LibrarySample {
   /** URL segment, and the id everything else keys on. */
   slug: string
-  /** The job this résumé is written for, as a person would search it. */
+  /** The job this resume is written for, as a person would search it. */
   role: string
   category: LibraryCategory
   seniority: Seniority
@@ -87,9 +87,9 @@ export interface LibrarySample {
   /** Per-sample polish applied after the template's own defaults. */
   tweaks?: (m: Metadata) => void
   /**
-   * What a reader adapting this résumé should know, shown under it on its
-   * page: why it works, each point tied to a line of THIS résumé, and the
-   * questions people ask about a résumé for this role. A page that held only
+   * What a reader adapting this resume should know, shown under it on its
+   * page: why it works, each point tied to a line of THIS resume, and the
+   * questions people ask about a resume for this role. A page that held only
    * the specimen ranked as thin; the advice is what makes it a page.
    * Held to the library's content rules (library.test.ts).
    */

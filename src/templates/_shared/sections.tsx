@@ -478,7 +478,7 @@ function Bullets({
               designs (2026-10-24). */}
           {onRemove && (
             // One quiet cluster past the line's end: move up, move down,
-            // remove. Neutral at rest so it never reads as the résumé's own
+            // remove. Neutral at rest so it never reads as the resume's own
             // ink; only remove turns red, and only under the pointer.
             <span className="rm-bullet-tools no-print" contentEditable={false}>
               <button

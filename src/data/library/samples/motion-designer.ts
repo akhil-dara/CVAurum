@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
     faq: [
       {
         q: 'Does a motion designer need a resume if they have a reel?',
-        a: 'Yes. The reel shows the craft, and the résumé shows scope, clients, tools and results, which is what gets the reel opened. Link the reel at the top of the page with a clear label and keep it under two minutes.',
+        a: 'Yes. The reel shows the craft, and the resume shows scope, clients, tools and results, which is what gets the reel opened. Link the reel at the top of the page with a clear label and keep it under two minutes.',
       },
       {
         q: 'Which software should a motion designer resume list?',

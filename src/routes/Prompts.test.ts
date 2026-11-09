@@ -45,7 +45,7 @@ describe('the prompts page', () => {
   it('gives the copy and paste controls a finger-sized box', () => {
     // 44px is the floor; the old page's copy buttons measured 83x32 and the
     // paste button 171x32. Measured after the change at 375x812: Copy
-    // 309x44, "Paste the answer" 137x44, "Open it as a résumé" 309x44, and
+    // 309x44, "Paste the answer" 137x44, "Open it as a resume" 309x44, and
     // each title row at least 56px tall.
     expect(SRC).toContain('min-h-[56px]')
     expect((SRC.match(/h-11 w-full/g) ?? []).length).toBeGreaterThanOrEqual(2)

@@ -1,6 +1,6 @@
 /**
  * The homepage hero. The visitor types their name and job title, and three
- * real résumé pages wear it as they type; clicking a page brings it forward
+ * real resume pages wear it as they type; clicking a page brings it forward
  * and makes it the design they start with. It demonstrates both halves of
  * the offer at once: the designs, and that what you type stays here (the
  * field never leaves the page - the app makes no outbound request at all).
@@ -113,7 +113,7 @@ export function HeroTypeOnce({
             {lead} <span className="text-[#8a5a12] dark:text-[#e2b04f]">{last}</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-[#4a4d57] dark:text-muted-foreground">
-            A résumé this beautiful, made and kept on your own device: {TEMPLATE_COUNT} designs, a built-in ATS check and a real
+            A resume this beautiful, made and kept on your own device: {TEMPLATE_COUNT} designs, a built-in ATS check and a real
             vector PDF, with nothing to sign up for.
           </p>
         </div>

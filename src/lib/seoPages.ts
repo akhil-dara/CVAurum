@@ -30,8 +30,10 @@ import { linkHtml, linkMarkdown, linkText } from './inlineLinks'
 import { guideSections } from '@/data/guideData'
 import { GUIDES, SHOWCASE_TEMPLATE_IDS, guideBySlug, type Guide } from '@/data/guides'
 import { plainResume } from './searchSpelling'
-import { ABOUT_GUIDE, AUTHOR, GUIDE_GROUPS, GUIDES_HUB, guideKind, templateGuideLinks } from '@/data/guideHub'
+import { ABOUT_GUIDE, AUTHOR, GUIDE_GROUPS, GUIDES_HUB, guideKind } from '@/data/guideHub'
+import { ALL_GUIDES_LINK, templateUseLabel, writeYoursTemplateLinks } from '@/data/pageLinks'
 import { CUSTOMIZE } from '@/data/customize'
+import { FONTS } from '@/data/fonts'
 
 /**
  * The example library's own pages, re-exported so the build step keeps loading
@@ -208,11 +210,11 @@ export function galleryPageMeta(): PageMeta {
 /** The gallery's visible intro sentence — kept here so the pre-rendered file
  *  and the live page say the same thing. */
 export const GALLERY_INTRO =
-  'Every design is shown on the same example résumé, so what changes between them is the layout and nothing else. Free, ATS-ready, and yours to edit in the browser.'
+  'Every design is shown on the same example resume, so what changes between them is the layout and nothing else. Free, ATS-ready, and yours to edit in the browser.'
 
 /** The gallery's meta description: the count, the kinds of design a search
  *  names, and the offer. */
-export const GALLERY_DESCRIPTION = `${TEMPLATES.length} free resume templates — simple, modern, two-column and creative — each on the same résumé. PDF and Word download, no sign-up.`
+export const GALLERY_DESCRIPTION = `${TEMPLATES.length} free resume templates — simple, modern, two-column and creative — each on the same resume. PDF and Word download, no sign-up.`
 
 /**
  * The gallery's designs by style, for the page a crawler reads: a heading per
@@ -247,18 +249,83 @@ function galleryShown(): TemplateConfig[] {
   return galleryGroups().flatMap((g) => g.designs)
 }
 
-/**
- * The designs closest to this one: most shared style tags first, ties broken by
- * the gallery's order so the answer is stable between builds.
- */
-export function relatedTemplateIds(id: string, limit = 6): string[] {
-  const tpl = must(id)
-  const mine = new Set(tpl.tags)
-  return ORDERED.filter((t) => t.id !== id)
-    .map((t, i) => ({ id: t.id, shared: t.tags.filter((tag) => mine.has(tag)).length, i }))
+/** How many neighbours a design page shows (the live page and the Markdown
+ *  twin), and the fewest design pages that must choose each design as one. */
+const RELATED_COUNT = 6
+const MIN_INBOUND = 3
+
+/** Every other design, closest first: most shared style tags, ties broken by
+ *  the gallery's order so the answer is stable between builds. */
+function rankedNeighbours(id: string): { id: string; shared: number }[] {
+  const mine = new Set(must(id).tags)
+  return ORDERED.map((t, i) => ({ id: t.id, shared: t.tags.filter((tag) => mine.has(tag)).length, i }))
+    .filter((t) => t.id !== id)
     .sort((a, b) => b.shared - a.shared || a.i - b.i)
-    .slice(0, limit)
-    .map((t) => t.id)
+    .map(({ id: other, shared }) => ({ id: other, shared }))
+}
+
+let balanced: Map<string, string[]> | null = null
+
+/**
+ * Each design's six neighbours, chosen so that every design is somebody's.
+ *
+ * Ranking by shared tags alone sent the slots to the same few designs, and
+ * left sixteen chosen by six pages or fewer in all (2026-11-09 audit). So the
+ * plain ranking is the start, and a design chosen by fewer than MIN_INBOUND
+ * pages then takes a slot on the page that loses the least relevance by
+ * giving it one: a page sharing a tag with it, in place of that page's least
+ * related neighbour among those other pages already choose often enough.
+ * Deterministic (gallery order breaks every tie), and computed once.
+ */
+function balancedNeighbours(): Map<string, string[]> {
+  if (balanced) return balanced
+  const ranked = new Map(ORDERED.map((t) => [t.id, rankedNeighbours(t.id)]))
+  const rank = new Map([...ranked].map(([id, list]) => [id, new Map(list.map((r, i) => [r.id, i]))]))
+  const shared = new Map([...ranked].map(([id, list]) => [id, new Map(list.map((r) => [r.id, r.shared]))]))
+  const picks = new Map([...ranked].map(([id, list]) => [id, list.slice(0, RELATED_COUNT).map((r) => r.id)]))
+  const inbound = new Map(ORDERED.map((t) => [t.id, 0]))
+  for (const list of picks.values()) for (const r of list) inbound.set(r, inbound.get(r)! + 1)
+
+  for (;;) {
+    const short = ORDERED.filter((t) => inbound.get(t.id)! < MIN_INBOUND).sort(
+      (a, b) => inbound.get(a.id)! - inbound.get(b.id)!
+    )[0]
+    if (!short) break
+    let best: { page: string; victim: string; key: [number, number] } | null = null
+    for (const [p, page] of ORDERED.entries()) {
+      const list = picks.get(page.id)!
+      const gain = shared.get(page.id)!.get(short.id) ?? 0
+      if (page.id === short.id || list.includes(short.id) || gain === 0) continue
+      // the least related neighbour this page can spare
+      const victim = [...list].reverse().find((v) => inbound.get(v)! > MIN_INBOUND)
+      if (!victim) continue
+      const key: [number, number] = [shared.get(page.id)!.get(victim)! - gain, p]
+      if (!best || key[0] < best.key[0] || (key[0] === best.key[0] && key[1] < best.key[1])) best = { page: page.id, victim, key }
+    }
+    if (!best) throw new Error(`seoPages: no design page can list "${short.id}" as related`)
+    const order = rank.get(best.page)!
+    const next = picks
+      .get(best.page)!
+      .map((r) => (r === best!.victim ? short.id : r))
+      .sort((a, b) => order.get(a)! - order.get(b)!)
+    picks.set(best.page, next)
+    inbound.set(best.victim, inbound.get(best.victim)! - 1)
+    inbound.set(short.id, inbound.get(short.id)! + 1)
+  }
+  balanced = picks
+  return picks
+}
+
+/**
+ * The designs closest to this one, closest first. The first six are the
+ * balanced choice above; a longer list (the pre-rendered page shows twelve)
+ * goes on down the plain ranking.
+ */
+export function relatedTemplateIds(id: string, limit = RELATED_COUNT): string[] {
+  must(id)
+  const base = balancedNeighbours().get(id)!
+  if (limit <= base.length) return base.slice(0, limit)
+  return [...base, ...rankedNeighbours(id).map((r) => r.id).filter((r) => !base.includes(r))].slice(0, limit)
 }
 
 /** One <li> per design, name and href, for the crawler's navigation block. */
@@ -274,7 +341,7 @@ function linkList(list: readonly TemplateConfig[]): string {
 /* ------------------------------------------------------------- the pictures
  * A design has two files, and they are not interchangeable:
  *
- *   /img/templates/<id>.webp   the page image — the whole résumé at 1200 px
+ *   /img/templates/<id>.webp   the page image — the whole resume at 1200 px
  *                              wide, lossless WebP: under half the bytes of
  *                              JPEG q82 for a page of text, and bit-exact
  *                              (measured). This is what a reader looks at and
@@ -292,7 +359,7 @@ function linkList(list: readonly TemplateConfig[]): string {
  *  a width and a height that are nearly right beat no box at all. */
 const FALLBACK_HEIGHT = Math.round((PAGE_IMAGE_WIDTH * 297) / 210)
 
-/** The indexable picture of a résumé in this design. */
+/** The indexable picture of a resume in this design. */
 export function templatePageImage(id: string): string {
   return `/img/templates/${id}.webp`
 }
@@ -303,14 +370,14 @@ export function templatePageImageHeight(id: string): number {
 }
 
 /**
- * What the picture shows: a résumé page set in this design, and what the
+ * What the picture shows: a resume page set in this design, and what the
  * design is — its style tags in words. Not the description, which is a
  * paragraph of sales prose about the design rather than a description of the
  * image, and reads as stuffing in an alt.
  */
 export function imageAlt(tpl: TemplateConfig): string {
   const tags = tagSentence(tpl.tags).toLowerCase()
-  return `A full résumé page in the ${tpl.name} template${tags ? `: ${tags}` : ''}`
+  return `A full resume page in the ${tpl.name} template${tags ? `: ${tags}` : ''}`
 }
 
 /** One picture per design, as real content: an image that lives only in
@@ -356,12 +423,12 @@ ${note ? `    <section>
       <h2>How it reads to an ATS</h2>
       <p>${htmlEscape(note.ats)}</p>
     </section>
-` : ''}    <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a résumé parser can read, and edits entirely in your browser — no account and no upload.</p>
+` : ''}    <p>Best for: ${htmlEscape(tagSentence(tpl.tags))}. Free to use, exports selectable text a resume parser can read, and edits entirely in your browser — no account and no upload.</p>
     <p><strong>${htmlEscape(CUSTOMIZE.switchLine)}</strong> ${htmlEscape(CUSTOMIZE.controls)}</p>
-    <p><a href="/app">Start a résumé in this design</a> · <a href="/templates">Browse all ${TEMPLATES.length} resume templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete resume examples</a></p>
-    <p>${guideLinksHtml(templateGuideLinks())}</p>
+    <p><a href="/app">${htmlEscape(templateUseLabel(tpl.name))}</a> · <a href="/templates">Browse all ${TEMPLATES.length} resume templates</a> · <a href="/examples">See ${SAMPLE_COUNT} complete resume examples</a></p>
+    <p>${guideLinksHtml(writeYoursTemplateLinks())}</p>
 ${inThisDesign.length ? `    <section>
-      <h2>Résumé examples in the ${htmlEscape(tpl.name)} design</h2>
+      <h2>Resume examples set in the ${htmlEscape(tpl.name)} design</h2>
       <ul>
 ${inThisDesign.map((s) => `        <li><a href="/examples/${s.slug}">${htmlEscape(s.role)} resume example</a></li>`).join('\n')}
       </ul>
@@ -382,7 +449,7 @@ export function galleryStaticHtml(): string {
     <p><a href="/">CVAurum</a> › Resume templates</p>
     <h1>${TEMPLATES.length} resume templates, all free</h1>
     <p>${htmlEscape(GALLERY_INTRO)}</p>
-    <p><a href="/app">Start a résumé</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a></p>
+    <p><a href="/app">Start a resume</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${ALL_GUIDES_LINK.href}">${ALL_GUIDES_LINK.label}</a></p>
     <nav aria-label="Every resume template">
 ${galleryGroups()
   .map((g) => `      <h2>${htmlEscape(g.heading)}</h2>\n      <ul class="seo-cards">\n${cardList(g.designs)}\n      </ul>`)
@@ -412,7 +479,7 @@ ${GALLERY_INTRO}
 
 ${ORDERED.map((t) => `- [${t.name}](${SITE}${templatePath(t)}) — ${trimToWords(t.description, 140)} (${tagSentence(t.tags)})`).join('\n')}
 
-Start a résumé: ${SITE}/app · About CVAurum: ${SITE}/about
+Start a resume: ${SITE}/app · About CVAurum: ${SITE}/about
 `
 }
 
@@ -435,6 +502,17 @@ ${n.ats}
 `
 }
 
+/** The examples whose sample is set in this design, or nothing when none is. */
+function templateExamplesMarkdown(tpl: TemplateConfig): string {
+  const shown = EXAMPLES_BY_TEMPLATE[tpl.id] ?? []
+  if (!shown.length) return ''
+  return `## Resume examples set in the ${tpl.name} design
+
+${shown.map((s) => `- [${s.role} resume example](${SITE}/examples/${s.slug})`).join('\n')}
+
+`
+}
+
 export function templateMarkdown(id: string): string {
   const tpl = must(id)
   const related = relatedTemplateIds(id, 6).map((r) => must(r))
@@ -450,11 +528,11 @@ ${tpl.description}
 - Exports: PDF (vector, selectable text), Word, JSON Resume
 - Price: free, open source (AGPL-3.0); no account, nothing uploaded
 - Open in the editor: ${SITE}/app
-- ${guideLinksMarkdown(templateGuideLinks())}
+- ${guideLinksMarkdown(writeYoursTemplateLinks())}
 
 ${CUSTOMIZE.switchLine} ${CUSTOMIZE.controls}
 
-${templateNoteMarkdown(tpl)}## Related designs
+${templateNoteMarkdown(tpl)}${templateExamplesMarkdown(tpl)}## Related designs
 
 ${related.map((r) => `- [${r.name}](${SITE}${templatePath(r)}) — ${trimToWords(r.description, 120)}`).join('\n')}
 
@@ -490,7 +568,7 @@ export function apiCatalogJson(): string {
 }
 
 /* ------------------------------------------------- the document's own shape
- * An assistant asked to produce a résumé file needs the field names, and a
+ * An assistant asked to produce a resume file needs the field names, and a
  * prompt that spells them out in prose is a copy of the schema that nobody
  * will remember to update. So the list below is READ OUT OF THE ZOD SCHEMAS
  * the importer actually validates against (src/types/resume.ts via
@@ -552,7 +630,7 @@ export function documentSections(): string[] {
 
 export function documentShapeMarkdown(): string {
   const lines = documentShape().map((s) => `- \`${s.path}\`: ${s.fields.join(', ')}`)
-  return `A CVAurum file IS a JSON Resume document: the content sits at the top level and CVAurum's own visual settings are namespaced under \`meta.cvaurum\`, which an assistant should leave out entirely — the app fills it in. Import is deliberately forgiving: a field it does not recognise, or one whose value is the wrong type, is dropped on its own; it never rejects the rest of the résumé. So a plain JSON Resume document imports complete, and a near miss imports as most of a résumé rather than as an error.
+  return `A CVAurum file IS a JSON Resume document: the content sits at the top level and CVAurum's own visual settings are namespaced under \`meta.cvaurum\`, which an assistant should leave out entirely — the app fills it in. Import is deliberately forgiving: a field it does not recognise, or one whose value is the wrong type, is dropped on its own; it never rejects the rest of the resume. So a plain JSON Resume document imports complete, and a near miss imports as most of a resume rather than as an error.
 
 Top level: ${documentSections().map((s) => `\`${s}\``).join(', ')}. All but \`custom\` are JSON Resume v1; \`custom\` is CVAurum's own, for material that belongs in no standard section. Every field is optional.
 
@@ -566,22 +644,22 @@ Dates are strings: \`YYYY-MM-DD\`, \`YYYY-MM\` or \`YYYY\`. An empty \`endDate\`
 export function skillMd(): string {
   return `---
 name: cvaurum
-description: Help a person build, tailor or export a resume with CVAurum (${SITE}), a free resume builder that runs entirely in the browser. Use when someone asks for a resume template, a PDF/Word resume, an ATS check, or wants to import or export JSON Resume.
+description: Help a person build, tailor or export a resume with CVAurum (<${SITE}>), a free resume builder that runs entirely in the browser. Use when someone asks for a resume template, a PDF/Word resume, an ATS check, or wants to import or export JSON Resume.
 ---
 
 # CVAurum
 
 ${COPY.oneLiner}
 
-Everything runs in the visitor's browser: no account, no upload, no API. The whole application is open source (${COPY.links.repo}).
+Everything runs in the visitor's browser: no account, no upload, no API. The whole application is open source: <${COPY.links.repo}>.
 
 ## What you can do for a person
 
-1. **Pick a design.** ${TEMPLATES.length} templates, each on its own page: ${SITE}/templates and ${SITE}/templates/<id>. Every page has a Markdown twin beside it: ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/index.md (also answered for \`Accept: text/markdown\` where the host negotiates).
-2. **Start a résumé.** ${SITE}/app opens the editor; "Start with an example" offers six ready résumés. A template page's "Use this template" opens the editor in that design.
-3. **Bring content in.** The editor imports JSON Resume (https://jsonresume.org/schema) and text PDFs (Import in the editor). If you hold a person's résumé as JSON Resume, hand them the file; the editor keeps it in their browser storage only.
+1. **Pick a design.** ${TEMPLATES.length} templates, each on its own page: <${SITE}/templates> lists them, and a design's page is \`${SITE}/templates/{id}\`. Every page has a Markdown twin beside it: <${SITE}/templates.md> and \`${SITE}/templates/{id}.md\`, and the home page's is <${SITE}/index.md> (also answered for \`Accept: text/markdown\` where the host negotiates).
+2. **Start a resume.** <${SITE}/app> opens the editor; "Start with an example" offers six ready resumes. A template page's "Use the {name} resume template" button opens the editor in that design.
+3. **Bring content in.** The editor imports JSON Resume (<https://jsonresume.org/schema>) and text PDFs (Import in the editor). If you hold a person's resume as JSON Resume, hand them the file; the editor keeps it in their browser storage only.
 4. **Fit and export.** Magic fit (Design → Page) sizes type and spacing to a page target inside rules the person sets and says what it chose. Export gives a vector PDF (PDF/A-2B, PDF/UA-1), a Word file and JSON Resume.
-5. **Check for an ATS.** The ATS panel scores the résumé, matches a job description's keywords and shows the plain text a parser reads.
+5. **Check for an ATS.** The ATS panel scores the resume, matches a job description's keywords and shows the plain text a parser reads.
 
 ## The document shape
 
@@ -591,11 +669,11 @@ ${documentShapeMarkdown()}
 
 Never invent an employer, a date, a qualification or a figure a person has not given you. An empty field is a question to ask them; a filled-in guess is something they have to defend in an interview.
 
-Ready-made prompts for the jobs people actually bring — notes into a résumé, tailoring to a posting, rewriting bullets to name a number, writing a summary, starting from nothing — are at ${SITE}/prompts (Markdown twin: ${SITE}/prompts.md).
+Ready-made prompts for the jobs people actually bring — notes into a resume, tailoring to a posting, rewriting bullets to name a number, writing a summary, starting from nothing — are at <${SITE}/prompts> (Markdown twin: <${SITE}/prompts.md>).
 
 ## In the page (WebMCP)
 
-When the page is open in a browser that exposes \`navigator.modelContext\`, the app registers tools: \`list_resume_templates\`, \`open_resume_template\` (\`{ id }\`), \`create_resume_from_json_resume\` (\`{ jsonResume }\`) which saves a new résumé in the browser and opens it. They act only in that browser.
+When the page is open in a browser that exposes \`navigator.modelContext\`, the app registers tools: \`list_resume_templates\`, \`open_resume_template\` (\`{ id }\`), \`create_resume_from_json_resume\` (\`{ jsonResume }\`) which saves a new resume in the browser and opens it. They act only in that browser.
 
 ## Limits
 
@@ -628,7 +706,7 @@ export function agentSkillsIndex(digestHex: string): string {
 export function authMd(): string {
   return `# auth.md
 
-CVAurum (${SITE}) has no accounts, no API keys and no registration, for people or for agents. Everything runs in the visitor's browser and nothing is stored on a server, so there is no credential to obtain and nothing a credential would unlock.
+CVAurum (<${SITE}>) has no accounts, no API keys and no registration, for people or for agents. Everything runs in the visitor's browser and nothing is stored on a server, so there is no credential to obtain and nothing a credential would unlock.
 
 - Audience: any agent or person may read the public pages (/, /templates, /templates/<id>, /llms.txt) without identifying itself.
 - Registration: none exists. There is no endpoint to create an account or provision a credential.
@@ -698,7 +776,7 @@ export interface PromptEntry {
  * page, where someone who wants it will look.
  */
 export const PROMPTS_INTRO =
-  'Copy a prompt, paste it into the assistant you already use, then paste the answer back here — it opens as a résumé you can edit.'
+  'Copy a prompt, paste it into the assistant you already use, then paste the answer back here — it opens as a resume you can edit.'
 
 /** The same footnote on the page, in the crawler's HTML and in the Markdown
  *  twin. One sentence, because the schema is not what anyone came for. */
@@ -709,14 +787,14 @@ export const PROMPTS: readonly PromptEntry[] = [
   {
     id: 'notes-to-resume',
     title: 'Turn what I already have into a resume file',
-    when: 'You have notes, an old résumé or a job history in some other shape, and no wish to retype it.',
-    prompt: `I want to turn what I already have into a résumé I can edit.
+    when: 'You have notes, an old resume or a job history in some other shape, and no wish to retype it.',
+    prompt: `I want to turn what I already have into a resume I can edit.
 
 Here is my raw material. It is unstructured and probably incomplete:
 
-<paste your notes, an old résumé, a list of jobs — whatever you have>
+<paste your notes, an old resume, a list of jobs — whatever you have>
 
-Produce one JSON Resume document from it. The exact field names are written out at ${SCHEMA_DOC}; read that rather than guessing, and do not use a field it does not list.
+Produce one JSON Resume document from it. The exact field names are written out at ${SCHEMA_DOC} - read that rather than guessing, and do not use a field it does not list.
 
 Rules I care about:
 - Use only what is in my material. Do not invent an employer, a date, a qualification, a skill or a figure. If a date is missing, leave the field empty rather than guessing a year.
@@ -725,13 +803,13 @@ Rules I care about:
 - If something in my material fits no standard section, put it in custom rather than dropping it.
 
 Reply with the JSON in a single fenced block. After it, list the fields you left empty because my material did not answer them — that list is what I need to go and find out.`,
-    after: 'Copy the JSON block and paste it below, or save it as a .json file and use Create resume → import a JSON Resume file. Anything the assistant got wrong is dropped field by field on import, so a near miss still arrives as most of a résumé.',
+    after: 'Copy the JSON block and paste it below, or save it as a .json file and use Create resume → import a JSON Resume file. Anything the assistant got wrong is dropped field by field on import, so a near miss still arrives as most of a resume.',
   },
   {
     id: 'tailor-to-a-job',
     title: 'Tailor a resume I already have to one job description',
-    when: 'You have a résumé that works and a posting you want it to answer, and you do not want the two to drift apart into a lie.',
-    prompt: `Here is my résumé as a JSON Resume document:
+    when: 'You have a resume that works and a posting you want it to answer, and you do not want the two to drift apart into a lie.',
+    prompt: `Here is my resume as a JSON Resume document:
 
 <paste the JSON Resume file this app exported>
 
@@ -739,7 +817,7 @@ Here is the job description:
 
 <paste the posting>
 
-Rewrite the résumé for this job without adding anything I have not done.
+Rewrite the resume for this job without adding anything I have not done.
 
 - Reorder the highlights inside each work entry so the ones closest to the posting come first. Drop one only if it is genuinely irrelevant here, and tell me which you dropped.
 - Reword a highlight to use the posting's vocabulary only where my version already describes that same work. If the posting asks for something my history does not show, do not write a bullet for it — put it under "gaps" at the end instead.
@@ -747,14 +825,14 @@ Rewrite the résumé for this job without adding anything I have not done.
 - Reorder skills so the ones the posting names come first. Do not add a skill I have not listed.
 - Leave every date, employer and job title exactly as it is.
 
-Return the whole edited document as JSON Resume (field names: ${SCHEMA_DOC}), then a short plain-prose list of what you reordered, what you reworded, what you dropped, and the gaps.`,
-    after: 'Import the JSON as a second résumé and keep the original — a tailored copy per application is the point, and the gaps list is worth reading before the interview.',
+Return the whole edited document as JSON Resume, with the field names listed at ${SCHEMA_DOC} - then a short plain-prose list of what you reordered, what you reworded, what you dropped, and the gaps.`,
+    after: 'Import the JSON as a second resume and keep the original — a tailored copy per application is the point, and the gaps list is worth reading before the interview.',
   },
   {
     id: 'bullets-with-numbers',
     title: 'Rewrite weak bullets into ones that name a number',
     when: 'Your bullets describe duties rather than results, and you know it.',
-    prompt: `Here are bullets from my résumé, one per line:
+    prompt: `Here are bullets from my resume, one per line:
 
 <paste your bullets>
 
@@ -771,7 +849,7 @@ Return the finished bullets as a JSON array of strings, ready to drop into the h
     id: 'write-a-summary',
     title: 'Write the summary at the top',
     when: 'The three lines under your name are the hardest three lines on the page, and you have rewritten them five times.',
-    prompt: `Here is my résumé as a JSON Resume document:
+    prompt: `Here is my resume as a JSON Resume document:
 
 <paste the JSON Resume file this app exported>
 
@@ -779,39 +857,39 @@ If I am aiming at a particular job, here is the posting; if this line is still h
 
 <paste the posting, or delete this line>
 
-Write me three different versions of basics.summary. Three sentences each. Never the word "I". Built only from what the résumé already shows.
+Write me three different versions of basics.summary. Three sentences each. Never the word "I". Built only from what the resume already shows.
 
 - The first leads with what I do and how long I have done it.
-- The second leads with the single strongest thing in the résumé.
-- The third leads with where I am going — but only if the résumé makes that legible. If it does not, say so instead of inventing an ambition for me.
+- The second leads with the single strongest thing in the resume.
+- The third leads with where I am going — but only if the resume makes that legible. If it does not, say so instead of inventing an ambition for me.
 
-Under each version, name the entries in the résumé it rests on, so I can check it. If a version would need a claim the résumé does not support, do not write it: tell me what I would have to add first.`,
+Under each version, name the entries in the resume it rests on, so I can check it. If a version would need a claim the resume does not support, do not write it: tell me what I would have to add first.`,
     after: 'Paste the one you believe into the summary field under your name. If none of the three is true, that is the useful answer.',
   },
   {
     id: 'first-resume',
     title: 'Draft a first resume from a job title',
     when: 'You are starting out, the page is blank, and everything you have feels too thin to write down.',
-    prompt: `I am starting out and I do not have a résumé yet.
+    prompt: `I am starting out and I do not have a resume yet.
 
 The job I want: <job title>, in <field, and the country I am applying in>.
 What I actually have: <a course, a part-time job, a project, a club, a certificate — list it however thin it looks>.
 
-Build me a JSON Resume document from what I just gave you and nothing else. The field names are at ${SCHEMA_DOC}. You may not invent an internship, an employer, a grade, a date or a skill. Where a section would be empty, leave it empty.
+Build me a JSON Resume document from what I just gave you and nothing else, using the field names at ${SCHEMA_DOC} - you may not invent an internship, an employer, a grade, a date or a skill. Where a section would be empty, leave it empty.
 
 Then, separately from the JSON, do the part that actually helps:
-- Tell me which sections a <job title> résumé is read for, in the order a reader looks at them.
+- Tell me which sections a <job title> resume is read for, in the order a reader looks at them.
 - For each thing I listed, ask me the two or three questions that would turn it into a bullet worth reading.
 - Name what is genuinely missing — the kind of evidence this role expects and I do not yet have — and for each, one realistic way to get it in the next few months.
 
-I would rather have a short honest résumé and a list of what to do next than a full page of things I did not do.`,
-    after: 'Import the JSON, then work through the questions it asked you and put your own answers in. A short résumé that is true is a résumé you can talk about.',
+I would rather have a short honest resume and a list of what to do next than a full page of things I did not do.`,
+    after: 'Import the JSON, then work through the questions it asked you and put your own answers in. A short resume that is true is a resume you can talk about.',
   },
   {
     id: 'read-it-back',
     title: 'Read my resume back to me the way a hiring manager would',
     when: 'You have stared at it too long to see it, and you want to know what it says before someone else decides what it says.',
-    prompt: `Here is my résumé as a JSON Resume document:
+    prompt: `Here is my resume as a JSON Resume document:
 
 <paste the JSON Resume file this app exported>
 
@@ -822,7 +900,7 @@ Do not rewrite it. Read it the way a hiring manager for that role would, in the 
 - What they learn about me from the first six lines.
 - Which three entries carry the most weight, and which ones take up space without paying for it.
 - Every place I have described a duty rather than a result.
-- The questions they would be left with — the things the résumé makes them wonder and does not answer.
+- The questions they would be left with — the things the resume makes them wonder and does not answer.
 
 Then ask me those questions, one at a time, and wait for my answers. When we are through them, turn my answers into the bullets they belong in, in my own wording, using only what I told you.`,
     after: 'This one changes nothing on its own. Take the bullets it ends with back into the editor, then run the ATS panel to see what a parser makes of the result.',
@@ -865,7 +943,7 @@ ${index}
     </ol>
 ${blocks}
     <p>${htmlEscape(PROMPTS_SCHEMA_NOTE)} The field names are at <a href="/skills/cvaurum/SKILL.md">/skills/cvaurum/SKILL.md</a>, generated from the schemas the importer validates against, so they cannot drift from the code.</p>
-    <p><a href="/app">Import an answer and start editing</a> · <a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete examples</a></p>
+    <p><a href="/app">Import an answer and start editing</a> · <a href="/templates">Browse the ${TEMPLATES.length} resume templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} complete examples</a> · <a href="${ALL_GUIDES_LINK.href}">${ALL_GUIDES_LINK.label}</a></p>
   </main>`
 }
 
@@ -888,7 +966,7 @@ ${PROMPTS_INTRO}
 
 ${index}
 
-${PROMPTS_SCHEMA_NOTE} The field names are at ${SCHEMA_DOC}, generated from the schemas the importer validates against.
+${PROMPTS_SCHEMA_NOTE} The field names, generated from the schemas the importer validates against, are at <${SCHEMA_DOC}>
 
 ${blocks}
 
@@ -1379,6 +1457,8 @@ export function breadcrumbJsonLd(id: string): string {
         url,
         ...pageDates(url),
         name: `${tpl.name} resume template`,
+        description: templatePageMeta(id).description,
+        isPartOf: { '@id': `${SITE}/#website` },
         primaryImageOfPage: {
           '@type': 'ImageObject',
           contentUrl: `${SITE}${templatePageImage(tpl.id)}`,
@@ -1553,7 +1633,7 @@ export function landingStaticHtml(): string {
   return `<main class="seo-static">
     <h1>${esc(COPY.hero)}</h1>
     <p>${esc(COPY.oneLiner)}</p>
-    <p><a href="${COPY.links.app}">Create a résumé</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
+    <p><a href="${COPY.links.app}">Create a resume</a> · <a href="${COPY.links.gallery}">Browse the ${TEMPLATES.length} templates</a> · <a href="/examples">Read ${SAMPLE_COUNT} resume examples</a> · <a href="/prompts">${PROMPTS.length} prompts for an AI assistant</a> · <a href="${COPY.links.repo}">Source on GitHub</a></p>
     <p><a href="${GUIDES_HUB.path}">All guides</a> · ${GUIDES.map((g) => `<a href="/${g.slug}">${esc(g.short)}</a>`).join(' · ')}</p>
     <h2>Three steps</h2>
     <ol>
@@ -1571,7 +1651,7 @@ ${rows}
 ${privacy}
     </ul>
     <h2>What reaches the exported file's text layer</h2>
-    <p>Whether numbered headings, bullet glyphs and decorative marks break a résumé parser is the question people ask about a design that looks designed. Each line is the output of a gate in the repository, run against the real exporter:</p>
+    <p>Whether numbered headings, bullet glyphs and decorative marks break a resume parser is the question people ask about a design that looks designed. Each line is the output of a gate in the repository, run against the real exporter:</p>
     <ul>
 ${textLayer}
     </ul>
@@ -1584,9 +1664,9 @@ ${faq}
     <ul>
 ${signature}
     </ul>
-    <p><a href="${COPY.links.gallery}">Every template, rendered on the same example résumé</a>.</p>
+    <p><a href="${COPY.links.gallery}">Every template, rendered on the same example resume</a>.</p>
     <h2>Examples</h2>
-    <p>${SAMPLE_COUNT} complete résumés for named jobs, each written out in full on its own page and filterable by field, career stage and the country it is written for — <a href="/examples">read the ${SAMPLE_COUNT} resume examples</a>. Every person, employer, address and figure in them is invented.</p>
+    <p>${SAMPLE_COUNT} complete resumes for named jobs, each written out in full on its own page and filterable by field, career stage and the country it is written for — <a href="/examples">read the ${SAMPLE_COUNT} resume examples</a>. Every person, employer, address and figure in them is invented.</p>
     <h2>Prompts</h2>
     <p>${PROMPTS.length} copy-ready prompts for whatever AI assistant you already use — <a href="/prompts">start from your own history instead of a blank page</a>. Each asks for JSON Resume, which this app imports, and none of them will invent experience you do not have.</p>
     <p>CVAurum is open source under the AGPL-3.0: <a href="${COPY.links.repo}">${COPY.links.repo}</a>.</p>
@@ -1656,23 +1736,23 @@ function textLayerBlock(): string {
 function pagesBlock(): string {
   return [
     `- [Home](${SITE}/): what CVAurum is, how it compares with other resume builders, the three steps, privacy, questions and answers.`,
-    `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example résumé, searchable and filterable by tag; each design has its own page. ${SIGNATURE_IDS.length} of them, the Signature collection, change the structure of the page, not only its colours. Every design is listed in ${SITE}/templates.md and ${SITE}/llms-full.txt.`,
-    `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example résumés for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
-    `- [Prompts](${SITE}/prompts): ${PROMPTS.length} copy-ready prompts for an AI assistant — notes into a résumé, tailoring to a posting, rewriting bullets to name a number, writing the summary, starting from nothing. Each asks for JSON Resume so the answer imports here, and none of them will invent experience.`,
+    `- [Template gallery](${SITE}/templates): all ${TEMPLATES.length} designs rendered on the same example resume, searchable and filterable by tag; each design has its own page. ${SIGNATURE_IDS.length} of them, the Signature collection, change the structure of the page, not only its colours. Every design is listed in <${SITE}/templates.md> and <${SITE}/llms-full.txt>.`,
+    `- [Example library](${SITE}/examples): ${SAMPLE_COUNT} complete example resumes for named jobs, filterable by field, career stage and the country they are written for; each has its own page. Every person, employer, address and figure in them is invented.`,
+    `- [Prompts](${SITE}/prompts): ${PROMPTS.length} copy-ready prompts for an AI assistant — notes into a resume, tailoring to a posting, rewriting bullets to name a number, writing the summary, starting from nothing. Each asks for JSON Resume so the answer imports here, and none of them will invent experience.`,
     `- [Guides](${SITE}${GUIDES_HUB.path}): every guide below on one page, the writing guides apart from the pages about the tools.`,
     ...GUIDES.map((g) => `- [${g.short}](${SITE}/${g.slug}): ${g.description}`),
-    `- [The app](${SITE}/app): the résumé dashboard and the editor. Nothing to sign up for; the page is private to the visitor's browser and not indexed.`,
-    `- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, résumé length.`,
+    `- [The app](${SITE}/app): the resume dashboard and the editor. Nothing to sign up for; the page is private to the visitor's browser and not indexed.`,
+    `- [Questions and answers](${SITE}/#faq): privacy, the ATS check, file formats, archival PDF, phones, resume length.`,
   ].join('\n')
 }
 
 function resourcesBlock(): string {
   return [
-    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example), each naming the picture of the page it stands for — the whole résumé at 1200 px wide.`,
+    `- [Sitemap](${SITE}/sitemap.xml): every public URL (the home page, the gallery and one page per design, the example library and one page per example), each naming the picture of the page it stands for — the whole resume at 1200 px wide.`,
     `- [robots.txt](${SITE}/robots.txt): the public pages are open to crawlers and machine readers by name; the private routes are not.`,
     `- [llms-full.txt](${SITE}/llms-full.txt): the long form of this file — every feature in detail, every template with its page, the comparison table, the questions and answers, and the public URLs.`,
     `- [templates.md](${SITE}/templates.md): every template with its page, its tagline and its style tags.`,
-    `- Markdown twins: every public page has one beside it, at ${SITE}/index.md, ${SITE}/templates.md, ${SITE}/templates/<id>.md, ${SITE}/examples.md, ${SITE}/examples/<slug>.md, ${SITE}/prompts.md, ${SITE}/guides.md and ${SITE}/<guide>.md, linked from the page as its text/markdown alternate.`,
+    `- Markdown twins: every public page has one beside it, linked from the page as its text/markdown alternate: <${SITE}/index.md> · <${SITE}/templates.md> · \`${SITE}/templates/{id}.md\` · <${SITE}/examples.md> · \`${SITE}/examples/{slug}.md\` · <${SITE}/prompts.md> · <${SITE}/guides.md> · \`${SITE}/{guide}.md\`.`,
     `- [API catalog](${SITE}/.well-known/api-catalog) (RFC 9727): says plainly that there is no HTTP API; the site itself is the service.`,
     `- [Skills index](${SITE}/.well-known/agent-skills/index.json) and [SKILL.md](${SCHEMA_DOC}): how an assistant can help a person use CVAurum, the full field list of the document it should produce (generated from the schemas the importer validates against), and the in-page WebMCP tools it can call.`,
     `- [auth.md](${SITE}/auth.md): there are no accounts, keys or registration, for people or for agents.`,
@@ -1707,7 +1787,7 @@ export function llmsTxt(): string {
 
 > ${COPY.oneLiner}
 
-CVAurum, at ${SITE}, is a resume builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the AGPL-3.0 at ${COPY.links.repo}.
+CVAurum (<${SITE}>) is a resume builder published as a static web app: the editor, the fonts, the PDF engine, the ATS checks and the storage all run in the visitor's browser. There is no backend, no account, no paid tier and no watermark. The source is public under the AGPL-3.0 at <${COPY.links.repo}>.
 
 ## Facts at a glance
 
@@ -1719,7 +1799,7 @@ ${limitsBlock()}
 
 ## What reaches the exported file's text layer
 
-People ask whether numbered section headings, bullet glyphs and decorative marks break a résumé parser. For this product the answer is measured, by gates in the repository that run the real exporter, and it is this:
+People ask whether numbered section headings, bullet glyphs and decorative marks break a resume parser. For this product the answer is measured, by gates in the repository that run the real exporter, and it is this:
 
 ${textLayerBlock()}
 
@@ -1752,7 +1832,7 @@ export function llmsFullTxt(): string {
 
 ## What it is
 
-CVAurum is a resume builder published as a static web app at ${SITE}. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every résumé is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the AGPL-3.0 at ${COPY.links.repo}.
+CVAurum is a resume builder published as a static web app at <${SITE}>. There is no backend: the editor, the fonts, the PDF engine and the ATS checks all run in the visitor's browser, and every resume is stored in that browser's own storage. It needs no account, has no paid tier and no watermark, and its source is public under the AGPL-3.0 at <${COPY.links.repo}>.
 
 ## Facts at a glance
 
@@ -1778,52 +1858,52 @@ ${table}
 
 ${COPY.privacy.map((p) => `- ${p}`).join('\n')}
 - The site's Content-Security-Policy allows no outbound request at all (connect-src 'self'), so even a future bug could not send data anywhere.
-- A share link carries the résumé inside the URL fragment, which browsers never send to a server, encrypted with AES-256-GCM under a key derived from a passphrase by PBKDF2-SHA-256 (600,000 iterations).
+- A share link carries the resume inside the URL fragment, which browsers never send to a server, encrypted with AES-256-GCM under a key derived from a passphrase by PBKDF2-SHA-256 (600,000 iterations).
 
 ## Export
 
 - PDF: a vector renderer in the browser paints the same document the preview shows, page for page, with real selectable text, clickable links and multi-page output that breaks at section or entry boundaries; a typical file is about 60 KB. Every export conforms to PDF/A-2B (archival: fonts and an sRGB profile embedded) and PDF/UA-1 (accessible: a tagged structure in logical reading order), verified against the veraPDF validator. It is the only export path; there is no print-dialog fallback, and a failure is reported as one. The file carries the author's own title, subject and language in its metadata, not a toolchain's.
 - Word (.docx): a single-column, ATS-friendly document with real bullet lists and real hyperlinks that follows the template's fonts, accent colour, margins and type size.
 - JSON Resume: the open schema, with CVAurum's design choices under meta.cvaurum, so a file round-trips with the JSON Resume ecosystem.
-- A full backup of every résumé in the browser, as one file, restorable anywhere.
+- A full backup of every resume in the browser, as one file, restorable anywhere.
 
 ## What reaches the exported file's text layer
 
-Whether a design's decoration ends up in the text a parser reads is the question people actually ask about a résumé that looks designed. Each line below is the output of a gate in the repository, run against the real exporter and re-runnable:
+Whether a design's decoration ends up in the text a parser reads is the question people actually ask about a resume that looks designed. Each line below is the output of a gate in the repository, run against the real exporter and re-runnable:
 
 ${textLayerBlock()}
 
 ## ATS check
 
-- Deterministic and on-device: the same résumé and job description always give the same result. Structural checks (contact details, a summary, quantified bullets, action verbs, length, layout, standard headings) roll into a score.
+- Deterministic and on-device: the same resume and job description always give the same result. Structural checks (contact details, a summary, quantified bullets, action verbs, length, layout, standard headings) roll into a score.
 - Paste a job description to see matched and missing keywords and a match score.
 - A parser's-eye view shows the plain text an applicant-tracking system reads, in its reading order.
 - A per-system parse simulation models how five common applicant-tracking systems (Workday, Greenhouse, Lever, Taleo, iCIMS) read the page, with the structural risks each one flags; it is guidance, not a claim about any vendor's internals.
 - A writing coach flags weak openers, passive voice, first-person pronouns, clichés, missing metrics and over-long bullets, with a fix for each. It is rule-based, not generative.
 - A recruiter skim heatmap shows where a first skim lands on the page, deterministically.
-- Optional semantic matching with a small on-device language model (about 34 MB, self-hosted, opt-in) checks whether each requirement in a job description is expressed in the résumé even when the wording differs.
+- Optional semantic matching with a small on-device language model (about 34 MB, self-hosted, opt-in) checks whether each requirement in a job description is expressed in the resume even when the wording differs.
 
 ## Import
 
-- PDF import reconstructs an existing résumé into editable sections (contact, experience, education, skills and so on) in the browser; scanned pages are read with on-device OCR. Nothing is uploaded, and the result is meant to be reviewed.
+- PDF import reconstructs an existing resume into editable sections (contact, experience, education, skills and so on) in the browser; scanned pages are read with on-device OCR. Nothing is uploaded, and the result is meant to be reviewed.
 - JSON Resume files import and keep editing.
 
 ## Editing
 
 - Edit directly on the page or in a form panel; both stay in sync, with undo and redo and autosave.
 - Per-section styles: eight heading styles, four skills displays, four entry layouts (timeline, cards, grid, divided), eight bullet markers, five proficiency meters, logos and credential badges, date format and language, time spans on date ranges, a copy-and-paste style painter.
-- Header layouts (classic, centered, split, banner, compact and the Signature compositions), 45 bundled fonts, colours for the name, headline, headings, contacts and links, spacing, margins, A4 or US Letter, light or dark theme.
+- Header layouts (classic, centered, split, banner, compact and the Signature compositions), ${FONTS.length} bundled fonts, colours for the name, headline, headings, contacts and links, spacing, margins, A4 or US Letter, light or dark theme.
 - Links keep their display text and their destination apart, print as tags or plain words, and read the same in the PDF, the Word file and the ATS view; one switch turns clickability off for paper.
 - The Signature designs' structures are editable: Atlas's numbers band is a list of figures to choose, rename, override, reorder or add to; Chronicle's year rail derives each entry's year and word and any entry can set its own.
-- Six example résumés to start from: an experienced engineer, a growth marketer, a recent graduate, a final-year student with internships, a current student and a product designer.
+- Six example resumes to start from: an experienced engineer, a growth marketer, a recent graduate, a final-year student with internships, a current student and a product designer.
 - Paste a list into a bullet field and it becomes one bullet per line. A command palette (Ctrl+K) reaches every action; slash commands insert bullet templates and metrics; a focus mode dims everything but the section under the cursor.
 - Automatic fit to one page when the content is close, live page-break guides, a pin to start any section or entry on a new page, and a switch that keeps entries whole across pages.
 - The page is editable on a phone and a tablet as well as a desktop; on a small screen the form panel is the comfortable route, and every canvas control has a panel equivalent.
-- A multi-résumé dashboard and a job application tracker (a kanban board from wishlist to offer).
+- A multi-resume dashboard and a job application tracker (a kanban board from wishlist to offer).
 
 ## Templates
 
-${TEMPLATES.length} designs, every one exporting real selectable text; each has its own page at ${SITE}/templates/<id>. The gallery at ${SITE}/templates renders them all on the same example résumé.
+${TEMPLATES.length} designs, every one exporting real selectable text; each has its own page at \`${SITE}/templates/{id}\`. The gallery at <${SITE}/templates> renders them all on the same example resume.
 
 ### Signature collection
 
@@ -1837,11 +1917,11 @@ ${rest}
 
 ## Offline and installation
 
-CVAurum installs as a web app (Add to Home Screen or Install) on desktop and mobile. A service worker saves the app itself, its Latin fonts and the PDF colour profile on the device at install, so editing works with no connection from the first visit; the font files an export embeds are saved quietly while a résumé is open and online, so that résumé exports with no connection too. Scripts beyond Latin, the design previews and the optional matching model are saved the first time they are used. So it works with no connection at all, including PDF export.
+CVAurum installs as a web app (Add to Home Screen or Install) on desktop and mobile. A service worker saves the app itself, its Latin fonts and the PDF colour profile on the device at install, so editing works with no connection from the first visit; the font files an export embeds are saved quietly while a resume is open and online, so that resume exports with no connection too. Scripts beyond Latin, the design previews and the optional matching model are saved the first time they are used. So it works with no connection at all, including PDF export.
 
 ## Sharing
 
-An encrypted share link (the résumé rides in the URL fragment, unreadable without the passphrase, which travels by another channel) or an exported file: a full backup, a JSON Resume file, a PDF or a Word document.
+An encrypted share link (the resume rides in the URL fragment, unreadable without the passphrase, which travels by another channel) or an exported file: a full backup, a JSON Resume file, a PDF or a Word document.
 
 ## Questions and answers
 
@@ -1853,12 +1933,12 @@ ${resourcesBlock()}
 
 ## Sitemap
 
-${siteUrls().length} of the public URLs in ${SITE}/sitemap.xml; the sitemap and examples.md list every example page as well:
+${siteUrls().length} of the public URLs in ${SITE}/sitemap.xml - the sitemap and examples.md list every example page as well:
 
 ${sitemapBlock()}
 
 ## Licence and source
 
-AGPL-3.0. Source: ${COPY.links.repo}. Site: ${SITE}.
+AGPL-3.0. Source: <${COPY.links.repo}>. Site: <${SITE}>.
 `
 }

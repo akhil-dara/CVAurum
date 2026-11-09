@@ -551,7 +551,7 @@ function columnSpans(blocks: PageBlock[]): ColumnSpan[] {
 /** The span covering `y` (half-open `[topPx, bottomPx)`), or the column's
  *  very last span when `y` lands exactly on its final `bottomPx` (closed at
  *  the end so the column's own last boundary point resolves to something).
- *  Plain linear scan — one résumé's worth of blocks per column, no need for
+ *  Plain linear scan — one resume's worth of blocks per column, no need for
  *  anything cleverer. */
 function spanAt(spans: ColumnSpan[], y: number): ColumnSpan | null {
   for (const s of spans) {

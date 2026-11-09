@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * An executive résumé that still reads as operations: access times, agency
+ * An executive resume that still reads as operations: access times, agency
  * spend, case cancellations and survey findings, each attached to the change
  * that produced it rather than to a scope statement.
  */

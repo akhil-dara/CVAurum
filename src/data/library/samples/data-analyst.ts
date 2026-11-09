@@ -27,7 +27,7 @@ export const sample: LibrarySample = {
     why: [
       'Every dashboard is followed by what changed once it existed: the Power BI category report replaced 90 minutes of spreadsheet work with a four-minute refresh that 40 category managers read.',
       'The strongest bullet is an investigation, not a report: a 9% fall in repeat orders traced to a coupon rule, with about ₹1.4 crore of annual revenue restored. That is the analysis hiring managers want from a junior analyst.',
-      'Technical care shows too: query cost on the three heaviest dashboards cut 62% by partitioning the orders table, which sets this résumé apart from report-builders.',
+      'Technical care shows too: query cost on the three heaviest dashboards cut 62% by partitioning the orders table, which sets this resume apart from report-builders.',
       'Mandi Watch, a public dashboard for 14 crops across 60 Maharashtra markets with about 3,100 monthly visitors, gives a fresher-level candidate work anyone can open.',
     ],
     faq: [

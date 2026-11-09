@@ -213,7 +213,7 @@ function dataUrl(rel) {
   if (!f.mark) throw new Error('the app header carried no brand mark to read')
   const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1)
   const pill = f.privacyWords.map(cap).join(' · ')
-  const counts = `${f.templates} designs · ${f.samples} example résumés`
+  const counts = `${f.templates} designs · ${f.samples} example resumes`
   const cards = [
     {
       out: path.join(PUBLIC, 'og.png'),
@@ -232,7 +232,7 @@ function dataUrl(rel) {
       card: {
         mark: f.mark,
         pill,
-        headline: `${f.templates} résumé templates, all free.`,
+        headline: `${f.templates} resume templates, all free.`,
         line: cardLine(f.galleryIntro),
         host: f.host,
         fan: GALLERY_FAN.map((id) => dataUrl(`img/templates/${id}.webp`)),
@@ -243,7 +243,7 @@ function dataUrl(rel) {
       card: {
         mark: f.mark,
         pill,
-        headline: `${f.samples} résumé examples, written out in full.`,
+        headline: `${f.samples} resume examples, written out in full.`,
         line: cardLine(f.examplesIntro),
         host: f.host,
         fan: EXAMPLES_FAN.map((slug) => dataUrl(`img/examples/${slug}.webp`)),

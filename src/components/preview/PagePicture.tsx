@@ -1,13 +1,13 @@
 /**
- * The picture of a résumé page, as a FILE rather than a render.
+ * The picture of a resume page, as a FILE rather than a render.
  *
  * Every design and every example already ships a lossless page image of its
  * exported PDF (1200px wide, /img/templates/<id>.webp, /img/examples/<slug>.webp).
- * A grid card was mounting a live React résumé instead — the whole template
+ * A grid card was mounting a live React resume instead — the whole template
  * engine, per card, 108 times on /examples. Measured on the production build
  * (2026-09-15, _local/grid-perf.cjs): 10.5s of main-thread task time on a desk
  * and 14.5s on a phone to browse /examples to the bottom, and even after all
- * that only 47 of the 108 cards had a résumé in them — the rest were still the
+ * that only 47 of the 108 cards had a resume in them — the rest were still the
  * grey sketch, because the idle queue that keeps the scroll smooth can only
  * grant one card at a time and the reader scrolls past faster than it grants.
  *

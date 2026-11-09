@@ -1,13 +1,13 @@
 /**
  * OCR fallback for the local PDF import engine (Phase 3).
  *
- * Some résumés have no usable text layer — scanned-to-PDF, exported as images,
+ * Some resumes have no usable text layer — scanned-to-PDF, exported as images,
  * or built with subset fonts that carry no ToUnicode map (pdf.js then returns
  * empty / Private-Use-Area gibberish). For those pages we rasterise the page
  * with pdf.js and read it back with Tesseract, entirely in the browser.
  *
  * Privacy: the Tesseract worker, wasm core and English model are all SELF-HOSTED
- * under /ocr/ (see public/ocr). Nothing is fetched from a CDN and the résumé
+ * under /ocr/ (see public/ocr). Nothing is fetched from a CDN and the resume
  * never leaves the device — identical guarantees to the rest of CVAurum. The
  * engine (~6MB wasm + ~2MB model) is lazy-loaded only when a low-text page is
  * actually encountered, so normal text PDFs never pay for it.

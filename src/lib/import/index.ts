@@ -2,7 +2,7 @@
  * Local PDF resume import — public API. 100% in-browser: the file is read with
  * FileReader/ArrayBuffer and parsed with pdf.js; nothing is uploaded. This whole
  * module (and pdf.js) is lazy-loaded, so it only downloads when a user actually
- * imports a résumé.
+ * imports a resume.
  *
  * Roadmap: v1 (here) = layout-graph geometry + deterministic extraction for
  * single/standard-column PDFs. v2 = font-normalization + tesseract.js OCR
@@ -31,7 +31,7 @@ const FILE_NONAME =
 
 /**
  * Derive a name from a filename like "Dadi_Saikumar_Resume.pdf" → "Dadi Saikumar"
- * (résumés are usually named after the person). Returns '' unless it cleanly
+ * (resumes are usually named after the person). Returns '' unless it cleanly
  * yields 2–4 alphabetic, non-role tokens — so role/number-named files are ignored.
  */
 function nameFromFilename(fn: string): string {

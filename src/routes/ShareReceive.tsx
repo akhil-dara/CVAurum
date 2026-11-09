@@ -1,8 +1,8 @@
 /**
- * Receives a secure share LINK (/r#<payload>). The résumé rides entirely in the
+ * Receives a secure share LINK (/r#<payload>). The resume rides entirely in the
  * URL fragment, which the browser never sends to a server. Encrypted links ask
  * for the passphrase and decrypt on-device; the result is saved as a new local
- * résumé. Nothing is ever uploaded.
+ * resume. Nothing is ever uploaded.
  */
 import { sanitizeEntryLogos, type LogoEntry } from '@/lib/entryLogos'
 import { useEffect, useRef, useState } from 'react'
@@ -26,10 +26,10 @@ export function ShareReceive() {
   const openDoc = async (payload: string, passphrase?: string) => {
     const raw = await decodeShare(payload, passphrase)
     const parsed = ResumeDocumentSchema.safeParse(raw)
-    if (!parsed.success) throw new Error('This link is not a valid résumé.')
+    if (!parsed.success) throw new Error('This link is not a valid resume.')
     const doc = parsed.data
     doc.id = uid()
-    doc.title = doc.title ? `${doc.title} (shared)` : 'Shared résumé'
+    doc.title = doc.title ? `${doc.title} (shared)` : 'Shared resume'
     doc.createdAt = Date.now()
     doc.updatedAt = Date.now()
     doc.content.basics.image = await sanitizeImportedImage(doc.content.basics.image)
@@ -38,7 +38,7 @@ export function ShareReceive() {
     }
     await saveDoc(doc)
     await useAppStore.getState().refreshLibrary()
-    useAppStore.getState().toast('Shared résumé opened — saved on this device.', 'success')
+    useAppStore.getState().toast('Shared resume opened — saved on this device.', 'success')
     navigate(`/resume/${doc.id}`, { replace: true })
   }
 
@@ -79,7 +79,7 @@ export function ShareReceive() {
     <div className="flex min-h-full items-center justify-center bg-background p-6 text-foreground">
       {phase === 'passphrase' ? (
         <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-float">
-          <div className="mb-1 flex items-center gap-2 text-base font-semibold"><Lock className="h-4 w-4 text-primary" /> Encrypted résumé</div>
+          <div className="mb-1 flex items-center gap-2 text-base font-semibold"><Lock className="h-4 w-4 text-primary" /> Encrypted resume</div>
           <p className="mb-3 flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /> Enter the passphrase the sender gave you. It’s decrypted here on your device — never uploaded.
           </p>
@@ -95,19 +95,19 @@ export function ShareReceive() {
             spellCheck={false}
           />
           {error && <p className="mt-2 text-xs text-danger">{error}</p>}
-          <button className="btn-primary btn-sm mt-3 w-full" onClick={submit} disabled={busy || !pass}>{busy ? 'Decrypting…' : 'Open résumé'}</button>
+          <button className="btn-primary btn-sm mt-3 w-full" onClick={submit} disabled={busy || !pass}>{busy ? 'Decrypting…' : 'Open resume'}</button>
         </div>
       ) : phase === 'error' ? (
         <div className="max-w-sm text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-warning" />
           <p className="mt-3 text-sm font-medium">{error}</p>
-          <button className="btn-primary btn-sm mt-4" onClick={() => navigate('/app')}>Go to my résumés</button>
+          <button className="btn-primary btn-sm mt-4" onClick={() => navigate('/app')}>Go to my resumes</button>
         </div>
       ) : (
         <div className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <p className="mt-3 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-emerald-500" /> Opening a private résumé — on your device, never uploaded.
+            <ShieldCheck className="h-4 w-4 text-emerald-500" /> Opening a private resume — on your device, never uploaded.
           </p>
         </div>
       )}

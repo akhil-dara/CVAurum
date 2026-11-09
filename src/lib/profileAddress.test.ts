@@ -24,7 +24,7 @@ describe('profile addresses', () => {
     expect(safeHref('linkedin.com/in/priya')).toBe('https://linkedin.com/in/priya')
   })
 
-  it('moves an address a saved résumé stored as a username, and leaves real handles alone', () => {
+  it('moves an address a saved resume stored as a username, and leaves real handles alone', () => {
     const c = {
       basics: {
         profiles: [

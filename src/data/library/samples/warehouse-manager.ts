@@ -5,7 +5,7 @@ import { portrait } from '../avatar'
 /**
  * Senior, India. A warehouse is one of the few jobs where every claim already
  * has a number attached on the floor — units per day, shrinkage, dock-to-stock,
- * days without an injury — so the résumé's job is simply to use them.
+ * days without an injury — so the resume's job is simply to use them.
  */
 export const sample: LibrarySample = {
   slug: 'warehouse-manager',

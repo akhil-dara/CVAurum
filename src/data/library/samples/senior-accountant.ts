@@ -5,7 +5,7 @@ import { content } from '../types'
  * A returner. The two-year break sits in the history as its own entry, dated
  * and explained in one line, because a reader who finds a gap will invent a
  * worse reason than the real one. Everything after it is written to show the
- * climb back, which is the whole argument this résumé makes.
+ * climb back, which is the whole argument this resume makes.
  */
 export const sample: LibrarySample = {
   slug: 'senior-accountant',

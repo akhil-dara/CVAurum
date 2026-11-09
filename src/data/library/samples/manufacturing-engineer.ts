@@ -3,7 +3,7 @@ import { content } from '../types'
 import { brandmark } from '../brandmark'
 
 /**
- * A plant-floor résumé. The numbers a manufacturing manager actually asks
+ * A plant-floor resume. The numbers a manufacturing manager actually asks
  * about — OEE, changeover minutes, scrap percentage, ppm — carry every line,
  * and the tool names sit in the skills block where they belong rather than
  * inside the bullets.

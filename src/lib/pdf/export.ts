@@ -66,7 +66,7 @@ function explain(e: unknown): string {
   // than useless: another template needs fonts that are not there either.
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false
   if (offline || (e instanceof TypeError && /fetch|network|load failed/i.test(msg))) {
-    return 'This export needs a font that is not saved on this device yet, and there is no connection to fetch it. Connect once and export again — after that this résumé exports with no connection.'
+    return 'This export needs a font that is not saved on this device yet, and there is no connection to fetch it. Connect once and export again — after that this resume exports with no connection.'
   }
   const detail = msg ? ` (${msg.slice(0, 120)})` : ''
   return `The PDF renderer hit an error${detail}. Try again, or switch templates and try once more.`

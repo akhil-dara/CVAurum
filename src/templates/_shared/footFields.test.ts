@@ -3,12 +3,12 @@ import { footNumberStatus } from './PageWordsFields'
 
 /**
  * Whether the page foot will print a number is the question an author could
- * not answer: a one-page résumé shows no number, and nothing said so. The
+ * not answer: a one-page resume shows no number, and nothing said so. The
  * foot's settings now say it in words, from the page count the canvas last
  * measured.
  */
 describe('the page number, in words', () => {
-  it('says a one-page résumé prints no number yet, and when it will', () => {
+  it('says a one-page resume prints no number yet, and when it will', () => {
     expect(footNumberStatus('slash', 1)).toMatch(/one page.*no number/i)
     expect(footNumberStatus('slash', undefined)).toMatch(/no number/i)
   })

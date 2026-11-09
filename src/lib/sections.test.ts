@@ -104,12 +104,12 @@ describe('the date column is on only while it has something to show', () => {
 describe('which empty sections the editing canvas shows', () => {
   const filled = () => createDocument({ sample: true })
   const blank = () => createDocument({})
-  it('Auto: shows them while the résumé is mostly blank, and leaves them out once it is filled', async () => {
+  it('Auto: shows them while the resume is mostly blank, and leaves them out once it is filled', async () => {
     const { emptySectionsShown } = await import('./sections')
     expect(emptySectionsShown('auto', blank().content)).toBe(true)
     expect(emptySectionsShown('auto', filled().content)).toBe(false)
   })
-  it('Show and Hide do as they say, whatever the résumé holds', async () => {
+  it('Show and Hide do as they say, whatever the resume holds', async () => {
     const { emptySectionsShown } = await import('./sections')
     expect(emptySectionsShown('show', filled().content)).toBe(true)
     expect(emptySectionsShown('hide', blank().content)).toBe(false)

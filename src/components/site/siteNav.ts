@@ -28,7 +28,7 @@ export interface SiteMenuItem {
   external?: boolean
   /** Does something on this page instead of going anywhere. */
   action?: boolean
-  /** A small trailing figure — how many résumés are saved. */
+  /** A small trailing figure — how many resumes are saved. */
   note?: string
   /** The page the reader is already on. */
   active: boolean
@@ -71,7 +71,7 @@ export function siteMenuItems({
   ]
   // Only where the header itself offers it: the single-template and
   // single-example pages carry their own "start from this one" instead.
-  if (canCreate) items.push({ key: 'create', label: 'Create résumé', group: 'yours', action: true, active: false })
+  if (canCreate) items.push({ key: 'create', label: 'Create resume', group: 'yours', action: true, active: false })
   items.push({ key: 'github', label: 'GitHub', group: 'yours', href: repoUrl, external: true, active: false })
   return items
 }

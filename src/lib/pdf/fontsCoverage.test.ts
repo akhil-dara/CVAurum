@@ -3,7 +3,7 @@
  * its Latin (accented names included), and the script-fallback families
  * Cyrillic, Greek and Vietnamese. Reads the real files in public/fonts-pdf
  * with the same fontkit the exporter embeds with. Before this existed the
- * whole set was Latin-only and a Bulgarian résumé exported with every
+ * whole set was Latin-only and a Bulgarian resume exported with every
  * Cyrillic letter dropped, whatever font was chosen (issue #10).
  */
 import { describe, expect, it } from 'vitest'

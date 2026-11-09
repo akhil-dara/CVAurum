@@ -1,5 +1,6 @@
 import { SIGNATURE_COUNT, TEMPLATE_COUNT } from '@/templates/registry'
 import { SAMPLE_COUNT } from '@/data/library/count'
+import { FONTS } from '@/data/fonts'
 
 /**
  * The landing page's words, in one place.
@@ -28,7 +29,7 @@ export interface SiteCopy {
   /**
    * What reaches the exported file's text layer and what does not.
    *
-   * The question people actually ask about a designed résumé is whether the
+   * The question people actually ask about a designed resume is whether the
    * decoration - numbered headings, bullet glyphs, rules, monograms - ends up
    * in the text a parser reads. Every line here is a number a gate in this
    * repository produces, so it can be re-measured rather than believed.
@@ -41,7 +42,7 @@ export interface SiteCopy {
 
 export const SITE: SiteCopy = {
   name: 'CVAurum',
-  oneLiner: `CVAurum is a free, open-source (AGPL-3.0) résumé builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, ${SAMPLE_COUNT} complete example résumés, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
+  oneLiner: `CVAurum is a free, open-source (AGPL-3.0) resume builder that runs entirely in your browser: no account, no server, no tracking; ${TEMPLATE_COUNT} templates, ${SAMPLE_COUNT} complete example resumes, a built-in deterministic ATS check, PDF import with on-device OCR, and vector PDF, Word and JSON Resume export, working offline as an installable app.`,
   // The h1 names what the page is: searchers type "free", "open source" and
   // "resume builder", and the line before this had none of them (SEO audit,
   // 2026-11-07). The old line lives on as the hero's subhead.
@@ -65,7 +66,7 @@ export const SITE: SiteCopy = {
     {
       capability: 'Where your data lives',
       cvaurum: 'Only in your browser — no server, no account, no tracking',
-      others: 'Does it upload your résumé to its server, behind a login?',
+      others: 'Does it upload your resume to its server, behind a login?',
     },
     {
       capability: 'Source code',
@@ -121,7 +122,11 @@ export const SITE: SiteCopy = {
       a: "Only in your browser, in its own storage (IndexedDB). Nothing is sent anywhere. Clear your browser data and it's gone — so use Backup to keep a copy.",
     },
     {
-      q: 'Will my résumé pass ATS scans?',
+      q: 'Does CVAurum work offline?',
+      a: 'Yes. After one visit with a connection it installs as a web app and works with none at all: the editor, every design, the ATS check and PDF and Word export run on your device. Each design keeps its PDF fonts once you have opened or exported it online, so open the designs you plan to use before you go offline.',
+    },
+    {
+      q: 'Will my resume pass ATS scans?',
       a: "The exported PDF and Word files use real, selectable text (not an image), and there's a built-in ATS check that scores structure and keyword coverage against a job description.",
     },
     {
@@ -129,7 +134,7 @@ export const SITE: SiteCopy = {
       a: `Not here, and the answer is measured rather than assumed. Decoration is painted as vector outlines, so it never becomes text: the two designs that print a running number beside each heading export those headings as SUMMARY and EXPERIENCE, with no numeral in the text at all. Across all ${TEMPLATE_COUNT} designs the exported text layer matches the app's own "what an ATS sees" preview word for word — nothing missing, nothing added, nothing out of order — which also means the file carries no word your content does not have. Bullet markers are the deliberate exception: each one is real text sitting on the same line as its sentence (623 of them across the ${TEMPLATE_COUNT} designs, none stranded alone on a line), so a list you copy out of the PDF is still a list.`,
     },
     {
-      q: 'Can I move my résumé to another computer?',
+      q: 'Can I move my resume to another computer?',
       a: 'Yes. Export a full backup (one file) or a single JSON Resume file, then import it in any browser.',
     },
     {
@@ -146,7 +151,7 @@ export const SITE: SiteCopy = {
     },
     {
       q: 'Can I edit on my phone?',
-      a: "Yes, on the page and in the form panel. The page is editable on a phone too (every control gets a finger-sized hit area and the zoom reaches 300%), and the panel is the comfortable route on a small screen — everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and your work syncs to the same resume you edit on a laptop.",
+      a: "Yes, on the page and in the form panel. The page is editable on a phone too (every control gets a finger-sized hit area and the zoom reaches 300%), and the panel is the comfortable route on a small screen — everything the canvas offers is reachable there: contact icons, section heading links, and each section's full style sheet (heading style, skills layout, badge size and shape, bullets) opens as a bottom sheet. Nothing scrolls sideways, and the page and the panel edit the same resume. To carry it to a laptop, use a backup file, a JSON Resume file or an encrypted link — nothing syncs on its own, because there is no server.",
     },
     {
       q: 'What file formats can I download?',
@@ -157,7 +162,7 @@ export const SITE: SiteCopy = {
       a: 'Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts.',
     },
     {
-      q: 'Is the text on my résumé easy to read for everyone?',
+      q: 'Is the text on my resume easy to read for everyone?',
       a: 'Yes, and it is measured rather than assumed. Every design’s text meets WCAG 2.2 AA contrast at its defaults, checked on the exported PDF against what each word actually stands on — coloured headers, bands, gradients, art and cards included. If a colour you choose falls short, a chip over the page says so, names the setting responsible and offers the nearest colour that passes everywhere that setting paints; nothing changes until you click.',
     },
     {
@@ -170,14 +175,14 @@ export const SITE: SiteCopy = {
     'No account, no login: open the app and start.',
     'No analytics, no tracking, no cookies.',
     'Zero external requests: fonts are bundled, so the app contacts no third-party server at all, not even a font CDN.',
-    "All résumé data is stored locally in your browser's IndexedDB; clearing your site data deletes it, and a backup file keeps a copy.",
+    "All resume data is stored locally in your browser's IndexedDB; clearing your site data deletes it, and a backup file keeps a copy.",
   ],
   facts: [
     { label: 'Price', value: 'free, with no tiers, no export paywall and no watermark' },
     { label: 'Account', value: 'none; there is nothing to sign up for and no login' },
     { label: 'Where the data lives', value: "the browser's own storage (IndexedDB); nothing is uploaded, and the site's content-security policy allows no outbound request at all" },
     { label: 'Templates', value: `${TEMPLATE_COUNT}, each on its own page, ${SIGNATURE_COUNT} of them Signature designs with distinct page structures; every one exports real selectable text` },
-    { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 60 KB), Word (.docx) and JSON Resume; a full backup file of every résumé' },
+    { label: 'Export', value: 'vector PDF (PDF/A-2B archival and PDF/UA-1 accessible, verified with veraPDF, about 60 KB), Word (.docx) and JSON Resume; a full backup file of every resume' },
     {
       label: 'Accessibility',
       value:
@@ -187,18 +192,18 @@ export const SITE: SiteCopy = {
     { label: 'Import', value: 'PDF (text-based, or scanned with on-device OCR) and JSON Resume' },
     {
       label: 'Examples',
-      value: `${SAMPLE_COUNT} complete résumés across twelve fields, five career stages and three countries, each on its own page and openable in the editor in one click; every person, employer and figure in them is invented`,
+      value: `${SAMPLE_COUNT} complete resumes across twelve fields, five career stages and three countries, each on its own page and openable in the editor in one click; every person, employer and figure in them is invented`,
     },
-    { label: 'Editing', value: `on the page or in a form panel, in sync; per-section styles; 45 bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); ${SAMPLE_COUNT} complete example résumés to start from, searchable by field, career stage and country; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better` },
+    { label: 'Editing', value: `on the page or in a form panel, in sync; per-section styles; ${FONTS.length} bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); ${SAMPLE_COUNT} complete example resumes to start from, searchable by field, career stage and country; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better` },
     { label: 'Scripts', value: 'Latin with accents, Cyrillic, Greek and Vietnamese, on the page and in every export; a font that lacks a script falls back to a bundled one of the same kind' },
-    { label: 'Offline', value: 'installs as a web app and works with no connection: the app, its Latin fonts and the colour profile are saved on the device at install, and each résumé\u2019s export fonts are saved quietly while you are online, so it exports with no connection too. Every font is bundled with the app, so no third-party server is ever contacted' },
+    { label: 'Offline', value: 'installs as a web app and works with no connection: the app, its Latin fonts and the colour profile are saved on the device at install, and each resume\u2019s export fonts are saved quietly while you are online, so it exports with no connection too. Every font is bundled with the app, so no third-party server is ever contacted' },
     { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },
     { label: 'Platform', value: 'any modern browser on desktop, tablet or phone; JavaScript is required to edit (the public pages carry their content in plain HTML)' },
     { label: 'Licence and source', value: 'AGPL-3.0 (open source; a commercial licence is available from the author for use that cannot meet its terms); the whole application is public at https://github.com/akhil-dara/cvaurum' },
   ],
   limits: [
-    'It has no server, so there is no cloud sync and no account: a résumé lives in the browser it was made in, and moves to another device by a backup file, a JSON Resume file or an encrypted link.',
-    'It does not write résumés for you: the writing coach is rule-based feedback on what you wrote, not generated text.',
+    'It has no server, so there is no cloud sync and no account: a resume lives in the browser it was made in, and moves to another device by a backup file, a JSON Resume file or an encrypted link.',
+    'It does not write resumes for you: the writing coach is rule-based feedback on what you wrote, not generated text.',
     'PDF import is a reconstruction of an existing file and is meant to be reviewed; unusual layouts and scanned pages can need corrections.',
     'It does not send applications, track email or connect to job boards; the tracker is a board you keep yourself.',
     'Editing needs JavaScript; without it a visitor gets the public pages and their content, not the editor.',
@@ -231,7 +236,7 @@ export const SITE: SiteCopy = {
     'The file declares its language, carries a tagged structure tree in reading order, and names an sRGB output intent.',
   ],
   audience: [
-    'Anyone who wants a résumé that looks designed without giving their career history to a server.',
+    'Anyone who wants a resume that looks designed without giving their career history to a server.',
     `Students and recent graduates: a final-year example with internships and a graduate example are among the ${SAMPLE_COUNT} examples to start from.`,
     'Engineers, marketers and designers: the other four examples, and templates from technical to editorial.',
     'People applying through applicant-tracking systems: the ATS view, the five-system simulation and the keyword match exist for them.',

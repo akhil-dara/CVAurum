@@ -89,7 +89,7 @@ const NUMBER_OPTIONS: { value: PageNumberStyle; label: string }[] = [
 ]
 
 /** The page foot's settings: its words (the name by default, or none), how
- *  it numbers the pages and whether this résumé will print a number at all,
+ *  it numbers the pages and whether this resume will print a number at all,
  *  where the two sit, and the hairline above them. `pages` is the page count
  *  the canvas last measured; `onRemove` offers to take the whole foot away
  *  (the canvas popover - the panel has its own switch for that). */
@@ -163,7 +163,7 @@ export function FootFields({
   )
 }
 
-/** Whether - and how - this résumé prints its page numbers, in words. */
+/** Whether - and how - this resume prints its page numbers, in words. */
 export function footNumberStatus(style: PageNumberStyle, pages?: number): string {
   if (style === 'none') return 'No page number.'
   if (!pages || pages < 2) return 'One page, so no number prints yet. It appears on every page once there is a second.'

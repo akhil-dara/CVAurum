@@ -32,7 +32,7 @@ export const sample: LibrarySample = {
     ],
     faq: [
       { q: 'What should a corporate trainer resume include?', a: 'The programmes you run, who attends and how many, and outcomes such as pass rates, assessment scores or time to productivity. Add the materials you designed, the subjects you are qualified to teach, and any training certification such as CTT+.' },
-      { q: 'How do you move from software engineering into technical training in India?', a: 'Mentor new hires or run internal sessions first, then ask to join the learning and development team. On the résumé, keep the engineering role and show the teaching you did alongside it with numbers, such as cohorts mentored and their scores.' },
+      { q: 'How do you move from software engineering into technical training in India?', a: 'Mentor new hires or run internal sessions first, then ask to join the learning and development team. On the resume, keep the engineering role and show the teaching you did alongside it with numbers, such as cohorts mentored and their scores.' },
     ],
   },
   content: content({

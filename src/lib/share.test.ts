@@ -1,6 +1,6 @@
 /**
  * A shared link carries no images: they would make it long and are the one
- * part of a résumé that is not text. Extra logos count as images too.
+ * part of a resume that is not text. Extra logos count as images too.
  */
 import { describe, it, expect } from 'vitest'
 import { hasImages, stripImages } from './share'

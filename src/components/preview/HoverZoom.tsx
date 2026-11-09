@@ -16,7 +16,7 @@ const canHover = () =>
  * Two ways to say what to float, and which one a caller can use is decided by
  * what the card is showing:
  *
- *  - `doc` renders the résumé live. The editor's own template gallery needs
+ *  - `doc` renders the resume live. The editor's own template gallery needs
  *    this: it previews the document being edited, which no file on disk
  *    knows about. It costs a 200-350ms mount per hover, which is why the pop
  *    is a transition — as an urgent update it froze the pointer for that long.

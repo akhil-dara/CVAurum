@@ -1,14 +1,14 @@
 /**
  * ATS reading order for two-column layouts (2026-08-19).
  *
- * A two-column résumé is painted in DOM order, so a LEFT-sidebar template
+ * A two-column resume is painted in DOM order, so a LEFT-sidebar template
  * emits the sidebar's text first — and the text layer is what an applicant
  * tracking system reads. Measured on our own export: an ATS parsing a
- * sapphire résumé saw
+ * sapphire resume saw
  *
  *   "SKILLS / Languages / TypeScript / Go / Python / …"
  *
- * before the candidate's name. A reference two-column résumé from a
+ * before the candidate's name. A reference two-column resume from a
  * commercial builder (measured the same way) extracts main column first —
  * name, title, summary, experience — and only then the sidebar, per page.
  *

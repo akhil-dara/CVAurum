@@ -9,7 +9,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
  *
  * A phone header has room for the logo and about three buttons (measured at
  * 360px: 40px to spare with theme, Create and the menu). Someone who has
- * saved résumés came back for them, and "My resumes" sat only inside the
+ * saved resumes came back for them, and "My resumes" sat only inside the
  * menu, where people did not find it (reported 2026-09-26). So for them the
  * row becomes: My resumes, Create as its icon alone, the menu; the theme
  * switch moves into the menu. A first visit keeps theme, Create and the menu.

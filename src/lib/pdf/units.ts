@@ -1,7 +1,7 @@
 /**
  * Unit conversions for the direct PDF renderer.
  *
- * The résumé is laid out by the browser in CSS pixels (1/96 in); PDF user space
+ * The resume is laid out by the browser in CSS pixels (1/96 in); PDF user space
  * is points (1/72 in). The DOM's y axis grows downward from the top-left, PDF's
  * grows upward from the bottom-left, so every y needs flipping.
  */

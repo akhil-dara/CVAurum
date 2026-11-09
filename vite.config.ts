@@ -87,7 +87,7 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   html = setMeta(html, 'property', 'og:image:secure_url', image)
   // Only ever .jpg or .png reaches here, and it has to stay that way: og:image
   // is JPEG on purpose. The page images are lossless WebP (under half the bytes
-  // of JPEG q82 for a full résumé page, and bit-exact), but the share-card
+  // of JPEG q82 for a full resume page, and bit-exact), but the share-card
   // consumers do not take it: between them the big link-preview readers
   // document JPG, PNG and GIF, and one has been measured failing on WebP. A
   // .webp here would also be announced as image/png, which is worse than the
@@ -126,7 +126,7 @@ function pageHtml(shell: string, site: string, meta: SeoPages.PageMeta, body: st
   // underneath.
   html = html.replace(
     /<noscript>\s*<main[\s\S]*?<\/noscript>/,
-    `<noscript><p style="max-width:760px;margin:0 auto;padding:24px 20px;font-family:system-ui,sans-serif">CVAurum needs JavaScript to edit and export a résumé. <a href="/">About CVAurum</a> · <a href="/templates">All templates</a></p></noscript>`
+    `<noscript><p style="max-width:760px;margin:0 auto;padding:24px 20px;font-family:system-ui,sans-serif">CVAurum needs JavaScript to edit and export a resume. <a href="/">About CVAurum</a> · <a href="/templates">All templates</a></p></noscript>`
   )
   // The shell ships #root empty; fill it for whoever does not run scripts.
   return html.replace(/(<div id="root"[^>]*>)(<\/div>)/, `$1\n${body}\n    $2`)
@@ -217,7 +217,7 @@ function seoPages(): Plugin {
       fs.writeFileSync(path.join(OUT, '404.html'), seo.shellHtml(shell, 'Page not found · CVAurum'))
 
       // The landing page carries its content in its HTML, for a reader that
-      // does not run scripts (an assistant asked to compare résumé builders
+      // does not run scripts (an assistant asked to compare resume builders
       // reads exactly this). React empties #root the moment the app boots.
       const rootRe = /(<div id="root"[^>]*>)(<\/div>)/
       if (!rootRe.test(shell)) throw new Error('seoPages: dist/index.html has no empty <div id="root"> to fill')
@@ -335,7 +335,7 @@ export default defineConfig({
         id: '/',
         name: 'CVAurum — Free Open-Source Resume Builder',
         short_name: 'CVAurum',
-        description: 'Free, open-source, 100% local resume builder. 58 ATS-ready templates, a built-in ATS score, PDF résumé import, and PDF / Word / JSON export — no account, fully offline.',
+        description: 'Free, open-source, 100% local resume builder. 58 ATS-ready templates, a built-in ATS score, PDF resume import, and PDF / Word / JSON export — no account, fully offline.',
         categories: ['productivity', 'business', 'utilities'],
         theme_color: '#d4982f',
         background_color: '#0b0f1a',
@@ -372,7 +372,7 @@ export default defineConfig({
         // Same for the opt-in semantic-match engine (~34MB) under /semantic/,
         // and its worker chunk — it must download only after the user opts in.
         // /fonts-pdf/ holds static font instances used ONLY when exporting a
-        // PDF; they are fetched on demand (1–3 families per résumé). Only the
+        // PDF; they are fetched on demand (1–3 families per resume). Only the
         // .ttf files are held back: its 6 KB index.json is the FIRST thing an
         // export fetches, and while the whole folder was ignored every offline
         // export died on it with "Failed to fetch" (measured on the production
@@ -422,7 +422,7 @@ export default defineConfig({
         ],
         // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
         // non-Latin web subsets, the PDF instances) is cached the first time
-        // it is fetched, so a résumé in Cyrillic still exports offline once
+        // it is fetched, so a resume in Cyrillic still exports offline once
         // it has been exported online.
         runtimeCaching: [
           {
@@ -430,7 +430,7 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'cvaurum-fonts', expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 3600 } },
           },
-          // The pictures of résumés — the page images under /img/ (17.1 MB) and
+          // The pictures of resumes — the page images under /img/ (17.1 MB) and
           // the share cards under /og/ (about 40 KB each) — are far too much to
           // put in every install, but a page that has been looked at should
           // still show its design with no connection.

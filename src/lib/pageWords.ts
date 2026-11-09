@@ -38,7 +38,7 @@ export function pageFootText(page: number, pages: number, style: PageNumberStyle
 }
 
 /** The year the page furniture dates itself by: the year the document was
- *  last touched, so a résumé keeps its date until it is edited again. */
+ *  last touched, so a resume keeps its date until it is edited again. */
 export function furnitureYear(updatedAt?: number): number {
   const at = updatedAt ? new Date(updatedAt) : new Date()
   return Number.isFinite(at.getTime()) ? at.getFullYear() : new Date().getFullYear()

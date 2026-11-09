@@ -75,7 +75,7 @@ describe('hyphenationPoints', () => {
       '2018',
       'v2.1.0',
       'SLA-compliant',
-      'résumé',
+      'naïveté',
       'data',
       'team',
       'API',

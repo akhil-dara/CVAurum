@@ -1,6 +1,6 @@
 /**
  * Public entry point for the direct (non-print-dialog) PDF export: mounts the
- * résumé off-screen using the exact same DOM/CSS the editor and print route
+ * resume off-screen using the exact same DOM/CSS the editor and print route
  * use, waits for it to settle (fonts, auto-fit), walks it into a draw list,
  * and paints that list into a real pdf-lib document with embedded vector
  * fonts and original-resolution images. See GitHub issue #4 — this replaces
@@ -99,7 +99,7 @@ export function resolveDecoBoxesGlobal(capturing: boolean, decoBoxes: DecoBox[] 
   return capturing ? decoBoxes : undefined
 }
 
-/** Thrown when the résumé genuinely cannot be exported natively: paginate()
+/** Thrown when the resume genuinely cannot be exported natively: paginate()
  * found no legal page-break candidate anywhere (`PaginationImpossibleError`,
  * wrapped by `paginateOrThrow` below). Auto-fit overflow no longer throws
  * (spec 1b, 2026-08-17): a doc auto-fit cannot shrink onto one page

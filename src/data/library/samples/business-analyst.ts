@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Entry level, India. The shape a good two-year analyst résumé takes: a short
+ * Entry level, India. The shape a good two-year analyst resume takes: a short
  * history carried by what the analysis changed, a final-year project that is
  * allowed to count, and a statistics degree doing the work a long skills list
  * would otherwise be asked to do.
@@ -28,7 +28,7 @@ export const sample: LibrarySample = {
     why: [
       'Each Sanchay Credit bullet ties the analysis to what changed: 180,000 repayment records showed morning calls recovered 23% more, and the calling roster was redrawn across every branch.',
       'Delivery work is counted honestly: 34 requirements written, 19 defects caught in UAT and “four surfaced after release”. Admitting the four makes the 19 more believable to a hiring manager.',
-      'A two-year résumé keeps a final-year project because it earns its place: the Repayment Propensity Model captured 68% of defaults and placed second of 46, which supports the 8.6 CGPA in Statistics.',
+      'A two-year resume keeps a final-year project because it earns its place: the Repayment Propensity Model captured 68% of defaults and placed second of 46, which supports the 8.6 CGPA in Statistics.',
       'The Tarangi Retail role is cut to two bullets, one of them a ₹18 lakh markdown loss reduced 61%, so the first job adds evidence without crowding the current one.',
     ],
     faq: [

@@ -17,7 +17,7 @@ describe('sectionNumeral', () => {
     expect(sectionNumeral(8, 'padded')).toBe('09')
     expect(sectionNumeral(9, 'padded')).toBe('10')
     expect(sectionNumeral(13, 'padded')).toBe('14')
-    // A résumé with a hundred sections is not a thing, but a number that
+    // A resume with a hundred sections is not a thing, but a number that
     // grew a third figure must still be that number and not a truncation.
     expect(sectionNumeral(99, 'padded')).toBe('100')
   })

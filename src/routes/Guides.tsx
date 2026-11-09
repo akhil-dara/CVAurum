@@ -33,7 +33,7 @@ export function Guides() {
       <SiteHeader
         action={
           <Link className="btn-primary btn-sm hidden sm:inline-flex" to="/app">
-            Start a résumé
+            Start a resume
           </Link>
         }
       />

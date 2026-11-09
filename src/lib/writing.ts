@@ -1,5 +1,5 @@
 /**
- * On-device résumé writing analysis — 100% deterministic, zero network, no LLM.
+ * On-device resume writing analysis — 100% deterministic, zero network, no LLM.
  * Reads every bullet & summary and flags the things recruiters penalize:
  * weak/vague openers, passive voice, first-person pronouns, missing metrics,
  * filler words, and over-long lines — with a concrete suggestion for each.
@@ -127,7 +127,7 @@ const KIND_WEIGHT: Record<string, number> = {
  *  a common irregular). Adverbs between them ("was quickly rebuilt") still match. */
 const PASSIVE_RE = /\b(was|were|been|being|is|are|be)\b\s+(?:\w+ly\s+)?(\w+ed|\w*built|\w*made|\w*written|\w*driven|\w*taken|\w*given|\w*shown|\w*grown|done|led|kept|held|sent|found|run|met|set|put|read|split|spent|won|chosen|drawn|thrown)\b/i
 
-/** First-person pronouns don't belong on a résumé. */
+/** First-person pronouns don't belong on a resume. */
 const FIRST_PERSON_RE = /\b(I|I['’]m|I['’]ve|my|me|we|our|us)\b/
 
 /** Any quantification signal: %, $, digits, or a spelled multiplier. */
@@ -179,7 +179,7 @@ function analyzeText(text: string, opts: { requireMetric: boolean }): WritingIss
     issues.push({
       kind: 'first-person',
       severity: 'suggestion',
-      message: `Drop the first-person "${fp[0]}" — résumé bullets omit pronouns.`,
+      message: `Drop the first-person "${fp[0]}" — resume bullets omit pronouns.`,
       match: fp[0],
     })
   }
@@ -233,7 +233,7 @@ function analyzeText(text: string, opts: { requireMetric: boolean }): WritingIss
 }
 
 export function analyzeWriting(input: ResumeDocument): WritingReport {
-  // Coach the résumé the author can SEE. This used to walk the whole content
+  // Coach the resume the author can SEE. This used to walk the whole content
   // model, so it went on quoting a bullet from a section the page no longer
   // draws - advice about a line the reader cannot find, let alone fix.
   const doc = visibleDocument(input)
@@ -269,7 +269,7 @@ export function analyzeWriting(input: ResumeDocument): WritingReport {
   // Score off the AVERAGE per-bullet "badness" so it spreads across a usable
   // range instead of clustering near 100. Each bullet's badness is the sum of
   // its issue weights, capped at 1 (one bad bullet can't sink the whole score),
-  // then averaged and scaled — a résumé where every bullet has a real problem
+  // then averaged and scaled — a resume where every bullet has a real problem
   // lands in the 20s, a clean one at 100. Advisory kinds (no-metric) barely move it.
   let badnessSum = 0
   for (const b of withIssues) {

@@ -28,7 +28,7 @@ export const sample: LibrarySample = {
     why: [
       'Launches are measured in the user’s and the business’s terms: self-serve plan changes now carry 71% of upgrades and billing tickets fell from 340 a month to 96.',
       'Revenue is named where it exists, $1.4M recovered by rebuilding dunning, which shows a billing product manager who owns money as well as features.',
-      'Discovery is shown by what it stopped: 22 of 30 interviews killed a usage-based tier and saved a two-quarter build, a decision hiring managers rarely see on a résumé.',
+      'Discovery is shown by what it stopped: 22 of 30 interviews killed a usage-based tier and saved a two-quarter build, a decision hiring managers rarely see on a resume.',
       'The Support Operations Lead role at Fernhill Health is not hidden; sorting 14,000 tickets into nine root causes is early product work, and it explains the move into product.',
     ],
     faq: [

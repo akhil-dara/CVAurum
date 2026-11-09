@@ -22,7 +22,7 @@ describe('PageSchema.fit (Magic fit rules, 2026-09-09)', () => {
       minBody: null,
       priority: 'both',
       // Smart fit's fields (2026-09-26) default to the old fit, so a saved
-      // résumé that has never seen them fits exactly as it always did.
+      // resume that has never seen them fits exactly as it always did.
       mode: 'pages',
       minBodyBy: 'author',
       keptPages: null,

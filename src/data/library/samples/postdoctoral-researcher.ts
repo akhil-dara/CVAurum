@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * An academic CV cut to résumé length: papers and funding stay, but so does
+ * An academic CV cut to resume length: papers and funding stay, but so does
  * the teaching load, because the jobs this is sent to ask what has actually
  * been taught and to how many students.
  */
@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
     faq: [
       {
         q: 'Should a postdoc use a resume or a CV?',
-        a: 'A CV for academic jobs and fellowships, with full publication list, funding, teaching and talks. For industry roles, cut it to a two-page résumé that leads with skills and results and keeps only the most relevant papers.',
+        a: 'A CV for academic jobs and fellowships, with full publication list, funding, teaching and talks. For industry roles, cut it to a two-page resume that leads with skills and results and keeps only the most relevant papers.',
       },
       {
         q: 'How should publications be ordered on a postdoc CV?',

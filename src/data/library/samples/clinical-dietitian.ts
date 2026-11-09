@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
     ],
     faq: [
       { q: 'What should a clinical dietitian resume include in India?', a: 'Your RD registration and its renewal year, your degrees with marks or CGPA, the wards and patient groups you cover (ICU, renal, diabetes, bariatric), and outcomes such as screening rates or lab values. Add languages, since patient counselling depends on them.' },
-      { q: 'How do you return to dietetics after a career break?', a: 'Renew your registration, take a recognised update course, and consider a part-time return role first. On the résumé, give the break its own dated entry with what you completed during it so a hiring panel sees the gap was planned.' },
+      { q: 'How do you return to dietetics after a career break?', a: 'Renew your registration, take a recognised update course, and consider a part-time return role first. On the resume, give the break its own dated entry with what you completed during it so a hiring panel sees the gap was planned.' },
     ],
   },
   content: content({

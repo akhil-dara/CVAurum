@@ -18,7 +18,7 @@ export const OPEN_PAGE_FOOT = 'cvaurum:open-page-foot'
  * lays one button over it, edit mode only: hovering it outlines the foot,
  * and a click anywhere on it opens the foot's settings (its words, the
  * number and whether it prints, the place, the rule) with a way to remove
- * it. While the résumé is one page, a faint note stands where the number
+ * it. While the resume is one page, a faint note stands where the number
  * will go, so an author can see a number is coming rather than wonder.
  *
  * No control is revealed by hover alone: the button is the foot's own box,

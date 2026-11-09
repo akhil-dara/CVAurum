@@ -2,13 +2,13 @@
  * Column-balance hint (2026-08-19, user observation: "space is getting
  * wasted").
  *
- * A two-column résumé slices a continuous layout into page bands — it never
+ * A two-column resume slices a continuous layout into page bands — it never
  * reflows — so when the sidebar's content ends before the main column's, the
- * rest of that column stays empty. On a paginated résumé this is severe: the
+ * rest of that column stays empty. On a paginated resume this is severe: the
  * sidebar finishes on page 1 and every later page carries an empty coloured
  * stripe down a THIRD of the paper. Measured on the stock templates the tail
  * runs from 2% (verdant) to 19% (creative) of a single-page document, and
- * approaches a full column per page once the résumé paginates.
+ * approaches a full column per page once the resume paginates.
  *
  * The layout engine cannot fix this by itself (reflowing content between
  * columns would break the "what you see is what prints" guarantee this whole
@@ -27,7 +27,7 @@ import { moveSectionTo, sectionLabel, panelColumns, adoptShownSections } from '@
 import type { ResumeDocument } from '@/types/document'
 
 /**
- * Sections that carry the résumé's narrative and must keep the wide column:
+ * Sections that carry the resume's narrative and must keep the wide column:
  * a work history or a project write-up squeezed into a third-width sidebar
  * wraps every line to three words and reads terribly, so they are never
  * suggested — even though the user can still move them by hand from the

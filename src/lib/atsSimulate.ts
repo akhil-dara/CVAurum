@@ -1,8 +1,8 @@
 /**
  * Per-ATS parse simulation — a deterministic, on-device emulation of how the
  * major applicant-tracking systems (Workday, Greenhouse, Lever, Taleo, iCIMS)
- * actually read a résumé. No incumbent ships this *inside* the editor, and it
- * runs with zero network — same résumé always yields the same report.
+ * actually read a resume. No incumbent ships this *inside* the editor, and it
+ * runs with zero network — same resume always yields the same report.
  *
  * The rules encode documented, real-world parser behaviour, e.g.:
  *  - Taleo (legacy) does strict literal keyword matching and is notorious for
@@ -279,7 +279,7 @@ export function simulateAts(doc: ResumeDocument): AtsProfileReport[] {
 
   // Greenhouse — clean parser, no auto-score; the most forgiving on layout.
   build('greenhouse', 'Greenhouse', 'Parses cleanly and does not auto-score — clarity matters more than keywords.', { twoCol: 3, photo: 0, heading: 3 }, [
-    { severity: 'ok', title: 'No automated ranking', detail: 'Greenhouse does not auto-score résumés, so keyword-stuffing gains nothing here — a clean, readable structure is what counts.' },
+    { severity: 'ok', title: 'No automated ranking', detail: 'Greenhouse does not auto-score resumes, so keyword-stuffing gains nothing here — a clean, readable structure is what counts.' },
   ])
 
   // Lever — keyword-driven; reads linear order; skills text matters.

@@ -102,7 +102,7 @@ export function createTagSink(): TagCollector {
 /**
  * Document outline (bookmarks) from the heading structure (0007).
  *
- * A ten-heading résumé with no outline gives a keyboard/screen-reader user
+ * A ten-heading resume with no outline gives a keyboard/screen-reader user
  * no way to jump between sections — the navigation gap behind the
  * "Document settings" / "2.4 Navigable" findings. The outline mirrors the
  * H1/H2/H3 hierarchy already in the structure tree, each item pointing at

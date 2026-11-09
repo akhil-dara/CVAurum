@@ -2,11 +2,11 @@ import { scriptFallbacks } from '@/data/fonts'
 import { loadPdfFontIndex, resolveFontKey } from './fontIndex'
 
 /**
- * Put this résumé's PDF fonts on the device before they are needed.
+ * Put this resume's PDF fonts on the device before they are needed.
  *
  * The export embeds static font instances from /fonts-pdf/ (19.7 MB across 156
  * files), far too much to precache, so they are kept the first time they are
- * fetched. That left a hole the app never admitted to: a résumé that had never
+ * fetched. That left a hole the app never admitted to: a resume that had never
  * been exported WITH a connection could not be exported without one, though
  * the app promises exactly that. Measured on the production build: a first
  * offline export failed on nine .ttf files, 1.79 MB, for the default example.
@@ -30,7 +30,7 @@ const warmedUrls = new Set<string>()
  * at every weight, and the script fallbacks behind it. The fallbacks are not
  * optional padding - the exporter walks them when it checks which characters
  * no embedded font can draw (fonts.ts `coverage`), and that check is what
- * stops a résumé exporting with whole sentences silently missing.
+ * stops a resume exporting with whole sentences silently missing.
  */
 export async function pdfFontUrlsFor(families: readonly string[]): Promise<string[]> {
   const index = await loadPdfFontIndex()

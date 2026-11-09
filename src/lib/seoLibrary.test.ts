@@ -40,7 +40,7 @@ describe('the picture an example page points at', () => {
   it('gives every sample its own share card, not the design it happens to use', () => {
     for (const slug of SLUGS) expect(samplePageMeta(slug).image, slug).toBe(`/og/examples/${slug}.jpg`)
     const images = SLUGS.map((slug) => samplePageMeta(slug).image)
-    // 108 pages used to advertise 58 pictures of somebody else's résumé.
+    // 108 pages used to advertise 58 pictures of somebody else's resume.
     expect(new Set(images).size).toBe(SLUGS.length)
   })
 
@@ -106,7 +106,7 @@ describe('the alt text one helper writes for the whole library', () => {
     expect(alt).toContain(TEMPLATE_MAP[sample.template]!.name)
   })
 
-  it('never pastes the résumé’s own bullets into an alt', () => {
+  it('never pastes the resume’s own bullets into an alt', () => {
     for (const s of LIBRARY) {
       const alt = sampleImageAlt(s.slug)
       expect(alt.length, s.slug).toBeGreaterThan(20)
@@ -141,7 +141,7 @@ describe('the HTML a crawler reads for one example', () => {
 
   it('sits high on the page, beside the heading it belongs to', () => {
     // Google asks for a picture near the text that explains it; here that is
-    // the h1, and the whole résumé follows below.
+    // the h1, and the whole resume follows below.
     expect(html.indexOf('<img')).toBeGreaterThan(html.indexOf('<h1>'))
     expect(html.indexOf('<img')).toBeLessThan(html.indexOf('<article>'))
     expect(html).toContain('<figcaption>')
@@ -168,7 +168,7 @@ describe('the shelf a crawler reads for the whole library', () => {
     expect(new Set(tags.map((t) => attr(t, 'src')))).toEqual(new Set(SLUGS.map(samplePageImage)))
   })
 
-  it('loads them lazily — 108 eager résumés on one page would be a disaster', () => {
+  it('loads them lazily — 108 eager resumes on one page would be a disaster', () => {
     for (const t of tags) expect(attr(t, 'loading')).toBe('lazy')
   })
 
@@ -231,7 +231,7 @@ describe('the Markdown twin', () => {
 })
 
 /**
- * The shelf carries 108 complete résumés and used to declare only an ItemList
+ * The shelf carries 108 complete resumes and used to declare only an ItemList
  * — no crumb trail, nothing saying what the page itself is. Every page INSIDE
  * it declared both, so the collection was the one page in the set a results
  * page could not place.
@@ -251,14 +251,14 @@ describe('what the shelf declares about itself', () => {
     const page = node('CollectionPage')
     expect(page.url).toBe('https://cvaurum.com/examples')
     expect(page['@id']).toBe('https://cvaurum.com/examples')
-    expect(page.name).toBe(`${LIBRARY.length} résumé examples`)
+    expect(page.name).toBe(`${LIBRARY.length} resume examples`)
     expect(page.description.length).toBeLessThanOrEqual(155)
   })
 
   it('walks back up to the home page', () => {
     expect(node('BreadcrumbList').itemListElement).toEqual([
       { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://cvaurum.com/' },
-      { '@type': 'ListItem', position: 2, name: 'Résumé examples', item: 'https://cvaurum.com/examples' },
+      { '@type': 'ListItem', position: 2, name: 'Resume examples', item: 'https://cvaurum.com/examples' },
     ])
   })
 
@@ -294,14 +294,16 @@ describe('the crawl path out of the library', () => {
 })
 
 describe('an example page title says it the way people search', () => {
-  it('reads "Resume Example" without the accent, "CV Example" for a UK résumé, and no country unless two share a role', async () => {
+  it('reads "Resume Example" without the accent, "CV Example" for a UK resume, and no country unless two share a role', async () => {
     const { samplePageMeta } = await import('./seoLibrary')
     const { LIBRARY } = await import('@/data/library/index')
     const titles = LIBRARY.map((s) => samplePageMeta(s.slug).title)
     expect(new Set(titles).size).toBe(LIBRARY.length)
     for (const s of LIBRARY) {
       const t = samplePageMeta(s.slug).title
-      expect(t, s.slug).not.toContain('Résumé')
+      // the accented spelling, written as an escape so the rewrite to plain
+      // "resume" cannot turn this check into one that fails on every title
+      expect(t, s.slug).not.toMatch(/R\u00e9sum/i)
       expect(t, s.slug).toContain(s.region === 'uk' ? 'CV Example' : 'Resume Example')
       const shared = LIBRARY.filter((x) => x.role === s.role).length > 1
       if (!shared) expect(t, s.slug).not.toMatch(/\((India|UK|US)/)

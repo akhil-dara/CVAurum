@@ -1,6 +1,6 @@
 /**
  * The homepage's template shelf: real pages, large enough to judge, in a row
- * you scroll or step through, grouped by the kind of résumé people ask for.
+ * you scroll or step through, grouped by the kind of resume people ask for.
  * The plainest single-column designs come first (every design exports text an
  * ATS reads word for word; these are simply the quietest); the
  * Signature designs live in the gallery, not here.
@@ -44,7 +44,7 @@ export function shelfFor(tag: TemplateTag): TemplateConfig[] {
 export function TemplateCarousel({
   onPick,
   tabs = SHELF_TABS,
-  label = 'Kinds of résumé',
+  label = 'Kinds of resume',
 }: {
   onPick: (id: string) => void
   /** One entry shows that shelf with no tab row. */

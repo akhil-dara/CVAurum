@@ -69,7 +69,7 @@ export interface AtsCheck {
  * many there are, and Magic fit knows the size the body text actually came out
  * at, which is not the size the author set. Without these the analysis falls
  * back to estimating from the word count, which is what it used to do — and
- * which called a one-page résumé two pages often enough to be worth fixing.
+ * which called a one-page resume two pages often enough to be worth fixing.
  */
 export interface AtsMeasurement {
   /** Real page count, from the preview's own pagination. */
@@ -206,13 +206,13 @@ function firstTerm(text: string, terms: readonly string[]): string | undefined {
 }
 
 /**
- * First-person pronouns, which no résumé convention wants: the page is already
+ * First-person pronouns, which no resume convention wants: the page is already
  * about the person whose name is at the top, so "I" is a word spent saying
  * nothing.
  *
  * Case is load-bearing and the `i` flag is deliberately absent. "US" is a
  * country, "WE" and "OUR" turn up inside initialisms and all-caps headings,
- * and matching them case-insensitively made this rule fire on résumés that
+ * and matching them case-insensitively made this rule fire on resumes that
  * contained no pronoun at all. Only the lower-case forms and the
  * sentence-initial capitals count.
  */
@@ -236,7 +236,7 @@ const BARE_I_RE = /(^|[.;:]\s+)I\s+[a-z]/
  * say more with the evidence in its place — "team player" costs a line and
  * proves nothing, where the project you unblocked proves it by itself.
  *
- * Short on purpose. A long list of "words to avoid" fires on every résumé and
+ * Short on purpose. A long list of "words to avoid" fires on every resume and
  * so teaches nobody anything; these are the ones that are ALWAYS a substitute
  * for the example underneath them.
  */
@@ -288,7 +288,7 @@ const FILLER = [
  * Passive voice, and an honest account of what this can and cannot see.
  *
  * The shape: a past form of "to be" — was, were, been, being — followed by a
- * past participle. "is/are + -ed" is left out on purpose, because on a résumé
+ * past participle. "is/are + -ed" is left out on purpose, because on a resume
  * that shape is nearly always an adjective ("is dedicated", "are aligned").
  *
  * It sees only the OPENING clause, and that restriction is the whole rule.
@@ -363,7 +363,7 @@ export function extractKeywords(text: string, max = 24): string[] {
 
 /**
  * Present-tense openings, for the rule that a finished job is told in the
- * past. Built from the verbs résumé bullets actually open with, in the three
+ * past. Built from the verbs resume bullets actually open with, in the three
  * shapes a present-tense bullet takes ("Lead", "Leads", "Leading"). Words that
  * open a bullet as a NOUN as often as a verb ("Process", "Report", "Test",
  * "Plan", "Work") are left out: a rule that calls "Process redesign cut…"
@@ -427,7 +427,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   // Every rule below reads the document the PAGE shows, not the one the store
   // holds. Hidden sections are dropped once, here, so no individual check has
   // to remember to ask - and so the score, the checks, the counts and the JD
-  // match are all claims about the same résumé the export produces.
+  // match are all claims about the same resume the export produces.
   const doc = visibleDocument(input)
   const c = doc.content
   const text = extractResumeText(doc)
@@ -540,7 +540,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const pages = measured.pages ?? file?.pageCount ?? estimatedPages
   // Two pages are right for a long career and wrong for a short one. The
   // signal is the history, not the word count: three roles and a decade is a
-  // two-page résumé; one role over two pages is padding.
+  // two-page resume; one role over two pages is padding.
   const longCareer = c.work.length >= 4 || wordCount > 750
   push(
     'pages',
@@ -566,7 +566,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     bodyPt >= 9.5 && bodyPt <= 12
       ? `${bodyRounded}pt — comfortable in print and on screen.`
       : bodyPt < LEGIBLE_BODY_PT
-        ? `${bodyRounded}pt is below what a printed résumé should use. Cut a little content instead of shrinking further.`
+        ? `${bodyRounded}pt is below what a printed resume should use. Cut a little content instead of shrinking further.`
         : `${bodyRounded}pt is on the edge of readable. 10–11pt is the range to aim for.`,
     1,
     'format'
@@ -696,7 +696,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     'LinkedIn profile',
     !linkedin ? 'warn' : shortForm ? 'pass' : 'warn',
     !linkedin
-      ? 'No LinkedIn profile. It is the first thing most recruiters look for after the résumé itself.'
+      ? 'No LinkedIn profile. It is the first thing most recruiters look for after the resume itself.'
       : !linkedinUrl.trim()
         ? 'Your LinkedIn line is not a link. Put the address in its “Goes to” field — linkedin.com/in/your-name is enough.'
         : shortForm
@@ -749,7 +749,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     )
   }
 
-  // Pronouns. The summary counts too — it is the one place on a résumé where
+  // Pronouns. The summary counts too — it is the one place on a resume where
   // "I" gets written by habit, and it is the first thing read.
   const summaryText = htmlToText(c.basics.summary ?? '')
   // Whichever comes FIRST in the line, so the quoted word is the one the
@@ -772,7 +772,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
       'No first-person pronouns',
       pronouns === 0 ? 'pass' : pronouns <= 2 ? 'warn' : 'fail',
       pronouns === 0
-        ? 'Written without “I” or “we”, the way a résumé is read.'
+        ? 'Written without “I” or “we”, the way a resume is read.'
         : `${pronouns} line${pronouns === 1 ? '' : 's'} use${pronouns === 1 ? 's' : ''} a first-person pronoun${shown ? ` (“${shown}”)` : ''}${pronounInSummary && !first ? ', in the summary' : ''}. Cut it — the page is already about you.`,
       0.75,
       'writing',
@@ -918,7 +918,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     personal.size ? personalWhere : undefined
   )
 
-  // The declaration that closes many résumés in India ("I hereby declare…").
+  // The declaration that closes many resumes in India ("I hereby declare…").
   const declaration = c.custom.find((sec) =>
     /\bdeclaration\b|hereby declare/i.test([sec.name, ...sec.items.map((it) => `${it.name} ${htmlToText(it.summary)}`)].join(' '))
   )
@@ -1001,7 +1001,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
       scanned.length === 0
         ? 'Every page carries real text a parser can read.'
         : allScanned
-          ? 'The file is a picture of a résumé: there is no text in it, so a parser sees a blank page. This report read it with OCR. Export the original document to PDF instead of scanning or printing it to an image.'
+          ? 'The file is a picture of a resume: there is no text in it, so a parser sees a blank page. This report read it with OCR. Export the original document to PDF instead of scanning or printing it to an image.'
           : `Page${scanned.length > 1 ? 's' : ''} ${scanned.join(', ')} ${scanned.length > 1 ? 'are pictures' : 'is a picture'} of text, which a parser reads as blank. Export the original to PDF instead.`,
       3,
       'file'

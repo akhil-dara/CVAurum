@@ -1,5 +1,5 @@
 /**
- * Widow/orphan control for paginated résumés (2026-08-23 user report: a page
+ * Widow/orphan control for paginated resumes (2026-08-23 user report: a page
  * break split a three-line paragraph and left the single word "Excel." alone
  * at the top of page 3).
  */

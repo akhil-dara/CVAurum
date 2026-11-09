@@ -33,7 +33,7 @@ export const sample: LibrarySample = {
     ],
     faq: [
       { q: 'What should a corporate M&A associate resume include?', a: 'Bar admissions, class year, and a short deal list or bullets with deal type, size and your role: diligence, drafting, negotiation, closing. Add law review or moot court in education and any prior finance experience that helps you read the numbers.' },
-      { q: 'Should a lawyer resume include a representative deal list?', a: 'Yes, for transactional roles. Describe deals by type, sector and value without client names unless the deal is public. A list of four to eight recent matters, or bullets as on this résumé, lets a hiring partner judge level quickly.' },
+      { q: 'Should a lawyer resume include a representative deal list?', a: 'Yes, for transactional roles. Describe deals by type, sector and value without client names unless the deal is public. A list of four to eight recent matters, or bullets as on this resume, lets a hiring partner judge level quickly.' },
     ],
   },
   content: content({

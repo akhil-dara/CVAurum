@@ -114,7 +114,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
  * on the canvas and in the file, and an extractor reads what the reader sees.
  *
  * • – › are in every bundled family (measured: 158/158 PDF instances), and >
- * is plain ASCII, so those four come from the résumé's own face. ◦ ▪ ✓ ◆ are
+ * is plain ASCII, so those four come from the resume's own face. ◦ ▪ ✓ ◆ are
  * in none of them and
  * come from the bundled marks family at the end of every stack
  * (src/data/fonts.ts, scripts/make-marks-font.py) — before that, ✓ and ◆ were

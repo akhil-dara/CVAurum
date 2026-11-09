@@ -30,7 +30,7 @@ import { RETIRED_AVATARS } from './storage'
 import { defaultMetadata, ensureIds, withoutSeeded } from '@/data/defaults'
 
 /** A plain JSON Resume brings no settings: it prints at the size set, as any
- *  résumé not started from a picture does (defaults.ts createDocument). */
+ *  resume not started from a picture does (defaults.ts createDocument). */
 function unfittedMetadata() {
   const m = defaultMetadata()
   m.page.autoFit = false

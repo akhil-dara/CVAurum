@@ -53,7 +53,7 @@ export async function exportFullBackup(): Promise<number> {
   return resumes.length
 }
 
-/** Download every résumé stored in this browser exactly as it is stored,
+/** Download every resume stored in this browser exactly as it is stored,
  *  including any this version cannot open, so nothing is ever lost to a
  *  value it does not understand. Returns how many it saved. */
 export async function exportRawStored(): Promise<number> {

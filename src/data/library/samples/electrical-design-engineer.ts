@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * How to put a career break on a résumé: as a dated entry in its own right,
+ * How to put a career break on a resume: as a dated entry in its own right,
  * with the CPD that continued through it, followed by the contract role that
  * bridged back to permanent work. Nothing is hidden and nothing needs
  * explaining in an interview.

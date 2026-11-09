@@ -147,7 +147,7 @@ describe('applyTemplateToMetadata keeps the heading spacing and rule width', () 
 
 describe('applyTemplateToMetadata keeps the document-wide heading style', () => {
   // An author who set every section title to a filled block meant the
-  // résumé, not the design they happened to be on - the same way the heading
+  // resume, not the design they happened to be on - the same way the heading
   // case and the weights are theirs across a switch.
   it('carries the style across a switch', () => {
     const cur = MetadataSchema.parse({ template: 'modern', typography: { headingStyle: 'boxed' } })
@@ -468,7 +468,7 @@ describe('a design switch: what you set travels, what the old design shipped sta
     mine.layout.contactStyle = 'pills'
     expect(applyTemplateToMetadata(mine, b.defaults).layout.contactStyle).toBe('pills')
   })
-  it("a blank résumé's base values are nobody's choice: every design gets its own colours and fonts", () => {
+  it("a blank resume's base values are nobody's choice: every design gets its own colours and fonts", () => {
     // A blank document carries the schema's own text colour and an empty
     // heading font, which differ from its template's. Read as choices they
     // would put dark body text on every dark design.

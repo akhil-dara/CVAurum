@@ -2,13 +2,13 @@
  * Auto-fit behaviour, including the overflow case (2026-08-23 user report:
  * "we are doing autofit ... we should not go to next page ... it should try
  * to auto correct"). Measured before the fix: adding two work entries kept a
- * résumé on ONE page, adding a third produced THREE pages with the last one
+ * resume on ONE page, adding a third produced THREE pages with the last one
  * 28% full — because auto-fit gave up and snapped back to full size.
  */
 import { describe, it, expect } from 'vitest'
 import { fitOnePageScale, MIN_FIT } from './fitOnePage'
 
-/** A résumé whose height shrinks linearly with the scale. */
+/** A resume whose height shrinks linearly with the scale. */
 const linear = (fullHeight: number) => {
   const seen: number[] = []
   const measure = async (scale: number) => {
@@ -117,7 +117,7 @@ import {
 } from './fitOnePage'
 import type { FitVector } from './fitOnePage'
 
-/** A résumé whose height is `full x type x space`: type and spacing both
+/** A resume whose height is `full x type x space`: type and spacing both
  *  scale it linearly, which is enough to tell the stages apart. */
 const twoAxis = (full: number) => {
   const seen: FitVector[] = []
@@ -165,7 +165,7 @@ describe('fitToPages', () => {
     // spine) measures 1123 in a 1122.52px page: scrollHeight rounds up. The
     // search took that for an overflow and asked the paginator, whose answer
     // for a short page counts the bottom padding twice - two pages, for a
-    // résumé that fitted one at the size set.
+    // resume that fitted one at the size set.
     let asked = 0
     const r = await fitToPages(
       { pageH: 1122.5196850393702, measure: async () => 1123, countPages: async () => { asked++; return 2 } },

@@ -1,7 +1,7 @@
 /**
  * A portrait for an invented person.
  *
- * The library needed faces: a wall of sample résumés carrying nothing but
+ * The library needed faces: a wall of sample resumes carrying nothing but
  * lettered tiles reads as a spreadsheet, not as people. Photographs were not
  * an option — a photograph of a real person cannot be used without their say,
  * and a photorealistic invented face is both uncanny at thumbnail size and
@@ -24,7 +24,7 @@ function hash(seed: string): number {
 }
 
 /** A tasteful spread rather than a cartoon one: these read as portraits at
- *  32px on a card and at 96px on a résumé. */
+ *  32px on a card and at 96px on a resume. */
 const SKIN = ['#f3d3bd', '#e8c39e', '#d9a97e', '#c68a5e', '#a86c46', '#8a5433', '#6b3f27']
 const HAIR = ['#2b2118', '#3f2d20', '#5a3a24', '#7a5230', '#111014', '#4a4a52', '#6e6a63']
 const CLOTHES = ['#2f3e56', '#3b4a5f', '#405a4a', '#5a4058', '#7a4a3a', '#33485c', '#4a4a6a']
@@ -49,7 +49,7 @@ function hairPath(kind: number, colour: string): string {
 }
 
 /**
- * A flat portrait for `name`, as an SVG data URI, sized for a résumé's photo
+ * A flat portrait for `name`, as an SVG data URI, sized for a resume's photo
  * slot. The same name always produces the same face.
  */
 export function portrait(name: string): string {

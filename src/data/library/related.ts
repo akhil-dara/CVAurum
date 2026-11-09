@@ -5,7 +5,7 @@ import type { LibrarySample } from './types'
  * The examples nearest this one, best first.
  *
  * Nearness is scored rather than sorted by one field, because the reader who
- * has just read a mid-level data analyst résumé written for India is looking
+ * has just read a mid-level data analyst resume written for India is looking
  * for a neighbour on at least two of those three axes, not for every sample
  * that happens to share a shelf. A shared keyword counts too: it is the one
  * signal that crosses shelves, and "SQL" is exactly how an analyst finds the
@@ -33,7 +33,7 @@ export function relatedSamples(slug: string, limit = 6): LibrarySample[] {
 }
 
 /** What a sample is made of, counted rather than claimed — the panel on its
- *  page says how the résumé is built, and every figure there is derived from
+ *  page says how the resume is built, and every figure there is derived from
  *  the document itself so it can never drift from what the preview shows. */
 export function sampleShape(s: LibrarySample): {
   roles: number

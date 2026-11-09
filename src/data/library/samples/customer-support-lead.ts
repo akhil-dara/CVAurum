@@ -2,7 +2,7 @@ import type { LibrarySample } from '../types'
 import { content } from '../types'
 
 /**
- * Senior, US. Support résumés drown in adjectives about empathy, so this one
+ * Senior, US. Support resumes drown in adjectives about empathy, so this one
  * says nothing about attitude and everything about queue behaviour: response
  * time against rising volume, resolution on first contact, and what a career
  * ladder did to attrition.

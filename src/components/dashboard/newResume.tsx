@@ -36,11 +36,11 @@ export function useResumeActions() {
     templateId?: string,
     content?: ResumeContent,
     tweak?: (m: import('@/types/metadata').Metadata) => void,
-    // What to call it. A résumé started from the "Registered Nurse" example
+    // What to call it. A resume started from the "Registered Nurse" example
     // arriving in the list as "My Resume" is a list of identical names the
     // moment someone tries two.
     title?: string,
-    // Name and job title typed before there was a résumé (the homepage hero).
+    // Name and job title typed before there was a resume (the homepage hero).
     basics?: { name?: string; label?: string }
   ) => {
     const doc = createDocument({ sample: sample || !!content, content, title })
@@ -78,7 +78,7 @@ export function useResumeActions() {
     }
   }
 
-  /** Save a résumé read from a PDF and open it in the editor - on the ATS
+  /** Save a resume read from a PDF and open it in the editor - on the ATS
    *  panel when the reason for reading it was to check it. Shared by the
    *  import button and the checker page, which reads the PDF itself first. */
   const openImported = async (doc: ResumeDocument, opts: { openAts?: boolean; ocr?: boolean } = {}) => {
@@ -92,7 +92,7 @@ export function useResumeActions() {
     navigate(`/resume/${doc.id}`)
   }
 
-  /** Import an existing PDF résumé — parsed 100% in the browser, never uploaded. */
+  /** Import an existing PDF resume — parsed 100% in the browser, never uploaded. */
   /** `openAts` lands the editor on the ATS panel - the checker page's way in,
    *  where the reason someone dropped a PDF was to see what a parser reads. */
   const importPdf = async (file?: File, opts: { openAts?: boolean } = {}) => {
@@ -126,8 +126,8 @@ export function useResumeActions() {
       const doc = createDocument({
         content,
         sample: true, // lay out exactly the sections we found
-        fitted: false, // and print at the size set, like any résumé not started from a picture
-        title: name ? `${name} — Resume` : 'Imported résumé',
+        fitted: false, // and print at the size set, like any resume not started from a picture
+        title: name ? `${name} — Resume` : 'Imported resume',
       })
       await openImported(doc, { ...opts, ocr: meta.ocrPages.length > 0 })
     } catch (e) {
@@ -182,10 +182,10 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/5 py-2.5 text-sm font-medium text-primary transition hover:border-primary hover:bg-primary/10"
             onClick={onImportPdf}
           >
-            <FileUp className="h-4 w-4" /> Import your existing PDF résumé
+            <FileUp className="h-4 w-4" /> Import your existing PDF resume
           </button>
         )}
-        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">Parsed entirely in your browser — your résumé is never uploaded.</p>
+        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">Parsed entirely in your browser — your resume is never uploaded.</p>
         <button
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2 text-xs text-muted-foreground transition hover:border-primary hover:text-primary"
           onClick={onImport}
@@ -205,7 +205,7 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
  * and get ideas. The student is the one still IN school: an expected
  * graduation, school marks, and projects where a job history would be.
  */
-/** What the picker hands back: enough to start the résumé, and to name it. */
+/** What the picker hands back: enough to start the resume, and to name it. */
 export interface PickedSample {
   template: string
   content: ResumeContent
@@ -222,7 +222,7 @@ export interface PickedSample {
  * app. It offers the same library now — searchable, and filtered by field.
  *
  * The library is imported DYNAMICALLY, on open: it is a hundred complete
- * résumés, and every page that can open this dialog (the landing page among
+ * resumes, and every page that can open this dialog (the landing page among
  * them) would otherwise carry them all.
  */
 export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) => void; onClose: () => void }) {
@@ -287,7 +287,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
           </button>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">
-          A complete résumé for that job, written out in full — swap in your details, switch designs anytime. Everything
+          A complete resume for that job, written out in full — swap in your details, switch designs anytime. Everything
           in one is invented.
         </p>
 
@@ -415,10 +415,10 @@ function SampleCard({
   onPick: (p: PickedSample) => void
   eager?: boolean
 }) {
-  // Every full résumé here used to mount live — four at once when the dialog
+  // Every full resume here used to mount live — four at once when the dialog
   // opened, then one per idle grant. Opening the dialog and browsing it cost
   // 9.7s of main-thread task time on a desk and 6.7s on a phone, and after
-  // nine seconds only 35 of the 108 cards had a résumé in them (production
+  // nine seconds only 35 of the 108 cards had a resume in them (production
   // build, 2026-09-15). It is the picture of the exported page now.
   const pick = () => onPick({ template: sample.template, content: sample.content, tweaks: sample.tweaks, role: sample.role })
 

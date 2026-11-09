@@ -4,7 +4,7 @@ import type { ResumeDocument } from '@/types/document'
 import { basicsDone } from './ContentPanel'
 
 /**
- * Personal details opens on a résumé that still needs it and folds on one that
+ * Personal details opens on a resume that still needs it and folds on one that
  * does not — fifteen fields stood between the panel's top and the section list
  * most people open it for, which on a phone was more than a screen of
  * scrolling before that list appeared at all.
@@ -18,8 +18,8 @@ const withBasics = (over: Partial<ResumeDocument['content']['basics']>): ResumeD
   return d
 }
 
-describe('when the top of the résumé counts as answered', () => {
-  it('is not answered on a blank résumé', () => {
+describe('when the top of the resume counts as answered', () => {
+  it('is not answered on a blank resume', () => {
     expect(basicsDone(createDocument({}))).toBe(false)
   })
 
@@ -29,7 +29,7 @@ describe('when the top of the résumé counts as answered', () => {
     expect(basicsDone(withBasics({ name: 'Alex Morgan', email: 'alex@example.com' }))).toBe(true)
   })
 
-  it('takes a phone as that one way, since a résumé may carry either', () => {
+  it('takes a phone as that one way, since a resume may carry either', () => {
     expect(basicsDone(withBasics({ name: 'Alex Morgan', phone: '(555) 0142' }))).toBe(true)
   })
 
@@ -38,7 +38,7 @@ describe('when the top of the résumé counts as answered', () => {
     expect(basicsDone(withBasics({ name: 'Alex Morgan', email: '  ' }))).toBe(false)
   })
 
-  it('counts the example résumé as answered, since it is', () => {
+  it('counts the example resume as answered, since it is', () => {
     expect(basicsDone(createDocument({ sample: true }))).toBe(true)
   })
 })

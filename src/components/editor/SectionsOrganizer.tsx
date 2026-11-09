@@ -403,7 +403,7 @@ function SectionCard({
 }
 
 /** Whether the page you edit shows the sections that hold nothing yet
- *  (lib/sections emptySectionsShown). Kept in this browser, not the résumé:
+ *  (lib/sections emptySectionsShown). Kept in this browser, not the resume:
  *  it changes what you see while editing, never what prints. */
 function EmptySectionsChoice() {
   const pref = useEditorStore((s) => s.emptySections)
@@ -422,7 +422,7 @@ function EmptySectionsChoice() {
       />
       <p className="text-[11px] leading-snug text-muted-foreground">
         {pref === 'auto'
-          ? 'Shown while your résumé is mostly empty, then left out so the page reads like the PDF. Empty sections never print.'
+          ? 'Shown while your resume is mostly empty, then left out so the page reads like the PDF. Empty sections never print.'
           : pref === 'show'
             ? 'Every section is on the page, empty or not. Empty ones never print.'
             : 'Only sections with something in them are on the page, like the PDF. Find the rest here.'}

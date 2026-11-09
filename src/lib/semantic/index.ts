@@ -97,7 +97,7 @@ async function embed(texts: string[]): Promise<{ data: Float32Array; dim: number
 const clean = (s: string) => s.replace(/\s+/g, ' ').trim()
 
 /**
- * The résumé as a list of meaning-bearing lines (what a reader would take in).
+ * The resume as a list of meaning-bearing lines (what a reader would take in).
  *
  * Narrowed to the sections the page draws first: a requirement should not come
  * back "covered" by a bullet that lives in a section the author removed, which
@@ -164,7 +164,7 @@ export interface SemanticItem {
 }
 
 export interface SemanticReport {
-  /** 0–100: how much of the JD's meaning the résumé covers */
+  /** 0–100: how much of the JD's meaning the resume covers */
   score: number
   items: SemanticItem[]
   strong: number
@@ -173,7 +173,7 @@ export interface SemanticReport {
   resumeLineCount: number
 }
 
-// MiniLM cosine landscape, CALIBRATED against the real résumé corpus (not
+// MiniLM cosine landscape, CALIBRATED against the real resume corpus (not
 // synthetic text): across genuinely-matching resume/JD pairs the best sims
 // land 0.35–0.56, while unrelated professions top out around 0.33 (rare
 // outlier 0.43). Real JD duty-lines vs real achievement-bullets never reach
