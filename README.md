@@ -197,6 +197,8 @@ The structures they introduce are editable, not fixed decoration — see the num
 
 ## ⚡ Quick Start
 
+[![Launch on PicoRunner](https://picorunner.com/badges/launch.svg)](https://picorunner.com/launch/?repository=https%3A%2F%2Fgithub.com%2Fakhil-dara%2FCVAurum)
+
 ### Prerequisites
 
 - **Node.js ≥ 18.18** to run and build the app (the test suite needs **Node 20 or newer**; CI runs Node 22)
