@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
               An unexpected error occurred. Your resumes are saved locally and are safe.
             </p>
             {this.state.error.message && (
-              <pre className="mx-auto mt-3 max-w-md overflow-auto rounded-lg bg-muted p-3 text-left text-xs text-muted-foreground">
+              <pre className="mx-auto mt-3 max-w-md overflow-auto rounded-lg bg-muted p-3 text-start text-xs text-muted-foreground">
                 {this.state.error.message}
               </pre>
             )}

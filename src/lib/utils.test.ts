@@ -148,6 +148,17 @@ describe('formatDate with the month style and the language', () => {
     expect(formatDate('2021-01', { month: 'numeric', language: 'de' })).toBe('01/2021')
   })
 
+  it('puts a Persian month before its year in EVERY month style', () => {
+    // The browser's Persian data disagrees with itself: the short pattern is
+    // "فروردین 1400" and the long one "1400 فروردین". Switching Jan -> January
+    // therefore moved the year to the other end of a range and stranded the
+    // dash on the far side of it (2026-11-16 user report).
+    expect(formatDate('2021-04', { month: 'short', language: 'fa' })).toBe('فروردین 1400')
+    expect(formatDate('2021-04', { month: 'long', language: 'fa' })).toBe('فروردین 1400')
+    expect(formatDate('2021-04', { month: 'numeric', language: 'fa' })).toBe('01/1400')
+    expect(formatDate('2021-04', { month: 'none', language: 'fa' })).toBe('1400')
+  })
+
   it('prints the word for an open-ended range, falling back to Present', () => {
     expect(formatDate('Present', { present: 'Current' })).toBe('Current')
     expect(formatDate('present')).toBe('Present')

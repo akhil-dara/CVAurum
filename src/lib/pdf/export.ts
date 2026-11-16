@@ -17,12 +17,9 @@ import type { ResumeDocument } from '@/types/document'
 import { renderResumePdf, lastRenderedPageCount, PdfMultiPageUnsupportedError } from './render'
 
 /** What the export produced, for the user-facing outcome message. */
-export interface PdfExportResult {
-  fileName: string
-  pages: number
-  /** size of the file in bytes */
-  bytes: number
-}
+export type PdfExportResult =
+  | { kind: 'file'; fileName: string; pages: number; bytes: number }
+  | { kind: 'print'; fileName: string }
 
 /** The renderer could not produce the document. `message` is written for
  *  the user; the original error is logged for the bug report. */
@@ -34,6 +31,25 @@ export class PdfExportError extends Error {
 }
 
 export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportResult> {
+  // A right-to-left resume is saved through the BROWSER's print engine, not the
+  // native renderer. Persian/Arabic script needs GSUB joining plus bidi
+  // reordering, and the native renderer paints runs one by one with pdf-lib,
+  // which does neither: the letters would come out disconnected and in the
+  // wrong order. The browser's own text engine shapes them correctly, and its
+  // print output still carries real, selectable text.
+  //
+  // The tab is opened BEFORE the first await so the browser counts it as part
+  // of the click (otherwise the popup is blocked), then pointed at the resume
+  // once it is saved - the print route loads the document from storage by id.
+  if (doc.metadata?.layout?.rtl) {
+    const tab = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null
+    await saveDoc(doc)
+    const url = `/print/${doc.id}`
+    if (tab) tab.location.href = url
+    else window.location.assign(url)
+    return { kind: 'print', fileName: `${pdfBaseName(doc)}.pdf` }
+  }
+
   // An export is the moment the author most expects their work to be safe,
   // so the document is persisted before anything else happens.
   await saveDoc(doc)
@@ -50,7 +66,7 @@ export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportRes
 
   const fileName = `${pdfBaseName(doc)}.pdf`
   downloadBlob(new Blob([bytes as unknown as BlobPart], { type: 'application/pdf' }), fileName)
-  return { fileName, pages: lastRenderedPageCount(), bytes: bytes.byteLength }
+  return { kind: 'file', fileName, pages: lastRenderedPageCount(), bytes: bytes.byteLength }
 }
 
 /** A sentence the author can act on, never a stack trace. */

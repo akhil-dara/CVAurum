@@ -195,6 +195,32 @@ function monthYearFormat(language: string, month: 'short' | 'long'): Intl.DateTi
  *  page is spelled with. A locale that writes the month as a bare number
  *  beside a literal (a Japanese date leads with the year, then a month
  *  glyph) gives that number, which is what the date prints too. */
+/** A month as a bare number, or a year on its own, in one language. Both still
+ *  belong to the document's CALENDAR: a Persian resume's "2021-04" is
+ *  1400/04, and printing the stored Gregorian year there made the dates read
+ *  as if the document had switched back to English (2026-11-16 user report).
+ *  Digits stay Latin, exactly like the month-name path above. */
+const numberFormats = new Map<string, Intl.DateTimeFormat>()
+function numberFormat(language: string, kind: 'month-numeric' | 'year-only'): Intl.DateTimeFormat {
+  const key = `${language}|${kind}`
+  let f = numberFormats.get(key)
+  if (!f) {
+    f = new Intl.DateTimeFormat(language, {
+      ...(kind === 'month-numeric' ? { month: '2-digit' as const } : {}),
+      year: 'numeric',
+      timeZone: 'UTC',
+      numberingSystem: 'latn',
+    })
+    numberFormats.set(key, f)
+  }
+  return f
+}
+
+/** One field of a formatted date, e.g. the year in "1400" out of "۱٤۰۰". */
+function datePart(f: Intl.DateTimeFormat, d: Date, type: 'month' | 'year', fallback: string): string {
+  return f.formatToParts(d).find((p) => p.type === type)?.value ?? fallback
+}
+
 function monthPart(f: Intl.DateTimeFormat, d: Date): string {
   return f.formatToParts(d).find((p) => p.type === 'month')?.value ?? f.format(d)
 }
@@ -230,14 +256,39 @@ export function formatDate(value?: string, opts: DateOptions = {}): string {
   const [y, m] = trimmed.split('-')
   if (!m) return y
   const style = opts.month ?? 'short'
-  if (style === 'none') return y
   const monthIdx = Math.max(0, Math.min(11, parseInt(m, 10) - 1))
-  if (style === 'numeric') return `${String(monthIdx + 1).padStart(2, '0')}/${y}`
   const lang = canonicalLanguage(opts.language)
+  const year = parseInt(y, 10)
+  if (style === 'none') return datePart(numberFormat(lang, 'year-only'), utcMonth(year, monthIdx), 'year', y)
+  if (style === 'numeric') {
+    // The shape stays MM/YYYY in every language (a parser reads one thing), but
+    // both halves come from the document's calendar: a Persian January is
+    // 10/1399, not 01/2021, the way its month name is "دی".
+    const d = utcMonth(year, monthIdx)
+    const mm = datePart(numberFormat(lang, 'month-numeric'), d, 'month', String(monthIdx + 1).padStart(2, '0'))
+    const yy = datePart(numberFormat(lang, 'year-only'), d, 'year', y)
+    return `${mm}/${yy}`
+  }
   if (lang === 'en') return `${MONTHS_EN[style][monthIdx]} ${y}`
-  // The locale's own order of month and year (a Japanese date leads with
-  // the year), never a fixed English one.
-  return monthYearFormat(lang, style).format(utcMonth(parseInt(y, 10), monthIdx))
+  const f = monthYearFormat(lang, style)
+  const d = utcMonth(year, monthIdx)
+  // A right-to-left script always writes the month BEFORE its year. Persian's
+  // own locale data disagrees with itself here — its short pattern is
+  // "فروردین 1400" while its long one is "1400 فروردین" — so switching the
+  // month from Jan to January moved the year to the other end of a range and
+  // left the dash stranded beside it (2026-11-16 user report). Say it one way.
+  if (rtlDates(lang)) return `${monthPart(f, d)} ${datePart(f, d, 'year', y)}`
+  // Otherwise the locale's own order of month and year (a Japanese date leads
+  // with the year), never a fixed English one.
+  return f.format(d)
+}
+
+/** Languages written right to left: a date written in one of them is an RTL
+ *  phrase even on a left-to-right page, and its two ends must not be reordered
+ *  against each other by the bidi algorithm. */
+const RTL_LANGUAGES = new Set(['fa', 'ar', 'he', 'ur', 'ps', 'sd', 'ug', 'yi', 'dv'])
+function rtlDates(language?: string): boolean {
+  return RTL_LANGUAGES.has(canonicalLanguage(language).split('-')[0].toLowerCase())
 }
 
 /** A range with no real end: nothing typed, or the Present keyword. */
@@ -352,6 +403,9 @@ const DATE_LANGUAGES: Record<string, { label: string; words: [yr: string, yrs: s
   nl: { label: 'Dutch', words: ['jr', 'jr', 'mnd', 'mnd'] },
   sv: { label: 'Swedish', words: ['år', 'år', 'mån', 'mån'] },
   pl: { label: 'Polish', words: ['rok', 'l.', 'mies.', 'mies.'] },
+  // Persian: a span reads "۳ سال ۲ ماه". The runtime already knows the Jalali
+  // month names for this tag, so the panel can offer it.
+  fa: { label: 'Persian', words: ['سال', 'سال', 'ماه', 'ماه'] },
   tr: { label: 'Turkish', words: ['yıl', 'yıl', 'ay', 'ay'] },
   hi: { label: 'Hindi', words: ['वर्ष', 'वर्ष', 'माह', 'माह'] },
   ja: { label: 'Japanese', words: ['年', '年', 'か月', 'か月'] },

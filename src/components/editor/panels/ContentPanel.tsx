@@ -29,7 +29,7 @@ export function ContentPanel({ doc }: { doc: ResumeDocument }) {
     <div className="space-y-3">
       <div className={cn('rounded-lg border bg-surface', openBasics ? 'border-border shadow-soft' : 'border-border')}>
         <button
-          className="flex w-full items-center gap-2 px-2.5 py-2.5 text-left"
+          className="flex w-full items-center gap-2 px-2.5 py-2.5 text-start"
           onClick={() => setOpenBasics((o) => !o)}
           aria-expanded={openBasics}
         >

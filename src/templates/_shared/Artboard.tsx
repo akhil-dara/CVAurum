@@ -592,7 +592,10 @@ function useVars(doc: ResumeDocument, fit: FitVector, headerStyle?: string): CSS
       // How the running text is set (typography.align). One variable for the
       // whole document; artboard.css decides which elements are allowed to
       // read it, and none of them is a heading or a sidebar line.
-      '--rm-align': t.align === 'justify' ? 'justify' : 'left',
+      // `left` here means "not justified" — the natural side of the text — so a
+      // right-to-left resume sets it to the right. It is an inline style, the
+      // one place rtl-canvas.css cannot reach.
+      '--rm-align': t.align === 'justify' ? 'justify' : layout.rtl ? 'right' : 'left',
       // Balancing the last line re-optimises where EVERY line of a paragraph
       // breaks, so it moves the height the one-page fitter measures. It rides
       // the same choice as the alignment: a document that never asked to be
@@ -768,7 +771,7 @@ function AddressText({ text, wrap }: { text: string; wrap: boolean }) {
   )
 }
 
-function Contacts({ entries, icons, cls }: { entries: ContactEntry[]; icons: boolean; cls: string }) {
+function Contacts({ entries, icons, cls, rtl }: { entries: ContactEntry[]; icons: boolean; cls: string; rtl?: boolean }) {
   if (!entries.length) return null
   const strip = isStrip(cls)
   const wrap = cls.includes('rm-links-wrap')
@@ -780,7 +783,7 @@ function Contacts({ entries, icons, cls }: { entries: ContactEntry[]; icons: boo
         const link = e.kind === 'url' || e.kind === 'profile'
         const value = link ? <AddressText text={e.text} wrap={wrap} /> : e.text
         return (
-          <span className={`rm-contact${link ? ' rm-contact-link' : ''}`} key={i}>
+          <span className={`rm-contact${link ? ' rm-contact-link' : ''}`} key={i} dir={rtl ? 'auto' : undefined}>
             {strip ? <Deco className="rm-contact-label">{e.label}</Deco> : icons ? e.icon : null}
             {e.href ? <a href={e.href}>{value}</a> : <span>{value}</span>}
           </span>
@@ -828,6 +831,9 @@ function EditableContacts({
   ) => (
     <span
       className={`rm-contact${link ? ' rm-contact-link' : ''}${linked ? ' rm-contact-linked' : ''}${linked === 'auto' ? ' rm-contact-auto' : ''}`}
+      // One contact item is one value: a phone keeps its digits in order and a
+      // city reads the way it is written, whatever the page's direction.
+      dir={doc.metadata.layout.rtl ? 'auto' : undefined}
       key={key}
     >
       {strip ? <Deco className="rm-contact-label">{label ?? ''}</Deco> : icons ? icon : null}
@@ -1316,7 +1322,7 @@ function Header({
   const ContactsEl = contactsInSidebar(doc) ? null : edit ? (
     <EditableContacts doc={doc} edit={edit} icons={icons} />
   ) : (
-    <Contacts entries={entries} icons={icons} cls={contactsClass(doc)} />
+    <Contacts entries={entries} icons={icons} cls={contactsClass(doc)} rtl={doc.metadata.layout.rtl} />
   )
 
   const nameEl = edit ? (
@@ -1796,7 +1802,12 @@ export function SectionPreview({
     .filter(Boolean)
     .join(' ')
   return (
-    <div className={cls} style={vars} data-template={config.id}>
+    <div
+      className={cls}
+      style={vars}
+      data-template={config.id}
+      dir={doc.metadata.layout.rtl ? 'rtl' : 'ltr'}
+    >
       <Section sectionKey={sectionKey} doc={doc} config={config} noMeta />
     </div>
   )
@@ -1935,7 +1946,7 @@ export function Artboard({
           {edit ? (
             <EditableContacts doc={doc} edit={edit} icons={doc.metadata.layout.icons} inSidebar />
           ) : (
-            <Contacts entries={buildContacts(doc)} icons={doc.metadata.layout.icons} cls={contactsClass(doc, true)} />
+            <Contacts entries={buildContacts(doc)} icons={doc.metadata.layout.icons} cls={contactsClass(doc, true)} rtl={doc.metadata.layout.rtl} />
           )}
         </div>
       ) : null}
@@ -1989,7 +2000,13 @@ export function Artboard({
   }, [fontFamily, headingFamily, nameFamily, templateFaces])
 
   return (
-    <div ref={rootRef} className={rootClass} style={vars} data-template={config.id}>
+    <div
+      ref={rootRef}
+      className={rootClass}
+      style={vars}
+      data-template={config.id}
+      dir={doc.metadata.layout.rtl ? 'rtl' : 'ltr'}
+    >
       <RunningLayer doc={doc} />
       <div className={`rm-body ${twoCol ? '' : 'rm-single'}`}>
         {twoCol && doc.metadata.layout.sidebar === 'left' ? AsideCol : null}

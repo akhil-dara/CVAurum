@@ -316,7 +316,7 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
                 type="button"
                 role="option"
                 aria-selected={i === menu.index}
-                className={`flex w-full items-baseline justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs ${i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
+                className={`flex w-full items-baseline justify-between gap-2 rounded-md px-2 py-1.5 text-start text-xs ${i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
                 onMouseDown={(e) => { e.preventDefault(); applySlash(it) }}
                 onMouseMove={() => setMenu((cur) => (cur ? { ...cur, index: i } : cur))}
               >

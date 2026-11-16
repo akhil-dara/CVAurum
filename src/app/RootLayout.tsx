@@ -13,9 +13,9 @@ export function RootLayout() {
       setReady(true)
       document.getElementById('boot-splash')?.remove()
     })
-    // Re-apply theme when the system preference changes (theme: 'system').
+    // Re-apply appearance when the system preference changes (theme: 'system').
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => useAppStore.getState().applyTheme()
+    const onChange = () => useAppStore.getState().applyAppearance()
     mq.addEventListener?.('change', onChange)
     return () => mq.removeEventListener?.('change', onChange)
   }, [init])

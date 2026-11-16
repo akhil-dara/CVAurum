@@ -89,7 +89,7 @@ export function Tracker() {
         <div className="mx-1 h-6 w-px bg-border" />
         <Logo compact />
         <span className="text-sm font-semibold">Job Tracker</span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{apps.length} application{apps.length === 1 ? '' : 's'}</span>
           <ThemeToggle />
         </div>
@@ -151,7 +151,7 @@ function Column({
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
         <span className="text-sm font-semibold">{label}</span>
         <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground">{cards.length}</span>
-        <button className="btn-icon ml-auto h-7 w-7" onClick={onAdd} aria-label={`Add to ${label}`}>
+        <button className="btn-icon ms-auto h-7 w-7" onClick={onAdd} aria-label={`Add to ${label}`}>
           <Plus className="h-4 w-4" />
         </button>
       </div>
@@ -214,7 +214,7 @@ function Card({
             <GripVertical className="h-4 w-4" />
           </button>
         )}
-        <button className="min-w-0 flex-1 text-left" onClick={onEdit}>
+        <button className="min-w-0 flex-1 text-start" onClick={onEdit}>
           <p className="truncate text-sm font-semibold">{card.company || 'Untitled company'}</p>
           <p className="truncate text-xs text-muted-foreground">{card.role || 'Role'}</p>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">

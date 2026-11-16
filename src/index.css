@@ -127,13 +127,13 @@
      the top-left above everything (the editor's top bar is z-40). */
   .skip-link {
     position: fixed;
-    left: 12px;
+    inset-inline-start: 12px;
     top: -48px;
     z-index: 100;
     border-radius: 8px;
     background: hsl(var(--foreground));
     color: hsl(var(--background));
-    padding: 8px 14px;
+    padding-block: 8px; padding-inline: 14px;
     font-size: 14px;
     font-weight: 600;
     transition: top 0.15s ease-out;
@@ -241,15 +241,15 @@
   outline: none;
 }
 .rt-content p {
-  margin: 0 0 0.25em;
+  margin-block-start: 0; margin-inline: 0; margin-block-end: 0.25em;
 }
 .rt-content p:last-child {
   margin-bottom: 0;
 }
 .rt-content ul,
 .rt-content ol {
-  margin: 0.25em 0;
-  padding-left: 1.25em;
+  margin-block: 0.25em; margin-inline: 0;
+  padding-inline-start: 1.25em;
 }
 .rt-content ul {
   list-style: disc;
@@ -264,7 +264,7 @@
 .rt-content p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: hsl(var(--muted-foreground) / 0.7);
-  float: left;
+  float: inline-start;
   height: 0;
   pointer-events: none;
 }

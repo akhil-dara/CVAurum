@@ -164,7 +164,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             // While a section's Style inspector is docked at the right edge
             // (SectionGear), the canvas gives up its width, so the page
             // re-fits beside it instead of sliding under it.
-            'order-2 min-h-0 min-w-0 flex-1 desk:order-none desk:mr-[var(--style-dock-w,0px)] desk:transition-[margin] desk:duration-200',
+            'order-2 min-h-0 min-w-0 flex-1 desk:order-none desk:me-[var(--style-dock-w,0px)] desk:transition-[margin] desk:duration-200',
             leftOpen && (split ? 'phone:hidden' : 'hidden'),
           )}
         >

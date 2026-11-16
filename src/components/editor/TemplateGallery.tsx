@@ -89,7 +89,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
           onChange={(e) => setFilter((f) => ({ ...f, query: e.target.value }))}
           placeholder="Search designs"
           aria-label="Search designs"
-          className="input h-8 w-full pl-8 pr-2 text-xs"
+          className="input h-8 w-full ps-8 pe-2 text-xs"
         />
       </label>
       <button
@@ -220,7 +220,7 @@ function PreviewSheet({
     <div className="fixed inset-0 z-[70] flex flex-col justify-end bg-black/40" role="dialog" aria-label={`${tpl.name} preview`}>
       <div className="fixed inset-0" onClick={onClose} />
       <div className="relative flex max-h-[calc(100%-24px)] flex-col rounded-t-2xl border border-border bg-surface shadow-float">
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border pl-4 pr-2">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border ps-4 pe-2">
           <span className="text-sm font-semibold">{tpl.name} — with your content</span>
           <button className="btn-icon h-10 w-10" onClick={onClose} aria-label="Close preview" title="Close">
             <X className="h-5 w-5" />
@@ -302,7 +302,7 @@ function TemplateCard({
       <button
         onClick={onPick}
         className={cn(
-          'group relative flex w-full flex-col overflow-hidden rounded-lg border bg-surface text-left transition-all hover:shadow-card',
+          'group relative flex w-full flex-col overflow-hidden rounded-lg border bg-surface text-start transition-all hover:shadow-card',
           active ? 'border-primary ring-2 ring-primary/40' : 'border-border hover:border-primary/40'
         )}
         title={tpl.description}

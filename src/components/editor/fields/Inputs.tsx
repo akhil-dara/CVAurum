@@ -363,7 +363,7 @@ export function RatingField({
             />
           )
         })}
-        {value ? <span className="ml-1 text-xs text-muted-foreground">{value}/{max}</span> : null}
+        {value ? <span className="ms-1 text-xs text-muted-foreground">{value}/{max}</span> : null}
       </div>
     </Labeled>
   )

@@ -30,12 +30,12 @@ function Pill() {
       // Above the phone's bottom bar, clear of the toast stack's corner.
       className="pointer-events-none fixed inset-x-0 bottom-6 z-[90] flex justify-center px-4 phone:bottom-20"
     >
-      <div className="card flex items-center gap-3 rounded-full py-2.5 pl-4 pr-5 shadow-float">
+      <div className="card flex items-center gap-3 rounded-full py-2.5 ps-4 pe-5 shadow-float">
         <span aria-hidden className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted border-t-primary" />
         <span className="text-sm font-medium">Generating your PDF…</span>
         <span className="text-xs text-muted-foreground">
           <span className="hidden sm:inline">vector text, every page</span>
-          {seconds >= 2 && <span className="tabular-nums sm:ml-2">{seconds}s</span>}
+          {seconds >= 2 && <span className="tabular-nums sm:ms-2">{seconds}s</span>}
         </span>
       </div>
     </div>

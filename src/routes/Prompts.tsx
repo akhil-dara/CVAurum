@@ -271,7 +271,7 @@ function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: numb
           aria-controls={`${prompt.id}-panel`}
           // min-h-[56px]: the whole row is the target, not the chevron. A
           // 32px row was what the copy buttons measured on the old page.
-          className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+          className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-muted/50"
         >
           <span
             className={cn(

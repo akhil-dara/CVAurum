@@ -158,7 +158,7 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); runSlash(c) }}
                 onMouseEnter={() => setMenu((s) => ({ ...s, index: i }))}
-                className={cn('flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm', i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60')}
+                className={cn('flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-start text-sm', i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60')}
               >
                 <span className="truncate">{c.title}</span>
                 <span className="flex items-center gap-1.5">
@@ -230,7 +230,7 @@ function Toolbar({ editor, withLists }: { editor: Editor; withLists: boolean }) 
       <TBtn title="Link" active={editor.isActive('link')} onClick={setLink}>
         <Link2 className="h-3.5 w-3.5" />
       </TBtn>
-      <span className="ml-auto pr-1 text-[11px] text-muted-foreground">Type <kbd className="rounded border border-border px-1">/</kbd> to insert</span>
+      <span className="ms-auto pe-1 text-[11px] text-muted-foreground">Type <kbd className="rounded border border-border px-1">/</kbd> to insert</span>
     </div>
   )
 }

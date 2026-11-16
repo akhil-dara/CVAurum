@@ -133,7 +133,7 @@ export function TemplateCarousel({
           <li key={t.id} className="w-[15rem] shrink-0 snap-start sm:w-[17.5rem]">
             <button
               onClick={() => onPick(t.id)}
-              className="group block w-full text-left focus-visible:outline-none"
+              className="group block w-full text-start focus-visible:outline-none"
               aria-label={`Start with the ${t.name} design`}
             >
               <span className="block overflow-hidden rounded-[3px] bg-white shadow-[0_1px_3px_rgba(22,23,29,0.08),0_16px_36px_-22px_rgba(22,23,29,0.42)] ring-1 ring-black/[0.04] transition duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_2px_4px_rgba(22,23,29,0.08),0_26px_50px_-24px_rgba(22,23,29,0.5)] group-focus-visible:ring-2 group-focus-visible:ring-[#b07a1e]">

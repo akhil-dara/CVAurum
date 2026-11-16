@@ -169,7 +169,7 @@ function SiteMenuSheet({
       >
         {/* Same 60px as the header row it covers, so the close sits where the
             button that opened it was. */}
-        <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-border pl-4 pr-2">
+        <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-border ps-4 pe-2">
           <h2 id={TITLE_ID} className="text-sm font-semibold text-foreground">
             Menu
           </h2>
@@ -203,7 +203,7 @@ function ThemeRow() {
   const isDark =
     theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches)
   return (
-    <button type="button" className={cn(ROW, REST, 'text-left')} role="switch" aria-checked={isDark} onClick={() => update({ theme: isDark ? 'light' : 'dark' })}>
+    <button type="button" className={cn(ROW, REST, 'text-start')} role="switch" aria-checked={isDark} onClick={() => update({ theme: isDark ? 'light' : 'dark' })}>
       <span className="truncate">Dark mode</span>
       {isDark ? <Moon className="h-4 w-4 text-primary" aria-hidden /> : <Sun className="h-4 w-4 text-muted-foreground" aria-hidden />}
     </button>
@@ -247,7 +247,7 @@ function MenuRow({
     return (
       <button
         type="button"
-        className={cn(ROW, REST, 'text-left font-medium')}
+        className={cn(ROW, REST, 'text-start font-medium')}
         onClick={() => {
           onClose()
           onCreate?.()

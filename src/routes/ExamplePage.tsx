@@ -108,7 +108,7 @@ function Example({ sample }: { sample: LibrarySample }) {
               {/* Named for the job (an anchor that says what it opens), so
                   a long title wraps rather than running off a phone. */}
               <button
-                className="btn-primary h-auto min-h-[2.25rem] max-w-full whitespace-normal py-2 text-left"
+                className="btn-primary h-auto min-h-[2.25rem] max-w-full whitespace-normal py-2 text-start"
                 onClick={() => create(true, sample.template, sample.content, sample.tweaks, `${sample.role} resume`)}
               >
                 <Wand2 className="h-4 w-4 shrink-0" /> {sampleEditLabel(sample)}

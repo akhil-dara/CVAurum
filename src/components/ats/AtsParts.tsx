@@ -102,11 +102,11 @@ export function CheckGroups({ report, extra, foldPassed = false }: { report: Ats
             {foldPassed && checks.length - failed > 0 ? (
               <button
                 type="button"
-                className="w-full rounded-lg border border-dashed border-border px-2.5 py-2 text-left text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+                className="w-full rounded-lg border border-dashed border-border px-2.5 py-2 text-start text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
                 aria-expanded={!!open[category]}
                 onClick={() => setOpen((o) => ({ ...o, [category]: !o[category] }))}
               >
-                <CheckCircle2 className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-success" aria-hidden />
+                <CheckCircle2 className="me-1.5 inline h-3.5 w-3.5 align-[-2px] text-success" aria-hidden />
                 {open[category] ? 'Hide the passed checks' : `${checks.length - failed} passed — show them`}
               </button>
             ) : null}

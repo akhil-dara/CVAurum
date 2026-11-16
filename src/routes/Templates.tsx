@@ -313,7 +313,7 @@ function FilterRow({
             type="search"
             // h-11 on a phone: the shared .input is h-9 (36px), under the 44px
             // a finger needs, and this is the one field on the page.
-            className="input h-11 pl-9 sm:h-9"
+            className="input h-11 ps-9 sm:h-9"
             placeholder="Search designs…"
             value={filter.query}
             onChange={(e) => onQuery(e.target.value)}
@@ -434,7 +434,7 @@ function TemplateCard({
 
   return (
     <HoverZoom src={src} height={height} srcWidth={PAGE_THUMB_WIDTH} label={tpl.name}>
-      <div className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-card">
+      <div className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-start shadow-soft transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-card">
         {/* The preview is the sample resume's text, which is not this page's
             content - keep it out of search snippets, as the landing strip does.
             The card's own copy below stays indexable. */}

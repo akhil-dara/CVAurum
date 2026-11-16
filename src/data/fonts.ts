@@ -54,6 +54,13 @@ export const FONTS: FontDef[] = [
   { name: 'Exo 2', category: 'sans' },
   { name: 'IBM Plex Sans', category: 'sans' },
   { name: 'DM Sans', category: 'sans' },
+  // Persian/Arabic script — the interface also uses this face in RTL mode.
+  {
+    name: 'Vazirmatn',
+    category: 'sans',
+    weights: [400, 500, 600, 700],
+    fallback: 'Tahoma, "Segoe UI", ui-sans-serif, system-ui, sans-serif',
+  },
   { name: 'Space Grotesk', category: 'sans', weights: [400, 500, 600, 700] },
 
   // — Serif —

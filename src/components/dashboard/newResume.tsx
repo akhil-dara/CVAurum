@@ -301,7 +301,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search a job title, a skill, a field…"
               aria-label="Search the examples"
-              className="input h-9 w-full pl-9 pr-3 text-sm"
+              className="input h-9 w-full ps-9 pe-3 text-sm"
             />
           </label>
           <button
@@ -367,7 +367,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
         ) : (
           // Two per row at 375px, not one: a single column of page-shaped cards
           // put the second example a full screen below the first.
-          <div className="panel-scroll grid grid-cols-2 gap-3 overflow-y-auto overflow-x-hidden pr-1 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <div className="panel-scroll grid grid-cols-2 gap-3 overflow-y-auto overflow-x-hidden pe-1 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
             {library && pics
               ? shown.map((sample, i) => (
                   <SampleCard key={sample.slug} sample={sample} pics={pics} eager={i < 6} onPick={onPick} />
@@ -435,7 +435,7 @@ function SampleCard({
         // white. It used to be white throughout while its text used
         // theme tokens, so in dark mode the title was light-on-white and
         // effectively invisible (2026-08-25 report).
-        className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
+        className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-surface text-start shadow-soft transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"
         title={`Start from the ${sample.role} example`}
       >
         <PagePicture
@@ -459,7 +459,7 @@ function ChooserCard({ icon, title, body, onClick, primary }: { icon: React.Reac
   return (
     <button
       onClick={onClick}
-      className={`group flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-soft ${primary ? 'border-primary/40 bg-primary/5 hover:border-primary' : 'border-border bg-surface hover:border-primary/60'}`}
+      className={`group flex flex-col items-start gap-2 rounded-xl border p-4 text-start transition hover:-translate-y-0.5 hover:shadow-soft ${primary ? 'border-primary/40 bg-primary/5 hover:border-primary' : 'border-border bg-surface hover:border-primary/60'}`}
     >
       <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${primary ? 'bg-primary text-white' : 'bg-muted text-foreground'}`}>{icon}</span>
       <span className="text-sm font-semibold">{title}</span>

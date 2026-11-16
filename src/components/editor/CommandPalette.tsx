@@ -304,7 +304,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
               role="option"
               aria-selected={i === sel}
               tabIndex={-1}
-              className={`flex min-h-[40px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
+              className={`flex min-h-[40px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
               // mouseMOVE, not mouseenter: when the list re-renders under a
               // stationary cursor, mouseenter fires and silently steals the
               // selection from the keyboard — Enter then runs the wrong command.

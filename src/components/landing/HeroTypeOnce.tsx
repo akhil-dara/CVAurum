@@ -209,7 +209,7 @@ export function HeroTypeOnce({
                   }`}
                 >
                   {getTemplate(id).name}
-                  <span className={`ml-1.5 hidden sm:inline ${on ? 'text-white/60 dark:text-background/60' : 'text-[#8b8e96]'}`}>{note}</span>
+                  <span className={`ms-1.5 hidden sm:inline ${on ? 'text-white/60 dark:text-background/60' : 'text-[#8b8e96]'}`}>{note}</span>
                 </button>
               )
             })}

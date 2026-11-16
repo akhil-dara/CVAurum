@@ -42,7 +42,8 @@
     "page-images": "node scripts/make-page-images.cjs",
     "icons": "node scripts/make-icons.cjs",
     "test": "vitest run",
-    "pdf-fonts": "python scripts/make-pdf-fonts.py"
+    "pdf-fonts": "python scripts/make-pdf-fonts.py",
+    "rtl-css": "node scripts/make-rtl-css.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

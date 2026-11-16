@@ -299,7 +299,7 @@ export function Examples() {
                   onChange={(e) => apply({ ...filter, query: e.target.value }, true)}
                   placeholder="Search a job title, a skill, a field…"
                   aria-label="Search the examples"
-                  className="input h-10 w-full pl-9 pr-3"
+                  className="input h-10 w-full ps-9 pe-3"
                 />
               </label>
               <label className="inline-flex h-10 items-center gap-2 rounded-md border border-input bg-surface px-3 text-sm shadow-soft">
@@ -449,7 +449,7 @@ function FacetGroup<T extends string>({
               aria-pressed={on}
               onClick={() => onToggle(value)}
               className={cn(
-                'group -mx-1.5 flex items-center gap-2 rounded px-1.5 py-1 text-left text-[13px] transition hover:bg-muted',
+                'group -mx-1.5 flex items-center gap-2 rounded px-1.5 py-1 text-start text-[13px] transition hover:bg-muted',
                 // A value that would empty the shelf still works — it is how a
                 // reader swaps one choice for another — but it says so first.
                 !on && n === 0 && 'opacity-45'

@@ -88,7 +88,7 @@ describe('exportResumePdf', () => {
 
     const result = await exportResumePdf(doc)
 
-    expect(result).toEqual({ fileName: 'Jane_Doe_Resume_2026-08-14.pdf', pages: 2, bytes: 3 })
+    expect(result).toEqual({ kind: 'file', fileName: 'Jane_Doe_Resume_2026-08-14.pdf', pages: 2, bytes: 3 })
     expect(saveDocMock).toHaveBeenCalledWith(doc)
     expect(lastAnchor?.download).toBe('Jane_Doe_Resume_2026-08-14.pdf')
     expect(lastAnchor?.click).toHaveBeenCalledTimes(1)
@@ -119,10 +119,43 @@ describe('exportResumePdf', () => {
     expect(lastAnchor).toBeNull()
   })
 
-  it('has no browser-print path behind it: every PDF is the native render', () => {
+  it('saves a right-to-left resume from the browser print window instead of drawing it', async () => {
+    // The native renderer paints run by run with pdf-lib: no GSUB joining, no
+    // bidi reordering, so Persian/Arabic comes out as disconnected, reverse
+    // ordered letters. The browser's own engine shapes it, and the print view
+    // renders the same mirrored DOM (TemplateRenderer + dir="rtl").
+    renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3]))
+    const tab = { location: { href: '' } }
+    const open = vi.fn(() => tab)
+    const assign = vi.fn()
+    // @ts-expect-error the node test env has no window; the print path needs one
+    globalThis.window = { open, location: { assign } }
+
+    const rtlDoc = { id: 'doc-fa', metadata: { layout: { rtl: true } } } as unknown as ResumeDocument
+    const result = await exportResumePdf(rtlDoc)
+
+    expect(saveDocMock).toHaveBeenCalledWith(rtlDoc)
+    // opened before the first await, so the browser counts it as the click
+    expect(open).toHaveBeenCalledWith('about:blank', '_blank')
+    expect(tab.location.href).toBe('/print/doc-fa')
+    expect(result).toEqual({ kind: 'print', fileName: 'Jane_Doe_Resume_2026-08-14.pdf' })
+    // nothing is drawn or downloaded here
+    expect(renderResumePdfMock).not.toHaveBeenCalled()
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(assign).not.toHaveBeenCalled()
+    delete (globalThis as { window?: unknown }).window
+  })
+
+  it('has exactly one print path — the RTL one — and no hidden fallback', () => {
     // The rule the user set, made executable: a fallback that hands over a
-    // different document would hide renderer regressions.
+    // different document would hide renderer regressions. The browser print
+    // path is allowed ONLY for a right-to-left resume, where the native
+    // renderer cannot shape the script, and exportFlow announces it.
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'export.ts'), 'utf8')
-    expect(source).not.toMatch(/openPrintWindow|window\.print|\/print\/|pdf-engine/)
+    expect(source).not.toMatch(/pdf-engine/)
+    const printAt = source.indexOf('/print/${doc.id}')
+    const renderAt = source.indexOf('await renderResumePdf')
+    expect(printAt).toBeGreaterThan(-1)
+    expect(renderAt).toBeGreaterThan(printAt)
   })
 })

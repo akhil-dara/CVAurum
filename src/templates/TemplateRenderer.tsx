@@ -1,6 +1,7 @@
 import '@/styles/artboard.css'
 import type { FitVector } from '@/lib/fitOnePage'
 import './templates.css'
+import '@/styles/rtl-canvas.css'
 import { memo } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import type { RenderMode } from '@/types/template'

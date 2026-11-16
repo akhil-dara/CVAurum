@@ -307,7 +307,7 @@ function SectionCard({
             }}
           />
         ) : (
-          <button type="button" className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left hover:bg-muted/50" onClick={onToggle}>
+          <button type="button" className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-start hover:bg-muted/50" onClick={onToggle}>
             <span className="truncate text-sm font-medium">{label}</span>
             {count > 0 && <span className="rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground">{count}</span>}
           </button>

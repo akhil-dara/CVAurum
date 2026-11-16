@@ -110,7 +110,7 @@ export function Guide() {
                 </p>
               ))}
               {sec.list && (
-                <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed text-foreground marker:text-muted-foreground">
+                <ul className="mt-3 list-disc space-y-1.5 ps-5 text-[15px] leading-relaxed text-foreground marker:text-muted-foreground">
                   {sec.list.map((li) => (
                     <li key={li}>
                       <Prose text={li} />

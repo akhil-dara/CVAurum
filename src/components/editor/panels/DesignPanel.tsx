@@ -99,7 +99,7 @@ function MetaMini({ kind }: { kind: string }) {
     return (
       <span className="flex w-full items-start gap-[4px]">
         {body}
-        <span className="flex w-1/4 flex-col gap-[2px] border-l border-slate-300 pl-[3px]">
+        <span className="flex w-1/4 flex-col gap-[2px] border-l border-slate-300 ps-[3px]">
           <span className={`h-[2px] w-full ${line}`} />
           <span className={`h-[2px] w-3/4 ${line}`} />
         </span>
@@ -1108,6 +1108,18 @@ note={notes[r.key]}
             })
           }
         />
+        <Toggle
+          label="Right-to-left (RTL)"
+          checked={m.layout.rtl}
+          onChange={(v) =>
+            update((md) => {
+              md.layout.rtl = v
+            })
+          }
+        />
+        <p className="-mt-1 text-[11px] leading-snug text-muted-foreground">
+          Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font.
+        </p>
         <Toggle
           label="Show contact icons"
           checked={m.layout.icons}

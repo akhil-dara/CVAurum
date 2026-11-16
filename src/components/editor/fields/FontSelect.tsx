@@ -101,7 +101,7 @@ function Option({
   return (
     <button
       type="button"
-      className={cn('flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left hover:bg-muted', active && 'bg-primary/10')}
+      className={cn('flex w-full items-center justify-between rounded-md px-2 py-1.5 text-start hover:bg-muted', active && 'bg-primary/10')}
       style={{ fontFamily: name ? fontStack(name) : undefined }}
       onClick={() => {
         onPick(name)

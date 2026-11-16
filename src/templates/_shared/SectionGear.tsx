@@ -300,7 +300,7 @@ function Mini({ kind }: { kind: string }) {
       return (
         <span className="relative flex h-[11px] w-7 items-center justify-center rounded-[2px] border border-primary/40 bg-primary/10">
           <span className={`absolute bottom-[2px] left-[2px] top-[2px] w-[2px] rounded-[1px] ${a}`} />
-          <span className={`ml-[3px] h-[3px] w-3.5 ${t}`} />
+          <span className={`ms-[3px] h-[3px] w-3.5 ${t}`} />
         </span>
       )
     case 'k:plain':
@@ -324,7 +324,7 @@ function Mini({ kind }: { kind: string }) {
       return (
         <span className="flex w-8 items-center gap-[3px]">
           <span className={`h-[3px] w-3 ${t}`} />
-          <span className="ml-auto h-[8px] w-px bg-foreground/40" />
+          <span className="ms-auto h-[8px] w-px bg-foreground/40" />
           <span className={`h-[3px] w-2 rounded-[1px] bg-primary/70`} />
         </span>
       )
@@ -332,7 +332,7 @@ function Mini({ kind }: { kind: string }) {
       return (
         <span className="flex w-8 items-center gap-[3px]">
           <span className={`h-[3px] w-3 ${t}`} />
-          <span className="ml-auto h-[9px] w-3.5 rounded-full border border-primary/60 bg-primary/15" />
+          <span className="ms-auto h-[9px] w-3.5 rounded-full border border-primary/60 bg-primary/15" />
         </span>
       )
     // entry layouts

@@ -114,7 +114,7 @@ export function ShareDialog({ doc }: { doc: ResumeDocument }) {
                 <button className="btn-outline btn-sm shrink-0" onClick={copyLink}>{copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}</button>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                <Link2 className="mr-1 inline h-3 w-3" />{(link.bytes / 1024).toFixed(1)} KB{link.strippedImages ? ' · photos/logos omitted to keep it short (JSON export keeps them, for trusted people)' : ''}
+                <Link2 className="me-1 inline h-3 w-3" />{(link.bytes / 1024).toFixed(1)} KB{link.strippedImages ? ' · photos/logos omitted to keep it short (JSON export keeps them, for trusted people)' : ''}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button className="btn-primary btn-sm" onClick={nativeShare}><Share2 className="h-3.5 w-3.5" /> Share…</button>

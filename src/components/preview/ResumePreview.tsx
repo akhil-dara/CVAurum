@@ -1089,7 +1089,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             "Back to editing" returns to the editable page on every device. */}
         {previewExact && (
           <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 ps-3 pe-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
               <span className="whitespace-nowrap">
                 Exact PDF preview<span className="hidden sm:inline"> — this is precisely what exports</span>
