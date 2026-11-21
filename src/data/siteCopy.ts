@@ -159,7 +159,7 @@ export const SITE: SiteCopy = {
     },
     {
       q: 'Is the PDF archival quality?',
-      a: 'Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts.',
+      a: 'Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts. A Persian or Arabic resume is the one exception: joining those letters needs the browser\'s own print engine, so that file is printed by the browser and saved from its print dialog as selectable text — it is not tagged and not archival.',
     },
     {
       q: 'Is the text on my resume easy to read for everyone?',

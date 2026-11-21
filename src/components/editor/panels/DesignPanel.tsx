@@ -1118,7 +1118,8 @@ note={notes[r.key]}
           }
         />
         <p className="-mt-1 text-[11px] leading-snug text-muted-foreground">
-          Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font.
+          Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font. The PDF is then printed by the
+          browser (its letters only join there), so choose &ldquo;Save as PDF&rdquo; in the print window.
         </p>
         <Toggle
           label="Show contact icons"

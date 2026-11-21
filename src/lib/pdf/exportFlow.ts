@@ -19,11 +19,13 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
     const { exportResumePdf } = await import('./export')
     const result = await exportResumePdf(doc)
     // A Persian/Arabic resume is finished in the browser's print window, where
-    // the letters join correctly (see exportResumePdf). Say so, and say what to
-    // do next: the print dialog's "Save as PDF" is the download.
+    // the letters join correctly (see exportResumePdf). Say so, say what to do
+    // next, and say what the file IS: this path does not carry the tagged,
+    // archival structure the native export produces, and a user who chose this
+    // product for PDF/A should hear that before saving.
     if (result.kind === 'print') {
       toast(
-        `${result.fileName} is open in the browser's print window — choose "Save as PDF" there. Persian and Arabic letters only join correctly in the browser's own text engine.`,
+        `${result.fileName} is open in the browser's print window — choose "Save as PDF" there. Persian and Arabic letters only join in the browser's own text engine, so this page is printed rather than drawn: the text is real and selectable, but the file is not the tagged, archival PDF (PDF/A-2B, PDF/UA-1) the native export produces.`,
         'success'
       )
       return
