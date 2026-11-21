@@ -1069,3 +1069,17 @@ describe('the Word export carries no value the author never typed (2026-09-22)',
     for (const seed of Object.values(doc.seeded ?? {})) expect(xml).not.toContain(seed)
   })
 })
+
+describe('the Word document follows the resume direction', () => {
+  it('sets a right-to-left document default only for a mirrored resume', async () => {
+    // Word shapes Arabic letters on its own, so a Persian resume exported
+    // without `bidi` LOOKS almost right: the letters join, and the bullets,
+    // numbers, dates and alignment still sit left to right. `bidi` on the
+    // default paragraph is what makes the whole document read from the right.
+    const ltr = await unpack(docWith())
+    expect(ltr.styles).not.toMatch(/<w:bidi\/>/)
+
+    const rtl = await unpack(docWith({ layout: { rtl: true } }))
+    expect(rtl.styles).toMatch(/<w:bidi\/>/)
+  })
+})
