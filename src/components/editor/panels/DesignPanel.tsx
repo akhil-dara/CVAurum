@@ -796,6 +796,23 @@ note={notes[r.key]}
       </FieldGroup>
 
       <FieldGroup title="Layout">
+        {/* First in the group: a resume that reads right to left is the one
+            choice here that changes every other setting's meaning, so it goes
+            above the header, column and spacing controls rather than beside
+            the contact-line ones. */}
+        <Toggle
+          label="Right-to-left (RTL)"
+          checked={m.layout.rtl}
+          onChange={(v) =>
+            update((md) => {
+              md.layout.rtl = v
+            })
+          }
+        />
+        <p className="-mt-1 text-[11px] leading-snug text-muted-foreground">
+          Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font. The PDF is then printed by the
+          browser (its letters only join there), so choose &ldquo;Save as PDF&rdquo; in the print window.
+        </p>
         <div>
           <label className="label">Header layout</label>
           <div className="flex flex-wrap gap-1.5">
@@ -1108,19 +1125,6 @@ note={notes[r.key]}
             })
           }
         />
-        <Toggle
-          label="Right-to-left (RTL)"
-          checked={m.layout.rtl}
-          onChange={(v) =>
-            update((md) => {
-              md.layout.rtl = v
-            })
-          }
-        />
-        <p className="-mt-1 text-[11px] leading-snug text-muted-foreground">
-          Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font. The PDF is then printed by the
-          browser (its letters only join there), so choose &ldquo;Save as PDF&rdquo; in the print window.
-        </p>
         <Toggle
           label="Show contact icons"
           checked={m.layout.icons}
