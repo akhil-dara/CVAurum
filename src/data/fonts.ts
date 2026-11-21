@@ -178,10 +178,36 @@ export const SCRIPT_FALLBACKS: Record<FontCategory, string[]> = {
  */
 export const MARKS_FAMILY = 'CVAurum Marks'
 
+/**
+ * The family that draws Arabic script - Persian, Arabic, Urdu, Pashto. NO other
+ * bundled face carries a single one of those letters, so the browser used to
+ * pick whatever Arabic face the reader's computer happened to have. It is
+ * appended to every chain, after the Latin-adjacent script fallbacks (those
+ * must draw Cyrillic, Greek and Vietnamese, which this face cannot) and BEFORE
+ * the marks family, so a Persian bullet no face has still lands on the marks.
+ *
+ * It sits behind the chosen face, so only a character the chosen face does not
+ * have ever reaches it: Latin text never renders in it.
+ */
+export const ARABIC_FAMILY = 'Vazirmatn'
+
+/** Does this text contain a letter of the Arabic script? Those are exactly the
+ *  characters only the Arabic family can draw, so they decide whether an export
+ *  has to wait for that face - and whether the browser has to shape the page
+ *  instead of the native painter (src/lib/pdf/export.ts). */
+export function usesArabicScript(text: string): boolean {
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text)
+}
+
 /** The fallback families for `name`, in order, never naming `name` itself. */
 export function scriptFallbacks(name?: string): string[] {
   const def = name ? FONT_MAP[name] : undefined
-  const chain = [...(def?.chain ?? []), ...SCRIPT_FALLBACKS[def?.category ?? 'sans'], MARKS_FAMILY]
+  const chain = [
+    ...(def?.chain ?? []),
+    ...SCRIPT_FALLBACKS[def?.category ?? 'sans'],
+    ARABIC_FAMILY,
+    MARKS_FAMILY,
+  ]
   return [...new Set(chain)].filter((f) => f !== name)
 }
 

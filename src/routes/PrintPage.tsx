@@ -79,7 +79,7 @@ export function PrintPage() {
     void (async () => {
       try {
         await withTimeout(
-          ensureFontsReady(documentFaces(doc.metadata)),
+          ensureFontsReady(documentFaces(doc.metadata, doc.content)),
           4000,
         )
         await awaitPhoto()
