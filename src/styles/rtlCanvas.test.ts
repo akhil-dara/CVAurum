@@ -10,10 +10,16 @@
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(resolve(__dirname, 'rtl-canvas.css'), 'utf8')
 const SCOPE = ".rm-root[dir='rtl']"
+
+/** The generator, loaded as the CommonJS script it is. It writes nothing when
+ *  required (only when run directly), so this is safe in a test process. */
+const requireCjs = createRequire(import.meta.url)
+const { generate } = requireCjs('../../scripts/make-rtl-css.cjs') as { generate: () => string }
 
 /** Body of every rule whose selector text contains `needle`. */
 function rulesWith(needle: string): string[] {
@@ -75,5 +81,12 @@ describe('rtl-canvas.css scoping', () => {
     // `text-align: var(--rm-align, left)`, which the mirror has to answer with
     // `right` for the fallback case to be usable in RTL.
     expect(css).toContain('text-align: var(--rm-align, right)')
+  })
+
+  it('is the file the generator produces from today\'s stylesheets', () => {
+    // The committed file is generated, and nothing else checks it: editing
+    // artboard.css or templates.css without `npm run rtl-css` used to leave an
+    // RTL page mirrored by yesterday's rules, with every test green.
+    expect(generate()).toBe(css)
   })
 })
