@@ -11,6 +11,7 @@ import { getTemplate } from '@/templates/registry'
 import { sectionHasContent } from '@/lib/sections'
 import { visibleDocument } from '@/lib/atsScope'
 import { LEGIBLE_BODY_PT } from '@/lib/fitReadout'
+import { usesArabicScript } from '@/data/fonts'
 
 export type CheckStatus = 'pass' | 'warn' | 'fail'
 
@@ -318,15 +319,33 @@ const openingClause = (t: string) =>
 const tokenize = (text: string): string[] =>
   text
     .toLowerCase()
-    .replace(/[^a-z0-9+#./\s-]/g, ' ')
+    // A zero-width non-joiner is a half-space INSIDE a Persian word
+    // ("نرم‌افزار" is one word, not two): dropping it keeps the compound whole
+    // and makes the word match a job description that writes it either way.
+    .replace(/[\u200c\u200d]/g, '')
+    // Letters and digits of ANY script: Persian, Arabic and Urdu words are
+    // words. Dropping them (the old `[^a-z0-9]`) left a Persian job
+    // description with no keywords at all and a silent 0% match.
+    .replace(/[^\p{L}\p{N}+#./\s-]/gu, ' ')
     .split(/\s+/)
     .map((t) => t.replace(/^[-./]+|[-./]+$/g, ''))
     .filter(Boolean)
 
+/**
+ * Words that carry no keyword in Persian. The English list above does the same
+ * job for English; without this one every "و", "در" and "که" of a Persian job
+ * description would rank as a keyword and dilute the match rate.
+ */
+const FA_STOPWORDS = new Set(
+  `و در به از که این آن را با برای تا هم یا بر است بود شد شده می‌شود می‌کند کنند کردن دارد داشت داشتن خود ما شما او وی ایشان آنها اینها یک های ها ترین تر نیز بعد قبل بین روی زیر درباره اما اگر چون چه کدام همه هیچ بسیار برخی دیگر باید توان نیست نیستم نیستی نیستیم نیستید نیستند خواهد خواهند شدند گردید گردیده می‌باشد می‌باشند لازم جهت طور مورد طریق باب حسب ضمن وفق علاوه همچنین چنان چطور کجا وقتی هر چند بی`.split(
+    /\s+/
+  )
+)
+
 function isMeaningful(tok: string): boolean {
   if (tok.length < 2) return false
-  if (STOPWORDS.has(tok)) return false
-  if (/^\d+$/.test(tok)) return false
+  if (STOPWORDS.has(tok) || FA_STOPWORDS.has(tok)) return false
+  if (/^\p{Nd}+$/u.test(tok)) return false
   return true
 }
 
@@ -431,10 +450,17 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const doc = visibleDocument(input)
   const c = doc.content
   const text = extractResumeText(doc)
+  // A resume in Arabic script cannot be judged by the English word lists below
+  // (verbs, pronouns, filler, passive, buzzwords): they would pass it by
+  // accident, or fail it for not starting with an English verb. Say so once
+  // instead of scoring it on rules that cannot read it.
+  const arabicText = usesArabicScript(text)
   const words = text.split(/\s+/).filter(Boolean)
   const wordCount = words.length
   const bullets = allBullets(c)
-  const unquantified = bullets.filter((b) => !/\d|%|\$|€|£/.test(b.text))
+  // A number is a number in any script: Persian digits (۱۲) and the Persian
+  // percent sign (٪) are figures on the page, and were not counted before.
+  const unquantified = bullets.filter((b) => !/\p{Nd}|[%٪$€£]/u.test(b.text))
   const quantified = bullets.length - unquantified.length
   const tpl = getTemplate(doc.metadata.template)
   // A PDF from elsewhere: its file is judged, and the rules about this
@@ -482,10 +508,23 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     at(unquantified[0])
   )
 
+  // The English word lists stand aside for a document in Arabic script, and
+  // one row says why: a silently passing rule is worse than an absent one.
+  if (arabicText) {
+    push(
+      'language',
+      'Writing rules in this language',
+      'warn',
+      'The action-verb, passive-voice, filler-word, pronoun, buzzword and tense checks are English word lists, so they were left out of this score rather than guessed at. Keyword matching compares your exact words, so a job description written in the same language still matches.',
+      0,
+      'writing'
+    )
+  }
+
   // action verbs
   const weak = bullets.filter((b) => WEAK_STARTS.has(b.text.trim().split(/\s+/)[0]?.toLowerCase() ?? ''))
   const strongStarts = bullets.filter((b) => ACTION_VERBS.has(b.text.trim().split(/\s+/)[0]?.toLowerCase() ?? '')).length
-  if (bullets.length) {
+  if (!arabicText && bullets.length) {
     push(
       'verbs',
       'Strong action verbs',
@@ -764,7 +803,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const pronounBullets = bullets.filter((b) => !!pronounHit(b.text))
   const pronounInSummary = !!pronounHit(summaryText)
   const pronouns = pronounBullets.length + (pronounInSummary ? 1 : 0)
-  if (bullets.length || summaryText) {
+  if (!arabicText && (bullets.length || summaryText)) {
     const first = pronounBullets[0]
     const shown = first ? pronounHit(first.text) : pronounHit(summaryText)
     push(
@@ -786,7 +825,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     .filter((x): x is { b: BulletRef; hit: string } => !!x.hit)
   const buzzInSummary = firstTerm(summaryText, BUZZWORDS)
   const buzzCount = buzzy.length + (buzzInSummary ? 1 : 0)
-  if (bullets.length || summaryText) {
+  if (!arabicText && (bullets.length || summaryText)) {
     const hit = buzzy[0]?.hit ?? buzzInSummary
     push(
       'buzzwords',
@@ -803,7 +842,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
 
   // Passive voice, in the narrow form the regex above can actually see.
   const passive = bullets.filter((b) => PASSIVE_RE.test(openingClause(b.text)))
-  if (bullets.length) {
+  if (!arabicText && bullets.length) {
     push(
       'passiveVoice',
       'Active voice',
@@ -821,7 +860,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const filled = bullets
     .map((b) => ({ b, hit: firstTerm(b.text, FILLER) }))
     .filter((x): x is { b: BulletRef; hit: string } => !!x.hit)
-  if (bullets.length) {
+  if (!arabicText && bullets.length) {
     push(
       'filler',
       'Words that carry weight',
@@ -941,7 +980,7 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const pastBullets = bullets.filter((b) => b.section === 'work' && pastRoles.has(b.entry))
   const firstWord = (t: string) => (t.trim().split(/\s+/)[0] ?? '').replace(/[^A-Za-z]/g, '').toLowerCase()
   const presentTense = pastBullets.filter((b) => PRESENT_FORMS.has(firstWord(b.text)))
-  if (pastBullets.length) {
+  if (!arabicText && pastBullets.length) {
     const b = presentTense[0]
     push(
       'tense',

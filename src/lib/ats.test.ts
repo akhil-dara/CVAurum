@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createDocument } from '@/data/defaults'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
-import { analyzeResume, type AtsCheck } from './ats'
+import { analyzeResume, extractKeywords, type AtsCheck } from './ats'
 import type { FileFacts } from './fileFacts'
 
 /**
@@ -617,5 +617,58 @@ describe('a PDF from elsewhere, judged as a file', () => {
     const r = analyzeResume(d(), { file: facts({ pageCount: 3, bodyPt: 8 }) })
     expect(r.pages).toBe(3)
     expect(r.checks.find((c) => c.id === 'bodySize')?.status).toBe('fail')
+  })
+})
+
+describe('a resume in Arabic script', () => {
+  const fa = (highlights: string[], summary = '') =>
+    doc({
+      projects: [],
+      volunteer: [],
+      custom: [],
+      basics: { ...doc().content.basics, name: 'علی رضایی', summary },
+      work: [
+        {
+          id: 'w1',
+          name: 'فناوران',
+          position: 'مهندس',
+          startDate: '2020-01',
+          endDate: '',
+          url: '',
+          summary: '',
+          location: '',
+          highlights,
+        },
+      ],
+    })
+
+  it('keeps Persian words as keywords for a job description in the same language', () => {
+    // The tokenizer dropped every letter outside [a-z0-9], so a Persian job
+    // description produced no keywords at all and a silent 0% match.
+    const words = extractKeywords('نیاز به مهندس نرم‌افزار با تجربه در طراحی سیستم‌های توزیع‌شده')
+    expect(words.some((w) => w.startsWith('مهندس')), words.join(' | ')).toBe(true)
+    expect(words.some((w) => w.includes('نرمافزار')), words.join(' | ')).toBe(true)
+    // ...and the common words that carry no keyword stay out.
+    expect(words).not.toContain('در')
+    expect(words).not.toContain('با')
+  })
+
+  it('counts a Persian figure as a number', () => {
+    // Persian digits and the Persian percent sign are figures on the page; the
+    // Latin-only test called a resume full of them unquantified.
+    const r = analyzeResume(fa(['افزایش ۲۰٪ در فروش', 'کاهش هزینه‌ها ۳۰ درصد']))
+    expect(r.quantifiedCount).toBe(2)
+    expect(r.checks.find((c) => c.id === 'quantified')?.status).toBe('pass')
+  })
+
+  it('drops the English word-list rules and says so, instead of passing them', () => {
+    const r = analyzeResume(fa(['رهبری تیم چهار نفره']))
+    const ids = r.checks.map((c) => c.id)
+    for (const id of ['verbs', 'passiveVoice', 'filler', 'pronouns', 'buzzwords', 'tense']) {
+      expect(ids, id).not.toContain(id)
+    }
+    const note = r.checks.find((c) => c.id === 'language')
+    expect(note?.status).toBe('warn')
+    expect(note?.detail).toMatch(/English word lists/)
   })
 })
