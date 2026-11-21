@@ -146,11 +146,52 @@ describe('exportResumePdf', () => {
     delete (globalThis as { window?: unknown }).window
   })
 
-  it('has exactly one print path — the RTL one — and no hidden fallback', () => {
+  it('prints a Persian name even when the document never asked to be right-to-left', async () => {
+    // The face is chosen by the characters it has to draw, not by the layout
+    // switch (src/data/fonts.ts). The same is true of the engine that draws it:
+    // a Persian name typed into an otherwise English resume would otherwise be
+    // painted without its joins and in the wrong order, and nothing would say
+    // so - Vazirmatn has the glyphs, so no character is reported missing.
+    const tab = { location: { href: '' } }
+    const open = vi.fn(() => tab)
+    // @ts-expect-error the node test env has no window; the print path needs one
+    globalThis.window = { open, location: { assign: vi.fn() } }
+
+    const englishDoc = {
+      id: 'doc-mixed',
+      metadata: { layout: { rtl: false } },
+      content: { basics: { name: 'Ali Rezaei', label: 'مهندس نرم‌افزار' } },
+    } as unknown as ResumeDocument
+    const result = await exportResumePdf(englishDoc)
+
+    expect(result).toEqual({ kind: 'print', fileName: 'Jane_Doe_Resume_2026-08-14.pdf' })
+    expect(tab.location.href).toBe('/print/doc-mixed')
+    expect(renderResumePdfMock).not.toHaveBeenCalled()
+    delete (globalThis as { window?: unknown }).window
+  })
+
+  it('leaves no blank tab behind when the document cannot be saved', async () => {
+    // The tab is opened before the save because the click must be the thing
+    // that opens it; if the save then fails, that tab is an empty page over
+    // the app and nothing closes it.
+    const tab = { location: { href: '' }, close: vi.fn() }
+    const open = vi.fn(() => tab)
+    // @ts-expect-error the node test env has no window; the print path needs one
+    globalThis.window = { open, location: { assign: vi.fn() } }
+    saveDocMock.mockRejectedValueOnce(new Error('QuotaExceededError'))
+
+    const rtlDoc = { id: 'doc-fa', metadata: { layout: { rtl: true } } } as unknown as ResumeDocument
+    await expect(exportResumePdf(rtlDoc)).rejects.toThrow(/QuotaExceededError/)
+    expect(tab.close).toHaveBeenCalled()
+    expect(tab.location.href).toBe('')
+    delete (globalThis as { window?: unknown }).window
+  })
+
+  it('has exactly one print path - the RTL one - and no hidden fallback', () => {
     // The rule the user set, made executable: a fallback that hands over a
     // different document would hide renderer regressions. The browser print
-    // path is allowed ONLY for a right-to-left resume, where the native
-    // renderer cannot shape the script, and exportFlow announces it.
+    // path is allowed only for a document in Arabic script, which the native
+    // renderer cannot shape, and exportFlow announces it.
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'export.ts'), 'utf8')
     expect(source).not.toMatch(/pdf-engine/)
     const printAt = source.indexOf('/print/${doc.id}')
