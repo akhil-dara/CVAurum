@@ -191,15 +191,18 @@ function monthYearFormat(language: string, month: 'short' | 'long'): Intl.DateTi
   return f
 }
 
-/** The month piece of a formatted month-and-year: the token a date on the
- *  page is spelled with. A locale that writes the month as a bare number
- *  beside a literal (a Japanese date leads with the year, then a month
- *  glyph) gives that number, which is what the date prints too. */
-/** A month as a bare number, or a year on its own, in one language. Both still
- *  belong to the document's CALENDAR: a Persian resume's "2021-04" is
- *  1400/04, and printing the stored Gregorian year there made the dates read
- *  as if the document had switched back to English (2026-11-16 user report).
- *  Digits stay Latin, exactly like the month-name path above. */
+/** Persian, the one language whose number and year-only dates are told in
+ *  its own calendar. Every other language prints the stored Gregorian year in
+ *  those two styles, as it always has: asking each locale for its default
+ *  calendar turned a Thai 2021 into 2564 and, where ar-SA defaults to Hijri,
+ *  an Arabic one into 1442. */
+const persianCalendar = (language: string): boolean => language.split('-')[0].toLowerCase() === 'fa'
+
+/** A month as a bare number, or a year on its own, in the Persian calendar: a
+ *  Persian resume's "2021-04" is 1400/04, and printing the stored Gregorian
+ *  year there made the dates read as if the document had switched back to
+ *  English (2026-11-16 user report). Digits stay Latin, exactly like the
+ *  month-name path above. */
 const numberFormats = new Map<string, Intl.DateTimeFormat>()
 function numberFormat(language: string, kind: 'month-numeric' | 'year-only'): Intl.DateTimeFormat {
   const key = `${language}|${kind}`
@@ -208,6 +211,7 @@ function numberFormat(language: string, kind: 'month-numeric' | 'year-only'): In
     f = new Intl.DateTimeFormat(language, {
       ...(kind === 'month-numeric' ? { month: '2-digit' as const } : {}),
       year: 'numeric',
+      calendar: 'persian',
       timeZone: 'UTC',
       numberingSystem: 'latn',
     })
@@ -221,6 +225,10 @@ function datePart(f: Intl.DateTimeFormat, d: Date, type: 'month' | 'year', fallb
   return f.formatToParts(d).find((p) => p.type === type)?.value ?? fallback
 }
 
+/** The month piece of a formatted month-and-year: the token a date on the
+ *  page is spelled with. A locale that writes the month as a bare number
+ *  beside a literal (a Japanese date leads with the year, then a month
+ *  glyph) gives that number, which is what the date prints too. */
 function monthPart(f: Intl.DateTimeFormat, d: Date): string {
   return f.formatToParts(d).find((p) => p.type === 'month')?.value ?? f.format(d)
 }
@@ -259,12 +267,14 @@ export function formatDate(value?: string, opts: DateOptions = {}): string {
   const monthIdx = Math.max(0, Math.min(11, parseInt(m, 10) - 1))
   const lang = canonicalLanguage(opts.language)
   const year = parseInt(y, 10)
-  if (style === 'none') return datePart(numberFormat(lang, 'year-only'), utcMonth(year, monthIdx), 'year', y)
-  if (style === 'numeric') {
-    // The shape stays MM/YYYY in every language (a parser reads one thing), but
-    // both halves come from the document's calendar: a Persian January is
-    // 10/1399, not 01/2021, the way its month name is "دی".
+  if (style === 'none' || style === 'numeric') {
+    // Gregorian, the stored year as typed, in every language but Persian.
+    if (!persianCalendar(lang)) return style === 'none' ? y : `${String(monthIdx + 1).padStart(2, '0')}/${y}`
     const d = utcMonth(year, monthIdx)
+    if (style === 'none') return datePart(numberFormat(lang, 'year-only'), d, 'year', y)
+    // The shape stays MM/YYYY (a parser reads one thing), but both halves come
+    // from the Persian calendar: a Persian January is 10/1399, not 01/2021,
+    // the way its month name is "دی".
     const mm = datePart(numberFormat(lang, 'month-numeric'), d, 'month', String(monthIdx + 1).padStart(2, '0'))
     const yy = datePart(numberFormat(lang, 'year-only'), d, 'year', y)
     return `${mm}/${yy}`

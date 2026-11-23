@@ -7,6 +7,10 @@ const INDEX: Record<string, string> = {
   'source-serif-4|500': 'source-serif-4-500.ttf',
   'source-serif-4|600': 'source-serif-4-600.ttf',
   'source-serif-4|700': 'source-serif-4-700.ttf',
+  'vazirmatn|400': 'vazirmatn-400.ttf',
+  'vazirmatn|500': 'vazirmatn-500.ttf',
+  'vazirmatn|600': 'vazirmatn-600.ttf',
+  'vazirmatn|700': 'vazirmatn-700.ttf',
 }
 
 const online = (v: boolean) => Object.defineProperty(navigator, 'onLine', { value: v, configurable: true })
@@ -52,6 +56,34 @@ describe('the PDF font warmer', () => {
     const urls = await pdfFontUrlsFor(['"Source Serif 4", Georgia, serif'])
     expect(urls.filter((u) => u.includes('source-serif-4'))).toHaveLength(4)
     expect(urls.filter((u) => u.includes('inter'))).toHaveLength(2)
+  })
+
+  it('leaves the Arabic face to resumes that have Arabic letters', async () => {
+    const { pdfFontUrlsFor } = await freshModule()
+    // Vazirmatn sits in every fallback chain, but its four files (about
+    // 436 KB) are only worth fetching for a page that can reach them.
+    expect((await pdfFontUrlsFor(['Inter'])).filter((u) => u.includes('vazirmatn'))).toEqual([])
+    expect((await pdfFontUrlsFor(['"Source Serif 4", Georgia, serif'])).filter((u) => u.includes('vazirmatn'))).toEqual([])
+    expect((await pdfFontUrlsFor(['Inter'], { arabic: true })).filter((u) => u.includes('vazirmatn')).sort()).toEqual([
+      '/fonts-pdf/vazirmatn-400.ttf',
+      '/fonts-pdf/vazirmatn-500.ttf',
+      '/fonts-pdf/vazirmatn-600.ttf',
+      '/fonts-pdf/vazirmatn-700.ttf',
+    ])
+    // A face the author chose is the page's own, Arabic letters or not.
+    expect((await pdfFontUrlsFor(['Vazirmatn'])).filter((u) => u.includes('vazirmatn'))).toHaveLength(4)
+  })
+
+  it('fetches no Arabic face for a Latin resume, and all four for one that needs them', async () => {
+    const { warmPdfFonts } = await freshModule()
+    expect((await warmPdfFonts(['Inter'])).sort()).toEqual(['/fonts-pdf/inter-400.ttf', '/fonts-pdf/inter-700.ttf'])
+    expect(vi.mocked(fetch).mock.calls.map((c) => String(c[0])).filter((u) => u.includes('vazirmatn'))).toEqual([])
+    expect((await warmPdfFonts(['Inter'], { arabic: true })).sort()).toEqual([
+      '/fonts-pdf/vazirmatn-400.ttf',
+      '/fonts-pdf/vazirmatn-500.ttf',
+      '/fonts-pdf/vazirmatn-600.ttf',
+      '/fonts-pdf/vazirmatn-700.ttf',
+    ])
   })
 
   it('takes an unknown family down the sans chain, and an empty one nowhere', async () => {

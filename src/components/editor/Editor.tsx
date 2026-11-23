@@ -1,7 +1,8 @@
 import { SkipLink } from '@/components/ui/SkipLink'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { scheduleWarmPdfFonts } from '@/lib/pdf/fontWarm'
 import { documentFaces } from '@/lib/documentFaces'
+import { documentScript } from '@/lib/script'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Eye } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -78,9 +79,15 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
   // Save this resume's PDF fonts on the device while there IS a connection,
   // so that it exports without one. Idle, silent, once per set of families.
   const faces = documentFaces({ metadata: doc.metadata }).join('|')
+  // The Arabic face's files are fetched only for a page that shows Arabic
+  // letters. Read once per change to the document, not on every render.
+  const arabic = useMemo(
+    () => documentScript({ content: doc.content, metadata: doc.metadata }).arabic,
+    [doc.content, doc.metadata]
+  )
   useEffect(() => {
-    scheduleWarmPdfFonts(faces.split('|'))
-  }, [faces])
+    scheduleWarmPdfFonts(faces.split('|'), { arabic })
+  }, [faces, arabic])
 
   const setLeftOpen = useEditorStore((s) => s.setLeftOpen)
 

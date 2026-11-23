@@ -159,6 +159,19 @@ describe('formatDate with the month style and the language', () => {
     expect(formatDate('2021-04', { month: 'none', language: 'fa' })).toBe('1400')
   })
 
+  it('keeps the number and year-only styles Gregorian in every language but Persian', () => {
+    // These are the strings main prints: the stored year, as typed. Asking
+    // each locale for its own calendar turned a Thai 2021 into 2564 (Buddhist)
+    // and, in a browser whose ar-SA calendar is Hijri, an Arabic one into 1442.
+    for (const language of ['th', 'ar-SA', 'ar', 'ja', 'he', 'de']) {
+      expect(formatDate('2021-03', { month: 'numeric', language }), language).toBe('03/2021')
+      expect(formatDate('2021-03', { month: 'none', language }), language).toBe('2021')
+    }
+    // Only Persian dates are told in the Persian calendar.
+    expect(formatDate('2021-03', { month: 'numeric', language: 'fa' })).toBe('12/1399')
+    expect(formatDate('2021-03', { month: 'none', language: 'fa' })).toBe('1399')
+  })
+
   it('prints the word for an open-ended range, falling back to Present', () => {
     expect(formatDate('Present', { present: 'Current' })).toBe('Current')
     expect(formatDate('present')).toBe('Present')

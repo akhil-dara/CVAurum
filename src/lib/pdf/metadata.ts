@@ -64,16 +64,19 @@ const clean = (s?: string): string => (s ?? '').replace(/\s+/g, ' ').trim()
  *  file verbatim and tell a screen reader to speak a language the document
  *  is not in.
  *
- *  With the date language left on that bare 'en', the page's own letters
- *  decide between Persian ('fa'), Arabic ('ar') and the en-US default. */
+ *  With the date language left on that bare 'en' AND the page mirrored, the
+ *  page's own letters decide between Persian ('fa'), Arabic ('ar') and the
+ *  en-US default. A left-to-right page is a document in its default language
+ *  even when it carries a Persian name: the per-run /Lang tagging marks that
+ *  name as Persian or Arabic, and the document as a whole stays what it is. */
 export function pdfLanguageFor(doc: ResumeDocument): string {
   const tag = canonicalLanguage(clean(doc.metadata?.dates?.language))
   if (tag.toLowerCase() !== 'en') return tag
-  // No date language chosen: a resume written in Arabic script is a Persian
-  // or Arabic document, whatever the dates were left on. The cheap check runs
-  // first, so a Latin resume never reads its page text here and declares
-  // exactly what it always has.
-  if (doc.content && usesArabicScript(JSON.stringify(doc.content))) {
+  // No date language chosen: a mirrored resume written in Arabic script is a
+  // Persian or Arabic document, whatever the dates were left on. The cheap
+  // checks run first, so a Latin resume never reads its page text here and
+  // declares exactly what it always has.
+  if (doc.metadata?.layout?.rtl === true && doc.content && usesArabicScript(JSON.stringify(doc.content))) {
     const script = documentScript(doc)
     if (script.persian) return 'fa'
     if (script.arabic) return 'ar'

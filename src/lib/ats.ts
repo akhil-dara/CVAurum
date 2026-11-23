@@ -323,10 +323,13 @@ const tokenize = (text: string): string[] =>
     // ("نرم‌افزار" is one word, not two): dropping it keeps the compound whole
     // and makes the word match a job description that writes it either way.
     .replace(/[\u200c\u200d]/g, '')
-    // Letters and digits of ANY script: Persian, Arabic and Urdu words are
-    // words. Dropping them (the old `[^a-z0-9]`) left a Persian job
-    // description with no keywords at all and a silent 0% match.
-    .replace(/[^\p{L}\p{N}+#./\s-]/gu, ' ')
+    // Letters, their combining marks and digits of ANY script: Persian, Arabic
+    // and Urdu words are words. Dropping them (the old `[^a-z0-9]`) left a
+    // Persian job description with no keywords at all and a silent 0% match.
+    // The marks (\p{M}) belong to the letter before them: without them a
+    // Devanagari, Thai or vowelled Arabic word, or a Latin word whose accent
+    // was typed as a combining mark (U+0308), splits in two at every mark.
+    .replace(/[^\p{L}\p{M}\p{N}+#./\s-]/gu, ' ')
     .split(/\s+/)
     .map((t) => t.replace(/^[-./]+|[-./]+$/g, ''))
     .filter(Boolean)
@@ -450,14 +453,16 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const doc = visibleDocument(input)
   const c = doc.content
   const text = extractResumeText(doc)
-  // A resume in Arabic script cannot be judged by the English word lists below
-  // (verbs, pronouns, filler, passive, buzzwords): they would pass it by
-  // accident, or fail it for not starting with an English verb. Say so once
-  // instead of scoring it on rules that cannot read it.
-  const arabicText = usesArabicScript(text)
   const words = text.split(/\s+/).filter(Boolean)
   const wordCount = words.length
   const bullets = allBullets(c)
+  // A line in Arabic script cannot be judged by the English word lists below
+  // (verbs, pronouns, filler, passive, buzzwords, tense): they would pass it
+  // by accident, or fail it for not starting with an English verb. So those
+  // rules stand aside for that line alone - each bullet, and the summary, is
+  // the unit they already read - and every English line beside it is still
+  // judged. A Persian name on an English resume therefore changes nothing.
+  const wordListBullets = bullets.filter((b) => !usesArabicScript(b.text))
   // A number is a number in any script: Persian digits (۱۲) and the Persian
   // percent sign (٪) are figures on the page, and were not counted before.
   const unquantified = bullets.filter((b) => !/\p{Nd}|[%٪$€£]/u.test(b.text))
@@ -508,23 +513,26 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     at(unquantified[0])
   )
 
-  // The English word lists stand aside for a document in Arabic script, and
-  // one row says why: a silently passing rule is worse than an absent one.
-  if (arabicText) {
+  // The English word lists stand aside for a line in Arabic script, and one
+  // row says why: a silently passing rule is worse than an absent one.
+  const summaryText = htmlToText(c.basics.summary ?? '')
+  // The summary is one unit to the word lists, like a bullet.
+  const wordListSummary = usesArabicScript(summaryText) ? '' : summaryText
+  if (wordListBullets.length < bullets.length || wordListSummary !== summaryText) {
     push(
       'language',
       'Writing rules in this language',
       'warn',
-      'The action-verb, passive-voice, filler-word, pronoun, buzzword and tense checks are English word lists, so they were left out of this score rather than guessed at. Keyword matching compares your exact words, so a job description written in the same language still matches.',
+      'The action-verb, passive-voice, filler-word, pronoun, buzzword and tense checks are English word lists, so lines written in Arabic script were left out of them rather than guessed at. Keyword matching compares your exact words, so a job description written in the same language still matches.',
       0,
       'writing'
     )
   }
 
   // action verbs
-  const weak = bullets.filter((b) => WEAK_STARTS.has(b.text.trim().split(/\s+/)[0]?.toLowerCase() ?? ''))
-  const strongStarts = bullets.filter((b) => ACTION_VERBS.has(b.text.trim().split(/\s+/)[0]?.toLowerCase() ?? '')).length
-  if (!arabicText && bullets.length) {
+  const weak = wordListBullets.filter((b) => WEAK_STARTS.has(b.text.trim().split(/\s+/)[0]?.toLowerCase() ?? ''))
+  const strongStarts = wordListBullets.filter((b) => ACTION_VERBS.has(b.text.trim().split(/\s+/)[0]?.toLowerCase() ?? '')).length
+  if (wordListBullets.length) {
     push(
       'verbs',
       'Strong action verbs',
@@ -790,7 +798,6 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
 
   // Pronouns. The summary counts too — it is the one place on a resume where
   // "I" gets written by habit, and it is the first thing read.
-  const summaryText = htmlToText(c.basics.summary ?? '')
   // Whichever comes FIRST in the line, so the quoted word is the one the
   // reader's eye lands on rather than whichever regex happened to run first.
   const pronounHit = (t: string) => {
@@ -800,12 +807,12 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     if (a) return a[0].trim()
     return b ? 'I' : undefined
   }
-  const pronounBullets = bullets.filter((b) => !!pronounHit(b.text))
-  const pronounInSummary = !!pronounHit(summaryText)
+  const pronounBullets = wordListBullets.filter((b) => !!pronounHit(b.text))
+  const pronounInSummary = !!pronounHit(wordListSummary)
   const pronouns = pronounBullets.length + (pronounInSummary ? 1 : 0)
-  if (!arabicText && (bullets.length || summaryText)) {
+  if (wordListBullets.length || wordListSummary) {
     const first = pronounBullets[0]
-    const shown = first ? pronounHit(first.text) : pronounHit(summaryText)
+    const shown = first ? pronounHit(first.text) : pronounHit(wordListSummary)
     push(
       'pronouns',
       'No first-person pronouns',
@@ -820,12 +827,12 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   }
 
   // Buzzwords: the claims that stand in for the evidence.
-  const buzzy = bullets
+  const buzzy = wordListBullets
     .map((b) => ({ b, hit: firstTerm(b.text, BUZZWORDS) }))
     .filter((x): x is { b: BulletRef; hit: string } => !!x.hit)
-  const buzzInSummary = firstTerm(summaryText, BUZZWORDS)
+  const buzzInSummary = firstTerm(wordListSummary, BUZZWORDS)
   const buzzCount = buzzy.length + (buzzInSummary ? 1 : 0)
-  if (!arabicText && (bullets.length || summaryText)) {
+  if (wordListBullets.length || wordListSummary) {
     const hit = buzzy[0]?.hit ?? buzzInSummary
     push(
       'buzzwords',
@@ -841,8 +848,8 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   }
 
   // Passive voice, in the narrow form the regex above can actually see.
-  const passive = bullets.filter((b) => PASSIVE_RE.test(openingClause(b.text)))
-  if (!arabicText && bullets.length) {
+  const passive = wordListBullets.filter((b) => PASSIVE_RE.test(openingClause(b.text)))
+  if (wordListBullets.length) {
     push(
       'passiveVoice',
       'Active voice',
@@ -857,10 +864,10 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   }
 
   // Filler.
-  const filled = bullets
+  const filled = wordListBullets
     .map((b) => ({ b, hit: firstTerm(b.text, FILLER) }))
     .filter((x): x is { b: BulletRef; hit: string } => !!x.hit)
-  if (!arabicText && bullets.length) {
+  if (wordListBullets.length) {
     push(
       'filler',
       'Words that carry weight',
@@ -977,10 +984,10 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
 
   // A finished job is told in the past tense.
   const pastRoles = new Set(c.work.map((w, i) => (!isOpen(w.endDate) ? i : -1)).filter((i) => i >= 0))
-  const pastBullets = bullets.filter((b) => b.section === 'work' && pastRoles.has(b.entry))
+  const pastBullets = wordListBullets.filter((b) => b.section === 'work' && pastRoles.has(b.entry))
   const firstWord = (t: string) => (t.trim().split(/\s+/)[0] ?? '').replace(/[^A-Za-z]/g, '').toLowerCase()
   const presentTense = pastBullets.filter((b) => PRESENT_FORMS.has(firstWord(b.text)))
-  if (!arabicText && pastBullets.length) {
+  if (pastBullets.length) {
     const b = presentTense[0]
     push(
       'tense',

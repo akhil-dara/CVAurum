@@ -1,4 +1,4 @@
-import { scriptFallbacks } from '@/data/fonts'
+import { ARABIC_FAMILY, scriptFallbacks } from '@/data/fonts'
 import { loadPdfFontIndex, resolveFontKey } from './fontIndex'
 
 /**
@@ -31,8 +31,18 @@ const warmedUrls = new Set<string>()
  * optional padding - the exporter walks them when it checks which characters
  * no embedded font can draw (fonts.ts `coverage`), and that check is what
  * stops a resume exporting with whole sentences silently missing.
+ *
+ * Except the Arabic face: it sits in every chain, but only a page with Arabic
+ * letters ever reaches it, so its four files (about 436 KB) are fetched only
+ * when `opts.arabic` says the document has them. A family the author chose
+ * is always fetched, the Arabic face included.
  */
-export async function pdfFontUrlsFor(families: readonly string[]): Promise<string[]> {
+export interface WarmOptions {
+  /** The document shows Arabic-script letters (src/lib/script.ts). */
+  arabic?: boolean
+}
+
+export async function pdfFontUrlsFor(families: readonly string[], opts: WarmOptions = {}): Promise<string[]> {
   const index = await loadPdfFontIndex()
   const urls = new Set<string>()
   const want = new Set<string>()
@@ -41,7 +51,7 @@ export async function pdfFontUrlsFor(families: readonly string[]): Promise<strin
     // The run carries a whole CSS stack; the registry knows its first name.
     const primary = family.split(',')[0].trim().replace(/^['"]|['"]$/g, '')
     want.add(primary)
-    for (const fb of scriptFallbacks(primary)) want.add(fb)
+    for (const fb of scriptFallbacks(primary)) if (opts.arabic || fb !== ARABIC_FAMILY) want.add(fb)
   }
   for (const family of want) {
     for (const weight of WEIGHTS) {
@@ -64,10 +74,10 @@ function shouldHold(): boolean {
 
 /** Fetches what is missing and returns the URLs it warmed (for the tests and
  *  the probes). Never throws. */
-export async function warmPdfFonts(families: readonly string[]): Promise<string[]> {
+export async function warmPdfFonts(families: readonly string[], opts: WarmOptions = {}): Promise<string[]> {
   if (shouldHold()) return []
   try {
-    const urls = (await pdfFontUrlsFor(families)).filter((u) => !warmedUrls.has(u))
+    const urls = (await pdfFontUrlsFor(families, opts)).filter((u) => !warmedUrls.has(u))
     if (!urls.length) return []
     // Marked before the fetch, not after: a second call while these are still
     // in flight must not start them again.
@@ -100,9 +110,9 @@ export async function warmPdfFonts(families: readonly string[]): Promise<string[
 }
 
 /** Warm on an idle frame, so nothing here competes with the editor's work. */
-export function scheduleWarmPdfFonts(families: readonly string[]): void {
+export function scheduleWarmPdfFonts(families: readonly string[], opts: WarmOptions = {}): void {
   if (shouldHold()) return
-  const run = () => void warmPdfFonts(families)
+  const run = () => void warmPdfFonts(families, opts)
   const ric = (globalThis as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
     .requestIdleCallback
   if (typeof ric === 'function') ric(run, { timeout: 10000 })

@@ -672,3 +672,76 @@ describe('a resume in Arabic script', () => {
     expect(note?.detail).toMatch(/English word lists/)
   })
 })
+
+describe('an English resume with a few words in Arabic script', () => {
+  // The word-list rules stand aside per bullet, not per document: one Persian
+  // name used to switch six checks off for the whole page, so a mostly-English
+  // resume scored higher for it.
+  const english = (name: string, highlights: string[]) =>
+    doc({
+      projects: [],
+      volunteer: [],
+      custom: [],
+      basics: { ...doc().content.basics, name, summary: '' },
+      work: [
+        {
+          id: 'w1',
+          name: 'Northwind',
+          position: 'Engineer',
+          startDate: '2019-01',
+          endDate: '2021-06',
+          url: '',
+          summary: '',
+          location: '',
+          highlights,
+        },
+      ],
+    })
+  const ids = ['verbs', 'passiveVoice', 'filler', 'pronouns', 'buzzwords', 'tense']
+  const rows = (d: ResumeDocument) => {
+    const r = analyzeResume(d)
+    return Object.fromEntries(ids.map((id) => [id, r.checks.find((c) => c.id === id)]))
+  }
+  const bullets = [
+    'The release pipeline was rebuilt by the platform team in 2020.',
+    'Known as a team player across four squads.',
+    'Cut build time 40% with a shared cache.',
+  ]
+
+  it('reports what the same resume with a Latin name reports', () => {
+    const latin = rows(english('Alireza Karimi', bullets))
+    const persian = rows(english('علیرضا', bullets))
+    expect(persian).toEqual(latin)
+    expect(persian.passiveVoice?.status).toBe('warn')
+    expect(persian.buzzwords?.status).toBe('warn')
+    expect(analyzeResume(english('علیرضا', bullets)).checks.map((c) => c.id)).not.toContain('language')
+  })
+
+  it('exempts the bullet in Arabic script and judges its neighbours', () => {
+    const mixed = english('Alireza Karimi', [
+      'Responsible for the billing service.',
+      'مسئول توسعه سیستم پرداخت was rebuilt by the team, a team player',
+      'The release pipeline was rebuilt by the platform team in 2020.',
+    ])
+    const r = rows(mixed)
+    // The English neighbours are still read...
+    expect(r.passiveVoice?.status).toBe('warn')
+    expect(r.passiveVoice?.where).toEqual({ section: 'work', entry: 0, bullet: 2 })
+    expect(r.verbs?.where).toEqual({ section: 'work', entry: 0, bullet: 0 })
+    // ...and the Persian bullet is not: its English fragments raise nothing.
+    expect(r.buzzwords?.status).toBe('pass')
+    expect(analyzeResume(mixed).checks.find((c) => c.id === 'language')?.status).toBe('warn')
+  })
+})
+
+describe('the keyword tokenizer', () => {
+  it('keeps a letter and its combining mark in one word', () => {
+    // "naïve" spelled with U+0308 COMBINING DIAERESIS: \p{L} alone split it
+    // at the mark, as it splits Devanagari, Thai and vowelled Arabic.
+    const naive = 'naïve'
+    expect(extractKeywords(naive)).toEqual([naive])
+    // Hindi: the vowel signs and the virama are marks too.
+    const hindi = 'हिन्दी'
+    expect(extractKeywords(hindi)).toEqual([hindi])
+  })
+})
