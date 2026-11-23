@@ -194,9 +194,13 @@ export const ARABIC_FAMILY = 'Vazirmatn'
 /** Does this text contain a letter of the Arabic script? Those are exactly the
  *  characters only the Arabic family can draw, so they decide whether an export
  *  has to wait for that face - and whether the browser has to shape the page
- *  instead of the native painter (src/lib/pdf/export.ts). */
+ *  instead of the native painter (src/lib/pdf/export.ts).
+ *
+ *  The presentation forms stop at U+FEFC: U+FEFF in that block is the
+ *  byte-order mark, which a pasted or imported line can start with and which
+ *  is no letter of any script. */
 export function usesArabicScript(text: string): boolean {
-  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text)
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(text)
 }
 
 /** The fallback families for `name`, in order, never naming `name` itself. */

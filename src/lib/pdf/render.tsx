@@ -176,7 +176,7 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
   try {
     root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
 
-    await ensureFontsReady(documentFaces(doc.metadata))
+    await ensureFontsReady(documentFaces({ metadata: doc.metadata }))
     await raf2()
 
     // Render once more now the webfonts have resolved, and give the Artboard's

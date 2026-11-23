@@ -77,7 +77,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
 
   // Save this resume's PDF fonts on the device while there IS a connection,
   // so that it exports without one. Idle, silent, once per set of families.
-  const faces = documentFaces(doc.metadata).join('|')
+  const faces = documentFaces({ metadata: doc.metadata }).join('|')
   useEffect(() => {
     scheduleWarmPdfFonts(faces.split('|'))
   }, [faces])

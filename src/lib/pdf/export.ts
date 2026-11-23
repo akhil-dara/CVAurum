@@ -16,7 +16,7 @@
  * with its letters apart.
  */
 import { saveDoc } from '@/lib/storage'
-import { usesArabicScript } from '@/data/fonts'
+import { documentScript } from '@/lib/script'
 import { pdfBaseName } from '@/lib/pdf'
 import { downloadBlob } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
@@ -49,7 +49,8 @@ export class PdfExportError extends Error {
  */
 export function needsBrowserPrint(doc: ResumeDocument): boolean {
   if (doc.metadata?.layout?.rtl) return true
-  return usesArabicScript(JSON.stringify(doc.content ?? {}))
+  // A document with no content yet has no letters to decide it.
+  return doc.content ? documentScript(doc).arabic : false
 }
 
 export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportResult> {

@@ -516,7 +516,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 
   // Re-measure once fonts for the chosen families have actually loaded.
   useEffect(() => {
-    ensureFontsReady(documentFaces(doc.metadata)).then(() => {
+    ensureFontsReady(documentFaces({ metadata: doc.metadata })).then(() => {
       if (innerRef.current) setContentH(innerRef.current.scrollHeight)
       if (measureRef.current) setPrintH(measureRef.current.scrollHeight)
     })
@@ -549,7 +549,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
       if (import.meta.env.DEV) window.__cvaFitTrace = []
-      await ensureFontsReady(documentFaces(measureDoc.metadata))
+      await ensureFontsReady(documentFaces({ metadata: measureDoc.metadata }))
       // Wait for the photo in the measure render to load too — an unsized image
       // makes the header (and thus the fit) measure short, diverging from the PDF.
       const img = measureRef.current?.querySelector('img.rm-photo') as HTMLImageElement | null

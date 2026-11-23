@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResumeDocument } from '@/types/document'
+import { createDocument } from '@/data/defaults'
 
 // vi.mock factories are hoisted above imports, so anything they reference
 // must come from vi.hoisted — plain `const x = vi.fn()` above the calls
@@ -157,11 +158,12 @@ describe('exportResumePdf', () => {
     // @ts-expect-error the node test env has no window; the print path needs one
     globalThis.window = { open, location: { assign: vi.fn() } }
 
-    const englishDoc = {
-      id: 'doc-mixed',
-      metadata: { layout: { rtl: false } },
-      content: { basics: { name: 'Ali Rezaei', label: 'مهندس نرم‌افزار' } },
-    } as unknown as ResumeDocument
+    // A whole document: the script is read from the text the page shows
+    // (src/lib/script.ts), which needs the section layout to read it by.
+    const englishDoc = createDocument()
+    englishDoc.id = 'doc-mixed'
+    englishDoc.content.basics.name = 'Ali Rezaei'
+    englishDoc.content.basics.label = 'مهندس نرم‌افزار'
     const result = await exportResumePdf(englishDoc)
 
     expect(result).toEqual({ kind: 'print', fileName: 'Jane_Doe_Resume_2026-08-14.pdf' })

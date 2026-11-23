@@ -1,7 +1,8 @@
 import type { Metadata } from '@/types/metadata'
 import type { ResumeContent } from '@/types/document'
 import { getTemplate } from '@/templates/registry'
-import { ARABIC_FAMILY, usesArabicScript } from '@/data/fonts'
+import { ARABIC_FAMILY } from '@/data/fonts'
+import { documentScript } from '@/lib/script'
 
 /**
  * Every family a document's page is drawn in: its body, heading and name
@@ -17,12 +18,13 @@ import { ARABIC_FAMILY, usesArabicScript } from '@/data/fonts'
  * whatever the body face is, so the measurement has to know that before it
  * runs.
  */
-export function documentFaces(
-  metadata: Pick<Metadata, 'typography' | 'template'>,
-  content?: ResumeContent
-): string[] {
+export function documentFaces(doc: { metadata: Metadata; content?: ResumeContent }): string[] {
+  const { metadata, content } = doc
   const t = metadata.typography
   const faces = [t.fontFamily, t.headingFamily, t.nameFamily, ...(getTemplate(metadata.template).fonts ?? [])]
-  if (content && usesArabicScript(JSON.stringify(content))) faces.push(ARABIC_FAMILY)
+  // Only what the page shows decides it: a hidden section, an address or a
+  // byte-order mark never adds the face (src/lib/script.ts). Without content
+  // the caller asks for the chosen faces alone.
+  if (content && documentScript({ metadata, content }).arabic) faces.push(ARABIC_FAMILY)
   return [...new Set(faces.filter(Boolean))]
 }
