@@ -7,6 +7,7 @@ import {
   directionPieces,
   extractRuns,
   foldBlankPieces,
+  paragraphContext,
   placeBlanks,
   prepareBidi,
   setBidi,
@@ -125,6 +126,77 @@ describe('directionPieces (the walker decides whether a line splits)', () => {
       ['مهندس ', 'rtl'],
       ['2021', 'ltr'],
     ])
+  })
+})
+
+/** The few DOM calls `paragraphContext` makes, over a hand-built tree (the
+ *  suite runs in node): elements with a computed display, text nodes, and a
+ *  tree walker that visits the text nodes in document order. */
+function fakeDom() {
+  type El = { display: string; parentElement: El | null; kids: Array<El | Txt> }
+  type Txt = { data: string; parentElement: El }
+  const el = (display: string, parent: El | null): El => {
+    const e: El = { display, parentElement: parent, kids: [] }
+    parent?.kids.push(e)
+    return e
+  }
+  const txt = (data: string, parent: El): Txt => {
+    const t = { data, parentElement: parent }
+    parent.kids.push(t)
+    return t
+  }
+  const texts = (e: El): Txt[] => e.kids.flatMap((k) => ('data' in k ? [k] : texts(k)))
+  vi.stubGlobal('NodeFilter', { SHOW_TEXT: 4 })
+  vi.stubGlobal('getComputedStyle', (e: El) => ({ display: e.display }))
+  vi.stubGlobal('document', {
+    createTreeWalker: (root: El) => {
+      const list = texts(root)
+      let i = 0
+      return { nextNode: () => list[i++] ?? null }
+    },
+  })
+  return { el, txt }
+}
+
+describe('paragraphContext (the bidi paragraph a node is resolved in)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('stops at a chip: an inline-block is a bidi paragraph of its own, as the browser lays it out', () => {
+    setBidi(bidi)
+    const { el, txt } = fakeDom()
+    const body = el('block', null)
+    txt('زبان‌ها: ', body)
+    const chip = el('inline-block', body)
+    const lead = txt('English ', chip)
+    const inner = el('inline', chip)
+    const bracket = txt('(C1)', inner)
+    const cpp = txt('C++', el('inline-flex', body))
+    const quiet = txt(' و ', body)
+    expect(paragraphContext(lead as unknown as Text)).toEqual({ text: 'English (C1)', start: 0 })
+    expect(paragraphContext(bracket as unknown as Text)).toEqual({ text: 'English (C1)', start: 8 })
+    expect(paragraphContext(cpp as unknown as Text)).toEqual({ text: 'C++', start: 0 })
+    // The block's own paragraph holds only what flows inline in it.
+    expect(paragraphContext(quiet as unknown as Text)).toEqual({ text: 'زبان‌ها:  و ', start: 9 })
+    // Resolved within itself, as the browser does: in a right-to-left chip
+    // the trailing "++" takes the chip's direction ("++C" on the canvas),
+    // not whatever the Latin after the chip would have made of it.
+    expect(pieces('C++', directionPieces('C++', 'rtl', paragraphContext(cpp as unknown as Text))!)).toEqual([
+      ['C', 'ltr'],
+      ['++', 'rtl'],
+    ])
+    expect(directionPieces('(C1)', 'rtl', paragraphContext(bracket as unknown as Text))).toBeNull()
+  })
+
+  it('resolves a paragraph once, however many of its segments ask', () => {
+    const spy = { bidiRuns: vi.fn(bidi.bidiRuns), hasStrongRtl: vi.fn(bidi.hasStrongRtl) }
+    setBidi(spy)
+    const para = 'کاهش زمان بارگذاری صفحه تا ۴۰٪. مهندس با React و TypeScript'
+    for (let at = 0; at < para.length; at += 5) directionPieces(para.slice(at, at + 5), 'rtl', { text: para, start: at })
+    expect(spy.bidiRuns).toHaveBeenCalledTimes(1)
+    // A new export starts afresh.
+    setBidi(spy)
+    directionPieces(para.slice(0, 5), 'rtl', { text: para, start: 0 })
+    expect(spy.bidiRuns).toHaveBeenCalledTimes(2)
   })
 })
 

@@ -7,6 +7,7 @@
  * preview and the native print render in the SAME browser, the printed PDF is
  * byte-identical to the preview.
  */
+import { ARABIC_SCRIPT_CLASS } from '@/lib/rtlBlocks'
 
 export type FontCategory = 'sans' | 'serif' | 'mono' | 'display' | 'handwriting'
 
@@ -208,6 +209,8 @@ export const ARABIC_FAMILY = 'Vazirmatn'
  */
 export const ARABIC_FALLBACK_FAMILY = 'Vazirmatn Arabic'
 
+const ARABIC_SCRIPT = new RegExp(`[${ARABIC_SCRIPT_CLASS}]`)
+
 /** Does this text contain a letter of the Arabic script? Those are exactly the
  *  characters only the Arabic family can draw, so they decide whether an export
  *  has to wait for that face - and whether the browser has to shape the page
@@ -217,7 +220,7 @@ export const ARABIC_FALLBACK_FAMILY = 'Vazirmatn Arabic'
  *  byte-order mark, which a pasted or imported line can start with and which
  *  is no letter of any script. */
 export function usesArabicScript(text: string): boolean {
-  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(text)
+  return ARABIC_SCRIPT.test(text)
 }
 
 /** The fallback families for `name`, in order, never naming `name` itself. */

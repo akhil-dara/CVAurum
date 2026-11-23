@@ -2,7 +2,7 @@ import { parseColor, parseFontWeight, parsePx } from './style'
 import { SOFT_HYPHEN, stripSoftHyphens } from '@/lib/hyphenate'
 import type { TextRun } from './types'
 import type { BidiRun } from './bidi'
-import { RTL_BLOCK_CLASS } from '@/lib/rtlBlocks'
+import { ARABIC_SCRIPT_CLASS, RTL_BLOCK_CLASS } from '@/lib/rtlBlocks'
 
 /* ---- direction: one run per direction of a mixed line ----
  *
@@ -29,10 +29,16 @@ let bidiImpl: BidiImpl | null = null
  *  export's sheet never answers for the next. */
 let paragraphs = new WeakMap<Element, { text: string; starts: Map<Text, number> }>()
 
+/** Each paragraph's resolved runs, keyed by base and text: every line segment
+ *  of every node in it asks, and the algorithm runs once. Emptied with
+ *  `paragraphs`. */
+let resolved = new Map<string, BidiRun[]>()
+
 /** Installs (or, with null, removes) the bidi functions `extractRuns` splits lines with. */
 export function setBidi(impl: BidiImpl | null): void {
   bidiImpl = impl
   paragraphs = new WeakMap()
+  resolved = new Map()
 }
 
 /**
@@ -65,7 +71,7 @@ export async function prepareBidi(arabic: boolean, load: () => Promise<BidiImpl>
 const RTL_BLOCKS = new RegExp(`[${RTL_BLOCK_CLASS}]|[\uD802\uD803\uD83A\uD83B][\uDC00-\uDFFF]`)
 
 /** An Arabic-script letter: a cursive script, which the browser never letter-spaces. */
-const ARABIC_LETTER = /(?=[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-ﻼ])\p{L}/u
+const ARABIC_LETTER = new RegExp(`(?=[${ARABIC_SCRIPT_CLASS}])\\p{L}`, 'u')
 
 /**
  * Splits `text` into its runs of one direction, in logical order, covering it
@@ -103,7 +109,7 @@ export function directionPieces(raw: string, base: 'rtl' | 'ltr', context?: { te
   if (!bidiImpl) return null
   const whole = context?.text ?? raw
   if (base !== 'rtl' && (!RTL_BLOCKS.test(whole) || !bidiImpl.hasStrongRtl(whole))) return null
-  const pieces = context ? clipToNode(resolveParagraph(context.text, base), context.start, raw.length) : resolveParagraph(raw, base)
+  const pieces = context ? clipToNode(resolvedParagraph(context.text, base), context.start, raw.length) : resolveParagraph(raw, base)
   const folded = foldBlankPieces(raw, pieces)
   return folded.length > 1 || folded[0]?.rtl ? folded : null
 }
@@ -121,6 +127,17 @@ function clipToNode(runs: BidiRun[], from: number, length: number): BidiRun[] {
     else out.push({ start, end, rtl: r.rtl })
   }
   return out
+}
+
+/** `resolveParagraph`, once per paragraph text and base (`resolved`). */
+function resolvedParagraph(text: string, base: 'rtl' | 'ltr'): BidiRun[] {
+  const key = base + '|' + text
+  let runs = resolved.get(key)
+  if (!runs) {
+    runs = resolveParagraph(text, base)
+    resolved.set(key, runs)
+  }
+  return runs
 }
 
 /** `splitSegmentByDirection` with tabs and line breaks read as spaces (see `directionPieces`). */
@@ -839,8 +856,14 @@ function decorationOf(cs: CSSStyleDeclaration, want: 'underline' | 'line-through
   return line.includes(want)
 }
 
-/** True for an element laid out inline (its text flows in its parent's lines). */
-const isInline = (el: Element) => getComputedStyle(el).display.startsWith('inline') || getComputedStyle(el).display === 'contents'
+/** True for an element laid out inline (its text flows in its parent's lines).
+ *  Only `inline` and `contents`: an inline-block, inline-flex or inline-grid
+ *  box (a chip, a pill) sits in its parent's line as one object, but the
+ *  browser lays out its text as a bidi paragraph of its own. */
+const isInline = (el: Element) => {
+  const display = getComputedStyle(el).display
+  return display === 'inline' || display === 'contents'
+}
 
 /**
  * The paragraph `node` is laid out in - the text of its nearest non-inline

@@ -9,3 +9,10 @@
  * mark and must never count.
  */
 export const RTL_BLOCK_CLASS = '\\u0590-\\u08FF\\uFB1D-\\uFDFF\\uFE70-\\uFEFC'
+
+/**
+ * The same kind of class body for Arabic script alone: Arabic, Arabic
+ * Supplement, Arabic Extended-A and the Arabic presentation forms A and B.
+ * It too ends at U+FEFC, never the byte-order mark.
+ */
+export const ARABIC_SCRIPT_CLASS = '\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC'

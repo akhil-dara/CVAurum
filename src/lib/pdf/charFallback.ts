@@ -18,6 +18,7 @@
  * these characters, so it needs nothing; and the author's own data is never
  * modified.
  */
+import { ARABIC_SCRIPT_CLASS } from '@/lib/rtlBlocks'
 
 /** Confirmed by probing a real export: U+2013 en dash, U+2212 minus, accented
  *  letters and curly quotes all survive. These do not. */
@@ -34,7 +35,7 @@ const SUBSTITUTIONS: Array<[RegExp, string]> = [
 ]
 
 /** Arabic-script letters and digits (the BOM, U+FEFF, excluded). */
-const ARABIC_SCRIPT = /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufefc]/
+const ARABIC_SCRIPT = new RegExp(`[${ARABIC_SCRIPT_CLASS}]`)
 
 /**
  * A zero-width non-joiner (U+200C) or joiner (U+200D) right beside an

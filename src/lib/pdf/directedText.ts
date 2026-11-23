@@ -22,12 +22,13 @@
 // old call unchanged.
 import type { PDFFont } from 'pdf-lib'
 import type { TextRun } from './types'
+import { ARABIC_SCRIPT_CLASS } from '@/lib/rtlBlocks'
 import { mirrorRtl } from './text'
 
 export type ShapingDirection = 'rtl' | 'ltr'
 
 /** Arabic-script letters and digits: the Arabic blocks and their presentation forms (U+FEFF, the BOM, excluded). */
-const ARABIC_SCRIPT = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-ﻼ]/
+const ARABIC_SCRIPT = new RegExp(`[${ARABIC_SCRIPT_CLASS}]`)
 
 /**
  * How the painter shapes `run`: 'rtl' for a right-to-left run (text.ts sets
