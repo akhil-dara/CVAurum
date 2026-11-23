@@ -42,6 +42,42 @@ export function applyRtlSetup(metadata: Metadata, script: PageScript): void {
   if (t.nameFamily && !coversArabic(t.nameFamily)) t.nameFamily = ARABIC_FAMILY
 }
 
+/** Every metadata field `applyRtlSetup` may change, as they stand. Keep this
+ *  in step with applyRtlSetup: a field the setup changes and the snapshot
+ *  misses is one Undo cannot put back (the word for Present once was). */
+export interface RtlSetupSnapshot {
+  rtl: boolean
+  language: string
+  present: string
+  fontFamily: string
+  headingFamily: string
+  nameFamily: string
+}
+
+export function rtlSetupSnapshot(metadata: Metadata): RtlSetupSnapshot {
+  const t = metadata.typography
+  return {
+    rtl: metadata.layout.rtl,
+    language: metadata.dates.language,
+    present: metadata.dates.present,
+    fontFamily: t.fontFamily,
+    headingFamily: t.headingFamily,
+    nameFamily: t.nameFamily,
+  }
+}
+
+/** The Undo of the offer's setup: every field it touched goes back, and the
+ *  offer is marked declined - left open, the card would ask again at once. */
+export function undoRtlSetup(metadata: Metadata, before: RtlSetupSnapshot): void {
+  metadata.layout.rtl = before.rtl
+  metadata.dates.language = before.language
+  metadata.dates.present = before.present
+  metadata.typography.fontFamily = before.fontFamily
+  metadata.typography.headingFamily = before.headingFamily
+  metadata.typography.nameFamily = before.nameFamily
+  metadata.layout.rtlOfferDismissed = true
+}
+
 /** Turning right to left off by hand (the switch, the palette): only the
  *  direction goes back - the faces and dates stay the author's - and the
  *  offer is marked declined, or it would ask again at once. */

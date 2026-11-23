@@ -29,7 +29,7 @@ import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
 import { documentScript } from '@/lib/script'
-import { applyRtlSetup, rtlOfferShown } from '@/lib/rtlSetup'
+import { applyRtlSetup, rtlOfferShown, rtlSetupSnapshot, undoRtlSetup } from '@/lib/rtlSetup'
 
 export function RtlOffer({ doc, raised = false }: { doc: ResumeDocument; raised?: boolean }) {
   const script = useMemo(() => documentScript(doc), [doc])
@@ -37,23 +37,14 @@ export function RtlOffer({ doc, raised = false }: { doc: ResumeDocument; raised?
 
   const language = script.persian ? 'Persian' : 'Arabic'
   const mirror = () => {
-    const before = structuredClone({
-      rtl: doc.metadata.layout.rtl,
-      dates: doc.metadata.dates.language,
-      typography: doc.metadata.typography,
-    })
+    const before = rtlSetupSnapshot(doc.metadata)
     useResumeStore.getState().updateMetadata((m) => applyRtlSetup(m, script))
     // Faces and the date language changed too: say so, with the way back.
+    // Undo puts every field back and declines the offer, so it does not ask
+    // again at once.
     useAppStore.getState().toast('Mirrored right to left. Fonts and dates follow the page.', 'info', {
       label: 'Undo',
-      run: () =>
-        useResumeStore.getState().updateMetadata((m) => {
-          m.layout.rtl = before.rtl
-          m.dates.language = before.dates
-          m.typography.fontFamily = before.typography.fontFamily
-          m.typography.headingFamily = before.typography.headingFamily
-          m.typography.nameFamily = before.typography.nameFamily
-        }),
+      run: () => useResumeStore.getState().updateMetadata((m) => undoRtlSetup(m, before)),
     })
   }
   const decline = () =>
@@ -72,7 +63,6 @@ export function RtlOffer({ doc, raised = false }: { doc: ResumeDocument; raised?
     >
       {shown && (
         <div
-          aria-label="Right-to-left page"
           className="pointer-events-auto flex w-full max-w-xl flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-primary/30 bg-surface/95 px-3.5 py-2.5 text-xs leading-relaxed text-foreground shadow-float backdrop-blur"
         >
           <span className="flex min-w-0 flex-1 basis-56 items-start gap-2.5">

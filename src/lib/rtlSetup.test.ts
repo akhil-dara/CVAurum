@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { MetadataSchema, type Metadata } from '@/types/metadata'
 import { ARABIC_FAMILY, FONTS } from '@/data/fonts'
-import { applyRtlSetup, coversArabic, offeredFonts, rtlOfferShown, turnRtlOff } from './rtlSetup'
+import { applyRtlSetup, coversArabic, offeredFonts, rtlOfferShown, rtlSetupSnapshot, turnRtlOff, undoRtlSetup } from './rtlSetup'
 import { DATE_LANGUAGE_OPTIONS } from './utils'
 
 const fresh = (): Metadata => MetadataSchema.parse({})
@@ -112,5 +112,28 @@ describe('offeredFonts: the Arabic face is offered where it matters', () => {
   })
   it('a face already chosen stays in the list, so the picker can show it', () => {
     expect(names(false, ['Inter', ARABIC_FAMILY])).toContain(ARABIC_FAMILY)
+  })
+})
+
+describe('undoRtlSetup (the Undo on the offer toast)', () => {
+  it('puts back every field the setup touched, the word for Present included, and declines the offer', () => {
+    const m = fresh()
+    m.typography.headingFamily = 'Lora'
+    const before = structuredClone(m)
+    const snap = rtlSetupSnapshot(m)
+    applyRtlSetup(m, { arabic: true, persian: true })
+    expect(m.dates.present).not.toBe('Present')
+    undoRtlSetup(m, snap)
+    // Everything as it was, except that the offer is now declined: an Undo
+    // that left it open showed the card again at once.
+    expect(m).toEqual({ ...before, layout: { ...before.layout, rtlOfferDismissed: true } })
+  })
+
+  it('keeps a snapshot apart from the metadata it was taken from', () => {
+    const m = fresh()
+    const snap = rtlSetupSnapshot(m)
+    m.typography.fontFamily = 'Lora'
+    undoRtlSetup(m, snap)
+    expect(m.typography.fontFamily).toBe(fresh().typography.fontFamily)
   })
 })

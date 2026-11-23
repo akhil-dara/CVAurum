@@ -59,6 +59,13 @@ describe('the right-to-left offer', () => {
     expect(html).toContain('>Not now</button>')
   })
 
+  it('names nothing with an aria-label a screen reader ignores (a div with no role)', () => {
+    const html = renderToStaticMarkup(<RtlOffer doc={doc(PERSIAN_NAME)} />)
+    for (const tag of html.match(/<div[^>]*>/g) ?? []) {
+      if (tag.includes('aria-label')) expect(tag).toMatch(/role="/)
+    }
+  })
+
   it('says Arabic for Arabic', () => {
     const html = renderToStaticMarkup(<RtlOffer doc={doc(ARABIC_NAME)} />)
     expect(html).toContain('This resume is in Arabic. Mirror the page right to left?')
