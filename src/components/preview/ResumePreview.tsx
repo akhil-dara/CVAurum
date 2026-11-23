@@ -1086,9 +1086,6 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         {/* first-time hint on a blank resume — the canvas interactions aren't
           guessable ("what do I click? what do I type where?") */}
         {!exactCanvas && <BlankCanvasTip doc={doc} />}
-        {/* A page with Persian or Arabic letters is offered the right-to-left
-            setup once, in the same place; no other page ever sees it. */}
-        {!exactCanvas && <RtlOffer doc={doc} />}
         {/* Unmistakable mode flag — floating over the canvas while previewing;
             "Back to editing" returns to the editable page on every device. */}
         {previewExact && (
@@ -1189,6 +1186,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             screen has no bar cluster, and neither does a bar under 768px. It
             used to sit top-right, where it covered the page's header contacts
             at fit zoom and, on a phone, the Export menu's "Download PDF" row. */}
+        {/* A page with Persian or Arabic letters is offered the right-to-left
+            setup once, floating at the foot of the scrollport like the zoom
+            pill: it arrives while the name is being typed, so it must never
+            push the page (and the caret) down. Placed BEFORE the zoom pill so
+            the pill paints above it where the two could meet. */}
+        {!exactCanvas && <RtlOffer doc={doc} raised={isPhone || !barHasZoom} />}
         {(isPhone || !barHasZoom) && <CanvasZoom effectiveZoom={effectiveZoom} fitZoom={fitZoom} />}
       </div>
       {addOpen && (

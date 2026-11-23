@@ -31,9 +31,25 @@ function doc(name: string, tweak?: (d: ResumeDocument) => void): ResumeDocument 
 }
 
 describe('the right-to-left offer', () => {
+  // Nothing shows for a Latin resume: the live region is there, empty, so a
+  // card that appears later is announced; it takes no space and holds no text.
+  const empty = (html: string) => {
+    expect(html).not.toContain('<button')
+    expect(html.replace(/<[^>]+>/g, '')).toBe('')
+  }
   it('renders nothing for a Latin resume', () => {
-    expect(renderToStaticMarkup(<RtlOffer doc={doc('Priya Menon')} />)).toBe('')
-    expect(renderToStaticMarkup(<RtlOffer doc={createDocument({ sample: true })} />)).toBe('')
+    empty(renderToStaticMarkup(<RtlOffer doc={doc('Priya Menon')} />))
+    empty(renderToStaticMarkup(<RtlOffer doc={createDocument({ sample: true })} />))
+  })
+
+  it('is announced politely and never pushes the page: a zero-height floating host', () => {
+    const html = renderToStaticMarkup(<RtlOffer doc={doc(PERSIAN_NAME)} />)
+    const host = /<div[^>]*data-rtl-offer[^>]*>/.exec(html)?.[0] ?? ''
+    expect(host).toMatch(/aria-live="polite"/)
+    expect(host).toMatch(/role="status"/)
+    expect(host).toMatch(/\bh-0\b/)
+    expect(host).toMatch(/\bsticky\b/)
+    expect(html).not.toContain('autofocus')
   })
 
   it('offers to mirror a resume with a Persian name, naming the language', () => {
@@ -49,8 +65,8 @@ describe('the right-to-left offer', () => {
   })
 
   it('renders nothing once declined, or once the page is mirrored', () => {
-    expect(renderToStaticMarkup(<RtlOffer doc={doc(PERSIAN_NAME, (d) => (d.metadata.layout.rtlOfferDismissed = true))} />)).toBe('')
-    expect(renderToStaticMarkup(<RtlOffer doc={doc(PERSIAN_NAME, (d) => (d.metadata.layout.rtl = true))} />)).toBe('')
+    empty(renderToStaticMarkup(<RtlOffer doc={doc(PERSIAN_NAME, (d) => (d.metadata.layout.rtlOfferDismissed = true))} />))
+    empty(renderToStaticMarkup(<RtlOffer doc={doc(PERSIAN_NAME, (d) => (d.metadata.layout.rtl = true))} />))
   })
 })
 
