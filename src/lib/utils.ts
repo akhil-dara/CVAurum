@@ -416,6 +416,9 @@ const DATE_LANGUAGES: Record<string, { label: string; words: [yr: string, yrs: s
   // Persian: a span reads "۳ سال ۲ ماه". The runtime already knows the Jalali
   // month names for this tag, so the panel can offer it.
   fa: { label: 'Persian', words: ['سال', 'سال', 'ماه', 'ماه'] },
+  // Arabic: one year, years, one month, months. Set by the right-to-left
+  // setup for a resume in Arabic (src/lib/rtlSetup.ts).
+  ar: { label: 'Arabic', words: ['سنة', 'سنوات', 'شهر', 'أشهر'] },
   tr: { label: 'Turkish', words: ['yıl', 'yıl', 'ay', 'ay'] },
   hi: { label: 'Hindi', words: ['वर्ष', 'वर्ष', 'माह', 'माह'] },
   ja: { label: 'Japanese', words: ['年', '年', 'か月', 'か月'] },

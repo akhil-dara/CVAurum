@@ -12,6 +12,8 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
 import { FONTS } from '@/data/fonts'
+import { documentScript } from '@/lib/script'
+import { applyRtlSetup } from '@/lib/rtlSetup'
 import { ADD_LABEL, BODY_SECTION_KEYS, DEFAULT_LABELS, panelColumns, pushNewItem, sectionLabel } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
@@ -173,7 +175,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
       cmds.push({
         id: `font-${f.name}`,
         group: 'Font',
-        label: `Font: ${f.name}`,
+        label: `Font: ${f.label ?? f.name}`,
         hint: f.category,
         run: () => updateMetadata((m) => { m.typography.fontFamily = f.name }),
       })
@@ -236,6 +238,25 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
           ed.markFresh(key)
           toast(`${DEFAULT_LABELS[key] ?? key} added`, 'success')
         },
+      })
+    }
+
+    // Right to left: only for a page with Persian or Arabic letters, or one
+    // already mirrored - the same rule as the Design panel's switch, and the
+    // same setup when it turns on (src/lib/rtlSetup.ts).
+    const script = documentScript(doc)
+    if (script.arabic || doc.metadata.layout.rtl) {
+      const on = doc.metadata.layout.rtl
+      cmds.push({
+        id: 'rtl',
+        group: 'View',
+        label: 'Right-to-left page',
+        hint: on ? 'on: turn off' : 'mirror the page for Persian or Arabic',
+        run: () =>
+          updateMetadata((m) => {
+            if (on) m.layout.rtl = false
+            else applyRtlSetup(m, script)
+          }),
       })
     }
 

@@ -73,7 +73,9 @@ export function RichTextEditor({ value, onChange, placeholder, withLists = true,
     ],
     content: value || '',
     editorProps: {
-      attributes: { class: 'rt-content focus:outline-none' },
+      // dir="auto": the field reads right to left when its text opens with a
+      // Persian or Arabic letter; Latin text resolves to ltr, as it always read.
+      attributes: { class: 'rt-content focus:outline-none', dir: 'auto' },
       // Intercept navigation keys ONLY while the slash menu is open.
       handleKeyDown: (_view, event) => {
         const m = menuRef.current

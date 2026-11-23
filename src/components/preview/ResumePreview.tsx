@@ -86,6 +86,7 @@ import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
 import { ColumnBalanceHint } from './ColumnBalanceHint'
+import { RtlOffer } from '@/components/editor/RtlOffer'
 import { PageChromeOverlay, readPageFoot, readPageSheet, type PageFootCopy, type PageFootLook, type PageSheetLook } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
@@ -1085,6 +1086,9 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
         {/* first-time hint on a blank resume — the canvas interactions aren't
           guessable ("what do I click? what do I type where?") */}
         {!exactCanvas && <BlankCanvasTip doc={doc} />}
+        {/* A page with Persian or Arabic letters is offered the right-to-left
+            setup once, in the same place; no other page ever sees it. */}
+        {!exactCanvas && <RtlOffer doc={doc} />}
         {/* Unmistakable mode flag — floating over the canvas while previewing;
             "Back to editing" returns to the editable page on every device. */}
         {previewExact && (

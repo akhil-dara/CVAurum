@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, Check, Search } from 'lucide-react'
-import { FONTS, FONTS_BY_CATEGORY, ensureFont, fontStack, type FontCategory } from '@/data/fonts'
+import { FONTS, FONTS_BY_CATEGORY, FONT_MAP, ensureFont, fontStack, type FontCategory } from '@/data/fonts'
 import { cn } from '@/lib/utils'
 
 const CATEGORY_LABELS: Record<FontCategory, string> = {
@@ -35,7 +35,7 @@ export function FontSelect({
     const needle = q.trim().toLowerCase()
     return ORDER.map((cat) => ({
       cat,
-      fonts: FONTS_BY_CATEGORY[cat].filter((f) => !needle || f.name.toLowerCase().includes(needle)),
+      fonts: FONTS_BY_CATEGORY[cat].filter((f) => !needle || (f.label ?? f.name).toLowerCase().includes(needle)),
     })).filter((g) => g.fonts.length)
   }, [q])
 
@@ -44,7 +44,7 @@ export function FontSelect({
       <label className="label">{label}</label>
       <button type="button" className="input flex items-center justify-between" onClick={() => setOpen((o) => !o)}>
         <span style={{ fontFamily: value ? fontStack(value) : undefined }} className="truncate">
-          {value || (allowInherit ? 'Same as body' : 'Select font')}
+          {(value && FONT_MAP[value]?.label) || value || (allowInherit ? 'Same as body' : 'Select font')}
         </span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
@@ -72,7 +72,7 @@ export function FontSelect({
                     {CATEGORY_LABELS[g.cat]}
                   </div>
                   {g.fonts.map((f) => (
-                    <Option key={f.name} name={f.name} value={value} onPick={onChange} setOpen={setOpen} />
+                    <Option key={f.name} name={f.name} label={f.label} value={value} onPick={onChange} setOpen={setOpen} />
                   ))}
                 </div>
               ))}

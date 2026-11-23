@@ -87,9 +87,12 @@ export function TextField({
   const t = useDebouncedText(value, onChange)
   return (
     <Labeled label={label} hint={hint}>
+      {/* dir="auto": a Persian or Arabic value reads right to left as it is
+          typed; Latin text resolves to ltr, exactly as before. */}
       <input
         className="input"
         type={type}
+        dir="auto"
         value={t.draft}
         placeholder={placeholder}
         onChange={(e) => t.set(e.target.value)}
@@ -118,6 +121,7 @@ export function TextAreaField({
     <Labeled label={label}>
       <textarea
         className="textarea"
+        dir="auto"
         rows={rows}
         value={t.draft}
         placeholder={placeholder}
@@ -319,6 +323,7 @@ export function TagInput({
         ))}
         <input
           className="min-w-[80px] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-muted-foreground/70"
+          dir="auto"
           value={draft}
           placeholder={value.length ? '' : (placeholder ?? 'Type and press Enter')}
           onChange={(e) => setDraft(e.target.value)}

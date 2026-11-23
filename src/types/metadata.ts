@@ -219,6 +219,8 @@ export const LayoutSchema = z.object({
   columns: z.union([z.literal(1), z.literal(2)]).default(1),
   /** mirror the resume itself right-to-left (Persian/Arabic content) */
   rtl: z.boolean().default(false),
+  /** the author said "Not now" to mirroring this resume (src/components/editor/RtlOffer.tsx) */
+  rtlOfferDismissed: z.boolean().default(false),
   /** header composition override (unset = the template's own header) */
   headerStyle: z.enum(['standard', 'centered', 'split', 'banner', 'compact', 'display', 'block', 'cover', 'card', 'stepped', 'band', 'kicker']).optional(),
   /** Where an entry's meta (date, place) sits: in the entry, in a tinted left
