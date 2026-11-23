@@ -14,7 +14,7 @@ vi.mock('./directedText', async (importOriginal) => {
   return { ...mod, withDirection: vi.fn(mod.withDirection) }
 })
 
-import { paintOps } from './paint'
+import { glyphPathToDrawPath, paintOps } from './paint'
 import { PdfFontCache } from './fonts'
 import { TWIN_KEY_BASE, withDirection } from './directedText'
 import { setBidi } from './text'
@@ -204,7 +204,16 @@ describe('paintOps: a decorative Arabic-script run in a face without Arabic', ()
     const page = doc.addPage([400, 200])
     const fonts = new PdfFontCache(doc, INDEX)
     const spy = vi.spyOn(fonts, 'embedGlyphOutlines')
+    const drawn = vi.spyOn(page, 'drawSvgPath').mock.calls
     await paintOps(page, [text(run({ text: 'علی', family: 'Arimo', weight: 700, direction: 'rtl', isDecorative: true }))], fonts, 200)
     expect(spy.mock.calls.map((c) => c[0])).toContain('Vazirmatn')
+    // And what it drew are Vazirmatn's own outlines for the joined word,
+    // right to left, never a missing-glyph box.
+    const vazGlyphs = layout5('علی', undefined, 'arab', undefined, 'rtl').glyphs as unknown as Array<{ id: number; path: Parameters<typeof glyphPathToDrawPath>[0] }>
+    const scale = 9 / vaz.unitsPerEm
+    expect(vazGlyphs.every((g) => g.id !== 0)).toBe(true)
+    expect(drawn.map((c) => c[0])).toEqual(vazGlyphs.map((g) => glyphPathToDrawPath(g.path, scale)).filter(Boolean))
+    const xs = drawn.map((c) => (c[1] as { x: number }).x)
+    expect([...xs].sort((a, b) => a - b)).toEqual(xs)
   })
 })
