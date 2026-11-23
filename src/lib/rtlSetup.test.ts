@@ -34,6 +34,19 @@ describe('applyRtlSetup', () => {
     expect(DATE_LANGUAGE_OPTIONS.some((o) => o.value === 'ar')).toBe(true)
   })
 
+  it('the words an open range ends with are spelled in the page language, unless the author typed their own', () => {
+    const fa = fresh()
+    applyRtlSetup(fa, { arabic: true, persian: true })
+    expect(fa.dates.present).toBe('اکنون')
+    const ar = fresh()
+    applyRtlSetup(ar, { arabic: true, persian: false })
+    expect(ar.dates.present).toBe('حتى الآن')
+    const own = fresh()
+    own.dates.present = 'تا امروز'
+    applyRtlSetup(own, { arabic: true, persian: true })
+    expect(own.dates.present).toBe('تا امروز')
+  })
+
   it('a document already set in an Arabic face changes only the direction and the dates', () => {
     const m = fresh()
     m.typography.fontFamily = ARABIC_FAMILY

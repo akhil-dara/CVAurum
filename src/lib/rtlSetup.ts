@@ -26,12 +26,16 @@ export function coversArabic(family: string): boolean {
  * in the page's language (the Persian calendar for Persian), and every face
  * that cannot draw Arabic script becomes the Arabic family. A face that can is
  * left alone, and so is an empty heading or name face, which already follows
- * the body. Turning the switch on by hand is the same call; turning it off
- * sets only the direction back.
+ * the body. An open range ends in the page language's word for Present.
+ * Turning the switch on by hand is the same call; turning it off sets only
+ * the direction back.
  */
 export function applyRtlSetup(metadata: Metadata, script: PageScript): void {
   metadata.layout.rtl = true
   metadata.dates.language = script.persian ? 'fa' : 'ar'
+  // The open range's last word, spelled in the page language too, but only
+  // while it is still the English default: a word the author typed stays.
+  if (metadata.dates.present.trim() === 'Present') metadata.dates.present = script.persian ? 'اکنون' : 'حتى الآن'
   const t = metadata.typography
   if (!coversArabic(t.fontFamily)) t.fontFamily = ARABIC_FAMILY
   if (t.headingFamily && !coversArabic(t.headingFamily)) t.headingFamily = ARABIC_FAMILY
