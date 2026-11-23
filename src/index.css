@@ -1,4 +1,5 @@
 @import './styles/fonts.css';
+@import './styles/fonts-arabic-fallback.css';
 @import './styles/print.css';
 
 @tailwind base;

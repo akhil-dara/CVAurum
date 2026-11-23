@@ -31,9 +31,16 @@ const slug = (family: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
+/** The CSS-only alias of the Arabic face (src/data/fonts.ts
+ *  ARABIC_FALLBACK_FAMILY, the arabic subset of the same files): the PDF draws
+ *  it from the real family's TTFs. Spelled out rather than imported, so this
+ *  module stays dependency-free; fonts.test.ts holds the two together. */
+const ALIASES: Record<string, string> = { 'vazirmatn-arabic': 'vazirmatn' }
+
 /** Pure font-key resolution: exact weight, else nearest weight in the family. */
 export function resolveFontKey(index: Record<string, string>, family: string, weight: number): string | null {
-  const fam = slug(family)
+  const own = slug(family)
+  const fam = ALIASES[own] ?? own
   if (index[`${fam}|${weight}`]) return `${fam}|${weight}`
   const weights = Object.keys(index)
     .filter((k) => k.startsWith(`${fam}|`))

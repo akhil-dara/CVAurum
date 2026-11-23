@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { PDFDocument } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import { resolveFontKey, PdfFontCache, PdfFontMissingError } from './fonts'
+import { ARABIC_FALLBACK_FAMILY } from '@/data/fonts'
 
 // Same CJS/ESM interop ambiguity fonts.ts and render.tsx both guard against —
 // see fonts.ts's comment. Only needed here for embed(), which calls
@@ -29,6 +30,11 @@ describe('resolveFontKey', () => {
   })
   it('returns null when the family is absent', () => {
     expect(resolveFontKey(INDEX, 'Comic Sans MS', 400)).toBeNull()
+  })
+  it('reads the Arabic fallback alias as the Arabic family it is drawn from', () => {
+    const index = { 'vazirmatn|400': 'v.ttf', 'vazirmatn|700': 'w.ttf' }
+    expect(resolveFontKey(index, ARABIC_FALLBACK_FAMILY, 400)).toBe('vazirmatn|400')
+    expect(resolveFontKey(index, `"${ARABIC_FALLBACK_FAMILY}", sans-serif`, 600)).toBe('vazirmatn|700')
   })
 })
 
@@ -119,23 +125,45 @@ describe('PdfFontCache.coverage: the script-fallback chain', () => {
     doc.registerFontkit(fontkit)
     const fonts = new PdfFontCache(doc, REAL_INDEX_ALL)
     const chain = await fonts.coverage('"Bebas Neue", "Oswald", "Inter", ui-sans-serif, system-ui, sans-serif', 400)
-    // ...then the Arabic family (the only bundled face with those letters, and
-    // the one a Persian name in a Latin resume is drawn in) and, before it,
-    // the bundled marks family, which is where a bullet glyph no text family
-    // has (◦ ▪ ✓ ◆) comes from - see src/data/fonts.ts.
+    // ...then the bundled marks family, which is where a bullet glyph no text
+    // family has (◦ ▪ ✓ ◆) comes from - see src/data/fonts.ts. A run with no
+    // Arabic letters never walks the Arabic family.
     expect(chain.map((c) => c.family.split(',')[0].replace(/"/g, ''))).toEqual([
       'Bebas Neue',
       'Oswald',
       'Inter',
-      'Vazirmatn',
       'CVAurum Marks',
     ])
     const cyrillicD = 'Д'.codePointAt(0)!
     expect(chain[0].has(cyrillicD)).toBe(false)
     expect(chain[1].has(cyrillicD)).toBe(true)
     const check = '✓'.codePointAt(0)!
-    expect(chain.slice(0, 4).some((c) => c.has(check))).toBe(false)
-    expect(chain[4].has(check)).toBe(true)
+    expect(chain.slice(0, 3).some((c) => c.has(check))).toBe(false)
+    expect(chain[3].has(check)).toBe(true)
+  })
+
+  it('walks the Arabic family only for a run with Arabic letters', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, REAL_INDEX_ALL)
+    const stack = '"Lato", "Inter", "Vazirmatn Arabic", "CVAurum Marks", sans-serif'
+    const names = async (text: string) => (await fonts.coverage(stack, 400, text)).map((c) => c.family)
+    // A Cyrillic name: Vazirmatn is never fetched, never embedded, never asked.
+    expect(await names('Даниил Гогов')).not.toContain('Vazirmatn')
+    expect(await names('Α→−é')).not.toContain('Vazirmatn')
+    // A Persian name in the same face: the letters come from Vazirmatn, as on
+    // the canvas.
+    expect((await names('علی رضایی')).slice(-2)).toEqual(['Vazirmatn', 'CVAurum Marks'])
+    // ...and the missing-glyph report agrees with both.
+    expect(await fonts.missingGlyphs(stack, 400, 'علی')).toEqual([])
+  })
+
+  it('a resume set in Vazirmatn keeps it as its own face for every run', async () => {
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const fonts = new PdfFontCache(doc, REAL_INDEX_ALL)
+    const chain = await fonts.coverage('"Vazirmatn", "Inter", "CVAurum Marks", sans-serif', 400, 'Senior engineer')
+    expect(chain[0].family.split(',')[0].replace(/"/g, '')).toBe('Vazirmatn')
   })
 
   it('a Latin-only family reports no missing Cyrillic, because the chain has it', async () => {

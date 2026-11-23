@@ -1260,7 +1260,7 @@ export async function paintOps(
       let pieces: Array<{ text: string; font: PDFFont | null }> | null = null
       let trackedSegments: Array<{ text: string; family: string }> | undefined
       if (mayNeedFallback(run.text, run.family)) {
-        const chain = await fonts.coverage(run.family, run.weight)
+        const chain = await fonts.coverage(run.family, run.weight, run.text)
         if (chain.length > 1) {
           const segs = segmentByCoverage(run.text, chain.map((c) => c.has))
           if (segs.some((s) => s.font !== 0)) {
