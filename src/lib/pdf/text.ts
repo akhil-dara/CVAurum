@@ -74,13 +74,7 @@ export function splitSegmentByDirection(text: string, base: 'rtl' | 'ltr'): Bidi
 /**
  * The direction pieces of one line segment's RAW text (indices valid for a
  * DOM Range over the node), or null when the segment stays one run: no bidi
- * installed, no strong right-to-left letter under a left-to-right base, or a
- * single ltr piece.
- *
- * Under a right-to-left base a segment splits without a right-to-left letter
- * too: "2013 — 2017" is two left-to-right years with a right-to-left dash
- * between them, drawn "2017 — 2013" on the canvas; a ": " alone is one
- * right-to-left piece, its space on the left.
+ * installed, no strong right-to-left letter, or a single ltr piece.
  *
  * Tabs and line breaks go to the algorithm as spaces. Bidi treats them as
  * segment and paragraph separators, which reset the embedding, while the
@@ -88,8 +82,7 @@ export function splitSegmentByDirection(text: string, base: 'rtl' | 'ltr'): Bidi
  * swap is one character for one, so every index still points into `raw`.
  */
 export function directionPieces(raw: string, base: 'rtl' | 'ltr'): BidiRun[] | null {
-  if (!bidiImpl) return null
-  if (base !== 'rtl' && (!RTL_BLOCKS.test(raw) || !bidiImpl.hasStrongRtl(raw))) return null
+  if (!bidiImpl || !RTL_BLOCKS.test(raw) || !bidiImpl.hasStrongRtl(raw)) return null
   const pieces = splitSegmentByDirection(raw.replace(/[\t\n\v\f\r\u001C-\u001F\u0085\u2029]/g, ' '), base)
   const folded = foldBlankPieces(raw, pieces)
   return folded.length > 1 || folded[0]?.rtl ? folded : null
