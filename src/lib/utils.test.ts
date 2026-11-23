@@ -402,3 +402,27 @@ describe('entryDateOptions', () => {
     })
   })
 })
+
+describe('Arabic span words follow the number', () => {
+  // Years: 1 singular, 2 dual, 3-10 plural, 11 and up singular (accusative
+  // for 11-99). Months the same, up to the 11 a span can hold.
+  const yrs = (n: number) => formatDuration('2000-01', `${2000 + n - 1}-12`, { language: 'ar' })
+  const mos = (n: number) => formatDuration('2000-01', `2000-${String(n).padStart(2, '0')}`, { language: 'ar' })
+  it('years', () => {
+    expect(yrs(1)).toBe('1 سنة')
+    expect(yrs(2)).toBe('2 سنتان')
+    expect(yrs(3)).toBe('3 سنوات')
+    expect(yrs(10)).toBe('10 سنوات')
+    expect(yrs(11)).toBe('11 سنة')
+  })
+  it('months', () => {
+    expect(mos(1)).toBe('1 شهر')
+    expect(mos(2)).toBe('2 شهران')
+    expect(mos(3)).toBe('3 أشهر')
+    expect(mos(10)).toBe('10 أشهر')
+    expect(mos(11)).toBe('11 شهرًا')
+  })
+  it('other languages keep their one-or-many words', () => {
+    expect(formatDuration('2000-01', '2001-12')).toBe('2 yrs')
+  })
+})

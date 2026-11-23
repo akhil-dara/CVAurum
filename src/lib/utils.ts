@@ -403,7 +403,31 @@ export function formatDateRange(start?: string, end?: string, opts: DateRangeOpt
  * spans would quietly print in English. Month names need no table - the
  * runtime knows those for any tag, including one typed by hand.
  */
-const DATE_LANGUAGES: Record<string, { label: string; words: [yr: string, yrs: string, mo: string, mos: string] }> = {
+/** Arabic counts by number: singular for 1, dual for 2, plural for 3-10,
+ *  accusative singular for 11-99, and singular past a hundred (101, 102 and
+ *  whole hundreds read as one). A span never holds more than 11 months. */
+function arabicCount(n: number, unit: 'year' | 'month'): string {
+  const [one, two, few, many, hundred] =
+    unit === 'year'
+      ? ['سنة', 'سنتان', 'سنوات', 'سنة', 'سنة']
+      : ['شهر', 'شهران', 'أشهر', 'شهرًا', 'شهر']
+  if (n === 1) return one
+  if (n === 2) return two
+  const r = n % 100
+  if (r >= 3 && r <= 10) return few
+  if (r >= 11) return many
+  return hundred
+}
+
+const DATE_LANGUAGES: Record<
+  string,
+  {
+    label: string
+    words: [yr: string, yrs: string, mo: string, mos: string]
+    /** The unit word for a count, where one-or-many is not enough. */
+    count?: (n: number, unit: 'year' | 'month') => string
+  }
+> = {
   en: { label: 'English', words: ['yr', 'yrs', 'mo', 'mos'] },
   de: { label: 'German', words: ['J.', 'J.', 'Mon.', 'Mon.'] },
   fr: { label: 'French', words: ['an', 'ans', 'mois', 'mois'] },
@@ -418,7 +442,7 @@ const DATE_LANGUAGES: Record<string, { label: string; words: [yr: string, yrs: s
   fa: { label: 'Persian', words: ['سال', 'سال', 'ماه', 'ماه'] },
   // Arabic: one year, years, one month, months. Set by the right-to-left
   // setup for a resume in Arabic (src/lib/rtlSetup.ts).
-  ar: { label: 'Arabic', words: ['سنة', 'سنوات', 'شهر', 'أشهر'] },
+  ar: { label: 'Arabic', words: ['سنة', 'سنوات', 'شهر', 'أشهر'], count: arabicCount },
   tr: { label: 'Turkish', words: ['yıl', 'yıl', 'ay', 'ay'] },
   hi: { label: 'Hindi', words: ['वर्ष', 'वर्ष', 'माह', 'माह'] },
   ja: { label: 'Japanese', words: ['年', '年', 'か月', 'か月'] },
@@ -470,10 +494,11 @@ export function formatDuration(start?: string, end?: string, opts: { now?: strin
   const months = b - a + 1
   const years = Math.floor(months / 12)
   const rest = months % 12
-  const [yr, yrs, mo, mos] = DATE_LANGUAGES[durationLanguage(opts.language)].words
+  const lang = DATE_LANGUAGES[durationLanguage(opts.language)]
+  const [yr, yrs, mo, mos] = lang.words
   const parts: string[] = []
-  if (years) parts.push(`${years} ${years === 1 ? yr : yrs}`)
-  if (rest) parts.push(`${rest} ${rest === 1 ? mo : mos}`)
+  if (years) parts.push(`${years} ${lang.count ? lang.count(years, 'year') : years === 1 ? yr : yrs}`)
+  if (rest) parts.push(`${rest} ${lang.count ? lang.count(rest, 'month') : rest === 1 ? mo : mos}`)
   return parts.join(' ')
 }
 
