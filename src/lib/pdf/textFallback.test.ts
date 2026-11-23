@@ -9,6 +9,13 @@ describe('mayNeedFallback', () => {
     expect(mayNeedFallback('Senior Software Engineer — 2021 – Present, €50k, “quoted”')).toBe(false)
     expect(mayNeedFallback('Ştefan Łukasz Đorđe Ünal')).toBe(false)
   })
+  // No bundled face draws a right arrow (Inter's Latin cut carries only the
+  // up and down ones), so an arrow waved through drew the missing-glyph box:
+  // an empty square on the page, nothing in the text layer, and a file that
+  // fails PDF/A and PDF/UA (a .notdef glyph in use).
+  it('checks a run with an arrow in it', () => {
+    expect(mayNeedFallback('REST → GraphQL')).toBe(true)
+  })
   it('flags Cyrillic, Greek and other scripts', () => {
     expect(mayNeedFallback('Даниил Гогов')).toBe(true)
     expect(mayNeedFallback('Αλέξανδρος')).toBe(true)
