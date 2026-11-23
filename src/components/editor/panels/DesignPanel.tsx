@@ -21,7 +21,7 @@ import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
 import { justifiedBlocks } from '@/lib/pdf/looseLines'
 import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
 import { documentScript } from '@/lib/script'
-import { applyRtlSetup } from '@/lib/rtlSetup'
+import { applyRtlSetup, type PageScript } from '@/lib/rtlSetup'
 
 /** Date languages written in Arabic script: offered only where the page is. */
 const ARABIC_SCRIPT_DATE_LANGUAGES = new Set(['fa', 'ar'])
@@ -171,7 +171,8 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   // Persian and Arabic dates are offered to a page that has Arabic-script
   // letters, or already reads in one of them; a Latin resume's list is the
   // one it always was.
-  const arabicPage = useMemo(() => documentScript(doc).arabic, [doc])
+  const script = useMemo(() => documentScript(doc), [doc])
+  const arabicPage = script.arabic
   const dateLanguageOptions = useMemo(
     () =>
       DATE_LANGUAGE_OPTIONS.filter(
@@ -1326,7 +1327,7 @@ note={notes[r.key]}
             letters or is already mirrored: someone who never writes Persian
             or Arabic never meets the switch. A resume that does is offered
             the same setup on the canvas (RtlOffer). */}
-        <RtlSwitch doc={doc} />
+        <RtlSwitch doc={doc} script={script} />
       </FieldGroup>
 
       <FieldGroup title="Page">
@@ -1445,9 +1446,8 @@ note={notes[r.key]}
  * chosen one has no Arabic letters); off, it sets only the direction back, so
  * the faces and dates the author now has stay theirs.
  */
-function RtlSwitch({ doc }: { doc: ResumeDocument }) {
+function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript }) {
   const update = useResumeStore((s) => s.updateMetadata)
-  const script = useMemo(() => documentScript(doc), [doc])
   if (!script.arabic && !doc.metadata.layout.rtl) return null
   return (
     <div>
