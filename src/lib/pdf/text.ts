@@ -55,6 +55,9 @@ export async function prepareBidi(arabic: boolean, load: () => Promise<BidiImpl>
  * are not strong): a string with none of these cannot hold a strong rtl
  * letter, so the bidi functions are never asked about it.
  */
+/** An Arabic-script letter: a cursive script, which the browser never letter-spaces. */
+const ARABIC_LETTER = /(?=[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-ﻼ])\p{L}/u
+
 const RTL_BLOCKS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]|[\uD802\uD803\uD83A\uD83B][\uDC00-\uDFFF]/
 
 /**
@@ -800,9 +803,10 @@ function decorationOf(cs: CSSStyleDeclaration, want: 'underline' | 'line-through
  *  sub-pixel seams between client rects, and no more. */
 const BLANK_TOUCH_PX = 1.5
 
-/** True when `b` sits against `core` on one side (see BLANK_TOUCH_PX). */
+/** True when `b` has a width (a space hanging at a line end has none and
+ *  draws nothing) and sits against `core` on one side (see BLANK_TOUCH_PX). */
 const touches = (b: { left: number; right: number }, core: { left: number; right: number }) =>
-  b.left <= core.right + BLANK_TOUCH_PX && b.right >= core.left - BLANK_TOUCH_PX
+  b.right - b.left > 0.5 && b.left <= core.right + BLANK_TOUCH_PX && b.right >= core.left - BLANK_TOUCH_PX
 
 /**
  * `core` - a run's text without its outer spaces - with one space put back on
@@ -953,6 +957,9 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
           baselinePx,
           isDecorative: false,
           ...(split[pi].rtl ? { direction: 'rtl' as const } : {}),
+          // Chromium letter-spaces no cursive script: Arabic is drawn joined
+          // and untracked whatever `letter-spacing` says, so the file is too.
+          ...(ARABIC_LETTER.test(placed.text) ? { letterSpacingPx: 0 } : {}),
         })
       }
     }

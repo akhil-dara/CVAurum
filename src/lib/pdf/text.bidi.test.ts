@@ -200,7 +200,7 @@ describe('extractRuns emits one run per direction', () => {
    * left edge of logical character i (each 10px wide). A Range's boxes are
    * the union of its characters' boxes.
    */
-  function stubDom(xOf: (i: number) => number, direction: 'ltr' | 'rtl') {
+  function stubDom(xOf: (i: number) => number, direction: 'ltr' | 'rtl', letterSpacing = 'normal') {
     const box = (s: number, e: number) => {
       let left = Infinity
       let right = -Infinity
@@ -236,7 +236,7 @@ describe('extractRuns emits one run per direction', () => {
       fontFamily: 'Vazirmatn',
       whiteSpace: 'normal',
       textTransform: 'none',
-      letterSpacing: 'normal',
+      letterSpacing,
       direction,
     })) as unknown as typeof getComputedStyle
   }
@@ -317,6 +317,20 @@ describe('extractRuns emits one run per direction', () => {
     expect(runs.map((r) => [r.text, r.xPx, r.widthPx])).toEqual([[' :', 50, 20]])
   })
 
+  it('draws Arabic script untracked, as the browser does, and keeps the tracking of the Latin beside it', () => {
+    // chronicle's tracked title: Chromium spaces no cursive script, so the
+    // canvas shows the Persian joined and untracked. Tracked in the file, its
+    // letters came apart and the run ran over the dash beside it.
+    const data = 'Vertex مهندس'
+    stubDom((i) => (i < 7 ? i * 10 : 70 + (11 - i) * 10), 'ltr', '1.5px')
+    setBidi(bidi)
+    const runs = extractRuns(textNode(data), root)
+    expect(runs.map((r) => [r.text, r.letterSpacingPx])).toEqual([
+      ['Vertex ', 1.5],
+      ['مهندس', 0],
+    ])
+  })
+
   it('falls back to one run for Persian when no bidi is installed', () => {
     const data = 'Vertex مهندس'
     stubDom((i) => (i < 7 ? i * 10 : 70 + (11 - i) * 10), 'ltr')
@@ -341,6 +355,11 @@ describe('placeBlanks (the spaces of a run go where the browser drew them)', () 
     // harvard, a right-to-left page: "· English (C1)", where the space before
     // the "English" node sits to the right of "(C1)", not of "English".
     expect(placeBlanks('English', { left: 0, right: 43 }, [{ left: 71, right: 75 }], false)).toBe('English')
+  })
+
+  it('leaves out a space with no width: the one hanging at a line end draws nothing', () => {
+    // clarity: "... React و " broken after و; the space after it hangs at the line end.
+    expect(placeBlanks('و', { left: 246, right: 251 }, [{ left: 251, right: 254 }, { left: 246, right: 246 }], true)).toBe(' و')
   })
 
   it('never doubles a space on one side', () => {
