@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PDFDocument, type PDFFont } from 'pdf-lib'
+import { PDFDocument, PDFRawStream, decodePDFRawStream, type PDFFont } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
 import { directedLayout, shapingDirection, withDirection } from './directedText'
+import * as bidiImpl from './bidi'
+import { mirrorRtl, setBidi } from './text'
 
 const fontkit = ((fontkitNs as unknown as { default?: unknown }).default ?? fontkitNs) as Parameters<
   PDFDocument['registerFontkit']
@@ -109,6 +111,13 @@ describe('withDirection: state is restored', () => {
       expect(glyphIds(font.encodeText('۱۴۰۲').toString())).toEqual(ltr)
     })
   })
+
+  it('nests: the inner direction is the one an inner call shapes in', async () => {
+    const { font } = await embed(VAZIRMATN)
+    const rtl = [0x6f2, 0x6f0, 0x6f4, 0x6f1].map(idOf)
+    const inner = withDirection(font, 'ltr', () => withDirection(font, 'rtl', () => font.encodeText('۱۴۰۲')))
+    expect(glyphIds(inner.toString())).toEqual(rtl)
+  })
 })
 
 describe('withDirection: the subset embedder keeps the glyphs it draws', () => {
@@ -143,5 +152,57 @@ describe('directedLayout (the decorative outline path)', () => {
     const plain = fk.layout('۱۴۰۲').glyphs.map((g) => g.id)
     expect(directedLayout(fk, '۱۴۰۲', null).glyphs.map((g) => g.id)).toEqual(plain)
     expect(directedLayout(fk, '۱۴۰۲', 'ltr').glyphs.map((g) => g.id)).toEqual([...plain].reverse())
+  })
+})
+
+/** Every (code -> text) pair of the saved file's ToUnicode CMaps. */
+async function toUnicode(bytes: Uint8Array): Promise<Map<number, string>> {
+  const back = await PDFDocument.load(bytes)
+  const out = new Map<number, string>()
+  for (const [, obj] of back.context.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFRawStream)) continue
+    const text = new TextDecoder().decode(decodePDFRawStream(obj).decode())
+    if (!text.includes('beginbfchar')) continue
+    for (const m of text.matchAll(/<([0-9a-f]{4})> <([0-9a-f]+)>/gi)) {
+      const units = (m[2].match(/.{4}/g) ?? []).map((h) => parseInt(h, 16))
+      out.set(parseInt(m[1], 16), String.fromCharCode(...units))
+    }
+  }
+  return out
+}
+
+describe('withDirection: the text layer of a right-to-left run reads back as written', () => {
+  // Every extractor in use (pdf.js, poppler) reads a run's glyphs left to
+  // right as drawn and then reverses the right-to-left stretch, character by
+  // character. Two glyphs break that unless the file says what they stand
+  // for the way those readers will turn it around.
+  it('maps the lam-alef ligature in drawn order, so the reversal reads لا and not ال', async () => {
+    const { doc, font } = await embed(VAZIRMATN, true)
+    const codes = glyphIds(withDirection(font, 'rtl', () => font.encodeText('کالا')).toString())
+    const map = await toUnicode(await doc.save())
+    const read = codes.map((c) => map.get(c) ?? '?').join('')
+    // Drawn left to right: the ligature, then ا, then ک. Reversed: ک ا ل ا.
+    expect([...read].reverse().join('')).toBe('کالا')
+  })
+
+  it('maps a mirrored bracket to the character the author typed, and the same bracket left to right to itself', async () => {
+    setBidi(bidiImpl)
+    try {
+      const { doc, font } = await embed(VAZIRMATN, true)
+      // The painter mirrors an rtl run before shaping it (paint.ts mirrorRtl).
+      const rtl = glyphIds(withDirection(font, 'rtl', () => font.encodeText(mirrorRtl('(مادری)'))).toString())
+      const ltr = glyphIds(font.encodeText('(C1)').toString())
+      const map = await toUnicode(await doc.save())
+      const rtlRead = rtl.map((c) => map.get(c) ?? '?').join('')
+      expect([...rtlRead].reverse().join('')).toBe('(مادری)')
+      expect(ltr.map((c) => map.get(c) ?? '?').join('')).toBe('(C1)')
+      // The drawn shape is still the mirrored one: the leftmost glyph of the
+      // rtl run is the same outline as the ltr opening bracket.
+      const sub = (font as unknown as { embedder: { subset: { glyphs: number[] } } }).embedder.subset.glyphs
+      expect(sub[rtl[0]]).toBe(sub[ltr[0]])
+      expect(rtl[0]).not.toBe(ltr[0])
+    } finally {
+      setBidi(null)
+    }
   })
 })

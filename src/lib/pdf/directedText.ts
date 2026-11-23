@@ -22,6 +22,7 @@
 // old call unchanged.
 import type { PDFFont } from 'pdf-lib'
 import type { TextRun } from './types'
+import { mirrorRtl } from './text'
 
 export type ShapingDirection = 'rtl' | 'ltr'
 
@@ -53,6 +54,7 @@ const ZWJ = 0x200d
 interface FkGlyph {
   id: number
   advanceWidth: number
+  codePoints?: number[]
 }
 /** The slice of a fontkit glyph run this module reads and rewrites. */
 interface FkGlyphRun {
@@ -120,6 +122,86 @@ export function directedLayout<R>(font: { layout: (text: string) => R }, text: s
   return keepJoiners(fk, fk.layout(text, undefined, scriptFor(direction), undefined, direction), text) as unknown as R
 }
 
+/** Where a twin glyph's key starts: past any glyph id a font can have (16-bit). */
+export const TWIN_KEY_BASE = 0x10000
+
+/** The slice of fontkit's subset (a TTF subset) that `twinSlot` extends. */
+interface FkSubset {
+  glyphs: number[]
+  includeGlyph: (glyph: number | { id: number }) => number
+  glyphEncoder?: unknown
+  cvaTwins?: Map<number, number>
+}
+
+/**
+ * Lets `subset` hold a second copy of a glyph: a glyph object carrying
+ * `cvaTwinOf` (the original id) gets a slot of its own, the same outline and
+ * advance under another subset id, so that id can carry another ToUnicode
+ * entry. Installed once per subset; every other glyph takes fontkit's own
+ * path. False for a subset this cannot extend (anything but a TrueType one).
+ */
+function twinSlots(subset: FkSubset | undefined): boolean {
+  if (!subset || !Array.isArray(subset.glyphs) || subset.glyphEncoder === undefined) return false
+  if (subset.cvaTwins) return true
+  const twins = new Map<number, number>()
+  const own = subset.includeGlyph
+  subset.cvaTwins = twins
+  subset.includeGlyph = function (this: FkSubset, glyph) {
+    const of = typeof glyph === 'object' ? (glyph as { cvaTwinOf?: number }).cvaTwinOf : undefined
+    if (of === undefined) return own.call(this, glyph)
+    let at = twins.get(of)
+    if (at === undefined) {
+      this.glyphs.push(of)
+      at = this.glyphs.length - 1
+      twins.set(of, at)
+    }
+    return at
+  }
+  return true
+}
+
+/**
+ * The glyphs of a shaped right-to-left run, as the text layer must name them.
+ *
+ * pdf-lib writes each glyph's ToUnicode from the glyph's `codePoints`, and
+ * every extractor in use (pdf.js, poppler) reads a run's glyphs left to right
+ * as drawn, then turns the right-to-left stretch around character by
+ * character. Two kinds of glyph come out wrong under that:
+ *   - a LIGATURE (lam-alef) names its letters in logical order, لا, which the
+ *     reversal turns into ال: "کالا" read back as "کاال". It is named in
+ *     drawn order instead, so the reversal restores it.
+ *   - a MIRRORED bracket: the run was mirrored before shaping (paint.ts
+ *     mirrorRtl), so the glyph drawn for a typed "(" is the ")" glyph, named
+ *     ")": "(مادری)" read back as ")مادری(". It is named by the character
+ *     the author typed. One glyph id carries one name, and the same bracket
+ *     drawn left to right must keep its own, so the mirrored use is drawn
+ *     from a TWIN of the glyph (`twinSlots`): the same outline under its own
+ *     subset id. Where the subset cannot hold a twin the name is left as it
+ *     was.
+ * Every other glyph is returned as it is.
+ */
+function textLayerGlyphs(glyphs: FkGlyph[], subset: FkSubset | undefined): FkGlyph[] {
+  let twins: boolean | null = null
+  return glyphs.map((g) => {
+    const cps = g.codePoints
+    if (!cps || !cps.length) return g
+    if (cps.length > 1) return Object.create(g, { codePoints: { value: [...cps].reverse() } }) as FkGlyph
+    const drawn = String.fromCodePoint(cps[0])
+    const typed = mirrorRtl(drawn)
+    if (typed === drawn) return g
+    twins ??= twinSlots(subset)
+    if (!twins) return g
+    return Object.create(g, {
+      // Its own key for pdf-lib's (glyph id -> subset id) map, and the
+      // original's advance and id for everything that measures it.
+      id: { value: TWIN_KEY_BASE + g.id },
+      advanceWidth: { value: g.advanceWidth },
+      cvaTwinOf: { value: g.id },
+      codePoints: { value: [...typed].map((c) => c.codePointAt(0) ?? 0) },
+    }) as FkGlyph
+  })
+}
+
 /**
  * Runs `fn` with `font` shaping in `direction`: every `encodeText` and
  * `widthOfTextAtSize` it makes lays the text out with fontkit
@@ -133,21 +215,30 @@ export function directedLayout<R>(font: { layout: (text: string) => R }, text: s
  * font object for the length of `fn` and taken off again afterwards, also when
  * `fn` throws, so nothing changes for any other font or any later call. The
  * subset embedder records the glyphs the wrapped layout returns, so the glyph
- * ids it keeps for the subset are exactly the ones drawn. A font with no
+ * ids it keeps for the subset are exactly the ones drawn. A right-to-left
+ * run's glyphs are also renamed for the text layer (`textLayerGlyphs`), so a
+ * ligature and a mirrored bracket read back as typed. A font with no
  * fontkit font behind it (a standard font) runs `fn` unchanged.
  *
  * `fn` must be synchronous: the layout is restored when it returns.
  */
 export function withDirection<T>(font: PDFFont, direction: ShapingDirection, fn: () => T): T {
-  const embedder = (font as unknown as { embedder?: { font?: FkFont } }).embedder
+  const embedder = (font as unknown as { embedder?: { font?: FkFont; subset?: FkSubset } }).embedder
   const fk = embedder?.font
   if (!fk || typeof fk.layout !== 'function') return fn()
   const hadOwn = Object.prototype.hasOwnProperty.call(fk, 'layout')
   const previous = fk.layout
+  // fontkit's own layout, under any direction an outer call set: a nested
+  // call shapes in ITS direction, not the outer one's.
+  const base = (previous as { cvaBase?: FkFont['layout'] }).cvaBase ?? previous
   const script = scriptFor(direction)
-  fk.layout = function directed(this: FkFont, text: string, features?: unknown) {
-    return keepJoiners(fk, previous.call(this, text, features, script, undefined, direction), text)
+  const directed = function directed(this: FkFont, text: string, features?: unknown) {
+    const run = keepJoiners(fk, base.call(this, text, features, script, undefined, direction), text)
+    if (direction === 'rtl') run.glyphs = textLayerGlyphs(run.glyphs, embedder?.subset)
+    return run
   }
+  ;(directed as { cvaBase?: FkFont['layout'] }).cvaBase = base
+  fk.layout = directed
   try {
     return fn()
   } finally {

@@ -16,7 +16,7 @@ vi.mock('./directedText', async (importOriginal) => {
 
 import { paintOps } from './paint'
 import { PdfFontCache } from './fonts'
-import { withDirection } from './directedText'
+import { TWIN_KEY_BASE, withDirection } from './directedText'
 import { setBidi } from './text'
 import * as bidi from './bidi'
 import type { DrawOp, TextRun } from './types'
@@ -97,7 +97,10 @@ async function paint(ops: DrawOp[], trackingEm = 0): Promise<Drawn[]> {
   for (const [key, ref] of dict?.entries() ?? []) {
     const hit = known.find(([, f]) => f.ref === ref)
     const map = hit ? (hit[1] as unknown as { embedder: { glyphIdMap: Map<number, number> } }).embedder.glyphIdMap : new Map()
-    faces.set(key.asString().slice(1), { face: hit ? hit[0] : 'other', back: new Map([...map].map(([o, s]) => [s, o])) })
+    // A twin (a mirrored bracket's own copy of a glyph) reads back as the
+    // glyph whose outline it draws.
+    const outline = (o: number) => (o >= TWIN_KEY_BASE ? o - TWIN_KEY_BASE : o)
+    faces.set(key.asString().slice(1), { face: hit ? hit[0] : 'other', back: new Map([...map].map(([o, s]) => [s, outline(o)])) })
   }
   const stream = (page as unknown as { getContentStream: () => { getContentsString(): string } })
     .getContentStream()
