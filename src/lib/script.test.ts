@@ -3,7 +3,7 @@ import { createDocument } from '@/data/defaults'
 import { ARABIC_FAMILY, usesArabicScript } from '@/data/fonts'
 import type { ResumeDocument } from '@/types/document'
 import { documentFaces } from './documentFaces'
-import { documentScript } from './script'
+import { documentScript, drawnScript } from './script'
 
 /** A blank resume with `edit` applied to it - the fixture every case starts from. */
 function docWith(edit: (d: ResumeDocument) => void): ResumeDocument {
@@ -117,5 +117,37 @@ describe('documentFaces', () => {
   it('with metadata alone, names only the chosen faces', () => {
     const d = docWith((d) => (d.content.basics.name = 'علیرضا'))
     expect(documentFaces({ metadata: d.metadata })).not.toContain(ARABIC_FAMILY)
+  })
+})
+
+describe('drawnScript also reads the decorative words the page draws', () => {
+  it('an English resume with a Persian page-foot label draws Arabic script', () => {
+    const d = docWith((d) => {
+      d.metadata.layout.pageFoot = true
+      d.metadata.layout.pageFootLabel = 'رزومه'
+    })
+    // The ATS text never carries the foot, so the page's script is Latin...
+    expect(documentScript(d)).toEqual({ arabic: false, persian: false })
+    // ...but the painter draws Persian letters, so the export needs bidi.
+    expect(drawnScript(d)).toEqual({ arabic: true, persian: false })
+  })
+
+  it('reads the kicker and the stat-tile labels and values', () => {
+    const kicker = docWith((d) => (d.metadata.layout.kicker = { left: 'گزارش' }))
+    expect(drawnScript(kicker)).toEqual({ arabic: true, persian: true })
+    const tile = docWith((d) => (d.metadata.layout.statTiles = [{ id: 't1', kind: 'custom', label: 'سال', value: '۱۲' }]))
+    expect(drawnScript(tile).arabic).toBe(true)
+  })
+
+  it('a Latin resume is neither', () => {
+    expect(drawnScript(docWith(() => {}))).toEqual({ arabic: false, persian: false })
+  })
+
+  it('an Arabic page-foot label makes the faces include the Arabic face', () => {
+    const d = docWith((d) => {
+      d.metadata.layout.pageFoot = true
+      d.metadata.layout.pageFootLabel = 'رزومه'
+    })
+    expect(documentFaces(d)).toContain(ARABIC_FAMILY)
   })
 })

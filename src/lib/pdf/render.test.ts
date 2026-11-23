@@ -13,6 +13,7 @@ import {
 } from './render'
 import { createDocument } from '@/data/defaults'
 import { ARABIC_FAMILY } from '@/data/fonts'
+import { drawnScript } from '@/lib/script'
 import { PaginationImpossibleError } from './paginate'
 import type { PageBlock } from './paginate'
 import type { DecoBox } from './types'
@@ -195,5 +196,18 @@ describe('the bidi hook (installed for the walk and the paint)', () => {
     const fin = source.lastIndexOf('} finally {')
     expect(fin).toBeGreaterThan(source.indexOf('await prepareBidi('))
     expect(source.slice(fin, fin + 200)).toContain('setBidi(null)')
+  })
+
+  it('is installed by what the page draws, decorative words included', () => {
+    // An English resume whose page-foot label is Persian: documentScript (the
+    // ATS text) is Latin, but the painter draws 'رزومه' and must shape it.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'render.tsx'), 'utf8')
+    expect(source).toMatch(/const script = drawnScript\(doc\)\s*await prepareBidi\(script\.arabic\)/)
+    const doc = createDocument()
+    doc.content.basics.name = 'Alex Morgan'
+    doc.metadata.layout.pageFoot = true
+    doc.metadata.layout.pageFootLabel = 'رزومه'
+    expect(drawnScript(doc).arabic).toBe(true)
+    expect(exportFaces(doc)).toContain(ARABIC_FAMILY)
   })
 })

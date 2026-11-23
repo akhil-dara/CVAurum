@@ -39,7 +39,7 @@ import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { preparePrintTree } from './prepareTree'
 import { prepareBidi, setBidi, visualLines } from './text'
-import { documentScript } from '@/lib/script'
+import { drawnScript } from '@/lib/script'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
 import { resolveForcedCutsPx } from './pageBreaks'
@@ -427,7 +427,9 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
     // one run per direction, which needs the bidi algorithm. It is loaded
     // here, and only for a resume with Arabic-script text: a Latin export
     // never fetches it, and every one of its runs is walked exactly as before.
-    const script = documentScript(doc)
+    // It reads what the page DRAWS, decorative words included (a Persian
+    // page-foot label on an English resume), not only what a parser reads.
+    const script = drawnScript(doc)
     await prepareBidi(script.arabic)
     const ops = buildDrawList(sheet, { clickableLinks: doc.metadata.links?.clickable !== false })
 

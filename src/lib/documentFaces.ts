@@ -2,7 +2,7 @@ import type { Metadata } from '@/types/metadata'
 import type { ResumeContent } from '@/types/document'
 import { getTemplate } from '@/templates/registry'
 import { ARABIC_FAMILY } from '@/data/fonts'
-import { documentScript } from '@/lib/script'
+import { drawnScript } from '@/lib/script'
 
 /**
  * Every family a document's page is drawn in: its body, heading and name
@@ -22,9 +22,10 @@ export function documentFaces(doc: { metadata: Metadata; content?: ResumeContent
   const { metadata, content } = doc
   const t = metadata.typography
   const faces = [t.fontFamily, t.headingFamily, t.nameFamily, ...(getTemplate(metadata.template).fonts ?? [])]
-  // Only what the page shows decides it: a hidden section, an address or a
-  // byte-order mark never adds the face (src/lib/script.ts). Without content
-  // the caller asks for the chosen faces alone.
-  if (content && documentScript({ metadata, content }).arabic) faces.push(ARABIC_FAMILY)
+  // Only what the page draws decides it: a hidden section, an address or a
+  // byte-order mark never adds the face, a Persian page-foot label or kicker
+  // does (src/lib/script.ts drawnScript). Without content the caller asks for
+  // the chosen faces alone.
+  if (content && drawnScript({ metadata, content }).arabic) faces.push(ARABIC_FAMILY)
   return [...new Set(faces.filter(Boolean))]
 }
