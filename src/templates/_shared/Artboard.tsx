@@ -3,7 +3,7 @@
  * resume DOM. All visual parameters become CSS variables on .rm-root so the
  * exact same tree renders on screen and in the printed PDF.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import { contactLabel, contactLines, contactsInSidebar, type ContactLine } from './contacts'
 import type { RenderMode, TemplateConfig } from '@/types/template'
@@ -783,9 +783,14 @@ function Contacts({ entries, icons, cls, rtl }: { entries: ContactEntry[]; icons
         const link = e.kind === 'url' || e.kind === 'profile'
         const value = link ? <AddressText text={e.text} wrap={wrap} /> : e.text
         return (
-          <span className={`rm-contact${link ? ' rm-contact-link' : ''}`} key={i} dir={rtl ? 'auto' : undefined}>
+          // The item follows the page, so on a right-to-left page its icon is
+          // always on the right; only the value picks its own direction, so a
+          // phone keeps its digits in order. An item that resolved its own
+          // direction put an email's icon on the left and a city's on the
+          // right, and two icons met in the middle (owner report, 2026-11-23).
+          <span className={`rm-contact${link ? ' rm-contact-link' : ''}`} key={i}>
             {strip ? <Deco className="rm-contact-label">{e.label}</Deco> : icons ? e.icon : null}
-            {e.href ? <a href={e.href}>{value}</a> : <span>{value}</span>}
+            {e.href ? <a href={e.href} dir={rtl ? 'auto' : undefined}>{value}</a> : <span dir={rtl ? 'auto' : undefined}>{value}</span>}
           </span>
         )
       })}
@@ -831,13 +836,13 @@ function EditableContacts({
   ) => (
     <span
       className={`rm-contact${link ? ' rm-contact-link' : ''}${linked ? ' rm-contact-linked' : ''}${linked === 'auto' ? ' rm-contact-auto' : ''}`}
-      // One contact item is one value: a phone keeps its digits in order and a
-      // city reads the way it is written, whatever the page's direction.
-      dir={doc.metadata.layout.rtl ? 'auto' : undefined}
       key={key}
     >
       {strip ? <Deco className="rm-contact-label">{label ?? ''}</Deco> : icons ? icon : null}
-      {el}
+      {/* The item follows the page (its icon on the reading side); the value
+          alone picks its own direction, so a phone keeps its digits in order
+          and a city reads the way it is written. See Contacts. */}
+      {doc.metadata.layout.rtl && isValidElement<{ dir?: 'auto' }>(el) ? cloneElement(el, { dir: 'auto' }) : el}
       {after}
     </span>
   )
