@@ -1419,6 +1419,28 @@ function lastFlowChildBox(el: HTMLElement, root: HTMLElement): Box | null {
   return null
 }
 
+/**
+ * Where a pseudo's generated TEXT starts. `pseudoBox` puts a static pseudo at
+ * the host's origin, its left edge, which is where a `::before` starts a
+ * left-to-right line. A right-to-left line starts at the host's RIGHT edge,
+ * inside its padding and border, and the text runs leftward from there:
+ * technical's `// ` before each heading sat across the page from the heading
+ * in the PDF, while the canvas drew it at the start of the line. Positioned
+ * pseudos, flex hosts (`pseudoBox` lays those out) and `::after` keep the
+ * box's own x.
+ */
+export function staticPseudoTextX(
+  cs: Pick<CSSStyleDeclaration, 'position' | 'direction'>,
+  hostCs: Pick<CSSStyleDeclaration, 'display' | 'paddingRight' | 'borderRightWidth'>,
+  box: Box,
+  textWidthPx: number,
+  which: '::before' | '::after'
+): number {
+  const flexHost = hostCs.display === 'flex' || hostCs.display === 'inline-flex'
+  if (which !== '::before' || cs.position !== 'static' || cs.direction !== 'rtl' || flexHost) return box.xPx
+  return box.xPx + box.wPx - (parsePx(hostCs.paddingRight) || 0) - (parsePx(hostCs.borderRightWidth) || 0) - textWidthPx
+}
+
 function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::before' | '::after'): void {
   const cs = getComputedStyle(el, which)
   if (cs.content === 'none' || cs.display === 'none') return
@@ -1492,7 +1514,9 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
 
   const text = pseudoContentText(cs.content)
   if (!text) return
-  const run = styledTextRun(cs, text, box.xPx, box.yPx)
+  const rtlStart = which === '::before' && cs.position === 'static' && cs.direction === 'rtl'
+  const textWidth = rtlStart ? measureLaidOutWidthPx(text, cs) || measureTextWidthPx(text, `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`) : 0
+  const run = styledTextRun(cs, text, staticPseudoTextX(cs, hostCs, box, textWidth, which), box.yPx)
   if (run)
     ops.push({
       kind: 'text',

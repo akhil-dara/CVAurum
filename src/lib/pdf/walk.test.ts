@@ -7,6 +7,7 @@ import {
   pseudoContentText,
   svgShapeToPathD,
   pseudoBox,
+  staticPseudoTextX,
   elementOpacity,
   cornerRadii,
   BORDER_EDGES,
@@ -485,6 +486,32 @@ describe('svgLogoOps (the DOM entry point: all-or-nothing, and the rounded clip)
     const clip = { xPx: 10, yPx: 20, wPx: 80, hPx: 80, radii: { tl: 40, tr: 40, br: 40, bl: 40 } }
     expect(svgLogoOps(img, box, ops, clip)).toBe(true)
     expect((ops[0] as Extract<DrawOp, { kind: 'svg' }>).clip).toEqual(clip)
+  })
+})
+
+describe('staticPseudoTextX (where a static ::before draws its text)', () => {
+  const host = { xPx: 49, yPx: 127, wPx: 695, hPx: 16 }
+  const style = (over: Record<string, string>) =>
+    ({ position: 'static', direction: 'ltr', display: 'block', paddingLeft: '0px', paddingRight: '0px', borderLeftWidth: '0px', borderRightWidth: '0px', ...over }) as unknown as CSSStyleDeclaration
+
+  it('left to right: at the host origin, as it always was', () => {
+    expect(staticPseudoTextX(style({}), style({ paddingLeft: '10px' }), host, 20, '::before')).toBe(49)
+  })
+
+  it('right to left: at the start of the line, which is the right edge inside padding and border', () => {
+    // technical's `// ` before every heading: the canvas draws it right of the
+    // heading's icon, at the start of the line; the PDF drew it at the
+    // host's LEFT edge, across the page from the heading.
+    const pseudo = style({ direction: 'rtl' })
+    const hostCs = style({ direction: 'rtl', paddingRight: '10px', borderRightWidth: '3px' })
+    expect(staticPseudoTextX(pseudo, hostCs, host, 20, '::before')).toBe(49 + 695 - 10 - 3 - 20)
+  })
+
+  it('leaves a positioned pseudo, a flex host and an ::after to their own rules', () => {
+    const rtl = style({ direction: 'rtl' })
+    expect(staticPseudoTextX(style({ direction: 'rtl', position: 'absolute' }), rtl, host, 20, '::before')).toBe(49)
+    expect(staticPseudoTextX(rtl, style({ direction: 'rtl', display: 'flex' }), host, 20, '::before')).toBe(49)
+    expect(staticPseudoTextX(rtl, rtl, host, 20, '::after')).toBe(49)
   })
 })
 
