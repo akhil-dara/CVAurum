@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { paginate, type PageBlock } from './paginate'
 import {
   absolutizeLeadingMoveto,
@@ -8,6 +8,7 @@ import {
   svgShapeToPathD,
   pseudoBox,
   staticPseudoTextX,
+  pseudoTextRun,
   elementOpacity,
   cornerRadii,
   BORDER_EDGES,
@@ -486,6 +487,22 @@ describe('svgLogoOps (the DOM entry point: all-or-nothing, and the rounded clip)
     const clip = { xPx: 10, yPx: 20, wPx: 80, hPx: 80, radii: { tl: 40, tr: 40, br: 40, bl: 40 } }
     expect(svgLogoOps(img, box, ops, clip)).toBe(true)
     expect((ops[0] as Extract<DrawOp, { kind: 'svg' }>).clip).toEqual(clip)
+  })
+})
+
+describe('pseudoTextRun (a ::before/::after string, drawn in its own direction)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  const style = (over: Record<string, string>) =>
+    ({ color: 'rgb(0, 0, 0)', fontSize: '12px', fontStyle: 'normal', fontWeight: '400', fontFamily: 'Inter', letterSpacing: 'normal', direction: 'ltr', ...over }) as unknown as CSSStyleDeclaration
+
+  it('marks a separator of marks only right to left on a right-to-left line, so it is drawn mirrored as the canvas draws it', () => {
+    // dossier's contact separator is `›`: Bidi_Mirrored, and a neutral that
+    // takes the line's direction, so the canvas shows `‹` between contacts.
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => ({ measureText: () => ({ fontBoundingBoxAscent: 10 }) }) }) })
+    expect(pseudoTextRun(style({ direction: 'rtl' }), '›', 5, 7)?.direction).toBe('rtl')
+    expect(pseudoTextRun(style({ direction: 'ltr' }), '›', 5, 7)?.direction).toBeUndefined()
+    // A string with a letter or a digit is not a mark: no direction forced.
+    expect(pseudoTextRun(style({ direction: 'rtl' }), 'Page ', 5, 7)?.direction).toBeUndefined()
   })
 })
 

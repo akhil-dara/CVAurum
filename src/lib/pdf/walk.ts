@@ -861,6 +861,20 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
   }
 }
 
+/**
+ * The run for a pseudo's generated text. A string of marks and spaces only on
+ * a right-to-left line is a right-to-left run, as it is for a list marker
+ * (`markerDirection`): the painter then mirrors a Bidi_Mirrored mark the way
+ * the canvas does - dossier's `›` contact separator reads `‹` there, and was
+ * drawn `›` in the PDF.
+ */
+export function pseudoTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx: number): TextRun | null {
+  const run = styledTextRun(cs, text, xPx, topPx)
+  if (!run) return null
+  const direction = markerDirection(cs, text)
+  return direction ? { ...run, direction } : run
+}
+
 /** The subset of a host's computed style `pseudoBox`'s flex-item branch
  *  needs — a plain `Pick`, not a full `CSSStyleDeclaration`, so tests can
  *  fake it without a real DOM. */
@@ -1516,7 +1530,7 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
   if (!text) return
   const rtlStart = which === '::before' && cs.position === 'static' && cs.direction === 'rtl'
   const textWidth = rtlStart ? measureLaidOutWidthPx(text, cs) || measureTextWidthPx(text, `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`) : 0
-  const run = styledTextRun(cs, text, staticPseudoTextX(cs, hostCs, box, textWidth, which), box.yPx)
+  const run = pseudoTextRun(cs, text, staticPseudoTextX(cs, hostCs, box, textWidth, which), box.yPx)
   if (run)
     ops.push({
       kind: 'text',
