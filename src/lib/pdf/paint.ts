@@ -30,7 +30,7 @@ import { pxToPt, ptToPx, flipY } from './units'
 import { mayNeedFallback, segmentByCoverage } from './textFallback'
 import { directedLayout, shapingDirection, withDirection, type ShapingDirection } from './directedText'
 import { mirrorRtl } from './text'
-import { usesArabicScript } from '@/data/fonts'
+import { MARKS_FAMILY, usesArabicScript } from '@/data/fonts'
 import { smallCapsSegments } from './smallcaps'
 import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
@@ -1071,6 +1071,49 @@ function justifiedPieces(
   return gapPt > 0 ? { texts, widthsPt, gapPt } : null
 }
 
+/** `justifiedPieces` for a run drawn in several faces: the words are cut
+ *  across the pieces (a word may hold a borrowed mark), each word keeps its
+ *  trailing space, and the slack goes between the words. Same bounds as
+ *  `justifiedPieces`; null when the run is not a justified one. */
+function justifiedSegments(
+  pieces: Array<{ text: string; font: PDFFont | null }>,
+  sizePt: number,
+  naturalPt: number,
+  domWidthPt: number,
+  dir: ShapingDirection | null
+): { words: Array<Array<{ text: string; font: PDFFont | null; widthPt: number }>>; gapPt: number } | null {
+  if (naturalPt <= 0 || domWidthPt <= 0) return null
+  const slackPt = domWidthPt - naturalPt
+  if (slackPt <= JUSTIFY_SLACK_MIN_FRACTION * naturalPt) return null
+  if (slackPt > JUSTIFY_SLACK_MAX_FRACTION * naturalPt) return null
+  const words: Array<Array<{ text: string; font: PDFFont | null; widthPt: number }>> = [[]]
+  for (const piece of pieces) {
+    let start = 0
+    const push = (text: string) => {
+      if (!text) return
+      const widthPt = piece.font ? safeWidthPt(piece.font, text, sizePt, 0, dir) : 0
+      words[words.length - 1].push({ text, font: piece.font, widthPt })
+    }
+    for (let i = 0; i < piece.text.length; i++) {
+      if (piece.text[i] !== ' ') continue
+      push(piece.text.slice(start, i + 1))
+      words.push([])
+      start = i + 1
+    }
+    push(piece.text.slice(start))
+  }
+  const full = words.filter((w) => w.length)
+  if (full.length < 2) return null
+  // An rtl line's words are drawn from the right: the first word rightmost.
+  if (dir === 'rtl') {
+    full.reverse()
+    for (const w of full) w.reverse()
+  }
+  const total = full.reduce((sum, w) => sum + w.reduce((s2, seg) => s2 + seg.widthPt, 0), 0)
+  const gapPt = (domWidthPt - total) / (full.length - 1)
+  return gapPt > 0 ? { words: full, gapPt } : null
+}
+
 /** What `paintOps` remembers about the last REAL text run it drew — enough to
  *  place the next one against it, and to bridge the gap between them. */
 interface PrevRealEnd {
@@ -1271,7 +1314,7 @@ export async function paintOps(
       // is the same font the browser drew it with (the chain sits in the
       // CSS stack). Latin runs never pay for this: mayNeedFallback is a
       // single regex test. See textFallback.ts.
-      let pieces: Array<{ text: string; font: PDFFont | null }> | null = null
+      let pieces: Array<{ text: string; font: PDFFont | null; family?: string }> | null = null
       let trackedSegments: Array<{ text: string; family: string }> | undefined
       if (mayNeedFallback(run.text, run.family)) {
         const chain = await fonts.coverage(run.family, run.weight, run.text)
@@ -1291,7 +1334,7 @@ export async function paintOps(
                 .filter((seg) => seg.font >= 0)
                 .map((seg) => ({ text: seg.text, family: chain[seg.font].family }))
             } else {
-              pieces = segs.map((s) => ({ text: s.text, font: s.font >= 0 ? chainFonts[s.font] : null }))
+              pieces = segs.map((s) => ({ text: s.text, font: s.font >= 0 ? chainFonts[s.font] : null, family: chain[s.font]?.family }))
             }
           }
         }
@@ -1388,8 +1431,18 @@ export async function paintOps(
         // already carry their own fonts, and the Tz scaling below fits the
         // whole to the browser's width the same way it does one font.
         const spread = pieces ? null : justifiedPieces(font, run.text, sizePt, embeddedWidthPt, domWidthPt, dir)
+        // A line whose only borrowed glyphs are marks (an arrow, a check) is
+        // still a line of the run's own face, and spread like one. Any other
+        // mixed-script run keeps the Tz fit below, as it always has.
+        const spreadMarks =
+          pieces && pieces.every((p) => p.font === font || p.family === MARKS_FAMILY)
+            ? justifiedSegments(pieces, sizePt, embeddedWidthPt, domWidthPt, dir)
+            : null
+        if (spreadMarks) advanceWidthPt = domWidthPt
         if (spread) {
           advanceWidthPt = domWidthPt
+        } else if (spreadMarks) {
+          // spread across the words, no scaling
         } else if (domWidthPt > 0 && embeddedWidthPt > 0) {
           tzPct = Math.min(110, Math.max(90, (100 * domWidthPt) / embeddedWidthPt))
         }
@@ -1410,6 +1463,16 @@ export async function paintOps(
             for (let i = 0; i < spread.texts.length; i++) {
               shapedIn(font, dir, () => page.drawText(spread.texts[i], { ...style, x: pieceXPt }))
               pieceXPt += spread.widthsPt[i] + spread.gapPt
+            }
+          } else if (spreadMarks) {
+            let wordXPt = xPt
+            for (const word of spreadMarks.words) {
+              for (const seg of word) {
+                const segFont = seg.font
+                if (segFont) shapedIn(segFont, dir, () => page.drawText(seg.text, { ...style, font: segFont, x: wordXPt }))
+                wordXPt += seg.widthPt
+              }
+              wordXPt += spreadMarks.gapPt
             }
           } else if (pieces && pieceWidthsPt) {
             // Each piece starts where the previous one's SCALED advance ends:
