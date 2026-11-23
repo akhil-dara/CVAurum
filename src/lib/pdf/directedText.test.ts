@@ -139,11 +139,30 @@ describe('withDirection: the subset embedder keeps the glyphs it draws', () => {
 
 describe('shapingDirection', () => {
   it('is null for Latin, ltr for Arabic-script digits, rtl for an rtl run', () => {
-    expect(shapingDirection({ text: 'Senior Engineer, 2019 - 2024' })).toBeNull()
-    expect(shapingDirection({ text: 'Ünïcödé façade' })).toBeNull()
-    expect(shapingDirection({ text: '۱۴۰۲' })).toBe('ltr')
+    setBidi(bidiImpl)
+    try {
+      expect(shapingDirection({ text: 'Senior Engineer, 2019 - 2024' })).toBeNull()
+      expect(shapingDirection({ text: 'Ünïcödé façade' })).toBeNull()
+      expect(shapingDirection({ text: '۱۴۰۲' })).toBe('ltr')
+      expect(shapingDirection({ text: 'مهندس', direction: 'rtl' })).toBe('rtl')
+      expect(shapingDirection({ text: '﻿Abc' })).toBeNull()
+    } finally {
+      setBidi(null)
+    }
+  })
+
+  it('never forces Latin left-to-right on Arabic letters when bidi is not installed', () => {
+    // The walker resolves directions only with bidi installed. Without it a
+    // run of Persian letters (a decorative word the script check missed) has
+    // no direction, and forcing latn/ltr on it drew 'رزومه' reversed and
+    // unjoined. fontkit's own detection shapes it right.
+    setBidi(null)
+    expect(shapingDirection({ text: 'رزومه' })).toBeNull()
+    expect(shapingDirection({ text: '۱۴۰۲' })).toBeNull()
+    expect(directedLayout(fk, 'رزومه', shapingDirection({ text: 'رزومه' })).glyphs.map((g) => g.id)).toEqual(
+      fk.layout('رزومه').glyphs.map((g) => g.id)
+    )
     expect(shapingDirection({ text: 'مهندس', direction: 'rtl' })).toBe('rtl')
-    expect(shapingDirection({ text: '﻿Abc' })).toBeNull()
   })
 })
 

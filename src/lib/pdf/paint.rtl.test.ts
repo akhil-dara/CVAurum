@@ -137,6 +137,9 @@ describe('paintOps: each run in its own direction', () => {
   })
 
   it('draws a run of Persian digits left to right', async () => {
+    // A page with Persian digits is an Arabic-script page, whose export
+    // installs bidi (render.tsx); only then is a direction-less run ltr.
+    setBidi(bidi)
     const drawn = await paint([text(run({ text: '۱۴۰۲' }))])
     expect(drawn[0].ids).toEqual([0x6f1, 0x6f4, 0x6f0, 0x6f2].map((cp) => vaz.glyphForCodePoint(cp).id))
   })

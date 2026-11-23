@@ -34,6 +34,13 @@ let paragraphs = new WeakMap<Element, { text: string; starts: Map<Text, number> 
  *  `paragraphs`. */
 let resolved = new Map<string, BidiRun[]>()
 
+/** Whether an export has installed bidi for this walk (`prepareBidi`). Only
+ *  then has every right-to-left run been given its direction, so only then may
+ *  the painter shape the rest as left to right (directedText.ts). */
+export function bidiInstalled(): boolean {
+  return bidiImpl !== null
+}
+
 /** Installs (or, with null, removes) the bidi functions `extractRuns` splits lines with. */
 export function setBidi(impl: BidiImpl | null): void {
   bidiImpl = impl

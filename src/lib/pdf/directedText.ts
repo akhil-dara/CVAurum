@@ -23,7 +23,7 @@
 import type { PDFFont } from 'pdf-lib'
 import type { TextRun } from './types'
 import { ARABIC_SCRIPT_CLASS } from '@/lib/rtlBlocks'
-import { mirrorRtl } from './text'
+import { bidiInstalled, mirrorRtl } from './text'
 
 export type ShapingDirection = 'rtl' | 'ltr'
 
@@ -35,10 +35,17 @@ const ARABIC_SCRIPT = new RegExp(`[${ARABIC_SCRIPT_CLASS}]`)
  * `direction`), 'ltr' for any other run holding an Arabic-script character
  * (the digits bidi resolved left-to-right inside a right-to-left line), and
  * null for everything else, which is drawn exactly as it always was.
+ *
+ * 'ltr' is said only while bidi is installed: only then did the walker give
+ * every right-to-left run its direction, so a run without one really is left
+ * to right. Without bidi (an export whose script check saw no Arabic letter,
+ * yet the page draws one - a decorative word) a run of Persian letters has no
+ * direction at all, and shaping it as Latin left to right drew it reversed and
+ * unjoined. Null leaves it to fontkit's own detection, which shapes it right.
  */
 export function shapingDirection(run: Pick<TextRun, 'text' | 'direction'>): ShapingDirection | null {
   if (run.direction === 'rtl') return 'rtl'
-  return ARABIC_SCRIPT.test(run.text) ? 'ltr' : null
+  return bidiInstalled() && ARABIC_SCRIPT.test(run.text) ? 'ltr' : null
 }
 
 /** The fontkit script tag the layout is asked for: Arabic for rtl, Latin for ltr (digits keep their order under it). */
