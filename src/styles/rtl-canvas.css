@@ -12,30 +12,6 @@
   text-align: right;
 }
 
-:is(.rm-root[dir='rtl'].side-left, .rm-root[dir='rtl'] .side-left) .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-inline-end: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
-}
-
-:is(.rm-root[dir='rtl'].side-left, .rm-root[dir='rtl'] .side-left) .rm-body:not(.rm-single) > .rm-col-main {
-  padding-inline-start: var(--rm-col-pad-l);
-}
-
-:is(.rm-root[dir='rtl'].rm-icons.side-left, .rm-root[dir='rtl'] .rm-icons.side-left) .rm-body:not(.rm-single) > .rm-col-main {
-  padding-inline-start: var(--rm-col-pad-l);
-}
-
-:is(.rm-root[dir='rtl'].side-right, .rm-root[dir='rtl'] .side-right) .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-inline-start: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
-}
-
-:is(.rm-root[dir='rtl'].side-right, .rm-root[dir='rtl'] .side-right) .rm-body:not(.rm-single) > .rm-col-main {
-  padding-inline-end: var(--rm-col-pad-r);
-}
-
-:is(.rm-root[dir='rtl'].rm-col-aside, .rm-root[dir='rtl'] .rm-col-aside) {
-  padding: var(--rm-pad) var(--rm-aside-pad-l) var(--rm-pad) var(--rm-aside-pad-r);
-}
-
 :is(.rm-root[dir='rtl'].rm-contacts.rm-contacts-sep:not(.rm-contacts-stacked), .rm-root[dir='rtl'] .rm-contacts.rm-contacts-sep:not(.rm-contacts-stacked)) .rm-contact:not(:last-child)::after {
   margin-left: var(--rm-sep-space, 0.6em);
   margin-right: calc(var(--rm-sep-space, 0.6em) - 5px);
@@ -131,14 +107,6 @@
   margin-left: 0.3em;
 }
 
-:is(.rm-root[dir='rtl'].rm-icons, .rm-root[dir='rtl'] .rm-icons) .rm-col-aside, :is(.rm-root[dir='rtl'].rm-icons.side-right, .rm-root[dir='rtl'] .rm-icons.side-right) .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-inline-start: max(var(--rm-aside-pad-l, 0px), 2.1em);
-}
-
-:is(.rm-root[dir='rtl'].rm-icons.side-right, .rm-root[dir='rtl'] .rm-icons.side-right) .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-inline-start: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), 2.1em);
-}
-
 :is(.rm-root[dir='rtl'].rm-icons, .rm-root[dir='rtl'] .rm-icons) .rm-col-aside .rm-section-icon {
   right: auto;
   left: 100%;
@@ -159,10 +127,6 @@
 :is(.rm-root[dir='rtl'].rm-section-preview, .rm-root[dir='rtl'] .rm-section-preview) .rm-section-body {
   padding-left: 0;
   padding-right: 0;
-}
-
-:is(.rm-root[dir='rtl'].rm-icons.rm-single.sicon-size-l, .rm-root[dir='rtl'] .rm-icons.rm-single.sicon-size-l) .rm-col-main {
-  padding-inline-start: max(var(--rm-pad), 2.6em);
 }
 
 :is(.rm-root[dir='rtl'].rm-col-main, .rm-root[dir='rtl'] .rm-col-main) .rm-item-head > .rm-item-date {
@@ -353,7 +317,7 @@
   border-left: 0;
 }
 
-:is(.rm-root[dir='rtl'].rm-footer::after, .rm-root[dir='rtl'] .rm-footer::after) {
+:is(.rm-root[dir='rtl'].rm-footer, .rm-root[dir='rtl'] .rm-footer)::after {
   left: 0;
   right: 0;
 }
@@ -501,14 +465,6 @@
   left: 8.5em;
 }
 
-:is(.rm-root[dir='rtl'].rm-icons.rm-single, .rm-root[dir='rtl'] .rm-icons.rm-single) .rm-col-main {
-  padding-inline-start: max(var(--rm-pad), 2.2em);
-}
-
-:is(.rm-root[dir='rtl'].rm-icons.side-left.sec-side, .rm-root[dir='rtl'] .rm-icons.side-left.sec-side) .rm-body:not(.rm-single) > .rm-col-main {
-  padding-inline-start: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
-}
-
 :is(.rm-root[dir='rtl'].rm-title-link-btn, .rm-root[dir='rtl'] .rm-title-link-btn) {
   margin-left: -1.1em;
   margin-right: 0.1em;
@@ -632,10 +588,6 @@
   right: auto;
   left: auto;
   margin: 0 0 0 0.5em;
-}
-
-:is(.rm-root[dir='rtl'].heads-side.rm-icons.rm-single, .rm-root[dir='rtl'] .heads-side.rm-icons.rm-single) .rm-col-main {
-  padding-inline-start: var(--rm-pad);
 }
 
 :is(.rm-root[dir='rtl'].heads-side.shs-rail, .rm-root[dir='rtl'] .heads-side.shs-rail) .rm-col-main .rm-section-title {
@@ -838,13 +790,9 @@
   padding: 0.02em 0.2em 0.4em 2.4em;
 }
 
-:is(.rm-root[dir='rtl'].tpl-flare::before, .rm-root[dir='rtl'] .tpl-flare::before) {
+:is(.rm-root[dir='rtl'].tpl-flare, .rm-root[dir='rtl'] .tpl-flare)::before {
   left: auto;
   right: 0;
-}
-
-:is(.rm-root[dir='rtl'].tpl-flare, .rm-root[dir='rtl'] .tpl-flare) .rm-col-main {
-  padding-inline-start: calc(var(--rm-pad) + var(--rm-spine));
 }
 
 :is(.rm-root[dir='rtl'].tpl-flare, .rm-root[dir='rtl'] .tpl-flare) .rm-section-number {

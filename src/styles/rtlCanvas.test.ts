@@ -46,13 +46,30 @@ describe('rtl-canvas.css scoping', () => {
     expect(rule[0]).toMatch(/left:\s*100%/)
   })
 
-  it('reserves column room LOGICALLY, on top of the page margin it must not eat', () => {
-    // A column's page margin comes from another rule. Swapping the gutter
-    // physically (`padding-left` -> `right` + `left: 0`) wiped that margin, and
-    // the body text ran flush into the paper's edge in RTL while the chip
-    // floated in the opposite margin.
-    expect(css).toMatch(/rm-icons\.rm-single[^{]*\{[^}]*padding-inline-start:/)
-    expect(css).toMatch(/rm-col-aside[^{]*\{[^}]*padding-inline-start:/)
+  it('reserves column room LOGICALLY in the design itself, so the page margin on the other side survives', () => {
+    // A column's gutter rule (`.side-right ... > .rm-col-main { padding-right }`)
+    // used to be physical in artboard.css with a logical copy in the mirror.
+    // The copy put the gutter on the reading side, but the design's own
+    // physical declaration kept applying on the side the gutter LEFT - the
+    // page's outer edge - so in RTL the main column lost its page margin and a
+    // hanging section icon was cut off at the paper's edge (garnet, and every
+    // two-column design with its sidebar on the right). Written as
+    // padding-inline-* in the design, one rule means the right thing in both
+    // directions and the mirror has nothing to add.
+    const column = /\.rm-col-(?:main|aside)(?::[\w-]+(?:\([^)]*\))?)*\s*$|\.rm-body(?::[\w-]+(?:\([^)]*\))?)*\s*$/
+    for (const file of ['artboard.css', '../templates/templates.css']) {
+      const sheet = readFileSync(resolve(__dirname, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      const re = /([^{}]+)\{([^{}]*)\}/g
+      let m: RegExpExecArray | null
+      while ((m = re.exec(sheet))) {
+        if (!m[1].split(',').some((sel) => column.test(sel.trim()))) continue
+        expect(m[2], `${file}: ${m[1].trim()}`).not.toMatch(/(?:^|;)\s*padding-(?:left|right)\s*:/)
+        const shorthand = /(?:^|;)\s*padding\s*:\s*([^;]+)/.exec(m[2])
+        if (shorthand) expect(shorthand[1].trim().split(/\s+(?![^(]*\))/).length, `${file}: ${m[1].trim()}`).toBeLessThan(4)
+      }
+    }
+    expect(rulesWith('> .rm-col-main').filter((r) => /padding/.test(r))).toEqual([])
+    expect(rulesWith('> .rm-col-aside').filter((r) => /padding/.test(r))).toEqual([])
   })
 
   it('swaps a row\'s own padding physically, so it is not indented on both sides', () => {
@@ -60,6 +77,16 @@ describe('rtl-canvas.css scoping', () => {
     // row's whole padding on the axis, so the other side has to go back to 0.
     const head = rulesWith('.sec-date-left .rm-item-head')
     expect(head.some((r) => /padding-left:\s*0/.test(r) && /padding-right:\s*calc\(/.test(r))).toBe(true)
+  })
+
+  it('keeps a pseudo-element outside :is(), where a selector may carry one', () => {
+    // `:is()` takes no pseudo-elements: `:is(.a::before, .b::before)` is an
+    // invalid selector and the browser drops the whole rule. Flare's spine is
+    // the root's own ::before, pinned with `left: 0`, so in RTL it stayed on
+    // the left while the column reserved its room on the right.
+    expect(css).not.toMatch(/:is\([^)]*::?(?:before|after|marker)\b/)
+    const spine = rulesWith(`:is(${SCOPE}.tpl-flare, ${SCOPE} .tpl-flare)::before`)
+    expect(spine.some((r) => /right:\s*0/.test(r) && /left:\s*auto/.test(r))).toBe(true)
   })
 
   it('never scopes a root-level class as a descendant-only selector', () => {

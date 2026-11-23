@@ -208,7 +208,7 @@
    belt and braces: even a future rule that escapes this scope still gets a
    real length instead of zero. */
 .side-left .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-right: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  padding-inline-end: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
 /* The inner padding is named as well as set, because a full-bleed header has
    to pull back out by exactly this much to reach the band beside it and no
@@ -218,7 +218,7 @@
    that staying true. */
 .side-left .rm-body:not(.rm-single) > .rm-col-main {
   --rm-col-pad-l: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
-  padding-left: var(--rm-col-pad-l);
+  padding-inline-start: var(--rm-col-pad-l);
 }
 /* Templates with icon chips HANG the icon in the column's left margin so the
    heading text keeps one clean left edge (see .rm-icons below). On a
@@ -229,14 +229,14 @@
    and stays the gutter value whenever that is already wider. */
 .rm-icons.side-left .rm-body:not(.rm-single) > .rm-col-main {
   --rm-col-pad-l: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), calc(var(--rm-fs) * 2.8));
-  padding-left: var(--rm-col-pad-l);
+  padding-inline-start: var(--rm-col-pad-l);
 }
 .side-right .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  padding-inline-start: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
 .side-right .rm-body:not(.rm-single) > .rm-col-main {
   --rm-col-pad-r: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
-  padding-right: var(--rm-col-pad-r);
+  padding-inline-end: var(--rm-col-pad-r);
 }
 .rm-col-aside {
   flex: 0 0 var(--rm-aside-w, 34%);
@@ -252,7 +252,8 @@
      wider settings on the page margin exactly as before. */
   --rm-aside-pad-l: min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
   --rm-aside-pad-r: min(var(--rm-pad), calc(var(--rm-aside-w, 34%) * 0.18));
-  padding: var(--rm-pad) var(--rm-aside-pad-r) var(--rm-pad) var(--rm-aside-pad-l);
+  padding-block: var(--rm-pad);
+  padding-inline: var(--rm-aside-pad-l) var(--rm-aside-pad-r);
   background: var(--rm-sidebar-bg);
   color: var(--rm-sidebar-text);
 }
@@ -1215,10 +1216,10 @@
    nothing at the widths where the padding is already larger. */
 .rm-icons .rm-col-aside,
 .rm-icons.side-right .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-left: max(var(--rm-aside-pad-l, 0px), 2.1em);
+  padding-inline-start: max(var(--rm-aside-pad-l, 0px), 2.1em);
 }
 .rm-icons.side-right .rm-body:not(.rm-single) > .rm-col-aside {
-  padding-left: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), 2.1em);
+  padding-inline-start: max(calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2), 2.1em);
 }
 
 .rm-icons .rm-col-aside .rm-section-icon {
@@ -1354,7 +1355,7 @@
 /* A large chip hangs 1.9em + its 0.42em margin, past the 2.2em floor the
    single-column page reserves for it (see .rm-icons.rm-single below). */
 .rm-icons.rm-single.sicon-size-l .rm-col-main {
-  padding-left: max(var(--rm-pad), 2.6em);
+  padding-inline-start: max(var(--rm-pad), 2.6em);
 }
 .rm-section-body {
   display: flex;
@@ -4592,7 +4593,7 @@
    (1.55em wide plus its 0.55em margin), so this costs nothing whenever the
    margin is already wider - which it is at every default. */
 .rm-icons.rm-single .rm-col-main {
-  padding-left: max(var(--rm-pad), 2.2em);
+  padding-inline-start: max(var(--rm-pad), 2.2em);
 }
 
 /* Gutter-label headings (sec-side) hide the main column's badge outright
@@ -4603,7 +4604,7 @@
    atelier, 33.7px of padding with a badge against 19.7px without, changing the
    gap between every gutter label and its body. */
 .rm-icons.side-left.sec-side .rm-body:not(.rm-single) > .rm-col-main {
-  padding-left: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
+  padding-inline-start: calc(var(--rm-gutter, calc(var(--rm-pad) * 0.8)) / 2);
 }
 
 /* An entry whose TITLE carries a link (rm-title-link, deliberately not
@@ -5306,7 +5307,7 @@
    badge style stops moving the whole column (the same reservation the
    gutter-label heading style gives back further up). */
 .rm-root.heads-side.rm-icons.rm-single .rm-col-main {
-  padding-left: var(--rm-pad);
+  padding-inline-start: var(--rm-pad);
 }
 /* ---- how a side heading is drawn (layout.sideHeadingStyle) -------------
    In every one of the three, the heading's own rule goes: drawn under a

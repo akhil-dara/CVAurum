@@ -1690,7 +1690,7 @@
   background: var(--rm-primary);
 }
 .tpl-flare .rm-col-main {
-  padding-left: calc(var(--rm-pad) + var(--rm-spine));
+  padding-inline-start: calc(var(--rm-pad) + var(--rm-spine));
 }
 .tpl-flare .rm-header-kicker .rm-name {
   font-weight: var(--rm-name-weight, 400);

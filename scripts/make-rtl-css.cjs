@@ -313,7 +313,14 @@ const rtlSelector = (selector) =>
       // behaviour and matches the descendant case, the first the root one.
       const [first, ...restParts] = splitSpace(s)
       const rest = restParts.length ? ' ' + restParts.join(' ') : ''
-      if (/^[.:[]/.test(first)) return `:is(${SCOPE}${first}, ${SCOPE} ${first})${rest}`
+      // `:is()` takes no pseudo-element: `:is(.a::before, .b ::before)` is
+      // invalid and the browser drops the whole rule (flare's spine, the
+      // root's own ::before, never moved). It goes after the `:is()`.
+      if (/^[.:[]/.test(first)) {
+        const pseudo = /(::?(?:before|after|marker|first-line|first-letter|placeholder|selection))$/.exec(first)
+        const compound = pseudo ? first.slice(0, -pseudo[1].length) : first
+        return `:is(${SCOPE}${compound}, ${SCOPE} ${compound})${pseudo ? pseudo[1] : ''}${rest}`
+      }
       return `${SCOPE} ${first}${rest}`
     })
     .join(', ')
