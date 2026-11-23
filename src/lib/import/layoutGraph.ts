@@ -323,13 +323,44 @@ function isDateRail(items: Item[], gutter: number): boolean {
 }
 
 /**
+ * A right-to-left page's items with the ones a word space apart on one row
+ * joined into a single span. A Persian line that carries a number or a Latin
+ * word is several pdf.js items (one per direction run), and down a page their
+ * word spaces can line up into a stripe the gutter scan took for a column
+ * gutter: on slate, atelier and contemporary the import cut "۳۸٪" in two and
+ * filed half of each split line as a second column. A real gutter is many
+ * spaces wide, so it survives the join. Only `detectGutter` sees the spans;
+ * the items themselves are untouched.
+ */
+function wordSpans(items: Item[]): Item[] {
+  const rows: Item[][] = []
+  for (const it of [...items].sort((a, b) => a.top - b.top || a.x - b.x)) {
+    const row = rows.find((r) => Math.abs(r[0].top - it.top) < r[0].height * 0.5)
+    if (row) row.push(it)
+    else rows.push([it])
+  }
+  const spans: Item[] = []
+  for (const row of rows) {
+    row.sort((a, b) => a.x - b.x)
+    const first = spans.length
+    for (const it of row) {
+      const prev: Item | undefined = spans.length > first ? spans[spans.length - 1] : undefined
+      if (prev && it.x - (prev.x + prev.width) <= Math.max(prev.height, it.height) * 0.6) {
+        spans[spans.length - 1] = { ...prev, str: prev.str + ' ' + it.str, width: Math.max(prev.x + prev.width, it.x + it.width) - prev.x }
+      } else spans.push({ ...it })
+    }
+  }
+  return spans
+}
+
+/**
  * Find a clean vertical gutter that splits a page's items into two columns.
  * A good gutter has (almost) no item straddling it and substantial text on both
  * sides. Returns the x position, or null for single-column pages - which a
  * page whose one side is only dates is (isDateRail). Exported for its tests.
  */
 export function detectGutter(all: Item[], width: number): number | null {
-  const items = runningTextItems(all)
+  const items = runningTextItems(rtlPages(all).size ? wordSpans(all) : all)
   if (items.length < 20 || width <= 0) return null
   let best: number | null = null
   let bestStraddle = Infinity

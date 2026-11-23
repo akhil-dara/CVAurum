@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { joinLineItems, rtlPages, type Item } from './layoutGraph'
+import { detectGutter, joinLineItems, rtlPages, type Item } from './layoutGraph'
 
 /**
  * A right-to-left line reads from the right.
@@ -87,5 +87,31 @@ describe('rtlPages', () => {
   it('names the pages whose letters are mostly right-to-left', () => {
     const items = [item('مهندس نرمافزار ارشد', 400, 100, 1), item('React', 300, 30, 1), item('Senior Software Engineer', 50, 150, 2), item('پریسا', 300, 20, 2)]
     expect([...rtlPages(items)]).toEqual([1])
+  })
+})
+
+describe('detectGutter: a right-to-left page', () => {
+  // A Persian line that mixes in a number or a Latin word is several pdf.js
+  // items, one word space apart. Down a page of such lines the spaces can
+  // line up, and the scan read the stripe they make as a column gutter: on
+  // slate, atelier and contemporary the import cut "۳۸٪" in two and filed half
+  // of every split line as a second column.
+  const at = (str: string, x: number, width: number, top: number): Item => ({ str, x, top, width, height: 10, bold: false, page: 1, col: 0, aside: false })
+  const lines = (gap: number) =>
+    Array.from({ length: 24 }, (_, i) => [at('کاهش خطاهای پرداخت با بازنویسی', 289, 231, 100 + i * 14), at('ماژول سبد خرید ۳۸', 40, 283 - 40 - (gap - 6), 100 + i * 14)]).flat()
+
+  it('does not read the word spaces of a line as a gutter', () => {
+    expect(detectGutter(lines(6), 595)).toBeNull()
+  })
+
+  it('still finds a real gutter between two columns', () => {
+    // The same page with a 30-point channel between the halves is two columns.
+    const two = Array.from({ length: 24 }, (_, i) => [at('کاهش خطاهای پرداخت با بازنویسی', 320, 200, 100 + i * 14), at('ماژول سبد خرید ۳۸', 40, 250, 100 + i * 14)]).flat()
+    expect(detectGutter(two, 595)).not.toBeNull()
+  })
+
+  it('leaves a left-to-right page as it was', () => {
+    const latin = Array.from({ length: 24 }, (_, i) => [at('Reduced payment errors by', 40, 243, 100 + i * 14), at('rewriting the cart module', 289, 231, 100 + i * 14)]).flat()
+    expect(detectGutter(latin, 595)).not.toBeNull()
   })
 })
