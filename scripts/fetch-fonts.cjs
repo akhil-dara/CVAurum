@@ -52,7 +52,8 @@ const FONTS = [
   ['Oswald', DW], ['Bebas Neue', [400]], ['Abril Fatface', [400]], ['Archivo', DW],
   ['Dancing Script', [400, 500, 600, 700]], ['Dynalight', [400]], ['Ms Madi', [400]], ['Meow Script', [400]],
   ['Space Grotesk', [400, 500, 600, 700]],
-  // Persian/Arabic script — also the interface face in RTL mode.
+  // Persian/Arabic script, for the resume page only (the interface is always
+  // left to right).
   ['Vazirmatn', DW],
 ]
 

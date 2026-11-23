@@ -58,7 +58,8 @@ export const FONTS: FontDef[] = [
   { name: 'Exo 2', category: 'sans' },
   { name: 'IBM Plex Sans', category: 'sans' },
   { name: 'DM Sans', category: 'sans' },
-  // Persian/Arabic script — the interface also uses this face in RTL mode.
+  // Persian/Arabic script, for the resume page only: the interface is always
+  // left to right and never set in it.
   {
     name: 'Vazirmatn',
     label: 'Vazirmatn (Persian, Arabic)',
@@ -213,8 +214,9 @@ const ARABIC_SCRIPT = new RegExp(`[${ARABIC_SCRIPT_CLASS}]`)
 
 /** Does this text contain a letter of the Arabic script? Those are exactly the
  *  characters only the Arabic family can draw, so they decide whether an export
- *  has to wait for that face - and whether the browser has to shape the page
- *  instead of the native painter (src/lib/pdf/export.ts).
+ *  has to wait for that face, and which runs the native painter shapes as
+ *  Arabic (src/lib/pdf/paint.ts, directedText.ts). Every PDF is drawn by that
+ *  painter, Persian and Arabic ones included.
  *
  *  The presentation forms stop at U+FEFC: U+FEFF in that block is the
  *  byte-order mark, which a pasted or imported line can start with and which
