@@ -60,6 +60,38 @@ describe('documentScript reads only what the page shows', () => {
     expect(documentScript(d).arabic).toBe(false)
   })
 
+  it('counts an Arabic label the page prints for a link, whatever the address', () => {
+    // A credential prints its verify word only when it has an address, and a
+    // profile with no handle prints only when it has one: emptying the address
+    // would take shown words off the page as well.
+    const cert = docWith((d) => {
+      d.content.certificates = [{ id: 'c1', name: 'AWS', issuer: 'Amazon', date: '', url: 'https://example.com/v', urlLabel: 'تأیید' } as never]
+      d.metadata.layout.main = [...d.metadata.layout.main, 'certificates']
+    })
+    expect(documentScript(cert).arabic).toBe(true)
+    const award = docWith((d) => {
+      d.content.awards = [{ id: 'a1', title: 'Best', awarder: 'ACM', date: '', summary: '', url: 'https://example.com/a', urlLabel: 'تأیید' } as never]
+      d.metadata.layout.main = [...d.metadata.layout.main, 'awards']
+    })
+    expect(documentScript(award).arabic).toBe(true)
+    const profile = docWith((d) => {
+      d.content.basics.profiles = [{ id: 'p1', network: 'GitHub', username: '', label: 'گیت‌هاب', url: 'https://github.com/x' } as never]
+    })
+    expect(documentScript(profile)).toEqual({ arabic: true, persian: true })
+    const site = docWith((d) => {
+      d.content.basics.url = 'https://example.com'
+      d.content.basics.urlLabel = 'وبسایت'
+    })
+    expect(documentScript(site).arabic).toBe(true)
+    const link = docWith((d) => {
+      d.content.projects = [
+        { id: 'pr1', name: 'Pulse', description: '', url: '', links: [{ id: 'l1', label: 'کد', url: 'https://example.com/c' }], startDate: '', endDate: '', highlights: [], keywords: [] } as never,
+      ]
+      d.metadata.layout.main = [...d.metadata.layout.main, 'projects']
+    })
+    expect(documentScript(link).arabic).toBe(true)
+  })
+
   it('a name in Arabic script is Arabic; Persian only with a Persian-only letter', () => {
     expect(documentScript(docWith((d) => (d.content.basics.name = 'علیرضا')))).toEqual({ arabic: true, persian: false })
     expect(documentScript(docWith((d) => (d.content.basics.name = 'پویا')))).toEqual({ arabic: true, persian: true })
