@@ -68,7 +68,41 @@ export function splitSegmentByDirection(text: string, base: 'rtl' | 'ltr'): Bidi
 export function directionPieces(raw: string, base: 'rtl' | 'ltr'): BidiRun[] | null {
   if (!bidiImpl || !RTL_BLOCKS.test(raw) || !bidiImpl.hasStrongRtl(raw)) return null
   const pieces = splitSegmentByDirection(raw.replace(/[\t\n\v\f\r\u001C-\u001F\u0085\u2029]/g, ' '), base)
-  return pieces.length > 1 || pieces[0]?.rtl ? pieces : null
+  const folded = foldBlankPieces(raw, pieces)
+  return folded.length > 1 || folded[0]?.rtl ? folded : null
+}
+
+/**
+ * Folds every piece that holds nothing but whitespace (and soft hyphens) into
+ * a logical neighbour - the PREVIOUS piece, or the next one when it is first -
+ * then merges neighbours left with one direction.
+ *
+ * bidi-js does produce such pieces at a line's edges: "نام " under an ltr base
+ * resolves to levels 1110, so the trailing space is a piece of its own, and
+ * " React مهندس" under an rtl base opens with one. Dropped, that space is gone
+ * from the text layer and the words either side of it join for every reader;
+ * folded, it stays in the run text and its box joins the neighbour's measured
+ * box, since the run is measured over its whole character range. A piece
+ * holding only a joiner (U+200C/U+200D) is not blank and is kept.
+ */
+export function foldBlankPieces(text: string, pieces: BidiRun[]): BidiRun[] {
+  const blank = (r: BidiRun) => stripSoftHyphens(text.slice(r.start, r.end)).trim() === ''
+  if (!pieces.some(blank)) return pieces
+  const out: BidiRun[] = []
+  let pending: number | null = null // start of blank pieces waiting for a next neighbour
+  for (const r of pieces) {
+    if (blank(r)) {
+      if (out.length) out[out.length - 1] = { ...out[out.length - 1], end: r.end }
+      else pending ??= r.start
+      continue
+    }
+    const start: number = pending ?? r.start
+    pending = null
+    const last = out[out.length - 1]
+    if (last && last.rtl === r.rtl) out[out.length - 1] = { ...last, end: r.end }
+    else out.push({ start, end: r.end, rtl: r.rtl })
+  }
+  return out
 }
 
 /** parseColor handles rgb()/rgba(), the `color(srgb ...)` form Chromium
@@ -832,13 +866,13 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       // is the browser's and never computed here. Pieces are cut on the RAW
       // text and shaped one by one: a run of whitespace always resolves to a
       // single direction, so collapsing never meets a space split across two
-      // pieces. A piece that shapes to nothing but space draws nothing and is
-      // dropped, as a blank segment always was.
+      // pieces. A space-only piece was already folded into a neighbour
+      // (foldBlankPieces), so the first piece here is the first one with
+      // letters, and it takes the preceding space below.
       for (let pi = 0; pi < split.length; pi++) {
         const s = bodyStart + split[pi].start
         const e = bodyStart + split[pi].end
         let pieceText = shaped(data.slice(s, e))
-        if (pieceText.trim() === '') continue
         const box = rectOf(s, e, seg.rect.top)
         let left = box.left
         let right = box.right

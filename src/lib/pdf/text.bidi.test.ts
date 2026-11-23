@@ -1,10 +1,12 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import * as bidi from './bidi'
+import { SOFT_HYPHEN } from '@/lib/hyphenate'
 import {
   applyTextTransform,
   collapseWhitespace,
   directionPieces,
   extractRuns,
+  foldBlankPieces,
   prepareBidi,
   setBidi,
   splitSegmentByDirection,
@@ -90,6 +92,80 @@ describe('directionPieces (the walker decides whether a line splits)', () => {
       ['مهندس ', 'rtl'],
       ['2021', 'ltr'],
     ])
+  })
+})
+
+describe('foldBlankPieces (a space-only piece joins a neighbour, never vanishes)', () => {
+  it('folds a trailing space into the piece before it (ltr base)', () => {
+    setBidi(bidi)
+    // bidi-js levels 1110: the space is its own ltr piece.
+    const raw = 'نام '
+    expect(bidi.bidiRuns(raw, 'ltr').length).toBe(2)
+    expect(pieces(raw, directionPieces(raw, 'ltr')!)).toEqual([['نام ', 'rtl']])
+    expect(pieces('کار در ', directionPieces('کار در ', 'ltr')!)).toEqual([['کار در ', 'rtl']])
+  })
+
+  it('folds a leading space into the piece after it (rtl base)', () => {
+    setBidi(bidi)
+    // bidi-js levels 1 22222 111111: the opening space is its own rtl piece.
+    const raw = ' React مهندس'
+    expect(bidi.bidiRuns(raw, 'rtl').length).toBe(3)
+    expect(pieces(raw, directionPieces(raw, 'rtl')!)).toEqual([
+      [' React', 'ltr'],
+      [' مهندس', 'rtl'],
+    ])
+    // Under an ltr base, levels 0111: the leading space joins the Persian.
+    expect(pieces(' نام', directionPieces(' نام', 'ltr')!)).toEqual([[' نام', 'rtl']])
+  })
+
+  it('folds a blank piece between two others into the PREVIOUS one', () => {
+    const text = 'abc def'
+    const got = foldBlankPieces(text, [
+      { start: 0, end: 3, rtl: true },
+      { start: 3, end: 4, rtl: false },
+      { start: 4, end: 7, rtl: false },
+    ])
+    expect(got).toEqual([
+      { start: 0, end: 4, rtl: true },
+      { start: 4, end: 7, rtl: false },
+    ])
+  })
+
+  it('merges neighbours left with one direction once a blank between them is folded', () => {
+    expect(
+      foldBlankPieces('abc def', [
+        { start: 0, end: 3, rtl: true },
+        { start: 3, end: 4, rtl: false },
+        { start: 4, end: 7, rtl: true },
+      ])
+    ).toEqual([{ start: 0, end: 7, rtl: true }])
+  })
+
+  it('counts a soft hyphen as blank and keeps a joiner-only piece', () => {
+    expect(
+      foldBlankPieces('ab' + SOFT_HYPHEN, [
+        { start: 0, end: 2, rtl: true },
+        { start: 2, end: 3, rtl: false },
+      ])
+    ).toEqual([{ start: 0, end: 3, rtl: true }])
+    expect(
+      foldBlankPieces('ab' + ZWNJ, [
+        { start: 0, end: 2, rtl: true },
+        { start: 2, end: 3, rtl: false },
+      ])
+    ).toEqual([
+      { start: 0, end: 2, rtl: true },
+      { start: 2, end: 3, rtl: false },
+    ])
+  })
+
+  it('leaves pieces without a blank one untouched, and an all-blank text empty', () => {
+    const p = [
+      { start: 0, end: 2, rtl: true },
+      { start: 2, end: 4, rtl: false },
+    ]
+    expect(foldBlankPieces('abcd', p)).toEqual(p)
+    expect(foldBlankPieces('  ', [{ start: 0, end: 2, rtl: false }])).toEqual([])
   })
 })
 
@@ -192,6 +268,15 @@ describe('extractRuns emits one run per direction', () => {
     ])
     expect(runs[1].xPx).toBe(350)
     expect(runs[1].widthPx).toBe(50)
+  })
+
+  it('keeps a trailing space that bidi puts in its own piece, inside the measured run', () => {
+    // "کار در " then a bold word: under an ltr base the last space is level 0.
+    const data = 'کار در '
+    stubDom((i) => (i < 6 ? 50 - i * 10 : 60), 'ltr')
+    setBidi(bidi)
+    const runs = extractRuns(textNode(data), root)
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([['کار در ', 0, 70, 'rtl']])
   })
 
   it('leaves Latin text as one run with no direction key, bidi installed or not', () => {
