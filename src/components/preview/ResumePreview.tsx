@@ -515,13 +515,20 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => ro.disconnect()
   }, [])
 
-  // Re-measure once fonts for the chosen families have actually loaded.
+  // Re-measure once the faces the page draws have actually loaded: the chosen
+  // families, and the Arabic face for a page with Arabic-script letters
+  // (documentFaces reads the content for that; the metadata alone never names
+  // it, and a Persian page was measured in a fallback face). The joined names
+  // are the dependency, so typing re-runs it only when the set changes.
+  const faces = documentFaces(doc)
+  const facesKey = faces.join('|')
   useEffect(() => {
-    ensureFontsReady(documentFaces({ metadata: doc.metadata })).then(() => {
+    ensureFontsReady(faces).then(() => {
       if (innerRef.current) setContentH(innerRef.current.scrollHeight)
       if (measureRef.current) setPrintH(measureRef.current.scrollHeight)
     })
-  }, [doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- facesKey is `faces` by value
+  }, [facesKey])
 
   // Auto-fit using the SAME binary search as the print/PDF page (fitOnePage.ts),
   // run on the HIDDEN print-measure render so the visible canvas never flickers
@@ -550,7 +557,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
       if (import.meta.env.DEV) window.__cvaFitTrace = []
-      await ensureFontsReady(documentFaces({ metadata: measureDoc.metadata }))
+      await ensureFontsReady(documentFaces(measureDoc))
       // Wait for the photo in the measure render to load too — an unsized image
       // makes the header (and thus the fit) measure short, diverging from the PDF.
       const img = measureRef.current?.querySelector('img.rm-photo') as HTMLImageElement | null
