@@ -30,6 +30,7 @@ import { pxToPt, ptToPx, flipY } from './units'
 import { mayNeedFallback, segmentByCoverage } from './textFallback'
 import { directedLayout, shapingDirection, withDirection, type ShapingDirection } from './directedText'
 import { mirrorRtl } from './text'
+import { usesArabicScript } from '@/data/fonts'
 import { smallCapsSegments } from './smallcaps'
 import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
@@ -698,7 +699,20 @@ async function paintGlyphOutlines(
   pageHeightPt: number,
   xPt: number = pxToPt(run.xPx)
 ): Promise<number> {
-  const font = await fonts.embedGlyphOutlines(run.family, run.weight)
+  let font = await fonts.embedGlyphOutlines(run.family, run.weight)
+  // An Arabic-script run its own face cannot draw (keystone's running foot
+  // repeats the name in a monospaced Latin face) takes its outlines from the
+  // first chain font that has every letter, as the canvas borrows them; from
+  // the face alone each letter was its missing-glyph box. A run with no
+  // Arabic letter is drawn exactly as before.
+  if (usesArabicScript(run.text)) {
+    const visible = [...run.text].map((ch) => ch.codePointAt(0) ?? 0).filter((cp) => cp > 0x20 && cp !== 0x200c && cp !== 0x200d)
+    if (visible.some((cp) => !font.hasGlyphForCodePoint(cp))) {
+      const chain = await fonts.coverage(run.family, run.weight, run.text)
+      const whole = chain.find((c) => visible.every((cp) => c.has(cp)))
+      if (whole) font = await fonts.embedGlyphOutlines(whole.family, run.weight)
+    }
+  }
   const color = rgb(run.color.r, run.color.g, run.color.b)
   const baseX = xPt
   const baseY = flipY(pxToPt(run.baselinePx), pageHeightPt)

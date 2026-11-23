@@ -192,3 +192,19 @@ describe('paintOps: each run in its own direction', () => {
     expect(drawn[2].ids).toEqual(shaped('مهندس ', 'rtl'))
   })
 })
+
+describe('paintOps: a decorative Arabic-script run in a face without Arabic', () => {
+  // keystone's running foot repeats the name in a monospaced Latin face. As
+  // outlines from that face alone, every Persian letter was its missing-glyph
+  // box; the canvas borrows the letters from a fallback, and so does the file.
+  it('draws its outlines from the chain font that has the letters', async () => {
+    setBidi(bidi)
+    const doc = await PDFDocument.create()
+    doc.registerFontkit(fontkit)
+    const page = doc.addPage([400, 200])
+    const fonts = new PdfFontCache(doc, INDEX)
+    const spy = vi.spyOn(fonts, 'embedGlyphOutlines')
+    await paintOps(page, [text(run({ text: 'علی', family: 'Arimo', weight: 700, direction: 'rtl', isDecorative: true }))], fonts, 200)
+    expect(spy.mock.calls.map((c) => c[0])).toContain('Vazirmatn')
+  })
+})
