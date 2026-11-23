@@ -376,6 +376,8 @@ export function Ed({
 }) {
   if (!edit) {
     // A value that picks its own direction needs an element to carry it.
+    // Only the contact line passes `dir`, and its values are plain one-line
+    // text - never rich, never chunked - so those paths are not needed here.
     if (dir) return <span dir={dir} className={className}>{value}</span>
     if (rich) return <RichText html={value} className={className} />
     // `chunk` splits the value where a line may break, so a lone connector

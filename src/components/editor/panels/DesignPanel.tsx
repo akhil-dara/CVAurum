@@ -21,7 +21,7 @@ import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
 import { justifiedBlocks } from '@/lib/pdf/looseLines'
 import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
 import { documentScript } from '@/lib/script'
-import { applyRtlSetup, type PageScript } from '@/lib/rtlSetup'
+import { applyRtlSetup, turnRtlOff, type PageScript } from '@/lib/rtlSetup'
 
 /** Date languages written in Arabic script: offered only where the page is. */
 const ARABIC_SCRIPT_DATE_LANGUAGES = new Set(['fa', 'ar'])
@@ -173,6 +173,8 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   // one it always was.
   const script = useMemo(() => documentScript(doc), [doc])
   const arabicPage = script.arabic
+  // The Arabic face stays in every picker once any of the three uses it.
+  const chosenFaces = [m.typography.fontFamily, m.typography.headingFamily, m.typography.nameFamily]
   const dateLanguageOptions = useMemo(
     () =>
       DATE_LANGUAGE_OPTIONS.filter(
@@ -335,6 +337,8 @@ note={notes[r.key]}
         <DensityChoice />
         <FontSelect
           label="Body font"
+          arabicPage={arabicPage}
+          chosen={chosenFaces}
           value={m.typography.fontFamily}
           onChange={(v) =>
             update((md) => {
@@ -344,6 +348,8 @@ note={notes[r.key]}
         />
         <FontSelect
           label="Heading font"
+          arabicPage={arabicPage}
+          chosen={chosenFaces}
           value={m.typography.headingFamily}
           onChange={(v) =>
             update((md) => {
@@ -354,6 +360,8 @@ note={notes[r.key]}
         />
         <FontSelect
           label="Name font"
+          arabicPage={arabicPage}
+          chosen={chosenFaces}
           value={m.typography.nameFamily}
           onChange={(v) =>
             update((md) => {
@@ -1457,7 +1465,7 @@ function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript })
         onChange={(v) =>
           update((md) => {
             if (v) applyRtlSetup(md, script)
-            else md.layout.rtl = false
+            else turnRtlOff(md)
           })
         }
       />

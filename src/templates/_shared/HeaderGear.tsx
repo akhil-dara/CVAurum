@@ -14,6 +14,8 @@ import { ArtBandRow, HEADER_STYLES, HeaderMini } from './headerStyles'
 import { StatTilesEditor } from './StatTilesEditor'
 import { KickerFields } from './PageWordsFields'
 import { FONTS } from '@/data/fonts'
+import { documentScript } from '@/lib/script'
+import { offeredFonts } from '@/lib/rtlSetup'
 import { usePopoverA11y } from './popoverA11y'
 import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
 
@@ -458,9 +460,13 @@ export function HeaderGear({ doc, editMeta, variant }: { doc: ResumeDocument; ed
                   }
                   aria-label="Body font"
                 >
-                  {FONTS.filter((f) => f.category === 'sans' || f.category === 'serif').map((f) => (
+                  {offeredFonts(
+                    FONTS.filter((f) => f.category === 'sans' || f.category === 'serif'),
+                    documentScript(doc).arabic,
+                    [doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily]
+                  ).map((f) => (
                     <option key={f.name} value={f.name}>
-                      {f.name}
+                      {f.label ?? f.name}
                     </option>
                   ))}
                 </select>

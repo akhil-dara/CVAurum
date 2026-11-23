@@ -1,5 +1,5 @@
 import type { Metadata } from '@/types/metadata'
-import { ARABIC_FAMILY } from '@/data/fonts'
+import { ARABIC_FAMILY, type FontDef } from '@/data/fonts'
 
 /** What src/lib/script.ts `documentScript` reads off the page. */
 export interface PageScript {
@@ -36,6 +36,23 @@ export function applyRtlSetup(metadata: Metadata, script: PageScript): void {
   if (!coversArabic(t.fontFamily)) t.fontFamily = ARABIC_FAMILY
   if (t.headingFamily && !coversArabic(t.headingFamily)) t.headingFamily = ARABIC_FAMILY
   if (t.nameFamily && !coversArabic(t.nameFamily)) t.nameFamily = ARABIC_FAMILY
+}
+
+/** Turning right to left off by hand (the switch, the palette): only the
+ *  direction goes back - the faces and dates stay the author's - and the
+ *  offer is marked declined, or it would ask again at once. */
+export function turnRtlOff(metadata: Metadata): void {
+  metadata.layout.rtl = false
+  metadata.layout.rtlOfferDismissed = true
+}
+
+/** The fonts a picker offers: every face, except that the Arabic face is
+ *  offered only to a page with Arabic-script letters, or where it is already
+ *  one of the chosen faces (so the picker can still show what is set). The
+ *  same rule as the right-to-left switch. */
+export function offeredFonts<T extends Pick<FontDef, 'name'>>(fonts: readonly T[], arabicPage: boolean, chosen: readonly string[]): T[] {
+  if (arabicPage || chosen.some((c) => coversArabic(c))) return [...fonts]
+  return fonts.filter((f) => !coversArabic(f.name))
 }
 
 /** The offer shows for a page in Arabic script that is not mirrored and whose

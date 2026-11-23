@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { MetadataSchema, type Metadata } from '@/types/metadata'
 import { ARABIC_FAMILY, FONTS } from '@/data/fonts'
-import { applyRtlSetup, coversArabic, rtlOfferShown } from './rtlSetup'
+import { applyRtlSetup, coversArabic, offeredFonts, rtlOfferShown, turnRtlOff } from './rtlSetup'
 import { DATE_LANGUAGE_OPTIONS } from './utils'
 
 const fresh = (): Metadata => MetadataSchema.parse({})
@@ -71,5 +71,33 @@ describe('rtlOfferShown', () => {
   it('a document saved before the field existed parses, offer not declined', () => {
     const old = MetadataSchema.parse({ layout: { rtl: false } })
     expect(old.layout.rtlOfferDismissed).toBe(false)
+  })
+})
+
+describe('turnRtlOff', () => {
+  it('sets the direction back and keeps the offer from coming straight back', () => {
+    const m = fresh()
+    applyRtlSetup(m, { arabic: true, persian: true })
+    turnRtlOff(m)
+    expect(m.layout.rtl).toBe(false)
+    expect(m.layout.rtlOfferDismissed).toBe(true)
+    expect(rtlOfferShown(m, { arabic: true, persian: true })).toBe(false)
+    // faces and dates the author now has stay theirs
+    expect(m.typography.fontFamily).toBe(ARABIC_FAMILY)
+    expect(m.dates.language).toBe('fa')
+  })
+})
+
+describe('offeredFonts: the Arabic face is offered where it matters', () => {
+  const names = (arabic: boolean, chosen: string[]) => offeredFonts(FONTS, arabic, chosen).map((f) => f.name)
+  it('a resume with no Arabic script is not offered it', () => {
+    expect(names(false, ['Inter', '', ''])).not.toContain(ARABIC_FAMILY)
+    expect(names(false, ['Inter'])).toHaveLength(FONTS.length - 1)
+  })
+  it('a page with Arabic script is', () => {
+    expect(names(true, ['Inter'])).toContain(ARABIC_FAMILY)
+  })
+  it('a face already chosen stays in the list, so the picker can show it', () => {
+    expect(names(false, ['Inter', ARABIC_FAMILY])).toContain(ARABIC_FAMILY)
   })
 })

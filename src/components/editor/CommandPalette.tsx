@@ -13,7 +13,7 @@ import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
 import { FONTS } from '@/data/fonts'
 import { documentScript } from '@/lib/script'
-import { applyRtlSetup } from '@/lib/rtlSetup'
+import { applyRtlSetup, offeredFonts, turnRtlOff } from '@/lib/rtlSetup'
 import { ADD_LABEL, BODY_SECTION_KEYS, DEFAULT_LABELS, panelColumns, pushNewItem, sectionLabel } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
@@ -171,7 +171,10 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     }
 
     // fonts
-    for (const f of FONTS.filter((f) => f.category === 'sans' || f.category === 'serif')) {
+    const script = documentScript(doc)
+    const t = doc.metadata.typography
+    const pickable = offeredFonts(FONTS, script.arabic, [t.fontFamily, t.headingFamily, t.nameFamily])
+    for (const f of pickable.filter((f) => f.category === 'sans' || f.category === 'serif')) {
       cmds.push({
         id: `font-${f.name}`,
         group: 'Font',
@@ -244,7 +247,6 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     // Right to left: only for a page with Persian or Arabic letters, or one
     // already mirrored - the same rule as the Design panel's switch, and the
     // same setup when it turns on (src/lib/rtlSetup.ts).
-    const script = documentScript(doc)
     if (script.arabic || doc.metadata.layout.rtl) {
       const on = doc.metadata.layout.rtl
       cmds.push({
@@ -254,7 +256,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
         hint: on ? 'on: turn off' : 'mirror the page for Persian or Arabic',
         run: () =>
           updateMetadata((m) => {
-            if (on) m.layout.rtl = false
+            if (on) turnRtlOff(m)
             else applyRtlSetup(m, script)
           }),
       })
