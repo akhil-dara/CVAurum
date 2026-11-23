@@ -545,12 +545,15 @@ export function joinLineItems(ordered: Item[], rtl: boolean): string {
   const gapBetween = (a: Item, b: Item) => Math.max(b.x - (a.x + a.width), a.x - (b.x + b.width))
   const minor: ItemDir = rtl ? 'ltr' : 'rtl'
   // A stretch reading against the page: `minor` items (with a neutral one
-  // between two of them) no more than a word space apart.
+  // between two of them) no more than a word space apart - a space in THEIR
+  // face: a monospaced date spaces its words a whole character apart, wider
+  // than the line's average character when the rest of it is Persian.
+  const charW = (it: Item) => (it.str.length ? it.width / it.str.length : avgCharW)
+  const near = (a: Item, b: Item) => gapBetween(a, b) <= Math.max(avgCharW, 1.1 * Math.max(charW(a), charW(b)))
   const groups: Array<{ items: Item[]; minor: boolean }> = []
   for (let i = 0; i < ordered.length; i++) {
     const it = ordered[i]
     const last = groups[groups.length - 1]
-    const near = (a: Item, b: Item) => gapBetween(a, b) <= avgCharW
     const joins =
       last?.minor &&
       near(ordered[i - 1], it) &&

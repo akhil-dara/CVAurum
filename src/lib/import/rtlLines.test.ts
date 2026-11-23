@@ -56,6 +56,21 @@ describe('joinLineItems: a right-to-left page', () => {
   })
 })
 
+describe('joinLineItems: a phrase in a wider-spaced face', () => {
+  it('keeps a monospaced date in order: its word space is wider than the line average', () => {
+    // meridian: the date is set in a monospaced face, one item per word.
+    const items = [
+      item('توسعهدهنده نرمافزار', 443.5, 114.9),
+      item('Sep', 36.8, 18.5),
+      item('2017', 61.5, 24.7),
+      item('—', 92.4, 6.2),
+      item('Feb', 104.7, 18.5),
+      item('2021', 129.4, 24.7),
+    ].sort((a, b) => a.x - b.x)
+    expect(joinLineItems(items, true)).toBe('توسعهدهنده نرمافزار Sep 2017 — Feb 2021')
+  })
+})
+
 describe('joinLineItems: a left-to-right page', () => {
   it('is the old left-to-right join for a Latin line', () => {
     const items = [item('Senior', 50, 30), item('Engineer', 84, 40), item('Mar 2021', 400, 40)]
