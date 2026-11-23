@@ -489,6 +489,112 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
   return any
 }
 
+/** The right-to-left blocks: Hebrew, Arabic, Syriac, Thaana, NKo and the rest,
+ *  with their presentation forms. Their digits and punctuation are not letters. */
+const RTL_BLOCK = '\\u0590-\\u08FF\\uFB1D-\\uFDFF\\uFE70-\\uFEFC'
+const RTL_LETTER = new RegExp(`(?=[${RTL_BLOCK}])\\p{L}`, 'u')
+const RTL_LETTERS = new RegExp(`(?=[${RTL_BLOCK}])\\p{L}`, 'gu')
+const LTR_LETTERS = new RegExp(`(?![${RTL_BLOCK}])\\p{L}`, 'gu')
+/** Anything drawn left to right: a letter of another script, or a digit (Arabic-Indic ones too). */
+const LTR_STRONG = new RegExp(`(?![${RTL_BLOCK}])\\p{L}|\\p{Nd}`, 'u')
+
+type ItemDir = 'rtl' | 'ltr' | 'neutral'
+const itemDir = (s: string): ItemDir => (RTL_LETTER.test(s) ? 'rtl' : LTR_STRONG.test(s) ? 'ltr' : 'neutral')
+
+/**
+ * The pages whose letters are mostly right-to-left: their lines read from the
+ * right (`joinLineItems`). A page with no right-to-left letter is never one,
+ * so a Latin file reads exactly as it always did.
+ */
+export function rtlPages(items: Item[]): Set<number> {
+  const count = new Map<number, { r: number; l: number }>()
+  for (const it of items) {
+    const c = count.get(it.page) ?? { r: 0, l: 0 }
+    c.r += it.str.match(RTL_LETTERS)?.length ?? 0
+    c.l += it.str.match(LTR_LETTERS)?.length ?? 0
+    count.set(it.page, c)
+  }
+  return new Set([...count].filter(([, c]) => c.r > 0 && c.r > c.l).map(([p]) => p))
+}
+
+/**
+ * One line's items (sorted left to right) joined into its text, in READING
+ * order.
+ *
+ * pdf.js gives each item in reading order inside itself (it runs the bidi
+ * algorithm per item), but a line of a Persian resume that mixes in a Latin
+ * word or a number is several items, and their order is the page's to decide.
+ * On a right-to-left page (`rtl`) the line reads from the right: items in
+ * right-to-left order, except that items drawn left to right (Latin, digits)
+ * no more than a word space apart are one phrase and keep their own order.
+ * On a left-to-right page it is the mirror case: neighbouring right-to-left
+ * items read from the right inside the line. A line with no right-to-left
+ * letter on a left-to-right page - every line of a Latin file - is joined left
+ * to right exactly as before.
+ *
+ * An item with no letter or digit at all (".٪", "):") read in a right-to-left
+ * stretch is turned around: pdf.js only reverses an item that has a
+ * right-to-left letter in it, so it hands this one back in drawn order.
+ */
+export function joinLineItems(ordered: Item[], rtl: boolean): string {
+  const totalChars = ordered.reduce((n, it) => n + it.str.length, 0) || 1
+  const avgCharW = ordered.reduce((w, it) => w + it.width, 0) / totalChars || 4
+  const dirs = ordered.map((it) => itemDir(it.str))
+  if (!rtl && !dirs.includes('rtl')) return joinItems(ordered.map((it) => ({ it, str: it.str })), avgCharW)
+  /** The distance between two boxes on a line, whichever way round they are. */
+  const gapBetween = (a: Item, b: Item) => Math.max(b.x - (a.x + a.width), a.x - (b.x + b.width))
+  const minor: ItemDir = rtl ? 'ltr' : 'rtl'
+  // A stretch reading against the page: `minor` items (with a neutral one
+  // between two of them) no more than a word space apart.
+  const groups: Array<{ items: Item[]; minor: boolean }> = []
+  for (let i = 0; i < ordered.length; i++) {
+    const it = ordered[i]
+    const last = groups[groups.length - 1]
+    const near = (a: Item, b: Item) => gapBetween(a, b) <= avgCharW
+    const joins =
+      last?.minor &&
+      near(ordered[i - 1], it) &&
+      (dirs[i] === minor || (dirs[i] === 'neutral' && dirs[i + 1] === minor && near(it, ordered[i + 1])))
+    if (joins) last.items.push(it)
+    else groups.push({ items: [it], minor: dirs[i] === minor })
+  }
+  const flip = (s: string) => [...s].reverse().join('')
+  const seq: Array<{ it: Item; str: string }> = []
+  for (const g of rtl ? [...groups].reverse() : groups) {
+    // Inside a stretch the items read the other way from the page.
+    const inOrder = g.minor === rtl ? g.items : [...g.items].reverse()
+    // Is this stretch read right to left? Then a neutral item in it is turned around.
+    const rtlStretch = rtl !== g.minor
+    for (const it of inOrder) seq.push({ it, str: rtlStretch && itemDir(it.str) === 'neutral' ? flip(it.str) : it.str })
+  }
+  return joinItems(seq, avgCharW, gapBetween)
+}
+
+/** Joins items in the order given, with a space wherever a word gap separates two. */
+function joinItems(
+  seq: Array<{ it: Item; str: string }>,
+  avgCharW: number,
+  gapBetween: (a: Item, b: Item) => number = (a, b) => b.x - (a.x + a.width)
+): string {
+  let text = ''
+  let prev: Item | null = null
+  for (const { it, str } of seq) {
+    if (prev) {
+      const gap = gapBetween(prev, it)
+      // pdf.js often emits a word-space as a small gap between two items rather
+      // than a space glyph; ~0.3·charWidth reliably separates real word spaces
+      // (≈0.4–0.6) from intra-word kerning (≈0–0.15). Never insert one before
+      // closing punctuation, or where a space already exists.
+      const startsPunct = /^[\s,.;:!?)\]}%/]/.test(str)
+      const hasSpace = /\s$/.test(text) || /^\s/.test(str)
+      if (gap > avgCharW * 0.3 && !hasSpace && !startsPunct) text += ' '
+    }
+    text += str
+    prev = it
+  }
+  return text
+}
+
 function buildLines(items: Item[], tracked: FileEvidence['tracked'] = []): Line[] {
   // Reading order for RECOVERY (2026-08-16): main flow first (col 0/1 in
   // page order), every col-2 column LAST (in page order). The old strictly
@@ -505,28 +611,13 @@ function buildLines(items: Item[], tracked: FileEvidence['tracked'] = []): Line[
   items.sort((a, b) => grp(a) - grp(b) || a.page - b.page || a.col - b.col || a.top - b.top || a.x - b.x)
 
   const lines: Line[] = []
+  const rtl = rtlPages(items)
   let cur: Item[] = []
   const flush = () => {
     if (!cur.length) return
     const ordered = [...cur].sort((a, b) => a.x - b.x)
     const totalChars = ordered.reduce((n, it) => n + it.str.length, 0) || 1
-    const avgCharW = ordered.reduce((w, it) => w + it.width, 0) / totalChars || 4
-    let text = ''
-    let prevRight = -Infinity
-    for (const it of ordered) {
-      if (prevRight !== -Infinity) {
-        const gap = it.x - prevRight
-        // pdf.js often emits a word-space as a small gap between two items rather
-        // than a space glyph; ~0.3·charWidth reliably separates real word spaces
-        // (≈0.4–0.6) from intra-word kerning (≈0–0.15). Never insert one before
-        // closing punctuation, or where a space already exists.
-        const startsPunct = /^[\s,.;:!?)\]}%/]/.test(it.str)
-        const hasSpace = /\s$/.test(text) || /^\s/.test(it.str)
-        if (gap > avgCharW * 0.3 && !hasSpace && !startsPunct) text += ' '
-      }
-      text += it.str
-      prevRight = it.x + it.width
-    }
+    let text = joinLineItems(ordered, rtl.has(ordered[0].page))
     // Collapse letter-spacing BEFORE squashing whitespace (a real word break in
     // tracked text shows up as 2+ spaces, which collapseTracking preserves).
     const raw = text.trim()
