@@ -1,6 +1,75 @@
 import { parseColor, parseFontWeight, parsePx } from './style'
 import { SOFT_HYPHEN, stripSoftHyphens } from '@/lib/hyphenate'
 import type { TextRun } from './types'
+import type { BidiRun } from './bidi'
+
+/* ---- direction: one run per direction of a mixed line ----
+ *
+ * bidi.ts carries bidi-js and its tables, and this module is reached from
+ * places that are not the export (the a11y snapshot, the preview's page
+ * measurement), so it is never imported here statically. The export installs
+ * it with `prepareBidi` before the walk, and only for a document with
+ * Arabic-script text; with nothing installed every segment takes the
+ * single-run path it always took.
+ */
+
+/** The two functions of bidi.ts the walker needs. */
+export interface BidiImpl {
+  bidiRuns: (text: string, base: 'rtl' | 'ltr') => BidiRun[]
+  hasStrongRtl: (text: string) => boolean
+}
+
+let bidiImpl: BidiImpl | null = null
+
+/** Installs (or, with null, removes) the bidi functions `extractRuns` splits lines with. */
+export function setBidi(impl: BidiImpl | null): void {
+  bidiImpl = impl
+}
+
+/**
+ * Loads bidi.ts (and bidi-js with it) only when the document has Arabic-script
+ * text, and installs it for the walk; otherwise clears whatever an earlier
+ * export installed, so a Latin export never touches the bidi functions.
+ */
+export async function prepareBidi(arabic: boolean, load: () => Promise<BidiImpl> = () => import('./bidi')): Promise<void> {
+  setBidi(arabic ? await load() : null)
+}
+
+/**
+ * Hebrew, Syriac, Arabic, Thaana, NKo, Samaritan, Mandaic and the Arabic
+ * presentation forms, plus the astral right-to-left blocks. A cheap
+ * pre-check, broader than "strong RTL" (Arabic-Indic digits are in here and
+ * are not strong): a string with none of these cannot hold a strong rtl
+ * letter, so the bidi functions are never asked about it.
+ */
+const RTL_BLOCKS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]|[\uD802\uD803\uD83A\uD83B][\uDC00-\uDFFF]/
+
+/**
+ * Splits `text` into its runs of one direction, in logical order, covering it
+ * exactly: `bidiRuns` with empty runs dropped. Without bidi installed it is
+ * the whole text as one ltr run.
+ */
+export function splitSegmentByDirection(text: string, base: 'rtl' | 'ltr'): BidiRun[] {
+  if (text.length === 0) return []
+  if (!bidiImpl) return [{ start: 0, end: text.length, rtl: false }]
+  return bidiImpl.bidiRuns(text, base).filter((r) => r.end > r.start)
+}
+
+/**
+ * The direction pieces of one line segment's RAW text (indices valid for a
+ * DOM Range over the node), or null when the segment stays one run: no bidi
+ * installed, no strong right-to-left letter, or a single ltr piece.
+ *
+ * Tabs and line breaks go to the algorithm as spaces. Bidi treats them as
+ * segment and paragraph separators, which reset the embedding, while the
+ * browser, under `white-space: normal`, drew them as one collapsed space; the
+ * swap is one character for one, so every index still points into `raw`.
+ */
+export function directionPieces(raw: string, base: 'rtl' | 'ltr'): BidiRun[] | null {
+  if (!bidiImpl || !RTL_BLOCKS.test(raw) || !bidiImpl.hasStrongRtl(raw)) return null
+  const pieces = splitSegmentByDirection(raw.replace(/[\t\n\v\f\r\u001C-\u001F\u0085\u2029]/g, ' '), base)
+  return pieces.length > 1 || pieces[0]?.rtl ? pieces : null
+}
 
 /** parseColor handles rgb()/rgba(), the `color(srgb ...)` form Chromium
  *  serializes color-mix() results to (see style.ts), and anything else via
@@ -722,6 +791,8 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     ...(decorationOf(cs, 'line-through') ? { lineThrough: true as const } : {}),
   }
   const shaped = (s: string) => applyTextTransform(collapseWhitespace(stripSoftHyphens(s), cs.whiteSpace), cs.textTransform)
+  /** The paragraph direction a mixed line is resolved against. */
+  const base = cs.direction === 'rtl' ? 'rtl' : 'ltr'
 
   // Sub-range geometry, needed only where a soft hyphen actually broke a
   // line: where this line's letters stop, and how wide the hyphen the engine
@@ -754,7 +825,44 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     const bodyEnd = broke ? seg.end - 1 : seg.end
     const baselinePx = halfLeadingBaselinePx(seg.rect.top, rootRect.top, seg.rect.bottom - seg.rect.top, metrics)
 
-    let text = shaped(data.slice(bodyStart, bodyEnd))
+    const split = directionPieces(data.slice(bodyStart, bodyEnd), base)
+    if (split) {
+      // One run per direction, each measured over its own characters on this
+      // line - wherever the browser placed them, so their order on the page
+      // is the browser's and never computed here. Pieces are cut on the RAW
+      // text and shaped one by one: a run of whitespace always resolves to a
+      // single direction, so collapsing never meets a space split across two
+      // pieces. A piece that shapes to nothing but space draws nothing and is
+      // dropped, as a blank segment always was.
+      for (let pi = 0; pi < split.length; pi++) {
+        const s = bodyStart + split[pi].start
+        const e = bodyStart + split[pi].end
+        let pieceText = shaped(data.slice(s, e))
+        if (pieceText.trim() === '') continue
+        const box = rectOf(s, e, seg.rect.top)
+        let left = box.left
+        let right = box.right
+        // The preceding space belongs to the first LOGICAL piece only. Its
+        // box is unioned rather than taken as the left edge, because before a
+        // right-to-left piece the space that comes first sits to its right.
+        if (pi === 0 && lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1) {
+          pieceText = ' ' + pieceText
+          left = Math.min(left, lead.left)
+          right = Math.max(right, lead.right)
+        }
+        runs.push({
+          ...style,
+          text: pieceText,
+          xPx: left - rootRect.left,
+          widthPx: right - left,
+          baselinePx,
+          isDecorative: false,
+          ...(split[pi].rtl ? { direction: 'rtl' as const } : {}),
+        })
+      }
+    }
+
+    let text = split ? '' : shaped(data.slice(bodyStart, bodyEnd))
     if (text.trim() !== '') {
       const box = broke ? rectOf(bodyStart, bodyEnd, seg.rect.top) : seg.rect
       // Absorb the preceding space: starting the run at the space's own left

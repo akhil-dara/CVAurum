@@ -38,7 +38,8 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { preparePrintTree } from './prepareTree'
-import { visualLines } from './text'
+import { prepareBidi, visualLines } from './text'
+import { documentScript } from '@/lib/script'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
 import { resolveForcedCutsPx } from './pageBreaks'
@@ -411,6 +412,11 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
 
     const pdfaConforming = applyPdfAConformance(pdfDoc, icc, `${docInfo.title}|${docInfo.created.toISOString()}`)
 
+    // A line mixing right-to-left letters with Latin or digits is walked as
+    // one run per direction, which needs the bidi algorithm. It is loaded
+    // here, and only for a resume with Arabic-script text: a Latin export
+    // never fetches it, and every one of its runs is walked exactly as before.
+    await prepareBidi(documentScript(doc).arabic)
     const ops = buildDrawList(sheet, { clickableLinks: doc.metadata.links?.clickable !== false })
 
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
