@@ -6,8 +6,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import { PDFDocument, PDFName } from 'pdf-lib'
-import { applyPdfMetadata, buildDocInfo, buildXmpPacket, PDF_CREATOR, PDF_PRODUCER, xmlEscape } from './metadata'
+import { applyPdfMetadata, buildDocInfo, buildXmpPacket, pdfLanguageFor, PDF_CREATOR, PDF_PRODUCER, xmlEscape } from './metadata'
 import type { ResumeDocument } from '@/types/document'
+import { createDocument } from '@/data/defaults'
 
 const NOW = new Date('2026-08-19T14:30:00.000Z')
 
@@ -79,6 +80,34 @@ describe('buildDocInfo', () => {
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'fr-CA' } } }), NOW).language).toBe('fr-CA')
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'en' } } }), NOW).language).toBe('en-US')
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: '  ' } } }), NOW).language).toBe('en-US')
+  })
+
+  it('declares Persian or Arabic for a resume written in that script', () => {
+    // No date language chosen: the page's own letters decide. Persian adds
+    // pe, che, zhe and gaf to the Arabic alphabet, so they tell the two apart.
+    const persian = createDocument()
+    persian.content.basics.name = 'علی رضایی'
+    persian.content.basics.label = 'پژوهشگر و مهندس نرم‌افزار'
+    expect(pdfLanguageFor(persian)).toBe('fa')
+
+    const arabic = createDocument()
+    arabic.content.basics.name = 'علي حسن'
+    arabic.content.basics.label = 'مهندس برمجيات'
+    expect(pdfLanguageFor(arabic)).toBe('ar')
+
+    const latin = createDocument()
+    latin.content.basics.name = 'Alex Morgan'
+    expect(pdfLanguageFor(latin)).toBe('en-US')
+
+    // The buildDocInfo the export calls reads the same answer.
+    expect(buildDocInfo(persian, NOW).language).toBe('fa')
+  })
+
+  it('keeps a date language the author chose over the script guess', () => {
+    const persian = createDocument()
+    persian.content.basics.name = 'علی رضایی'
+    persian.metadata.dates.language = 'de'
+    expect(pdfLanguageFor(persian)).toBe('de')
   })
 
   it('declares only a tag a reader can act on', () => {

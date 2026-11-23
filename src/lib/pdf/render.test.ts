@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import {
   resolveDecoBoxesGlobal,
@@ -181,5 +184,16 @@ describe('exportFaces (the faces the native export waits for)', () => {
     const doc = createDocument()
     doc.content.basics.name = 'Alex Morgan'
     expect(exportFaces(doc)).not.toContain(ARABIC_FAMILY)
+  })
+})
+
+describe('the bidi hook (installed for the walk and the paint)', () => {
+  it('is cleared when the render ends, whether it finished or threw', () => {
+    // prepareBidi installs it for a resume with Arabic-script text; a render
+    // that threw midway used to leave it installed for the next one.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'render.tsx'), 'utf8')
+    const fin = source.lastIndexOf('} finally {')
+    expect(fin).toBeGreaterThan(source.indexOf('await prepareBidi('))
+    expect(source.slice(fin, fin + 200)).toContain('setBidi(null)')
   })
 })

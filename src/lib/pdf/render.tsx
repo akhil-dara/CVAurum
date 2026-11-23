@@ -38,7 +38,7 @@ import { TemplateRenderer } from '@/templates/TemplateRenderer'
 import { pxToPt } from './units'
 import { buildDrawList, extractPageBlocks } from './walk'
 import { preparePrintTree } from './prepareTree'
-import { prepareBidi, visualLines } from './text'
+import { prepareBidi, setBidi, visualLines } from './text'
 import { documentScript } from '@/lib/script'
 import type { PageBlock } from './paginate'
 import { paginate, PaginationImpossibleError, type Pagination, type PaginationInput } from './paginate'
@@ -427,7 +427,8 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
     // one run per direction, which needs the bidi algorithm. It is loaded
     // here, and only for a resume with Arabic-script text: a Latin export
     // never fetches it, and every one of its runs is walked exactly as before.
-    await prepareBidi(documentScript(doc).arabic)
+    const script = documentScript(doc)
+    await prepareBidi(script.arabic)
     const ops = buildDrawList(sheet, { clickableLinks: doc.metadata.links?.clickable !== false })
 
     const fonts = new PdfFontCache(pdfDoc, await loadPdfFontIndex())
@@ -459,7 +460,14 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
     // Tagged PDF: the sink marks every op as it is painted and records the
     // structure; the tree is written afterwards, once the marks (and their
     // pages) are known.
-    const tagSink = createTagSink()
+    //
+    // A run in another language than the file's (English in a Persian resume,
+    // a Persian name in an English one) gets its own /Lang, so a screen reader
+    // switches voice for it. A Latin resume passes no languages and none of
+    // its marks carries one.
+    const tagSink = createTagSink(
+      script.arabic ? { document: docInfo.language, arabic: script.persian ? 'fa' : 'ar' } : undefined
+    )
     await paintPages(pages, ops, fonts, pxToPt(pageHpx), pageHpx, cutsPx, padding.topPx, decoBoxes, tagSink)
     // The accessibility claim is made ONLY if the tree was actually written,
     // never on an empty or missing structure (see writeStructTree).
@@ -494,6 +502,9 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
     lastPageCount = pageCount
     return stampPdfVersion(await pdfDoc.save())
   } finally {
+    // The bidi hook serves this render's walk and paint only; a render that
+    // threw midway must not leave it installed for the next one.
+    setBidi(null)
     root.unmount()
     container.remove()
   }

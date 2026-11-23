@@ -83,7 +83,7 @@ export const GUIDES: readonly Guide[] = [
         list: [
           `${TEMPLATE_COUNT} resume templates, each restylable section by section`,
           `${SAMPLE_COUNT} complete example resumes to start from, across twelve fields`,
-          'Unlimited PDF downloads: vector text you can select, archival (PDF/A-2B) and accessible (PDF/UA-1) — or, for a Persian or Arabic resume, the browser\'s own print window',
+          'Unlimited PDF downloads: vector text you can select, archival (PDF/A-2B) and accessible (PDF/UA-1)',
           'An editable Word (.docx) file and a JSON Resume file',
           'An ATS check with a job-description keyword match',
           'Import from an existing PDF, including a scanned one',

@@ -18,6 +18,8 @@
 import { PDFDocument, PDFName } from 'pdf-lib'
 import type { ResumeDocument } from '@/types/document'
 import { canonicalLanguage } from '@/lib/utils'
+import { usesArabicScript } from '@/data/fonts'
+import { documentScript } from '@/lib/script'
 
 /** What the file says produced it. Never the PDF library's own name. */
 export const PDF_CREATOR = 'CVAurum'
@@ -60,10 +62,23 @@ const clean = (s?: string): string => (s ?? '').replace(/\s+/g, ' ').trim()
  *  XMP declare only a tag a reader can act on: a tag the runtime does not
  *  know prints English months on the page, and would otherwise reach the
  *  file verbatim and tell a screen reader to speak a language the document
- *  is not in. */
-function documentLanguage(doc: ResumeDocument): string {
+ *  is not in.
+ *
+ *  With the date language left on that bare 'en', the page's own letters
+ *  decide between Persian ('fa'), Arabic ('ar') and the en-US default. */
+export function pdfLanguageFor(doc: ResumeDocument): string {
   const tag = canonicalLanguage(clean(doc.metadata?.dates?.language))
-  return tag.toLowerCase() !== 'en' ? tag : DEFAULT_LANGUAGE
+  if (tag.toLowerCase() !== 'en') return tag
+  // No date language chosen: a resume written in Arabic script is a Persian
+  // or Arabic document, whatever the dates were left on. The cheap check runs
+  // first, so a Latin resume never reads its page text here and declares
+  // exactly what it always has.
+  if (doc.content && usesArabicScript(JSON.stringify(doc.content))) {
+    const script = documentScript(doc)
+    if (script.persian) return 'fa'
+    if (script.arabic) return 'ar'
+  }
+  return DEFAULT_LANGUAGE
 }
 
 /** Info-dictionary + XMP values for a document, as a pure function. */
@@ -99,7 +114,7 @@ export function buildDocInfo(doc: ResumeDocument, now: Date = new Date()): DocIn
       producer: PDF_PRODUCER,
       created: now,
       modified: now,
-      language: documentLanguage(doc),
+      language: pdfLanguageFor(doc),
     }
   }
   return finish()

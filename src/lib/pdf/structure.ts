@@ -33,7 +33,7 @@ import {
   PDFString,
 } from 'pdf-lib'
 import type { DrawOp } from './types'
-import { buildStructure, type StructNode, type TagSink, type TaggedMark } from './tagging'
+import { buildStructure, runLanguage, type StructNode, type TagLanguages, type TagSink, type TaggedMark } from './tagging'
 import { STRUCT_NAMESPACE } from './pdfa'
 
 interface MarkToken {
@@ -48,8 +48,12 @@ export interface TagCollector extends TagSink {
  * Creates the painter-facing sink. Artifacts are marked but never recorded
  * (they must not appear in the tree); content gets a per-PAGE MCID, which is
  * what the ParentTree indexes by.
+ *
+ * Given the document's languages, each text mark also records the language
+ * of a run the catalog's /Lang does not cover (tagging.ts `runLanguage`);
+ * without them, as for every Latin export, no mark carries one.
  */
-export function createTagSink(): TagCollector {
+export function createTagSink(langs?: TagLanguages): TagCollector {
   const marks: TaggedMark[] = []
   let pageIndex = 0
   let nextMcid = 0
@@ -83,6 +87,8 @@ export function createTagSink(): TagCollector {
         column: op.kind === 'text' ? op.column : undefined,
         blockId: op.kind === 'text' ? op.blockId : undefined,
         linkUrl: op.kind === 'text' ? op.linkUrl : undefined,
+        lang:
+          langs && op.kind === 'text' ? runLanguage(op.run.text ?? '', op.run.direction === 'rtl', langs) : undefined,
         // Headings feed the document outline (0007): capture their visible
         // text. Only H1/H2/H3 — paragraphs and list items never become
         // bookmarks.
@@ -228,7 +234,8 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
     mcids: number[],
     parent: PDFRef,
     childRefs: PDFRef[] = [],
-    alt?: string
+    alt?: string,
+    langs?: Record<number, string>
   ): PDFRef => {
     const ref = context.nextRef()
     const page = pages[pageIndex]
@@ -238,7 +245,33 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
       P: parent,
     })
     if (page) dict.Pg = page.ref
-    const k: unknown[] = [...mcids.map((m) => PDFNumber.of(m)), ...childRefs]
+    // A run in another language than the document's (tagging.ts
+    // runLanguage). When every mark of the element shares it, the element
+    // itself declares it; otherwise each such mark is wrapped in a Span that
+    // does, and the ParentTree points that mark at its Span.
+    const own = mcids.length > 0 && langs ? langs[mcids[0]] : undefined
+    const whole = own !== undefined && mcids.every((m) => langs![m] === own)
+    if (whole) dict.Lang = PDFString.of(own)
+    const owner: PDFRef[] = []
+    const k: unknown[] = [
+      ...mcids.map((m, i) => {
+        const lang = whole ? undefined : langs?.[m]
+        if (!lang) return PDFNumber.of(m)
+        const spanRef = context.nextRef()
+        const span: Record<string, unknown> = ns({
+          Type: PDFName.of('StructElem'),
+          S: PDFName.of('Span'),
+          P: ref,
+          K: PDFNumber.of(m),
+          Lang: PDFString.of(lang),
+        })
+        if (page) span.Pg = page.ref
+        context.assign(spanRef, context.obj(span as never))
+        owner[i] = spanRef
+        return spanRef
+      }),
+      ...childRefs,
+    ]
     dict.K = k.length === 1 ? k[0] : context.obj(k as never)
     if (alt) dict.Alt = PDFHexString.fromText(alt)
     if (role === 'Link') {
@@ -257,7 +290,9 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
       } as never)
     }
     context.assign(ref, context.obj(dict as never))
-    for (const m of mcids) if (parentsByPage[pageIndex]) parentsByPage[pageIndex][m] = ref
+    mcids.forEach((m, i) => {
+      if (parentsByPage[pageIndex]) parentsByPage[pageIndex][m] = owner[i] ?? ref
+    })
     return ref
   }
 
@@ -274,7 +309,7 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
         // LI wraps an LBody, which is what actually owns the marks — the
         // shape readers expect for list content.
         const liRef = context.nextRef()
-        const bodyRef = addElement('LBody', child.pageIndex, child.mcids, liRef)
+        const bodyRef = addElement('LBody', child.pageIndex, child.mcids, liRef, [], undefined, child.langs)
         context.assign(
           liRef,
           context.obj(
@@ -302,7 +337,7 @@ export function writeStructTree(pdfDoc: PDFDocument, marks: TaggedMark[]): boole
       kids.push(listRef)
       continue
     }
-    const nodeRef = addElement(node.role, node.pageIndex, node.mcids, documentRef, [], node.alt)
+    const nodeRef = addElement(node.role, node.pageIndex, node.mcids, documentRef, [], node.alt, node.langs)
     kids.push(nodeRef)
     if (node.role === 'Link') linkElements.push({ pageIndex: node.pageIndex, linkUrl: node.linkUrl, ref: nodeRef, objrs: [] })
   }

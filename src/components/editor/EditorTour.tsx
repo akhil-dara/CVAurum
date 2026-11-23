@@ -55,7 +55,7 @@ const STEPS: Step[] = [
   { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Preview shows exactly what exports. ATS shows the plain text an applicant-tracking system reads, how five kinds of system would split it into fields, and a keyword match against the job.' },
   { sel: '[data-tour="palette"]', title: `Do anything with ${shortcutLabel('Ctrl+K', isMac())}`, body: `Press ${shortcutLabel('Ctrl+K', isMac())} for a command palette — switch designs, fonts and colours, add sections, change mode. In a summary, type “/” for quick inserts.`, desktopOnly: true },
   { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link: the resume is sealed with a passphrase inside the link and never touches a server.' },
-  { sel: '[data-tour="export"]', title: 'Download, free', body: 'PDF or Word, unlimited, no account, no watermark. The PDF is real selectable text, tagged for screen readers (PDF/UA-1) and archival (PDF/A-2B) — a Persian or Arabic resume is printed by the browser instead, where its letters join correctly.' },
+  { sel: '[data-tour="export"]', title: 'Download, free', body: 'PDF or Word, unlimited, no account, no watermark. The PDF is real selectable text, tagged for screen readers (PDF/UA-1) and archival (PDF/A-2B).' },
 ]
 
 export function EditorTour() {

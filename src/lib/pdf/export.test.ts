@@ -89,7 +89,7 @@ describe('exportResumePdf', () => {
 
     const result = await exportResumePdf(doc)
 
-    expect(result).toEqual({ kind: 'file', fileName: 'Jane_Doe_Resume_2026-08-14.pdf', pages: 2, bytes: 3 })
+    expect(result).toEqual({ fileName: 'Jane_Doe_Resume_2026-08-14.pdf', pages: 2, bytes: 3 })
     expect(saveDocMock).toHaveBeenCalledWith(doc)
     expect(lastAnchor?.download).toBe('Jane_Doe_Resume_2026-08-14.pdf')
     expect(lastAnchor?.click).toHaveBeenCalledTimes(1)
@@ -120,85 +120,53 @@ describe('exportResumePdf', () => {
     expect(lastAnchor).toBeNull()
   })
 
-  it('saves a right-to-left resume from the browser print window instead of drawing it', async () => {
-    // The native renderer paints run by run with pdf-lib: no GSUB joining, no
-    // bidi reordering, so Persian/Arabic comes out as disconnected, reverse
-    // ordered letters. The browser's own engine shapes it, and the print view
-    // renders the same mirrored DOM (TemplateRenderer + dir="rtl").
+  it('draws a right-to-left Persian resume natively too, and opens no window', async () => {
+    // The native renderer shapes and orders Arabic script now (directedText,
+    // bidi), so a Persian resume is drawn and downloaded like any other.
     renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3]))
-    const tab = { location: { href: '' } }
-    const open = vi.fn(() => tab)
+    const open = vi.fn()
     const assign = vi.fn()
-    // @ts-expect-error the node test env has no window; the print path needs one
+    // @ts-expect-error the node test env has no window; a print path would need one
     globalThis.window = { open, location: { assign } }
 
-    const rtlDoc = { id: 'doc-fa', metadata: { layout: { rtl: true } } } as unknown as ResumeDocument
+    const rtlDoc = createDocument()
+    rtlDoc.metadata.layout.rtl = true
+    rtlDoc.content.basics.name = 'علی رضایی'
+    rtlDoc.content.basics.label = 'مهندس نرم‌افزار'
     const result = await exportResumePdf(rtlDoc)
 
-    expect(saveDocMock).toHaveBeenCalledWith(rtlDoc)
-    // opened before the first await, so the browser counts it as the click
-    expect(open).toHaveBeenCalledWith('about:blank', '_blank')
-    expect(tab.location.href).toBe('/print/doc-fa')
-    expect(result).toEqual({ kind: 'print', fileName: 'Jane_Doe_Resume_2026-08-14.pdf' })
-    // nothing is drawn or downloaded here
-    expect(renderResumePdfMock).not.toHaveBeenCalled()
-    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(renderResumePdfMock).toHaveBeenCalledWith(rtlDoc)
+    expect(result).toEqual({ fileName: 'Jane_Doe_Resume_2026-08-14.pdf', pages: 1, bytes: 3 })
+    expect(lastAnchor?.download).toBe('Jane_Doe_Resume_2026-08-14.pdf')
+    expect(open).not.toHaveBeenCalled()
     expect(assign).not.toHaveBeenCalled()
     delete (globalThis as { window?: unknown }).window
   })
 
-  it('prints a Persian name even when the document never asked to be right-to-left', async () => {
-    // The face is chosen by the characters it has to draw, not by the layout
-    // switch (src/data/fonts.ts). The same is true of the engine that draws it:
-    // a Persian name typed into an otherwise English resume would otherwise be
-    // painted without its joins and in the wrong order, and nothing would say
-    // so - Vazirmatn has the glyphs, so no character is reported missing.
-    const tab = { location: { href: '' } }
-    const open = vi.fn(() => tab)
-    // @ts-expect-error the node test env has no window; the print path needs one
+  it('draws a Persian name in an English resume natively as well', async () => {
+    renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3]))
+    const open = vi.fn()
+    // @ts-expect-error the node test env has no window; a print path would need one
     globalThis.window = { open, location: { assign: vi.fn() } }
 
-    // A whole document: the script is read from the text the page shows
-    // (src/lib/script.ts), which needs the section layout to read it by.
-    const englishDoc = createDocument()
-    englishDoc.id = 'doc-mixed'
-    englishDoc.content.basics.name = 'Ali Rezaei'
-    englishDoc.content.basics.label = 'مهندس نرم‌افزار'
-    const result = await exportResumePdf(englishDoc)
+    const mixed = createDocument()
+    mixed.content.basics.name = 'Ali Rezaei'
+    mixed.content.basics.label = 'مهندس نرم‌افزار'
+    await exportResumePdf(mixed)
 
-    expect(result).toEqual({ kind: 'print', fileName: 'Jane_Doe_Resume_2026-08-14.pdf' })
-    expect(tab.location.href).toBe('/print/doc-mixed')
-    expect(renderResumePdfMock).not.toHaveBeenCalled()
+    expect(renderResumePdfMock).toHaveBeenCalledWith(mixed)
+    expect(open).not.toHaveBeenCalled()
     delete (globalThis as { window?: unknown }).window
   })
 
-  it('leaves no blank tab behind when the document cannot be saved', async () => {
-    // The tab is opened before the save because the click must be the thing
-    // that opens it; if the save then fails, that tab is an empty page over
-    // the app and nothing closes it.
-    const tab = { location: { href: '' }, close: vi.fn() }
-    const open = vi.fn(() => tab)
-    // @ts-expect-error the node test env has no window; the print path needs one
-    globalThis.window = { open, location: { assign: vi.fn() } }
-    saveDocMock.mockRejectedValueOnce(new Error('QuotaExceededError'))
-
-    const rtlDoc = { id: 'doc-fa', metadata: { layout: { rtl: true } } } as unknown as ResumeDocument
-    await expect(exportResumePdf(rtlDoc)).rejects.toThrow(/QuotaExceededError/)
-    expect(tab.close).toHaveBeenCalled()
-    expect(tab.location.href).toBe('')
-    delete (globalThis as { window?: unknown }).window
-  })
-
-  it('has exactly one print path - the RTL one - and no hidden fallback', () => {
+  it('has no browser-print path behind it: every PDF is the native render', () => {
     // The rule the user set, made executable: a fallback that hands over a
-    // different document would hide renderer regressions. The browser print
-    // path is allowed only for a document in Arabic script, which the native
-    // renderer cannot shape, and exportFlow announces it.
-    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'export.ts'), 'utf8')
-    expect(source).not.toMatch(/pdf-engine/)
-    const printAt = source.indexOf('/print/${doc.id}')
-    const renderAt = source.indexOf('await renderResumePdf')
-    expect(printAt).toBeGreaterThan(-1)
-    expect(renderAt).toBeGreaterThan(printAt)
+    // different document would hide renderer regressions.
+    const here = dirname(fileURLToPath(import.meta.url))
+    const source = readFileSync(join(here, 'export.ts'), 'utf8')
+    expect(source).not.toMatch(/openPrintWindow|window\.print|window\.open|\/print\/|pdf-engine|needsBrowserPrint/)
+    // ...and the flow around it never tells anyone to save from a print dialog.
+    const flow = readFileSync(join(here, 'exportFlow.ts'), 'utf8')
+    expect(flow).not.toMatch(/Save as PDF|print window|kind === 'print'/)
   })
 })
