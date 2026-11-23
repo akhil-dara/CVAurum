@@ -84,6 +84,21 @@ describe('directionPieces (the walker decides whether a line splits)', () => {
     expect(directionPieces('۱۴۰۲', 'ltr')).toBeNull()
   })
 
+  it('splits a right-to-left line with no letter in it the way the browser lays it out', () => {
+    // harvard's education date on a right-to-left page: the canvas shows
+    // "2017 — 2013", each year left to right, the dash between them right to left.
+    setBidi(bidi)
+    const raw = '2013 — 2017'
+    expect(pieces(raw, directionPieces(raw, 'rtl')!)).toEqual([
+      ['2013', 'ltr'],
+      [' — ', 'rtl'],
+      ['2017', 'ltr'],
+    ])
+    // A Latin phrase stays one left-to-right run, and a lone run of digits too.
+    expect(directionPieces('Mar 2021 — Present', 'rtl')).toBeNull()
+    expect(directionPieces('۱۴۰۲', 'rtl')).toBeNull()
+  })
+
   it('splits a mixed line, with indices valid on the raw text', () => {
     setBidi(bidi)
     const raw = 'Vertex Labs\nمهندس 2021'
@@ -314,7 +329,9 @@ describe('extractRuns emits one run per direction', () => {
     stubDom((i) => (i === 0 ? 60 : 50), 'rtl')
     setBidi(bidi)
     const runs = extractRuns(textNode(': '), root)
-    expect(runs.map((r) => [r.text, r.xPx, r.widthPx])).toEqual([[' :', 50, 20]])
+    // One right-to-left piece: its text starts at the right, so the space,
+    // drawn on the left, is its last character.
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([[': ', 50, 20, 'rtl']])
   })
 
   it('draws Arabic script untracked, as the browser does, and keeps the tracking of the Latin beside it', () => {
