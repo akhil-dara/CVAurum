@@ -2,6 +2,7 @@ import { parseColor, parseFontWeight, parsePx } from './style'
 import { SOFT_HYPHEN, stripSoftHyphens } from '@/lib/hyphenate'
 import type { TextRun } from './types'
 import type { BidiRun } from './bidi'
+import { RTL_BLOCK_CLASS } from '@/lib/rtlBlocks'
 
 /* ---- direction: one run per direction of a mixed line ----
  *
@@ -23,9 +24,15 @@ export interface BidiImpl {
 
 let bidiImpl: BidiImpl | null = null
 
+/** Each block's paragraph text and where each of its text nodes starts in it
+ *  (`paragraphContext`); emptied whenever bidi is installed or removed, so one
+ *  export's sheet never answers for the next. */
+let paragraphs = new WeakMap<Element, { text: string; starts: Map<Text, number> }>()
+
 /** Installs (or, with null, removes) the bidi functions `extractRuns` splits lines with. */
 export function setBidi(impl: BidiImpl | null): void {
   bidiImpl = impl
+  paragraphs = new WeakMap()
 }
 
 /**
@@ -55,10 +62,10 @@ export async function prepareBidi(arabic: boolean, load: () => Promise<BidiImpl>
  * are not strong): a string with none of these cannot hold a strong rtl
  * letter, so the bidi functions are never asked about it.
  */
+const RTL_BLOCKS = new RegExp(`[${RTL_BLOCK_CLASS}]|[\uD802\uD803\uD83A\uD83B][\uDC00-\uDFFF]`)
+
 /** An Arabic-script letter: a cursive script, which the browser never letter-spaces. */
 const ARABIC_LETTER = /(?=[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-ﻼ])\p{L}/u
-
-const RTL_BLOCKS = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]|[\uD802\uD803\uD83A\uD83B][\uDC00-\uDFFF]/
 
 /**
  * Splits `text` into its runs of one direction, in logical order, covering it
@@ -74,18 +81,51 @@ export function splitSegmentByDirection(text: string, base: 'rtl' | 'ltr'): Bidi
 /**
  * The direction pieces of one line segment's RAW text (indices valid for a
  * DOM Range over the node), or null when the segment stays one run: no bidi
- * installed, no strong right-to-left letter, or a single ltr piece.
+ * installed, no strong right-to-left letter under a left-to-right base, or a
+ * single ltr piece.
+ *
+ * Under a right-to-left base a segment splits without a right-to-left letter
+ * too: "2013 — 2017" is two left-to-right years with a right-to-left dash
+ * between them, drawn "2017 — 2013" on the canvas; a ": " alone is one
+ * right-to-left piece, its space on the left.
  *
  * Tabs and line breaks go to the algorithm as spaces. Bidi treats them as
  * segment and paragraph separators, which reset the embedding, while the
  * browser, under `white-space: normal`, drew them as one collapsed space; the
  * swap is one character for one, so every index still points into `raw`.
+ *
+ * `context` is the paragraph the segment belongs to (`paragraphContext`) and
+ * where `raw` starts in it. The browser resolves directions over the whole
+ * paragraph, and so must this: a node holding only " (" is a right-to-left
+ * neutral on its own, but inside "English (C1)" it is left to right.
  */
-export function directionPieces(raw: string, base: 'rtl' | 'ltr'): BidiRun[] | null {
-  if (!bidiImpl || !RTL_BLOCKS.test(raw) || !bidiImpl.hasStrongRtl(raw)) return null
-  const pieces = splitSegmentByDirection(raw.replace(/[\t\n\v\f\r\u001C-\u001F\u0085\u2029]/g, ' '), base)
+export function directionPieces(raw: string, base: 'rtl' | 'ltr', context?: { text: string; start: number }): BidiRun[] | null {
+  if (!bidiImpl) return null
+  const whole = context?.text ?? raw
+  if (base !== 'rtl' && (!RTL_BLOCKS.test(whole) || !bidiImpl.hasStrongRtl(whole))) return null
+  const pieces = context ? clipToNode(resolveParagraph(context.text, base), context.start, raw.length) : resolveParagraph(raw, base)
   const folded = foldBlankPieces(raw, pieces)
   return folded.length > 1 || folded[0]?.rtl ? folded : null
+}
+
+/** The paragraph's runs, clipped to the node's stretch `[from, from + length)`
+ *  and shifted to the node's own indices. */
+function clipToNode(runs: BidiRun[], from: number, length: number): BidiRun[] {
+  const out: BidiRun[] = []
+  for (const r of runs) {
+    const start = Math.max(r.start, from) - from
+    const end = Math.min(r.end, from + length) - from
+    if (end <= start) continue
+    const last = out[out.length - 1]
+    if (last && last.rtl === r.rtl) last.end = end
+    else out.push({ start, end, rtl: r.rtl })
+  }
+  return out
+}
+
+/** `splitSegmentByDirection` with tabs and line breaks read as spaces (see `directionPieces`). */
+function resolveParagraph(text: string, base: 'rtl' | 'ltr'): BidiRun[] {
+  return splitSegmentByDirection(text.replace(/[\t\n\v\f\r\u001C-\u001F\u0085\u2029]/g, ' '), base)
 }
 
 /**
@@ -799,6 +839,41 @@ function decorationOf(cs: CSSStyleDeclaration, want: 'underline' | 'line-through
   return line.includes(want)
 }
 
+/** True for an element laid out inline (its text flows in its parent's lines). */
+const isInline = (el: Element) => getComputedStyle(el).display.startsWith('inline') || getComputedStyle(el).display === 'contents'
+
+/**
+ * The paragraph `node` is laid out in - the text of its nearest non-inline
+ * ancestor, from the text nodes whose lines that block lays out - and where
+ * `node` starts in it. Undefined when there is no such DOM to read.
+ */
+export function paragraphContext(node: Text): { text: string; start: number } | undefined {
+  try {
+    let block = node.parentElement
+    while (block && isInline(block) && block.parentElement) block = block.parentElement
+    if (!block || typeof document.createTreeWalker !== 'function') return undefined
+    let para = paragraphs.get(block)
+    if (!para) {
+      const starts = new Map<Text, number>()
+      let text = ''
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT)
+      for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+        let el = n.parentElement
+        while (el && el !== block && isInline(el)) el = el.parentElement
+        if (el !== block) continue
+        starts.set(n, text.length)
+        text += n.data
+      }
+      para = { text, starts }
+      paragraphs.set(block, para)
+    }
+    const start = para.starts.get(node)
+    return start === undefined ? undefined : { text: para.text, start }
+  } catch {
+    return undefined
+  }
+}
+
 /** How far a blank box may sit from a run and still be the space beside it:
  *  sub-pixel seams between client rects, and no more. */
 const BLANK_TOUCH_PX = 1.5
@@ -925,6 +1000,9 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     return { text, left: Math.min(...all.map((b) => b.left)), right: Math.max(...all.map((b) => b.right)) }
   }
 
+  // The paragraph the node's lines belong to: only a document with bidi
+  // installed (Arabic script) reads it.
+  const paragraph = bidiImpl ? paragraphContext(node) : undefined
   const runs: TextRun[] = []
   for (let si = 0; si < segments.length; si++) {
     const seg = segments[si]
@@ -933,7 +1011,7 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     const bodyEnd = broke ? seg.end - 1 : seg.end
     const baselinePx = halfLeadingBaselinePx(seg.rect.top, rootRect.top, seg.rect.bottom - seg.rect.top, metrics)
 
-    const split = directionPieces(data.slice(bodyStart, bodyEnd), base)
+    const split = directionPieces(data.slice(bodyStart, bodyEnd), base, paragraph && { text: paragraph.text, start: paragraph.start + bodyStart })
     if (split) {
       // One run per direction, each measured over its own characters on this
       // line - wherever the browser placed them, so their order on the page

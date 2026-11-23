@@ -16,6 +16,7 @@
  */
 import * as pdfjsLib from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { RTL_BLOCK_CLASS } from '@/lib/rtlBlocks'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
 
@@ -491,7 +492,7 @@ function assignColumns(items: Item[], pageWidth: Map<number, number>): boolean {
 
 /** The right-to-left blocks: Hebrew, Arabic, Syriac, Thaana, NKo and the rest,
  *  with their presentation forms. Their digits and punctuation are not letters. */
-const RTL_BLOCK = '\\u0590-\\u08FF\\uFB1D-\\uFDFF\\uFE70-\\uFEFC'
+const RTL_BLOCK = RTL_BLOCK_CLASS
 const RTL_LETTER = new RegExp(`(?=[${RTL_BLOCK}])\\p{L}`, 'u')
 const RTL_LETTERS = new RegExp(`(?=[${RTL_BLOCK}])\\p{L}`, 'gu')
 const LTR_LETTERS = new RegExp(`(?![${RTL_BLOCK}])\\p{L}`, 'gu')

@@ -84,6 +84,38 @@ describe('directionPieces (the walker decides whether a line splits)', () => {
     expect(directionPieces('۱۴۰۲', 'ltr')).toBeNull()
   })
 
+  it('splits a right-to-left line with no letter in it the way the browser lays it out', () => {
+    // harvard's education date on a right-to-left page: the canvas shows
+    // "2017 — 2013", each year left to right, the dash between them right to left.
+    setBidi(bidi)
+    const raw = '2013 — 2017'
+    expect(pieces(raw, directionPieces(raw, 'rtl')!)).toEqual([
+      ['2013', 'ltr'],
+      [' — ', 'rtl'],
+      ['2017', 'ltr'],
+    ])
+    // A Latin phrase stays one left-to-right run, and a lone run of digits too.
+    expect(directionPieces('Mar 2021 — Present', 'rtl')).toBeNull()
+    expect(directionPieces('۱۴۰۲', 'rtl')).toBeNull()
+  })
+
+  it('resolves a node against its paragraph: a lone bracket inside a Latin phrase stays left to right', () => {
+    // The export DOM cuts the chip "English (C1)" into nodes; " (" alone under
+    // a right-to-left base is a right-to-left neutral, and would be drawn
+    // mirrored, where the browser - reading the whole paragraph - keeps it
+    // left to right with the Latin around it.
+    setBidi(bidi)
+    expect(pieces(' (', directionPieces(' (', 'rtl')!)).toEqual([[' (', 'rtl']])
+    expect(directionPieces(' (', 'rtl', { text: 'English (C1)', start: 7 })).toBeNull()
+    // And a node of a Persian paragraph keeps the paragraph's reading.
+    const para = 'کاهش زمان بارگذاری صفحه تا ۴۰٪.'
+    const at = para.indexOf('۴۰')
+    expect(pieces('۴۰٪.', directionPieces('۴۰٪.', 'rtl', { text: para, start: at })!)).toEqual([
+      ['۴۰', 'ltr'],
+      ['٪.', 'rtl'],
+    ])
+  })
+
   it('splits a mixed line, with indices valid on the raw text', () => {
     setBidi(bidi)
     const raw = 'Vertex Labs\nمهندس 2021'
@@ -314,7 +346,9 @@ describe('extractRuns emits one run per direction', () => {
     stubDom((i) => (i === 0 ? 60 : 50), 'rtl')
     setBidi(bidi)
     const runs = extractRuns(textNode(': '), root)
-    expect(runs.map((r) => [r.text, r.xPx, r.widthPx])).toEqual([[' :', 50, 20]])
+    // One right-to-left piece: its text starts at the right, so the space,
+    // drawn on the left, is its last character.
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([[': ', 50, 20, 'rtl']])
   })
 
   it('draws Arabic script untracked, as the browser does, and keeps the tracking of the Latin beside it', () => {
@@ -329,6 +363,31 @@ describe('extractRuns emits one run per direction', () => {
       ['Vertex ', 1.5],
       ['مهندس', 0],
     ])
+  })
+
+  it('draws a date on a right-to-left line where the browser drew it: each year whole, left to right inside', () => {
+    // "2013 — 2017" on a right-to-left page: the canvas shows "2017 — 2013".
+    const data = '2013 — 2017'
+    const xs = [470, 480, 490, 500, 460, 450, 440, 400, 410, 420, 430]
+    stubDom((i) => xs[i], 'rtl')
+    setBidi(bidi)
+    const runs = extractRuns(textNode(data), root)
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([
+      ['2013', 470, 40, undefined],
+      [' — ', 440, 30, 'rtl'],
+      ['2017', 400, 40, undefined],
+    ])
+  })
+
+  it('leaves out of the text a space the browser drew away from the run', () => {
+    // The node opens with a space whose box sits a column away, not beside
+    // "React": it fills another gap, and is neither drawn here nor read here.
+    const data = ' React'
+    const xs = [300, 400, 410, 420, 430, 440]
+    stubDom((i) => xs[i], 'rtl')
+    setBidi(bidi)
+    const runs = extractRuns(textNode(data), root)
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx])).toEqual([['React', 400, 50]])
   })
 
   it('falls back to one run for Persian when no bidi is installed', () => {
