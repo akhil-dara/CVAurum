@@ -796,6 +796,44 @@ function decorationOf(cs: CSSStyleDeclaration, want: 'underline' | 'line-through
   return line.includes(want)
 }
 
+/** How far a blank box may sit from a run and still be the space beside it:
+ *  sub-pixel seams between client rects, and no more. */
+const BLANK_TOUCH_PX = 1.5
+
+/** True when `b` sits against `core` on one side (see BLANK_TOUCH_PX). */
+const touches = (b: { left: number; right: number }, core: { left: number; right: number }) =>
+  b.left <= core.right + BLANK_TOUCH_PX && b.right >= core.left - BLANK_TOUCH_PX
+
+/**
+ * `core` - a run's text without its outer spaces - with one space put back on
+ * each side where a blank box sits, at the end of the TEXT that draws there:
+ * the start of a left-to-right run is its left edge, of a right-to-left run
+ * its right edge.
+ *
+ * A space folded into a run (foldBlankPieces), or the one before its node, is
+ * not always on the side its logical place says. On a right-to-left line the
+ * space before a Latin word sits to the word's right; written in front of the
+ * word, it was drawn to its left, the word moved over by a space, and readers
+ * that rebuild words from glyph positions saw "فرانت‌اند:React" - or, where
+ * the run started at that space's own left edge, the word drawn over the
+ * Persian beside it. Placed by the browser's own boxes, the glyph lands where
+ * the page has the gap. A blank that does not touch the core - the space
+ * before a node can sit beyond the NEXT node on a right-to-left line - is left
+ * out: the gap it fills is drawn by its own run.
+ */
+export function placeBlanks(core: string, coreBox: { left: number; right: number }, blanks: Array<{ left: number; right: number }>, rtl: boolean): string {
+  const mid = (coreBox.left + coreBox.right) / 2
+  let onLeft = false
+  let onRight = false
+  for (const b of blanks) {
+    if (!touches(b, coreBox)) continue
+    if ((b.left + b.right) / 2 < mid) onLeft = true
+    else onRight = true
+  }
+  const [atStart, atEnd] = rtl ? [onRight, onLeft] : [onLeft, onRight]
+  return (atStart ? ' ' : '') + core + (atEnd ? ' ' : '')
+}
+
 export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   const parent = node.parentElement
   const data = node.data
@@ -864,6 +902,25 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     return out ?? r.getBoundingClientRect()
   }
 
+  /**
+   * The run over `[s, e)`, its outer spaces drawn at the edge where the
+   * browser drew them (`placeBlanks`), with `withLead` - the space before the
+   * node - as one more. Box: the union of everything in it.
+   */
+  const placedRun = (s: number, e: number, withLead: { left: number; right: number } | null, rtl: boolean, top: number) => {
+    const raw = data.slice(s, e)
+    const lt = raw.length - raw.replace(/^[\s­]+/, '').length
+    const tt = raw.length - raw.replace(/[\s­]+$/, '').length
+    const core = rectOf(s + lt, e - tt, top)
+    const blanks: Array<{ left: number; right: number }> = []
+    if (withLead && !lt) blanks.push(withLead)
+    if (lt && shaped(raw.slice(0, lt))) blanks.push(rectOf(s, s + lt, top))
+    if (tt && shaped(raw.slice(raw.length - tt))) blanks.push(rectOf(e - tt, e, top))
+    const text = placeBlanks(shaped(raw.slice(lt, raw.length - tt)), core, blanks, rtl)
+    const all = [core, ...blanks.filter((b) => touches(b, core))]
+    return { text, left: Math.min(...all.map((b) => b.left)), right: Math.max(...all.map((b) => b.right)) }
+  }
+
   const runs: TextRun[] = []
   for (let si = 0; si < segments.length; si++) {
     const seg = segments[si]
@@ -885,23 +942,14 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       for (let pi = 0; pi < split.length; pi++) {
         const s = bodyStart + split[pi].start
         const e = bodyStart + split[pi].end
-        let pieceText = shaped(data.slice(s, e))
-        const box = rectOf(s, e, seg.rect.top)
-        let left = box.left
-        let right = box.right
-        // The preceding space belongs to the first LOGICAL piece only. Its
-        // box is unioned rather than taken as the left edge, because before a
-        // right-to-left piece the space that comes first sits to its right.
-        if (pi === 0 && lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1) {
-          pieceText = ' ' + pieceText
-          left = Math.min(left, lead.left)
-          right = Math.max(right, lead.right)
-        }
+        // The preceding space belongs to the first LOGICAL piece only.
+        const withLead = pi === 0 && lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1 ? lead : null
+        const placed = placedRun(s, e, withLead, split[pi].rtl, seg.rect.top)
         runs.push({
           ...style,
-          text: pieceText,
-          xPx: left - rootRect.left,
-          widthPx: right - left,
+          text: placed.text,
+          xPx: placed.left - rootRect.left,
+          widthPx: placed.right - placed.left,
           baselinePx,
           isDecorative: false,
           ...(split[pi].rtl ? { direction: 'rtl' as const } : {}),
@@ -909,7 +957,18 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
       }
     }
 
-    let text = split ? '' : shaped(data.slice(bodyStart, bodyEnd))
+    // A one-direction segment of a document with right-to-left text: its
+    // spaces are placed where the browser drew them too (`placedRun`) - on a
+    // right-to-left line the space before a Latin word or a ": " sits on the
+    // other side from where a left-to-right line puts it. A document without
+    // right-to-left text never has bidi installed and takes the path below.
+    if (!split && bidiImpl && data.slice(bodyStart, bodyEnd).trim() !== '') {
+      const withLead = lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1 ? lead : null
+      const placed = placedRun(bodyStart, bodyEnd, withLead, false, seg.rect.top)
+      runs.push({ ...style, text: placed.text, xPx: placed.left - rootRect.left, widthPx: placed.right - placed.left, baselinePx, isDecorative: false })
+    }
+
+    let text = split || bidiImpl ? '' : shaped(data.slice(bodyStart, bodyEnd))
     if (text.trim() !== '') {
       const box = broke ? rectOf(bodyStart, bodyEnd, seg.rect.top) : seg.rect
       // Absorb the preceding space: starting the run at the space's own left

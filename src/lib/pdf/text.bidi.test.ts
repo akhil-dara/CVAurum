@@ -7,6 +7,7 @@ import {
   directionPieces,
   extractRuns,
   foldBlankPieces,
+  placeBlanks,
   prepareBidi,
   setBidi,
   splitSegmentByDirection,
@@ -276,7 +277,8 @@ describe('extractRuns emits one run per direction', () => {
     stubDom((i) => (i < 6 ? 50 - i * 10 : 60), 'ltr')
     setBidi(bidi)
     const runs = extractRuns(textNode(data), root)
-    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([['کار در ', 0, 70, 'rtl']])
+    // The space sits to the word's right, the edge an rtl run starts at.
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([[' کار در', 0, 70, 'rtl']])
   })
 
   it('leaves Latin text as one run with no direction key, bidi installed or not', () => {
@@ -290,6 +292,31 @@ describe('extractRuns emits one run per direction', () => {
     expect('direction' in withBidi[0]).toBe(false)
   })
 
+  it('draws a space folded into a run at the edge where the browser put it', () => {
+    // ' React مهندس' on a right-to-left line, levels 1 22222 1 11111: the
+    // opening space is rightmost, React (drawn left to right) to its left,
+    // then the second space, then the Persian word.
+    const data = ' React مهندس'
+    const xs = [490, 440, 450, 460, 470, 480, 430, 420, 410, 400, 390, 380]
+    stubDom((i) => xs[i], 'rtl')
+    setBidi(bidi)
+    const runs = extractRuns(textNode(data), root)
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx, r.direction])).toEqual([
+      // the space sits to React's RIGHT, so it is drawn after it
+      ['React ', 440, 60, undefined],
+      // and to the Persian word's right, which is where an rtl run starts
+      [' مهندس', 380, 60, 'rtl'],
+    ])
+  })
+
+  it('draws a punctuation-only node of a right-to-left line with its space on the side the browser drew it', () => {
+    // "فرانت‌اند: React": the ": " node alone, the colon at 60..70, the space to its LEFT.
+    stubDom((i) => (i === 0 ? 60 : 50), 'rtl')
+    setBidi(bidi)
+    const runs = extractRuns(textNode(': '), root)
+    expect(runs.map((r) => [r.text, r.xPx, r.widthPx])).toEqual([[' :', 50, 20]])
+  })
+
   it('falls back to one run for Persian when no bidi is installed', () => {
     const data = 'Vertex مهندس'
     stubDom((i) => (i < 7 ? i * 10 : 70 + (11 - i) * 10), 'ltr')
@@ -297,5 +324,26 @@ describe('extractRuns emits one run per direction', () => {
     expect(runs.length).toBe(1)
     expect(runs[0].text).toBe(data)
     expect('direction' in runs[0]).toBe(false)
+  })
+})
+
+describe('placeBlanks (the spaces of a run go where the browser drew them)', () => {
+  const core = { left: 100, right: 200 }
+  it('puts a space on the left before a left-to-right core and after a right-to-left one', () => {
+    expect(placeBlanks('ab', core, [{ left: 90, right: 100 }], false)).toBe(' ab')
+    expect(placeBlanks('ab', core, [{ left: 90, right: 100 }], true)).toBe('ab ')
+  })
+  it('puts a space on the right after a left-to-right core and before a right-to-left one', () => {
+    expect(placeBlanks('ab', core, [{ left: 200, right: 210 }], false)).toBe('ab ')
+    expect(placeBlanks('ab', core, [{ left: 200, right: 210 }], true)).toBe(' ab')
+  })
+  it('leaves out a space that does not touch the core: it belongs beside another run', () => {
+    // harvard, a right-to-left page: "· English (C1)", where the space before
+    // the "English" node sits to the right of "(C1)", not of "English".
+    expect(placeBlanks('English', { left: 0, right: 43 }, [{ left: 71, right: 75 }], false)).toBe('English')
+  })
+
+  it('never doubles a space on one side', () => {
+    expect(placeBlanks('ab', core, [{ left: 90, right: 100 }, { left: 80, right: 90 }, { left: 200, right: 210 }], false)).toBe(' ab ')
   })
 })
