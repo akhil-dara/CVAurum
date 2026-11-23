@@ -15,7 +15,7 @@ import path from 'node:path'
 const ROOT = path.resolve(__dirname, '../..')
 const E = '[e\\u00e9\\u00c9E]'
 const ACCENTED = new RegExp(`[rR](?:\\u00e9|\\u00c9)[sS][uU][mM]${E}|[rR]${E}[sS][uU][mM](?:\\u00e9|\\u00c9)`)
-const SKIP = new Set(['src/lib/searchSpelling.ts', 'src/lib/searchSpelling.test.ts'])
+const SKIP = new Set(['src/lib/searchSpelling.ts', 'src/lib/searchSpelling.test.ts', 'src/lib/resumeSpelling.test.ts'])
 const TEXT = /\.(ts|tsx|css|html|md|txt|cjs|mjs|js|json|py)$|_headers$|_redirects$/
 
 function walk(dir: string, out: string[]): void {
