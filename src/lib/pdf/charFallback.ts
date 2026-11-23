@@ -28,9 +28,28 @@ const SUBSTITUTIONS: Array<[RegExp, string]> = [
   // making it explicit keeps the text layer identical to what is drawn.
   [/[\u00a0\u2007\u2008\u2009\u200a\u202f]/g, ' '],
   // Invisible marks: a soft hyphen is a break HINT, never a character, and the
-  // zero-width family only ever adds noise to extracted text.
+  // zero-width family only ever adds noise to extracted text - except the
+  // joiners inside Arabic-script words (`keepJoiner` below).
   [/[\u00ad\u200b\u200c\u200d\ufeff]/g, ''],
 ]
+
+/** Arabic-script letters and digits (the BOM, U+FEFF, excluded). */
+const ARABIC_SCRIPT = /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufefc]/
+
+/**
+ * A zero-width non-joiner (U+200C) or joiner (U+200D) right beside an
+ * Arabic-script letter is part of how the word is SPELT, not noise: in
+ * "\u0646\u0648\u0631\u06cc\u200c\u0632\u0627\u062f\u0647" the ZWNJ is what keeps \u06cc from joining \u0632. Dropping it from the
+ * print DOM made the browser join the two letters, the walker measured the
+ * joined word, and the file read "\u0646\u0648\u0631\u06cc\u0632\u0627\u062f\u0647". The painter draws it at zero
+ * width (directedText.ts). Next to anything else it goes as before, so a
+ * resume with no Arabic script is untouched.
+ */
+function keepJoiner(text: string, at: number): boolean {
+  const ch = text.charCodeAt(at)
+  if (ch !== 0x200c && ch !== 0x200d) return false
+  return ARABIC_SCRIPT.test(text.charAt(at - 1)) || ARABIC_SCRIPT.test(text.charAt(at + 1))
+}
 
 /** True when `text` contains anything this module would change. */
 export function needsFallback(text: string): boolean {
@@ -43,7 +62,9 @@ export function needsFallback(text: string): boolean {
 /** The text with every unsupported character replaced. */
 export function applyCharFallback(text: string): string {
   let out = text
-  for (const [re, to] of SUBSTITUTIONS) out = out.replace(re, to)
+  for (const [re, to] of SUBSTITUTIONS) {
+    out = to === '' ? out.replace(re, (m: string, at: number, all: string) => (keepJoiner(all, at) ? m : '')) : out.replace(re, to)
+  }
   return out
 }
 
@@ -56,6 +77,9 @@ export function substituteUnsupportedChars(root: Element): void {
   while ((node = walker.nextNode())) {
     const text = node as Text
     if (!needsFallback(text.data)) continue
-    text.data = applyCharFallback(text.data)
+    // A Persian word's joiners pass the test above and survive the rewrite;
+    // a node the rewrite leaves as it was is left alone.
+    const next = applyCharFallback(text.data)
+    if (next !== text.data) text.data = next
   }
 }

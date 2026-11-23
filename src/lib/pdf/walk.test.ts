@@ -21,6 +21,7 @@ import {
   transformedBoxPath,
   contentBoxOf,
   markerOriginX,
+  markerDirection,
   parseSvgTransform,
   transformPathD,
   svgShapeWalk,
@@ -689,6 +690,58 @@ describe('pseudoBox — flex-row hosts (fix round: dark-template strike mask)', 
     )
     expect(box.xPx).toBe(49.125) // host.xPx + left(0), same as the plain absolute case
     expect(box.wPx).toBeCloseTo(695.438, 3) // host.wPx - left(0) - right(0)
+  })
+})
+
+describe('pseudoBox under direction: rtl (flex items run from the right edge)', () => {
+  // An rtl contact row (artboard.css's inline-flex .rm-contact) lays its items
+  // out right to left, so the separator ::after - last in box order - sits to
+  // the LEFT of the contact's last child, its own margin-right the air between.
+  const host = { xPx: 100, yPx: 50, wPx: 200, hPx: 16 }
+  const lastChild = { xPx: 160, yPx: 50, wPx: 140, hPx: 16 }
+  const cs = (over: Record<string, string>): CSSStyleDeclaration =>
+    ({
+      position: 'static',
+      left: 'auto',
+      right: 'auto',
+      top: 'auto',
+      bottom: 'auto',
+      width: '4px',
+      height: 'auto',
+      fontSize: '12px',
+      direction: 'rtl',
+      ...over,
+    }) as unknown as CSSStyleDeclaration
+  const row = (over: Record<string, string> = {}): CSSStyleDeclaration =>
+    ({ display: 'inline-flex', alignItems: 'center', columnGap: '5px', flexDirection: 'row', ...over }) as unknown as CSSStyleDeclaration
+  const column = (over: Record<string, string> = {}): CSSStyleDeclaration =>
+    ({ display: 'flex', alignItems: 'flex-start', rowGap: '0px', flexDirection: 'column', ...over }) as unknown as CSSStyleDeclaration
+
+  it('puts a row ::after left of the last child, past the gap and its own margin-right', () => {
+    const box = pseudoBox(cs({ marginRight: '2.8px' }), host, '::after', row(), lastChild)
+    expect(box.xPx).toBeCloseTo(160 - 5 - 2.8 - 4, 6)
+  })
+
+  it('puts a row ::before at the right edge of the host', () => {
+    const box = pseudoBox(cs({}), host, '::before', row(), lastChild)
+    expect(box.xPx).toBeCloseTo(100 + 200 - 4, 6)
+  })
+
+  it('starts a column item at the right edge, and flex-end at the left', () => {
+    expect(pseudoBox(cs({ width: '44px' }), host, '::after', column(), lastChild).xPx).toBeCloseTo(256, 6)
+    expect(pseudoBox(cs({ width: '44px' }), host, '::after', column({ alignItems: 'flex-end' }), lastChild).xPx).toBe(100)
+    expect(pseudoBox(cs({ width: '44px' }), host, '::after', column({ alignItems: 'center' }), lastChild).xPx).toBe(178)
+  })
+
+  it('measures a column item with margins from the right edge', () => {
+    const box = pseudoBox(cs({ width: '44px', marginRight: '10px', marginLeft: '0px' }), host, '::after', column(), lastChild)
+    expect(box.xPx).toBeCloseTo(300 - 10 - 44, 6)
+  })
+
+  it('leaves the same row exactly where it was under ltr', () => {
+    const ltr = pseudoBox(cs({ direction: 'ltr', marginLeft: '2.8px' }), host, '::after', row(), lastChild)
+    expect(ltr.xPx).toBeCloseTo(160 + 140 + 5 + 2.8, 6)
+    expect(pseudoBox(cs({ direction: 'ltr' }), host, '::before', row(), lastChild).xPx).toBe(100)
   })
 })
 
@@ -3617,5 +3670,38 @@ describe('markerOriginX - an outside marker is right-aligned on the content edge
 
   it('a zero-width measurement leaves the pen on the content edge rather than guessing', () => {
     expect(markerOriginX(li, cs(), 0)).toBeCloseTo(294.922, 6)
+  })
+
+  // Under direction: rtl the browser hangs the marker on the RIGHT, its box
+  // starting at the content box's right edge and its string laid out right to
+  // left, so the mark sits outermost and its two spaces face the text.
+  it('rtl: hangs the marker at the content box right edge, whatever its width', () => {
+    expect(markerOriginX(li, cs({ direction: 'rtl' }), 14.0)).toBeCloseTo(294.922 + 300, 6)
+    expect(markerOriginX(li, cs({ direction: 'rtl' }), 0)).toBeCloseTo(294.922 + 300, 6)
+  })
+
+  it('rtl: measures from the content edge, so padding and border move the mark left', () => {
+    expect(markerOriginX(li, cs({ direction: 'rtl', paddingRight: '6px', borderRightWidth: '2px' }), 14.0)).toBeCloseTo(
+      294.922 + 300 - 8,
+      6
+    )
+  })
+
+  it('ltr is unchanged by an explicit direction', () => {
+    expect(markerOriginX(li, cs({ direction: 'ltr' }), 14.0)).toBeCloseTo(280.922, 6)
+  })
+})
+
+describe('markerDirection - an rtl marker string is drawn right to left', () => {
+  const cs = (direction: string) => ({ direction }) as unknown as CSSStyleDeclaration
+  it('is rtl for a symbol marker in an rtl list, so the mark sits outermost', () => {
+    expect(markerDirection(cs('rtl'), '•  ')).toBe('rtl')
+    expect(markerDirection(cs('rtl'), '›  ')).toBe('rtl')
+  })
+  it('leaves a marker with digits or letters, and every ltr marker, without a direction', () => {
+    expect(markerDirection(cs('rtl'), '12.  ')).toBeUndefined()
+    expect(markerDirection(cs('rtl'), 'a)  ')).toBeUndefined()
+    expect(markerDirection(cs('ltr'), '•  ')).toBeUndefined()
+    expect(markerDirection(cs(''), '•  ')).toBeUndefined()
   })
 })

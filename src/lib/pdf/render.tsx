@@ -142,6 +142,17 @@ function raf2(): Promise<void> {
   })
 }
 
+/**
+ * The faces the export waits for before it measures: the document's own,
+ * and - for a resume whose page shows Arabic-script text - the Arabic face,
+ * which `documentFaces` adds only when it is handed the content. Asking with
+ * the metadata alone measured Persian words in a fallback face, and the
+ * painter then drew them in Vazirmatn at widths the walker never saw.
+ */
+export function exportFaces(doc: ResumeDocument): string[] {
+  return documentFaces(doc)
+}
+
 /** One render at a time. The page preview renders the same PDF the export
  *  does, and this module keeps per-render state (the page count the export
  *  reports, the dev hooks); two renders interleaved would mix it. */
@@ -177,7 +188,7 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
   try {
     root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
 
-    await ensureFontsReady(documentFaces({ metadata: doc.metadata }))
+    await ensureFontsReady(exportFaces(doc))
     await raf2()
 
     // Render once more now the webfonts have resolved, and give the Artboard's

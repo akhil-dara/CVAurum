@@ -13,10 +13,12 @@ import type { BidiRun } from './bidi'
  * single-run path it always took.
  */
 
-/** The two functions of bidi.ts the walker needs. */
+/** The functions of bidi.ts the walker and the painter need. */
 export interface BidiImpl {
   bidiRuns: (text: string, base: 'rtl' | 'ltr') => BidiRun[]
   hasStrongRtl: (text: string) => boolean
+  /** Swaps each mirrored character ('(' for ')') for an rtl run; the painter's (paint.ts). */
+  mirrorForRtl?: (text: string) => string
 }
 
 let bidiImpl: BidiImpl | null = null
@@ -24,6 +26,17 @@ let bidiImpl: BidiImpl | null = null
 /** Installs (or, with null, removes) the bidi functions `extractRuns` splits lines with. */
 export function setBidi(impl: BidiImpl | null): void {
   bidiImpl = impl
+}
+
+/**
+ * `text` with every Bidi_Mirrored character swapped for its mirror, as a
+ * right-to-left run is drawn ('(مادری)' must not come out ')مادری('). Only a
+ * document with Arabic-script text has right-to-left runs, and its export
+ * installs bidi before the walk; with none installed the text is returned
+ * as it is.
+ */
+export function mirrorRtl(text: string): string {
+  return bidiImpl?.mirrorForRtl ? bidiImpl.mirrorForRtl(text) : text
 }
 
 /**

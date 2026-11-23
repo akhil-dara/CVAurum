@@ -6,7 +6,10 @@ import {
   exceedsOnePage,
   paginateOrThrow,
   PdfMultiPageUnsupportedError,
+  exportFaces,
 } from './render'
+import { createDocument } from '@/data/defaults'
+import { ARABIC_FAMILY } from '@/data/fonts'
 import { PaginationImpossibleError } from './paginate'
 import type { PageBlock } from './paginate'
 import type { DecoBox } from './types'
@@ -164,5 +167,19 @@ describe('paginateOrThrow — wraps PaginationImpossibleError as PdfMultiPageUns
     }
     expect(caught).toBeInstanceOf(PdfMultiPageUnsupportedError)
     expect(caught).not.toBeInstanceOf(PaginationImpossibleError)
+  })
+})
+
+describe('exportFaces (the faces the native export waits for)', () => {
+  it('adds the Arabic face for a resume whose page shows Arabic-script text', () => {
+    const doc = createDocument()
+    doc.content.basics.name = 'نوری‌زاده'
+    expect(exportFaces(doc)).toContain(ARABIC_FAMILY)
+  })
+
+  it('never adds it for a Latin resume', () => {
+    const doc = createDocument()
+    doc.content.basics.name = 'Alex Morgan'
+    expect(exportFaces(doc)).not.toContain(ARABIC_FAMILY)
   })
 })

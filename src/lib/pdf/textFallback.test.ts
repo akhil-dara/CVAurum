@@ -80,3 +80,16 @@ describe('segmentByCoverage', () => {
   })
 })
 
+describe('segmentByCoverage: zero-width joiners stay with their word', () => {
+  // A Latin face can carry U+200C itself, and matching it from the start of
+  // the chain cut a Persian word in three, the middle piece in the Latin face.
+  const withZwnj = (cp: number) => cp < 0x0250 || cp === 0x200c || cp === 0x200d
+  const arabic = (cp: number) => cp >= 0x0600 && cp <= 0x06ff
+  it('keeps a ZWNJ or ZWJ in the piece of the letter before it', () => {
+    expect(segmentByCoverage('نوری‌زاده', [withZwnj, arabic])).toEqual([{ text: 'نوری‌زاده', font: 1 }])
+    expect(segmentByCoverage('ل‍ا', [withZwnj, arabic])).toEqual([{ text: 'ل‍ا', font: 1 }])
+  })
+  it('a leading joiner follows the first letter after it', () => {
+    expect(segmentByCoverage('‌زاده', [withZwnj, arabic])).toEqual([{ text: '‌زاده', font: 1 }])
+  })
+})
