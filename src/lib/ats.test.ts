@@ -739,9 +739,34 @@ describe('the keyword tokenizer', () => {
     // "naïve" spelled with U+0308 COMBINING DIAERESIS: \p{L} alone split it
     // at the mark, as it splits Devanagari, Thai and vowelled Arabic.
     const naive = 'naïve'
-    expect(extractKeywords(naive)).toEqual([naive])
+    // ...and it comes back composed, the one form every keyword is compared in.
+    expect(extractKeywords(naive)).toEqual([naive.normalize('NFC')])
     // Hindi: the vowel signs and the virama are marks too.
     const hindi = 'हिन्दी'
     expect(extractKeywords(hindi)).toEqual([hindi])
+  })
+})
+
+describe('keywords in composed and decomposed letters', () => {
+  // 'café' typed with a precomposed é (U+00E9) and with e + U+0301 is the
+  // same word: the job description and the resume must match it either way.
+  const composed = 'café'
+  const decomposed = 'café'
+
+  it('extracts one keyword from both spellings, in composed form', () => {
+    expect(extractKeywords(`${composed} and ${decomposed}`)).toEqual([composed])
+  })
+
+  it('matches a decomposed resume word against a composed job keyword, and back', () => {
+    for (const [jd, cv] of [
+      [composed, decomposed],
+      [decomposed, composed],
+    ]) {
+      const d = createDocument()
+      d.content.basics.name = 'Alex Morgan'
+      d.content.basics.summary = `<p>Ran a ${cv} for six years.</p>`
+      d.jobDescription = `${jd} and ${jd}`
+      expect(analyzeResume(d).jd?.keywords).toEqual([expect.objectContaining({ term: composed, inResume: true })])
+    }
   })
 })

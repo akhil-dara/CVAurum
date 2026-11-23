@@ -318,6 +318,10 @@ const openingClause = (t: string) =>
 
 const tokenize = (text: string): string[] =>
   text
+    // One form for one letter: 'é' typed precomposed (U+00E9) and as e +
+    // U+0301 are the same word, so both become the composed form here and in
+    // the resume text the keywords are looked for in (analyzeResume).
+    .normalize('NFC')
     .toLowerCase()
     // A zero-width non-joiner is a half-space INSIDE a Persian word
     // ("نرم‌افزار" is one word, not two): dropping it keeps the compound whole
@@ -1180,10 +1184,12 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const jdText = doc.jobDescription?.trim()
   if (jdText) {
     const keywords = extractKeywords(jdText, 24)
-    const resumeLower = text.toLowerCase()
+    // Both sides in the composed form (tokenize does the same to the job
+    // description): a decomposed accent must not hide a matching word.
+    const resumeLower = text.normalize('NFC').toLowerCase()
     const kw: JdKeyword[] = keywords.map((term, i) => ({
       term,
-      inResume: resumeLower.includes(term.toLowerCase()),
+      inResume: resumeLower.includes(term.normalize('NFC').toLowerCase()),
       importance: keywords.length - i,
     }))
     const matched = kw.filter((k) => k.inResume).map((k) => k.term)
