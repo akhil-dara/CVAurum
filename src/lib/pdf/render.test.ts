@@ -211,3 +211,19 @@ describe('the bidi hook (installed for the walk and the paint)', () => {
     expect(exportFaces(doc)).toContain(ARABIC_FAMILY)
   })
 })
+
+describe('the export draws its page before it measures it', () => {
+  it('mounts every print tree synchronously, never behind a frame wait', () => {
+    // root.render only QUEUES the draw, behind whatever the editor has queued.
+    // The export used to wait two frames and then measure; on a busy main
+    // thread the page was not there yet, and a resume with auto-fit off threw
+    // "Cannot read properties of null" (import gate, 2026-11-24: no mount
+    // seen 75 ms in). Every mount goes through mountNow, which commits before
+    // it returns.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'render.tsx'), 'utf8')
+    const bare = source.match(/root\.render\(/g) ?? []
+    expect(bare.length).toBe(1) // the one inside mountNow
+    expect(source).toMatch(/function mountNow\([^)]*\)[^{]*\{\s*flushSync\(\(\) => root\.render\(/)
+    expect((source.match(/mountNow\(root, /g) ?? []).length).toBeGreaterThanOrEqual(3)
+  })
+})

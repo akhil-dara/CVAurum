@@ -6,7 +6,9 @@
  * fonts and original-resolution images. See GitHub issue #4 — this replaces
  * the browser's print-to-PDF path, whose text layer Firefox corrupts.
  */
-import { createRoot } from 'react-dom/client'
+import type { ReactNode } from 'react'
+import { flushSync } from 'react-dom'
+import { createRoot, type Root } from 'react-dom/client'
 import {
   paginateOrThrow,
   PdfMultiPageUnsupportedError,
@@ -143,6 +145,23 @@ function raf2(): Promise<void> {
 }
 
 /**
+ * Draw `page` into the export's off-screen root and have it IN the document
+ * before this returns.
+ *
+ * `root.render` on its own only queues the draw, behind whatever React work
+ * the editor already has queued, and the export used to wait two frames and
+ * then measure. On a busy main thread the queue had not reached it: the
+ * container was still empty, a resume with auto-fit off threw "Cannot read
+ * properties of null", and one with auto-fit on could measure the height of
+ * the PREVIOUS scale. Measured 2026-11-24 (import gate): no mount 75 ms after
+ * the call. A synchronous commit takes the queue out of it; the frame waits
+ * that follow are still what lets fonts and the Artboard's own passes land.
+ */
+function mountNow(root: Root, page: ReactNode): void {
+  flushSync(() => root.render(page))
+}
+
+/**
  * The faces the export waits for before it measures: the document's own,
  * and - for a resume whose page shows Arabic-script text - the Arabic face,
  * which `documentFaces` adds only when it is handed the content. Asking with
@@ -186,7 +205,7 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
   const root = createRoot(container)
 
   try {
-    root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
+    mountNow(root, <TemplateRenderer doc={doc} mode="print" fitScale={1} />)
 
     await ensureFontsReady(exportFaces(doc))
     await raf2()
@@ -205,7 +224,7 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
     // enough to make the DOM's page cuts disagree with the ops'. The Artboard
     // waits for the faces itself and refits every tree it serves, this one and
     // the preview's measure portal alike, so the two settle on one answer.
-    root.render(<TemplateRenderer doc={doc} mode="print" fitScale={1} />)
+    mountNow(root, <TemplateRenderer doc={doc} mode="print" fitScale={1} />)
     await raf2()
 
     /* Text passes BEFORE the fit search, so the search measures the exact
@@ -227,7 +246,7 @@ async function renderResumePdfNow(doc: ResumeDocument): Promise<Uint8Array> {
         {
           pageH: pageHpx,
           measure: async (f) => {
-            root.render(<TemplateRenderer doc={doc} mode="print" fit={f} />)
+            mountNow(root, <TemplateRenderer doc={doc} mode="print" fit={f} />)
             await raf2()
             if (import.meta.env.DEV) {
               const r = container.querySelector<HTMLElement>('.rm-root')

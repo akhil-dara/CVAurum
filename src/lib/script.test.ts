@@ -98,6 +98,29 @@ describe('documentScript reads only what the page shows', () => {
   })
 })
 
+describe('documentScript reads the dates the page writes', () => {
+  it('a Latin resume dated in Persian shows Arabic-script month names', () => {
+    // No Arabic letter is typed anywhere: the month names are generated from
+    // the date language, so a scan of the stored strings alone finds nothing.
+    const d = docWith((d) => {
+      d.content.work = [
+        { id: 'w1', name: 'Vertex Labs', position: 'Engineer', location: '', url: '', startDate: '2022-03', endDate: '2023-05', summary: '', highlights: [] },
+      ] as ResumeDocument['content']['work']
+      d.metadata.dates.language = 'fa'
+    })
+    expect(documentScript(d).arabic).toBe(true)
+  })
+
+  it('the same resume dated in English is neither', () => {
+    const d = docWith((d) => {
+      d.content.work = [
+        { id: 'w1', name: 'Vertex Labs', position: 'Engineer', location: '', url: '', startDate: '2022-03', endDate: '2023-05', summary: '', highlights: [] },
+      ] as ResumeDocument['content']['work']
+    })
+    expect(documentScript(d)).toEqual({ arabic: false, persian: false })
+  })
+})
+
 describe('documentFaces', () => {
   it('adds the Arabic face exactly when the shown text is Arabic', () => {
     const latin = docWith(() => {})

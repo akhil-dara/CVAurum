@@ -79,11 +79,11 @@ describe('what the service worker precaches', () => {
     expect(vazirmatn.filter((f) => !swept(f))).toEqual([])
     expect(vazirmatn.filter((f) => !ignored(f))).toEqual([])
     // ...and only them: the Latin faces every page uses still install.
-    expect(ignored('fonts/inter-latin-400.woff2')).toBe(false)
+    expect(ignored('fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2')).toBe(false)
   })
 
   it('still precaches the app itself', () => {
-    for (const f of ['index.html', 'assets/index-abc123.js', 'shell.html', 'fonts/inter-latin-400.woff2']) {
+    for (const f of ['index.html', 'assets/index-abc123.js', 'shell.html', 'fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2']) {
       expect(swept(f), f).toBe(true)
       expect(ignored(f), f).toBe(false)
     }

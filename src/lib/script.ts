@@ -47,6 +47,17 @@ function holdsArabicScript(value: unknown): boolean {
   return false
 }
 
+/** Do the page's dates come out in Arabic script? Persian and Arabic month
+ *  names are GENERATED from the date language, so they sit in no stored
+ *  string and the scan above cannot see them: a resume typed entirely in
+ *  Latin letters but dated in Persian still shows Arabic-script words. Such a
+ *  page takes the full reading below, which decides by what it really prints
+ *  (a resume with no dates on it is still neither). */
+function writesArabicDates(metadata: ResumeDocument['metadata']): boolean {
+  const language = metadata.dates?.language
+  return language === 'fa' || language === 'ar'
+}
+
 /** The visible-text answer, per content object and then per metadata object.
  *  The store clones the whole document on every edit (useResumeStore), so a
  *  new edit is a new key and the editor's several callers in one render share
@@ -73,7 +84,7 @@ const cache = new WeakMap<object, WeakMap<object, PageScript>>()
  * an answer is kept per content and metadata object.
  */
 export function documentScript(doc: Pick<ResumeDocument, 'content' | 'metadata'>): PageScript {
-  if (!holdsArabicScript(doc.content) && !holdsArabicScript(doc.metadata)) return { ...NO_SCRIPT }
+  if (!writesArabicDates(doc.metadata) && !holdsArabicScript(doc.content) && !holdsArabicScript(doc.metadata)) return { ...NO_SCRIPT }
   let byMetadata = cache.get(doc.content)
   const hit = byMetadata?.get(doc.metadata)
   if (hit) return { ...hit }
