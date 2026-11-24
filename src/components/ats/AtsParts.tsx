@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
-import { ATS_CATEGORY_LABELS, type AtsCategory, type AtsCheck, type AtsReport, type CheckStatus } from '@/lib/ats'
+import { ATS_CATEGORY_KEYS, type AtsCategory, type AtsCheck, type AtsReport, type CheckStatus } from '@/lib/ats'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
+import type { MsgKey } from '@/i18n/core'
 
 /**
  * The pieces of an ATS report that look the same wherever a report is read:
@@ -15,7 +17,11 @@ const STATUS_COLOR: Record<CheckStatus, string> = {
   warn: 'text-warning',
   fail: 'text-danger',
 }
-const STATUS_WORD: Record<CheckStatus, string> = { pass: 'Passed', warn: 'Worth fixing', fail: 'Needs fixing' }
+const STATUS_KEY: Record<CheckStatus, MsgKey> = {
+  pass: 'ats.status.pass',
+  warn: 'ats.status.warn',
+  fail: 'ats.status.fail',
+}
 
 export function scoreColor(n: number) {
   if (n >= 80) return 'hsl(var(--success))'
@@ -62,10 +68,11 @@ export function Ring({ value, label, size = 92 }: { value: number; label?: strin
  * bury the four that matter.
  */
 export function CheckGroups({ report, extra, foldPassed = false }: { report: AtsReport; extra?: (c: AtsCheck) => ReactNode; foldPassed?: boolean }) {
+  const t = useT()
   const [open, setOpen] = useState<Record<string, boolean>>({})
   // `analyzeResume` returns the checks worst-first, heaviest-first; filter
   // keeps that order, so each group opens on the row worth fixing first.
-  const grouped = (Object.keys(ATS_CATEGORY_LABELS) as AtsCategory[])
+  const grouped = (Object.keys(ATS_CATEGORY_KEYS) as AtsCategory[])
     .map((category) => ({ category, checks: report.checks.filter((c) => c.category === category) }))
     .filter((g) => g.checks.length)
   return (
@@ -74,9 +81,9 @@ export function CheckGroups({ report, extra, foldPassed = false }: { report: Ats
         const failed = checks.filter((c) => c.status !== 'pass').length
         const catScore = report.categoryScores[category]
         return (
-          <section key={category} className="space-y-1.5" aria-label={ATS_CATEGORY_LABELS[category]}>
+          <section key={category} className="space-y-1.5" aria-label={t(ATS_CATEGORY_KEYS[category])}>
             <div className="flex items-baseline justify-between gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{ATS_CATEGORY_LABELS[category]}</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(ATS_CATEGORY_KEYS[category])}</h3>
               <span className="flex items-baseline gap-2 text-[11px] tabular-nums text-muted-foreground">
                 <span>
                   {checks.length - failed}/{checks.length}
@@ -90,7 +97,7 @@ export function CheckGroups({ report, extra, foldPassed = false }: { report: Ats
               const Icon = STATUS_ICON[c.status]
               return (
                 <div key={c.id} className="flex gap-2.5 rounded-lg border border-border bg-surface p-2.5">
-                  <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_COLOR[c.status])} aria-label={STATUS_WORD[c.status]} />
+                  <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', STATUS_COLOR[c.status])} aria-label={t(STATUS_KEY[c.status])} />
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium">{c.label}</p>
                     <p className="text-xs leading-snug text-muted-foreground">{c.detail}</p>
@@ -107,7 +114,7 @@ export function CheckGroups({ report, extra, foldPassed = false }: { report: Ats
                 onClick={() => setOpen((o) => ({ ...o, [category]: !o[category] }))}
               >
                 <CheckCircle2 className="me-1.5 inline h-3.5 w-3.5 align-[-2px] text-success" aria-hidden />
-                {open[category] ? 'Hide the passed checks' : `${checks.length - failed} passed — show them`}
+                {open[category] ? t('ats.hidePassed') : t('ats.foldPassed', { n: checks.length - failed })}
               </button>
             ) : null}
           </section>

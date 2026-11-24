@@ -3,6 +3,7 @@ import { ChevronDown, Check, Search } from 'lucide-react'
 import { FONTS, FONTS_BY_CATEGORY, FONT_MAP, ensureFont, fontStack, type FontCategory } from '@/data/fonts'
 import { cn } from '@/lib/utils'
 import { offeredFonts } from '@/lib/rtlSetup'
+import { useLabel } from '@/i18n/labels'
 
 const CATEGORY_LABELS: Record<FontCategory, string> = {
   sans: 'Sans-serif',
@@ -32,6 +33,9 @@ export function FontSelect({
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
+  // The picker's own words - its label, the two fallback rows and the
+  // category headings - are translated by the panel's table.
+  const L = useLabel()
 
   // Preload visible fonts so the previews render in-face.
   useEffect(() => {
@@ -52,10 +56,10 @@ export function FontSelect({
 
   return (
     <div className="relative">
-      <label className="label">{label}</label>
+      <label className="label">{L(label)}</label>
       <button type="button" className="input flex items-center justify-between" onClick={() => setOpen((o) => !o)}>
         <span style={{ fontFamily: value ? fontStack(value) : undefined }} className="truncate">
-          {(value && FONT_MAP[value]?.label) || value || (allowInherit ? 'Same as body' : 'Select font')}
+          {(value && FONT_MAP[value]?.label) || value || L(allowInherit ? 'Same as body' : 'Select font')}
         </span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
@@ -69,18 +73,18 @@ export function FontSelect({
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search fonts…"
+                placeholder={L('Search fonts…')}
                 className="flex-1 bg-transparent py-1 text-sm outline-none"
               />
             </div>
             <div className="max-h-64 overflow-auto p-1">
               {allowInherit && (
-                <Option name="" label="Same as body" value={value} onPick={onChange} setOpen={setOpen} />
+                <Option name="" label={L('Same as body')} value={value} onPick={onChange} setOpen={setOpen} />
               )}
               {filtered.map((g) => (
                 <div key={g.cat}>
                   <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {CATEGORY_LABELS[g.cat]}
+                    {L(CATEGORY_LABELS[g.cat])}
                   </div>
                   {g.fonts.map((f) => (
                     <Option key={f.name} name={f.name} label={f.label} value={value} onPick={onChange} setOpen={setOpen} />

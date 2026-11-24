@@ -13,20 +13,24 @@ import { createPortal } from 'react-dom'
 import { X, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { TEMPLATE_COUNT } from '@/templates/registry'
+import { useT, type MsgKey } from '@/i18n'
 
 const TOUR_KEY = 'cvaurum:tour:v2'
+/** The command-palette shortcut as this machine spells it: one value for the
+ *  title and the body that both name it. */
+const PALETTE_KEYS = shortcutLabel('Ctrl+K', isMac())
 const CARD_W = 324
 
 interface Step {
   sel?: string
-  title: string
-  body: string
+  titleKey: MsgKey
+  bodyKey: MsgKey
   /** What this step says on a phone, where the canvas is hidden behind the
    *  panel and hover does not exist. The desktop body told a phone user to
    *  click text they could not see and hover things a finger cannot - the
    *  guidance was WRONG there, not merely unanchored (reported live,
    *  2026-08-29). Steps without one read the same everywhere. */
-  mobileBody?: string
+  mobileBodyKey?: MsgKey
   /** A step about a desktop-only surface (the command palette) is skipped on
    *  a phone rather than described apologetically. */
   desktopOnly?: boolean
@@ -45,17 +49,56 @@ interface Step {
 /* Titles carry no numbers - the prefix is added at render, so skipping the
    desktop-only steps on a phone keeps the numbering sequential. */
 const STEPS: Step[] = [
-  { title: 'Welcome — a quick tour 👋', body: 'Thirty seconds on where everything is. Skip it anytime and reopen it from the “?” in the top bar.' },
-  { sel: '[data-tour="panel"]', mobileShow: { tab: 'content', panelOpen: true }, title: 'Fill in your details', body: 'Type your name, experience and skills here. Empty sections show an “Add” button — nothing is hidden.' },
-  { sel: '[data-tour="canvas"]', mobileShow: { panelOpen: false }, title: 'Or edit on the page', body: 'Click any text on the resume to edit it right there. What you see is exactly what you download.', mobileBody: 'This is the page itself — tap any text to edit it. The Content tab below reopens the full forms; everything you type lands here instantly.' },
-  { sel: '[data-tour="templates"]', mobileShow: { tab: 'templates', panelOpen: true }, title: `${TEMPLATE_COUNT} designs, one resume`, body: 'Hover a design for a full-size preview with your own content; click to switch. Nothing is retyped, and every design can be restyled afterwards.', mobileBody: 'Tap any design to switch. Nothing is retyped, and every design can be restyled afterwards.' },
-  { sel: '[data-tour="design"]', mobileShow: { tab: 'design', panelOpen: true }, title: 'Make it yours', body: 'Design changes colours, fonts, the header, the contact line and where it sits, heading styles, where dates and language levels go, one or two columns, spacing and page size — on any template.' },
-  { sel: '[data-tour="canvas"]', mobileSel: '.rm-panel-gear .rm-section-gear', mobileShow: { tab: 'content', panelOpen: true, event: 'cvaurum:tour-show-style' }, title: 'Restyle one section', body: 'Hover a section and press its “Style” pill to change just that section: heading, icon, entry layout, date position. The eye beside it hides the section.', mobileBody: 'This “Style” button restyles one section — heading, icon, entry layout, date position. The ⋯ menu renames, hides or removes it.' },
-  { sel: '[data-tour="checks"]', mobileShow: { panelOpen: false }, title: 'Your size, your pages, readable', body: 'This chip says how your resume prints: how many pages, and the text size. If Magic fit has made the text smaller to fit, it says so, and one tap prints it at your size instead. Beside it, a check that every line is easy to read.' },
-  { sel: '[data-tour="modes"]', title: 'Edit · Preview · ATS', body: 'Preview shows exactly what exports. ATS shows the plain text an applicant-tracking system reads, how five kinds of system would split it into fields, and a keyword match against the job.' },
-  { sel: '[data-tour="palette"]', title: `Do anything with ${shortcutLabel('Ctrl+K', isMac())}`, body: `Press ${shortcutLabel('Ctrl+K', isMac())} for a command palette — switch designs, fonts and colours, add sections, change mode. In a summary, type “/” for quick inserts.`, desktopOnly: true },
-  { sel: '[data-tour="share"]', title: 'Share privately', body: 'Send an encrypted link: the resume is sealed with a passphrase inside the link and never touches a server.' },
-  { sel: '[data-tour="export"]', title: 'Download, free', body: 'PDF or Word, unlimited, no account, no watermark. The PDF is real selectable text, tagged for screen readers (PDF/UA-1) and archival (PDF/A-2B).' },
+  { titleKey: 'tour.s1.title', bodyKey: 'tour.s1.body' },
+  {
+    sel: '[data-tour="panel"]',
+    mobileShow: { tab: 'content', panelOpen: true },
+    titleKey: 'tour.s2.title',
+    bodyKey: 'tour.s2.body',
+  },
+  {
+    sel: '[data-tour="canvas"]',
+    mobileShow: { panelOpen: false },
+    titleKey: 'tour.s4.title',
+    bodyKey: 'tour.s4.body',
+    mobileBodyKey: 'tour.s4.mobile',
+  },
+  {
+    sel: '[data-tour="templates"]',
+    mobileShow: { tab: 'templates', panelOpen: true },
+    titleKey: 'tour.s3.title',
+    bodyKey: 'tour.s3.body',
+    mobileBodyKey: 'tour.s3.mobile',
+  },
+  {
+    sel: '[data-tour="design"]',
+    mobileShow: { tab: 'design', panelOpen: true },
+    titleKey: 'tour.s5.title',
+    bodyKey: 'tour.s5.body',
+  },
+  {
+    sel: '[data-tour="canvas"]',
+    mobileSel: '.rm-panel-gear .rm-section-gear',
+    mobileShow: { tab: 'content', panelOpen: true, event: 'cvaurum:tour-show-style' },
+    titleKey: 'tour.s6.title',
+    bodyKey: 'tour.s6.body',
+    mobileBodyKey: 'tour.s6.mobile',
+  },
+  {
+    sel: '[data-tour="checks"]',
+    mobileShow: { panelOpen: false },
+    titleKey: 'tour.s7.title',
+    bodyKey: 'tour.s7.body',
+  },
+  { sel: '[data-tour="modes"]', titleKey: 'tour.s8.title', bodyKey: 'tour.s8.body' },
+  {
+    sel: '[data-tour="palette"]',
+    titleKey: 'tour.s9.title',
+    bodyKey: 'tour.s9.body',
+    desktopOnly: true,
+  },
+  { sel: '[data-tour="share"]', titleKey: 'tour.s10.title', bodyKey: 'tour.s10.body' },
+  { sel: '[data-tour="export"]', titleKey: 'tour.s11.title', bodyKey: 'tour.s11.body' },
 ]
 
 export function EditorTour() {
@@ -64,6 +107,10 @@ export function EditorTour() {
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [, force] = useState(0)
   const [invite, setInvite] = useState(false)
+  const t = useT()
+  // Both steps that carry a figure read it from here, so no card builds a
+  // sentence in the component.
+  const vars = { count: TEMPLATE_COUNT, keys: PALETTE_KEYS }
 
   // Open on first visit; allow re-open via a global event (the "?" button).
   useEffect(() => {
@@ -152,11 +199,11 @@ export function EditorTour() {
     return createPortal(
       <div
         role="region"
-        aria-label="Editor tour"
-        className="fixed bottom-4 left-4 z-[70] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-4 text-sm text-foreground shadow-float"
+        aria-label={t('tour.label')}
+        className="fixed bottom-4 start-4 z-[70] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-4 text-sm text-foreground shadow-float"
       >
-        <p className="font-medium">New here?</p>
-        <p className="mt-1 text-muted-foreground">A one-minute tour shows where everything is. You can take it any time from the ? button.</p>
+        <p className="font-medium">{t('tour.inviteTitle')}</p>
+        <p className="mt-1 text-muted-foreground">{t('tour.inviteBody')}</p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
@@ -167,7 +214,7 @@ export function EditorTour() {
               setOpen(true)
             }}
           >
-            Show me around
+            {t('tour.showMeAround')}
           </button>
           <button
             type="button"
@@ -177,7 +224,7 @@ export function EditorTour() {
               finish()
             }}
           >
-            No thanks
+            {t('tour.noThanks')}
           </button>
         </div>
       </div>,
@@ -202,7 +249,7 @@ export function EditorTour() {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Editor tour" onClick={() => void force((n) => n + 1)}>
+    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label={t('tour.label')} onClick={() => void force((n) => n + 1)}>
       {/* Dim + spotlight. The ring carries the big box-shadow that darkens the
           rest of the screen; with no target, a plain dim layer is used. */}
       {rect ? (
@@ -230,13 +277,13 @@ export function EditorTour() {
           <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             {i === 0 && <Sparkles className="h-4 w-4 text-primary" />}
             {i > 0 ? `${i} · ` : ''}
-            {step.title}
+            {t(step.titleKey, vars)}
           </div>
-          <button className="btn-icon h-6 w-6 shrink-0" onClick={finish} aria-label="Skip tour" title="Skip">
+          <button className="btn-icon h-6 w-6 shrink-0" onClick={finish} aria-label={t('tour.skip')} title={t('tour.skip')}>
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">{(mobile && step.mobileBody) || step.body}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{t((mobile && step.mobileBodyKey) || step.bodyKey, vars)}</p>
 
         <div className="mt-4 flex items-center justify-between">
           {/* progress dots */}
@@ -248,16 +295,16 @@ export function EditorTour() {
           <div className="flex items-center gap-1.5">
             {i > 0 && (
               <button className="btn-ghost btn-sm" onClick={() => setI((n) => n - 1)}>
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="flip-rtl h-4 w-4" /> {t('tour.back')}
               </button>
             )}
             {last ? (
               <button className="btn-primary btn-sm" onClick={finish}>
-                Get started
+                {t('tour.start')}
               </button>
             ) : (
               <button className="btn-primary btn-sm" onClick={() => setI((n) => n + 1)}>
-                Next <ArrowRight className="h-4 w-4" />
+                {t('tour.next')} <ArrowRight className="flip-rtl h-4 w-4" />
               </button>
             )}
           </div>
@@ -265,7 +312,7 @@ export function EditorTour() {
 
         {i === 0 && (
           <button className="mt-2 w-full text-center text-[11px] text-muted-foreground hover:text-foreground" onClick={finish}>
-            Skip the tour
+            {t('tour.skipLink')}
           </button>
         )}
       </div>

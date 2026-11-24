@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { LanguageToggle } from '@/components/ui/LanguageToggle'
+import { useT } from '@/i18n'
 
 /**
  * The right-hand buttons of the public header on a phone, shaped by who is
@@ -25,12 +27,17 @@ export function useSavedCount(): number {
 /** "My resumes" on a phone, for someone who has any. */
 export function PhoneResumesLink() {
   const n = useSavedCount()
+  const t = useT()
   if (!n) return null
   return (
     // No icon and the count as a small badge: with them written out the
     // button measured 142px and pushed a 360px page sideways.
-    <Link className="btn-outline btn-sm gap-1.5 whitespace-nowrap px-2 sm:hidden" to="/app" aria-label={`My resumes, ${n} saved`}>
-      <span aria-hidden>My resumes</span>
+    <Link
+      className="btn-outline btn-sm gap-1.5 whitespace-nowrap px-2 sm:hidden"
+      to="/app"
+      aria-label={`${t('common.myResumes')}, ${n}`}
+    >
+      <span aria-hidden>{t('common.myResumes')}</span>
       <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold leading-4 text-primary-foreground tabular-nums" aria-hidden>
         {n}
       </span>
@@ -44,15 +51,29 @@ export function HeaderThemeToggle() {
   return <ThemeToggle className={n ? 'btn-icon hidden sm:inline-flex' : 'btn-icon'} />
 }
 
+/** The language switch, with the same budget rule as the theme switch: on a
+ *  phone that also carries "My resumes" both move into the menu sheet, which
+ *  lists them as rows. */
+export function HeaderLanguageToggle() {
+  const n = useSavedCount()
+  return <LanguageToggle className={n ? 'btn-icon hidden sm:inline-flex' : 'btn-icon'} />
+}
+
 /** Create, as a word where there is room for one and as its icon where
  *  "My resumes" needs the room. Its name is always "Create resume". */
 export function CreateButton({ onClick }: { onClick: () => void }) {
   const n = useSavedCount()
+  const t = useT()
+  const label = t('common.createResume')
+  // Persian says it in two words; the split English label ("Create" alone on a
+  // phone) is an English-only saving, so it is used for English alone.
+  const [first, ...rest] = label.split(' ')
   return (
-    <button className={`btn-primary btn-sm${n ? ' px-2.5 sm:px-3' : ''}`} onClick={onClick} aria-label="Create resume">
+    <button className={`btn-primary btn-sm${n ? ' px-2.5 sm:px-3' : ''}`} onClick={onClick} aria-label={label}>
       <Plus className="h-4 w-4" aria-hidden />
       <span className={n ? 'hidden sm:inline' : ''} aria-hidden>
-        Create<span className="hidden sm:inline"> resume</span>
+        {first}
+        {rest.length > 0 && <span className="hidden sm:inline"> {rest.join(' ')}</span>}
       </span>
     </button>
   )

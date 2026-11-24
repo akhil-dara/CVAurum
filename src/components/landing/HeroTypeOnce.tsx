@@ -8,19 +8,18 @@
 import { useDeferredValue, useMemo, useState, type FormEvent } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, FileText, FileUp, Lock } from 'lucide-react'
-import { createDocument } from '@/data/defaults'
-import { applyTemplateToMetadata } from '@/lib/templateApply'
+import { demoDocument } from '@/data/demoDoc'
 import { TEMPLATE_COUNT, getTemplate } from '@/templates/registry'
-import { SITE } from '@/data/siteCopy'
+import { useLocale, useT, type MsgKey } from '@/i18n'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import type { ResumeDocument } from '@/types/document'
 
 /** Two plain single-column designs and one two-column (every design reads the same to an ATS). */
-const HERO_PAGES = [
-  { id: 'harvard', note: 'Single column' },
-  { id: 'modern', note: 'Single column' },
-  { id: 'clarity', note: 'Two columns' },
-] as const
+const HERO_PAGES: { id: string; note: MsgKey }[] = [
+  { id: 'harvard', note: 'land.singleColumn' },
+  { id: 'modern', note: 'land.singleColumn' },
+  { id: 'clarity', note: 'land.twoColumns' },
+]
 
 /** Where each slot sits, in % of a card's own width, so phone and desk share it. */
 const SLOTS = {
@@ -44,6 +43,8 @@ export function HeroTypeOnce({
   onSample: () => void
   onImportPdf: () => void
 }) {
+  const t = useT()
+  const locale = useLocale()
   const reduce = useReducedMotion()
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
@@ -54,19 +55,18 @@ export function HeroTypeOnce({
   // hero's first paint (LCP 5.8s, measured 2026-11-07).
   const [live, setLive] = useState(false)
   const wake = () => setLive(true)
+  // The pictures behind the hero are rendered in English at build time, so in a
+  // Persian interface the pages are drawn live from the start: the point of the
+  // hero is to show what a Persian resume looks like, and a photograph of an
+  // English one would show the opposite (2026-11-16 report).
+  const showLive = live || locale === 'fa'
   // Three full pages re-render on a keystroke; deferring keeps typing instant.
   const dName = useDeferredValue(name.trim())
   const dRole = useDeferredValue(role.trim())
 
-  const base = useMemo(
-    () =>
-      HERO_PAGES.map(({ id }) => {
-        const d = createDocument({ sample: true })
-        d.metadata = applyTemplateToMetadata(d.metadata, getTemplate(id).defaults)
-        return d
-      }),
-    []
-  )
+  // The pages wear the interface's language: Persian interface, Persian and
+  // right-to-left sample pages (src/data/demoDoc.ts).
+  const base = useMemo(() => HERO_PAGES.map(({ id }) => demoDocument(id, locale)), [locale])
   const docs = useMemo<ResumeDocument[]>(
     () =>
       base.map((d) => ({
@@ -92,7 +92,9 @@ export function HeroTypeOnce({
     onStart({ templateId: HERO_PAGES[chosen].id, name: name.trim(), role: role.trim() })
   }
 
-  const [lead, last] = splitLastWord(SITE.hero)
+  // The headline's last word is the one set in the accent colour, in either
+  // language: the split is on " ", which both scripts use.
+  const [lead, last] = splitLastWord(t('land.heroTitle'))
 
   return (
     <section id="hero-stage" className="relative overflow-hidden bg-[#f5f3ee] dark:bg-background">
@@ -113,8 +115,7 @@ export function HeroTypeOnce({
             {lead} <span className="text-[#8a5a12] dark:text-[#e2b04f]">{last}</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-[#4a4d57] dark:text-muted-foreground">
-            A resume this beautiful, made and kept on your own device: {TEMPLATE_COUNT} designs, a built-in ATS check and a real
-            vector PDF, with nothing to sign up for.
+            {t('land.heroSub', { n: TEMPLATE_COUNT })}
           </p>
         </div>
 
@@ -123,28 +124,28 @@ export function HeroTypeOnce({
             onSubmit={submit}
             className="rounded-2xl border border-[#e3dfd5] bg-white/90 p-4 shadow-[0_18px_40px_-28px_rgba(22,23,29,0.45)] sm:p-5 dark:border-border dark:bg-surface"
           >
-            <p className="text-sm font-medium text-[#16171d] dark:text-foreground">Try it: type your name and watch the pages.</p>
+            <p className="text-sm font-medium text-[#16171d] dark:text-foreground">{t('land.tryIt')}</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-medium text-[#5b5e68] dark:text-muted-foreground">Your name</span>
+                <span className="text-xs font-medium text-[#5b5e68] dark:text-muted-foreground">{t('land.yourName')}</span>
                 <input
                   onFocus={wake}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
-                  placeholder="Alex Morgan"
+                  placeholder={t('land.exampleName')}
                   maxLength={60}
                   className="mt-1 h-11 w-full rounded-lg border border-[#d9d5ca] bg-white px-3 text-[15px] text-[#16171d] outline-none transition placeholder:text-[#9a9ca4] focus:border-[#b07a1e] focus:ring-2 focus:ring-[#d4982f]/30 dark:border-border dark:bg-background dark:text-foreground"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-[#5b5e68] dark:text-muted-foreground">Job title</span>
+                <span className="text-xs font-medium text-[#5b5e68] dark:text-muted-foreground">{t('land.jobTitle')}</span>
                 <input
                   onFocus={wake}
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                   autoComplete="organization-title"
-                  placeholder="Senior Software Engineer"
+                  placeholder={t('land.exampleRole')}
                   maxLength={80}
                   className="mt-1 h-11 w-full rounded-lg border border-[#d9d5ca] bg-white px-3 text-[15px] text-[#16171d] outline-none transition placeholder:text-[#9a9ca4] focus:border-[#b07a1e] focus:ring-2 focus:ring-[#d4982f]/30 dark:border-border dark:bg-background dark:text-foreground"
                 />
@@ -156,30 +157,30 @@ export function HeroTypeOnce({
                 className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-10px_rgba(138,90,18,0.9)] transition hover:brightness-110 active:scale-[0.99]"
                 style={{ background: 'linear-gradient(135deg,#8a5a12,#c08a2a)' }}
               >
-                Start with {chosenName} <ArrowRight className="h-4 w-4" />
+                {t('land.startWith', { template: chosenName })} <ArrowRight className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={onSample}
                 className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#d9d5ca] bg-white px-4 text-sm font-semibold text-[#16171d] transition hover:bg-[#f7f5f0] dark:border-border dark:bg-background dark:text-foreground dark:hover:bg-surface-muted"
               >
-                <FileText className="h-4 w-4" /> Start with an example
+                <FileText className="h-4 w-4" /> {t('land.startWithExample')}
               </button>
             </div>
             <p className="mt-3 flex items-center gap-1.5 text-xs text-[#5b5e68] dark:text-muted-foreground">
-              <Lock className="h-3.5 w-3.5 shrink-0" /> What you type stays in this browser. Nothing is sent anywhere.
+              <Lock className="h-3.5 w-3.5 shrink-0" /> {t('land.staysLocal')}
             </p>
           </form>
 
           <p className="mt-4 text-sm text-[#5b5e68] dark:text-muted-foreground">
-            Already have one?{' '}
+            {t('land.haveOne')}{' '}
             <button
               onClick={onImportPdf}
               className="relative inline-flex items-center gap-1 font-medium text-[#8a5a12] underline-offset-2 before:absolute before:-inset-2 before:content-[''] hover:underline dark:text-[#e2b04f]"
             >
-              <FileUp className="h-3.5 w-3.5" /> Import your PDF
+              <FileUp className="h-3.5 w-3.5" /> {t('land.importPdf')}
             </button>{' '}
-            to edit it here, read on your own device.
+            {t('land.importRest')}
           </p>
         </div>
 
@@ -190,7 +191,7 @@ export function HeroTypeOnce({
             role="radiogroup"
             onPointerEnter={wake}
             onFocus={wake}
-            aria-label="Design to start with"
+            aria-label={t('land.designPicker')}
             className="relative z-10 mx-auto flex w-fit max-w-full gap-1 rounded-full border border-[#e3dfd5] bg-white/85 p-1 shadow-[0_6px_18px_-12px_rgba(22,23,29,0.35)] backdrop-blur-sm dark:border-border dark:bg-surface"
           >
             {HERO_PAGES.map(({ id, note }, i) => {
@@ -209,7 +210,7 @@ export function HeroTypeOnce({
                   }`}
                 >
                   {getTemplate(id).name}
-                  <span className={`ms-1.5 hidden sm:inline ${on ? 'text-white/60 dark:text-background/60' : 'text-[#8b8e96]'}`}>{note}</span>
+                  <span className={`ms-1.5 hidden sm:inline ${on ? 'text-white/60 dark:text-background/60' : 'text-[#8b8e96]'}`}>{t(note)}</span>
                 </button>
               )
             })}
@@ -238,7 +239,7 @@ export function HeroTypeOnce({
                   }`}
                 >
                   <div className="relative aspect-[210/297] overflow-hidden">
-                    {live ? (
+                    {showLive ? (
                       <PreviewThumb doc={docs[i]} width={320} />
                     ) : (
                       <img

@@ -25,7 +25,11 @@ vi.mock('./render', async () => {
 vi.mock('@/lib/pdf', () => ({
   pdfBaseName: pdfBaseNameMock,
 }))
-vi.mock('@/lib/storage', () => ({
+// Partial: only saving is faked. The rest of the storage module is real — the
+// templates reach the interface language through the app store, which reads
+// DEFAULT_SETTINGS from here at import time.
+vi.mock('@/lib/storage', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/storage')>()),
   saveDoc: saveDocMock,
 }))
 

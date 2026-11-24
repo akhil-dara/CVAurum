@@ -15,6 +15,7 @@ import { SortableContext, arrayMove, verticalListSortingStrategy, sortableKeyboa
 import { cn } from '@/lib/utils'
 import type { SectionPlace } from '@/lib/sections'
 import { SortableRow, type DragHandle } from './SortableList'
+import { useLabel } from '@/i18n/labels'
 
 /**
  * Drag-to-reorder board for the section organizer. Unlike isolated
@@ -51,16 +52,17 @@ export function SectionBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
+  const L = useLabel()
   const lists: Record<SectionPlace, string[]> = { main, aside, footer }
   const columns: { id: SectionPlace; label: string; ids: string[] }[] = twoCol
     ? [
-        { id: 'main', label: 'Main column', ids: main },
-        { id: 'aside', label: 'Sidebar', ids: aside },
-        { id: 'footer', label: 'Footer strip', ids: footer },
+        { id: 'main', label: L('Main column'), ids: main },
+        { id: 'aside', label: L('Sidebar'), ids: aside },
+        { id: 'footer', label: L('Footer strip'), ids: footer },
       ]
     : [
         { id: 'main', label: '', ids: main },
-        { id: 'footer', label: 'Footer strip', ids: footer },
+        { id: 'footer', label: L('Footer strip'), ids: footer },
       ]
 
   const columnOf = (id: string): SectionPlace | null => {
@@ -137,6 +139,7 @@ function DroppableColumn({
   ids: string[]
   renderCard: (id: string, handle: DragHandle) => ReactNode
 }) {
+  const L = useLabel()
   const { setNodeRef, isOver } = useDroppable({ id: `col:${id}` })
   return (
     <div>
@@ -158,12 +161,12 @@ function DroppableColumn({
               // what the strip is for, and the way in each device has: a
               // finger gets the ⋯ menu's "Move to footer", not a drag
               <span>
-                A compact band at the foot of the page.{' '}
-                <span className="phone:hidden">Drag a section here.</span>
-                <span className="desk:hidden">Use a section's ⋯ menu to move it here.</span>
+                {L('A compact band at the foot of the page.')}{' '}
+                <span className="phone:hidden">{L('Drag a section here.')}</span>
+                <span className="desk:hidden">{L("Use a section's ⋯ menu to move it here.")}</span>
               </span>
             ) : (
-              'Drag a section here'
+              L('Drag a section here')
             ))}
         </div>
       </SortableContext>

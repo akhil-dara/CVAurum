@@ -12,6 +12,7 @@ import { sectionHasContent } from '@/lib/sections'
 import { visibleDocument } from '@/lib/atsScope'
 import { LEGIBLE_BODY_PT } from '@/lib/fitReadout'
 import { usesArabicScript } from '@/data/fonts'
+import { translate, type Locale, type MsgKey } from '@/i18n/core'
 
 export type CheckStatus = 'pass' | 'warn' | 'fail'
 
@@ -43,6 +44,14 @@ export const ATS_CATEGORY_LABELS: Record<AtsCategory, string> = {
   content: 'What is on the page',
   writing: 'How it is written',
   format: 'How it is set',
+}
+
+/** The same four questions as dictionary keys, for a panel that draws them. */
+export const ATS_CATEGORY_KEYS: Record<AtsCategory, MsgKey> = {
+  file: 'ats.cat.file',
+  content: 'ats.cat.content',
+  writing: 'ats.cat.writing',
+  format: 'ats.cat.format',
 }
 
 export interface AtsCheck {
@@ -449,7 +458,16 @@ const PAPER = [
   { name: 'US Letter', w: 612, h: 792 },
 ]
 
-export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = {}): AtsReport {
+export function analyzeResume(
+  input: ResumeDocument,
+  measured: AtsMeasurement = {},
+  locale: Locale = 'en'
+): AtsReport {
+  // Every sentence below is a key in the interface's dictionary, filled with
+  // the figures the rule measured. A sentence assembled here in English could
+  // not be translated later: the numbers sit inside it, and Persian puts them
+  // in a different order.
+  const tx = (key: MsgKey, vars?: Record<string, string | number>) => translate(locale, key, vars)
   // Every rule below reads the document the PAGE shows, not the one the store
   // holds. Hidden sections are dropped once, here, so no individual check has
   // to remember to ask - and so the score, the checks, the counts and the JD
@@ -492,26 +510,56 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const hasPhone = !!c.basics.phone
   push(
     'contact',
-    'Contact details',
+    tx('ats.r.contact.label'),
     hasEmail && hasPhone ? 'pass' : hasEmail || hasPhone ? 'warn' : 'fail',
-    hasEmail && hasPhone ? 'Email and phone are present.' : 'Add both an email and a phone number so recruiters can reach you.',
+    hasEmail && hasPhone ? tx('ats.r.contact.ok') : tx('ats.r.contact.missing'),
     2,
     'content'
   )
 
-  push('summary', 'Professional summary', sectionHasContent('summary', c) ? 'pass' : 'warn', sectionHasContent('summary', c) ? 'A summary helps recruiters and ATS keyword-match instantly.' : 'Add a 2–3 line summary with your title and top skills.', 1, 'content')
+  push(
+    'summary',
+    tx('ats.r.summary.label'),
+    sectionHasContent('summary', c) ? 'pass' : 'warn',
+    sectionHasContent('summary', c) ? tx('ats.r.summary.ok') : tx('ats.r.summary.missing'),
+    1,
+    'content'
+  )
 
-  push('work', 'Work experience', c.work.length ? 'pass' : 'fail', c.work.length ? `${c.work.length} role(s) listed.` : 'Add at least one work experience entry.', 2, 'content')
-  push('education', 'Education', c.education.length ? 'pass' : 'warn', c.education.length ? 'Education is present.' : 'Most ATS expect an education section.', 1, 'content')
-  push('skills', 'Skills section', c.skills.length ? 'pass' : 'warn', c.skills.length ? 'Skills present — great for keyword matching.' : 'Add a skills section; ATS keyword-match heavily on it.', 1.5, 'content')
+  push(
+    'work',
+    tx('ats.r.work.label'),
+    c.work.length ? 'pass' : 'fail',
+    c.work.length ? tx('ats.r.work.ok', { n: c.work.length }) : tx('ats.r.work.missing'),
+    2,
+    'content'
+  )
+  push(
+    'education',
+    tx('ats.r.education.label'),
+    c.education.length ? 'pass' : 'warn',
+    c.education.length ? tx('ats.r.education.ok') : tx('ats.r.education.missing'),
+    1,
+    'content'
+  )
+  push(
+    'skills',
+    tx('ats.r.skills.label'),
+    c.skills.length ? 'pass' : 'warn',
+    c.skills.length ? tx('ats.r.skills.ok') : tx('ats.r.skills.missing'),
+    1.5,
+    'content'
+  )
 
   // quantified achievements
   const quantRate = bullets.length ? quantified / bullets.length : 0
   push(
     'quantified',
-    'Quantified impact',
+    tx('ats.r.quantified.label'),
     bullets.length === 0 ? 'warn' : quantRate >= 0.4 ? 'pass' : quantRate >= 0.2 ? 'warn' : 'fail',
-    bullets.length === 0 ? 'Add bullet points describing your achievements.' : `${quantified} of ${bullets.length} bullets include a number or metric. Aim for ~50%.`,
+    bullets.length === 0
+      ? tx('ats.r.quantified.empty')
+      : tx('ats.r.quantified.some', { done: quantified, total: bullets.length }),
     1.5,
     'writing',
     at(unquantified[0])
@@ -525,9 +573,9 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (wordListBullets.length < bullets.length || wordListSummary !== summaryText) {
     push(
       'language',
-      'Writing rules in this language',
+      tx('ats.r.language.label'),
       'warn',
-      'The action-verb, passive-voice, filler-word, pronoun, buzzword and tense checks are English word lists, so lines written in Arabic script were left out of them rather than guessed at. Keyword matching compares your exact words, so a job description written in the same language still matches.',
+      tx('ats.r.language.detail'),
       0,
       'writing'
     )
@@ -539,9 +587,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (wordListBullets.length) {
     push(
       'verbs',
-      'Strong action verbs',
+      tx('ats.r.verbs.label'),
       weak.length === 0 ? 'pass' : weak.length <= 2 ? 'warn' : 'fail',
-      weak.length === 0 ? `${strongStarts} bullets start with strong verbs.` : `${weak.length} bullet(s) start with weak phrases like "responsible for". Lead with action verbs.`,
+      weak.length === 0
+        ? tx('ats.r.verbs.ok', { n: strongStarts })
+        : tx('ats.r.verbs.weak', { n: weak.length }),
       1,
       'writing',
       at(weak[0])
@@ -552,9 +602,9 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const idealLen = wordCount >= 350 && wordCount <= 850
   push(
     'length',
-    'Length',
+    tx('ats.r.length.label'),
     idealLen ? 'pass' : wordCount < 200 ? 'fail' : 'warn',
-    `${wordCount} words. Aim for ~400–800 for a focused 1–2 page resume.`,
+    tx('ats.r.length.detail', { n: wordCount }),
     1,
     'content'
   )
@@ -562,22 +612,24 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   // ATS-safe template
   if (!file) push(
     'template',
-    'ATS-safe layout',
+    tx('ats.r.template.label'),
     tpl.atsSafe ? 'pass' : 'warn',
-    tpl.atsSafe ? `“${tpl.name}” parses cleanly in ATS.` : `“${tpl.name}” is visually rich; some strict ATS may misread it. Prefer an ATS-safe template if applying to large companies.`,
+    tpl.atsSafe
+      ? tx('ats.r.template.ok', { name: tpl.name })
+      : tx('ats.r.template.weak', { name: tpl.name }),
     1.5,
     'format'
   )
 
   // photo warning (some ATS choke on images / headshots)
   if (file ? file.photo : doc.metadata.layout.showPhoto && c.basics.image) {
-    push('photo', 'Photo', 'warn', 'A photo can confuse some ATS and invite bias screening in the US/UK. Consider hiding it for ATS-heavy applications.', 0.5, 'format')
+    push('photo', tx('ats.r.photo.label'), 'warn', tx('ats.r.photo.detail'), 0.5, 'format')
   }
 
   // custom (non-standard) section names
   const renamed = Object.keys(doc.metadata.layout.headings ?? {}).length
   if (renamed) {
-    push('headings', 'Standard headings', 'warn', 'You renamed some section headings. Keep standard names (Experience, Education, Skills) so ATS recognises them.', 0.5, 'format')
+    push('headings', tx('ats.r.renamed.label'), 'warn', tx('ats.r.renamed.detail'), 0.5, 'format')
   }
 
   /* ---------------------------------------------------------------- format
@@ -595,15 +647,15 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const longCareer = c.work.length >= 4 || wordCount > 750
   push(
     'pages',
-    'Page count',
+    tx('ats.r.pages.label'),
     pages === 1 ? 'pass' : pages === 2 ? (longCareer ? 'pass' : 'warn') : 'fail',
     pages === 1
-      ? 'One page — what most recruiters prefer, and what every parser handles.'
+      ? tx('ats.r.pages.one')
       : pages === 2
         ? longCareer
-          ? 'Two pages, which a history this long earns.'
-          : 'Two pages for a shorter history. Magic fit (Design → Page) can bring this back to one.'
-        : `${pages} pages. Almost no recruiter reads past the second — cut, or let Magic fit tighten it.`,
+          ? tx('ats.r.pages.twoEarned')
+          : tx('ats.r.pages.twoShort')
+        : tx('ats.r.pages.many', { n: pages }),
     1.5,
     'format'
   )
@@ -612,13 +664,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const bodyRounded = Math.round(bodyPt * 10) / 10
   push(
     'bodySize',
-    'Body text size',
+    tx('ats.r.bodySize.label'),
     bodyPt >= 9.5 && bodyPt <= 12 ? 'pass' : bodyPt >= LEGIBLE_BODY_PT ? 'warn' : 'fail',
     bodyPt >= 9.5 && bodyPt <= 12
-      ? `${bodyRounded}pt — comfortable in print and on screen.`
+      ? tx('ats.r.bodySize.ok', { pt: bodyRounded })
       : bodyPt < LEGIBLE_BODY_PT
-        ? `${bodyRounded}pt is below what a printed resume should use. Cut a little content instead of shrinking further.`
-        : `${bodyRounded}pt is on the edge of readable. 10–11pt is the range to aim for.`,
+        ? tx('ats.r.bodySize.small', { pt: bodyRounded })
+        : tx('ats.r.bodySize.edge', { pt: bodyRounded }),
     1,
     'format'
   )
@@ -635,15 +687,16 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     .filter(({ n }) => n < 2 || n > 6)
   if (c.work.length) {
     const worst = roleBulletProblems[0]
+    const roleName = worst?.w.position || tx('ats.r.bulletsPerRole.role')
     push(
       'bulletsPerRole',
-      'Bullets per role',
+      tx('ats.r.bulletsPerRole.label'),
       roleBulletProblems.length === 0 ? 'pass' : roleBulletProblems.length <= 1 ? 'warn' : 'fail',
       roleBulletProblems.length === 0
-        ? 'Every role carries between two and six bullets.'
+        ? tx('ats.r.bulletsPerRole.ok')
         : worst && worst.n < 2
-          ? `“${worst.w.position || 'A role'}” has ${worst.n === 0 ? 'no bullets' : 'one bullet'}. Two to four say what the job actually was.`
-          : `“${worst?.w.position || 'A role'}” has ${worst?.n} bullets. Past six they stop being read — keep the ones with numbers in them.`,
+          ? tx(worst.n === 0 ? 'ats.r.bulletsPerRole.none' : 'ats.r.bulletsPerRole.one', { role: roleName })
+          : tx('ats.r.bulletsPerRole.many', { role: roleName, n: worst?.n ?? 0 }),
       1,
       'content',
       worst ? { section: 'work', entry: worst.i } : undefined
@@ -659,11 +712,9 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (c.work.length || c.education.length) {
     push(
       'dates',
-      'Dates on every entry',
+      tx('ats.r.dates.label'),
       undated.length === 0 ? 'pass' : 'fail',
-      undated.length === 0
-        ? 'Every role and course is dated.'
-        : `${undated.length} entr${undated.length === 1 ? 'y has' : 'ies have'} no date. A parser reads an undated role as no role at all.`,
+      undated.length === 0 ? tx('ats.r.dates.ok') : tx('ats.r.dates.some', { n: undated.length }),
       1.5,
       'content',
       undated[0] ? { section: undated[0].section, entry: undated[0].i } : undefined
@@ -676,11 +727,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (c.work.length) {
     push(
       'entryLocation',
-      'Location on each role',
+      tx('ats.r.entryLocation.label'),
       located === c.work.length ? 'pass' : located >= c.work.length / 2 ? 'warn' : 'fail',
       located === c.work.length
-        ? 'Every role says where it was.'
-        : `${c.work.length - located} of ${c.work.length} roles have no location. Add the city, or “Remote”.`,
+        ? tx('ats.r.entryLocation.ok')
+        : tx('ats.r.entryLocation.some', { missing: c.work.length - located, total: c.work.length }),
       0.75,
       'content',
       located === c.work.length ? undefined : { section: 'work', entry: c.work.findIndex((w) => !(w.location ?? '').trim()) }
@@ -693,13 +744,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (summaryWords) {
     push(
       'summaryLength',
-      'Summary length',
+      tx('ats.r.summaryLength.label'),
       summaryWords >= 25 && summaryWords <= 65 ? 'pass' : summaryWords < 15 || summaryWords > 95 ? 'fail' : 'warn',
       summaryWords >= 25 && summaryWords <= 65
-        ? `${summaryWords} words — two or three lines, which is what gets read.`
+        ? tx('ats.r.summaryLength.ok', { n: summaryWords })
         : summaryWords < 25
-          ? `${summaryWords} words is too short to say what you do and what you are best at. Aim for 25–60.`
-          : `${summaryWords} words. A summary past about 60 is skipped — the detail belongs in the bullets.`,
+          ? tx('ats.r.summaryLength.short', { n: summaryWords })
+          : tx('ats.r.summaryLength.long', { n: summaryWords }),
       0.75,
       'content',
       { section: 'summary' }
@@ -714,13 +765,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const grouped = namedGroups === c.skills.length && biggestGroup <= 12
     push(
       'skillGroups',
-      'Skills grouped',
+      tx('ats.r.skillGroups.label'),
       grouped ? 'pass' : 'warn',
       grouped
-        ? `${c.skills.length} named group${c.skills.length === 1 ? '' : 's'}.`
+        ? tx('ats.r.skillGroups.ok', { n: c.skills.length })
         : namedGroups < c.skills.length
-          ? 'Some skill groups have no name. A parser reads the name as the category.'
-          : `One group holds ${biggestGroup} skills. Split it — a reader scans for a category, not a paragraph.`,
+          ? tx('ats.r.skillGroups.unnamed')
+          : tx('ats.r.skillGroups.big', { n: biggestGroup }),
       0.75,
       'content',
       grouped
@@ -744,15 +795,15 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const shortForm = /linkedin\.com\/in\/[^/?#]+\/?$/i.test(linkedinUrl)
   push(
     'linkedin',
-    'LinkedIn profile',
+    tx('ats.r.linkedin.label'),
     !linkedin ? 'warn' : shortForm ? 'pass' : 'warn',
     !linkedin
-      ? 'No LinkedIn profile. It is the first thing most recruiters look for after the resume itself.'
+      ? tx('ats.r.linkedin.none')
       : !linkedinUrl.trim()
-        ? 'Your LinkedIn line is not a link. Put the address in its “Goes to” field — linkedin.com/in/your-name is enough.'
+        ? tx('ats.r.linkedin.notLink')
         : shortForm
-          ? 'Linked in the short form recruiters expect.'
-          : 'Trim the address to linkedin.com/in/your-name — the tracking tail after it is noise on a printed page.',
+          ? tx('ats.r.linkedin.short')
+          : tx('ats.r.linkedin.trim'),
     0.5,
     'content'
   )
@@ -765,11 +816,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (bullets.length) {
     push(
       'bulletDepth',
-      'Bullets that say something',
+      tx('ats.r.bulletDepth.label'),
       stubs.length === 0 ? 'pass' : stubs.length <= 2 ? 'warn' : 'fail',
       stubs.length === 0
-        ? 'No bullet is too short to carry a result.'
-        : `${stubs.length} bullet${stubs.length === 1 ? ' is' : 's are'} a fragment — e.g. “${snippet(stubs[0].text, 48)}”. Say what changed, and by how much.`,
+        ? tx('ats.r.bulletDepth.ok')
+        : tx('ats.r.bulletDepth.short', { n: stubs.length, text: snippet(stubs[0].text, 48) }),
       0.75,
       'writing',
       at(stubs[0])
@@ -787,13 +838,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const odd = bullets.filter((b) => (ended * 2 > bullets.length ? !ends(b) : ends(b)))
     push(
       'punctuation',
-      'Consistent punctuation',
+      tx('ats.r.punctuation.label'),
       consistent ? 'pass' : ended > bullets.length * 0.8 || ended < bullets.length * 0.2 ? 'warn' : 'fail',
       consistent
         ? ended === 0
-          ? 'No bullet ends in a full stop — consistent.'
-          : 'Every bullet ends in a full stop — consistent.'
-        : `${ended} of ${bullets.length} bullets end in a full stop. Pick one and use it throughout.`,
+          ? tx('ats.r.punctuation.okNone')
+          : tx('ats.r.punctuation.okAll')
+        : tx('ats.r.punctuation.mixed', { ended, total: bullets.length }),
       0.5,
       'writing',
       consistent ? undefined : at(odd[0])
@@ -819,11 +870,15 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const shown = first ? pronounHit(first.text) : pronounHit(wordListSummary)
     push(
       'pronouns',
-      'No first-person pronouns',
+      tx('ats.r.pronouns.label'),
       pronouns === 0 ? 'pass' : pronouns <= 2 ? 'warn' : 'fail',
       pronouns === 0
-        ? 'Written without “I” or “we”, the way a resume is read.'
-        : `${pronouns} line${pronouns === 1 ? '' : 's'} use${pronouns === 1 ? 's' : ''} a first-person pronoun${shown ? ` (“${shown}”)` : ''}${pronounInSummary && !first ? ', in the summary' : ''}. Cut it — the page is already about you.`,
+        ? tx('ats.r.pronouns.ok')
+        : tx(pronouns === 1 ? 'ats.r.pronouns.one' : 'ats.r.pronouns.some', {
+            n: pronouns,
+            word: shown ? tx('ats.r.pronouns.word', { word: shown }) : '',
+            note: pronounInSummary && !first ? tx('ats.r.pronouns.note') : '',
+          }),
       0.75,
       'writing',
       at(first) ?? (pronounInSummary ? { section: 'summary' } : undefined)
@@ -840,11 +895,14 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const hit = buzzy[0]?.hit ?? buzzInSummary
     push(
       'buzzwords',
-      'Claims backed by evidence',
+      tx('ats.r.buzzwords.label'),
       buzzCount === 0 ? 'pass' : buzzCount <= 2 ? 'warn' : 'fail',
       buzzCount === 0
-        ? 'Nothing on the page asks to be believed without proof.'
-        : `“${hit}” is a claim a reader cannot check${buzzCount > 1 ? `, and ${buzzCount - 1} more like it` : ''}. Replace it with the thing that proves it.`,
+        ? tx('ats.r.buzzwords.ok')
+        : tx('ats.r.buzzwords.some', {
+            word: hit,
+            more: buzzCount > 1 ? tx('ats.r.buzzwords.more', { n: buzzCount - 1 }) : '',
+          }),
       0.5,
       'writing',
       at(buzzy[0]?.b) ?? (buzzInSummary ? { section: 'summary' } : undefined)
@@ -856,11 +914,14 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (wordListBullets.length) {
     push(
       'passiveVoice',
-      'Active voice',
+      tx('ats.r.passive.label'),
       passive.length === 0 ? 'pass' : passive.length <= 2 ? 'warn' : 'fail',
       passive.length === 0
-        ? 'Every bullet says who did the thing.'
-        : `${passive.length === 1 ? 'A bullet opens' : `${passive.length} bullets open`} in the passive — “…${openingClause(passive[0].text).match(PASSIVE_RE)?.[0]}…”. You did it; say so.`,
+        ? tx('ats.r.passive.ok')
+        : tx(passive.length === 1 ? 'ats.r.passive.one' : 'ats.r.passive.some', {
+            n: passive.length,
+            text: openingClause(passive[0].text).match(PASSIVE_RE)?.[0] ?? '',
+          }),
       0.5,
       'writing',
       at(passive[0])
@@ -874,11 +935,15 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (wordListBullets.length) {
     push(
       'filler',
-      'Words that carry weight',
+      tx('ats.r.filler.label'),
       filled.length === 0 ? 'pass' : filled.length <= 2 ? 'warn' : 'fail',
       filled.length === 0
-        ? 'No bullet leans on a filler word.'
-        : `${filled.length === 1 ? 'A bullet leans' : `${filled.length} bullets lean`} on a vague word — “${filled[0].hit}” in “${snippet(filled[0].b.text)}”. A number says it better.`,
+        ? tx('ats.r.filler.ok')
+        : tx(filled.length === 1 ? 'ats.r.filler.one' : 'ats.r.filler.some', {
+            n: filled.length,
+            word: filled[0].hit,
+            text: snippet(filled[0].b.text),
+          }),
       0.5,
       'writing',
       at(filled[0]?.b)
@@ -926,11 +991,16 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const g = gaps[0]
     push(
       'gaps',
-      'Gaps between roles',
+      tx('ats.r.gaps.label'),
       gaps.length === 0 ? 'pass' : 'warn',
       !g
-        ? 'No unexplained gap of more than six months between roles.'
-        : `${g.months} months between “${g.before}” and “${g.after}”${gaps.length > 1 ? `, and ${gaps.length - 1} more gap${gaps.length > 2 ? 's' : ''}` : ''}. One line saying what filled it — study, caring, travel, a career break — answers the question before it is asked.`,
+        ? tx('ats.r.gaps.ok')
+        : tx('ats.r.gaps.some', {
+            months: g.months,
+            before: g.before,
+            after: g.after,
+            more: gaps.length > 1 ? tx('ats.r.gaps.more', { n: gaps.length - 1 }) : '',
+          }),
       0.75,
       'content',
       g ? { section: 'work', entry: g.entry } : undefined
@@ -958,11 +1028,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   }
   push(
     'personal',
-    'No details that invite bias',
+    tx('ats.r.personal.label'),
     personal.size ? 'warn' : 'pass',
     personal.size
-      ? `The page gives your ${[...personal].join(', ')}. No shortlist needs ${personal.size === 1 ? 'it' : 'them'}, and in most countries ${personal.size === 1 ? 'it invites' : 'they invite'} bias; leave ${personal.size === 1 ? 'it' : 'them'} out unless the employer or a visa application asks.`
-      : 'No date of birth, marital status or other personal detail that invites bias.',
+      ? tx('ats.r.personal.some', { list: [...personal].join(', ') })
+      : tx('ats.r.personal.ok'),
     0.75,
     'content',
     personal.size ? personalWhere : undefined
@@ -975,9 +1045,9 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (declaration) {
     push(
       'declaration',
-      'No declaration',
+      tx('ats.r.declaration.label'),
       'warn',
-      'A declaration (“I hereby declare…”) spends lines a recruiter skips and a parser discards. Cut it: sending the application already vouches for it.',
+      tx('ats.r.declaration.detail'),
       0.5,
       'content',
       { section: `custom-${declaration.id}` }
@@ -995,11 +1065,14 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const b = presentTense[0]
     push(
       'tense',
-      'Past roles in the past tense',
+      tx('ats.r.tense.label'),
       presentTense.length === 0 ? 'pass' : presentTense.length <= 2 ? 'warn' : 'fail',
       !b
-        ? 'Every finished role is told in the past tense.'
-        : `${presentTense.length === 1 ? 'A bullet' : `${presentTense.length} bullets`} in a finished role ${presentTense.length === 1 ? 'reads' : 'read'} in the present — “${snippet(b.text, 40)}”. A job you have left is told in the past: “Led”, not “Lead”.`,
+        ? tx('ats.r.tense.ok')
+        : tx(presentTense.length === 1 ? 'ats.r.tense.one' : 'ats.r.tense.some', {
+            n: presentTense.length,
+            text: snippet(b.text, 40),
+          }),
       0.75,
       'writing',
       at(b)
@@ -1012,11 +1085,14 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   if (bullets.length) {
     push(
       'bulletLength',
-      'Bullets within two lines',
+      tx('ats.r.bulletLength.label'),
       long.length === 0 ? 'pass' : long.length <= 2 ? 'warn' : 'fail',
       long.length === 0
-        ? 'Every bullet fits in two lines.'
-        : `${long.length === 1 ? 'A bullet runs' : `${long.length} bullets run`} past two lines — “${snippet(long[0].text)}”. Keep the result and the number; split or cut the rest.`,
+        ? tx('ats.r.bulletLength.ok')
+        : tx(long.length === 1 ? 'ats.r.bulletLength.one' : 'ats.r.bulletLength.some', {
+            n: long.length,
+            text: snippet(long[0].text),
+          }),
       0.75,
       'writing',
       at(long[0])
@@ -1028,11 +1104,14 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
   const symbols = [...new Set((symbolText.match(SYMBOL_RE) ?? []).filter((ch) => !SYMBOL_OK.has(ch)))]
   push(
     'symbols',
-    'No emoji or ornaments in the text',
+    tx('ats.r.symbols.label'),
     symbols.length === 0 ? 'pass' : symbols.length <= 2 ? 'warn' : 'fail',
     symbols.length === 0
-      ? 'The text is words and punctuation only.'
-      : `The text carries ${symbols.slice(0, 4).join(' ')}${symbols.length > 4 ? ' and more' : ''}. A parser drops them or reads a code in their place — and one beside a phone number can take the number with it.`,
+      ? tx('ats.r.symbols.ok')
+      : tx('ats.r.symbols.some', {
+          list: symbols.slice(0, 4).join(' '),
+          more: symbols.length > 4 ? tx('ats.r.symbols.more') : '',
+        }),
     0.5,
     'format'
   )
@@ -1046,13 +1125,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const allScanned = scanned.length > 0 && scanned.length >= file.pageCount
     push(
       'textLayer',
-      'Real, selectable text',
+      tx('ats.r.textLayer.label'),
       scanned.length === 0 ? 'pass' : 'fail',
       scanned.length === 0
-        ? 'Every page carries real text a parser can read.'
+        ? tx('ats.r.textLayer.ok')
         : allScanned
-          ? 'The file is a picture of a resume: there is no text in it, so a parser sees a blank page. This report read it with OCR. Export the original document to PDF instead of scanning or printing it to an image.'
-          : `Page${scanned.length > 1 ? 's' : ''} ${scanned.join(', ')} ${scanned.length > 1 ? 'are pictures' : 'is a picture'} of text, which a parser reads as blank. Export the original to PDF instead.`,
+          ? tx('ats.r.textLayer.all')
+          : tx('ats.r.textLayer.some', { pages: scanned.join('، ') }),
       3,
       'file'
     )
@@ -1061,13 +1140,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
       const share = file.unmappedChars / file.textChars
       push(
         'characters',
-        'Characters that decode',
+        tx('ats.r.characters.label'),
         file.unmappedChars === 0 ? 'pass' : share >= 0.05 ? 'fail' : 'warn',
         file.unmappedChars === 0
-          ? 'Every character in the file decodes to a real letter.'
+          ? tx('ats.r.characters.ok')
           : share >= 0.05
-            ? `${file.unmappedChars} of ${file.textChars} characters decode to nothing a parser can read — the font was embedded without its character map. Re-export, or export from another app, and check that you can copy the text out of the PDF.`
-            : `${file.unmappedChars} character${file.unmappedChars === 1 ? '' : 's'} decode${file.unmappedChars === 1 ? 's' : ''} to nothing — usually icons set in an icon font (a phone, an envelope). Harmless on paper; to a parser, noise beside your contact details.`,
+            ? tx('ats.r.characters.many', { bad: file.unmappedChars, total: file.textChars })
+            : tx('ats.r.characters.few', { n: file.unmappedChars }),
         2,
         'file'
       )
@@ -1076,11 +1155,15 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const tr = file.tracked[0]
     push(
       'spacing',
-      'Words not spaced apart',
+      tx('ats.r.spacing.label'),
       file.tracked.length === 0 ? 'pass' : file.tracked.length <= 2 ? 'warn' : 'fail',
       !tr
-        ? 'No word is letter-spaced into single letters.'
-        : `“${tr.raw}” is letter-spaced in the file, so a parser reads single letters, not “${tr.text}”${file.tracked.length > 1 ? ` (${file.tracked.length} lines like it)` : ''}. A heading it cannot read is a section it cannot find. Remove the extra letter spacing.`,
+        ? tx('ats.r.spacing.ok')
+        : tx('ats.r.spacing.some', {
+            raw: tr.raw,
+            text: tr.text,
+            more: file.tracked.length > 1 ? tx('ats.r.spacing.more', { n: file.tracked.length }) : '',
+          }),
       1.25,
       'file'
     )
@@ -1088,11 +1171,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     const ex = file.acrossExample
     push(
       'readingOrder',
-      'One reading order',
+      tx('ats.r.readingOrder.label'),
       file.twoColumn ? 'warn' : 'pass',
       !file.twoColumn
-        ? 'One column: every parser reads it top to bottom.'
-        : `Two columns side by side. A parser that reads straight across the page joins them row by row${ex ? ` — here “${ex.left}” would run into “${ex.right}”` : ''}. Most modern systems cope; the strictest do not, so one column is the safe choice for large employers.`,
+        ? tx('ats.r.readingOrder.ok')
+        : tx('ats.r.readingOrder.two', {
+            example: ex ? tx('ats.r.readingOrder.example', { left: ex.left, right: ex.right }) : '',
+          }),
       1.5,
       'file'
     )
@@ -1100,13 +1185,13 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     if (file.contact !== 'missing') {
       push(
         'contactPlace',
-        'Contact details at the top',
+        tx('ats.r.contactPlace.label'),
         file.contact === 'top' ? 'pass' : 'warn',
         file.contact === 'top'
-          ? 'Email and phone sit at the top of page one, where every parser looks first.'
+          ? tx('ats.r.contactPlace.top')
           : file.contact === 'sidebar'
-            ? 'Your email and phone sit in the sidebar. Some parsers read a sidebar last or not at all — put them under your name.'
-            : 'Your email and phone are not at the top of page one. Parsers look for them there first; move them under your name.',
+            ? tx('ats.r.contactPlace.sidebar')
+            : tx('ats.r.contactPlace.low'),
         1,
         'file'
       )
@@ -1118,11 +1203,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
       const mm = (pt: number) => Math.round((pt / 72) * 25.4)
       push(
         'pageSize',
-        'A standard page size',
+        tx('ats.r.pageSize.label'),
         odd ? 'warn' : 'pass',
         odd
-          ? `A page is ${mm(odd.w)} × ${mm(odd.h)} mm, which is neither A4 nor US Letter. It prints cropped or shrunk; export at A4 (most of the world) or US Letter (North America).`
-          : `${paper?.name ?? 'A standard size'}, portrait.`,
+          ? tx('ats.r.pageSize.odd', { w: mm(odd.w), h: mm(odd.h) })
+          : tx('ats.r.pageSize.ok', { paper: paper?.name ?? tx('ats.r.pageSize.standard') }),
         0.75,
         'file'
       )
@@ -1135,11 +1220,11 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
       const generic = /^(document|untitled|scan|img|image|file|download|resume|cv|my ?resume|new|final|doc)?[\s_\-.\d()]*$/i.test(base) || /\b(final|draft|copy|v\d+|new)\b|\(\d+\)/i.test(base)
       push(
         'fileName',
-        'A file named after you',
+        tx('ats.r.fileName.label'),
         named && !generic ? 'pass' : 'warn',
         named && !generic
-          ? `“${file.fileName}” — easy to find in a recruiter’s downloads.`
-          : `“${file.fileName}” ${named ? 'reads like a working copy' : 'does not say whose it is'}. Name it after yourself — “First-Last-Resume.pdf” — some systems show it to the recruiter.`,
+          ? tx('ats.r.fileName.ok', { name: file.fileName })
+          : tx(named ? 'ats.r.fileName.working' : 'ats.r.fileName.anonymous', { name: file.fileName }),
         0.5,
         'file'
       )
@@ -1149,9 +1234,12 @@ export function analyzeResume(input: ResumeDocument, measured: AtsMeasurement = 
     if (unknown.length) {
       push(
         'headings',
-        'Headings a parser knows',
+        tx('ats.r.unknownHeadings.label'),
         'warn',
-        `“${unknown[0].name}”${unknown.length > 1 ? ` and ${unknown.length - 1} more` : ''} ${unknown.length > 1 ? 'are' : 'is'} not a heading parsers know, so what sits under it may be filed nowhere. Use a standard name — Experience, Projects, Certifications — where one fits.`,
+        tx('ats.r.unknownHeadings.some', {
+          name: unknown[0].name,
+          more: unknown.length > 1 ? tx('ats.r.unknownHeadings.more', { n: unknown.length - 1 }) : '',
+        }),
         0.75,
         'format',
         { section: `custom-${unknown[0].id}` }

@@ -3,13 +3,18 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn, monthNames } from '@/lib/utils'
 import { parseYM, pickMonthYear } from '@/lib/monthYear'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useLabel } from '@/i18n/labels'
 
 export function Labeled({ label, hint, children, className }: { label?: string; hint?: string; children: ReactNode; className?: string }) {
+  // One place translates every field's label and hint: a call site keeps
+  // saying label="Company", and the table in src/i18n/labels.ts decides what
+  // the Persian panel says (and leaves a name alone).
+  const L = useLabel()
   return (
     <div className={className}>
-      {label && <label className="label">{label}</label>}
+      {label && <label className="label">{L(label)}</label>}
       {children}
-      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{L(hint)}</p>}
     </div>
   )
 }
@@ -85,6 +90,9 @@ export function TextField({
   type?: string
 }) {
   const t = useDebouncedText(value, onChange)
+  // A placeholder is a panel word too ("Region or state"); an example
+  // address is not in the table and comes back untouched.
+  const L = useLabel()
   return (
     <Labeled label={label} hint={hint}>
       {/* dir="auto": a Persian or Arabic value reads right to left as it is
@@ -94,7 +102,7 @@ export function TextField({
         type={type}
         dir="auto"
         value={t.draft}
-        placeholder={placeholder}
+        placeholder={placeholder === undefined ? undefined : L(placeholder)}
         onChange={(e) => t.set(e.target.value)}
         onFocus={t.onFocus}
         onBlur={t.onBlur}
@@ -117,6 +125,7 @@ export function TextAreaField({
   rows?: number
 }) {
   const t = useDebouncedText(value, onChange)
+  const L = useLabel()
   return (
     <Labeled label={label}>
       <textarea
@@ -124,7 +133,7 @@ export function TextAreaField({
         dir="auto"
         rows={rows}
         value={t.draft}
-        placeholder={placeholder}
+        placeholder={placeholder === undefined ? undefined : L(placeholder)}
         onChange={(e) => t.set(e.target.value)}
         onFocus={t.onFocus}
         onBlur={t.onBlur}
@@ -268,6 +277,7 @@ export function TagInput({
   onChange: (v: string[]) => void
   placeholder?: string
 }) {
+  const L = useLabel()
   const [draft, setDraft] = useState('')
   const commit = (raw: string) => {
     const parts = raw
@@ -325,7 +335,7 @@ export function TagInput({
           className="min-w-[80px] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-muted-foreground/70"
           dir="auto"
           value={draft}
-          placeholder={value.length ? '' : (placeholder ?? 'Type and press Enter')}
+          placeholder={value.length ? '' : L(placeholder ?? 'Type and press Enter')}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ',') {

@@ -1371,7 +1371,7 @@
   content: none;
 }
 .rm-root.tpl-chronicle .rm-year {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Bebas Neue', 'Vazirmatn', sans-serif;
   font-weight: 400;
   font-size: calc(var(--rm-fs) * 3.1);
   letter-spacing: 0.01em;
@@ -1675,7 +1675,7 @@
 .rm-root.tpl-flare {
   position: relative;
   --rm-spine: 19px;
-  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-mono: 'IBM Plex Mono', 'Vazirmatn', ui-monospace, monospace;
   --rm-font-kicker: var(--rm-mono);
   --rm-font-foot: var(--rm-mono);
   --rm-foot-left: calc(var(--rm-pad) + var(--rm-spine));
@@ -1767,7 +1767,7 @@
    numbered stencil heads over a heavier rule, a > before every point, and a
    typewriter mono for everything a person reads. */
 .rm-root.tpl-dossier {
-  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-mono: 'IBM Plex Mono', 'Vazirmatn', ui-monospace, monospace;
   --rm-font-kicker: var(--rm-mono);
   --rm-font-foot: var(--rm-mono);
 }
@@ -1851,7 +1851,7 @@
    and places in a mono face. The frame is running ink (layout.pageFrame):
    the exporter draws it on every page. */
 .rm-root.tpl-keystone {
-  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-mono: 'IBM Plex Mono', 'Vazirmatn', ui-monospace, monospace;
   --rm-font-foot: var(--rm-mono);
   --rm-frame: #d8c391;
   --rm-foot-rule: #d8c391;
@@ -1949,7 +1949,7 @@
    Geometric, the role in a bright green mono line, then quiet eyebrow heads:
    a short green bar before a tracked mono word. No numerals by default. */
 .rm-root.tpl-meridian {
-  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-mono: 'IBM Plex Mono', 'Vazirmatn', ui-monospace, monospace;
   --rm-font-foot: var(--rm-mono);
 }
 .tpl-meridian .rm-header-banner {
@@ -2030,7 +2030,7 @@
    outline numerals before bold tracked heads, and hollow red nodes for
    bullets. The grid is running ink (layout.pageGrid). */
 .rm-root.tpl-schematic {
-  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-mono: 'IBM Plex Mono', 'Vazirmatn', ui-monospace, monospace;
   --rm-font-kicker: var(--rm-mono);
   --rm-font-foot: var(--rm-mono);
   --rm-foot-rule: var(--rm-text);
@@ -2134,7 +2134,7 @@
    cobalt, cobalt numerals before display heads with a hairline running out,
    and every date set in the display face. */
 .rm-root.tpl-volta {
-  --rm-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rm-mono: 'IBM Plex Mono', 'Vazirmatn', ui-monospace, monospace;
   --rm-font-kicker: var(--rm-mono);
   --rm-font-foot: var(--rm-mono);
   --rm-ice: #eef1ff;

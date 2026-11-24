@@ -32,6 +32,7 @@ import {
   type SectionPlace,
 } from '@/lib/sections'
 import { Segmented } from './fields/Controls'
+import { useLabel } from '@/i18n/labels'
 import { sectionIconFor } from '@/components/icons/sectionIcons'
 import { SectionBoard } from './SectionBoard'
 import { SectionItemsEditor } from './SectionItemEditors'
@@ -49,6 +50,7 @@ function countItems(doc: ResumeDocument, key: string): number {
 }
 
 export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
+  const L = useLabel()
   const updateMetadata = useResumeStore((s) => s.updateMetadata)
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -202,7 +204,7 @@ export function SectionsOrganizer({ doc }: { doc: ResumeDocument }) {
         renderCard={renderCard}
         beforeFooter={
           <button className="btn-outline btn-sm w-full border-dashed" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Add section
+            <Plus className="h-4 w-4" /> {L('Add section')}
           </button>
         }
       />
@@ -270,6 +272,7 @@ function SectionCard({
   onRemove: () => void
   onRename: (label: string) => void
 }) {
+  const L = useLabel()
   const updateMeta = useResumeStore((st) => st.updateMetadata)
   const [menu, setMenu] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
@@ -369,13 +372,13 @@ function SectionCard({
               was one more thing a reader on a phone simply could not do. */}
           <div>
             <label className="label" htmlFor={`sec-url-${sectionKey}`}>
-              Heading link
+              {L('Heading link')}
             </label>
             <input
               id={`sec-url-${sectionKey}`}
               className="input w-full"
               value={doc.metadata.layout.sectionSettings?.[sectionKey]?.url ?? ''}
-              placeholder="Leave empty for no link"
+              placeholder={L('Leave empty for no link')}
               onChange={(e) => {
                 const v = e.target.value
                 useResumeStore.getState().updateMetadata((m) => {
@@ -392,7 +395,7 @@ function SectionCard({
               badge size and shape, bullet style - was unreachable without a
               canvas, which a phone never shows in edit mode. */}
           <div className="rm-panel-gear flex items-center justify-between gap-2">
-            <span className="text-[12px] text-muted-foreground">Section style</span>
+            <span className="text-[12px] text-muted-foreground">{L('Section style')}</span>
             <SectionGear sectionKey={sectionKey} doc={doc} editMeta={updateMeta} variant="panel" />
           </div>
           <SectionItemsEditor doc={doc} sectionKey={sectionKey} />
@@ -406,26 +409,27 @@ function SectionCard({
  *  (lib/sections emptySectionsShown). Kept in this browser, not the resume:
  *  it changes what you see while editing, never what prints. */
 function EmptySectionsChoice() {
+  const L = useLabel()
   const pref = useEditorStore((s) => s.emptySections)
   const setPref = useEditorStore((s) => s.setEmptySections)
   return (
     <div className="space-y-1.5 border-t border-border pt-3">
-      <label className="label">Empty sections on the page</label>
+      <label className="label">{L('Empty sections on the page')}</label>
       <Segmented<EmptySectionsPref>
         value={pref}
         options={[
-          { value: 'auto', label: 'Auto' },
-          { value: 'show', label: 'Show' },
-          { value: 'hide', label: 'Hide' },
+          { value: 'auto', label: L('Auto') },
+          { value: 'show', label: L('Show') },
+          { value: 'hide', label: L('Hide') },
         ]}
         onChange={setPref}
       />
       <p className="text-[11px] leading-snug text-muted-foreground">
         {pref === 'auto'
-          ? 'Shown while your resume is mostly empty, then left out so the page reads like the PDF. Empty sections never print.'
+          ? L('Shown while your resume is mostly empty, then left out so the page reads like the PDF. Empty sections never print.')
           : pref === 'show'
-            ? 'Every section is on the page, empty or not. Empty ones never print.'
-            : 'Only sections with something in them are on the page, like the PDF. Find the rest here.'}
+            ? L('Every section is on the page, empty or not. Empty ones never print.')
+            : L('Only sections with something in them are on the page, like the PDF. Find the rest here.')}
       </p>
     </div>
   )

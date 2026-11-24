@@ -4,6 +4,7 @@ import type { ResumeDocument } from '@/types/document'
 import { cn } from '@/lib/utils'
 import { BasicsEditor } from '../BasicsEditor'
 import { SectionsOrganizer } from '../SectionsOrganizer'
+import { useLabel } from '@/i18n/labels'
 
 /**
  * Is the top of the resume already answered?
@@ -19,6 +20,7 @@ export function basicsDone(doc: ResumeDocument): boolean {
 }
 
 export function ContentPanel({ doc }: { doc: ResumeDocument }) {
+  const L = useLabel()
   // Open on a resume that still needs it, folded on one that does not. Only the
   // FIRST render decides: a person who opens it keeps it open while they work.
   const [openBasics, setOpenBasics] = useState(() => !basicsDone(doc))
@@ -35,7 +37,7 @@ export function ContentPanel({ doc }: { doc: ResumeDocument }) {
         >
           <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium">Personal details</span>
+            <span className="block text-sm font-medium">{L('Personal details')}</span>
             {!openBasics && summary && (
               <span className="mt-0.5 block truncate text-xs text-muted-foreground">{summary}</span>
             )}
@@ -51,7 +53,7 @@ export function ContentPanel({ doc }: { doc: ResumeDocument }) {
         )}
       </div>
 
-      <div className="px-0.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Sections</div>
+      <div className="px-0.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{L('Sections')}</div>
       <SectionsOrganizer doc={doc} />
     </div>
   )

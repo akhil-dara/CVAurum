@@ -15,6 +15,7 @@ import { SAMPLE_CONTENT } from '@/data/sample'
 import { useLazyMount } from '@/components/preview/lazyMount'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
 import { usePhoneLayout } from '@/lib/layoutMode'
+import { useLabel } from '@/i18n/labels'
 import { PAGE_DIMENSIONS } from '@/types/metadata'
 // The public gallery's own filtering, kept pure so both walls narrow the
 // same way and a design found in one is found in the other.
@@ -26,6 +27,8 @@ import {
   type TemplateFilter,
 } from '@/lib/templateFilter'
 import type { TemplateTag } from '@/types/template'
+import { T } from '@/i18n/T'
+import { useT } from '@/i18n'
 
 /** Derived once from the registry - a new tag on a new design gets a chip. */
 const TAG_CHOICES = tagChoices(TEMPLATES)
@@ -37,6 +40,7 @@ const tagLabel = (tag: TemplateTag) => {
 }
 
 export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const applyTemplate = useResumeStore((s) => s.applyTemplate)
   const toast = useAppStore((s) => s.toast)
   const current = doc.metadata.template
@@ -58,6 +62,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   // A phone cannot hover: the full-size look opens as a sheet from a
   // Preview button on the card instead.
   const phone = usePhoneLayout()
+  const L = useLabel()
   const [previewing, setPreviewing] = useState<(typeof TEMPLATES)[number] | null>(null)
   // Local, not in the URL: this is a panel inside a document being edited, and
   // the address bar belongs to the resume rather than to what the panel is
@@ -75,11 +80,14 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        {TEMPLATES.length} templates — every one ATS-friendly.{' '}
-        {isBlank
-          ? 'Pick one to start; you can switch any time. Previews show example content until you add yours.'
-          : 'Your content flows into every one — switch any time.'}{' '}
-        {phone ? 'Tap Preview on a card for a full-size look.' : 'Hover a card for a full-size look.'}
+        {TEMPLATES.length}{' '}
+        <T>{'templates — every one ATS-friendly.'}</T>{' '}
+        <T>
+          {isBlank
+            ? 'Pick one to start; you can switch any time. Previews show example content until you add yours.'
+            : 'Your content flows into every one — switch any time.'}
+        </T>{' '}
+        <T>{phone ? 'Tap Preview on a card for a full-size look.' : 'Hover a card for a full-size look.'}</T>
       </p>
       <label className="relative block">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -87,8 +95,8 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
           type="search"
           value={filter.query}
           onChange={(e) => setFilter((f) => ({ ...f, query: e.target.value }))}
-          placeholder="Search designs"
-          aria-label="Search designs"
+          placeholder={L('Search designs')}
+          aria-label={L('Search designs')}
           className="input h-8 w-full ps-8 pe-2 text-xs"
         />
       </label>
@@ -100,7 +108,7 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
       >
         <span className="inline-flex items-center gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
+          {L('Filters')}
           {filter.tags.length + (filter.atsOnly ? 1 : 0) > 0 && (
             <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
               {filter.tags.length + (filter.atsOnly ? 1 : 0)}
@@ -120,9 +128,9 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
               ? 'border-primary bg-primary/10 text-primary'
               : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
           )}
-          title="The plainest single-column layouts - the safest bet with an unusually literal parser"
+          title={t('gallery.strictestHint')}
         >
-          Strictest
+          {L('Strictest')}
         </button>
         {TAG_CHOICES.map((tag) => {
           const on = filter.tags.includes(tag)
@@ -139,30 +147,27 @@ export function TemplateGallery({ doc }: { doc: ResumeDocument }) {
                   : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
               )}
             >
-              {tagLabel(tag)}
+              {L(tagLabel(tag))}
             </button>
           )
         })}
       </div>
       {narrowed && (
         <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-          <span aria-live="polite">
-            {shown.length} match{shown.length === 1 ? '' : 'es'}
-          </span>
+          <span aria-live="polite">{t('gallery.matches', { n: shown.length })}</span>
           <button className="transition hover:text-foreground" onClick={() => setFilter(EMPTY_FILTER)}>
-            Clear
+            {t('gallery.clear')}
           </button>
         </div>
       )}
       {shown.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
-          <p className="text-xs font-medium text-foreground">Nothing matches all of those</p>
+          <p className="text-xs font-medium text-foreground"><T>{"Nothing matches all of those"}</T></p>
           <p className="mx-auto mt-1 max-w-[18rem] text-xs text-muted-foreground">
-            Every filter has to hold at once, and some tags never appear together - a design is single-column or
-            two-column, not both.
+            {t('gallery.allHold')}
           </p>
           <button className="btn-outline btn-xs mt-3" onClick={() => setFilter(EMPTY_FILTER)}>
-            Clear filters
+            {t('gallery.clearFilters')}
           </button>
         </div>
       ) : (
@@ -210,6 +215,7 @@ function PreviewSheet({
   onClose: () => void
   onUse: () => void
 }) {
+  const L = useLabel()
   const previewDoc = useMemo<ResumeDocument>(
     () => ({ ...doc, metadata: applyTemplateToMetadata(doc.metadata, tpl.defaults) }),
     [doc, tpl.defaults]
@@ -233,10 +239,10 @@ function PreviewSheet({
         </div>
         <div className="flex shrink-0 gap-2 border-t border-border p-3">
           <button className="btn-outline h-11 flex-1" onClick={onClose}>
-            Close
+            {L('Close')}
           </button>
           <button className="btn-primary h-11 flex-1" onClick={onUse}>
-            Use this design
+            {L('Use this design')}
           </button>
         </div>
       </div>

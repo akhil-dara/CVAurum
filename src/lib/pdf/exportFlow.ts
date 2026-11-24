@@ -4,20 +4,27 @@
  * "generating" state (PdfExportStatus reads the same flag), and an outcome
  * the author can see either way - what was downloaded, or why nothing was.
  *
+ * Every sentence the author reads here comes from the interface dictionary:
+ * this is the moment they finally hold the file, and a Persian reader was
+ * being told about it in English.
+ *
  * The heavy modules (pdf-lib, the renderer) are imported here on demand so
  * the editor's first paint never carries them.
  */
 import { useEditorStore } from '@/store/useEditorStore'
 import { useAppStore } from '@/store/useAppStore'
 import type { ResumeDocument } from '@/types/document'
+import { translate, type MsgKey } from '@/i18n/core'
 
 export async function runPdfExport(doc: ResumeDocument): Promise<void> {
   if (useEditorStore.getState().pdfExporting) return
   useEditorStore.getState().setPdfExporting(true)
   const toast = useAppStore.getState().toast
+  const locale = useAppStore.getState().settings.locale
+  const t = (key: MsgKey, vars?: Record<string, string | number>) => translate(locale, key, vars)
   try {
     const { exportResumePdf } = await import('./export')
-    const result = await exportResumePdf(doc)
+    const result = await exportResumePdf(doc, locale)
     // A character no embedded font can draw is DROPPED, not shown as a box,
     // so an export can succeed while losing whole sentences - a name written
     // in Telugu simply is not in the file. Say so rather than hand over a
@@ -26,11 +33,19 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
     const missing = lastUnsupportedCharacters()
     if (missing.length) {
       toast(
-        `Downloaded ${result.fileName}, but ${missing.length} character${missing.length > 1 ? 's' : ''} could not be drawn and were left out: ${missing.slice(0, 8).join(' ')}${missing.length > 8 ? '...' : ''}. No bundled font has these characters yet.`,
+        t(missing.length > 1 ? 'export.missingMany' : 'export.missingOne', {
+          file: result.fileName,
+          n: missing.length,
+          chars: `${missing.slice(0, 8).join(' ')}${missing.length > 8 ? '...' : ''}`,
+        }),
         'error'
       )
     } else {
-      const done = `Downloaded ${result.fileName} · ${result.pages} page${result.pages === 1 ? '' : 's'} · ${formatSize(result.bytes)}`
+      const done = t(result.pages === 1 ? 'export.doneOne' : 'export.doneMany', {
+        file: result.fileName,
+        n: result.pages,
+        size: formatSize(result.bytes),
+      })
       // The first finished export is when someone first cares about their
       // work, and it lives only in this browser: offer, once, to keep a copy.
       const { offerBackupAfterExport, readLastBackup } = await import('@/lib/saveSafety')
@@ -42,12 +57,12 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
         offered = true // no storage to remember the offer in: do not nag
       }
       if (offerBackupAfterExport({ lastBackup: readLastBackup(), offered })) {
-        toast(`${done}. Your resumes live only in this browser - keep a backup too.`, 'success', {
-          label: 'Back up',
+        toast(t('export.backupOffer', { done }), 'success', {
+          label: t('save.backUp'),
           run: async () => {
             const { exportFullBackup } = await import('@/lib/backup')
             const n = await exportFullBackup()
-            toast(`Backed up ${n} resume${n === 1 ? '' : 's'}`, 'success')
+            toast(t(n === 1 ? 'save.backupDone' : 'save.backupDonePlural', { n }), 'success')
           },
         })
       } else {
@@ -56,7 +71,7 @@ export async function runPdfExport(doc: ResumeDocument): Promise<void> {
     }
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e)
-    toast(`Couldn't generate the PDF, so nothing was downloaded. ${reason}`, 'error')
+    toast(t('export.failed', { reason }), 'error')
   } finally {
     useEditorStore.getState().setPdfExporting(false)
   }

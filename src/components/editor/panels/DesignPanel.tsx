@@ -4,6 +4,7 @@ import type { HeadingStyle } from '@/types/metadata'
 import { useResumeStore } from '@/store/useResumeStore'
 import { cn, DATE_LANGUAGE_OPTIONS } from '@/lib/utils'
 import { Slider, Toggle, Segmented, Select, ColorField, FieldGroup } from '../fields/Controls'
+import { useLabel } from '@/i18n/labels'
 import { TextField } from '../fields/Inputs'
 import { FontSelect } from '../fields/FontSelect'
 import { ArtBandRow, HEADER_STYLES, HeaderMini } from '@/templates/_shared/headerStyles'
@@ -22,6 +23,8 @@ import { justifiedBlocks } from '@/lib/pdf/looseLines'
 import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
 import { documentScript } from '@/lib/script'
 import { applyRtlSetup, turnRtlOff, type PageScript } from '@/lib/rtlSetup'
+import { T } from '@/i18n/T'
+import { useT } from '@/i18n'
 
 /** Date languages written in Arabic script: offered only where the page is. */
 const ARABIC_SCRIPT_DATE_LANGUAGES = new Set(['fa', 'ar'])
@@ -165,6 +168,7 @@ const PALETTES: { name: string; color: string }[] = [
 ]
 
 export function DesignPanel({ doc }: { doc: ResumeDocument }) {
+  const L = useLabel()
   const update = useResumeStore((s) => s.updateMetadata)
   const m = doc.metadata
   const twoCol = m.layout.columns === 2
@@ -328,9 +332,9 @@ note={notes[r.key]}
             }
           />
         ))}
-        <p className="-mt-1 text-[11px] text-muted-foreground">
-          Auto follows the template. A sidebar keeps its own text colour; a linked title keeps the title&apos;s.
-        </p>
+                  <p className="-mt-1 text-[11px] text-muted-foreground">
+            <T>{"Auto follows the template. A sidebar keeps its own text colour; a linked title keeps the title's."}</T>
+          </p>
       </FieldGroup>
 
       <FieldGroup title="Typography">
@@ -451,10 +455,10 @@ note={notes[r.key]}
               format={(v) => `${v.toFixed(2)}×`}
             />
           </div>
-          <p className="-mt-1 text-[11px] text-muted-foreground">Each as a multiple of the body size.</p>
+          <p className="-mt-1 text-[11px] text-muted-foreground"><T>{"Each as a multiple of the body size."}</T></p>
         </div>
         <div>
-          <label className="label">Align</label>
+          <label className="label"><T>{"Align"}</T></label>
           <Segmented
             value={m.typography.align ?? 'left'}
             options={[
@@ -468,13 +472,16 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            Justified squares off the right edge of summaries and bullets. Headings, dates and the sidebar keep their
-            own edge.
+            <T>
+              {
+                'Justified squares off the right edge of summaries and bullets. Headings, dates and the sidebar keep their own edge.'
+              }
+            </T>
           </p>
           {m.typography.align === 'justify' && <JustifyReport doc={doc} />}
         </div>
         <div>
-          <label className="label">Heading case</label>
+          <label className="label"><T>{"Heading case"}</T></label>
           <Segmented
             value={m.typography.headingCase ?? 'auto'}
             options={[
@@ -497,10 +504,10 @@ note={notes[r.key]}
               })
             }
           />
-          <p className="-mt-1 text-[11px] text-muted-foreground">Auto follows the template.</p>
+          <p className="-mt-1 text-[11px] text-muted-foreground"><T>{"Auto follows the template."}</T></p>
         </div>
         <div>
-          <label className="label">Name weight</label>
+          <label className="label"><T>{"Name weight"}</T></label>
           <Segmented
             value={m.typography.nameWeight ?? 'auto'}
             options={[
@@ -517,7 +524,7 @@ note={notes[r.key]}
           />
         </div>
         <div>
-          <label className="label">Heading weight</label>
+          <label className="label"><T>{"Heading weight"}</T></label>
           <Segmented
             value={m.typography.headingWeight ?? 'auto'}
             options={[
@@ -532,10 +539,12 @@ note={notes[r.key]}
               })
             }
           />
-          <p className="-mt-1 text-[11px] text-muted-foreground">Auto keeps the template's own weights.</p>
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            <T>{"Auto keeps the template's own weights."}</T>
+          </p>
         </div>
         <div>
-          <label className="label">Heading style</label>
+          <label className="label"><T>{"Heading style"}</T></label>
           <div className="grid grid-cols-3 gap-1.5">
             {HEADING_STYLE_OPTIONS.map((s) => {
               const on = (m.typography.headingStyle ?? '') === s.value
@@ -543,7 +552,7 @@ note={notes[r.key]}
                 <button
                   key={s.value || 'auto'}
                   type="button"
-                  title={s.title}
+                  title={L(s.title)}
                   aria-pressed={on}
                   onClick={() =>
                     update((md) => {
@@ -562,14 +571,17 @@ note={notes[r.key]}
                       : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
                   )}
                 >
-                  {s.label}
+                  {L(s.label)}
                 </button>
               )
             })}
           </div>
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            How every section title is drawn, in one move. A section that picked its own in its Style sheet keeps it;
-            Auto hands them all back to the template.
+            <T>
+              {
+                'How every section title is drawn, in one move. A section that picked its own in its Style sheet keeps it; Auto hands them all back to the template.'
+              }
+            </T>
           </p>
         </div>
         <Slider
@@ -584,7 +596,7 @@ note={notes[r.key]}
           format={(v) => `${v.toFixed(2)}×`}
         />
         <div>
-          <label className="label">Heading rule</label>
+          <label className="label"><T>{"Heading rule"}</T></label>
           <Segmented
             value={m.typography.headingRuleWidth ? String(m.typography.headingRuleWidth) : 'auto'}
             options={[
@@ -600,11 +612,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            The air under a section title, and the weight of its rule. Auto keeps the template's rule.
+            <T>{"The air under a section title, and the weight of its rule. Auto keeps the template's rule."}</T>
           </p>
         </div>
         <div>
-          <label className="label">Bullet style</label>
+          <label className="label"><T>{"Bullet style"}</T></label>
           <div className="grid grid-cols-4 gap-1.5">
             {BULLET_OPTIONS.map(([val, glyph]) => (
               <button
@@ -665,11 +677,11 @@ note={notes[r.key]}
             />
           </div>
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            How far bullets sit in, and the air between them.
+            <T>{'How far bullets sit in, and the air between them.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Skill &amp; language level</label>
+          <label className="label"><T>{"Skill & language level"}</T></label>
           <Segmented
             value={m.typography.proficiency}
             options={[
@@ -686,11 +698,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            How the 0–5 rating on skills &amp; languages is shown.
+            <T>{'How the 0–5 rating on skills & languages is shown.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Language level</label>
+          <label className="label"><T>{"Language level"}</T></label>
           <Segmented
             value={m.layout.levelPlacement ?? 'end'}
             wrap
@@ -708,14 +720,14 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-1 text-[11px] text-muted-foreground">
-            Where a language's level sits: in an aligned column, right after the language, as a small tag, all on one line, or each language as a card.
+            <T>{"Where a language's level sits: in an aligned column, right after the language, as a small tag, all on one line, or each language as a card."}</T>
           </p>
         </div>
       </FieldGroup>
 
       <FieldGroup title="Dates" defaultOpen={false}>
         <div>
-          <label className="label">Where dates sit</label>
+          <label className="label"><T>{"Where dates sit"}</T></label>
           <Segmented
             wrap
             value={m.layout.dateAlign ?? 'right'}
@@ -732,11 +744,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            For every section; a section's own Style sheet can still choose for itself. A date column in Layout takes precedence.
+            <T>{"For every section; a section's own Style sheet can still choose for itself. A date column in Layout takes precedence."}</T>
           </p>
         </div>
         <div>
-          <label className="label">Month</label>
+          <label className="label"><T>{"Month"}</T></label>
           <Segmented
             value={m.dates?.month ?? 'short'}
             options={[
@@ -752,11 +764,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            How every date reads — on the page, in the PDF, in the Word file and in the ATS text.
+            <T>{'How every date reads — on the page, in the PDF, in the Word file and in the ATS text.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Between dates</label>
+          <label className="label"><T>{"Between dates"}</T></label>
           <Segmented
             value={m.dates?.separator ?? 'emdash'}
             options={[
@@ -816,13 +828,13 @@ note={notes[r.key]}
           }
         />
         <p className="-mt-1 text-[11px] text-muted-foreground">
-          Month names and time-span words; the PDF declares this language too.
+          <T>{'Month names and time-span words; the PDF declares this language too.'}</T>
         </p>
       </FieldGroup>
 
       <FieldGroup title="Layout">
         <div>
-          <label className="label">Header layout</label>
+          <label className="label"><T>{"Header layout"}</T></label>
           <div className="flex flex-wrap gap-1.5">
             {HEADER_STYLES.map((h) => {
               const on = (m.layout.headerStyle ?? '') === h.value
@@ -830,7 +842,7 @@ note={notes[r.key]}
                 <button
                   key={h.value || 'auto'}
                   type="button"
-                  title={h.label}
+                  title={L(h.label)}
                   onClick={() =>
                     update((md) => {
                       md.layout.headerStyle = (h.value || undefined) as typeof md.layout.headerStyle
@@ -844,28 +856,28 @@ note={notes[r.key]}
                   <span
                     className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
                   >
-                    {h.label}
+                    {L(h.label)}
                   </span>
                 </button>
               )
             })}
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            How your name &amp; contacts compose — on top of any template.
+            <T>{'How your name & contacts compose — on top of any template.'}</T>
           </p>
         </div>
         {(m.layout.headerStyle ?? getTemplate(m.template).header) === 'kicker' ? (
           <KickerFields doc={doc} editMeta={update} />
         ) : null}
         <div>
-          <label className="label">Numbers band</label>
+          <label className="label"><T>{"Numbers band"}</T></label>
           <StatTilesEditor doc={doc} editMeta={update} />
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            Which figures the band shows, in what order, with your own labels.
+            <T>{'Which figures the band shows, in what order, with your own labels.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Art behind the header</label>
+          <label className="label"><T>{"Art behind the header"}</T></label>
           <ArtBandRow
             value={m.theme.artBand ?? 'none'}
             onPick={(band) =>
@@ -875,12 +887,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            A band of abstract art behind your name, washed in the page colour so the words still read. None is one tap
-            away.
+            <T>{'A band of abstract art behind your name, washed in the page colour so the words still read. None is one tap away.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Meta column</label>
+          <label className="label"><T>{"Meta column"}</T></label>
           <div className="flex flex-wrap gap-1.5">
             {META_COLUMNS.map((c) => {
               const on = (m.layout.metaColumn ?? 'none') === c.value
@@ -888,7 +899,7 @@ note={notes[r.key]}
                 <button
                   key={c.value}
                   type="button"
-                  title={c.label}
+                  title={L(c.label)}
                   onClick={() =>
                     update((md) => {
                       md.layout.metaColumn = c.value
@@ -902,18 +913,18 @@ note={notes[r.key]}
                   <span
                     className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
                   >
-                    {c.label}
+                    {L(c.label)}
                   </span>
                 </button>
               )
             })}
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            Give your dates a column: big years down the left, or the date itself out in the right margin.
+            <T>{'Give your dates a column: big years down the left, or the date itself out in the right margin.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Headings</label>
+          <label className="label"><T>{"Headings"}</T></label>
           <div className="flex flex-wrap gap-1.5">
             {HEADING_PLACEMENTS.map((h) => {
               const on = (m.layout.headingPlacement ?? 'above') === h.value
@@ -921,7 +932,7 @@ note={notes[r.key]}
                 <button
                   key={h.value}
                   type="button"
-                  title={h.label}
+                  title={L(h.label)}
                   onClick={() =>
                     update((md) => {
                       md.layout.headingPlacement = h.value
@@ -935,19 +946,19 @@ note={notes[r.key]}
                   <span
                     className={`text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
                   >
-                    {h.label}
+                    {L(h.label)}
                   </span>
                 </button>
               )
             })}
           </div>
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            Beside the content, a section title keeps to a column of its own on the left.
+            <T>{'Beside the content, a section title keeps to a column of its own on the left.'}</T>
           </p>
         </div>
         {(m.layout.headingPlacement ?? 'above') === 'side' ? (
           <div>
-            <label className="label">Side heading style</label>
+            <label className="label"><T>{"Side heading style"}</T></label>
             <Segmented
               value={m.layout.sideHeadingStyle ?? 'rail'}
               options={[
@@ -962,7 +973,7 @@ note={notes[r.key]}
               }
             />
             <p className="-mt-0 text-[11px] text-muted-foreground">
-              Rail runs a thin line between titles and content; Hanging hangs each title under a hairline; Tick marks it with a short accent stroke.
+              <T>{'Rail runs a thin line between titles and content; Hanging hangs each title under a hairline; Tick marks it with a short accent stroke.'}</T>
             </p>
           </div>
         ) : null}
@@ -995,7 +1006,7 @@ note={notes[r.key]}
             }
           />
           <p className="mt-1 text-[11px] text-muted-foreground">
-            A running numeral before each section title — decoration only, never in the text a parser reads.
+            <T>{'A running numeral before each section title — decoration only, never in the text a parser reads.'}</T>
           </p>
           {/* ...and in what figures. Not everyone who wants their sections
               counted wants the two-digit folio: the same switch now covers a
@@ -1004,7 +1015,7 @@ note={notes[r.key]}
               switch that is off would style nothing. */}
           {m.layout.sectionNumbers && (
             <div className="mt-2">
-              <label className="label">Numeral style</label>
+              <label className="label"><T>{"Numeral style"}</T></label>
               {/* The styles and their figures come from the formatter that
                   draws them (sectionNumeral.ts), because the section Style
                   sheet offers the same four and two hand-written copies of
@@ -1051,11 +1062,11 @@ note={notes[r.key]}
             }
           />
           <p className="text-[11px] text-muted-foreground">
-            Drawn on every page of the PDF as decoration - never in the text a parser reads.
+            <T>{'Drawn on every page of the PDF as decoration - never in the text a parser reads.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Columns</label>
+          <label className="label"><T>{"Columns"}</T></label>
           <Segmented
             value={String(m.layout.columns) as '1' | '2'}
             options={[
@@ -1082,7 +1093,7 @@ note={notes[r.key]}
         {twoCol && (
           <>
             <div>
-              <label className="label">Sidebar position</label>
+              <label className="label"><T>{"Sidebar position"}</T></label>
               <Segmented
                 value={m.layout.sidebar}
                 options={[
@@ -1143,7 +1154,7 @@ note={notes[r.key]}
           }
         />
         <div>
-          <label className="label">Contact line</label>
+          <label className="label"><T>{"Contact line"}</T></label>
           <Segmented
             value={m.layout.contactStyle ?? 'inline'}
             options={[
@@ -1159,11 +1170,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            Strip sets each detail under a small label (EMAIL, PHONE, LINKEDIN) in a ruled row; Pills gives each its own capsule.
+            <T>{'Strip sets each detail under a small label (EMAIL, PHONE, LINKEDIN) in a ruled row; Pills gives each its own capsule.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Contact position</label>
+          <label className="label"><T>{"Contact position"}</T></label>
           <Segmented
             value={m.layout.contactPlacement === 'sidebar' && !twoCol ? 'below' : (m.layout.contactPlacement ?? 'below')}
             options={[
@@ -1180,13 +1191,13 @@ note={notes[r.key]}
           />
           <p className="-mt-0 text-[11px] text-muted-foreground">
             {m.layout.contactPlacement === 'sidebar' && twoCol
-              ? 'At the top of the sidebar. The file reads the main column first, so parsers meet your contacts after it; Below name keeps them first.'
-              : 'Where your details sit around your name. The reading order stays name, headline, contacts.'}
+              ? L('At the top of the sidebar. The file reads the main column first, so parsers meet your contacts after it; Below name keeps them first.')
+              : L('Where your details sit around your name. The reading order stays name, headline, contacts.')}
           </p>
         </div>
         {m.layout.contactStyle === 'strip' && m.links?.display === 'full' ? (
           <div>
-            <label className="label">Whole links in the strip</label>
+            <label className="label"><T>{"Whole links in the strip"}</T></label>
             <Segmented
               value={m.layout.contactLinks ?? 'ledger'}
               options={[
@@ -1202,13 +1213,13 @@ note={notes[r.key]}
             />
             <p className="-mt-0 text-[11px] text-muted-foreground">
               {m.layout.contactLinks === 'wrap'
-                ? 'Wrap breaks a long address at its slashes, and a parser reads a broken address as two pieces; Ledger and Two columns keep every address whole.'
-                : 'Ledger lists each link on its own row under the strip; Two columns gives each address room for one line.'}
+                ? L('Wrap breaks a long address at its slashes, and a parser reads a broken address as two pieces; Ledger and Two columns keep every address whole.')
+                : L('Ledger lists each link on its own row under the strip; Two columns gives each address room for one line.')}
             </p>
           </div>
         ) : null}
         <div>
-          <label className="label">Between contacts</label>
+          <label className="label"><T>{"Between contacts"}</T></label>
           <Segmented
             value={m.layout.contactSeparator ?? 'none'}
             options={[
@@ -1226,11 +1237,11 @@ note={notes[r.key]}
             }
           />
           <p className="-mt-0 text-[11px] text-muted-foreground">
-            What sits between inline contacts — on the page, in the PDF and in the Word file.
+            <T>{'What sits between inline contacts — on the page, in the PDF and in the Word file.'}</T>
           </p>
         </div>
         <div>
-          <label className="label">Section icons</label>
+          <label className="label"><T>{"Section icons"}</T></label>
           <Segmented
             wrap
             value={m.layout.sectionIconStyle ?? 'folio'}
@@ -1251,7 +1262,7 @@ note={notes[r.key]}
           />
         </div>
         <div>
-          <label className="label">Icon size</label>
+          <label className="label"><T>{"Icon size"}</T></label>
           <Segmented
             value={m.layout.sectionIconSize ?? 'm'}
             options={[
@@ -1278,7 +1289,7 @@ note={notes[r.key]}
         {(m.layout.showPhoto || m.layout.monogram) && (
           <>
             <div>
-              <label className="label">Photo shape</label>
+              <label className="label"><T>{"Photo shape"}</T></label>
               <Segmented
                 value={m.layout.photoShape}
                 options={[
@@ -1294,11 +1305,11 @@ note={notes[r.key]}
                 }
               />
               <p className="-mt-0 text-[11px] text-muted-foreground">
-                Shape of the photo or monogram badge. Diamond turns the badge; a photo keeps square corners.
+                <T>{'Shape of the photo or monogram badge. Diamond turns the badge; a photo keeps square corners.'}</T>
               </p>
             </div>
             <div>
-              <label className="label">Photo size</label>
+              <label className="label"><T>{"Photo size"}</T></label>
               <Segmented
                 value={m.layout.photoSize}
                 options={[
@@ -1314,7 +1325,7 @@ note={notes[r.key]}
               />
             </div>
             <div>
-              <label className="label">Photo position</label>
+              <label className="label"><T>{"Photo position"}</T></label>
               <Segmented
                 value={m.layout.photoAlign}
                 options={[
@@ -1340,7 +1351,7 @@ note={notes[r.key]}
 
       <FieldGroup title="Page">
         <div>
-          <label className="label">Page size</label>
+          <label className="label"><T>{"Page size"}</T></label>
           <Segmented
             value={m.page.format}
             options={[
@@ -1376,14 +1387,13 @@ note={notes[r.key]}
           }
         />
         <p className="-mt-1 text-[11px] text-muted-foreground">
-          Moves a whole entry to the next page instead of breaking one across it; any section can decide for itself in
-          its Style sheet.
+          <T>{'Moves a whole entry to the next page instead of breaking one across it; any section can decide for itself in its Style sheet.'}</T>
         </p>
       </FieldGroup>
 
       <FieldGroup title="Links" defaultOpen={false}>
         <div>
-          <label className="label">Link style</label>
+          <label className="label"><T>{"Link style"}</T></label>
           <Segmented
             value={m.links?.style ?? 'tag'}
             options={[
@@ -1398,11 +1408,10 @@ note={notes[r.key]}
           />
         </div>
         <p className="-mt-1 text-[11px] text-muted-foreground">
-          Tag sets named links (a project&apos;s Portfolio, a credential&apos;s Verify) in a small paper tag; Plain
-          prints the bare word. Contact links are never tagged.
+          <T>{"Tag sets named links (a project's Portfolio, a credential's Verify) in a small paper tag; Plain prints the bare word. Contact links are never tagged."}</T>
         </p>
         <div>
-          <label className="label">Show URLs as</label>
+          <label className="label"><T>{"Show URLs as"}</T></label>
           <Segmented
             value={m.links?.display ?? 'pretty'}
             options={[
@@ -1418,8 +1427,7 @@ note={notes[r.key]}
           />
         </div>
         <p className="-mt-1 text-[11px] text-muted-foreground">
-          Tidy drops https://, Full shows the address exactly as entered, Short keeps just the handle. How a link
-          reads is separate from whether it is clickable - the toggle below decides that.
+          <T>{'Tidy drops https://, Full shows the address exactly as entered, Short keeps just the handle. How a link reads is separate from whether it is clickable - the toggle below decides that.'}</T>
         </p>
         <Toggle
           label="Clickable links (PDF and Word)"
@@ -1455,12 +1463,13 @@ note={notes[r.key]}
  * the faces and dates the author now has stay theirs.
  */
 function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript }) {
+  const t = useT()
   const update = useResumeStore((s) => s.updateMetadata)
   if (!script.arabic && !doc.metadata.layout.rtl) return null
   return (
     <div>
       <Toggle
-        label="Right-to-left (RTL)"
+        label={t('design.rtl')}
         checked={doc.metadata.layout.rtl}
         onChange={(v) =>
           update((md) => {
@@ -1470,13 +1479,14 @@ function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript })
         }
       />
       <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-        Mirrors the page for Persian and Arabic. Dates, columns and bullets follow.
+        {t('design.rtlNote')}
       </p>
     </div>
   )
 }
 
 function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const result = useEditorStore((s) => s.fitResult)
   const updateDoc = useResumeStore((s) => s.updateDoc)
   if (!doc.metadata.page.autoFit || !result) return null
@@ -1486,7 +1496,10 @@ function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
   const p = (x: number) => `${Math.round(x * 10) / 10}pt`
   return (
     <p className="-mt-1 text-[11px] leading-snug text-muted-foreground" data-testid="printed-size-note">
-      Printing at {p(body)}: Magic fit {body < set ? 'shrank' : 'enlarged'} it to reach {result.pages} page{result.pages === 1 ? '' : 's'}.{' '}
+      {t(body < set ? 'design.printingShrank' : 'design.printingEnlarged', {
+        body: p(body),
+        pages: result.pages,
+      })}{' '}
       <button
         type="button"
         className="font-medium text-primary underline-offset-2 hover:underline"
@@ -1496,7 +1509,7 @@ function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
           })
         }
       >
-        Print at {p(set)}
+        {t('design.printAt', { pt: p(set) })}
       </button>
     </p>
   )
@@ -1507,6 +1520,7 @@ function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
  *  design's own values. The sliders below stay; a page tuned by hand reads
  *  as custom. */
 function DensityChoice() {
+  const L = useLabel()
   const m = useResumeStore((s) => s.doc?.metadata)
   const update = useResumeStore((s) => s.updateMetadata)
   if (!m) return null
@@ -1514,7 +1528,7 @@ function DensityChoice() {
   const level = densityOf(m, defaults)
   return (
     <div className="space-y-1.5">
-      <label className="label">Density</label>
+      <label className="label"><T>{"Density"}</T></label>
       <Segmented<Density>
         value={level === 'custom' ? ('' as Density) : level}
         options={[
@@ -1525,9 +1539,7 @@ function DensityChoice() {
         onChange={(v) => update((md) => applyDensity(md, v, defaults))}
       />
       <p className="text-[11px] leading-snug text-muted-foreground">
-        {level === 'custom'
-          ? 'Custom: tuned by hand below. Pick one to set text size, line height, spacing and margins together.'
-          : 'Sets text size, line height, spacing and margins together, from this design’s own. Fine-tune any of them below.'}
+        {level === 'custom' ? L('Custom: tuned by hand below. Pick one to set text size, line height, spacing and margins together.') : L('Sets text size, line height, spacing and margins together, from this design’s own. Fine-tune any of them below.')}
       </p>
     </div>
   )
@@ -1541,6 +1553,7 @@ function DensityChoice() {
  * the canvas settles from an edit; nothing here changes the document.
  */
 function JustifyReport({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const [state, setState] = useState<{ ragged: number; total: number; chars: number } | null>(null)
   useEffect(() => {
     const t = setTimeout(() => {
@@ -1573,15 +1586,14 @@ function JustifyReport({ doc }: { doc: ResumeDocument }) {
       {state.ragged > 0 && (
         <p>
           <span className="font-medium text-foreground">
-            {state.ragged} of {state.total} paragraphs set flush-left:
+            {t('design.justifyCount', { n: state.ragged, total: state.total })}
           </span>{' '}
-          justified, their spaces opened past twice a normal space. The page and the PDF match.
+          <T>{'justified, their spaces opened past twice a normal space. The page and the PDF match.'}</T>
         </p>
       )}
       {long && (
         <p className={state.ragged ? 'mt-1' : undefined}>
-          Lines run about {state.chars} characters; justified text spaces evenly at 65–75. A larger text size or wider
-          margins shorten them.
+          {t('design.justifyLong', { chars: state.chars })}
         </p>
       )}
     </div>

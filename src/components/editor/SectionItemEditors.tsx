@@ -102,6 +102,8 @@ function getItems(content: ResumeContent, sectionKey: string): AnyItem[] {
   return (content as any)[sectionKey] ?? []
 }
 
+import { useLabel } from '@/i18n/labels'
+
 export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; sectionKey: string }) {
   const update = useResumeStore((s) => s.updateContent)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -451,6 +453,7 @@ function ItemFields({
   item: AnyItem
   patch: (fn: (it: AnyItem) => void) => void
 }) {
+  const L = useLabel()
   const set = (key: string) => (v: any) =>
     patch((it) => {
       it[key] = v
@@ -634,8 +637,8 @@ function ItemFields({
                   <input
                     className="input w-32 shrink-0"
                     value={lnk.label ?? ''}
-                    placeholder="Shown as"
-                    aria-label="Link name"
+                    placeholder={L('Shown as')}
+                    aria-label={L('Link name')}
                     onChange={(e) =>
                       set('links')(((item.links ?? []) as NamedLink[]).map((x: NamedLink, xi: number) => (xi === li ? { ...x, label: e.target.value } : x)))
                     }

@@ -323,7 +323,9 @@
    so the site is typeset like the resumes it makes. Headings only; text
    stays in the interface face. */
 .font-display {
-  font-family: 'Cormorant Garamond', 'Cormorant Fallback', Georgia, serif;
+  /* Vazirmatn before the generic serif: this face has no Persian letters, and a
+     Persian heading in an English interface must not be drawn in Georgia. */
+  font-family: 'Cormorant Garamond', 'Cormorant Fallback', 'Vazirmatn', Georgia, serif;
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
@@ -341,5 +343,30 @@
 }
 @media (max-width: 639px) {
   .shelf-track { --shelf-inset: 1rem; }
+}
+
+/* ============================================================ interface language */
+/* Persian wears Vazirmatn, everywhere the interface speaks: it is drawn for
+   this script (Inter has no Persian letters at all, so the browser would
+   substitute a system face at weights nobody chose), and it is already shipped
+   for the resume typefaces, so this costs no new download. The display face
+   goes too — Cormorant Garamond has no Persian glyphs either. */
+html[data-locale='fa'] body,
+html[data-locale='fa'] .font-display {
+  font-family: 'Vazirmatn', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+/* Persian is set a touch larger on the same scale: at 1em Vazirmatn's x-height
+   and open counters read smaller than Inter's, and the editor's 11-13px labels
+   became hard to read at the same CSS size (measured against the English
+   interface at 13px). */
+html[data-locale='fa'] body {
+  font-size: 1.02em;
+}
+/* An icon that means a direction — a back arrow, a chevron that opens a row —
+   has to point the other way in a right-to-left interface. The glyphs this app
+   uses for those are marked with .flip-rtl; geometry (a chart, a ruler) never
+   is. */
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
 }
 

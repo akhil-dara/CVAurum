@@ -16,6 +16,9 @@ const TRACKER_KEY = 'jobTracker'
 
 export interface AppSettings {
   theme: 'light' | 'dark' | 'system'
+  /** The interface's language. Persian also makes it right-to-left; a resume's
+   *  own direction is separate (metadata.layout.rtl). */
+  locale: 'en' | 'fa'
   /** id of the most recently opened resume */
   lastOpened?: string
   /** whether the first-run welcome has been dismissed */
@@ -24,6 +27,7 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
+  locale: 'en',
   onboarded: false,
 }
 

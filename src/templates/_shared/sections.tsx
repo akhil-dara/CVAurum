@@ -33,6 +33,7 @@ import { LinkButton } from './LinkButton'
 import { CanvasDate, type RailValue } from './CanvasDate'
 import { usePopoverA11y } from './popoverA11y'
 import { dateAlignOf, entryMetaOf, entryOrderOf, linkStyleOf, LOCATION_DATE_SEPARATOR } from './sectionClasses'
+import { useLabel } from '@/i18n/labels'
 import { keywordChunks } from '@/lib/keywordChunks'
 
 /**
@@ -404,6 +405,7 @@ function Bullets({
   onInsertLines?: (bi: number, lines: string[], replaceCurrent: boolean) => void
   onPruneEmpty?: () => void
 }) {
+  const L = useLabel()
   const ulRef = useRef<HTMLUListElement>(null)
   const pendingFocus = useRef<number | null>(null)
   const deleting = useRef(false)
@@ -574,9 +576,9 @@ function Bullets({
               pendingFocus.current = items.length
               onAdd()
             }}
-            title="Add a bullet"
+            title={L('Add a bullet')}
           >
-            + bullet
+            {L('+ bullet')}
           </button>
         </li>
       )}
@@ -684,6 +686,7 @@ function CanvasLogo({
   /** Whose logo it is - the entry's title - for the button's name */
   who?: string
 }) {
+  const L = useLabel()
   const inputRef = useRef<HTMLInputElement>(null)
   const [menu, setMenu] = useState<{ top: number; left: number; anchor: { top: number; bottom: number; left: number } } | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -757,7 +760,7 @@ function CanvasLogo({
           </span>
         ) : (
           <span className="rm-logo-add" aria-hidden>
-            + Logo
+            {L('+ Logo')}
           </span>
         )}
       </button>
@@ -1249,6 +1252,7 @@ function EditableChips({
    *  `toIndex` in this one. The source list removes it itself. */
   onAdopt?: (fromId: string, fromIndex: number, text: string, toIndex: number) => void
 }) {
+  const L = useLabel()
   const wrapRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<number | null>(null)
   const deleting = useRef(false)
@@ -1460,7 +1464,7 @@ function EditableChips({
               onAdd()
             }}
           >
-            {addLabel}
+            {L(addLabel)}
           </button>
         )}
       </span>
@@ -1529,7 +1533,7 @@ function EditableChips({
           }}
           title="Add a skill"
         >
-          {addLabel}
+          {L(addLabel)}
         </button>
       )}
     </div>
@@ -3722,6 +3726,7 @@ function Custom({
  *  empty heading, which told a first-timer what would NOT happen three times
  *  over and never what to do. That fact moved to its tooltip. */
 function AddEntry({ sectionKey, edit, first }: { sectionKey: string; edit: EditFn; first?: boolean }) {
+  const L = useLabel()
   const label = ADD_LABEL[sectionKey] ?? 'entry'
   return (
     <div className={`rm-add-entry-row no-print${first ? ' is-first' : ''}`} contentEditable={false}>
@@ -3730,9 +3735,9 @@ function AddEntry({ sectionKey, edit, first }: { sectionKey: string; edit: EditF
         className="rm-add-btn"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => edit((c) => pushNewItem(c, sectionKey))}
-        title={first ? `Add ${label}. An empty section is left out of the PDF.` : `Add ${label}`}
+        title={first ? `Add ${L(label)}. An empty section is left out of the PDF.` : `Add ${L(label)}`}
       >
-        + Add {label}
+        {L('+ Add')} {L(label)}
       </button>
     </div>
   )

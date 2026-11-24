@@ -1,6 +1,8 @@
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useEditorStore } from '@/store/useEditorStore'
 import { CHIP } from './FitChip'
+import { useT } from '@/i18n'
+import { fill } from '@/i18n/fill'
 
 /** Opens the Design panel at the text-contrast card, from anywhere. */
 export function openContrast() {
@@ -18,6 +20,7 @@ export function openContrast() {
  * had a problem.
  */
 export function ContrastChip() {
+  const t = useT()
   const contrast = useEditorStore((s) => s.contrast)
   if (!contrast) return null
   const n = contrast.report.findings.length
@@ -27,7 +30,7 @@ export function ContrastChip() {
       type="button"
       data-testid="contrast-chip"
       onClick={openContrast}
-      title={ok ? 'Every line has enough contrast to read (meets WCAG AA)' : 'Some text is too faint against its background. Open the fixes.'}
+      title={ok ? t('chip.contrastOk') : t('chip.contrastBad')}
       className={CHIP}
     >
       {ok ? (
@@ -36,7 +39,7 @@ export function ContrastChip() {
         <AlertTriangle className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400" aria-hidden />
       )}
       <span className="whitespace-nowrap">
-        {ok ? 'Easy to read' : `${n} line${n === 1 ? '' : 's'} hard to read`}
+        {ok ? t('opt.easyToRead') : fill(t(n === 1 ? 'chip.hardLine' : 'chip.hardLines'), { n })}
       </span>
     </button>
   )

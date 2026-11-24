@@ -121,7 +121,7 @@ describe('a section Style control', () => {
     // SectionsOrganizer renders the same control with variant="panel"; the
     // name travels with the component, so the panel cannot drift from the
     // canvas.
-    expect(GEAR_SRC).toContain('aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}')
+    expect(GEAR_SRC).toContain("aria-label={t('gear.aria', { section: sectionLabel(sectionKey, doc) })}")
   })
 })
 

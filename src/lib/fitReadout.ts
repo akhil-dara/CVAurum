@@ -11,6 +11,7 @@
 import type { FitRules, FitVector } from './fitOnePage'
 import type { Metadata } from '@/types/metadata'
 import { fitLineHeight, typeFloor } from './fitOnePage'
+import { translate, type Locale } from '@/i18n/core'
 
 /** The result the preview records after every fit and pagination. */
 export interface FitResult {
@@ -108,44 +109,85 @@ export function fitSizesPt(metadata: Metadata, fit: FitVector): FitSizesPt {
 const pt = (n: number) => `${(Math.round(n * 10) / 10).toString()}pt`
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
+/** "1 page" / "3 pages", in the language the panel is reading. */
+const pagesWord = (locale: Locale, n: number) =>
+  n === 1 ? translate(locale, 'fit.pageOne') : translate(locale, 'fit.pagesMany', { n })
+
 /** The line everyone reads, in a job seeker's words: does it fit, and was
  *  the text made smaller. `formatFitReadout` keeps the exact sizes, one tap
  *  away under Details. */
-export function formatFitSummary(metadata: Metadata, result: FitResult | null): string {
+export function formatFitSummary(
+  metadata: Metadata,
+  result: FitResult | null,
+  locale: Locale = 'en'
+): string {
   const on = metadata.page.autoFit
-  if (!result) return on ? 'Measuring…' : 'Off'
-  const pages = `${result.pages} page${result.pages === 1 ? '' : 's'}`
+  if (!result) return translate(locale, on ? 'fit.summaryMeasuring' : 'fit.summaryOff')
+  const pages = pagesWord(locale, result.pages)
   const setPt = metadata.typography.fontSize
-  if (!on) return `Off · ${pages} at your ${pt(setPt)}`
+  if (!on) return translate(locale, 'fit.summaryOffAt', { pages, pt: pt(setPt) })
   const body = fitSizesPt(metadata, result.fit).body
-  const t = metadata.page.fit.target
-  if (result.pages > t) return `Can't fit ${t} page${t === 1 ? '' : 's'} within your rules · ${pages} at ${pt(body)}`
-  if (body < setPt - 0.05) return `Fits ${pages} · text ${pt(body)}, a little smaller than your ${pt(setPt)}`
-  return `Fits ${pages} · text at your ${pt(setPt)}`
+  const target = metadata.page.fit.target
+  if (result.pages > target)
+    return translate(locale, 'fit.summaryCant', {
+      target: pagesWord(locale, target),
+      pages,
+      body: pt(body),
+    })
+  if (body < setPt - 0.05)
+    return translate(locale, 'fit.summarySmaller', { pages, body: pt(body), set: pt(setPt) })
+  return translate(locale, 'fit.summaryAt', { pages, set: pt(setPt) })
 }
 
 /** One sentence: what the fit did, and how the pages came out. */
-export function formatFitReadout(metadata: Metadata, result: FitResult | null): string {
+export function formatFitReadout(
+  metadata: Metadata,
+  result: FitResult | null,
+  locale: Locale = 'en'
+): string {
   const on = metadata.page.autoFit
-  if (!result) return on ? 'Measuring…' : 'Off'
-  const pages = `${result.pages} page${result.pages === 1 ? '' : 's'}`
+  if (!result) return translate(locale, on ? 'fit.summaryMeasuring' : 'fit.summaryOff')
+  const pages = pagesWord(locale, result.pages)
   const fill =
-    result.pages === 1 ? `${pct(result.lastPageFill)} full` : `page ${result.pages} is ${pct(result.lastPageFill)} full`
-  if (!on) return `Off · ${pages}, ${fill}`
+    result.pages === 1
+      ? translate(locale, 'fit.fillOne', { pct: pct(result.lastPageFill) })
+      : translate(locale, 'fit.fillPage', { n: result.pages, pct: pct(result.lastPageFill) })
+  if (!on) return translate(locale, 'fit.offReadout', { pages, fill })
   const s = fitSizesPt(metadata, result.fit)
   const moved = Math.abs(result.fit.type - 1) > 0.0005 || Math.abs(result.fit.space - 1) > 0.0005
-  const head = moved ? 'Fitted' : 'As set'
-  const t = metadata.page.fit.target
-  const short = result.pages > t ? ` · ${t} page${t === 1 ? ' is' : 's are'} out of reach within your rules` : ''
+  const head = translate(locale, moved ? 'fit.headFitted' : 'fit.headAsSet')
+  const target = metadata.page.fit.target
+  const short =
+    result.pages > target
+      ? translate(locale, target === 1 ? 'fit.outOfReachOne' : 'fit.outOfReachMany', {
+          target: pagesWord(locale, target),
+        })
+      : ''
   const setLead = metadata.typography.lineHeight
-  const lead = Math.abs(s.leading - setLead) > 0.005 ? `, leading ${num(s.leading)} from ${num(setLead)}` : ''
+  const lead =
+    Math.abs(s.leading - setLead) > 0.005
+      ? translate(locale, 'fit.leadFrom', { lead: num(s.leading), set: num(setLead) })
+      : ''
   // The fit will go down to two thirds of the body as set when the author has
   // not named a floor, which on a 10pt body is 6.6pt - a size the app's own
   // analysis calls a fail. It is a legal answer to "one page", but the person
   // reading the readout is the one who has to decide whether to spend a second
   // page instead, and they cannot decide what they are not told.
-  const cramped = s.body < LEGIBLE_BODY_PT ? ` · ${pt(s.body)} is below what prints legibly — a page more would keep it readable` : ''
-  return `${head}: body ${pt(s.body)}${lead}, headings ${pt(s.heading)}, name ${pt(s.name)}, gaps ${pt(s.sectionGap)} / ${pt(s.entryGap)} · ${pages}, ${fill}${short}${cramped}`
+  const cramped =
+    s.body < LEGIBLE_BODY_PT ? translate(locale, 'fit.cramped', { body: pt(s.body) }) : ''
+  return translate(locale, 'fit.readoutLine', {
+    head,
+    body: pt(s.body),
+    lead,
+    heading: pt(s.heading),
+    name: pt(s.name),
+    gap: pt(s.sectionGap),
+    entryGap: pt(s.entryGap),
+    pages,
+    fill,
+    short,
+    cramped,
+  })
 }
 
 /**
@@ -154,8 +196,8 @@ export function formatFitReadout(metadata: Metadata, result: FitResult | null): 
  * (2026-10-24): the words now scale with the shrink, and a size below what
  * prints legibly is called small and flagged.
  */
-export function shrinkWords(body: number, set: number): { words: string; warn: boolean } {
-  if (body < LEGIBLE_BODY_PT) return { words: 'small text', warn: true }
-  if (body < set * 0.9) return { words: 'text smaller', warn: false }
-  return { words: 'text slightly smaller', warn: false }
+export function shrinkWords(body: number, set: number, locale: Locale = 'en'): { words: string; warn: boolean } {
+  if (body < LEGIBLE_BODY_PT) return { words: translate(locale, 'fit.smallText'), warn: true }
+  if (body < set * 0.9) return { words: translate(locale, 'fit.smaller'), warn: false }
+  return { words: translate(locale, 'fit.slightlySmaller'), warn: false }
 }

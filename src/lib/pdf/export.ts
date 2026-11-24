@@ -14,6 +14,7 @@ import { saveDoc } from '@/lib/storage'
 import { pdfBaseName } from '@/lib/pdf'
 import { downloadBlob } from '@/lib/utils'
 import type { ResumeDocument } from '@/types/document'
+import { translate, type Locale } from '@/i18n/core'
 import { renderResumePdf, lastRenderedPageCount, PdfMultiPageUnsupportedError } from './render'
 
 /** What the export produced, for the user-facing outcome message. */
@@ -33,7 +34,7 @@ export class PdfExportError extends Error {
   }
 }
 
-export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportResult> {
+export async function exportResumePdf(doc: ResumeDocument, locale: Locale = 'en'): Promise<PdfExportResult> {
   // An export is the moment the author most expects their work to be safe,
   // so the document is persisted before anything else happens.
   await saveDoc(doc)
@@ -45,7 +46,7 @@ export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportRes
     // Logged unconditionally (not just in dev) so a user's bug report
     // carries the signal.
     console.error('Native PDF export failed', e)
-    throw new PdfExportError(explain(e))
+    throw new PdfExportError(explain(e, locale))
   }
 
   const fileName = `${pdfBaseName(doc)}.pdf`
@@ -54,9 +55,9 @@ export async function exportResumePdf(doc: ResumeDocument): Promise<PdfExportRes
 }
 
 /** A sentence the author can act on, never a stack trace. */
-function explain(e: unknown): string {
+function explain(e: unknown, locale: Locale): string {
   if (e instanceof PdfMultiPageUnsupportedError) {
-    return 'This resume has no place where a page can end. Try shorter entries or a different template.'
+    return translate(locale, 'export.errMultiPage')
   }
   const msg = e instanceof Error && e.message ? e.message : ''
   // Offline, the export fails inside fetch() when a font it needs was never
@@ -69,5 +70,5 @@ function explain(e: unknown): string {
     return 'This export needs a font that is not saved on this device yet, and there is no connection to fetch it. Connect once and export again — after that this resume exports with no connection.'
   }
   const detail = msg ? ` (${msg.slice(0, 120)})` : ''
-  return `The PDF renderer hit an error${detail}. Try again, or switch templates and try once more.`
+  return translate(locale, `export.errGeneric`, { detail })
 }

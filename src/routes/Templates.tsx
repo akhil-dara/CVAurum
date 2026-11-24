@@ -28,6 +28,8 @@ import { SiteFooter, SiteHeader } from '@/components/site/SiteChrome'
 import { ALL_GUIDES_LINK } from '@/data/pageLinks'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { useTitle } from '@/lib/useTitle'
+import { useT } from '@/i18n'
+import { useLabel } from '@/i18n/labels'
 import { useCanonical } from '@/lib/useCanonical'
 import { cn } from '@/lib/utils'
 import {
@@ -86,6 +88,7 @@ export const pageImageAlt = (tpl: TemplateConfig) => {
 }
 
 export function Templates() {
+  const t = useT()
   // The same title the pre-rendered page carries (seoPages galleryPageMeta), so
   // the tab does not change on load; spelled the way it is searched.
   useTitle(`All ${TEMPLATES.length} Resume Templates — Free & ATS-Ready · CVAurum`)
@@ -136,8 +139,8 @@ export function Templates() {
         title: tpl.name,
         caption: tagWords(tpl),
         aboutHref: `${templatePath(tpl)}`,
-        aboutLabel: 'About this design',
-        useLabel: 'Use this design',
+        aboutLabel: t('tpl.aboutDesign'),
+        useLabel: t('design.useDesign'),
         onUse: () => create(true, tpl.id),
       })),
     [shown, create]
@@ -180,11 +183,10 @@ export function Templates() {
           page was everything except the gallery. */}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <h1 className="font-display text-[2rem] font-semibold leading-[1.15] tracking-tight sm:text-4xl sm:leading-tight">
-          {TEMPLATES.length} resume templates, all free
+          {t('tpl.title', { n: TEMPLATES.length })}
         </h1>
         <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-3">
-          Every design below is shown on the same example resume, so what changes between cards is the layout and
-          nothing else. Pick one to start editing — your content carries over if you switch later.
+          {t('tpl.intro')}
         </p>
 
         <FilterRow
@@ -196,24 +198,25 @@ export function Templates() {
 
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {filtered ? `${shown.length} match${shown.length === 1 ? '' : 'es'}` : `${TEMPLATES.length} designs`}
+            {filtered
+              ? t(shown.length === 1 ? 'tpl.matchOne' : 'tpl.matches', { n: shown.length })
+              : t('tpl.count', { n: TEMPLATES.length })}
           </p>
           {filtered && (
             <button className="btn-ghost btn-xs h-9 sm:h-7" onClick={() => apply(EMPTY_FILTER)}>
-              Clear filters
+              {t('tpl.clear')}
             </button>
           )}
         </div>
 
         {shown.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
-            <p className="text-sm font-medium text-foreground">No design matches those filters</p>
+            <p className="text-sm font-medium text-foreground">{t('tpl.noneTitle')}</p>
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-              Every filter has to hold at once, and some tags never appear together — a design is single-column or
-              two-column, not both.
+              {t('tpl.noneBody')}
             </p>
             <button className="btn-outline btn-sm mt-5" onClick={() => apply(EMPTY_FILTER)}>
-              Clear filters
+              {t('tpl.clear')}
             </button>
           </div>
         ) : (
@@ -231,7 +234,7 @@ export function Templates() {
         )}
         {/* The guides answer what goes on the page; /guides lists them all. */}
         <p className="mt-10 border-t border-border pt-5 text-sm text-muted-foreground">
-          Writing what goes in it?{' '}
+          {t('tpl.guidesLead')}{' '}
           <Link className="text-primary hover:underline" to={ALL_GUIDES_LINK.href}>
             {ALL_GUIDES_LINK.label}
           </Link>
@@ -290,6 +293,8 @@ function FilterRow({
   onToggleTag: (tag: TemplateTag) => void
   onAts: (atsOnly: boolean) => void
 }) {
+  const t = useT()
+  const L = useLabel()
   // Open from `sm` up, where the chips cost two rows and are worth seeing.
   const [chipsOpen, setChipsOpen] = useState(false)
   const active = filter.tags.length + (filter.atsOnly ? 1 : 0)
@@ -302,7 +307,7 @@ function FilterRow({
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
           <label className="sr-only" htmlFor="tpl-search">
-            Search templates by name or description
+            {t('tpl.searchAria')}
           </label>
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -314,7 +319,7 @@ function FilterRow({
             // h-11 on a phone: the shared .input is h-9 (36px), under the 44px
             // a finger needs, and this is the one field on the page.
             className="input h-11 ps-9 sm:h-9"
-            placeholder="Search designs…"
+            placeholder={t('tpl.searchPlaceholder')}
             value={filter.query}
             onChange={(e) => onQuery(e.target.value)}
           />
@@ -326,7 +331,7 @@ function FilterRow({
           onClick={() => setChipsOpen((v) => !v)}
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
-          Filters
+          {t('tpl.filters')}
           {active > 0 && (
             <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">{active}</span>
           )}
@@ -337,7 +342,7 @@ function FilterRow({
       <div
         className={cn('flex flex-wrap gap-2 sm:flex', !chipsOpen && 'hidden')}
         role="group"
-        aria-label="Filter by style"
+        aria-label={t('tpl.filterAria')}
       >
         <StrictToggle on={filter.atsOnly} onAts={onAts} className="inline-flex sm:hidden" />
         {TAG_CHOICES.map((tag) => {
@@ -357,7 +362,7 @@ function FilterRow({
                   : 'border-border bg-surface text-muted-foreground hover:border-primary/50 hover:text-foreground'
               )}
             >
-              {tagLabel(tag)}
+              {L(tagLabel(tag))}
             </button>
           )
         })}
@@ -386,6 +391,7 @@ function StrictToggle({
   onAts: (atsOnly: boolean) => void
   className?: string
 }) {
+  const t = useT()
   return (
     <label
       className={cn(
@@ -395,11 +401,11 @@ function StrictToggle({
         'min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-[13px] font-medium text-foreground shadow-soft sm:min-h-0 sm:px-3',
         className
       )}
-      title="Every design exports selectable text; this narrows to the plainest single-column layouts, the safest bet with a strict parser."
+      title={t('tpl.strictTip')}
     >
       <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={on} onChange={(e) => onAts(e.target.checked)} />
       <AlignLeft className="h-4 w-4 text-muted-foreground" aria-hidden />
-      Strictest layouts
+      {t('tpl.strict')}
     </label>
   )
 }
@@ -427,6 +433,8 @@ function TemplateCard({
   onOpen: () => void
   eager?: boolean
 }) {
+  const t = useT()
+  const L = useLabel()
   // The card and its flyout load the 520px twin; the lightbox (`big` above)
   // keeps the 1200px picture, which is the one worth a full-screen look.
   const src = pageThumb(tpl)
@@ -442,8 +450,8 @@ function TemplateCard({
           type="button"
           data-nosnippet
           onClick={onOpen}
-          aria-label={`See the ${tpl.name} design full size`}
-          title={`See ${tpl.name} full size`}
+          aria-label={t('tpl.fullSizeAria', { name: tpl.name })}
+          title={t('tpl.fullSizeTitle', { name: tpl.name })}
           className="block w-full shrink-0 cursor-zoom-in border-b border-border"
         >
           <PagePicture
@@ -462,7 +470,7 @@ function TemplateCard({
                 a link is how they — and a crawler — reach it. */}
             <Link
               to={`${templatePath(tpl)}`}
-              title={`About the ${tpl.name} template`}
+              title={t('tpl.aboutTemplate', { name: tpl.name })}
               className="text-sm font-semibold text-foreground transition hover:text-primary hover:underline"
             >
               {tpl.name}
@@ -470,11 +478,12 @@ function TemplateCard({
             <button
               type="button"
               onClick={onPick}
-              aria-label={`Start a resume in ${tpl.name} — ${tpl.description}`}
-              title={`Use the ${tpl.name} template`}
+              aria-label={t('tpl.startAria', { name: tpl.name, description: tpl.description })}
+              title={t('tpl.useTemplate', { name: tpl.name })}
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium relative before:absolute before:-inset-2 before:content-[''] text-muted-foreground transition hover:border-primary/50 hover:text-primary"
             >
-              Use <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              {t('tpl.use')}{' '}
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
             </button>
           </div>
           <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{tpl.description}</p>
@@ -489,7 +498,7 @@ function TemplateCard({
                   key={tag}
                   className="rounded-full border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
                 >
-                  {tagLabel(tag)}
+                  {L(tagLabel(tag))}
                 </span>
               ))}
           </div>

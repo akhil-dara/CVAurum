@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, Trash2, Camera, ImagePlus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, Camera, ImagePlus, X } from 'lucide-react'
 import { profileFromTyped } from '@/lib/profileAddress'
 import { useResumeStore } from '@/store/useResumeStore'
 import { uid } from '@/lib/utils'
@@ -6,8 +6,10 @@ import type { ResumeDocument } from '@/types/document'
 import { TextField, Row, Labeled } from './fields/Inputs'
 import { CONTACT_ICON_CHOICES } from '@/templates/_shared/atoms'
 import { usePhotoPicker } from './usePhotoPicker'
+import { useLabel } from '@/i18n/labels'
 
 export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
+  const L = useLabel()
   const update = useResumeStore((s) => s.updateContent)
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const b = doc.content.basics
@@ -31,7 +33,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
                 })
               }
             >
-              {showPhoto ? 'Hide on resume' : 'Show on resume'}
+              {L(showPhoto ? 'Hide on resume' : 'Show on resume')}
             </button>
           )}
         </div>
@@ -120,17 +122,18 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
           value is never hidden. */}
       <details className="group">
         <summary className="flex cursor-pointer list-none items-center gap-1.5 py-0.5 text-[11px] text-muted-foreground transition hover:text-foreground">
-          <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
-          How the website is shown
-          {(b.urlIcon || b.urlLabel) && <span className="text-primary">· changed</span>}
+          <ChevronRight className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90 rtl:hidden" />
+          <ChevronLeft className="hidden h-3 w-3 shrink-0 transition-transform group-open:-rotate-90 rtl:block" />
+          {L('How the website is shown')}
+          {(b.urlIcon || b.urlLabel) && <span className="text-primary">{L('· changed')}</span>}
         </summary>
         <div className="mt-2 space-y-3">
           <div>
-            <label className="label">Website icon</label>
+            <label className="label">{L('Website icon')}</label>
             <select
               className="input w-full"
               value={b.urlIcon ?? ''}
-              aria-label="Website icon"
+              aria-label={L('Website icon')}
               onChange={(e) =>
                 update((c) => {
                   c.basics.urlIcon = e.target.value
@@ -152,7 +155,7 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
                 c.basics.urlLabel = v
               })
             }
-            placeholder="Leave empty to show the address"
+            placeholder={L('Leave empty to show the address')}
           />
         </div>
       </details>
@@ -165,14 +168,15 @@ export function BasicsEditor({ doc }: { doc: ResumeDocument }) {
 }
 
 function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: () => void; onClear: () => void }) {
+  const L = useLabel()
   return (
     <div className="relative shrink-0">
       <button
         type="button"
         onClick={onPick}
         className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-input bg-muted text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-        title="Upload a profile photo"
-        aria-label={image ? 'Change photo' : 'Add photo'}
+        title={L('Upload a profile photo')}
+        aria-label={L(image ? 'Change photo' : 'Add photo')}
       >
         {image ? (
           <>
@@ -184,7 +188,7 @@ function PhotoPicker({ image, onPick, onClear }: { image?: string; onPick: () =>
         ) : (
           <div className="flex flex-col items-center gap-1">
             <ImagePlus className="h-6 w-6" />
-            <span className="text-[11px] font-medium">Add photo</span>
+            <span className="text-[11px] font-medium">{L('Add photo')}</span>
           </div>
         )}
       </button>
@@ -221,6 +225,7 @@ const COMMON_NETWORKS = [
 ]
 
 function Profiles({ doc }: { doc: ResumeDocument }) {
+  const L = useLabel()
   const update = useResumeStore((s) => s.updateContent)
   const profiles = doc.content.basics.profiles ?? []
   return (
@@ -291,15 +296,16 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 the popover describe a link in one vocabulary. */}
             <details className="group/label">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 py-0.5 text-[11px] text-muted-foreground transition hover:text-foreground">
-                <ChevronRight className="h-3 w-3 transition-transform group-open/label:rotate-90" />
-                Shown as
+                <ChevronRight className="h-3 w-3 shrink-0 transition-transform group-open/label:rotate-90 rtl:hidden" />
+                <ChevronLeft className="hidden h-3 w-3 shrink-0 transition-transform group-open/label:-rotate-90 rtl:block" />
+                {L('Shown as')}
                 {p.label ? <span className="truncate text-foreground">· {p.label}</span> : null}
               </summary>
               <input
                 className="input mt-1.5 w-full"
                 value={p.label ?? ''}
-                aria-label="Shown as"
-                placeholder="Leave empty to show the address"
+                aria-label={L('Shown as')}
+                placeholder={L('Leave empty to show the address')}
                 onChange={(e) =>
                   update((c) => {
                     c.basics.profiles![i].label = e.target.value
@@ -312,7 +318,7 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
                 characters wide - unreadable, and reported as such. The two
                 SHORT values pair off above it instead. */}
             <label className="block">
-              <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">Goes to</span>
+              <span className="mb-0.5 block text-[11px] font-medium text-muted-foreground">{L('Goes to')}</span>
               <input
                 className="input w-full"
                 value={p.url || p.username}
@@ -338,7 +344,7 @@ function Profiles({ doc }: { doc: ResumeDocument }) {
             })
           }
         >
-          <Plus className="h-4 w-4" /> Add profile
+          <Plus className="h-4 w-4" /> {L('Add profile')}
         </button>
       </div>
     </Labeled>
