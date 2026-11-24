@@ -7,7 +7,12 @@
  * to offer a reader on a 375px phone no way at all to /prompts or /examples
  * except the footer. This is that nav, plus the two things that live in the
  * header's right-hand cluster, written once.
+ *
+ * The labels are looked up in the interface's dictionary, so the menu speaks
+ * the language the rest of the app is in; the keys are the destinations' own
+ * names and do not change.
  */
+import { translate, type Locale, type MsgKey } from '@/i18n'
 
 /** Which public page the reader is on. `'home'` is the landing page. */
 export type SiteMenuSection = 'home' | 'templates' | 'examples' | 'prompts' | null
@@ -39,12 +44,15 @@ export function siteMenuItems({
   repoUrl,
   libraryCount = 0,
   canCreate = false,
+  locale = 'en',
 }: {
   current?: SiteMenuSection
   repoUrl: string
   libraryCount?: number
   canCreate?: boolean
+  locale?: Locale
 }): SiteMenuItem[] {
+  const say = (key: MsgKey) => translate(locale, key)
   const onLanding = current === 'home'
   // The landing sections are fragment targets, and a client-side navigation to
   // another route's fragment does not scroll to it — only a real one does. So
@@ -53,16 +61,16 @@ export function siteMenuItems({
   const anchor = (id: string) => (onLanding ? `#${id}` : `/#${id}`)
 
   const items: SiteMenuItem[] = [
-    { key: 'home', label: 'Home', group: 'pages', to: '/', active: onLanding },
-    { key: 'templates', label: 'Templates', group: 'pages', to: '/templates', active: current === 'templates' },
-    { key: 'examples', label: 'Examples', group: 'pages', to: '/examples', active: current === 'examples' },
-    { key: 'prompts', label: 'Prompts', group: 'pages', to: '/prompts', active: current === 'prompts' },
-    { key: 'how', label: 'How it works', group: 'about', href: anchor('how'), active: false },
-    { key: 'compare', label: 'Compare', group: 'about', href: anchor('compare'), active: false },
-    { key: 'privacy', label: 'Privacy', group: 'about', href: anchor('privacy'), active: false },
+    { key: 'home', label: say('nav.home'), group: 'pages', to: '/', active: onLanding },
+    { key: 'templates', label: say('nav.templates'), group: 'pages', to: '/templates', active: current === 'templates' },
+    { key: 'examples', label: say('nav.examples'), group: 'pages', to: '/examples', active: current === 'examples' },
+    { key: 'prompts', label: say('nav.prompts'), group: 'pages', to: '/prompts', active: current === 'prompts' },
+    { key: 'how', label: say('nav.how'), group: 'about', href: anchor('how'), active: false },
+    { key: 'compare', label: say('nav.compare'), group: 'about', href: anchor('compare'), active: false },
+    { key: 'privacy', label: say('nav.privacy'), group: 'about', href: anchor('privacy'), active: false },
     {
       key: 'app',
-      label: 'My resumes',
+      label: say('common.myResumes'),
       group: 'yours',
       to: '/app',
       note: libraryCount ? String(libraryCount) : undefined,
@@ -71,7 +79,7 @@ export function siteMenuItems({
   ]
   // Only where the header itself offers it: the single-template and
   // single-example pages carry their own "start from this one" instead.
-  if (canCreate) items.push({ key: 'create', label: 'Create resume', group: 'yours', action: true, active: false })
+  if (canCreate) items.push({ key: 'create', label: say('common.createResume'), group: 'yours', action: true, active: false })
   items.push({ key: 'github', label: 'GitHub', group: 'yours', href: repoUrl, external: true, active: false })
   return items
 }

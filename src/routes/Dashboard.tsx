@@ -22,6 +22,8 @@ import type { ResumeDocument } from '@/types/document'
 import { PreviewThumb } from '@/components/preview/PreviewThumb'
 import { Logo } from '@/components/ui/Logo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { LanguageToggle } from '@/components/ui/LanguageToggle'
+import { useT, useLocale, t as tt } from '@/i18n'
 import { useResumeActions, NewResumeModal, SamplePicker } from '@/components/dashboard/newResume'
 import { InstallButton } from '@/components/ui/InstallButton'
 import { useTitle } from '@/lib/useTitle'
@@ -105,16 +107,17 @@ export function unreadableResumes(report: LoadReport): number | 'all' | null {
 /** Resumes stored here that cannot be opened: never left out in silence, and
  *  always one tap from a file that keeps every word of them. */
 function UnreadableNotice({ count, onSave }: { count: number | 'all'; onSave: () => void }) {
+  const t = useT()
   const message =
     count === 'all'
-      ? 'Your saved resumes could not be read just now. They are still in this browser: save a copy before anything else.'
-      : `${count} saved resume${count === 1 ? '' : 's'} in this browser could not be opened. ${count === 1 ? 'It is' : 'They are'} still stored: save a copy so nothing is lost.`
+      ? t('dash.unreadableAll')
+      : t(count === 1 ? 'dash.unreadableOne' : 'dash.unreadableMany', { n: count })
   return (
     <div role="alert" className="mb-6 flex flex-wrap items-start gap-x-2.5 gap-y-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
       <span aria-hidden>⚠️</span>
       <span className="min-w-0 flex-1 basis-56">{message}</span>
       <button className="btn-outline btn-sm ms-auto h-7 shrink-0 phone:h-10" onClick={onSave}>
-        <DatabaseBackup className="h-3.5 w-3.5" /> Save a copy
+        <DatabaseBackup className="h-3.5 w-3.5" /> {t('dash.saveCopy')}
       </button>
     </div>
   )
@@ -130,10 +133,8 @@ function StorageNotice({
   onBackup: () => void
   onDismiss: () => void
 }) {
-  const message =
-    kind === 'durability'
-      ? 'Your browser has not guaranteed permanent storage for this site — it may clear your resumes under disk pressure. Download a backup.'
-      : 'It has been a while since your last backup. Download one so a cleared browser can never lose your resumes.'
+  const t = useT()
+  const message = t(kind === 'durability' ? 'dash.noticeDurability' : 'dash.noticeBackup')
   return (
     // One row on a wide screen; on a narrow one the message keeps a readable
     // column and the two controls drop to a line of their own instead of
@@ -142,9 +143,9 @@ function StorageNotice({
       <span aria-hidden>⚠️</span>
       <span className="min-w-0 flex-1 basis-56">{message}</span>
       <button className="btn-outline btn-sm ms-auto h-7 shrink-0" onClick={onBackup}>
-        <DatabaseBackup className="h-3.5 w-3.5" /> Back up now
+        <DatabaseBackup className="h-3.5 w-3.5" /> {t('dash.backupNow')}
       </button>
-      <button className="btn-icon h-6 w-6 shrink-0" onClick={onDismiss} aria-label="Dismiss">
+      <button className="btn-icon h-6 w-6 shrink-0" onClick={onDismiss} aria-label={t('dash.dismiss')}>
         ✕
       </button>
     </div>
@@ -167,16 +168,14 @@ export function Dashboard() {
         localStorage.setItem('cvaurum:safari-nudge', '1')
         useAppStore
           .getState()
-          .toast(
-            'Heads-up: Safari clears local site data after 7 days without a visit. Install CVAurum as an app or export a backup to keep your resumes safe.',
-            'info'
-          )
+          .toast(tt('dash.safariNudge'), 'info')
       }
     } catch {
       /* never block the dashboard over a nudge */
     }
   }, [])
-  useTitle('Your Resumes · CVAurum')
+  const t = useT()
+  useTitle(t('dash.docTitle'))
   const navigate = useNavigate()
   const library = useAppStore((s) => s.library)
   const libraryLoaded = useAppStore((s) => s.libraryLoaded)
@@ -230,9 +229,9 @@ export function Dashboard() {
     setBackupMenu(false)
     try {
       const n = await exportFullBackup()
-      toast(`Backed up ${n} resume${n === 1 ? '' : 's'} + settings`, 'success')
+      toast(t(n === 1 ? 'dash.backedUpOne' : 'dash.backedUpMany', { n }), 'success')
     } catch {
-      toast('Could not create the backup', 'error')
+      toast(t('dash.backupFailed'), 'error')
     }
   }
   // Read after every library load (the store re-reads on each visit).
@@ -240,9 +239,9 @@ export function Dashboard() {
   const onSaveStored = async () => {
     try {
       const n = await exportRawStored()
-      toast(`Saved ${n} stored resume${n === 1 ? '' : 's'}`, 'success')
+      toast(t(n === 1 ? 'dash.savedStoredOne' : 'dash.savedStoredMany', { n }), 'success')
     } catch {
-      toast('Could not read this browser’s storage', 'error')
+      toast(t('dash.storageReadFailed'), 'error')
     }
   }
   const onRestore = async (file?: File) => {
@@ -251,11 +250,16 @@ export function Dashboard() {
       const r = await importFullBackup(file, 'merge')
       await refreshLibrary()
       toast(
-        `Restored ${r.resumes} resume${r.resumes === 1 ? '' : 's'}${r.tracker ? ` + ${r.tracker} application${r.tracker === 1 ? '' : 's'}` : ''}`,
+        t(r.resumes === 1 ? 'dash.restoredOne' : 'dash.restoredMany', {
+          n: r.resumes,
+          tracker: r.tracker
+            ? t(r.tracker === 1 ? 'dash.restoredTrackerOne' : 'dash.restoredTrackerMany', { n: r.tracker })
+            : '',
+        }),
         'success'
       )
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Could not restore that backup', 'error')
+      toast(e instanceof Error ? e.message : t('dash.restoreFailed'), 'error')
     }
   }
 
@@ -287,34 +291,39 @@ export function Dashboard() {
             <Link
               className="btn-ghost btn-sm h-10 sm:h-8"
               to="/examples"
-              title="Browse the resume examples"
-              aria-label="Examples"
+              title={t('dash.examplesTip')}
+              aria-label={t('nav.examples')}
             >
               <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Examples</span>
+              <span className="hidden sm:inline">{t('nav.examples')}</span>
             </Link>
-            <Link className="btn-ghost btn-sm h-10 sm:h-8" to="/tracker" title="Job Tracker" aria-label="Job Tracker">
+            <Link
+              className="btn-ghost btn-sm h-10 sm:h-8"
+              to="/tracker"
+              title={t('dash.tracker')}
+              aria-label={t('dash.tracker')}
+            >
               <KanbanSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Job Tracker</span>
+              <span className="hidden sm:inline">{t('dash.tracker')}</span>
             </Link>
             <div className="relative">
               <button
                 className="btn-ghost btn-sm h-10 sm:h-8"
                 onClick={() => setBackupMenu((o) => !o)}
-                title="Back up or restore all your data"
-                aria-label="Backup"
+                title={t('dash.backupTip')}
+                aria-label={t('dash.backup')}
               >
                 <DatabaseBackup className="h-4 w-4" />
-                <span className="hidden sm:inline">Backup</span>
+                <span className="hidden sm:inline">{t('dash.backup')}</span>
               </button>
               {backupMenu && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setBackupMenu(false)} />
                   <div className="card absolute right-0 z-20 mt-1 w-60 overflow-hidden p-1 shadow-float">
                     <button className="btn-ghost h-auto w-full flex-col items-start gap-0 py-1.5" onClick={onBackup}>
-                      <span className="text-sm font-medium">Export backup</span>
+                      <span className="text-sm font-medium">{t('dash.exportBackup')}</span>
                       <span className="text-[11px] font-normal text-muted-foreground">
-                        All resumes + settings + tracker, one file
+                        {t('dash.exportBackupNote')}
                       </span>
                     </button>
                     <button
@@ -324,15 +333,16 @@ export function Dashboard() {
                         backupRef.current?.click()
                       }}
                     >
-                      <span className="text-sm font-medium">Restore from backup</span>
+                      <span className="text-sm font-medium">{t('dash.restoreBackup')}</span>
                       <span className="text-[11px] font-normal text-muted-foreground">
-                        Import into this browser (keeps existing)
+                        {t('dash.restoreBackupNote')}
                       </span>
                     </button>
                   </div>
                 </>
               )}
             </div>
+            <LanguageToggle className="btn-icon h-10 w-10 sm:h-9 sm:w-9" />
             <ThemeToggle className="btn-icon h-10 w-10 sm:h-9 sm:w-9" />
           </div>
         </div>
@@ -365,9 +375,9 @@ export function Dashboard() {
         {notice && <StorageNotice kind={notice} onBackup={onBackup} onDismiss={dismissNotice} />}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Your resumes</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t('dash.title')}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Private &amp; local — everything is saved in this browser. Nothing leaves your device.
+              {t('dash.subtitle')}
             </p>
           </div>
           {/* Wraps on a narrow screen: the three pills are 362px wide and a
@@ -380,19 +390,19 @@ export function Dashboard() {
             <button
               className="btn-ghost btn-sm"
               onClick={() => pdfRef.current?.click()}
-              title="Import an existing PDF resume — parsed in your browser, never uploaded"
+              title={t('dash.importPdfTip')}
             >
-              <FileUp className="h-4 w-4" /> Import PDF
+              <FileUp className="h-4 w-4" /> {t('dash.importPdf')}
             </button>
             <button
               className="btn-outline btn-sm"
               onClick={() => setSampleOpen(true)}
-              title="Start from a complete example resume"
+              title={t('dash.exampleTip')}
             >
-              <FileText className="h-4 w-4" /> Example
+              <FileText className="h-4 w-4" /> {t('dash.example')}
             </button>
             <button className="btn-primary btn-sm" onClick={() => setChooser(true)}>
-              <Plus className="h-4 w-4" /> New resume
+              <Plus className="h-4 w-4" /> {t('dash.newResume')}
             </button>
           </div>
         </div>
@@ -465,6 +475,8 @@ export function Dashboard() {
 /** Resumes deleted in the last month: restorable as they were, or erased for
  *  good on a second, deliberate click. Hidden when there are none. */
 function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; onChanged: () => Promise<void> }) {
+  const t = useT()
+  const locale = useLocale()
   const toast = useAppStore((s) => s.toast)
   const [items, setItems] = useState<TrashedDoc[]>([])
   const [open, setOpen] = useState(false)
@@ -485,7 +497,7 @@ function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; on
   const keptUntil = (at: number) =>
     new Date(at + TRASH_DAYS * DAY).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   return (
-    <section className="mt-12 border-t border-border pt-5" aria-label="Recently deleted">
+    <section className="mt-12 border-t border-border pt-5" aria-label={t('dash.recentlyDeleted')}>
       <button
         type="button"
         className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -493,7 +505,7 @@ function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; on
         onClick={() => setOpen((o) => !o)}
       >
         <ChevronDown className={`h-4 w-4 transition-transform ${open ? '' : '-rotate-90'}`} />
-        Recently deleted <span className="tabular-nums">· {items.length}</span>
+        {t('dash.recentlyDeleted')} <span className="tabular-nums">· {items.length}</span>
       </button>
       {open ? (
         <ul className="mt-3 divide-y divide-border rounded-xl border border-border">
@@ -502,7 +514,7 @@ function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; on
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{doc.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  Deleted {timeAgo(deletedAt)} · kept until {keptUntil(deletedAt)}
+                  {t('dash.deletedAt', { when: timeAgo(deletedAt, Date.now(), locale), until: keptUntil(deletedAt) })}
                 </div>
               </div>
               <button
@@ -511,10 +523,10 @@ function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; on
                 onClick={async () => {
                   await restoreTrashed(doc.id)
                   await onChanged()
-                  toast(`Restored “${doc.title}”`, 'success')
+                  toast(t('dash.restoredName', { title: doc.title }), 'success')
                 }}
               >
-                <RotateCcw className="h-3.5 w-3.5" /> Restore
+                <RotateCcw className="h-3.5 w-3.5" /> {t('dash.restore')}
               </button>
               {armed === doc.id ? (
                 <button
@@ -524,15 +536,15 @@ function RecentlyDeleted({ library, onChanged }: { library: ResumeDocument[]; on
                     await deleteTrashedForever(doc.id)
                     setArmed(null)
                     setItems((all) => all.filter((t) => t.doc.id !== doc.id))
-                    toast(`“${doc.title}” erased for good`)
+                    toast(t('dash.erased', { title: doc.title }))
                   }}
                   onBlur={() => setArmed(null)}
                 >
-                  Erase for good
+                  {t('dash.eraseForGood')}
                 </button>
               ) : (
                 <button type="button" className="btn-ghost btn-sm text-muted-foreground phone:h-10" onClick={() => setArmed(doc.id)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete forever
+                  <Trash2 className="h-3.5 w-3.5" /> {t('dash.deleteForever')}
                 </button>
               )}
             </li>
@@ -552,50 +564,54 @@ function EmptyState({
   onExample: () => void
   onImport: () => void
 }) {
+  const t = useT()
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <FileText className="h-7 w-7" />
       </div>
-      <h2 className="mt-4 text-lg font-semibold">No resumes yet</h2>
+      <h2 className="mt-4 text-lg font-semibold">{t('dash.emptyTitle')}</h2>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        Create your first resume from a blank canvas or a ready-made example — it stays private to this browser.
+        {t('dash.emptyBody')}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <button className="btn-primary btn-sm" onClick={onNew}>
-          <Plus className="h-4 w-4" /> New resume
+          <Plus className="h-4 w-4" /> {t('dash.newResume')}
         </button>
         <button className="btn-outline btn-sm" onClick={onExample}>
-          <FileText className="h-4 w-4" /> Start with an example
+          <FileText className="h-4 w-4" /> {t('dash.startExample')}
         </button>
         <button
           className="btn-ghost btn-sm"
           onClick={onImport}
-          title="Import a JSON Resume file (.json) — not a PDF or Word doc"
+          title={t('dash.importJsonTip')}
         >
-          <FileUp className="h-4 w-4" /> Import JSON
+          <FileUp className="h-4 w-4" /> {t('dash.importJson')}
         </button>
       </div>
       <p className="mt-3 text-xs text-muted-foreground/70">
-        Import a JSON Resume file — or use Import PDF above to bring in an existing PDF resume.
+        {t('dash.importJsonNote')}
       </p>
     </div>
   )
 }
 
 function NewCard({ onClick }: { onClick: () => void }) {
+  const t = useT()
   return (
     <button
       onClick={onClick}
       className="flex aspect-[210/297] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
     >
       <Plus className="h-8 w-8" />
-      <span className="text-sm font-medium">New resume</span>
+      <span className="text-sm font-medium">{t('dash.newResume')}</span>
     </button>
   )
 }
 
 function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: () => void; onChanged: () => void }) {
+  const t = useT()
+  const locale = useLocale()
   const [thumbRef, seen] = useLazyMount<HTMLDivElement>()
   const [menu, setMenu] = useState(false)
   const toast = useAppStore((s) => s.toast)
@@ -611,7 +627,7 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
     await saveDoc(copy)
     await onChanged()
     setMenu(false)
-    toast('Duplicated', 'success')
+    toast(t('dash.duplicated'), 'success')
   }
   const remove = async () => {
     // Moved to Recently deleted, never erased on the spot: the Undo is right
@@ -619,8 +635,8 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
     setMenu(false)
     await trashDoc(doc.id)
     await onChanged()
-    toast(`Moved “${doc.title}” to Recently deleted`, 'info', {
-      label: 'Undo',
+    toast(t('dash.movedToTrash', { title: doc.title }), 'info', {
+      label: t('dash.undo'),
       run: async () => {
         await restoreTrashed(doc.id)
         await onChanged()
@@ -645,10 +661,12 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
       <div className="mt-2 flex items-start justify-between gap-2 px-0.5">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">{doc.title}</p>
-          <p className="text-xs text-muted-foreground">Edited {timeAgo(doc.updatedAt)}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('dash.edited', { when: timeAgo(doc.updatedAt, Date.now(), locale) })}
+          </p>
         </div>
         <div className="relative">
-          <button className="btn-icon h-7 w-7" onClick={() => setMenu((m) => !m)} aria-label="Options">
+          <button className="btn-icon h-7 w-7" onClick={() => setMenu((m) => !m)} aria-label={t('dash.options')}>
             <MoreVertical className="h-4 w-4" />
           </button>
           {menu && (
@@ -656,10 +674,10 @@ function ResumeCard({ doc, onOpen, onChanged }: { doc: ResumeDocument; onOpen: (
               <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
               <div className="card absolute right-0 z-20 mt-1 w-36 overflow-hidden p-1 shadow-float">
                 <button className="btn-ghost w-full justify-start" onClick={duplicate}>
-                  <Copy className="h-4 w-4" /> Duplicate
+                  <Copy className="h-4 w-4" /> {t('dash.duplicate')}
                 </button>
                 <button className="btn-ghost w-full justify-start text-danger hover:bg-danger/10" onClick={remove}>
-                  <Trash2 className="h-4 w-4" /> Delete
+                  <Trash2 className="h-4 w-4" /> {t('dash.delete')}
                 </button>
               </div>
             </>

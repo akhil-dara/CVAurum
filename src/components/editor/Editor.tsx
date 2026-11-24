@@ -23,17 +23,19 @@ import { AtsPanel } from './panels/AtsPanel'
 import { TemplateGallery } from './TemplateGallery'
 import { isPhoneLayout } from '@/lib/layoutMode'
 import { ResumePreview } from '@/components/preview/ResumePreview'
+import { useT } from '@/i18n'
 import { setItemDelete } from '@/templates/_shared/itemActions'
 import { deleteItem } from '@/store/deleteItem'
 
-const PANEL_TITLES: Record<string, string> = {
-  content: 'Content',
-  design: 'Design',
-  templates: 'Templates',
-  ats: 'Score & job match',
-}
+const PANEL_TITLES = {
+  content: 'panel.content',
+  design: 'panel.design',
+  templates: 'panel.templates',
+  ats: 'panel.ats',
+} as const
 
 export function Editor({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   // Two narrow selectors, not the whole store: selecting the store object
   // re-rendered the entire editor - both artboard trees included - on EVERY
   // editor-store write, and ResumePreview writes onePageScale after each doc
@@ -139,11 +141,13 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
               data-tour="panel"
               className={cn(
                 'order-1 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface desk:order-none',
-                split && 'desk:w-[clamp(300px,36vw,392px)] desk:flex-none desk:border-r',
+                // `border-e`, not `border-r`: the hairline has to face the canvas
+                // on either side of the interface.
+                split && 'desk:w-[clamp(300px,36vw,392px)] desk:flex-none desk:border-e',
               )}
             >
               <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-                <h2 className="text-sm font-semibold">{PANEL_TITLES[leftTab]}</h2>
+                <h2 className="text-sm font-semibold">{t(PANEL_TITLES[leftTab])}</h2>
                 {/* Not "Preview": the bottom bar already has a Preview that
                     means the exact-PDF view, and two buttons with one name
                     and two meanings read as a bug. This one just puts the

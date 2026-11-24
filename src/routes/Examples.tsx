@@ -58,6 +58,8 @@ import { useTitle } from '@/lib/useTitle'
 import { useCanonical } from '@/lib/useCanonical'
 import { getTemplate } from '@/templates/registry'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
+import { useLabel } from '@/i18n/labels'
 
 const CANONICAL = 'https://cvaurum.com/examples'
 
@@ -82,6 +84,8 @@ const SORTS: { value: SortKey; label: string }[] = [
 ]
 
 export function Examples() {
+  const t = useT()
+  const L = useLabel()
   // the same title the pre-rendered page carries (lib/seoLibrary)
   useTitle(examplesPageMeta().title)
   useCanonical(CANONICAL)
@@ -133,14 +137,18 @@ export function Examples() {
           height: samplePageImageHeight(s.slug),
           alt: sampleImageAlt(s.slug),
           title: s.role,
-          caption: `${SENIORITY_LABELS[s.seniority]} · written for ${REGION_LABELS[s.region]} · set in the ${tpl.name} design`,
+          caption: t('ex.caption', {
+            stage: L(SENIORITY_LABELS[s.seniority]),
+            region: L(REGION_LABELS[s.region]),
+            design: tpl.name,
+          }),
           aboutHref: `/examples/${s.slug}`,
-          aboutLabel: 'Read it in full',
-          useLabel: 'Use this example',
+          aboutLabel: t('ex.readFull'),
+          useLabel: t('ex.useThis'),
           onUse: () => create(true, s.template, s.content, s.tweaks, `${s.role} resume`),
         }
       }),
-    [shown, create]
+    [shown, create, t, L]
   )
 
   const active = isLibraryFilterActive(filter)
@@ -159,17 +167,17 @@ export function Examples() {
   const chosen: { key: string; label: string; drop: () => void }[] = [
     ...filter.categories.map((c) => ({
       key: `c-${c}`,
-      label: CATEGORY_LABELS[c],
+      label: L(CATEGORY_LABELS[c]),
       drop: () => apply({ ...filter, categories: filter.categories.filter((x) => x !== c) }),
     })),
     ...filter.seniorities.map((s) => ({
       key: `l-${s}`,
-      label: SENIORITY_LABELS[s],
+      label: L(SENIORITY_LABELS[s]),
       drop: () => apply({ ...filter, seniorities: filter.seniorities.filter((x) => x !== s) }),
     })),
     ...filter.regions.map((r) => ({
       key: `r-${r}`,
-      label: REGION_LABELS[r],
+      label: L(REGION_LABELS[r]),
       drop: () => apply({ ...filter, regions: filter.regions.filter((x) => x !== r) }),
     })),
   ]
@@ -215,11 +223,10 @@ export function Examples() {
 
       <main className="mx-auto max-w-6xl px-4 py-9 sm:px-6 sm:py-10">
         <h1 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-[2.4rem] sm:leading-[1.12]">
-          {LIBRARY.length} resume examples, written out in full
+          {t('ex.title', { n: LIBRARY.length })}
         </h1>
         <p className="mt-3.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Complete resumes for real jobs — every bullet naming something that happened and what it changed. Open any one
-          in the editor and put your own history in its place.
+          {t('ex.intro')}
         </p>
 
         {/* The claim above, in numbers. */}
@@ -229,7 +236,7 @@ export function Examples() {
               <dd className={cn('text-xl font-semibold leading-none tabular-nums', f.good && 'text-success')}>
                 {f.value}
               </dd>
-              <dt className="mt-1 text-xs text-muted-foreground">{f.label}</dt>
+              <dt className="mt-1 text-xs text-muted-foreground">{L(f.label)}</dt>
             </div>
           ))}
         </dl>
@@ -244,7 +251,7 @@ export function Examples() {
           >
             <span className="inline-flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              {t('ex.filters')}
               {chosenCount > 0 && (
                 <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
                   {chosenCount}
@@ -256,30 +263,32 @@ export function Examples() {
 
           <aside className={cn('mb-6 lg:mb-0 lg:block', !filtersOpen && 'hidden lg:block')}>
             <div className="hidden items-center justify-between lg:flex">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Filters</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('ex.filters')}
+              </span>
               {active && (
                 <button className="text-xs text-primary hover:underline" onClick={() => apply(EMPTY_LIBRARY_FILTER)}>
-                  Clear
+                  {t('ex.clear')}
                 </button>
               )}
             </div>
             <div className="flex flex-col gap-6 lg:mt-4">
               <FacetGroup
-                legend="Field"
+                legend={t('ex.legendField')}
                 choices={CATEGORY_CHOICES}
                 chosen={filter.categories}
                 counts={counts.categories}
                 onToggle={(value) => apply({ ...filter, categories: toggleFacet(filter.categories, value) })}
               />
               <FacetGroup
-                legend="Career stage"
+                legend={t('ex.legendStage')}
                 choices={SENIORITY_CHOICES}
                 chosen={filter.seniorities}
                 counts={counts.seniorities}
                 onToggle={(value) => apply({ ...filter, seniorities: toggleFacet(filter.seniorities, value) })}
               />
               <FacetGroup
-                legend="Written for"
+                legend={t('ex.legendRegion')}
                 choices={REGION_CHOICES}
                 chosen={filter.regions}
                 counts={counts.regions}
@@ -297,22 +306,22 @@ export function Examples() {
                   type="search"
                   value={filter.query}
                   onChange={(e) => apply({ ...filter, query: e.target.value }, true)}
-                  placeholder="Search a job title, a skill, a field…"
-                  aria-label="Search the examples"
+                  placeholder={t('ex.search')}
+                  aria-label={t('ex.searchAria')}
                   className="input h-10 w-full ps-9 pe-3"
                 />
               </label>
               <label className="inline-flex h-10 items-center gap-2 rounded-md border border-input bg-surface px-3 text-sm shadow-soft">
-                <span className="text-muted-foreground">Sort</span>
+                <span className="text-muted-foreground">{t('ex.sort')}</span>
                 <select
                   className="h-full cursor-pointer bg-transparent font-medium text-foreground focus-visible:outline-none"
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  aria-label="Sort the examples"
+                  aria-label={t('ex.sortAria')}
                 >
                   {SORTS.map((s) => (
                     <option key={s.value} value={s.value}>
-                      {s.label}
+                      {L(s.label)}
                     </option>
                   ))}
                 </select>
@@ -321,15 +330,14 @@ export function Examples() {
 
             <div className="mt-3.5 flex flex-wrap items-center gap-2">
               <p className="text-sm text-muted-foreground" aria-live="polite">
-                <strong className="font-semibold tabular-nums text-foreground">{shown.length}</strong> example
-                {shown.length === 1 ? '' : 's'}
+                {t(shown.length === 1 ? 'ex.countOne' : 'ex.count', { n: shown.length })}
               </p>
               {chosen.map((c) => (
                 <button
                   key={c.key}
                   onClick={c.drop}
                   className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary transition hover:bg-primary/15"
-                  aria-label={`Remove the ${c.label} filter`}
+                  aria-label={t('ex.removeFilter', { label: c.label })}
                 >
                   {c.label}
                   <X className="h-3 w-3" />
@@ -339,7 +347,7 @@ export function Examples() {
                 <button
                   onClick={() => apply({ ...filter, query: '' })}
                   className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary transition hover:bg-primary/15"
-                  aria-label="Clear the search"
+                  aria-label={t('ex.clearSearch')}
                 >
                   “{filter.query.trim()}”
                   <X className="h-3 w-3" />
@@ -349,13 +357,12 @@ export function Examples() {
 
             {shown.length === 0 ? (
               <div className="mt-8 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
-                <p className="text-sm font-medium text-foreground">Nothing matches all of those at once</p>
+                <p className="text-sm font-medium text-foreground">{t('ex.noneTitle')}</p>
                 <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-                  Each filter narrows the last, so a field and a career stage that never occur together land here. Drop
-                  one and the shelf fills again.
+                  {t('ex.noneBody')}
                 </p>
                 <button className="btn-outline btn-sm mt-5" onClick={() => apply(EMPTY_LIBRARY_FILTER)}>
-                  Clear filters
+                  {t('tpl.clear')}
                 </button>
               </div>
             ) : (
@@ -375,7 +382,7 @@ export function Examples() {
         </div>
         {/* The guides answer what goes on the page; /guides lists them all. */}
         <p className="mt-10 border-t border-border pt-5 text-sm text-muted-foreground">
-          Writing what goes in it?{' '}
+          {t('tpl.guidesLead')}{' '}
           <Link className="text-primary hover:underline" to={ALL_GUIDES_LINK.href}>
             {ALL_GUIDES_LINK.label}
           </Link>
@@ -435,6 +442,7 @@ function FacetGroup<T extends string>({
   counts: Record<string, number>
   onToggle: (value: T) => void
 }) {
+  const L = useLabel()
   return (
     <fieldset className="min-w-0">
       <legend className="mb-2 text-xs font-semibold text-foreground">{legend}</legend>
@@ -476,7 +484,7 @@ function FacetGroup<T extends string>({
                   </svg>
                 )}
               </span>
-              <span className={cn('min-w-0 flex-1 truncate text-foreground', on && 'font-medium')}>{label}</span>
+              <span className={cn('min-w-0 flex-1 truncate text-foreground', on && 'font-medium')}>{L(label)}</span>
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{n}</span>
             </button>
           )
@@ -507,8 +515,10 @@ function SampleCard({
   onOpen: () => void
   eager?: boolean
 }) {
+  const t = useT()
+  const L = useLabel()
   const accent = getTemplate(sample.template).defaults.theme.primary
-  const facts = [CATEGORY_LABELS[sample.category], SENIORITY_LABELS[sample.seniority], REGION_LABELS[sample.region]]
+  const facts = [CATEGORY_LABELS[sample.category], SENIORITY_LABELS[sample.seniority], REGION_LABELS[sample.region]].map(L)
 
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft transition hover:border-primary/50 hover:shadow-card">
@@ -520,7 +530,7 @@ function SampleCard({
         <button
           type="button"
           onClick={onOpen}
-          aria-label={`See the ${sample.role} example full size`}
+          aria-label={t('ex.fullSizeAria', { role: sample.role })}
           className="block w-full cursor-zoom-in"
         >
           <PagePicture
@@ -543,20 +553,20 @@ function SampleCard({
             className="pointer-events-auto inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary text-[13px] font-semibold text-primary-foreground shadow-soft transition hover:brightness-110"
           >
             <Wand2 className="h-3.5 w-3.5" />
-            Use this example
+            {t('ex.useThis')}
           </button>
           <Link
             to={`/examples/${sample.slug}`}
             className="pointer-events-auto inline-flex h-8 items-center justify-center rounded-md bg-surface/95 text-[13px] font-medium text-foreground transition hover:bg-surface"
           >
-            Read it in full
+            {t('ex.readFull')}
           </Link>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <Link
           to={`/examples/${sample.slug}`}
-          title={`Read the ${sample.role} example`}
+          title={t('ex.cardTitle', { role: sample.role })}
           className="text-sm font-semibold leading-snug text-foreground transition group-hover:text-primary"
         >
           {sample.role}

@@ -2,6 +2,7 @@
 import { twMerge } from 'tailwind-merge'
 import { customAlphabet } from 'nanoid'
 import type { Dates } from '@/types/metadata'
+import { translate, type Locale } from '@/i18n/core'
 
 /** Tailwind-aware className combiner. */
 export function cn(...inputs: ClassValue[]) {
@@ -581,18 +582,18 @@ export function resumeFilename(name: string | undefined, title: string | undefin
 }
 
 /** Relative humanized time, e.g. "2 minutes ago". */
-export function timeAgo(ts: number, now = Date.now()): string {
+export function timeAgo(ts: number, now = Date.now(), locale: Locale = 'en'): string {
   const diff = Math.max(0, now - ts)
   const sec = Math.round(diff / 1000)
-  if (sec < 60) return 'just now'
+  if (sec < 60) return translate(locale, 'time.now')
   const min = Math.round(sec / 60)
-  if (min < 60) return `${min} minute${min === 1 ? '' : 's'} ago`
+  if (min < 60) return translate(locale, min === 1 ? 'time.minOne' : 'time.minMany', { n: min })
   const hr = Math.round(min / 60)
-  if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`
+  if (hr < 24) return translate(locale, hr === 1 ? 'time.hourOne' : 'time.hourMany', { n: hr })
   const day = Math.round(hr / 24)
-  if (day < 30) return `${day} day${day === 1 ? '' : 's'} ago`
+  if (day < 30) return translate(locale, day === 1 ? 'time.dayOne' : 'time.dayMany', { n: day })
   const mo = Math.round(day / 30)
-  if (mo < 12) return `${mo} month${mo === 1 ? '' : 's'} ago`
+  if (mo < 12) return translate(locale, mo === 1 ? 'time.monthOne' : 'time.monthMany', { n: mo })
   const yr = Math.round(mo / 12)
-  return `${yr} year${yr === 1 ? '' : 's'} ago`
+  return translate(locale, yr === 1 ? 'time.yearOne' : 'time.yearMany', { n: yr })
 }

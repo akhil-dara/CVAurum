@@ -38,7 +38,12 @@ export default {
         xl: 'calc(var(--radius) + 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'Inter Fallback', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Vazirmatn sits directly behind Inter — BEFORE the metric stand-in —
+        // so Persian letters typed into an ENGLISH interface (a content field,
+        // a note, a heading) are drawn by the face this project ships for that
+        // script instead of by the Arial the stand-in aliases. Inter has no
+        // Arabic letters at all, so Latin text never reaches Vazirmatn.
+        sans: ['Inter', 'Vazirmatn', 'Inter Fallback', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {

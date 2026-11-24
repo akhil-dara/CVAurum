@@ -21,6 +21,10 @@ import { resolveOrder, sectionLabel, DEFAULT_LABELS } from '@/lib/sections'
 import { visibleDocument } from '@/lib/atsScope'
 import { htmlToText } from '@/lib/utils'
 import { cleanEmail } from '@/templates/_shared/atoms'
+import { translate, type Locale, type MsgKey } from '@/i18n/core'
+
+/** A dictionary lookup, bound to one language: what every finding below uses. */
+type Tx = (key: MsgKey, vars?: Record<string, string | number>) => string
 
 export type Severity = 'ok' | 'minor' | 'risk'
 
@@ -145,17 +149,25 @@ function collectSignals(input: ResumeDocument): Signals {
 }
 
 /** Shared findings every parser cares about, weighted per parser via `w`. */
-function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading: number; special?: number }): { findings: Finding[]; penalty: number } {
+function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading: number; special?: number }, tx: Tx): { findings: Finding[]; penalty: number } {
   const findings: Finding[] = []
   let penalty = 0
 
   // contact completeness — universal, heavily weighted
   if (!sig.email) {
-    findings.push({ severity: 'risk', title: 'No email detected', detail: 'A parser maps your email to the primary contact field. Add one so recruiters can reach you.' })
+    findings.push({
+      severity: 'risk',
+      title: tx('ats.sim.noEmail.title'),
+      detail: tx('ats.sim.noEmail.detail'),
+    })
     penalty += 22
   }
   if (!sig.phone) {
-    findings.push({ severity: 'minor', title: 'No phone number', detail: 'Most systems expect a phone field. Add one for completeness.' })
+    findings.push({
+      severity: 'minor',
+      title: tx('ats.sim.noPhone.title'),
+      detail: tx('ats.sim.noPhone.detail'),
+    })
     penalty += 6
   }
 
@@ -163,8 +175,10 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   if (sig.emptySkillMeters > 0) {
     findings.push({
       severity: 'risk',
-      title: `${sig.emptySkillMeters} skill group${sig.emptySkillMeters > 1 ? 's' : ''} have no text`,
-      detail: 'A rating bar with no words is invisible to every parser — add the actual skill keywords so they are captured.',
+      title: tx(sig.emptySkillMeters > 1 ? 'ats.sim.emptySkills.many' : 'ats.sim.emptySkills.one', {
+        n: sig.emptySkillMeters,
+      }),
+      detail: tx('ats.sim.emptySkills.detail'),
     })
     penalty += 10 * Math.min(sig.emptySkillMeters, 3)
   }
@@ -174,8 +188,8 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   if (sig.skillKeywordCount > 60 || sig.maxSkillGroup > 30) {
     findings.push({
       severity: sig.skillKeywordCount > 100 ? 'risk' : 'minor',
-      title: `Possible keyword stuffing (${sig.skillKeywordCount} skills)`,
-      detail: 'A parser will read them, but a wall of keywords reads as padding to recruiters and some systems discount it. Group and prioritise the ~15–25 skills that match your target roles.',
+      title: tx('ats.sim.stuffing.title', { n: sig.skillKeywordCount }),
+      detail: tx('ats.sim.stuffing.detail'),
     })
     penalty += sig.skillKeywordCount > 100 ? 10 : 5
   }
@@ -191,13 +205,11 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   // sidebar first, and a resume longer than one page interleaves for
   // everyone, because each page carries its own main-then-sidebar pair.
   if (sig.twoColumn && w.twoCol > 0) {
-    const sidebar = sig.sidebarLabels || 'the side column'
+    const sidebar = sig.sidebarLabels || tx('ats.sim.sidebar')
     findings.push({
       severity: w.twoCol >= 12 ? 'risk' : 'minor',
-      title: 'Two-column layout',
-      detail: w.twoCol >= 12
-        ? `Your PDF puts the main column ahead of the sidebar (${sidebar}), so a parser reading in order gets your name and experience first. This one rebuilds the page from where text sits instead, so a side column can still land out of order — and on a resume over one page, each page is read main-column-then-sidebar, so a sidebar section continuing overleaf arrives in two pieces. A single-column template avoids both.`
-        : `Handled reasonably: your PDF emits the main column before the sidebar (${sidebar}), so the name and experience are read first. On a resume over one page, each page is read main-column-then-sidebar, so a sidebar section that continues overleaf arrives in two pieces. Check the order in "What an ATS sees".`,
+      title: tx('ats.sim.twoCol.title'),
+      detail: tx(w.twoCol >= 12 ? 'ats.sim.twoCol.risk' : 'ats.sim.twoCol.ok', { sidebar }),
     })
     penalty += w.twoCol
   }
@@ -206,10 +218,8 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   if (sig.hasPhoto && w.photo > 0) {
     findings.push({
       severity: w.photo >= 10 ? 'risk' : 'minor',
-      title: 'Profile photo present',
-      detail: w.photo >= 10
-        ? 'Legacy parsers can choke on embedded images and drop nearby text. Hiding the photo is safer for this system (and standard for US applications).'
-        : 'The image itself is ignored, but keep important text away from it.',
+      title: tx('ats.sim.photo.title'),
+      detail: tx(w.photo >= 10 ? 'ats.sim.photo.risk' : 'ats.sim.photo.ok'),
     })
     penalty += w.photo
   }
@@ -219,10 +229,8 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   if (headingIssues > 0 && w.heading > 0) {
     findings.push({
       severity: w.heading >= 8 ? 'risk' : 'minor',
-      title: 'Non-standard section headings',
-      detail: w.heading >= 8
-        ? 'This system routes content by recognising headings like "Experience", "Education" and "Skills". Custom or renamed headings may land in the wrong field — keep at least the core sections named conventionally.'
-        : 'Custom headings are mostly fine here, but the core sections read best with conventional names.',
+      title: tx('ats.sim.heading.title'),
+      detail: tx(w.heading >= 8 ? 'ats.sim.heading.risk' : 'ats.sim.heading.ok'),
     })
     penalty += w.heading
   }
@@ -231,8 +239,8 @@ function baseFindings(sig: Signals, w: { twoCol: number; photo: number; heading:
   if (sig.fancyBullets && (w.special ?? 0) > 0) {
     findings.push({
       severity: 'minor',
-      title: 'Decorative bullet markers',
-      detail: 'The exported text stays clean, but strict literal-matching parsers occasionally keep the glyph. A plain disc/dash bullet is the most bulletproof.',
+      title: tx('ats.sim.bullets.title'),
+      detail: tx('ats.sim.bullets.detail'),
     })
     penalty += w.special ?? 0
   }
@@ -260,37 +268,52 @@ function verdictFor(score: number): 'clean' | 'minor' | 'risk' {
   return 'risk'
 }
 
-export function simulateAts(doc: ResumeDocument): AtsProfileReport[] {
+export function simulateAts(doc: ResumeDocument, locale: Locale = 'en'): AtsProfileReport[] {
   const sig = collectSignals(doc)
   const reports: AtsProfileReport[] = []
+  const tx: Tx = (key, vars) => translate(locale, key, vars)
 
-  const build = (id: string, name: string, blurb: string, w: { twoCol: number; photo: number; heading: number; special?: number }, extra?: Finding[]) => {
-    const { findings, penalty } = baseFindings(sig, w)
+  const build = (id: string, name: string, blurbKey: MsgKey, w: { twoCol: number; photo: number; heading: number; special?: number }, extra?: Finding[]) => {
+    const { findings, penalty } = baseFindings(sig, w, tx)
+    const blurb = tx(blurbKey)
     const all = [...findings, ...(extra ?? [])]
     const score = Math.max(0, Math.min(100, 100 - penalty))
     // roles are "scrambled" only when two-column AND this parser is order-sensitive
     const scrambled = sig.twoColumn && w.twoCol >= 12
-    if (all.length === 0) all.push({ severity: 'ok', title: 'Parses cleanly', detail: 'No structural risks detected for this system — your content maps to the expected fields.' })
+    if (all.length === 0)
+      all.push({
+        severity: 'ok',
+        title: tx('ats.sim.clean.title'),
+        detail: tx('ats.sim.clean.detail'),
+      })
     reports.push({ id, name, blurb, score, verdict: verdictFor(score), findings: all, extracted: extractedFor(sig, scrambled) })
   }
 
   // Workday — field-mapping; heading-sensitive, tolerant of columns, ignores photos.
-  build('workday', 'Workday', 'Maps text into structured fields; leans on standard section headings.', { twoCol: 6, photo: 0, heading: 9 })
+  build('workday', 'Workday', 'ats.sim.workday', { twoCol: 6, photo: 0, heading: 9 })
 
   // Greenhouse — clean parser, no auto-score; the most forgiving on layout.
-  build('greenhouse', 'Greenhouse', 'Parses cleanly and does not auto-score — clarity matters more than keywords.', { twoCol: 3, photo: 0, heading: 3 }, [
-    { severity: 'ok', title: 'No automated ranking', detail: 'Greenhouse does not auto-score resumes, so keyword-stuffing gains nothing here — a clean, readable structure is what counts.' },
+  build('greenhouse', 'Greenhouse', 'ats.sim.greenhouse', { twoCol: 3, photo: 0, heading: 3 }, [
+    {
+      severity: 'ok',
+      title: tx('ats.sim.greenhouse.title'),
+      detail: tx('ats.sim.greenhouse.detail'),
+    },
   ])
 
   // Lever — keyword-driven; reads linear order; skills text matters.
-  build('lever', 'Lever', 'Keyword-driven and reads the document in linear order.', { twoCol: 8, photo: 0, heading: 5 })
+  build('lever', 'Lever', 'ats.sim.lever', { twoCol: 8, photo: 0, heading: 5 })
 
   // Taleo — legacy, strict; the harshest on columns, graphics and glyphs.
-  build('taleo', 'Taleo', 'Legacy, strict literal matching — the least forgiving of layout and graphics.', { twoCol: 16, photo: 12, heading: 8, special: 5 })
+  build('taleo', 'Taleo', 'ats.sim.taleo', { twoCol: 16, photo: 12, heading: 8, special: 5 })
 
   // iCIMS — ML/semantic; the most layout-tolerant.
-  build('icims', 'iCIMS', 'ML/semantic matching — layout-tolerant and good with synonyms.', { twoCol: 4, photo: 0, heading: 3 }, [
-    { severity: 'ok', title: 'Semantic matching', detail: 'iCIMS understands synonyms, so exact keyword phrasing matters less — but the skills still need to appear as text to be captured.' },
+  build('icims', 'iCIMS', 'ats.sim.icims', { twoCol: 4, photo: 0, heading: 3 }, [
+    {
+      severity: 'ok',
+      title: tx('ats.sim.icims.title'),
+      detail: tx('ats.sim.icims.detail'),
+    },
   ])
 
   return reports

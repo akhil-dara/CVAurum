@@ -18,6 +18,7 @@ import { documentScript } from '@/lib/script'
 import { offeredFonts } from '@/lib/rtlSetup'
 import { usePopoverA11y } from './popoverA11y'
 import { usePhotoPicker } from '@/components/editor/usePhotoPicker'
+import { useLabel } from '@/i18n/labels'
 
 /** Curated accent palette — enough range for any industry, all print-safe. */
 const ACCENTS = [
@@ -261,6 +262,9 @@ export function wantsSheet() {
 }
 
 export function HeaderGear({ doc, editMeta, variant }: { doc: ResumeDocument; editMeta: MetaEditFn; variant?: string }) {
+  // The pill on the canvas says "Style" in the reader's language; the
+  // popover it opens keeps its own words for now.
+  const L = useLabel()
   const [open, setOpen] = useState(false)
   const [top, setTop] = useState(0)
   // The room left under `top`. The panel used to cap its height at the whole
@@ -324,10 +328,10 @@ export function HeaderGear({ doc, editMeta, variant }: { doc: ResumeDocument; ed
         contentEditable={false}
         onMouseDown={(e) => e.preventDefault()}
         onClick={openPopover}
-        title="Header style"
-        aria-label="Header style"
+        title={L('Header style')}
+        aria-label={L('Header style')}
       >
-        <Settings2 /> Style
+        <Settings2 /> {L('Style')}
       </button>
       {open &&
         createPortal(

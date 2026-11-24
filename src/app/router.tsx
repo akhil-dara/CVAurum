@@ -4,6 +4,7 @@ import { RootLayout } from './RootLayout'
 import { Landing } from '@/routes/Landing'
 import { NotFound } from '@/routes/NotFound'
 import { GUIDES } from '@/data/guides'
+import { useT } from '@/i18n'
 
 const RELOAD_KEY = 'cvaurum:chunk-reload'
 
@@ -68,6 +69,7 @@ function Loader() {
 }
 
 function FailedToLoad() {
+  const t = useT()
   const reload = () => {
     sessionStorage.removeItem(RELOAD_KEY)
     window.location.reload()
@@ -80,13 +82,10 @@ function FailedToLoad() {
   }, [])
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center text-foreground">
-      <h1 className="text-lg font-semibold">This part didn’t load</h1>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        A piece of the app failed to download — usually a network hiccup or a fresh update. Reloading fixes it. Your saved
-        resumes are safe in this browser.
-      </p>
+      <h1 className="text-lg font-semibold">{t('err.title')}</h1>
+      <p className="max-w-sm text-sm text-muted-foreground">{t('err.body')}</p>
       <button className="btn-primary" onClick={reload}>
-        Reload
+        {t('err.reload')}
       </button>
     </div>
   )

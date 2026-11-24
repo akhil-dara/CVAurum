@@ -24,9 +24,12 @@ import { HoverZoom } from '@/components/preview/HoverZoom'
 import { PAGE_THUMB_WIDTH } from '@/data/pageThumbs'
 import type { ResumeContent } from '@/types/document'
 import { ThumbSkeleton } from '@/components/preview/ThumbSkeleton'
+import { useLabel } from '@/i18n/labels'
+import { useT } from '@/i18n'
 
 /** Create/import a resume and land the user in the editor. */
 export function useResumeActions() {
+  const t = useT()
   const navigate = useNavigate()
   const refreshLibrary = useAppStore((s) => s.refreshLibrary)
   const toast = useAppStore((s) => s.toast)
@@ -74,7 +77,7 @@ export function useResumeActions() {
       navigate(`/resume/${doc.id}`)
     } catch (e) {
       console.error(e)
-      toast('Could not import that file. Expecting JSON Resume format.', 'error')
+      toast(t('new.importFailed'), 'error')
     }
   }
 
@@ -84,7 +87,7 @@ export function useResumeActions() {
   const openImported = async (doc: ResumeDocument, opts: { openAts?: boolean; ocr?: boolean } = {}) => {
     await saveDoc(doc)
     await refreshLibrary()
-    toast(opts.ocr ? 'Imported via OCR — please review the fields closely' : 'Imported from PDF — review and tidy the fields', 'success')
+    toast(t(opts.ocr ? 'new.importedOcr' : 'new.importedPdf'), 'success')
     if (opts.openAts) {
       useEditorStore.getState().setLeftTab('ats')
       useEditorStore.getState().setLeftOpen(true)
@@ -97,7 +100,7 @@ export function useResumeActions() {
    *  where the reason someone dropped a PDF was to see what a parser reads. */
   const importPdf = async (file?: File, opts: { openAts?: boolean } = {}) => {
     if (!file) return
-    toast('Reading your PDF — all on your device…', 'info')
+    toast(t('new.readingPdf'), 'info')
     try {
       const { importResumeFromPdf } = await import('@/lib/import')
       let announcedOcr = false
@@ -107,7 +110,7 @@ export function useResumeActions() {
         onOcrProgress: () => {
           if (!announcedOcr) {
             announcedOcr = true
-            toast('Looks scanned — reading it with on-device OCR (a few seconds)…', 'info')
+            toast(t('new.scanReading'), 'info')
           }
         },
       })
@@ -115,9 +118,7 @@ export function useResumeActions() {
       const empty = !content.basics.name && !content.basics.email && !content.work.length && !content.education.length && !content.skills.length
       if (meta.chars < 30 || empty) {
         toast(
-          meta.ocrEngineFailed
-            ? "The on-device text-recognition engine couldn't start (offline or blocked by the browser). Reload the page and try again — or use a text-based PDF."
-            : "Couldn't read this PDF, even with OCR — the scan may be very low quality. Try a sharper scan or a text-based PDF.",
+          meta.ocrEngineFailed ? t('new.ocrFailed') : t('new.pdfUnreadable'),
           'error',
         )
         return
@@ -127,12 +128,12 @@ export function useResumeActions() {
         content,
         sample: true, // lay out exactly the sections we found
         fitted: false, // and print at the size set, like any resume not started from a picture
-        title: name ? `${name} — Resume` : 'Imported resume',
+        title: name ? `${name} — ${t('new.resumeWord')}` : t('new.importedTitle'),
       })
       await openImported(doc, { ...opts, ocr: meta.ocrPages.length > 0 })
     } catch (e) {
       console.error(e)
-      toast('Could not read that PDF. Please try another file, or a text-based PDF.', 'error')
+      toast(t('new.pdfReadFailed'), 'error')
     }
   }
 
@@ -140,6 +141,7 @@ export function useResumeActions() {
 }
 
 export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onClose }: { onBlank: () => void; onExample: () => void; onImport: () => void; onImportPdf?: () => void; onClose: () => void }) {
+  const t = useT()
   // A dialog to a keyboard and a screen reader too: it had no role, no
   // Escape and left focus behind it on the page (SamplePicker had all three).
   const panelRef = useRef<HTMLDivElement>(null)
@@ -156,24 +158,24 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
         className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-float outline-none"
       >
         <div className="mb-1 flex items-center justify-between">
-          <h2 id="new-resume-title" className="text-lg font-semibold">Create a resume</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Close">
+          <h2 id="new-resume-title" className="text-lg font-semibold">{t('new.title')}</h2>
+          <button className="btn-icon" onClick={onClose} aria-label={t('ui.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="mb-5 text-sm text-muted-foreground">Start from a clean slate, or from a filled-in example you can edit.</p>
+        <p className="mb-5 text-sm text-muted-foreground">{t('new.body')}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <ChooserCard
             icon={<FilePlus2 className="h-6 w-6" />}
-            title="Blank resume"
-            body="A clean slate with the core sections ready to fill in."
+            title={t('new.blank')}
+            body={t('new.blankBody')}
             onClick={onBlank}
             primary
           />
           <ChooserCard
             icon={<FileText className="h-6 w-6" />}
-            title="From an example"
-            body="A complete sample resume — just swap in your details."
+            title={t('new.example')}
+            body={t('new.exampleBody')}
             onClick={onExample}
           />
         </div>
@@ -182,15 +184,15 @@ export function NewResumeModal({ onBlank, onExample, onImport, onImportPdf, onCl
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/5 py-2.5 text-sm font-medium text-primary transition hover:border-primary hover:bg-primary/10"
             onClick={onImportPdf}
           >
-            <FileUp className="h-4 w-4" /> Import your existing PDF resume
+            <FileUp className="h-4 w-4" /> {t('new.importPdf')}
           </button>
         )}
-        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">Parsed entirely in your browser — your resume is never uploaded.</p>
+        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">{t('new.parsed')}</p>
         <button
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2 text-xs text-muted-foreground transition hover:border-primary hover:text-primary"
           onClick={onImport}
         >
-          <FileUp className="h-3.5 w-3.5" /> or import a JSON Resume file
+          <FileUp className="h-3.5 w-3.5" /> {t('new.importJson')}
         </button>
       </div>
     </div>,
@@ -226,6 +228,8 @@ export interface PickedSample {
  * them) would otherwise carry them all.
  */
 export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) => void; onClose: () => void }) {
+  const t = useT()
+  const L = useLabel()
   const [library, setLibrary] = useState<readonly LibrarySample[] | null>(null)
   /** Where each sample's page picture lives, and what to call it — loaded WITH
    *  the library rather than imported at the top of this file, because
@@ -277,18 +281,17 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Pick a starting example"
+        aria-label={t('sample.title')}
         className="relative z-10 flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-border bg-surface p-4 shadow-float sm:p-6"
       >
         <div className="mb-1 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Pick a starting example</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Close">
+          <h2 className="text-lg font-semibold">{t('sample.title')}</h2>
+          <button className="btn-icon" onClick={onClose} aria-label={t('ui.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">
-          A complete resume for that job, written out in full — swap in your details, switch designs anytime. Everything
-          in one is invented.
+          {t('sample.body')}
         </p>
 
         <div className="mb-3 space-y-2.5">
@@ -299,8 +302,8 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search a job title, a skill, a field…"
-              aria-label="Search the examples"
+              placeholder={t('sample.search')}
+              aria-label={t('sample.searchAria')}
               className="input h-9 w-full ps-9 pe-3 text-sm"
             />
           </label>
@@ -312,7 +315,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
           >
             <span className="inline-flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4" />
-              Fields
+              {t('sample.fields')}
               {categories.length > 0 && (
                 <span className="rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary">
                   {categories.length}
@@ -337,7 +340,7 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
                       : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
                   )}
                 >
-                  {CATEGORY_LABELS[c]}
+                  {L(CATEGORY_LABELS[c])}
                 </button>
               )
             })}
@@ -346,22 +349,24 @@ export function SamplePicker({ onPick, onClose }: { onPick: (p: PickedSample) =>
 
         <div className="mb-2 flex items-center justify-between gap-3 border-t border-border pt-2.5">
           <p className="text-xs text-muted-foreground" aria-live="polite">
-            {library ? `${shown.length} of ${library.length} examples` : 'Loading the examples…'}
+            {library
+              ? t('sample.count', { shown: shown.length, total: library.length })
+              : t('sample.loading')}
           </p>
           <Link
             to="/examples"
             onClick={onClose}
             className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
           >
-            Read them in full <ArrowRight className="h-3 w-3" />
+            {t('sample.readFull')} <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
 
         {library && shown.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-6 py-14 text-center">
-            <p className="text-sm font-medium">No example matches that</p>
+            <p className="text-sm font-medium">{t('sample.noneTitle')}</p>
             <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">
-              Try the job title on its own, or clear the field chips.
+              {t('sample.noneBody')}
             </p>
           </div>
         ) : (

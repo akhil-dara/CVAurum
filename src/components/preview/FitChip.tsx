@@ -4,6 +4,8 @@ import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
 import { fitSizesPt, shrinkWords } from '@/lib/fitReadout'
+import { useT } from '@/i18n'
+import { fill } from '@/i18n/fill'
 
 /** Opens the Design panel at the Magic fit card, from anywhere. */
 export function openMagicFit() {
@@ -30,21 +32,26 @@ export const CHIP =
  * (fitSuggest.ts suggestFitOn).
  */
 export function FitChip({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const result = useEditorStore((s) => s.fitResult)
   const offers = useEditorStore((s) => s.fitOffers)
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const toast = useAppStore((s) => s.toast)
   const on = doc.metadata.page.autoFit
   const setPt = doc.metadata.typography.fontSize
-  const pages = result ? `${result.pages} page${result.pages === 1 ? '' : 's'}` : ''
+  const pages = result
+    ? `${result.pages} ${t(result.pages === 1 ? 'chip.page' : 'chip.pages')}`
+    : ''
 
   if (!on) {
     const fitOn = offers.find((o) => o.id.startsWith('fit-on-'))
     return (
       <>
-        <button type="button" data-testid="fit-chip" onClick={openMagicFit} title="Open Magic fit" className={CHIP}>
+        <button type="button" data-testid="fit-chip" onClick={openMagicFit} title={t('chip.openMagicFit')} className={CHIP}>
           <Wand2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-          <span className="whitespace-nowrap">{result ? `${pages} · text ${pt(setPt)}` : `Text ${pt(setPt)}`}</span>
+          <span className="whitespace-nowrap">
+            {result ? fill(t('chip.fits'), { pages, pt: pt(setPt) }) : fill(t('chip.text'), { pt: pt(setPt) })}
+          </span>
         </button>
         {fitOn && (
           <button
@@ -76,8 +83,8 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
         onClick={openMagicFit}
         title={
           shrunk
-            ? `Magic fit made the text smaller to fit: it prints at ${pt(body)}; you set ${pt(setPt)}. Open Magic fit.`
-            : 'Open Magic fit'
+            ? fill(t('chip.shrunkTitle'), { body: pt(body), set: pt(setPt) })
+            : t('chip.openMagicFit')
         }
         className={CHIP}
       >
@@ -86,16 +93,16 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
           {/* Out of reach is said once, as what is true: "Fits 2 pages ·
               won't fit" contradicted itself (critique round 3). */}
           {!result
-            ? 'Magic fit'
+            ? t('chip.magicFit')
             : short
-              ? `${pages} · ${doc.metadata.page.fit.target} page${doc.metadata.page.fit.target === 1 ? '' : 's'} out of reach`
+              ? fill(t('chip.outOfReach'), { pages, target: doc.metadata.page.fit.target })
             : shrunk
               ? <>Fits {pages} · <span className={`phone:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{said.words} ({pt(body)})</span><span className={`desk:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{pt(body)}</span></>
-              : `Fits ${pages} · text ${pt(body)}`}
+              : fill(t('chip.fits'), { pages, pt: pt(body) })}
         </span>
         {offers.length > 0 && (
           <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
-            {offers.length} {offers.length === 1 ? 'move' : 'moves'}
+            {offers.length} {t(offers.length === 1 ? 'chip.move' : 'chip.moves')}
           </span>
         )}
       </button>

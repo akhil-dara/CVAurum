@@ -56,6 +56,15 @@ describe('the bundled PDF fonts', () => {
       }
     }
   })
+  it('the Arabic family draws Persian at every weight it ships', () => {
+    // Persian letters come from this face whatever the resume is set in, so the
+    // painter can only keep that promise if the bundled files carry them.
+    const PERSIAN = 'علی رضایی مهندس نرم‌افزار ۱۴۰۰ تاکنون'
+    const keys = Object.keys(INDEX).filter((k) => k.startsWith('vazirmatn|'))
+    expect(keys.length, 'Vazirmatn ships static fonts').toBeGreaterThan(0)
+    for (const key of keys) expect(covers(load(INDEX[key]), PERSIAN), `${key} Persian`).toBe(true)
+  })
+
   it('most families draw Cyrillic on their own now, and none lost its Latin', () => {
     let cyrillic = 0
     // Two faces Google ships without Latin Extended-A/B letters (Volkhov has

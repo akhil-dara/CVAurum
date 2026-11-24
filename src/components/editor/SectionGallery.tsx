@@ -4,18 +4,23 @@ import { X, Plus } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { getTemplate } from '@/templates/registry'
 import { SectionPreview } from '@/templates/_shared/Artboard'
-import { DEFAULT_LABELS } from '@/lib/sections'
+import { sectionLabel } from '@/lib/sections'
 import { PREVIEW_CONTENT } from '@/data/previewSections'
+import { useLabel } from '@/i18n/labels'
+import { useT } from '@/i18n'
 
-/** Ready-made custom-section ideas — one click creates a pre-named section. */
+/** Ready-made custom-section ideas — one click creates a pre-named section.
+ *  The name becomes the section's own heading, so it is written in the
+ *  interface's language: a Persian shelf should not put "Key Achievements"
+ *  on a Persian resume. */
 const CUSTOM_STARTERS = [
-  'Key Achievements',
-  'Strengths',
-  'Courses & Training',
-  'Conferences & Talks',
-  'Extracurriculars',
-  'Portfolio',
-]
+  'gallery.starter.achievements',
+  'gallery.starter.strengths',
+  'gallery.starter.courses',
+  'gallery.starter.conferences',
+  'gallery.starter.extracurriculars',
+  'gallery.starter.portfolio',
+] as const
 
 /**
  * The "Add a section" gallery. Each card renders a live preview of the
@@ -35,6 +40,8 @@ export function SectionGallery({
   onAddCustom: (name?: string) => void
   onClose: () => void
 }) {
+  const t = useT()
+  const L = useLabel()
   const config = getTemplate(doc.metadata.template)
   const pageBg = doc.metadata.theme.background || '#ffffff'
   const previewDoc: ResumeDocument = {
@@ -61,10 +68,10 @@ export function SectionGallery({
       <div className="relative z-10 flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-float">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
           <div>
-            <h2 className="text-base font-semibold">Add a section</h2>
-            <p className="text-xs text-muted-foreground">Click to add — each preview uses your current template.</p>
+            <h2 className="text-base font-semibold">{t('gallery.addSection')}</h2>
+            <p className="text-xs text-muted-foreground">{t('gallery.addBody')}</p>
           </div>
-          <button className="btn-icon" onClick={onClose} aria-label="Close">
+          <button className="btn-icon" onClick={onClose} aria-label={t('ui.close')}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -84,7 +91,7 @@ export function SectionGallery({
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12" style={{ background: `linear-gradient(to top, ${pageBg}, transparent)` }} />
               </div>
               <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
-                <span className="truncate text-sm font-semibold text-foreground">{DEFAULT_LABELS[key] ?? key}</span>
+                <span className="truncate text-sm font-semibold text-foreground">{L(sectionLabel(key, doc))}</span>
                 {PlusBadge}
               </div>
             </button>
@@ -92,21 +99,21 @@ export function SectionGallery({
 
           <div className="group flex flex-col overflow-hidden rounded-xl border border-dashed border-border bg-surface text-start">
             <div className="flex h-[152px] flex-col justify-center gap-2 border-b border-border bg-muted/30 px-3.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Popular ideas — one click</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('gallery.popular')}</span>
               <div className="flex flex-wrap gap-1.5">
                 {CUSTOM_STARTERS.map((n) => (
                   <button
                     key={n}
                     className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:bg-primary hover:text-white"
-                    onClick={() => onAddCustom(n)}
+                    onClick={() => onAddCustom(t(n))}
                   >
-                    {n}
+                    {t(n)}
                   </button>
                 ))}
               </div>
             </div>
             <button className="flex items-center justify-between gap-2 px-3.5 py-2.5 transition hover:bg-muted/40" onClick={() => onAddCustom()}>
-              <span className="truncate text-sm font-semibold text-foreground">Custom section — your own heading & items</span>
+              <span className="truncate text-sm font-semibold text-foreground">{t('gallery.customSection')}</span>
               {PlusBadge}
             </button>
           </div>

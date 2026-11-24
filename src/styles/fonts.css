@@ -7667,7 +7667,14 @@
    when Cormorant / Inter replaced Georgia / Arial. The overrides are the web
    face's own metrics over a letter-frequency-weighted advance ratio, the
    method next/font and Fontaine use (scratchpad fallback_metrics.py). Where
-   the local face is missing (Linux, Android) the rule simply finds nothing. */
+   the local face is missing (Linux, Android) the rule simply finds nothing.
+
+   Each one is limited to Latin (the range the web face's own Latin subset
+   declares). Without the range the stand-in claims EVERY character, and since
+   Arial and Georgia carry Arabic letters it drew Persian text itself: the
+   interface's stack never reached the bundled Persian face, so a Persian
+   sentence in a section field or a heading came out in Arial while the same
+   sentence on the resume canvas came out in Vazirmatn (2026-11-16 report). */
 @font-face {
   font-family: 'Cormorant Fallback';
   src: local('Georgia');
@@ -7675,6 +7682,8 @@
   ascent-override: 104.55%;
   descent-override: 32.47%;
   line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Inter Fallback';
@@ -7683,4 +7692,6 @@
   ascent-override: 90.27%;
   descent-override: 22.48%;
   line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }

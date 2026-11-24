@@ -8,6 +8,9 @@ import { useMemo, useState } from 'react'
 import { ScanSearch, Check, AlertTriangle, XCircle, CircleCheck, Sparkles } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { simulateAts, worstAtsScore, type Severity } from '@/lib/atsSimulate'
+import { useLocale, useT } from '@/i18n'
+import { fill } from '@/i18n/fill'
+import { useLabel } from '@/i18n/labels'
 
 const VERDICT_RING: Record<string, string> = {
   clean: 'hsl(var(--success))',
@@ -31,7 +34,10 @@ function Field({ ok, warn, label }: { ok: boolean; warn?: boolean; label: string
 }
 
 export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
-  const reports = useMemo(() => simulateAts(doc), [doc])
+  const t = useT()
+  const locale = useLocale()
+  const L = useLabel()
+  const reports = useMemo(() => simulateAts(doc, locale), [doc, locale])
   const worst = worstAtsScore(reports)
   // Default to the weakest system — it's the one that gates you.
   const worstId = useMemo(() => reports.reduce((a, b) => (b.score < a.score ? b : a), reports[0]).id, [reports])
@@ -42,14 +48,15 @@ export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <ScanSearch className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold">How 5 systems parse this</h3>
+        <h3 className="text-sm font-semibold">{fill(t('ats.simTitle'), { n: reports.length })}</h3>
         <span className="ms-auto inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          <Sparkles className="h-3 w-3" /> on-device
+          <Sparkles className="h-3 w-3" /> {t('ats.onDevice')}
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        A deterministic simulation of how major ATS platforms read your resume. The weakest one gates you — it currently scores{' '}
-        <span className="font-semibold" style={{ color: worst >= 85 ? VERDICT_RING.clean : worst >= 65 ? VERDICT_RING.minor : VERDICT_RING.risk }}>{worst}</span>.
+        {t('ats.simBodyBefore')}
+        <span className="font-semibold" style={{ color: worst >= 85 ? VERDICT_RING.clean : worst >= 65 ? VERDICT_RING.minor : VERDICT_RING.risk }}>{worst}</span>
+        {t('ats.simBodyAfter')}
       </p>
 
       {/* system selector */}
@@ -61,7 +68,7 @@ export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
               key={r.id}
               onClick={() => setSel(r.id)}
               className={`flex flex-col items-center gap-1 rounded-lg border px-1 py-2 transition ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}`}
-              title={`${r.name} — parse score ${r.score}`}
+              title={fill(t('ats.parseScoreTitle'), { name: r.name, score: r.score })}
             >
               <span className="text-[11px] font-semibold leading-none">{r.name}</span>
               <span className="text-sm font-bold tabular-nums" style={{ color: VERDICT_RING[r.verdict] }}>{r.score}</span>
@@ -76,15 +83,25 @@ export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
 
         {/* extracted profile */}
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Profile it extracts</p>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('ats.profileExtracts')}
+          </p>
           <div className="flex flex-wrap gap-1">
-            <Field ok={active.extracted.name} label="Name" />
-            <Field ok={active.extracted.title} label="Title" />
-            <Field ok={active.extracted.email} label="Email" />
-            <Field ok={active.extracted.phone} label="Phone" />
-            <Field ok={active.extracted.location} label="Location" />
-            <Field ok={active.extracted.roles > 0} warn={active.extracted.rolesScrambled} label={`${active.extracted.roles} role${active.extracted.roles === 1 ? '' : 's'}${active.extracted.rolesScrambled ? ' (order risk)' : ''}`} />
-            <Field ok={active.extracted.skills > 0} warn={active.extracted.skillsLost > 0} label={`${active.extracted.skills} skill${active.extracted.skills === 1 ? '' : 's'}${active.extracted.skillsLost ? ` (${active.extracted.skillsLost} lost)` : ''}`} />
+            <Field ok={active.extracted.name} label={L('Name')} />
+            <Field ok={active.extracted.title} label={L('Title')} />
+            <Field ok={active.extracted.email} label={L('Email')} />
+            <Field ok={active.extracted.phone} label={L('Phone')} />
+            <Field ok={active.extracted.location} label={L('Location')} />
+            <Field
+              ok={active.extracted.roles > 0}
+              warn={active.extracted.rolesScrambled}
+              label={`${active.extracted.roles === 1 ? t('ats.roleOne') : fill(t('ats.roles'), { n: active.extracted.roles })}${active.extracted.rolesScrambled ? t('ats.roleOrderRisk') : ''}`}
+            />
+            <Field
+              ok={active.extracted.skills > 0}
+              warn={active.extracted.skillsLost > 0}
+              label={`${active.extracted.skills === 1 ? t('ats.skillOne') : fill(t('ats.skills'), { n: active.extracted.skills })}${active.extracted.skillsLost ? fill(t('ats.skillsLost'), { n: active.extracted.skillsLost }) : ''}`}
+            />
           </div>
         </div>
 
@@ -104,9 +121,7 @@ export function AtsSimulator({ doc }: { doc: ResumeDocument }) {
           })}
         </div>
       </div>
-      <p className="text-[11px] leading-snug text-muted-foreground">
-        Honest approximations for guidance — not a claim about any vendor's current internals. Verify the extracted text in “What an ATS sees”.
-      </p>
+      <p className="text-[11px] leading-snug text-muted-foreground">{t('ats.sim.footnote')}</p>
     </div>
   )
 }

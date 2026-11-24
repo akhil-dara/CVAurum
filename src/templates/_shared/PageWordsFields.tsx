@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { Segmented, Toggle } from '@/components/editor/fields/Controls'
 import { pageFootText, type PageNumberStyle } from '@/lib/pageWords'
+import { translate, type Locale } from '@/i18n/core'
+import { useLocale, useT } from '@/i18n'
 
 type EditMeta = (recipe: (m: Metadata) => void) => void
 
@@ -27,6 +29,7 @@ const FOOT_MAX = 60
  * defaults" puts the document's own words back.
  */
 export function KickerFields({ doc, editMeta, compact }: { doc: ResumeDocument; editMeta: EditMeta; compact?: boolean }) {
+  const t = useT()
   const k = doc.metadata.layout.kicker
   const shown = k?.show !== false
   const defaults = kickerWords(undefined, doc.content.basics, furnitureYear(doc.updatedAt))
@@ -69,13 +72,13 @@ export function KickerFields({ doc, editMeta, compact }: { doc: ResumeDocument; 
                 })
               }
             >
-              Use the defaults
+              {t('foot.useDefaults')}
             </button>
           ) : null}
         </>
       ) : null}
       <p className="text-[11px] text-muted-foreground">
-        Decoration only — your own words, never read by an ATS. Empty a side to leave it blank.
+        {t('foot.kickerNote')}
       </p>
     </div>
   )
@@ -104,16 +107,18 @@ export function FootFields({
   pages?: number
   onRemove?: () => void
 }) {
+  const t = useT()
+  const locale = useLocale()
   const l = doc.metadata.layout
   const style = l.pageFootNumber ?? 'slash'
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <label className="label">Words</label>
+        <label className="label">{t('foot.words')}</label>
         <FootLabelField doc={doc} editMeta={editMeta} />
       </div>
       <div>
-        <label className="label">Page number</label>
+        <label className="label">{t('foot.pageNumber')}</label>
         <Segmented
           value={style}
           options={NUMBER_OPTIONS}
@@ -126,11 +131,11 @@ export function FootFields({
           }
         />
         <p className="mt-1 text-[11px] text-muted-foreground" data-foot-number-status="">
-          {footNumberStatus(style, pages)}
+          {footNumberStatus(style, pages, locale)}
         </p>
       </div>
       <div>
-        <label className="label">Place</label>
+        <label className="label">{t('foot.place')}</label>
         <Segmented
           value={l.pageFootAlign ?? 'split'}
           options={[
@@ -153,10 +158,10 @@ export function FootFields({
           })
         }
       />
-      <p className="text-[11px] text-muted-foreground">Decoration only: an ATS never reads the foot.</p>
+      <p className="text-[11px] text-muted-foreground">{t('foot.decoration')}</p>
       {onRemove ? (
         <button type="button" className="btn-ghost h-9 justify-center text-danger phone:h-11" onClick={onRemove}>
-          Remove the foot
+          {t('foot.remove')}
         </button>
       ) : null}
     </div>
@@ -164,10 +169,14 @@ export function FootFields({
 }
 
 /** Whether - and how - this resume prints its page numbers, in words. */
-export function footNumberStatus(style: PageNumberStyle, pages?: number): string {
-  if (style === 'none') return 'No page number.'
-  if (!pages || pages < 2) return 'One page, so no number prints yet. It appears on every page once there is a second.'
-  return `Prints on all ${pages} pages: ${pageFootText(1, pages, style)} … ${pageFootText(pages, pages, style)}.`
+export function footNumberStatus(style: PageNumberStyle, pages?: number, locale: Locale = 'en'): string {
+  if (style === 'none') return translate(locale, 'foot.noneNumber')
+  if (!pages || pages < 2) return translate(locale, 'foot.onePage')
+  return translate(locale, 'foot.allPages', {
+    pages,
+    first: pageFootText(1, pages, style),
+    last: pageFootText(pages, pages, style),
+  })
 }
 
 /** The words at the left of the foot: the name until the author writes
@@ -176,11 +185,12 @@ export function FootLabelField({ doc, editMeta }: { doc: ResumeDocument; editMet
   const label = doc.metadata.layout.pageFootLabel
   // What is being typed: an emptied field is a word being retyped, not the
   // words removed - that happens on leaving it empty, or on the cross.
+  const t = useT()
   const [draft, setDraft] = useState<string | null>(null)
   if (label === '') {
     return (
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-muted-foreground">None - the number stands alone</span>
+        <span className="text-sm text-muted-foreground">{t('foot.noLabel')}</span>
         <button
           type="button"
           className="text-[11px] font-medium text-primary hover:underline"
@@ -190,7 +200,7 @@ export function FootLabelField({ doc, editMeta }: { doc: ResumeDocument; editMet
             })
           }
         >
-          Add your name
+          {t('foot.addName')}
         </button>
       </div>
     )
@@ -243,7 +253,7 @@ export function FootLabelField({ doc, editMeta }: { doc: ResumeDocument; editMet
             })
           }
         >
-          Use your name
+          {t('foot.useYourName')}
         </button>
       ) : null}
     </div>

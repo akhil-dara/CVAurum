@@ -32,6 +32,7 @@ import { NewResumeModal, SamplePicker, useResumeActions } from '@/components/das
 import { PROMPTS, PROMPTS_INTRO, SCHEMA_DOC, SITE, promptsPageMeta, type PromptEntry } from '@/lib/seoPages'
 import { useSeo } from '@/lib/useSeo'
 import { cn } from '@/lib/utils'
+import { useLocale, useT } from '@/i18n'
 
 /** How long the button says "Copied" before going back to "Copy". */
 const COPIED_MS = 1800
@@ -69,6 +70,8 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 export function Prompts() {
+  const t = useT()
+  const locale = useLocale()
   const meta = promptsPageMeta()
   useSeo({
     title: meta.title,
@@ -143,9 +146,11 @@ export function Prompts() {
               text-3xl this heading took three lines and 120px of the first
               screen before a word of instruction. */}
           <h1 className="text-[1.6rem] font-semibold leading-[1.15] tracking-tight sm:text-[2.4rem] sm:leading-[1.12]">
-            {PROMPTS.length} prompts for your AI assistant
+            {t('pr.title', { n: PROMPTS.length })}
           </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-foreground">{PROMPTS_INTRO}</p>
+          <p className="mt-3 text-[15px] leading-relaxed text-foreground">
+            {locale === 'fa' ? t('pr.intro') : PROMPTS_INTRO}
+          </p>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
             {PROMPTS.map((p, i) => (
@@ -162,7 +167,7 @@ export function Prompts() {
           <PasteAnswer onImport={importFile} />
 
           <p className="mt-7 text-sm leading-relaxed text-muted-foreground">
-            Every prompt asks for{' '}
+            {t('pr.jsonBefore')}{' '}
             <a
               className="text-primary hover:underline"
               href="https://jsonresume.org/schema"
@@ -171,26 +176,24 @@ export function Prompts() {
             >
               JSON Resume
             </a>
-            , the open format this app reads and writes, and sends the assistant to{' '}
+            {t('pr.jsonMiddle')}{' '}
             <a className="text-primary hover:underline" href="/skills/cvaurum/SKILL.md">
-              the field list
+              {t('pr.fieldList')}
             </a>{' '}
-            rather than letting it guess.
+            {t('pr.jsonAfter')}
           </p>
 
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Nothing here is sent anywhere: the copying, the pasting and the import all happen in your browser. What you
-            type into someone else's assistant is between you and them — leave out anything you would not want stored
-            there, and put it in the editor instead.
+            {t('pr.privacy')}
           </p>
 
           <p className="mt-6 text-sm text-muted-foreground">
             <Link className="text-primary hover:underline" to="/templates">
-              Browse the designs
+              {t('pr.browseDesigns')}
             </Link>{' '}
             ·{' '}
             <Link className="text-primary hover:underline" to="/examples">
-              Read complete examples
+              {t('pr.readExamples')}
             </Link>{' '}
             ·{' '}
             <Link className="text-primary hover:underline" to={ALL_GUIDES_LINK.href}>
@@ -198,7 +201,7 @@ export function Prompts() {
             </Link>{' '}
             ·{' '}
             <a className="text-primary hover:underline" href={SCHEMA_DOC.replace(SITE, '')}>
-              The document shape, for an assistant
+              {t('pr.schema')}
             </a>
           </p>
         </div>
@@ -249,6 +252,7 @@ export function Prompts() {
  * this page is that the six prompts ARE its content.
  */
 function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: number; open: boolean; onToggle: () => void }) {
+  const t = useT()
   const [state, setState] = useState<'idle' | 'done' | 'failed'>('idle')
 
   useEffect(() => {
@@ -302,10 +306,10 @@ function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: numb
             'btn-primary mt-3.5 h-11 w-full sm:w-auto sm:px-6',
             state === 'done' && 'bg-success text-white'
           )}
-          aria-label={`Copy the prompt: ${prompt.title}`}
+          aria-label={t('pr.copyAria', { title: prompt.title })}
         >
           {state === 'done' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {state === 'done' ? 'Copied' : state === 'failed' ? 'Select it instead' : 'Copy this prompt'}
+          {state === 'done' ? t('pr.copied') : state === 'failed' ? t('pr.selectInstead') : t('pr.copy')}
         </button>
 
         <pre
@@ -318,7 +322,7 @@ function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: numb
         </pre>
 
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          <span className="font-medium text-foreground">What to do with the answer: </span>
+          <span className="font-medium text-foreground">{t('pr.afterLabel')} </span>
           {prompt.after}
         </p>
 
@@ -329,11 +333,11 @@ function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: numb
           className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
           <ArrowDown className="h-4 w-4" aria-hidden />
-          Paste the answer
+          {t('pr.pasteAnswer')}
         </a>
 
         <span aria-live="polite" className="sr-only">
-          {state === 'done' ? 'Prompt copied to the clipboard' : ''}
+          {state === 'done' ? t('pr.copiedLive') : ''}
         </span>
       </div>
     </section>
@@ -348,6 +352,7 @@ function PromptRow({ prompt, n, open, onToggle }: { prompt: PromptEntry; n: numb
  * being reimplemented and drifting.
  */
 function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<void> }) {
+  const t = useT()
   const [text, setText] = useState('')
   const trimmed = text.trim()
   // A fenced block pasted straight out of a chat window is the common case,
@@ -366,10 +371,10 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
     <section id={PASTE_ID} className="mt-6 scroll-mt-16 rounded-2xl border border-border bg-surface p-4 shadow-soft sm:p-5">
       <h2 className="inline-flex items-center gap-2 text-[15px] font-semibold text-foreground sm:text-lg">
         <ClipboardPaste className="h-4 w-4 text-primary" />
-        Paste the answer here
+        {t('pr.pasteTitle')}
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        It opens as a resume you can edit. Leaving the code fence on is fine.
+        {t('pr.pasteNote')}
       </p>
       <textarea
         value={text}
@@ -377,7 +382,7 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
         rows={5}
         spellCheck={false}
         placeholder={'{\n  "basics": { "name": "…" },\n  "work": [ … ]\n}'}
-        aria-label="The JSON Resume document your assistant produced"
+        aria-label={t('pr.pasteAria')}
         // `textarea`, not `input`: the latter is a fixed 36px row, which
         // squashed a five-row box down to one line and hid all but the first
         // brace of the placeholder.
@@ -385,7 +390,7 @@ function PasteAnswer({ onImport }: { onImport: (file?: File) => void | Promise<v
       />
       <button type="button" className="btn-primary mt-3 h-11 w-full sm:w-auto sm:px-6" disabled={!body} onClick={go}>
         <FileJson className="h-4 w-4" />
-        Open it as a resume
+        {t('pr.openIt')}
       </button>
     </section>
   )

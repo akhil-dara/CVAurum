@@ -33,6 +33,8 @@ import { ArrowUpRight, Check, Menu as MenuIcon, Moon, Sun, X } from 'lucide-reac
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import { siteMenuItems, type SiteMenuItem, type SiteMenuSection } from './siteNav'
+import { useLocale, useT } from '@/i18n'
+import { LanguageToggle } from '@/components/ui/LanguageToggle'
 
 const SHEET_ID = 'site-menu-sheet'
 const TITLE_ID = 'site-menu-title'
@@ -58,7 +60,15 @@ export function SiteMenuButton({
   const [open, setOpen] = useState(false)
   const button = useRef<HTMLButtonElement>(null)
   const library = useAppStore((s) => s.library)
-  const items = siteMenuItems({ current, repoUrl, libraryCount: library.length, canCreate: Boolean(onCreate) })
+  const locale = useLocale()
+  const t = useT()
+  const items = siteMenuItems({
+    current,
+    repoUrl,
+    libraryCount: library.length,
+    canCreate: Boolean(onCreate),
+    locale,
+  })
 
   return (
     <>
@@ -68,7 +78,7 @@ export function SiteMenuButton({
         // btn-ghost so the landing's hero bar, which repaints its ghost
         // buttons white, repaints this one too.
         className="btn-ghost -my-1 h-11 w-11 p-0 md:hidden"
-        aria-label={open ? 'Close menu' : 'Menu'}
+        aria-label={open ? t('nav.closeMenu') : t('nav.menu')}
         aria-expanded={open}
         aria-controls={SHEET_ID}
         onClick={() => setOpen((v) => !v)}
@@ -94,6 +104,7 @@ function SiteMenuSheet({
   restoreTo: RefObject<HTMLElement | null>
 }) {
   const panel = useRef<HTMLDivElement>(null)
+  const t = useT()
 
   // Focus goes in on open and comes back to the button on close — a reader who
   // opened this with a keyboard is otherwise dropped at the top of the page.
@@ -165,20 +176,23 @@ function SiteMenuSheet({
         aria-modal="true"
         aria-labelledby={TITLE_ID}
         tabIndex={-1}
-        className="absolute inset-y-0 right-0 flex w-[86%] max-w-sm flex-col border-l border-border bg-background shadow-float outline-none animate-slide-up"
+        // The sheet hangs on the inline-end edge (`end-0`, `border-s`): in a
+        // right-to-left interface it belongs on the left, with its hairline
+        // facing the page it covers.
+        className="absolute inset-y-0 end-0 flex w-[86%] max-w-sm flex-col border-s border-border bg-background shadow-float outline-none animate-slide-up"
       >
         {/* Same 60px as the header row it covers, so the close sits where the
             button that opened it was. */}
         <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-border ps-4 pe-2">
           <h2 id={TITLE_ID} className="text-sm font-semibold text-foreground">
-            Menu
+            {t('nav.menu')}
           </h2>
-          <button type="button" className="btn-ghost h-11 w-11 p-0" aria-label="Close menu" onClick={onClose}>
+          <button type="button" className="btn-ghost h-11 w-11 p-0" aria-label={t('nav.closeMenu')} onClick={onClose}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-2" aria-label="Site">
+        <nav className="flex-1 overflow-y-auto p-2" aria-label={t('nav.site')}>
           {items.map((item, i) => (
             <Fragment key={item.key}>
               {i > 0 && items[i - 1].group !== item.group && <div className="my-1.5 border-t border-border" />}
@@ -186,6 +200,7 @@ function SiteMenuSheet({
             </Fragment>
           ))}
           <div className="my-1.5 border-t border-border" />
+          <LanguageRow />
           <ThemeRow />
         </nav>
       </div>
@@ -200,13 +215,34 @@ function SiteMenuSheet({
 function ThemeRow() {
   const theme = useAppStore((s) => s.settings.theme)
   const update = useAppStore((s) => s.updateSettings)
+  const t = useT()
   const isDark =
     theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+  // Named for the state it switches TO, like the header's icon button.
   return (
-    <button type="button" className={cn(ROW, REST, 'text-start')} role="switch" aria-checked={isDark} onClick={() => update({ theme: isDark ? 'light' : 'dark' })}>
-      <span className="truncate">Dark mode</span>
+    <button
+      type="button"
+      className={cn(ROW, REST, 'text-start')}
+      role="switch"
+      aria-checked={isDark}
+      onClick={() => update({ theme: isDark ? 'light' : 'dark' })}
+    >
+      <span className="truncate">{t(isDark ? 'ui.lightModeRow' : 'ui.darkModeRow')}</span>
       {isDark ? <Moon className="h-4 w-4 text-primary" aria-hidden /> : <Sun className="h-4 w-4 text-muted-foreground" aria-hidden />}
     </button>
+  )
+}
+
+/** The language switch as a row: on a phone with saved resumes the header's
+ *  right-hand cluster has no room for it (HeaderActions.tsx). */
+function LanguageRow() {
+  const locale = useLocale()
+  const t = useT()
+  return (
+    <div className={cn(ROW, 'text-foreground')}>
+      <span className="truncate">{t('ui.language')}</span>
+      <LanguageToggle className="btn-ghost -my-1 h-11 px-2 text-[13px] font-semibold" />
+    </div>
   )
 }
 

@@ -19,6 +19,8 @@ import { CheckCircle2, Contrast } from 'lucide-react'
 import type { ContrastGroup } from '@/lib/a11y'
 import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
+import { useT } from '@/i18n'
+import { fill } from '@/i18n/fill'
 
 const ratio = (n: number) => `${n.toFixed(2)}:1`
 
@@ -34,6 +36,7 @@ function themeKey(path: string | undefined): string | null {
  * the ground the ink stands on.
  */
 export function useContrastNote(path: string, as: 'ink' | 'ground' = 'ink'): string | undefined {
+  const t = useT()
   const report = useEditorStore((s) => s.contrast?.report)
   if (!report) return undefined
   const hits = report.findings.filter((f) => (as === 'ink' ? f.setting.path : f.ground.path) === path)
@@ -41,13 +44,17 @@ export function useContrastNote(path: string, as: 'ink' | 'ground' = 'ink'): str
   // The pair furthest under ITS OWN bar: a large name at 2.8 against 3:1 is
   // closer to reading than body text at 2.6 against 4.5.
   const worst = hits.reduce((a, b) => (b.measured / b.required < a.measured / a.required ? b : a))
-  const runs = `${hits.length} run${hits.length === 1 ? '' : 's'} of text`
-  return as === 'ink'
-    ? `${runs} in this colour measure ${ratio(worst.measured)}. Needs ${ratio(worst.required)}.`
-    : `${runs} on this colour measure ${ratio(worst.measured)}. Needs ${ratio(worst.required)}.`
+  const runs =
+    hits.length === 1 ? t('contrast.runOne') : t('contrast.runsMany', { n: hits.length })
+  return t(as === 'ink' ? 'contrast.noteInk' : 'contrast.noteGround', {
+    runs,
+    measured: ratio(worst.measured),
+    needed: ratio(worst.required),
+  })
 }
 
 function Row({ g }: { g: ContrastGroup }) {
+  const t = useT()
   const update = useResumeStore((s) => s.updateMetadata)
   const key = g.origin === 'author' ? themeKey(g.setting.path) : null
   const fix = key && g.suggestion ? g.suggestion : undefined
@@ -62,14 +69,16 @@ function Row({ g }: { g: ContrastGroup }) {
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-[13px] font-medium">
           {g.setting.label}
-          <span className="block text-[11px] font-normal text-muted-foreground">Design › {g.setting.group}</span>
+          <span className="block text-[11px] font-normal text-muted-foreground">
+            {t('contrast.where', { group: g.setting.group })}
+          </span>
         </p>
         <span className="shrink-0 text-[11px] tabular-nums text-amber-700 dark:text-amber-400">
           {ratio(g.worst)} / {ratio(g.required)}
         </span>
       </div>
       <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-        {g.count} run{g.count === 1 ? '' : 's'} of text, e.g.{' '}
+        {g.count === 1 ? t('contrast.runOne') : t('contrast.runsMany', { n: g.count })}, {t('contrast.eg')}{' '}
         {g.samples.map((s, i) => (
           <span key={i}>
             {i > 0 && ', '}“{s}”
@@ -84,15 +93,17 @@ function Row({ g }: { g: ContrastGroup }) {
             style={{ background: fix.color }}
           />
           <button type="button" className="btn-secondary btn-xs" onClick={apply}>
-            Use {fix.color}
+            {t('contrast.use', { color: fix.color })}
           </button>
           <span className="text-[11px] text-muted-foreground">
-            {ratio(fix.measured)} · fixes {fix.fixes === g.count ? 'all' : fix.fixes}
+            {fix.fixes === g.count
+              ? t('contrast.fixesAll', { ratio: ratio(fix.measured) })
+              : t('contrast.fixesSome', { ratio: ratio(fix.measured), n: fix.fixes })}
           </span>
         </div>
       ) : g.origin === 'derived' ? (
         <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
-          The design derives this colour itself, so no setting changes it.
+          {t('contrast.derived')}
         </p>
       ) : g.unfixable ? (
         <p className="mt-1.5 text-xs leading-snug text-muted-foreground">{g.unfixable.reason}</p>
@@ -102,6 +113,7 @@ function Row({ g }: { g: ContrastGroup }) {
 }
 
 export function ContrastCard() {
+  const t = useT()
   const contrast = useEditorStore((s) => s.contrast)
   // The chip over the page asks for this card by name; landing near it on a
   // long panel is not finding it, so it is scrolled to and flashed.
@@ -132,13 +144,13 @@ export function ContrastCard() {
         ) : (
           <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-500" aria-hidden />
         )}
-        <h3 className="text-sm font-semibold">Text contrast</h3>
+        <h3 className="text-sm font-semibold">{t('opt.textContrast')}</h3>
       </div>
       <p className="text-xs leading-snug text-muted-foreground">
         {groups.length
-          ? `${report.findings.length} of ${report.checked} runs of text fall under the WCAG AA contrast bar.`
-          : `All ${report.checked} runs of text meet the WCAG AA contrast bar.`}
-        {unread > 0 && ` ${unread} stand on a ground that could not be read.`}
+          ? fill(t('contrast.some'), { bad: report.findings.length, n: report.checked })
+          : fill(t('contrast.all'), { n: report.checked })}
+        {unread > 0 && ` ${fill(t('contrast.unread'), { n: unread })}`}
       </p>
       {groups.length > 0 && (
         <ul className="space-y-1.5">

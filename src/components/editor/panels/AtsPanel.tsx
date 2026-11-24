@@ -14,6 +14,9 @@ import { SemanticMatchCard } from './SemanticMatch'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
 import { cn } from '@/lib/utils'
+import { T } from '@/i18n/T'
+import { useLocale, useT } from '@/i18n'
+import { fill } from '@/i18n/fill'
 
 /* ------------------------------------------------------- jump to the fault
  * A check that says "3 bullets use a first-person pronoun" is a note; one that
@@ -88,6 +91,7 @@ function reveal(doc: ResumeDocument, where: NonNullable<AtsCheck['where']>): boo
 }
 
 function ShowMe({ doc, where }: { doc: ResumeDocument; where: NonNullable<AtsCheck['where']> }) {
+  const t = useT()
   const [gone, setGone] = useState(false)
   if (gone) return null
   return (
@@ -106,7 +110,7 @@ function ShowMe({ doc, where }: { doc: ResumeDocument; where: NonNullable<AtsChe
       }}
     >
       <Crosshair className="h-3 w-3" />
-      {where.bullet != null ? 'Show the bullet' : 'Show it'}
+      {where.bullet != null ? t('ats.showBullet') : t('ats.showIt')}
     </button>
   )
 }
@@ -120,16 +124,15 @@ const WSEV_COLOR: Record<WritingSeverity, string> = {
 /** Toggle for the recruiter-skim saliency heat on the canvas. Lives here (not
  *  just the ⌘K palette) so phone users — who have no palette button — find it. */
 function SkimCard() {
+  const t = useT()
   const skimView = useEditorStore((s) => s.skimView)
   const setSkimView = useEditorStore((s) => s.setSkimView)
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface p-2.5">
       <span className="mt-0.5 h-2 w-9 shrink-0 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(245,158,11,0.35), rgba(220,38,38,0.65))' }} aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium">Recruiter skim heat</p>
-        <p className="text-xs leading-snug text-muted-foreground">
-          See where a ~7-second first skim lands on your page — numbered 1→6 fixations. Deterministic (size · weight · position · structure), fully on-device.
-        </p>
+        <p className="text-[13px] font-medium"><T>{"Recruiter skim heat"}</T></p>
+        <p className="text-xs leading-snug text-muted-foreground">{t('ats.skimBody')}</p>
       </div>
       <button
         type="button"
@@ -150,6 +153,7 @@ function SkimCard() {
 }
 
 function WritingCard({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const report = useMemo(() => analyzeWriting(doc), [doc])
   const [openAll, setOpenAll] = useState(false)
   if (report.bulletCount === 0) return null
@@ -161,27 +165,29 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <PenLine className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold">Writing strength</h3>
+        <h3 className="text-sm font-semibold"><T>{"Writing strength"}</T></h3>
         <span className="ms-auto inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          <Sparkles className="h-3 w-3" /> on-device
+          <Sparkles className="h-3 w-3" /> {t('ats.onDevice')}
         </span>
       </div>
       <div className="card flex items-center gap-4 p-4">
-        <Ring value={report.score} label="writing" size={80} />
+        <Ring value={report.score} label={t('ats.writingLabel')} size={80} />
         <div className="flex-1 text-sm">
           <p className="font-medium">
-            {report.score >= 85 ? 'Sharp — recruiter-ready' : report.score >= 65 ? 'Good — a few tweaks' : 'Punch it up'}
+            {report.score >= 85 ? t('ats.sharp') : report.score >= 65 ? t('ats.good') : t('ats.punch')}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {report.cleanCount}/{report.bulletCount} bullets clean
-            {report.totals['no-metric'] ? ` · ${report.totals['no-metric']} missing a metric` : ''}
-            {report.totals['weak-opener'] ? ` · ${report.totals['weak-opener']} weak opener${report.totals['weak-opener'] > 1 ? 's' : ''}` : ''}
+            {fill(t('ats.bulletsClean'), { clean: report.cleanCount, total: report.bulletCount })}
+            {report.totals['no-metric'] ? ` · ${fill(t('ats.missingMetric'), { n: report.totals['no-metric'] })}` : ''}
+            {report.totals['weak-opener']
+              ? ` · ${fill(t('ats.weakOpeners'), { n: report.totals['weak-opener'] })}`
+              : ''}
           </p>
         </div>
       </div>
       {worthShowing.length === 0 ? (
         <p className="rounded-lg border border-success/30 bg-success/5 p-2.5 text-xs text-muted-foreground">
-          Every bullet reads clean — strong action verbs, active voice, and concrete detail. Nice work.
+          {t('ats.allClean')}
         </p>
       ) : (
         <>
@@ -198,7 +204,9 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
                       <span className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${i.severity === 'warning' ? 'bg-warning' : 'bg-primary'}`} />
                       <span className="min-w-0">
                         <span className={WSEV_COLOR[i.severity]}>{i.message}</span>
-                        {i.suggestion && <span className="text-muted-foreground"> Try: {i.suggestion}.</span>}
+                        {i.suggestion && (
+                          <span className="text-muted-foreground"> {fill(t('ats.try'), { s: i.suggestion })}</span>
+                        )}
                       </span>
                     </li>
                   ))}
@@ -208,7 +216,7 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
           </div>
           {worthShowing.length > 4 && (
             <button className="btn-ghost btn-sm w-full" onClick={() => setOpenAll((o) => !o)}>
-              {openAll ? 'Show fewer' : `Show all ${worthShowing.length} bullets with tips`}
+              {openAll ? t('ats.showFewer') : fill(t('ats.showAll'), { n: worthShowing.length })}
             </button>
           )}
         </>
@@ -218,6 +226,8 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
 }
 
 export function AtsPanel({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
+  const locale = useLocale()
   const setJd = useResumeStore((s) => s.setJobDescription)
   const [jdLocal, setJdLocal] = useState(doc.jobDescription ?? '')
 
@@ -250,7 +260,7 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
     () => (fitResult ? { pages: fitResult.pages, bodyPt: fitSizesPt(doc.metadata, fitResult.fit).body } : {}),
     [fitResult, doc.metadata]
   )
-  const report = useMemo(() => analyzeResume(doc, measured), [doc, measured])
+  const report = useMemo(() => analyzeResume(doc, measured, locale), [doc, measured, locale])
 
   // What this analysis is ABOUT, said out loud.
   //
@@ -269,25 +279,32 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
     <div className="space-y-5">
       {/* score header */}
       <div className="card flex items-center gap-4 p-4">
-        <Ring value={report.score} label="ATS score" />
+        <Ring value={report.score} label={t('ats.scoreLabel')} />
         <div className="flex-1 text-sm">
           <p className="font-medium">
-            {report.score >= 80 ? 'Strong — ATS-ready' : report.score >= 60 ? 'Good, a few fixes' : 'Needs work'}
+            {report.score >= 80 ? t('ats.bandStrong') : report.score >= 60 ? t('ats.bandGood') : t('ats.bandNeedsWork')}
           </p>
           <p className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <FileText className="h-3.5 w-3.5" /> {report.wordCount} words ·{' '}
+              <FileText className="h-3.5 w-3.5" />{' '}
               {/* "~2 pages" was a guess from the word count. When the preview
                   has measured the real document there is nothing to hedge. */}
-              {fitResult ? '' : '~'}
-              {report.pages} page{report.pages > 1 ? 's' : ''}
+              {fill(t('ats.wordsPages'), {
+                words: report.wordCount,
+                pages: `${fitResult ? '' : '~'}${report.pages === 1 ? t('ats.pageOne') : fill(t('ats.pageMany'), { n: report.pages })}`,
+              })}
             </span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">{report.quantifiedCount}/{report.bulletCount} bullets quantified</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {fill(t('ats.quantified'), { done: report.quantifiedCount, total: report.bulletCount })}
+          </p>
           <p className="mt-1 text-xs text-muted-foreground" data-ats-scope>
-            Analysing {scope.sections} visible section{scope.sections === 1 ? '' : 's'}
+            {scope.sections === 1 ? t('ats.analysingOne') : fill(t('ats.analysing'), { n: scope.sections })}
             {scope.excluded > 0 && (
-              <> · {scope.excluded} hidden section{scope.excluded === 1 ? '' : 's'} excluded</>
+              <>
+                {' · '}
+                {scope.excluded === 1 ? t('ats.excludedOne') : fill(t('ats.excluded'), { n: scope.excluded })}
+              </>
             )}
           </p>
         </div>
@@ -308,14 +325,14 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Target className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Tailor to a job</h3>
+          <h3 className="text-sm font-semibold"><T>{"Tailor to a job"}</T></h3>
         </div>
         <p className="text-xs text-muted-foreground">
-          Paste a job description to see which keywords you’re matching — and which to add (where truthful).
+          {t('ats.jdPaste')}
         </p>
         <textarea
           className="textarea min-h-[120px] text-xs"
-          placeholder="Paste the job description here…"
+          placeholder={t('ats.jdPlaceholder')}
           value={jdLocal}
           onChange={(e) => setJdLocal(e.target.value)}
           onBlur={() => { if (jdLocal !== (doc.jobDescription ?? '')) setJd(jdLocal) }}
@@ -328,16 +345,18 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
         {report.jd && report.jd.keywords.length > 0 && (
           <div className="space-y-3">
             <div className="card flex items-center gap-4 p-4">
-              <Ring value={report.jd.matchRate} label="JD match" size={80} />
+              <Ring value={report.jd.matchRate} label={t('ats.jdLabel')} size={80} />
               <div className="text-sm">
-                <p className="font-medium">{report.jd.matched.length}/{report.jd.keywords.length} keywords matched</p>
-                <p className="mt-1 text-xs text-muted-foreground">Found in your resume vs. extracted from the job post.</p>
+                <p className="font-medium">
+                  {fill(t('ats.jdMatched'), { matched: report.jd.matched.length, total: report.jd.keywords.length })}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground"><T>{"Found in your resume vs. extracted from the job post."}</T></p>
               </div>
             </div>
 
             {report.jd.missing.length > 0 && (
               <div>
-                <p className="mb-1.5 text-xs font-medium text-muted-foreground">Missing keywords</p>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground"><T>{"Missing keywords"}</T></p>
                 <div className="flex flex-wrap gap-1.5">
                   {report.jd.missing.map((k) => (
                     <span key={k} className="chip border-warning/40 bg-warning/10 text-[11px] text-warning">
@@ -349,7 +368,7 @@ export function AtsPanel({ doc }: { doc: ResumeDocument }) {
             )}
             {report.jd.matched.length > 0 && (
               <div>
-                <p className="mb-1.5 text-xs font-medium text-muted-foreground">Matched</p>
+                <p className="mb-1.5 text-xs font-medium text-muted-foreground"><T>{"Matched"}</T></p>
                 <div className="flex flex-wrap gap-1.5">
                   {report.jd.matched.map((k) => (
                     <span key={k} className="chip border-success/40 bg-success/10 text-[11px] text-success">

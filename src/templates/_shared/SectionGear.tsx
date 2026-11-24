@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useLabel } from '@/i18n/labels'
+import { useT } from '@/i18n'
 import { createPortal } from 'react-dom'
 import { Eye,
   Settings2,
@@ -510,6 +512,10 @@ export function SectionGear({
   // sheet=true → phone bottom-sheet; otherwise a clamped floating panel.
   // dock=true → laid over the editor's side panel as an inspector (desktop).
   const [pos, setPos] = useState({ top: 0, left: 0, maxH: 600, sheet: false, dock: false, width: 0 })
+  // This popover is the interface, not the resume: its words follow the
+  // interface's language like the panels do.
+  const L = useLabel()
+  const t = useT()
   // The less-used groups (see Group's `more`), remembered across sections.
   const [moreOpen, setMoreOpen] = useState(() => {
     try {
@@ -764,7 +770,14 @@ export function SectionGear({
       // room for the inspector and a page still worth reading beside it
       if (cr && cr.width - width >= 480) {
         window.dispatchEvent(new CustomEvent('cvaurum:style-dock', { detail: sectionKey }))
-        setPos({ top: cr.top, left: vw - width, maxH: vh - cr.top, sheet: false, dock: true, width })
+        // Which edge is free: the one the editor's own panel is NOT on. The
+        // Content panel sits at the left in an English interface and at the
+        // right in a Persian one, so a fixed right edge docked the inspector
+        // straight ON TOP of the Persian sidebar instead of beside the page
+        // (reported 2026-11-17). Me-aside (the canvas's `desk:me-`) already
+        // follows the same start/end logic, so only the edge has to flip.
+        const rtl = getComputedStyle(document.documentElement).direction === 'rtl'
+        setPos({ top: cr.top, left: rtl ? 0 : vw - width, maxH: vh - cr.top, sheet: false, dock: true, width })
         setOpen(true)
         return
       }
@@ -778,12 +791,19 @@ export function SectionGear({
     // cannot hold the whole panel, rather than sliding back OVER the control
     // that opened it (the old clamp did exactly that on a gear near the right
     // edge).
-    const left =
-      r.right + 12 + POP_W <= vw - 8
-        ? r.right + 12
-        : r.left - 12 - POP_W >= 8
-          ? r.left - 12 - POP_W
-          : Math.max(8, Math.min(r.right + 12, vw - POP_W - 8))
+    // The preferred side follows the reading direction: forward of the gear
+    // is to its right in English and to its left in Persian, so the panel
+    // never opens over the control it came from.
+    const rtl = getComputedStyle(document.documentElement).direction === 'rtl'
+    const after = rtl ? r.left - 12 - POP_W : r.right + 12
+    const afterFits = rtl ? after >= 8 : after + POP_W <= vw - 8
+    const before = rtl ? r.right + 12 : r.left - 12 - POP_W
+    const beforeFits = rtl ? before + POP_W <= vw - 8 : before >= 8
+    const left = afterFits
+      ? after
+      : beforeFits
+        ? before
+        : Math.max(8, Math.min(after, vw - POP_W - 8))
     // ANCHORED to the gear by one of its own edges, never floated to a fixed
     // line. The old rule asked for a 620px panel and then clamped its top to
     // `vh - maxH - 8`, so every gear below that line - two thirds of the
@@ -863,10 +883,10 @@ export function SectionGear({
           // repeats it. (It also ends a real accessibility defect: a
           // twelve-section page carried twelve buttons whose accessible name
           // was the identical "Section style and settings".)
-          title={`Style & settings — ${sectionLabel(sectionKey, doc)}`}
-          aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}
+          title={`${L('Style & settings')} — ${sectionLabel(sectionKey, doc)}`}
+          aria-label={t('gear.aria', { section: sectionLabel(sectionKey, doc) })}
         >
-          <Settings2 /> Style
+          <Settings2 /> {L('Style')}
         </button>
         {variant === 'canvas' && (
         <button
@@ -948,12 +968,12 @@ export function SectionGear({
               role="dialog"
               aria-modal={pos.dock ? undefined : 'true'}
               tabIndex={-1}
-              aria-label={`${sectionLabel(sectionKey, doc)} style and settings`}
+              aria-label={t('gear.aria', { section: sectionLabel(sectionKey, doc) })}
               className={
                 pos.sheet
                   ? 'fixed inset-x-0 bottom-0 z-[61] flex flex-col rounded-t-2xl border-t border-border bg-surface text-foreground shadow-float'
                   : pos.dock
-                    ? 'fixed z-[61] flex flex-col border-l border-border bg-surface text-foreground shadow-float focus:outline-none'
+                    ? 'fixed z-[61] flex flex-col border-s border-border bg-surface text-foreground shadow-float focus:outline-none'
                     : 'fixed z-[61] flex w-[308px] flex-col rounded-xl border border-border bg-surface text-foreground shadow-float'
               }
               style={
@@ -969,10 +989,10 @@ export function SectionGear({
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold leading-tight">{sectionLabel(sectionKey, doc)}</div>
                   <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
-                    Style &amp; settings
+                    {L('Style & settings')}
                   </div>
                 </div>
-                <button className="btn-icon h-7 w-7 shrink-0" onClick={() => setOpen(false)} aria-label="Close">
+                <button className="btn-icon h-7 w-7 shrink-0" onClick={() => setOpen(false)} aria-label={L('Close')}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -1018,8 +1038,7 @@ export function SectionGear({
                       ))}
                     </div>
                     <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
-                      Auto follows the document (Design panel). Hidden drops the address from the page, the Word file
-                      and the plain-text copy; the title keeps its link.
+                      {t('gear.linkLineNote')}
                     </p>
                   </Group>
                 )}
@@ -1417,8 +1436,7 @@ export function SectionGear({
                     rows that choose a style say so rather than doing nothing. */}
                 {HAS_METER.has(base) && inFooter && (
                   <p className="px-2 pb-2 pt-1 text-[11px] leading-snug text-muted-foreground">
-                    In the footer strip this section prints as one line per group. Move it to the main flow to choose a
-                    style or a meter.
+                    {t('gear.footerMeterNote')}
                   </p>
                 )}
 
@@ -1440,14 +1458,14 @@ export function SectionGear({
                             on={(opts.skillsStyle ?? '') === s.value}
                             onClick={() => setStyle('skillsStyle', s.value || undefined)}
                             disabled={noLevel}
-                            reason={noLevel ? 'Rings need a skill with a level' : undefined}
+                            reason={noLevel ? t('gear.ringsNeedLevel') : undefined}
                           />
                         )
                       })}
                     </div>
                     {!doc.content.skills.some((g) => typeof g.rating === 'number') && (
                       <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
-                        Rings need a level on at least one skill.
+                        {t('gear.ringsNeedLevelLong')}
                       </p>
                     )}
                     {/* Only the pill-shaped styles have a pill to size. */}
@@ -1487,35 +1505,33 @@ export function SectionGear({
                     })
                   }}
                 >
-                  {moreOpen ? 'Fewer options' : 'More options'}
+                  {moreOpen ? L('Fewer options') : L('More options')}
                 </button>
                 <div className="my-1.5 h-px bg-border" />
                 <div className="px-2 pb-1 pt-0.5">
                   <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Style painter
+                    {L('Style painter')}
                   </div>
                   <p className="text-[11px] leading-snug text-muted-foreground">
-                    {copiedStyle
-                      ? 'Style copied — Paste it here, or paint it onto All sections at once.'
-                      : 'Copy this section’s look (heading, layout, bullets…), then open another section’s Style panel and Paste it there.'}
+                    {copiedStyle ? t('gear.painterCopied') : t('gear.painterCopy')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 px-1 pb-1">
                   <button
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
                     onClick={copyStyle}
-                    title="Copy this section's style"
+                    title={t('gear.copyStyleTitle')}
                   >
-                    <Copy className="h-3.5 w-3.5" /> Copy style
+                    <Copy className="h-3.5 w-3.5" /> {L('Copy style')}
                   </button>
                   {copiedStyle && (
                     <>
                       <button
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs font-medium hover:border-primary/50 hover:text-primary"
                         onClick={pasteStyle}
-                        title="Paste the copied style onto this section"
+                        title={t('gear.pasteTitle')}
                       >
-                        <ClipboardPaste className="h-3.5 w-3.5" /> Paste
+                        <ClipboardPaste className="h-3.5 w-3.5" /> {L('Paste')}
                       </button>
                       <button
                         className="flex items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
@@ -1523,9 +1539,9 @@ export function SectionGear({
                           paintAll()
                           setOpen(false)
                         }}
-                        title="Paint the copied style onto every section"
+                        title={t('gear.allTitle')}
                       >
-                        <Paintbrush className="h-3.5 w-3.5" /> All
+                        <Paintbrush className="h-3.5 w-3.5" /> {L('All')}
                       </button>
                     </>
                   )}
@@ -1539,7 +1555,8 @@ export function SectionGear({
                       setOpen(false)
                     }}
                   >
-                    <ArrowLeftRight className="h-4 w-4" /> Move to {inAside ? 'main column' : 'sidebar'}
+                    <ArrowLeftRight className="h-4 w-4" />{' '}
+                    {inAside ? L('Move to main column') : L('Move to sidebar')}
                   </button>
                 )}
                 {/* The footer strip: in from anywhere, out to the end of the
@@ -1552,7 +1569,7 @@ export function SectionGear({
                     setOpen(false)
                   }}
                 >
-                  <PanelBottom className="h-4 w-4" /> {inFooter ? 'Move to main' : 'Move to footer'}
+                  <PanelBottom className="h-4 w-4" /> {inFooter ? L('Move to main') : L('Move to footer')}
                 </button>
                 <button
                   className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm ${isHidden ? 'text-foreground hover:bg-muted' : 'text-danger hover:bg-danger/10'}`}
@@ -1563,11 +1580,11 @@ export function SectionGear({
                 >
                   {isHidden ? (
                     <>
-                      <Eye className="h-4 w-4" /> Show section
+                      <Eye className="h-4 w-4" /> {L('Show section')}
                     </>
                   ) : (
                     <>
-                      <EyeOff className="h-4 w-4" /> Hide section
+                      <EyeOff className="h-4 w-4" /> {L('Hide section')}
                     </>
                   )}
                 </button>
@@ -1653,11 +1670,12 @@ const MoreOpen = createContext(true)
  *  opens on the five groups people restyle a section with (Show, heading,
  *  bullets or meter, skills, layout) instead of 22 in one scroll. */
 function Group({ label, more, children }: { label: string; more?: boolean; children: React.ReactNode }) {
+  const L = useLabel()
   const moreOpen = useContext(MoreOpen)
   if (more && !moreOpen) return null
   return (
     <div className="px-1 pb-2 pt-1">
-      <div className="mb-1 px-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mb-1 px-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{L(label)}</div>
       {children}
     </div>
   )
@@ -1681,6 +1699,8 @@ function ChipBtn({
   disabled?: boolean
   reason?: string
 }) {
+  const L = useLabel()
+  const word = L(label)
   // A one-character label is a mark to recognise (•, ○, ▪): drawn at a
   // size it can be told apart at, and named for a screen reader.
   const glyph = [...label].length === 1
@@ -1698,7 +1718,7 @@ function ChipBtn({
           : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
       }${disabled ? ' cursor-not-allowed opacity-45 hover:border-border hover:text-muted-foreground' : ''}`}
     >
-      {label}
+      {word}
     </button>
   )
 }
@@ -1724,6 +1744,7 @@ function StyleChip({
    *  Falls back to that word, which is what every other chip shows. */
   title?: string
 }) {
+  const L = useLabel()
   return (
     <button
       type="button"
@@ -1741,13 +1762,14 @@ function StyleChip({
       <span
         className={`w-full truncate text-center text-[9px] font-medium leading-none ${on ? 'text-primary' : 'text-muted-foreground'}`}
       >
-        {label}
+        {L(label)}
       </span>
     </button>
   )
 }
 
 function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  const L = useLabel()
   return (
     <button
       type="button"
@@ -1756,7 +1778,7 @@ function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick
       onClick={onClick}
       className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted"
     >
-      <span className="truncate">{label}</span>
+      <span className="truncate">{L(label)}</span>
       <span
         className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`}
       >

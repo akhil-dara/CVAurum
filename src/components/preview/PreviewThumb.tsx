@@ -86,6 +86,13 @@ export const PreviewThumb = memo(function PreviewThumb({
   }, [doc, pageH, fit, key, w])
 
   const scale = w / pageW
+  // The box lays the page out from its LEFT edge and scales about that edge, so
+  // the picture cannot depend on which way the surrounding interface runs: in a
+  // right-to-left interface the 794px sheet started at the box's right edge and
+  // the scale then threw it 215px off to the left, so every preview card - the
+  // homepage's three pages, the template shelf, the dashboard's resumes - came
+  // out as blank white paper (2026-11-16). The page inside still carries its own
+  // `dir`; only the box is pinned.
   return (
     // inert as well as aria-hidden: a thumbnail is a picture of a resume, but
     // it renders the resume's real links, and aria-hidden does not take them
@@ -95,7 +102,7 @@ export const PreviewThumb = memo(function PreviewThumb({
     <div
       ref={ref}
       className="overflow-hidden bg-white"
-      style={{ width: w, height: pageH * scale }}
+      style={{ width: w, height: pageH * scale, direction: 'ltr' }}
       aria-hidden
       {...{ inert: '' }}
     >

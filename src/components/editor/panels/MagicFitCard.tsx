@@ -9,6 +9,8 @@ import { effectiveFloorPt } from '@/lib/fitReadout'
 import type { Suggestion } from '@/lib/fitSuggest'
 import { Slider, Toggle, Segmented } from '../fields/Controls'
 import { FitReadout } from './FitReadout'
+import { useT } from '@/i18n'
+import { T } from '@/i18n/T'
 
 type FitTarget = Metadata['page']['fit']['target']
 type FitPriority = Metadata['page']['fit']['priority']
@@ -27,6 +29,7 @@ const LOCKS: { key: LockKey; label: string }[] = [
  *  floor, what gives first, the sizes it must leave alone). Works with its
  *  defaults and one switch; the rules stay folded until wanted. */
 export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const update = useResumeStore((s) => s.updateMetadata)
   const page = doc.metadata.page
   const fit = page.fit
@@ -54,16 +57,14 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
         }
       />
       <p className="-mt-1 text-[11px] leading-snug text-muted-foreground">
-        {on
-          ? 'Shrinks text and spacing, as little as it can, to reach the pages you choose — never below the smallest size you set.'
-          : 'Off: the text prints at the size you set and flows onto a new page when it needs one. Turn it on to fit a page count.'}
+        {t(on ? 'fit.onNote' : 'fit.offNote')}
       </p>
       <FitReadout doc={doc} />
       {!on && <OffOffer />}
       {on && (
         <>
           <div>
-            <label className="label">Pages</label>
+            <label className="label"><T>{'Pages'}</T></label>
             <Segmented<`${FitTarget}`>
               value={`${fit.target}`}
               options={[
@@ -78,13 +79,12 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
               }
             />
             <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-              Sizes type and spacing to reach this many pages inside your rules, and says what it did. Margins,
-              alignment and fonts stay yours.
+              {t('fit.pagesNote')}
             </p>
           </div>
           <Suggest doc={doc} />
           <details className="space-y-3" open={rulesOpen} onToggle={(e) => setRulesOpen((e.currentTarget as HTMLDetailsElement).open)}>
-            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Fit rules</summary>
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground"><T>{'Fit rules'}</T></summary>
             <div className="mt-3 space-y-3">
               <Slider
                 label="Body size never below"
@@ -102,8 +102,8 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
               <p className="-mt-1 flex items-center justify-between gap-2 text-[11px] leading-snug text-muted-foreground">
                 <span>
                   {fit.minBody == null
-                    ? `Not set: on this body size the fit stops at ${Math.round(effectiveFloorPt(doc.metadata) * 10) / 10}pt.`
-                    : 'Set by you: the fit never goes below it.'}
+                    ? t('fit.floorAuto', { pt: `${Math.round(effectiveFloorPt(doc.metadata) * 10) / 10}pt` })
+                    : t('fit.floorSet')}
                 </span>
                 {fit.minBody != null && (
                   <button
@@ -115,12 +115,12 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
                       })
                     }
                   >
-                    Unset
+                    {t('fit.unset')}
                   </button>
                 )}
               </p>
               <div>
-                <label className="label">Shrink first</label>
+                <label className="label"><T>{'Shrink first'}</T></label>
                 <Segmented<FitPriority>
                   value={fit.priority}
                   options={[
@@ -135,12 +135,12 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
                   }
                 />
                 <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                  What gives when the page is over: the gaps, the type, or both together.
+                  {t('fit.priorityNote')}
                 </p>
               </div>
               <div>
-                <label className="label">Keep as set</label>
-                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Keep as set">
+                <label className="label"><T>{'Keep as set'}</T></label>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('fit.keepSet')}>
                   {LOCKS.map((l) => {
                     const locked = fit.lock[l.key]
                     return (
@@ -164,7 +164,7 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
                   })}
                 </div>
                 <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                  A kept size stays exactly what its slider says; the fit works around it.
+                  {t('fit.keepNote')}
                 </p>
               </div>
             </div>
@@ -178,6 +178,7 @@ export function MagicFitCard({ doc }: { doc: ResumeDocument }) {
 /** With the fit off, the one offer the preview may have measured: a few
  *  spilled lines fitting back a page sooner at 9pt or more. */
 function OffOffer() {
+  const t = useT()
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const offer = useEditorStore((s) => s.fitOffers.find((o) => o.id.startsWith('fit-on-')))
   if (!offer) return null
@@ -185,7 +186,7 @@ function OffOffer() {
     <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5" data-testid="fit-offer">
       <span className="text-xs leading-snug text-foreground">{offer.label}</span>
       <button type="button" className="btn-primary btn-sm shrink-0" onClick={() => updateDoc((d) => offer.mutate(d))}>
-        Apply
+        {t('fit.apply')}
       </button>
     </div>
   )
@@ -196,6 +197,7 @@ function OffOffer() {
  *  each; applied through the normal update path, so undo works. "Check
  *  again" measures on request. */
 function Suggest({ doc }: { doc: ResumeDocument }) {
+  const t = useT()
   const updateDoc = useResumeStore((s) => s.updateDoc)
   const trial = useEditorStore((s) => s.fitTrial)
   const result = useEditorStore((s) => s.fitResult)
@@ -231,6 +233,7 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
   }, [doc])
   const short = result && result.pages > doc.metadata.page.fit.target
   const pt = (x: number) => `${Math.round(x * 10) / 10}pt`
+  const pagesWord = (n: number) => (n === 1 ? t('fit.pageOne') : t('fit.pagesMany', { n }))
   return (
     <div className="space-y-2" data-testid="fit-suggest">
       {/* Why, before what to do about it: "won't fit" alone, then "Nothing
@@ -238,9 +241,13 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
       {short && shortWhy && (
         <p className="rounded-lg bg-amber-500/10 px-2.5 py-2 text-xs leading-snug text-foreground" data-testid="fit-why">
           {shortWhy.body != null
-            ? `${shortWhy.pages} page${shortWhy.pages === 1 ? '' : 's'} needs text at ${pt(shortWhy.body)}, below your ${pt(shortWhy.floor)} floor.`
-            : `${shortWhy.pages} page${shortWhy.pages === 1 ? '' : 's'} can't be reached at any text size: there is more on the page than fits.`}{' '}
-          {offers.length ? 'These would get there:' : 'Shorten a few bullets, or leave a section out from its ⋯ menu.'}
+            ? t('fit.shortBody', {
+                pages: pagesWord(shortWhy.pages),
+                body: pt(shortWhy.body),
+                floor: pt(shortWhy.floor),
+              })
+            : t('fit.shortAny', { pages: pagesWord(shortWhy.pages) })}{' '}
+          {offers.length ? t('fit.theseGetThere') : t('fit.shortenInstead')}
         </p>
       )}
       {offers.map((o) => (
@@ -251,16 +258,16 @@ function Suggest({ doc }: { doc: ResumeDocument }) {
         >
           <span className="text-xs leading-snug text-foreground">{o.label}</span>
           <button type="button" className="btn-primary btn-sm shrink-0" onClick={() => updateDoc((d) => o.mutate(d))}>
-            Apply
+            {t('fit.apply')}
           </button>
         </div>
       ))}
-      {busy && <p className="text-[11px] leading-snug text-muted-foreground">Measuring moves…</p>}
+      {busy && <p className="text-[11px] leading-snug text-muted-foreground">{t('fit.measuringMoves')}</p>}
       {!busy && offers.length === 0 && checked && !short && (
-        <p className="text-[11px] leading-snug text-muted-foreground">Nothing better within your rules.</p>
+        <p className="text-[11px] leading-snug text-muted-foreground">{t('fit.nothingBetter')}</p>
       )}
       <button type="button" className="btn-secondary btn-sm w-full" disabled={busy || !trial || !result} onClick={() => run.current()}>
-        {offers.length ? 'Check again' : 'Suggest moves'}
+        {offers.length ? t('fit.checkAgain') : t('fit.suggestMoves')}
       </button>
     </div>
   )

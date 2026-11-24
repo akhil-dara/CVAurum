@@ -50,6 +50,7 @@ import { iconForKind } from '@/components/icons/sectionIcons'
 import { FolioIcon, type FolioIconKind } from './folioIcons'
 import { sectionIconKind } from './sectionIconChoice'
 import { furnitureYear, kickerWords, pageFootText } from '@/lib/pageWords'
+import { useLabel } from '@/i18n/labels'
 
 /** Traditional templates render headings without icon chips. */
 const NO_SECTION_ICONS = new Set(['classic', 'ivy', 'academic', 'elegant', 'minimal', 'executive', 'sienna'])
@@ -1060,6 +1061,7 @@ function EditableVisual({
   children: (openPicker: () => void) => ReactNode
   onHide: () => void
 }) {
+  const L = useLabel()
   const picker = usePhotoPicker()
   const add = kind === 'monogram'
   return (
@@ -1070,11 +1072,11 @@ function EditableVisual({
         className="rm-visual-swap no-print"
         contentEditable={false}
         title={add ? 'Add a photo in place of the monogram' : 'Change this photo'}
-        aria-label={add ? 'Add photo' : 'Change photo'}
+        aria-label={L(add ? 'Add photo' : 'Change photo')}
         onMouseDown={(e) => e.preventDefault()}
         onClick={picker.open}
       >
-        {add ? 'Add photo' : 'Change'}
+        {add ? L('Add photo') : L('Change')}
       </button>
       <button
         type="button"
@@ -1847,6 +1849,7 @@ export function Artboard({
   fit?: FitVector
   onAddSection?: () => void
 }) {
+  const L = useLabel()
   const rootRef = useRef<HTMLDivElement>(null)
   const vars = useVars(doc, fit ?? { type: fitScale, space: fitScale }, config.header)
   // In edit mode keep empty (non-hidden) sections so they render on the canvas
@@ -2021,8 +2024,13 @@ export function Artboard({
             <Section key={key} sectionKey={key} doc={doc} config={config} edit={edit} editMeta={editMeta} index={i} />
           ))}
           {onAddSection ? (
-            <button type="button" className="rm-add-section no-print" onClick={onAddSection} title="Add a section">
-              + Add section
+            <button
+              type="button"
+              className="rm-add-section no-print"
+              onClick={onAddSection}
+              title={L('Add section')}
+            >
+              {L('+ Add section')}
             </button>
           ) : null}
         </main>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { commitTyped } from '@/lib/designRanges'
+import { useLabel } from '@/i18n/labels'
 
 export function Slider({
   label,
@@ -24,6 +25,7 @@ export function Slider({
    *  whatever this appends after the digits as its unit. */
   format?: (v: number) => string
 }) {
+  const L = useLabel()
   // The typed box owns its text while it has focus, and commits nothing until
   // the value is finished: focus leaving, or Enter saying so. Committing per
   // keystroke reflowed the whole document on the "1" of "1.5" and the "2" of
@@ -58,7 +60,7 @@ export function Slider({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between gap-2">
-        <label className="text-xs font-medium text-muted-foreground">{label}</label>
+        <label className="text-xs font-medium text-muted-foreground">{L(label)}</label>
         <span className="flex items-center gap-1 text-xs tabular-nums text-foreground">
           <input
             ref={boxRef}
@@ -74,7 +76,7 @@ export function Slider({
               // in and out of the draft however the author finishes.
               if (e.key === 'Enter') e.currentTarget.blur()
             }}
-            aria-label={label}
+            aria-label={L(label)}
             className="h-6 w-16 rounded border border-input bg-surface px-1.5 text-end text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {suffix && <span className="text-muted-foreground">{suffix}</span>}
@@ -94,9 +96,10 @@ export function Slider({
 }
 
 export function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const L = useLabel()
   return (
     <label className="flex cursor-pointer items-center justify-between gap-2">
-      <span className="text-sm text-foreground">{label}</span>
+      <span className="text-sm text-foreground">{L(label)}</span>
       <button
         type="button"
         role="switch"
@@ -126,6 +129,7 @@ export function Segmented<T extends string>({
   /** Each button's sizing, in place of the defaults - e.g. two to a row. */
   itemClass?: string
 }) {
+  const L = useLabel()
   return (
     <div className={`segmented w-full${wrap ? ' flex-wrap' : ''}`}>
       {options.map((o) => (
@@ -135,7 +139,7 @@ export function Segmented<T extends string>({
           data-active={value === o.value}
           onClick={() => onChange(o.value)}
         >
-          {o.label}
+          {L(o.label)}
         </button>
       ))}
     </div>
@@ -156,15 +160,16 @@ export function Select<T extends string>({
   options: { value: T; label: string }[]
   onChange: (v: T) => void
 }) {
+  const L = useLabel()
   const known = options.some((o) => o.value === value)
   return (
     <div>
-      <label className="label">{label}</label>
-      <select className="input" value={value} onChange={(e) => onChange(e.target.value as T)} aria-label={label}>
+      <label className="label">{L(label)}</label>
+      <select className="input" value={value} onChange={(e) => onChange(e.target.value as T)} aria-label={L(label)}>
         {!known && <option value={value}>{value}</option>}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {L(o.label)}
           </option>
         ))}
       </select>
@@ -202,10 +207,11 @@ export function ColorField({
    */
   note?: string
 }) {
+  const L = useLabel()
   const shown = value || fallback || ''
   const row = (
     <div className="flex items-center justify-between gap-2">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <label className="text-xs font-medium text-muted-foreground">{L(label)}</label>
       <div className="flex items-center gap-1.5">
         {onClear && value ? (
           <button
@@ -285,6 +291,7 @@ export function FieldGroup({
   children: React.ReactNode
   defaultOpen?: boolean
 }) {
+  const L = useLabel()
   const [open, setOpen] = useState(() => readOpen(title, defaultOpen))
   const toggle = () => {
     setOpen((v) => {
@@ -307,7 +314,10 @@ export function FieldGroup({
           aria-controls={id}
           className="group -mx-1 flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
         >
-          <span>{title}</span>
+          {/* The heading reads translated; the `localStorage` key above stays
+              the English title, so folding a group and switching language
+              keeps it folded. */}
+          <span>{L(title)}</span>
           <ChevronDown
             className={cn('h-3.5 w-3.5 shrink-0 opacity-50 transition-transform group-hover:opacity-100', !open && '-rotate-90')}
           />

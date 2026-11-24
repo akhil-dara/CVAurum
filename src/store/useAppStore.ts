@@ -74,18 +74,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     await saveSettings(next)
   },
 
-  /** Push the saved appearance onto the document: the dark class.
+  /** Push the saved appearance onto the document: the dark class, and the
+   *  interface's language with the direction that follows from it.
    *
-   *  The INTERFACE is left-to-right, always. Right-to-left is a property of a
-   *  RESUME (Design panel → Layout → Right-to-left), which mirrors that one
-   *  document's canvas and nothing else — see rtl-canvas.css. */
+   *  Persian is right-to-left, and `dir` on <html> is the ONLY switch this
+   *  needs: every logical utility in the codebase (ms/me, ps/pe, start/end,
+   *  text-start) and every flex row follows it. A RESUME's own direction stays
+   *  its own property (metadata.layout.rtl → the mirrored canvas), so a Persian
+   *  interface can still hold an English resume. */
   applyAppearance: () => {
     if (typeof document === 'undefined') return
-    const { theme } = get().settings
+    const { theme, locale } = get().settings
     const dark =
       theme === 'dark' ||
       (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
     document.documentElement.classList.toggle('dark', dark)
+    const language = locale === 'fa' ? 'fa' : 'en'
+    document.documentElement.lang = language
+    document.documentElement.dir = language === 'fa' ? 'rtl' : 'ltr'
+    // index.css keys the Persian face off this, so it must be set before the
+    // first paint of a Persian session (init() runs applyAppearance).
+    document.documentElement.dataset.locale = language
   },
 
   toast: (message, kind = 'info', action) => {

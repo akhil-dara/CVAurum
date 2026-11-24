@@ -7,7 +7,8 @@
  * link in step. One component, one nav.
  */
 import { SkipLink } from '@/components/ui/SkipLink'
-import { HeaderThemeToggle, PhoneResumesLink } from './HeaderActions'
+import { HeaderLanguageToggle, HeaderThemeToggle, PhoneResumesLink } from './HeaderActions'
+import { useT } from '@/i18n'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { GUIDES } from '@/data/guides'
@@ -49,6 +50,7 @@ export function SiteHeader({
   onCreate?: () => void
 }) {
   const library = useAppStore((s) => s.library)
+  const t = useT()
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
       <SkipLink />
@@ -68,16 +70,16 @@ export function SiteHeader({
             time. */}
         <nav className="hidden items-center gap-5 text-sm text-muted-foreground md:flex lg:gap-6">
           <a className="hidden transition hover:text-foreground lg:inline" href="/#how">
-            How it works
+            {t('nav.how')}
           </a>
-          <NavLink to="/templates" label="Templates" active={current === 'templates'} />
-          <NavLink to="/examples" label="Examples" active={current === 'examples'} />
-          <NavLink to="/prompts" label="Prompts" active={current === 'prompts'} />
+          <NavLink to="/templates" label={t('nav.templates')} active={current === 'templates'} />
+          <NavLink to="/examples" label={t('nav.examples')} active={current === 'examples'} />
+          <NavLink to="/prompts" label={t('nav.prompts')} active={current === 'prompts'} />
           <a className="hidden transition hover:text-foreground lg:inline" href="/#compare">
-            Compare
+            {t('nav.compare')}
           </a>
           <a className="hidden transition hover:text-foreground lg:inline" href="/#privacy">
-            Privacy
+            {t('nav.privacy')}
           </a>
         </nav>
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -86,11 +88,12 @@ export function SiteHeader({
             href={REPO_URL}
             target="_blank"
             rel="noreferrer"
-            title="View source on GitHub"
+            title={t('nav.viewSource')}
           >
             <Github className="h-4 w-4" /> GitHub
           </a>
           <InstallButton />
+          <HeaderLanguageToggle />
           <HeaderThemeToggle />
           {/* Below sm this chip gives its 87px to the menu button, which lists
               "My resumes" as a row: measured at 375px, the row had 18px of
@@ -99,7 +102,7 @@ export function SiteHeader({
             className={cn('btn-sm hidden sm:inline-flex', library.length ? 'btn-outline' : 'btn-ghost')}
             to="/app"
           >
-            My resumes{library.length ? ` (${library.length})` : ''}
+            {library.length ? t('common.myResumesCount', { n: library.length }) : t('common.myResumes')}
           </Link>
           <PhoneResumesLink />
           {action}
@@ -111,38 +114,39 @@ export function SiteHeader({
 }
 
 export function SiteFooter() {
+  const t = useT()
   return (
     <footer className="border-t border-border">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-muted-foreground sm:flex-row">
         <span className="inline-flex items-center gap-1.5">
-          <Logo compact to="/" /> · Built for everyone job hunting.
+          <Logo compact to="/" /> · {t('footer.builtFor')}
         </span>
         <span className="inline-flex flex-wrap items-center justify-center gap-3">
           <Link className="transition hover:text-foreground" to="/">
-            Home
+            {t('nav.home')}
           </Link>
           <Link className="transition hover:text-foreground" to="/templates">
-            Templates
+            {t('nav.templates')}
           </Link>
           <Link className="transition hover:text-foreground" to="/examples">
-            Examples
+            {t('nav.examples')}
           </Link>
           <Link className="transition hover:text-foreground" to="/prompts">
-            Prompts
+            {t('nav.prompts')}
           </Link>
           <Link className="transition hover:text-foreground" to="/guides">
-            Guides
+            {t('nav.guides')}
           </Link>
           <a className="transition hover:text-foreground" href={REPO_URL} target="_blank" rel="noreferrer">
             GitHub
           </a>
-          <span>100% local · AGPL-3.0</span>
+          <span>{t('footer.local')}</span>
         </span>
       </div>
       {/* The guides, from every public page: each answers one search in full,
           and a page nothing links to is a page a crawler rarely finds. */}
       <nav
-        aria-label="Guides"
+        aria-label={t('nav.guides')}
         className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-4 gap-y-1 px-6 pb-7 text-xs text-muted-foreground sm:justify-start"
       >
         {GUIDES.map((g) => (

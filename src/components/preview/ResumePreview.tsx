@@ -245,6 +245,8 @@ function pinLabel(doc: ResumeDocument, pin: PageBreakPin): string {
   return title ? htmlToText(title) : section
 }
 
+import { T } from '@/i18n/T'
+
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
   const zoom = useEditorStore((s) => s.zoom)
   const fitToWidth = useEditorStore((s) => s.autoFit)
@@ -1100,13 +1102,16 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 ps-3 pe-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
               <span className="whitespace-nowrap">
-                Exact PDF preview<span className="hidden sm:inline"> — this is precisely what exports</span>
+                <T>{'Exact PDF preview'}</T>
+                <span className="hidden sm:inline">
+                  <T>{' — this is precisely what exports'}</T>
+                </span>
               </span>
               <button
                 className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground transition hover:brightness-110"
                 onClick={() => useEditorStore.getState().setPreviewExact(false)}
               >
-                Back to editing
+                <T>{'Back to editing'}</T>
               </button>
             </div>
           </div>
@@ -1124,7 +1129,13 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           ) : (
           <>
           {/* reserves scaled space */}
-          <div style={{ width: pageW * effectiveZoom, height: sheetH * effectiveZoom }}>
+          {/* The reserving box is laid out left-to-right whatever the interface
+              runs: its child is the FULL page width, scaled about its top-left
+              corner, so in a right-to-left interface the child started at the
+              box's right edge and spilled its whole unscaled width to the left -
+              the sheet sat 102px off and slid under the side panel (2026-11-16
+              report). The page inside keeps its own dir. */}
+          <div style={{ width: pageW * effectiveZoom, height: sheetH * effectiveZoom, direction: 'ltr' }}>
             <div
               className="relative rounded-[2px] bg-white shadow-page"
               style={{
