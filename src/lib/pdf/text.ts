@@ -1,6 +1,189 @@
 import { parseColor, parseFontWeight, parsePx } from './style'
 import { SOFT_HYPHEN, stripSoftHyphens } from '@/lib/hyphenate'
 import type { TextRun } from './types'
+import type { BidiRun } from './bidi'
+import { ARABIC_SCRIPT_CLASS, RTL_BLOCK_CLASS } from '@/lib/rtlBlocks'
+
+/* ---- direction: one run per direction of a mixed line ----
+ *
+ * bidi.ts carries bidi-js and its tables, and this module is reached from
+ * places that are not the export (the a11y snapshot, the preview's page
+ * measurement), so it is never imported here statically. The export installs
+ * it with `prepareBidi` before the walk, and only for a document with
+ * Arabic-script text; with nothing installed every segment takes the
+ * single-run path it always took.
+ */
+
+/** The functions of bidi.ts the walker and the painter need. */
+export interface BidiImpl {
+  bidiRuns: (text: string, base: 'rtl' | 'ltr') => BidiRun[]
+  hasStrongRtl: (text: string) => boolean
+  /** Swaps each mirrored character ('(' for ')') for an rtl run; the painter's (paint.ts). */
+  mirrorForRtl?: (text: string) => string
+}
+
+let bidiImpl: BidiImpl | null = null
+
+/** Each block's paragraph text and where each of its text nodes starts in it
+ *  (`paragraphContext`); emptied whenever bidi is installed or removed, so one
+ *  export's sheet never answers for the next. */
+let paragraphs = new WeakMap<Element, { text: string; starts: Map<Text, number> }>()
+
+/** Each paragraph's resolved runs, keyed by base and text: every line segment
+ *  of every node in it asks, and the algorithm runs once. Emptied with
+ *  `paragraphs`. */
+let resolved = new Map<string, BidiRun[]>()
+
+/** Whether an export has installed bidi for this walk (`prepareBidi`). Only
+ *  then has every right-to-left run been given its direction, so only then may
+ *  the painter shape the rest as left to right (directedText.ts). */
+export function bidiInstalled(): boolean {
+  return bidiImpl !== null
+}
+
+/** Installs (or, with null, removes) the bidi functions `extractRuns` splits lines with. */
+export function setBidi(impl: BidiImpl | null): void {
+  bidiImpl = impl
+  paragraphs = new WeakMap()
+  resolved = new Map()
+}
+
+/**
+ * `text` with every Bidi_Mirrored character swapped for its mirror, as a
+ * right-to-left run is drawn ('(مادری)' must not come out ')مادری('). Only a
+ * document with Arabic-script text has right-to-left runs, and its export
+ * installs bidi before the walk; with none installed the text is returned
+ * as it is.
+ */
+export function mirrorRtl(text: string): string {
+  return bidiImpl?.mirrorForRtl ? bidiImpl.mirrorForRtl(text) : text
+}
+
+/**
+ * Loads bidi.ts (and bidi-js with it) only when the document has Arabic-script
+ * text, and installs it for the walk; otherwise clears whatever an earlier
+ * export installed, so a Latin export never touches the bidi functions.
+ */
+export async function prepareBidi(arabic: boolean, load: () => Promise<BidiImpl> = () => import('./bidi')): Promise<void> {
+  setBidi(arabic ? await load() : null)
+}
+
+/**
+ * Hebrew, Syriac, Arabic, Thaana, NKo, Samaritan, Mandaic and the Arabic
+ * presentation forms, plus the astral right-to-left blocks. A cheap
+ * pre-check, broader than "strong RTL" (Arabic-Indic digits are in here and
+ * are not strong): a string with none of these cannot hold a strong rtl
+ * letter, so the bidi functions are never asked about it.
+ */
+const RTL_BLOCKS = new RegExp(`[${RTL_BLOCK_CLASS}]|[\uD802\uD803\uD83A\uD83B][\uDC00-\uDFFF]`)
+
+/** An Arabic-script letter: a cursive script, which the browser never letter-spaces. */
+const ARABIC_LETTER = new RegExp(`(?=[${ARABIC_SCRIPT_CLASS}])\\p{L}`, 'u')
+
+/**
+ * Splits `text` into its runs of one direction, in logical order, covering it
+ * exactly: `bidiRuns` with empty runs dropped. Without bidi installed it is
+ * the whole text as one ltr run.
+ */
+export function splitSegmentByDirection(text: string, base: 'rtl' | 'ltr'): BidiRun[] {
+  if (text.length === 0) return []
+  if (!bidiImpl) return [{ start: 0, end: text.length, rtl: false }]
+  return bidiImpl.bidiRuns(text, base).filter((r) => r.end > r.start)
+}
+
+/**
+ * The direction pieces of one line segment's RAW text (indices valid for a
+ * DOM Range over the node), or null when the segment stays one run: no bidi
+ * installed, no strong right-to-left letter under a left-to-right base, or a
+ * single ltr piece.
+ *
+ * Under a right-to-left base a segment splits without a right-to-left letter
+ * too: "2013 — 2017" is two left-to-right years with a right-to-left dash
+ * between them, drawn "2017 — 2013" on the canvas; a ": " alone is one
+ * right-to-left piece, its space on the left.
+ *
+ * Tabs and line breaks go to the algorithm as spaces. Bidi treats them as
+ * segment and paragraph separators, which reset the embedding, while the
+ * browser, under `white-space: normal`, drew them as one collapsed space; the
+ * swap is one character for one, so every index still points into `raw`.
+ *
+ * `context` is the paragraph the segment belongs to (`paragraphContext`) and
+ * where `raw` starts in it. The browser resolves directions over the whole
+ * paragraph, and so must this: a node holding only " (" is a right-to-left
+ * neutral on its own, but inside "English (C1)" it is left to right.
+ */
+export function directionPieces(raw: string, base: 'rtl' | 'ltr', context?: { text: string; start: number }): BidiRun[] | null {
+  if (!bidiImpl) return null
+  const whole = context?.text ?? raw
+  if (base !== 'rtl' && (!RTL_BLOCKS.test(whole) || !bidiImpl.hasStrongRtl(whole))) return null
+  const pieces = context ? clipToNode(resolvedParagraph(context.text, base), context.start, raw.length) : resolveParagraph(raw, base)
+  const folded = foldBlankPieces(raw, pieces)
+  return folded.length > 1 || folded[0]?.rtl ? folded : null
+}
+
+/** The paragraph's runs, clipped to the node's stretch `[from, from + length)`
+ *  and shifted to the node's own indices. */
+function clipToNode(runs: BidiRun[], from: number, length: number): BidiRun[] {
+  const out: BidiRun[] = []
+  for (const r of runs) {
+    const start = Math.max(r.start, from) - from
+    const end = Math.min(r.end, from + length) - from
+    if (end <= start) continue
+    const last = out[out.length - 1]
+    if (last && last.rtl === r.rtl) last.end = end
+    else out.push({ start, end, rtl: r.rtl })
+  }
+  return out
+}
+
+/** `resolveParagraph`, once per paragraph text and base (`resolved`). */
+function resolvedParagraph(text: string, base: 'rtl' | 'ltr'): BidiRun[] {
+  const key = base + '|' + text
+  let runs = resolved.get(key)
+  if (!runs) {
+    runs = resolveParagraph(text, base)
+    resolved.set(key, runs)
+  }
+  return runs
+}
+
+/** `splitSegmentByDirection` with tabs and line breaks read as spaces (see `directionPieces`). */
+function resolveParagraph(text: string, base: 'rtl' | 'ltr'): BidiRun[] {
+  return splitSegmentByDirection(text.replace(/[\t\n\v\f\r\u001C-\u001F\u0085\u2029]/g, ' '), base)
+}
+
+/**
+ * Folds every piece that holds nothing but whitespace (and soft hyphens) into
+ * a logical neighbour - the PREVIOUS piece, or the next one when it is first -
+ * then merges neighbours left with one direction.
+ *
+ * bidi-js does produce such pieces at a line's edges: "نام " under an ltr base
+ * resolves to levels 1110, so the trailing space is a piece of its own, and
+ * " React مهندس" under an rtl base opens with one. Dropped, that space is gone
+ * from the text layer and the words either side of it join for every reader;
+ * folded, it stays in the run text and its box joins the neighbour's measured
+ * box, since the run is measured over its whole character range. A piece
+ * holding only a joiner (U+200C/U+200D) is not blank and is kept.
+ */
+export function foldBlankPieces(text: string, pieces: BidiRun[]): BidiRun[] {
+  const blank = (r: BidiRun) => stripSoftHyphens(text.slice(r.start, r.end)).trim() === ''
+  if (!pieces.some(blank)) return pieces
+  const out: BidiRun[] = []
+  let pending: number | null = null // start of blank pieces waiting for a next neighbour
+  for (const r of pieces) {
+    if (blank(r)) {
+      if (out.length) out[out.length - 1] = { ...out[out.length - 1], end: r.end }
+      else pending ??= r.start
+      continue
+    }
+    const start: number = pending ?? r.start
+    pending = null
+    const last = out[out.length - 1]
+    if (last && last.rtl === r.rtl) out[out.length - 1] = { ...last, end: r.end }
+    else out.push({ start, end: r.end, rtl: r.rtl })
+  }
+  return out
+}
 
 /** parseColor handles rgb()/rgba(), the `color(srgb ...)` form Chromium
  *  serializes color-mix() results to (see style.ts), and anything else via
@@ -680,6 +863,86 @@ function decorationOf(cs: CSSStyleDeclaration, want: 'underline' | 'line-through
   return line.includes(want)
 }
 
+/** True for an element laid out inline (its text flows in its parent's lines).
+ *  Only `inline` and `contents`: an inline-block, inline-flex or inline-grid
+ *  box (a chip, a pill) sits in its parent's line as one object, but the
+ *  browser lays out its text as a bidi paragraph of its own. */
+const isInline = (el: Element) => {
+  const display = getComputedStyle(el).display
+  return display === 'inline' || display === 'contents'
+}
+
+/**
+ * The paragraph `node` is laid out in - the text of its nearest non-inline
+ * ancestor, from the text nodes whose lines that block lays out - and where
+ * `node` starts in it. Undefined when there is no such DOM to read.
+ */
+export function paragraphContext(node: Text): { text: string; start: number } | undefined {
+  try {
+    let block = node.parentElement
+    while (block && isInline(block) && block.parentElement) block = block.parentElement
+    if (!block || typeof document.createTreeWalker !== 'function') return undefined
+    let para = paragraphs.get(block)
+    if (!para) {
+      const starts = new Map<Text, number>()
+      let text = ''
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT)
+      for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+        let el = n.parentElement
+        while (el && el !== block && isInline(el)) el = el.parentElement
+        if (el !== block) continue
+        starts.set(n, text.length)
+        text += n.data
+      }
+      para = { text, starts }
+      paragraphs.set(block, para)
+    }
+    const start = para.starts.get(node)
+    return start === undefined ? undefined : { text: para.text, start }
+  } catch {
+    return undefined
+  }
+}
+
+/** How far a blank box may sit from a run and still be the space beside it:
+ *  sub-pixel seams between client rects, and no more. */
+const BLANK_TOUCH_PX = 1.5
+
+/** True when `b` has a width (a space hanging at a line end has none and
+ *  draws nothing) and sits against `core` on one side (see BLANK_TOUCH_PX). */
+const touches = (b: { left: number; right: number }, core: { left: number; right: number }) =>
+  b.right - b.left > 0.5 && b.left <= core.right + BLANK_TOUCH_PX && b.right >= core.left - BLANK_TOUCH_PX
+
+/**
+ * `core` - a run's text without its outer spaces - with one space put back on
+ * each side where a blank box sits, at the end of the TEXT that draws there:
+ * the start of a left-to-right run is its left edge, of a right-to-left run
+ * its right edge.
+ *
+ * A space folded into a run (foldBlankPieces), or the one before its node, is
+ * not always on the side its logical place says. On a right-to-left line the
+ * space before a Latin word sits to the word's right; written in front of the
+ * word, it was drawn to its left, the word moved over by a space, and readers
+ * that rebuild words from glyph positions saw "فرانت‌اند:React" - or, where
+ * the run started at that space's own left edge, the word drawn over the
+ * Persian beside it. Placed by the browser's own boxes, the glyph lands where
+ * the page has the gap. A blank that does not touch the core - the space
+ * before a node can sit beyond the NEXT node on a right-to-left line - is left
+ * out: the gap it fills is drawn by its own run.
+ */
+export function placeBlanks(core: string, coreBox: { left: number; right: number }, blanks: Array<{ left: number; right: number }>, rtl: boolean): string {
+  const mid = (coreBox.left + coreBox.right) / 2
+  let onLeft = false
+  let onRight = false
+  for (const b of blanks) {
+    if (!touches(b, coreBox)) continue
+    if ((b.left + b.right) / 2 < mid) onLeft = true
+    else onRight = true
+  }
+  const [atStart, atEnd] = rtl ? [onRight, onLeft] : [onLeft, onRight]
+  return (atStart ? ' ' : '') + core + (atEnd ? ' ' : '')
+}
+
 export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
   const parent = node.parentElement
   const data = node.data
@@ -722,6 +985,8 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     ...(decorationOf(cs, 'line-through') ? { lineThrough: true as const } : {}),
   }
   const shaped = (s: string) => applyTextTransform(collapseWhitespace(stripSoftHyphens(s), cs.whiteSpace), cs.textTransform)
+  /** The paragraph direction a mixed line is resolved against. */
+  const base = cs.direction === 'rtl' ? 'rtl' : 'ltr'
 
   // Sub-range geometry, needed only where a soft hyphen actually broke a
   // line: where this line's letters stop, and how wide the hyphen the engine
@@ -746,6 +1011,28 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     return out ?? r.getBoundingClientRect()
   }
 
+  /**
+   * The run over `[s, e)`, its outer spaces drawn at the edge where the
+   * browser drew them (`placeBlanks`), with `withLead` - the space before the
+   * node - as one more. Box: the union of everything in it.
+   */
+  const placedRun = (s: number, e: number, withLead: { left: number; right: number } | null, rtl: boolean, top: number) => {
+    const raw = data.slice(s, e)
+    const lt = raw.length - raw.replace(/^[\s­]+/, '').length
+    const tt = raw.length - raw.replace(/[\s­]+$/, '').length
+    const core = rectOf(s + lt, e - tt, top)
+    const blanks: Array<{ left: number; right: number }> = []
+    if (withLead && !lt) blanks.push(withLead)
+    if (lt && shaped(raw.slice(0, lt))) blanks.push(rectOf(s, s + lt, top))
+    if (tt && shaped(raw.slice(raw.length - tt))) blanks.push(rectOf(e - tt, e, top))
+    const text = placeBlanks(shaped(raw.slice(lt, raw.length - tt)), core, blanks, rtl)
+    const all = [core, ...blanks.filter((b) => touches(b, core))]
+    return { text, left: Math.min(...all.map((b) => b.left)), right: Math.max(...all.map((b) => b.right)) }
+  }
+
+  // The paragraph the node's lines belong to: only a document with bidi
+  // installed (Arabic script) reads it.
+  const paragraph = bidiImpl ? paragraphContext(node) : undefined
   const runs: TextRun[] = []
   for (let si = 0; si < segments.length; si++) {
     const seg = segments[si]
@@ -754,7 +1041,49 @@ export function extractRuns(node: Text, root: HTMLElement): TextRun[] {
     const bodyEnd = broke ? seg.end - 1 : seg.end
     const baselinePx = halfLeadingBaselinePx(seg.rect.top, rootRect.top, seg.rect.bottom - seg.rect.top, metrics)
 
-    let text = shaped(data.slice(bodyStart, bodyEnd))
+    const split = directionPieces(data.slice(bodyStart, bodyEnd), base, paragraph && { text: paragraph.text, start: paragraph.start + bodyStart })
+    if (split) {
+      // One run per direction, each measured over its own characters on this
+      // line - wherever the browser placed them, so their order on the page
+      // is the browser's and never computed here. Pieces are cut on the RAW
+      // text and shaped one by one: a run of whitespace always resolves to a
+      // single direction, so collapsing never meets a space split across two
+      // pieces. A space-only piece was already folded into a neighbour
+      // (foldBlankPieces), so the first piece here is the first one with
+      // letters, and it takes the preceding space below.
+      for (let pi = 0; pi < split.length; pi++) {
+        const s = bodyStart + split[pi].start
+        const e = bodyStart + split[pi].end
+        // The preceding space belongs to the first LOGICAL piece only.
+        const withLead = pi === 0 && lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1 ? lead : null
+        const placed = placedRun(s, e, withLead, split[pi].rtl, seg.rect.top)
+        runs.push({
+          ...style,
+          text: placed.text,
+          xPx: placed.left - rootRect.left,
+          widthPx: placed.right - placed.left,
+          baselinePx,
+          isDecorative: false,
+          ...(split[pi].rtl ? { direction: 'rtl' as const } : {}),
+          // Chromium letter-spaces no cursive script: Arabic is drawn joined
+          // and untracked whatever `letter-spacing` says, so the file is too.
+          ...(ARABIC_LETTER.test(placed.text) ? { letterSpacingPx: 0 } : {}),
+        })
+      }
+    }
+
+    // A one-direction segment of a document with right-to-left text: its
+    // spaces are placed where the browser drew them too (`placedRun`) - on a
+    // right-to-left line the space before a Latin word or a ": " sits on the
+    // other side from where a left-to-right line puts it. A document without
+    // right-to-left text never has bidi installed and takes the path below.
+    if (!split && bidiImpl && data.slice(bodyStart, bodyEnd).trim() !== '') {
+      const withLead = lead && si === 0 && Math.abs(lead.top - seg.rect.top) <= 1 ? lead : null
+      const placed = placedRun(bodyStart, bodyEnd, withLead, false, seg.rect.top)
+      runs.push({ ...style, text: placed.text, xPx: placed.left - rootRect.left, widthPx: placed.right - placed.left, baselinePx, isDecorative: false })
+    }
+
+    let text = split || bidiImpl ? '' : shaped(data.slice(bodyStart, bodyEnd))
     if (text.trim() !== '') {
       const box = broke ? rectOf(bodyStart, bodyEnd, seg.rect.top) : seg.rect
       // Absorb the preceding space: starting the run at the space's own left

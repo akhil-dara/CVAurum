@@ -86,6 +86,7 @@ import { AtsSheet } from './AtsSheet'
 import { SkimHeatmap, SkimPill } from './SkimHeatmap'
 import { CanvasReorder } from './CanvasReorder'
 import { ColumnBalanceHint } from './ColumnBalanceHint'
+import { RtlOffer } from '@/components/editor/RtlOffer'
 import { PageChromeOverlay, readPageFoot, readPageSheet, type PageFootCopy, type PageFootLook, type PageSheetLook } from './PageChrome'
 
 // Two animation frames, but never hang: if the editor tab is backgrounded, RAF
@@ -514,13 +515,20 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     return () => ro.disconnect()
   }, [])
 
-  // Re-measure once fonts for the chosen families have actually loaded.
+  // Re-measure once the faces the page draws have actually loaded: the chosen
+  // families, and the Arabic face for a page with Arabic-script letters
+  // (documentFaces reads the content for that; the metadata alone never names
+  // it, and a Persian page was measured in a fallback face). The joined names
+  // are the dependency, so typing re-runs it only when the set changes.
+  const faces = documentFaces(doc)
+  const facesKey = faces.join('|')
   useEffect(() => {
-    ensureFontsReady(documentFaces(doc.metadata)).then(() => {
+    ensureFontsReady(faces).then(() => {
       if (innerRef.current) setContentH(innerRef.current.scrollHeight)
       if (measureRef.current) setPrintH(measureRef.current.scrollHeight)
     })
-  }, [doc.metadata.typography.fontFamily, doc.metadata.typography.headingFamily, doc.metadata.typography.nameFamily])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- facesKey is `faces` by value
+  }, [facesKey])
 
   // Auto-fit using the SAME binary search as the print/PDF page (fitOnePage.ts),
   // run on the HIDDEN print-measure render so the visible canvas never flickers
@@ -549,7 +557,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
     const id = setTimeout(async () => {
       const myReq = ++fitReq.current
       if (import.meta.env.DEV) window.__cvaFitTrace = []
-      await ensureFontsReady(documentFaces(measureDoc.metadata))
+      await ensureFontsReady(documentFaces(measureDoc))
       // Wait for the photo in the measure render to load too — an unsized image
       // makes the header (and thus the fit) measure short, diverging from the PDF.
       const img = measureRef.current?.querySelector('img.rm-photo') as HTMLImageElement | null
@@ -1089,7 +1097,7 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             "Back to editing" returns to the editable page on every device. */}
         {previewExact && (
           <div className="pointer-events-none sticky top-3 z-20 flex h-0 justify-center overflow-visible">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 pl-3 pr-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-primary/30 bg-surface/95 py-1 ps-3 pe-1 text-xs font-medium text-foreground shadow-float backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
               <span className="whitespace-nowrap">
                 Exact PDF preview<span className="hidden sm:inline"> — this is precisely what exports</span>
@@ -1185,6 +1193,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
             screen has no bar cluster, and neither does a bar under 768px. It
             used to sit top-right, where it covered the page's header contacts
             at fit zoom and, on a phone, the Export menu's "Download PDF" row. */}
+        {/* A page with Persian or Arabic letters is offered the right-to-left
+            setup once, floating at the foot of the scrollport like the zoom
+            pill: it arrives while the name is being typed, so it must never
+            push the page (and the caret) down. Placed BEFORE the zoom pill so
+            the pill paints above it where the two could meet. */}
+        {!exactCanvas && <RtlOffer doc={doc} raised={isPhone || !barHasZoom} />}
         {(isPhone || !barHasZoom) && <CanvasZoom effectiveZoom={effectiveZoom} fitZoom={fitZoom} />}
       </div>
       {addOpen && (

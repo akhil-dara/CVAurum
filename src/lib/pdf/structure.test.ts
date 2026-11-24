@@ -14,8 +14,9 @@ import {
   PDFRef,
   PDFString,
 } from 'pdf-lib'
-import { writeStructTree } from './structure'
+import { createTagSink, writeStructTree } from './structure'
 import type { TaggedMark } from './tagging'
+import type { DrawOp } from './types'
 
 /** A document with one page, one tagged paragraph, and `n` Link annotations
  *  shaped exactly like paint.ts's `link` case (post-0003: /Contents = URL). */
@@ -468,5 +469,93 @@ describe('0009: /Link elements declare block placement', () => {
     const ps = docKidsWithRole(pdfDoc, 'P')
     expect(ps.length).toBe(1)
     expect(ps[0].get(PDFName.of('A'))).toBeUndefined()
+  })
+})
+
+describe('the language of a run that differs from the document', () => {
+  /** The Document element's kids, resolved. */
+  function docKids(pdfDoc: PDFDocument): PDFDict[] {
+    const root = pdfDoc.catalog.get(PDFName.of('StructTreeRoot'))
+    const tree = pdfDoc.context.lookup(root) as PDFDict
+    const kids = pdfDoc.context.lookup(tree.get(PDFName.of('K'))) as PDFArray
+    const docEl = pdfDoc.context.lookup(kids.get(0)) as PDFDict
+    return (pdfDoc.context.lookup(docEl.get(PDFName.of('K'))) as PDFArray)
+      .asArray()
+      .map((r) => pdfDoc.context.lookup(r) as PDFDict)
+  }
+  const kArray = (pdfDoc: PDFDocument, el: PDFDict): unknown[] => {
+    const k = el.get(PDFName.of('K'))
+    const v = pdfDoc.context.lookup(k)
+    return v instanceof PDFArray ? v.asArray().map((x) => pdfDoc.context.lookup(x) ?? x) : [v ?? k]
+  }
+
+  it('a mixed Persian document carries /Lang (en) on the span that draws React', async () => {
+    // The sink decides each run's language from its letters: a Latin run in
+    // a Persian document is English, the Persian runs inherit the catalog's.
+    const sink = createTagSink({ document: 'fa', arabic: 'fa' })
+    const page = { pushOperators: () => undefined }
+    sink.startPage(0)
+    const run = (text: string, direction?: 'rtl') =>
+      ({ kind: 'text', role: 'P', blockId: 7, run: { text, direction } }) as unknown as DrawOp
+    for (const op of [run('برنامه‌نویس', 'rtl'), run('React'), run('با تجربه', 'rtl')]) {
+      const token = sink.begin(page, op)
+      if (token) sink.end(page, token)
+    }
+    expect(sink.marks.map((m) => m.lang)).toEqual([undefined, 'en', undefined])
+
+    const pdfDoc = await PDFDocument.create()
+    pdfDoc.addPage([612, 792])
+    writeStructTree(pdfDoc, sink.marks)
+    const [p] = docKids(pdfDoc)
+    expect(p.get(PDFName.of('S'))).toBe(PDFName.of('P'))
+    expect(p.get(PDFName.of('Lang'))).toBeUndefined()
+    const kids = kArray(pdfDoc, p)
+    // MCID 0, a Span holding MCID 1, MCID 2: one paragraph still.
+    expect(kids[0]).toEqual(PDFNumber.of(0))
+    expect(kids[2]).toEqual(PDFNumber.of(2))
+    const span = kids[1] as PDFDict
+    expect(span.get(PDFName.of('S'))).toBe(PDFName.of('Span'))
+    expect((span.get(PDFName.of('Lang')) as PDFString).decodeText()).toBe('en')
+    expect(span.get(PDFName.of('K'))).toEqual(PDFNumber.of(1))
+    // A reader walking back from MCID 1 lands on the Span, not the paragraph.
+    const row = parentTreeMap(pdfDoc).get(0) as PDFArray
+    expect(pdfDoc.context.lookup(row.get(1))).toBe(span)
+  })
+
+  it('puts the language on the element itself when all of it is in that language', async () => {
+    const pdfDoc = await PDFDocument.create()
+    pdfDoc.addPage([612, 792])
+    writeStructTree(pdfDoc, [
+      { pageIndex: 0, mcid: 0, role: 'H1', lang: 'fa', blockId: 1, text: 'علی رضایی' },
+      { pageIndex: 0, mcid: 1, role: 'P', blockId: 2 },
+    ])
+    const [h1, p] = docKids(pdfDoc)
+    expect((h1.get(PDFName.of('Lang')) as PDFString).decodeText()).toBe('fa')
+    expect(h1.get(PDFName.of('K'))).toEqual(PDFNumber.of(0))
+    expect(p.get(PDFName.of('Lang'))).toBeUndefined()
+  })
+
+  it('tags an Arabic-script run in an English document with the document\'s Arabic language', () => {
+    const sink = createTagSink({ document: 'en-US', arabic: 'fa' })
+    const page = { pushOperators: () => undefined }
+    sink.startPage(0)
+    for (const op of [
+      { kind: 'text', role: 'P', run: { text: 'Software engineer' } },
+      { kind: 'text', role: 'P', run: { text: 'مهندس', direction: 'rtl' } },
+      { kind: 'text', role: 'P', run: { text: '2020 – 2024' } },
+    ] as unknown as DrawOp[]) {
+      const token = sink.begin(page, op)
+      if (token) sink.end(page, token)
+    }
+    expect(sink.marks.map((m) => m.lang)).toEqual([undefined, 'fa', undefined])
+  })
+
+  it('tags nothing when it is not told the languages (every Latin export)', () => {
+    const sink = createTagSink()
+    const page = { pushOperators: () => undefined }
+    sink.startPage(0)
+    const token = sink.begin(page, { kind: 'text', role: 'P', run: { text: 'مهندس', direction: 'rtl' } } as unknown as DrawOp)
+    if (token) sink.end(page, token)
+    expect(sink.marks[0].lang).toBeUndefined()
   })
 })

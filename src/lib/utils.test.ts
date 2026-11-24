@@ -148,6 +148,30 @@ describe('formatDate with the month style and the language', () => {
     expect(formatDate('2021-01', { month: 'numeric', language: 'de' })).toBe('01/2021')
   })
 
+  it('puts a Persian month before its year in EVERY month style', () => {
+    // The browser's Persian data disagrees with itself: the short pattern is
+    // "فروردین 1400" and the long one "1400 فروردین". Switching Jan -> January
+    // therefore moved the year to the other end of a range and stranded the
+    // dash on the far side of it (2026-11-16 user report).
+    expect(formatDate('2021-04', { month: 'short', language: 'fa' })).toBe('فروردین 1400')
+    expect(formatDate('2021-04', { month: 'long', language: 'fa' })).toBe('فروردین 1400')
+    expect(formatDate('2021-04', { month: 'numeric', language: 'fa' })).toBe('01/1400')
+    expect(formatDate('2021-04', { month: 'none', language: 'fa' })).toBe('1400')
+  })
+
+  it('keeps the number and year-only styles Gregorian in every language but Persian', () => {
+    // These are the strings main prints: the stored year, as typed. Asking
+    // each locale for its own calendar turned a Thai 2021 into 2564 (Buddhist)
+    // and, in a browser whose ar-SA calendar is Hijri, an Arabic one into 1442.
+    for (const language of ['th', 'ar-SA', 'ar', 'ja', 'he', 'de']) {
+      expect(formatDate('2021-03', { month: 'numeric', language }), language).toBe('03/2021')
+      expect(formatDate('2021-03', { month: 'none', language }), language).toBe('2021')
+    }
+    // Only Persian dates are told in the Persian calendar.
+    expect(formatDate('2021-03', { month: 'numeric', language: 'fa' })).toBe('12/1399')
+    expect(formatDate('2021-03', { month: 'none', language: 'fa' })).toBe('1399')
+  })
+
   it('prints the word for an open-ended range, falling back to Present', () => {
     expect(formatDate('Present', { present: 'Current' })).toBe('Current')
     expect(formatDate('present')).toBe('Present')
@@ -376,5 +400,29 @@ describe('entryDateOptions', () => {
       progress: 'auto',
       now: '2026-09',
     })
+  })
+})
+
+describe('Arabic span words follow the number', () => {
+  // Years: 1 singular, 2 dual, 3-10 plural, 11 and up singular (accusative
+  // for 11-99). Months the same, up to the 11 a span can hold.
+  const yrs = (n: number) => formatDuration('2000-01', `${2000 + n - 1}-12`, { language: 'ar' })
+  const mos = (n: number) => formatDuration('2000-01', `2000-${String(n).padStart(2, '0')}`, { language: 'ar' })
+  it('years', () => {
+    expect(yrs(1)).toBe('1 سنة')
+    expect(yrs(2)).toBe('2 سنتان')
+    expect(yrs(3)).toBe('3 سنوات')
+    expect(yrs(10)).toBe('10 سنوات')
+    expect(yrs(11)).toBe('11 سنة')
+  })
+  it('months', () => {
+    expect(mos(1)).toBe('1 شهر')
+    expect(mos(2)).toBe('2 شهران')
+    expect(mos(3)).toBe('3 أشهر')
+    expect(mos(10)).toBe('10 أشهر')
+    expect(mos(11)).toBe('11 شهرًا')
+  })
+  it('other languages keep their one-or-many words', () => {
+    expect(formatDuration('2000-01', '2001-12')).toBe('2 yrs')
   })
 })

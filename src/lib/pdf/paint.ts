@@ -28,6 +28,9 @@ import {
 import type { Path as FontkitPath } from '@pdf-lib/fontkit'
 import { pxToPt, ptToPx, flipY } from './units'
 import { mayNeedFallback, segmentByCoverage } from './textFallback'
+import { directedLayout, shapingDirection, withDirection, type ShapingDirection } from './directedText'
+import { mirrorRtl } from './text'
+import { MARKS_FAMILY, usesArabicScript } from '@/data/fonts'
 import { smallCapsSegments } from './smallcaps'
 import type { TagSink } from './tagging'
 import type { CornerRadii, DecoBox, DrawOp, LinearGradient, TextRun } from './types'
@@ -696,7 +699,20 @@ async function paintGlyphOutlines(
   pageHeightPt: number,
   xPt: number = pxToPt(run.xPx)
 ): Promise<number> {
-  const font = await fonts.embedGlyphOutlines(run.family, run.weight)
+  let font = await fonts.embedGlyphOutlines(run.family, run.weight)
+  // An Arabic-script run its own face cannot draw (keystone's running foot
+  // repeats the name in a monospaced Latin face) takes its outlines from the
+  // first chain font that has every letter, as the canvas borrows them; from
+  // the face alone each letter was its missing-glyph box. A run with no
+  // Arabic letter is drawn exactly as before.
+  if (usesArabicScript(run.text)) {
+    const visible = [...run.text].map((ch) => ch.codePointAt(0) ?? 0).filter((cp) => cp > 0x20 && cp !== 0x200c && cp !== 0x200d)
+    if (visible.some((cp) => !font.hasGlyphForCodePoint(cp))) {
+      const chain = await fonts.coverage(run.family, run.weight, run.text)
+      const whole = chain.find((c) => visible.every((cp) => c.has(cp)))
+      if (whole) font = await fonts.embedGlyphOutlines(whole.family, run.weight)
+    }
+  }
   const color = rgb(run.color.r, run.color.g, run.color.b)
   const baseX = xPt
   const baseY = flipY(pxToPt(run.baselinePx), pageHeightPt)
@@ -720,9 +736,12 @@ async function paintGlyphOutlines(
         }))
       : [{ text: run.text, sizePt }]
 
+  // An Arabic-script run is shaped in its own direction, as real text is
+  // (directedText.ts); every other run takes the plain layout it always did.
+  const dir = shapingDirection(run)
   let cursor = 0
   for (const piece of pieces) {
-    const glyphRun = font.layout(piece.text)
+    const glyphRun = directedLayout(font, dir === 'rtl' ? mirrorRtl(piece.text) : piece.text, dir)
     const scale = piece.sizePt / font.unitsPerEm
     for (let i = 0; i < glyphRun.glyphs.length; i++) {
       const glyph = glyphRun.glyphs[i]
@@ -829,7 +848,7 @@ async function trackedPieces(run: TextRun, fonts: PdfFontCache): Promise<Tracked
     const font = caps ?? (await fonts.embed(run.family, run.weight, trackingEm))
     const text = piece.smallCaps && !caps ? piece.text.toUpperCase() : piece.text
     const sizePt = pxToPt(piece.sizePx)
-    out.push({ text, sizePt, font, widthPt: safeWidthPt(font, text, sizePt, 0) })
+    out.push({ text, sizePt, font, widthPt: safeWidthPt(font, text, sizePt, 0, shapingDirection(run)) })
   }
   return out
 }
@@ -902,6 +921,9 @@ async function paintTrackedRun(
   if (!segments) pieces = await trackedPieces(run, fonts)
   else for (const seg of segments) pieces.push(...(await trackedPieces({ ...run, text: seg.text, family: seg.family }, fonts)))
   const naturalPt = pieces.reduce((sum, p) => sum + p.widthPt, 0)
+  // An rtl run's pieces are in logical order; the first is drawn rightmost.
+  const dir = shapingDirection(run)
+  if (dir === 'rtl') pieces.reverse()
   let tzPct = 100
   if (domWidthPt > 0 && naturalPt > 0) {
     tzPct = Math.min(110, Math.max(90, (100 * domWidthPt) / naturalPt))
@@ -914,14 +936,16 @@ async function paintTrackedRun(
     const color = textInk(run.color)
     let pieceXPt = xPt
     for (const piece of pieces) {
-      page.drawText(piece.text, {
-        x: pieceXPt,
-        y: yPt,
-        size: piece.sizePt,
-        font: piece.font,
-        color,
-        opacity: run.color.a,
-      })
+      shapedIn(piece.font, dir, () =>
+        page.drawText(piece.text, {
+          x: pieceXPt,
+          y: yPt,
+          size: piece.sizePt,
+          font: piece.font,
+          color,
+          opacity: run.color.a,
+        })
+      )
       // Tz scales the advances after the text origin, not the origin itself.
       pieceXPt += piece.widthPt * (tzPct / 100)
     }
@@ -982,12 +1006,27 @@ async function paintTrackedRun(
  * `lastUnsupportedCharacters`), so the browser's own laid-out width for the run
  * is both available and the right answer here.
  */
-function safeWidthPt(font: PDFFont, text: string, sizePt: number, fallbackPt: number): number {
+function safeWidthPt(
+  font: PDFFont,
+  text: string,
+  sizePt: number,
+  fallbackPt: number,
+  dir: ShapingDirection | null = null
+): number {
   try {
-    return font.widthOfTextAtSize(text, sizePt)
+    return shapedIn(font, dir, () => font.widthOfTextAtSize(text, sizePt))
   } catch {
     return fallbackPt
   }
+}
+
+/**
+ * `fn` with `font` shaping in `dir` (directedText.ts's `withDirection`) - or,
+ * for the null direction every Latin run has, `fn` itself, so Latin text
+ * takes exactly the call it always did.
+ */
+function shapedIn<T>(font: PDFFont, dir: ShapingDirection | null, fn: () => T): T {
+  return dir ? withDirection(font, dir, fn) : fn()
 }
 
 /** How far past its natural width a measured run has to be before the extra
@@ -1009,7 +1048,8 @@ function justifiedPieces(
   text: string,
   sizePt: number,
   naturalPt: number,
-  domWidthPt: number
+  domWidthPt: number,
+  dir: ShapingDirection | null = null
 ): { texts: string[]; widthsPt: number[]; gapPt: number } | null {
   if (naturalPt <= 0 || domWidthPt <= 0) return null
   const slackPt = domWidthPt - naturalPt
@@ -1024,9 +1064,54 @@ function justifiedPieces(
   }
   if (start < text.length) texts.push(text.slice(start))
   if (texts.length < 2) return null
-  const widthsPt = texts.map((piece) => safeWidthPt(font, piece, sizePt, 0))
+  // An rtl line's words are drawn from the right: the first word rightmost.
+  if (dir === 'rtl') texts.reverse()
+  const widthsPt = texts.map((piece) => safeWidthPt(font, piece, sizePt, 0, dir))
   const gapPt = (domWidthPt - widthsPt.reduce((sum, w) => sum + w, 0)) / (texts.length - 1)
   return gapPt > 0 ? { texts, widthsPt, gapPt } : null
+}
+
+/** `justifiedPieces` for a run drawn in several faces: the words are cut
+ *  across the pieces (a word may hold a borrowed mark), each word keeps its
+ *  trailing space, and the slack goes between the words. Same bounds as
+ *  `justifiedPieces`; null when the run is not a justified one. */
+function justifiedSegments(
+  pieces: Array<{ text: string; font: PDFFont | null }>,
+  sizePt: number,
+  naturalPt: number,
+  domWidthPt: number,
+  dir: ShapingDirection | null
+): { words: Array<Array<{ text: string; font: PDFFont | null; widthPt: number }>>; gapPt: number } | null {
+  if (naturalPt <= 0 || domWidthPt <= 0) return null
+  const slackPt = domWidthPt - naturalPt
+  if (slackPt <= JUSTIFY_SLACK_MIN_FRACTION * naturalPt) return null
+  if (slackPt > JUSTIFY_SLACK_MAX_FRACTION * naturalPt) return null
+  const words: Array<Array<{ text: string; font: PDFFont | null; widthPt: number }>> = [[]]
+  for (const piece of pieces) {
+    let start = 0
+    const push = (text: string) => {
+      if (!text) return
+      const widthPt = piece.font ? safeWidthPt(piece.font, text, sizePt, 0, dir) : 0
+      words[words.length - 1].push({ text, font: piece.font, widthPt })
+    }
+    for (let i = 0; i < piece.text.length; i++) {
+      if (piece.text[i] !== ' ') continue
+      push(piece.text.slice(start, i + 1))
+      words.push([])
+      start = i + 1
+    }
+    push(piece.text.slice(start))
+  }
+  const full = words.filter((w) => w.length)
+  if (full.length < 2) return null
+  // An rtl line's words are drawn from the right: the first word rightmost.
+  if (dir === 'rtl') {
+    full.reverse()
+    for (const w of full) w.reverse()
+  }
+  const total = full.reduce((sum, w) => sum + w.reduce((s2, seg) => s2 + seg.widthPt, 0), 0)
+  const gapPt = (domWidthPt - total) / (full.length - 1)
+  return gapPt > 0 ? { words: full, gapPt } : null
 }
 
 /** What `paintOps` remembers about the last REAL text run it drew — enough to
@@ -1211,6 +1296,11 @@ export async function paintOps(
     const mark = tagSink?.begin(page, op)
     if (op.kind === 'text' && !op.run.isDecorative) {
       let { run } = op
+      // Arabic-script text is shaped in its own direction (directedText.ts):
+      // an rtl run with its brackets mirrored, and the digits bidi resolved
+      // left to right in reading order. Null - every Latin run - is the old path.
+      const dir = shapingDirection(run)
+      if (dir === 'rtl') run = { ...run, text: mirrorRtl(run.text) }
       // Intentionally OUTSIDE the try/catch below: any failure to embed the
       // font (real content, tracked or not) must propagate, not be
       // swallowed as a cosmetic per-op issue.
@@ -1224,10 +1314,10 @@ export async function paintOps(
       // is the same font the browser drew it with (the chain sits in the
       // CSS stack). Latin runs never pay for this: mayNeedFallback is a
       // single regex test. See textFallback.ts.
-      let pieces: Array<{ text: string; font: PDFFont | null }> | null = null
+      let pieces: Array<{ text: string; font: PDFFont | null; family?: string }> | null = null
       let trackedSegments: Array<{ text: string; family: string }> | undefined
       if (mayNeedFallback(run.text, run.family)) {
-        const chain = await fonts.coverage(run.family, run.weight)
+        const chain = await fonts.coverage(run.family, run.weight, run.text)
         if (chain.length > 1) {
           const segs = segmentByCoverage(run.text, chain.map((c) => c.has))
           if (segs.some((s) => s.font !== 0)) {
@@ -1244,7 +1334,7 @@ export async function paintOps(
                 .filter((seg) => seg.font >= 0)
                 .map((seg) => ({ text: seg.text, family: chain[seg.font].family }))
             } else {
-              pieces = segs.map((s) => ({ text: s.text, font: s.font >= 0 ? chainFonts[s.font] : null }))
+              pieces = segs.map((s) => ({ text: s.text, font: s.font >= 0 ? chainFonts[s.font] : null, family: chain[s.font]?.family }))
             }
           }
         }
@@ -1285,11 +1375,11 @@ export async function paintOps(
       // non-tracked branch's Tz ratio needs. The tracked branch measures its
       // own pieces against their own (tracked) cuts instead.
       const pieceWidthsPt = pieces
-        ? pieces.map((p) => (p.font ? safeWidthPt(p.font, p.text, sizePt, 0) : 0))
+        ? pieces.map((p) => (p.font ? safeWidthPt(p.font, p.text, sizePt, 0, dir) : 0))
         : null
       const embeddedWidthPt = pieceWidthsPt
         ? pieceWidthsPt.reduce((sum, w) => sum + w, 0)
-        : safeWidthPt(font, run.text, sizePt, pxToPt(run.widthPx || 0))
+        : safeWidthPt(font, run.text, sizePt, pxToPt(run.widthPx || 0), dir)
       let tzPct = 100
       // What the run advances the pen by BEFORE Tz. The embedded (untracked)
       // metric everywhere except a justified line, whose pieces are spread
@@ -1340,9 +1430,19 @@ export async function paintOps(
         // A mixed-script run is not spread as a justified line: its pieces
         // already carry their own fonts, and the Tz scaling below fits the
         // whole to the browser's width the same way it does one font.
-        const spread = pieces ? null : justifiedPieces(font, run.text, sizePt, embeddedWidthPt, domWidthPt)
+        const spread = pieces ? null : justifiedPieces(font, run.text, sizePt, embeddedWidthPt, domWidthPt, dir)
+        // A line whose only borrowed glyphs are marks (an arrow, a check) is
+        // still a line of the run's own face, and spread like one. Any other
+        // mixed-script run keeps the Tz fit below, as it always has.
+        const spreadMarks =
+          pieces && pieces.every((p) => p.font === font || p.family === MARKS_FAMILY)
+            ? justifiedSegments(pieces, sizePt, embeddedWidthPt, domWidthPt, dir)
+            : null
+        if (spreadMarks) advanceWidthPt = domWidthPt
         if (spread) {
           advanceWidthPt = domWidthPt
+        } else if (spreadMarks) {
+          // spread across the words, no scaling
         } else if (domWidthPt > 0 && embeddedWidthPt > 0) {
           tzPct = Math.min(110, Math.max(90, (100 * domWidthPt) / embeddedWidthPt))
         }
@@ -1361,22 +1461,36 @@ export async function paintOps(
           if (spread) {
             let pieceXPt = xPt
             for (let i = 0; i < spread.texts.length; i++) {
-              page.drawText(spread.texts[i], { ...style, x: pieceXPt })
+              shapedIn(font, dir, () => page.drawText(spread.texts[i], { ...style, x: pieceXPt }))
               pieceXPt += spread.widthsPt[i] + spread.gapPt
+            }
+          } else if (spreadMarks) {
+            let wordXPt = xPt
+            for (const word of spreadMarks.words) {
+              for (const seg of word) {
+                const segFont = seg.font
+                if (segFont) shapedIn(segFont, dir, () => page.drawText(seg.text, { ...style, font: segFont, x: wordXPt }))
+                wordXPt += seg.widthPt
+              }
+              wordXPt += spreadMarks.gapPt
             }
           } else if (pieces && pieceWidthsPt) {
             // Each piece starts where the previous one's SCALED advance ends:
             // Tz scales the glyph advances after the text origin, not the
             // origin itself. A piece no chain font can draw is skipped (it is
             // reported by the export, as before).
+            // An rtl run's pieces are in logical order, so they are laid
+            // out from the last: the first piece ends up rightmost.
             let pieceXPt = xPt
-            for (let i = 0; i < pieces.length; i++) {
+            for (let k = 0; k < pieces.length; k++) {
+              const i = dir === 'rtl' ? pieces.length - 1 - k : k
               const piece = pieces[i]
-              if (piece.font) page.drawText(piece.text, { ...style, font: piece.font, x: pieceXPt })
+              const pieceFont = piece.font
+              if (pieceFont) shapedIn(pieceFont, dir, () => page.drawText(piece.text, { ...style, font: pieceFont, x: pieceXPt }))
               pieceXPt += pieceWidthsPt[i] * (tzPct / 100)
             }
           } else {
-            page.drawText(run.text, { ...style, x: xPt })
+            shapedIn(font, dir, () => page.drawText(run.text, { ...style, x: xPt }))
           }
         } catch (e) {
           // Drawing SHAPES the run, and fontkit's Indic syllable shaper is a
@@ -2073,7 +2187,8 @@ export function assignOpsToPages(
  *  and tracking `paintGlyphOutlines` draws them with. */
 async function outlineAdvancePx(fonts: PdfFontCache, run: TextRun, text: string): Promise<number> {
   const font = await fonts.embedGlyphOutlines(run.family, run.weight)
-  const glyphs = font.layout(text)
+  const dir = shapingDirection({ ...run, text })
+  const glyphs = directedLayout(font, dir === 'rtl' ? mirrorRtl(text) : text, dir)
   const scale = run.sizePx / font.unitsPerEm
   let w = 0
   for (const pos of glyphs.positions) w += pos.xAdvance * scale + run.letterSpacingPx

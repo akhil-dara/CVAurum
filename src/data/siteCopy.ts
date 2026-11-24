@@ -159,7 +159,7 @@ export const SITE: SiteCopy = {
     },
     {
       q: 'Is the PDF archival quality?',
-      a: 'Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts.',
+      a: 'Yes — and accessible. Every export conforms to both PDF/A-2B (the ISO standard for long-term archiving, with all fonts and an sRGB colour profile embedded) and PDF/UA-1 (the accessibility standard), checked against the veraPDF reference validator. It is fully tagged, so a screen reader reads your headings, paragraphs and bullet lists as real structure — in logical order, so your name comes first even on sidebar layouts. Right-to-left resumes in Persian and Arabic are supported too: the page mirrors, Persian dates can read in the Jalali calendar, and the same native engine exports them.',
     },
     {
       q: 'Is the text on my resume easy to read for everyone?',
@@ -195,7 +195,7 @@ export const SITE: SiteCopy = {
       value: `${SAMPLE_COUNT} complete resumes across twelve fields, five career stages and three countries, each on its own page and openable in the editor in one click; every person, employer and figure in them is invented`,
     },
     { label: 'Editing', value: `on the page or in a form panel, in sync; per-section styles; ${FONTS.length} bundled fonts; A4 or US Letter; undo and redo; autosave; a command palette (Ctrl+K); ${SAMPLE_COUNT} complete example resumes to start from, searchable by field, career stage and country; Magic fit sizes type and spacing to a page target inside rules you set (a body-size floor, what gives first, sizes kept as set), reads out the sizes it chose, and measures a few moves that fit better` },
-    { label: 'Scripts', value: 'Latin with accents, Cyrillic, Greek and Vietnamese, on the page and in every export; a font that lacks a script falls back to a bundled one of the same kind' },
+    { label: 'Scripts', value: 'Latin with accents, Cyrillic, Greek and Vietnamese, on the page and in every export; a font that lacks a script falls back to a bundled one of the same kind; Persian and Arabic resumes read right to left, the page mirrored' },
     { label: 'Offline', value: 'installs as a web app and works with no connection: the app, its Latin fonts and the colour profile are saved on the device at install, and each resume\u2019s export fonts are saved quietly while you are online, so it exports with no connection too. Every font is bundled with the app, so no third-party server is ever contacted' },
     { label: 'Sharing', value: 'an encrypted link (AES-256-GCM, key derived from a passphrase) or an exported file' },
     { label: 'Platform', value: 'any modern browser on desktop, tablet or phone; JavaScript is required to edit (the public pages carry their content in plain HTML)' },

@@ -53,6 +53,9 @@ interface EditableProps {
   /** The field's name when its placeholder is an example value
    *  ("email@example.com" is read as "Email"). */
   label?: string
+  /** 'auto' lets the value pick its own direction (a phone or an email inside
+   *  a right-to-left contact line). Unset, the field carries no dir at all. */
+  dir?: 'auto'
 }
 
 interface SlashMenu {
@@ -90,7 +93,7 @@ function detectSlash(root: HTMLElement): Omit<SlashMenu, 'items' | 'index'> & { 
   }
 }
 
-function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines, optional, label }: EditableProps) {
+function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', className, placeholder, spellCheck = true, onPasteLines, optional, label, dir }: EditableProps) {
   const ref = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // What the field held when it was entered: Escape puts it back.
@@ -278,6 +281,7 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
         ref={ref}
         contentEditable
         suppressContentEditableWarning
+        dir={dir}
         spellCheck={spellCheck}
         role="textbox"
         tabIndex={0}
@@ -316,7 +320,7 @@ function Editable({ value, onChange, rich, multiline, onEnter, as = 'span', clas
                 type="button"
                 role="option"
                 aria-selected={i === menu.index}
-                className={`flex w-full items-baseline justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs ${i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
+                className={`flex w-full items-baseline justify-between gap-2 rounded-md px-2 py-1.5 text-start text-xs ${i === menu.index ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
                 onMouseDown={(e) => { e.preventDefault(); applySlash(it) }}
                 onMouseMove={() => setMenu((cur) => (cur ? { ...cur, index: i } : cur))}
               >
@@ -347,6 +351,7 @@ export function Ed({
   onPasteLines,
   optional,
   label,
+  dir,
 }: {
   edit?: EditFn
   value: string
@@ -366,8 +371,14 @@ export function Ed({
   optional?: boolean
   /** See EditableProps.label. */
   label?: string
+  /** See EditableProps.dir. */
+  dir?: 'auto'
 }) {
   if (!edit) {
+    // A value that picks its own direction needs an element to carry it.
+    // Only the contact line passes `dir`, and its values are plain one-line
+    // text - never rich, never chunked - so those paths are not needed here.
+    if (dir) return <span dir={dir} className={className}>{value}</span>
     if (rich) return <RichText html={value} className={className} />
     // `chunk` splits the value where a line may break, so a lone connector
     // never holds a line by itself - "BI, Reporting & Visualisation" wrapped
@@ -406,6 +417,7 @@ export function Ed({
       onPasteLines={onPasteLines}
       optional={optional}
       label={label}
+      dir={dir}
       onChange={(v) => edit((c) => apply(c, v))}
     />
   )

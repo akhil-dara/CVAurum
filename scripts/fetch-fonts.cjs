@@ -2,8 +2,9 @@
  * One-time (re-runnable) generator: self-host every font family in the registry.
  *
  * For each family we ask the Google Fonts CSS2 API for the exact weights the app
- * uses, keep the `latin` + `latin-ext` subsets (covers English + accented
- * European names), download the woff2 binaries into public/fonts/, and emit
+ * uses, keep one woff2 per script subset it ships (latin, latin-ext, cyrillic,
+ * greek, vietnamese, arabic - see KEEP below), download the binaries into
+ * public/fonts/, and emit
  * src/styles/fonts.css with @font-face rules pointing at the LOCAL files.
  *
  * After this runs the app makes ZERO external font requests — fonts ship with
@@ -33,7 +34,7 @@ const CSS_OUT = path.join(ROOT, 'src', 'styles', 'fonts.css')
 // family's files into one embeddable TTF. Before this, only latin and
 // latin-ext were kept, and a Cyrillic resume exported with every Cyrillic
 // letter dropped, whatever font was chosen (issue #10).
-const KEEP = new Set(['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext', 'greek', 'greek-ext', 'vietnamese'])
+const KEEP = new Set(['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext', 'greek', 'greek-ext', 'vietnamese', 'arabic'])
 
 const DW = [400, 500, 600, 700]
 // Mirror of src/data/fonts.ts (name -> requested weights).
@@ -51,6 +52,9 @@ const FONTS = [
   ['Oswald', DW], ['Bebas Neue', [400]], ['Abril Fatface', [400]], ['Archivo', DW],
   ['Dancing Script', [400, 500, 600, 700]], ['Dynalight', [400]], ['Ms Madi', [400]], ['Meow Script', [400]],
   ['Space Grotesk', [400, 500, 600, 700]],
+  // Persian/Arabic script, for the resume page only (the interface is always
+  // left to right).
+  ['Vazirmatn', DW],
 ]
 
 // `--only "<Family>"` fetches ONE family and splices its blocks into the

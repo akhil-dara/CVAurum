@@ -21,4 +21,12 @@ describe('the site copy', () => {
     for (const f of SITE.faq) expect(f.a.length).toBeGreaterThan(40)
     for (const p of SITE.privacy) expect(p.length).toBeGreaterThan(20)
   })
+  it('never sends a Persian or Arabic resume to a print dialog', () => {
+    // Every PDF is drawn by the native engine, right-to-left ones included.
+    for (const f of SITE.faq) {
+      if (/Persian|Arabic/.test(f.a)) expect(f.a).not.toMatch(/print/i)
+    }
+    // ...and the site says once that they are supported.
+    expect(SITE.faq.filter((f) => /Persian/.test(f.a))).toHaveLength(1)
+  })
 })

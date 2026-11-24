@@ -165,7 +165,7 @@ export function SectionItemsEditor({ doc, sectionKey }: { doc: ResumeDocument; s
                   </button>
                   <button
                     type="button"
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left hover:bg-muted/50"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-start hover:bg-muted/50"
                     onClick={() =>
                       setExpanded((s) => {
                         const n = new Set(s)
@@ -362,7 +362,7 @@ function PageBreakRow({ sectionKey, itemId }: { sectionKey: string; itemId: stri
       {autoFitOn ? (
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-foreground">Start on new page</span>
-          <span className="text-right text-[11px] leading-tight text-muted-foreground">
+          <span className="text-end text-[11px] leading-tight text-muted-foreground">
             Turn off “Magic fit” (Design) to pin page breaks.
           </span>
         </div>

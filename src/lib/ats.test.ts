@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createDocument } from '@/data/defaults'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
-import { analyzeResume, type AtsCheck } from './ats'
+import { analyzeResume, extractKeywords, type AtsCheck } from './ats'
 import type { FileFacts } from './fileFacts'
 
 /**
@@ -617,5 +617,156 @@ describe('a PDF from elsewhere, judged as a file', () => {
     const r = analyzeResume(d(), { file: facts({ pageCount: 3, bodyPt: 8 }) })
     expect(r.pages).toBe(3)
     expect(r.checks.find((c) => c.id === 'bodySize')?.status).toBe('fail')
+  })
+})
+
+describe('a resume in Arabic script', () => {
+  const fa = (highlights: string[], summary = '') =>
+    doc({
+      projects: [],
+      volunteer: [],
+      custom: [],
+      basics: { ...doc().content.basics, name: 'علی رضایی', summary },
+      work: [
+        {
+          id: 'w1',
+          name: 'فناوران',
+          position: 'مهندس',
+          startDate: '2020-01',
+          endDate: '',
+          url: '',
+          summary: '',
+          location: '',
+          highlights,
+        },
+      ],
+    })
+
+  it('keeps Persian words as keywords for a job description in the same language', () => {
+    // The tokenizer dropped every letter outside [a-z0-9], so a Persian job
+    // description produced no keywords at all and a silent 0% match.
+    const words = extractKeywords('نیاز به مهندس نرم‌افزار با تجربه در طراحی سیستم‌های توزیع‌شده')
+    expect(words.some((w) => w.startsWith('مهندس')), words.join(' | ')).toBe(true)
+    expect(words.some((w) => w.includes('نرمافزار')), words.join(' | ')).toBe(true)
+    // ...and the common words that carry no keyword stay out.
+    expect(words).not.toContain('در')
+    expect(words).not.toContain('با')
+  })
+
+  it('counts a Persian figure as a number', () => {
+    // Persian digits and the Persian percent sign are figures on the page; the
+    // Latin-only test called a resume full of them unquantified.
+    const r = analyzeResume(fa(['افزایش ۲۰٪ در فروش', 'کاهش هزینه‌ها ۳۰ درصد']))
+    expect(r.quantifiedCount).toBe(2)
+    expect(r.checks.find((c) => c.id === 'quantified')?.status).toBe('pass')
+  })
+
+  it('drops the English word-list rules and says so, instead of passing them', () => {
+    const r = analyzeResume(fa(['رهبری تیم چهار نفره']))
+    const ids = r.checks.map((c) => c.id)
+    for (const id of ['verbs', 'passiveVoice', 'filler', 'pronouns', 'buzzwords', 'tense']) {
+      expect(ids, id).not.toContain(id)
+    }
+    const note = r.checks.find((c) => c.id === 'language')
+    expect(note?.status).toBe('warn')
+    expect(note?.detail).toMatch(/English word lists/)
+  })
+})
+
+describe('an English resume with a few words in Arabic script', () => {
+  // The word-list rules stand aside per bullet, not per document: one Persian
+  // name used to switch six checks off for the whole page, so a mostly-English
+  // resume scored higher for it.
+  const english = (name: string, highlights: string[]) =>
+    doc({
+      projects: [],
+      volunteer: [],
+      custom: [],
+      basics: { ...doc().content.basics, name, summary: '' },
+      work: [
+        {
+          id: 'w1',
+          name: 'Northwind',
+          position: 'Engineer',
+          startDate: '2019-01',
+          endDate: '2021-06',
+          url: '',
+          summary: '',
+          location: '',
+          highlights,
+        },
+      ],
+    })
+  const ids = ['verbs', 'passiveVoice', 'filler', 'pronouns', 'buzzwords', 'tense']
+  const rows = (d: ResumeDocument) => {
+    const r = analyzeResume(d)
+    return Object.fromEntries(ids.map((id) => [id, r.checks.find((c) => c.id === id)]))
+  }
+  const bullets = [
+    'The release pipeline was rebuilt by the platform team in 2020.',
+    'Known as a team player across four squads.',
+    'Cut build time 40% with a shared cache.',
+  ]
+
+  it('reports what the same resume with a Latin name reports', () => {
+    const latin = rows(english('Alireza Karimi', bullets))
+    const persian = rows(english('علیرضا', bullets))
+    expect(persian).toEqual(latin)
+    expect(persian.passiveVoice?.status).toBe('warn')
+    expect(persian.buzzwords?.status).toBe('warn')
+    expect(analyzeResume(english('علیرضا', bullets)).checks.map((c) => c.id)).not.toContain('language')
+  })
+
+  it('exempts the bullet in Arabic script and judges its neighbours', () => {
+    const mixed = english('Alireza Karimi', [
+      'Responsible for the billing service.',
+      'مسئول توسعه سیستم پرداخت was rebuilt by the team, a team player',
+      'The release pipeline was rebuilt by the platform team in 2020.',
+    ])
+    const r = rows(mixed)
+    // The English neighbours are still read...
+    expect(r.passiveVoice?.status).toBe('warn')
+    expect(r.passiveVoice?.where).toEqual({ section: 'work', entry: 0, bullet: 2 })
+    expect(r.verbs?.where).toEqual({ section: 'work', entry: 0, bullet: 0 })
+    // ...and the Persian bullet is not: its English fragments raise nothing.
+    expect(r.buzzwords?.status).toBe('pass')
+    expect(analyzeResume(mixed).checks.find((c) => c.id === 'language')?.status).toBe('warn')
+  })
+})
+
+describe('the keyword tokenizer', () => {
+  it('keeps a letter and its combining mark in one word', () => {
+    // "naïve" spelled with U+0308 COMBINING DIAERESIS: \p{L} alone split it
+    // at the mark, as it splits Devanagari, Thai and vowelled Arabic.
+    const naive = 'naïve'
+    // ...and it comes back composed, the one form every keyword is compared in.
+    expect(extractKeywords(naive)).toEqual([naive.normalize('NFC')])
+    // Hindi: the vowel signs and the virama are marks too.
+    const hindi = 'हिन्दी'
+    expect(extractKeywords(hindi)).toEqual([hindi])
+  })
+})
+
+describe('keywords in composed and decomposed letters', () => {
+  // 'café' typed with a precomposed é (U+00E9) and with e + U+0301 is the
+  // same word: the job description and the resume must match it either way.
+  const composed = 'café'
+  const decomposed = 'café'
+
+  it('extracts one keyword from both spellings, in composed form', () => {
+    expect(extractKeywords(`${composed} and ${decomposed}`)).toEqual([composed])
+  })
+
+  it('matches a decomposed resume word against a composed job keyword, and back', () => {
+    for (const [jd, cv] of [
+      [composed, decomposed],
+      [decomposed, composed],
+    ]) {
+      const d = createDocument()
+      d.content.basics.name = 'Alex Morgan'
+      d.content.basics.summary = `<p>Ran a ${cv} for six years.</p>`
+      d.jobDescription = `${jd} and ${jd}`
+      expect(analyzeResume(d).jd?.keywords).toEqual([expect.objectContaining({ term: composed, inResume: true })])
+    }
   })
 })

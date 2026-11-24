@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResumeDocument } from '@/types/document'
+import { createDocument } from '@/data/defaults'
 
 // vi.mock factories are hoisted above imports, so anything they reference
 // must come from vi.hoisted — plain `const x = vi.fn()` above the calls
@@ -119,10 +120,53 @@ describe('exportResumePdf', () => {
     expect(lastAnchor).toBeNull()
   })
 
+  it('draws a right-to-left Persian resume natively too, and opens no window', async () => {
+    // The native renderer shapes and orders Arabic script now (directedText,
+    // bidi), so a Persian resume is drawn and downloaded like any other.
+    renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3]))
+    const open = vi.fn()
+    const assign = vi.fn()
+    // @ts-expect-error the node test env has no window; a print path would need one
+    globalThis.window = { open, location: { assign } }
+
+    const rtlDoc = createDocument()
+    rtlDoc.metadata.layout.rtl = true
+    rtlDoc.content.basics.name = 'علی رضایی'
+    rtlDoc.content.basics.label = 'مهندس نرم‌افزار'
+    const result = await exportResumePdf(rtlDoc)
+
+    expect(renderResumePdfMock).toHaveBeenCalledWith(rtlDoc)
+    expect(result).toEqual({ fileName: 'Jane_Doe_Resume_2026-08-14.pdf', pages: 1, bytes: 3 })
+    expect(lastAnchor?.download).toBe('Jane_Doe_Resume_2026-08-14.pdf')
+    expect(open).not.toHaveBeenCalled()
+    expect(assign).not.toHaveBeenCalled()
+    delete (globalThis as { window?: unknown }).window
+  })
+
+  it('draws a Persian name in an English resume natively as well', async () => {
+    renderResumePdfMock.mockResolvedValue(new Uint8Array([1, 2, 3]))
+    const open = vi.fn()
+    // @ts-expect-error the node test env has no window; a print path would need one
+    globalThis.window = { open, location: { assign: vi.fn() } }
+
+    const mixed = createDocument()
+    mixed.content.basics.name = 'Ali Rezaei'
+    mixed.content.basics.label = 'مهندس نرم‌افزار'
+    await exportResumePdf(mixed)
+
+    expect(renderResumePdfMock).toHaveBeenCalledWith(mixed)
+    expect(open).not.toHaveBeenCalled()
+    delete (globalThis as { window?: unknown }).window
+  })
+
   it('has no browser-print path behind it: every PDF is the native render', () => {
     // The rule the user set, made executable: a fallback that hands over a
     // different document would hide renderer regressions.
-    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'export.ts'), 'utf8')
-    expect(source).not.toMatch(/openPrintWindow|window\.print|\/print\/|pdf-engine/)
+    const here = dirname(fileURLToPath(import.meta.url))
+    const source = readFileSync(join(here, 'export.ts'), 'utf8')
+    expect(source).not.toMatch(/openPrintWindow|window\.print|window\.open|\/print\/|pdf-engine|needsBrowserPrint/)
+    // ...and the flow around it never tells anyone to save from a print dialog.
+    const flow = readFileSync(join(here, 'exportFlow.ts'), 'utf8')
+    expect(flow).not.toMatch(/Save as PDF|print window|kind === 'print'/)
   })
 })

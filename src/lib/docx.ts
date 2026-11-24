@@ -1068,6 +1068,9 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   LINKS_LIVE = metadata.links?.clickable !== false
   JUSTIFY = metadata.typography.align === 'justify'
   const metrics = docxMetrics(metadata, fitScale)
+  // The page's own direction, read once: it decides the document's default
+  // paragraph direction and the side the photo sits on.
+  const rtlDoc = !!metadata.layout.rtl
   SIZE = metrics.sizes
   BULLET = { indent: metrics.bulletIndent, gap: metrics.bulletGap }
   HEADING = { after: metrics.headingGap, rule: metrics.headingRule }
@@ -1141,7 +1144,7 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
   // the MAIN colour context — sidebar text colours are chosen to sit on a dark
   // band and would be unreadable on white paper. The footer strip follows both,
   // as the ATS text reads it, in its own shaded cell (buildFooter).
-  const photo = photoParagraph(doc, 120, AlignmentType.LEFT)
+  const photo = photoParagraph(doc, 120, rtlDoc ? AlignmentType.RIGHT : AlignmentType.LEFT)
   const body: (Paragraph | Table)[] = [
     ...(photo ? [photo] : []),
     ...buildHeader(doc, mainCtx, metrics.separator, contentW),
@@ -1157,7 +1160,15 @@ export function buildDocx(doc: ResumeDocument, fitScale = 1): Document {
     background: { color: background },
     styles: {
       default: {
-        document: { run: { font: bodyFont, size: SIZE.body, color: text }, paragraph: { spacing: { line } } },
+        document: {
+          run: { font: bodyFont, size: SIZE.body, color: text },
+          // A right-to-left resume is a right-to-left DOCUMENT: `bidi` on the
+          // default paragraph makes Word lay every paragraph out from the right,
+          // so bullets, numbers, dates and alignment follow the page instead of
+          // the file. Without it Word shapes the letters correctly and still
+          // sets the whole document left to right.
+          paragraph: { spacing: { line }, ...(rtlDoc ? { bidirectional: true } : {}) },
+        },
       },
     },
     sections: [

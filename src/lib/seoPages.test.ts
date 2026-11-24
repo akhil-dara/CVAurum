@@ -957,3 +957,19 @@ describe('a design page title leads with what people search', () => {
     for (const t of titles) expect(t).toMatch(/^[A-Z][\w-]*( [\w-]+)? Resume Template: /)
   })
 })
+
+describe('right-to-left support in the llms files', () => {
+  // The ruling: a surface states it once. The full file embeds the FAQ, which
+  // already carries the sentence, so nothing else in it may repeat it.
+  const count = (text: string) => (text.match(/Right-to-left resumes in Persian and Arabic/g) ?? []).length
+  it('is stated exactly once in llms-full.txt', () => {
+    expect(count(llmsFullTxt())).toBe(1)
+  })
+  it('is stated at most once in llms.txt', () => {
+    expect(count(llmsTxt())).toBeLessThanOrEqual(1)
+  })
+  it('is stated exactly once in the README', () => {
+    const readme = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../README.md'), 'utf8')
+    expect(count(readme)).toBe(1)
+  })
+})

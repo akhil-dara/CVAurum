@@ -861,6 +861,20 @@ function styledTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx
   }
 }
 
+/**
+ * The run for a pseudo's generated text. A string of marks and spaces only on
+ * a right-to-left line is a right-to-left run, as it is for a list marker
+ * (`markerDirection`): the painter then mirrors a Bidi_Mirrored mark the way
+ * the canvas does - dossier's `›` contact separator reads `‹` there, and was
+ * drawn `›` in the PDF.
+ */
+export function pseudoTextRun(cs: CSSStyleDeclaration, text: string, xPx: number, topPx: number): TextRun | null {
+  const run = styledTextRun(cs, text, xPx, topPx)
+  if (!run) return null
+  const direction = markerDirection(cs, text)
+  return direction ? { ...run, direction } : run
+}
+
 /** The subset of a host's computed style `pseudoBox`'s flex-item branch
  *  needs — a plain `Pick`, not a full `CSSStyleDeclaration`, so tests can
  *  fake it without a real DOM. */
@@ -959,8 +973,22 @@ export function pseudoBox(
   const isFlex = hostCs && (hostCs.display === 'flex' || hostCs.display === 'inline-flex')
   const isColumn = isFlex && (hostCs!.flexDirection === 'column' || hostCs!.flexDirection === 'column-reverse')
   const isRow = isFlex && !isColumn && (!hostCs!.flexDirection || hostCs!.flexDirection === 'row')
+  // Under `direction: rtl` a flex container's inline axis starts at its RIGHT
+  // edge: a row lays its items out right to left, and a column's cross-axis
+  // start is the right side. Everything below mirrors for it; ltr is untouched.
+  const rtl = isFlex && cs.direction === 'rtl'
 
-  if (isRow) {
+  if (isRow && rtl) {
+    if (which === '::after' && lastChildBox) {
+      // Last in box order, so LEFT of the last child: the gap and the
+      // pseudo's own margin-right stand between them.
+      xPx = lastChildBox.xPx - (parsePx(hostCs!.columnGap) || 0) - (parsePx(cs.marginRight) || 0) - wPx
+    } else {
+      xPx = host.xPx + host.wPx - wPx
+    }
+    if (hostCs!.alignItems === 'center') yPx = host.yPx + (host.hPx - hPx) / 2
+    else if (hostCs!.alignItems === 'flex-end') yPx = host.yPx + host.hPx - hPx
+  } else if (isRow) {
     if (which === '::after' && lastChildBox) {
       // Flex margins add to the gap, as in the column case below: a
       // separator's margin-left is the air between it and the contact.
@@ -977,7 +1005,14 @@ export function pseudoBox(
 
     const marginLeftPx = parsePx(cs.marginLeft)
     const marginRightPx = parsePx(cs.marginRight)
-    if (marginLeftPx > 0 || marginRightPx > 0) {
+    if (rtl) {
+      // The mirror of the ltr rules just below: margins measured from the
+      // right edge, the start side on the right, flex-end on the left.
+      if (marginLeftPx > 0 || marginRightPx > 0) xPx = host.xPx + host.wPx - marginRightPx - wPx
+      else if (hostCs!.alignItems === 'center') xPx = host.xPx + (host.wPx - wPx) / 2
+      else if (hostCs!.alignItems === 'flex-end') xPx = host.xPx
+      else xPx = host.xPx + host.wPx - wPx
+    } else if (marginLeftPx > 0 || marginRightPx > 0) {
       xPx = host.xPx + marginLeftPx
     } else if (hostCs!.alignItems === 'center') {
       xPx = host.xPx + (host.wPx - wPx) / 2
@@ -1398,6 +1433,28 @@ function lastFlowChildBox(el: HTMLElement, root: HTMLElement): Box | null {
   return null
 }
 
+/**
+ * Where a pseudo's generated TEXT starts. `pseudoBox` puts a static pseudo at
+ * the host's origin, its left edge, which is where a `::before` starts a
+ * left-to-right line. A right-to-left line starts at the host's RIGHT edge,
+ * inside its padding and border, and the text runs leftward from there:
+ * technical's `// ` before each heading sat across the page from the heading
+ * in the PDF, while the canvas drew it at the start of the line. Positioned
+ * pseudos, flex hosts (`pseudoBox` lays those out) and `::after` keep the
+ * box's own x.
+ */
+export function staticPseudoTextX(
+  cs: Pick<CSSStyleDeclaration, 'position' | 'direction'>,
+  hostCs: Pick<CSSStyleDeclaration, 'display' | 'paddingRight' | 'borderRightWidth'>,
+  box: Box,
+  textWidthPx: number,
+  which: '::before' | '::after'
+): number {
+  const flexHost = hostCs.display === 'flex' || hostCs.display === 'inline-flex'
+  if (which !== '::before' || cs.position !== 'static' || cs.direction !== 'rtl' || flexHost) return box.xPx
+  return box.xPx + box.wPx - (parsePx(hostCs.paddingRight) || 0) - (parsePx(hostCs.borderRightWidth) || 0) - textWidthPx
+}
+
 function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::before' | '::after'): void {
   const cs = getComputedStyle(el, which)
   if (cs.content === 'none' || cs.display === 'none') return
@@ -1471,7 +1528,9 @@ function pseudoOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[], which: '::
 
   const text = pseudoContentText(cs.content)
   if (!text) return
-  const run = styledTextRun(cs, text, box.xPx, box.yPx)
+  const rtlStart = which === '::before' && cs.position === 'static' && cs.direction === 'rtl'
+  const textWidth = rtlStart ? measureLaidOutWidthPx(text, cs) || measureTextWidthPx(text, `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`) : 0
+  const run = pseudoTextRun(cs, text, staticPseudoTextX(cs, hostCs, box, textWidth, which), box.yPx)
   if (run)
     ops.push({
       kind: 'text',
@@ -1513,7 +1572,26 @@ function listStyleGlyph(listStyleType: string): string {
  * needs real getComputedStyle/::marker access).
  */
 export function markerOriginX(box: Box, cs: CSSStyleDeclaration, measuredWidthPx: number): number {
-  return contentBoxOf(box, cs).xPx - measuredWidthPx
+  const content = contentBoxOf(box, cs)
+  // Under `direction: rtl` the marker box hangs off the content box's RIGHT
+  // edge instead, and its string runs right to left from there: the pen of
+  // the drawn (visual) string starts on that edge, whatever the string's
+  // width (see `markerDirection`).
+  if (cs.direction === 'rtl') return content.xPx + content.wPx
+  return content.xPx - measuredWidthPx
+}
+
+/**
+ * The direction an outside marker's string is drawn in: 'rtl' for a list
+ * whose direction is rtl and whose marker is marks and spaces only, so the
+ * painter lays "•  " out right to left - the mark outermost, its two spaces
+ * facing the text, as the canvas shows it. Under the bidi algorithm a string
+ * of neutrals in an rtl paragraph IS right to left, so the run's `direction`
+ * says nothing untrue. A marker with digits or letters ("12.") keeps no
+ * direction: its digits must not be reversed.
+ */
+export function markerDirection(cs: CSSStyleDeclaration, text: string): 'rtl' | undefined {
+  return cs.direction === 'rtl' && !/[\p{L}\p{N}]/u.test(text) ? 'rtl' : undefined
 }
 
 /**
@@ -1595,6 +1673,8 @@ function markerOps(el: HTMLElement, root: HTMLElement, ops: DrawOp[]): void {
   if (first !== null) run.baselinePx = first
   const widthPx = markerWidthPx(text, markerCs, font)
   run.xPx = markerOriginX(box, cs, widthPx)
+  const direction = markerDirection(cs, text)
+  if (direction) run.direction = direction
   // A REAL measured width, unlike every other synthesized run's (see
   // types.ts's TextRun.widthPx): the marker box is one laid-out string, and
   // handing paint.ts the browser's own width for it lets the same Tz fit that

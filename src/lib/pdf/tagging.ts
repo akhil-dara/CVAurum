@@ -21,6 +21,7 @@
  */
 import type { TagRole } from './types'
 import { linkTarget } from './links'
+import { usesArabicScript } from '@/data/fonts'
 
 /** Class names the templates use, mapped to the structure type they mean. */
 const ROLE_BY_CLASS: { cls: string; role: TagRole }[] = [
@@ -79,6 +80,9 @@ export interface TaggedMark {
    *  (bookmarks). Set only for H1/H2/H3; a wrapped heading arrives as one
    *  mark per line and the lines are joined when the marks merge. */
   text?: string
+  /** The run's language, set only when it differs from the document's
+   *  (see `runLanguage`): structure.ts writes it as /Lang. */
+  lang?: string
 }
 
 /** A structure element ready to be written: its type, page, and the marks it
@@ -94,6 +98,38 @@ export interface StructNode {
   children?: StructNode[]
   /** Heading text for the document outline (bookmarks); see TaggedMark. */
   title?: string
+  /** The language of each mark that differs from the document's, by MCID. */
+  langs?: Record<number, string>
+}
+
+/** The languages a tagged export can declare: the catalog's, and the one an
+ *  Arabic-script run takes in a document that is not in that script ('fa'
+ *  when the page has Persian letters, else 'ar'). */
+export interface TagLanguages {
+  document: string
+  arabic: string
+}
+
+/** Languages written in Arabic script. */
+const ARABIC_SCRIPT_LANGUAGES = new Set(['ar', 'fa', 'ur', 'ps', 'ckb', 'sd', 'ug'])
+const LATIN_LETTER = /\p{Script=Latin}/u
+
+/**
+ * The /Lang a run needs, or undefined when the document's own language
+ * covers it. A screen reader speaks every run in the catalog's language
+ * unless told otherwise, so 'React' in a Persian resume would be read with
+ * Persian phonetics: a Latin run in an Arabic-script document is English,
+ * and an Arabic-script run in any other document is `langs.arabic`. A run of
+ * figures or punctuation alone has no letters to decide it and inherits.
+ */
+export function runLanguage(text: string, rtl: boolean, langs: TagLanguages): string | undefined {
+  const arabicDocument = ARABIC_SCRIPT_LANGUAGES.has(langs.document.split('-')[0].toLowerCase())
+  if (arabicDocument) return !rtl && LATIN_LETTER.test(text) ? 'en' : undefined
+  return rtl || usesArabicScript(text) ? langs.arabic : undefined
+}
+
+const withLang = (node: StructNode, m: TaggedMark): void => {
+  if (m.lang) node.langs = { ...node.langs, [m.mcid]: m.lang }
 }
 
 /**
@@ -168,10 +204,12 @@ export function buildStructure(marks: TaggedMark[]): StructNode[] {
       const open = list && list.pageIndex === m.pageIndex ? list.children![list.children!.length - 1] : undefined
       if (open && m.blockId !== undefined && lastBlockId === m.blockId) {
         open.mcids.push(m.mcid)
+        withLang(open, m)
         continue
       }
       lastBlockId = m.blockId
       const li: StructNode = { role: 'LI', pageIndex: m.pageIndex, mcids: [m.mcid] }
+      withLang(li, m)
       if (list && list.pageIndex === m.pageIndex) {
         list.children!.push(li)
       } else {
@@ -208,11 +246,14 @@ export function buildStructure(marks: TaggedMark[]): StructNode[] {
       (m.role !== 'Link' || (m.linkUrl !== undefined && prev.linkUrl === m.linkUrl))
     ) {
       prev.mcids.push(m.mcid)
+      withLang(prev, m)
       if (m.text) prev.title = prev.title ? `${prev.title} ${m.text}` : m.text
       continue
     }
     lastBlockId = m.blockId
-    out.push({ role: m.role, pageIndex: m.pageIndex, mcids: [m.mcid], alt: m.alt, title: m.text, linkUrl: m.linkUrl })
+    const node: StructNode = { role: m.role, pageIndex: m.pageIndex, mcids: [m.mcid], alt: m.alt, title: m.text, linkUrl: m.linkUrl }
+    withLang(node, m)
+    out.push(node)
   }
   return out
 }

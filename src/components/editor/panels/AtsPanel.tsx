@@ -162,7 +162,7 @@ function WritingCard({ doc }: { doc: ResumeDocument }) {
       <div className="flex items-center gap-2">
         <PenLine className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Writing strength</h3>
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <span className="ms-auto inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
           <Sparkles className="h-3 w-3" /> on-device
         </span>
       </div>

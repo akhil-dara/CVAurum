@@ -286,7 +286,7 @@ export function Landing() {
           <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-border md:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
-                <tr className="bg-surface-muted/50 text-left">
+                <tr className="bg-surface-muted/50 text-start">
                   <th className="px-4 py-3 font-medium text-muted-foreground"> </th>
                   <th className="px-4 py-3 font-bold text-primary">
                     CVAurum

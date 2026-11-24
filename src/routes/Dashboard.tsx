@@ -113,7 +113,7 @@ function UnreadableNotice({ count, onSave }: { count: number | 'all'; onSave: ()
     <div role="alert" className="mb-6 flex flex-wrap items-start gap-x-2.5 gap-y-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
       <span aria-hidden>⚠️</span>
       <span className="min-w-0 flex-1 basis-56">{message}</span>
-      <button className="btn-outline btn-sm ml-auto h-7 shrink-0 phone:h-10" onClick={onSave}>
+      <button className="btn-outline btn-sm ms-auto h-7 shrink-0 phone:h-10" onClick={onSave}>
         <DatabaseBackup className="h-3.5 w-3.5" /> Save a copy
       </button>
     </div>
@@ -141,7 +141,7 @@ function StorageNotice({
     <div className="mb-6 flex flex-wrap items-start gap-x-2.5 gap-y-2 rounded-xl border border-warning/30 bg-warning/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground">
       <span aria-hidden>⚠️</span>
       <span className="min-w-0 flex-1 basis-56">{message}</span>
-      <button className="btn-outline btn-sm ml-auto h-7 shrink-0" onClick={onBackup}>
+      <button className="btn-outline btn-sm ms-auto h-7 shrink-0" onClick={onBackup}>
         <DatabaseBackup className="h-3.5 w-3.5" /> Back up now
       </button>
       <button className="btn-icon h-6 w-6 shrink-0" onClick={onDismiss} aria-label="Dismiss">

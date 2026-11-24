@@ -40,6 +40,14 @@ export interface TextRun {
    */
   smallCapsScale?: number
   /**
+   * 'rtl' when every character of the run resolves right-to-left under the
+   * Unicode Bidi Algorithm (text.ts splits a mixed line into one run per
+   * direction, each measured where the browser drew it). The text stays in
+   * LOGICAL order; the painter reverses and shapes it. Absent means ltr, and
+   * a run of text with no strong right-to-left letter never carries the key.
+   */
+  direction?: 'rtl'
+  /**
    * The run's laid-out width in CSS px, straight off the same client rect(s)
    * `xPx` came from — 0 when unknown/unmeasured (paint.ts's Tz horizontal-
    * scaling never applies at 0; see task-12 brief). extractRuns (real DOM

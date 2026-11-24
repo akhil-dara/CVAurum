@@ -26,6 +26,10 @@ function sameStyle(a: TextRun, b: TextRun): boolean {
     a.letterSpacingPx === b.letterSpacingPx &&
     a.smallCapsScale === b.smallCapsScale &&
     a.isDecorative === b.isDecorative &&
+    // A run is shaped in its own direction (directedText.ts). A left-to-right
+    // run and the right-to-left word flush after it on one line are two runs;
+    // merged, the word lost its direction and was drawn reversed, unjoined.
+    a.direction === b.direction &&
     // Two runs the browser laid out in different ROWS are never one run,
     // however alike they look - see TextRun.lineBoxId.
     a.lineBoxId === b.lineBoxId &&

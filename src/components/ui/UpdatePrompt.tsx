@@ -50,7 +50,7 @@ export function UpdatePrompt() {
   }
   return (
     <div className="fixed bottom-4 left-1/2 z-[90] -translate-x-1/2">
-      <div className="flex items-center gap-3 rounded-full border border-border bg-surface/95 py-1.5 pl-4 pr-1.5 text-sm shadow-float backdrop-blur">
+      <div className="flex items-center gap-3 rounded-full border border-border bg-surface/95 py-1.5 ps-4 pe-1.5 text-sm shadow-float backdrop-blur">
         <span>A new version of CVAurum is ready.</span>
         <button className="btn-primary btn-sm rounded-full" onClick={reload}>
           <RefreshCw className="h-3.5 w-3.5" /> Reload

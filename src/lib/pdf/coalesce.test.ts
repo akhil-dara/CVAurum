@@ -93,3 +93,16 @@ describe('0008: linkUrl is part of a run’s identity', () => {
     expect((out[0] as Extract<DrawOp, { kind: 'text' }>).linkUrl).toBe('https://w.example/')
   })
 })
+
+describe('coalesceTextOps — a direction change is a run boundary', () => {
+  // The walker cuts a mixed line into one run per direction (text.ts), and the
+  // painter shapes each run in its own direction. On a left-to-right line the
+  // Latin run and the Persian word after it sit flush, so a merge by geometry
+  // alone glued them back into one run with no direction: the word was drawn
+  // in logical order, letter by letter, reversed and unjoined.
+  it('keeps a left-to-right run and the right-to-left run flush after it apart', () => {
+    const out = coalesceTextOps([op('Alex Morgan ', 56, 200), op('پریسا', 256, 85, { direction: 'rtl' })])
+    expect(texts(out)).toEqual(['Alex Morgan ', 'پریسا'])
+    expect((out[1] as Extract<DrawOp, { kind: 'text' }>).run.direction).toBe('rtl')
+  })
+})

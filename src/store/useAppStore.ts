@@ -31,7 +31,7 @@ interface AppState {
   init: () => Promise<void>
   refreshLibrary: () => Promise<void>
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>
-  applyTheme: () => void
+  applyAppearance: () => void
 
   toast: (message: string, kind?: ToastKind, action?: Toast['action']) => void
   dismissToast: (id: string) => void
@@ -55,7 +55,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // consumers (dashboard, landing) key on libraryLoaded.
     const settings = await loadSettings()
     set({ settings, settingsLoaded: true })
-    get().applyTheme()
+    get().applyAppearance()
     void loadAllDocs().then((library) => set({ library, libraryLoaded: true }))
   },
 
@@ -70,11 +70,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       ...patch,
     }
     set({ settings: next })
-    get().applyTheme()
+    get().applyAppearance()
     await saveSettings(next)
   },
 
-  applyTheme: () => {
+  /** Push the saved appearance onto the document: the dark class.
+   *
+   *  The INTERFACE is left-to-right, always. Right-to-left is a property of a
+   *  RESUME (Design panel → Layout → Right-to-left), which mirrors that one
+   *  document's canvas and nothing else — see rtl-canvas.css. */
+  applyAppearance: () => {
     if (typeof document === 'undefined') return
     const { theme } = get().settings
     const dark =

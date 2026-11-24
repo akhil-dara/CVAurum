@@ -17,7 +17,7 @@ export function FitReadout({ doc }: { doc: ResumeDocument }) {
         {result ? (
           <button
             type="button"
-            className="ml-1.5 font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            className="ms-1.5 font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
             aria-expanded={details}
             onClick={() => setDetails((d) => !d)}
           >

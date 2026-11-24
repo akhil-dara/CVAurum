@@ -75,7 +75,7 @@ export function Slider({
               if (e.key === 'Enter') e.currentTarget.blur()
             }}
             aria-label={label}
-            className="h-6 w-16 rounded border border-input bg-surface px-1.5 text-right text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-6 w-16 rounded border border-input bg-surface px-1.5 text-end text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {suffix && <span className="text-muted-foreground">{suffix}</span>}
         </span>

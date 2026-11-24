@@ -1,7 +1,7 @@
 import type { PDFDocument, PDFFont } from 'pdf-lib'
 import * as fontkitNs from '@pdf-lib/fontkit'
 import type { Font as FontkitFont } from '@pdf-lib/fontkit'
-import { scriptFallbacks } from '@/data/fonts'
+import { ARABIC_FAMILY, scriptFallbacks, usesArabicScript } from '@/data/fonts'
 import { loadPdfFontIndex, resolveFontKey } from './fontIndex'
 
 // Re-exported: render.tsx and the tests have always taken these from here,
@@ -524,9 +524,20 @@ export class PdfFontCache {
    * its script fallbacks (src/data/fonts.ts), each with a glyph test. A chain
    * member with no static font of its own is skipped rather than failing the
    * run. Resolved once per (family, weight) and shared with `embed`'s bytes.
+   *
+   * The Arabic family is walked only when `text` - the run being drawn or
+   * checked - has an Arabic letter, exactly as the canvas reaches it only
+   * through its arabic-only alias (src/styles/fonts-arabic-fallback.css): a
+   * Cyrillic or Greek run of a Latin resume never fetches, embeds or borrows
+   * from it. Chosen as the run's own face it is `family`, and always first.
    */
-  async coverage(family: string, weight: number): Promise<Array<{ family: string; has: (cp: number) => boolean }>> {
-    const key = `${this.resolve(family, weight) ?? family}|${weight}`
+  async coverage(
+    family: string,
+    weight: number,
+    text = ''
+  ): Promise<Array<{ family: string; has: (cp: number) => boolean }>> {
+    const arabic = usesArabicScript(text)
+    const key = `${this.resolve(family, weight) ?? family}|${weight}${arabic ? '|ar' : ''}`
     let p = this.coverageCache.get(key)
     if (!p) {
       p = (async () => {
@@ -538,7 +549,8 @@ export class PdfFontCache {
         // every family fell to the sans chain and a display face's Cyrillic
         // came out in Inter while the canvas drew it in Oswald: measured.)
         const primary = family.split(',')[0].trim().replace(/^['"]|['"]$/g, '')
-        for (const fam of [family, ...scriptFallbacks(primary)]) {
+        const fallbacks = scriptFallbacks(primary).filter((f) => arabic || f !== ARABIC_FAMILY)
+        for (const fam of [family, ...fallbacks]) {
           const k = this.resolve(fam, weight)
           if (!k || seen.has(k)) continue
           seen.add(k)
@@ -572,7 +584,7 @@ export class PdfFontCache {
    */
   async missingGlyphs(family: string, weight: number, text: string): Promise<string[]> {
     if (!text) return []
-    const chain = await this.coverage(family, weight)
+    const chain = await this.coverage(family, weight, text)
     if (!chain.length) return [] // no font resolved at all is a different failure, reported elsewhere
     const missing = new Set<string>()
     for (const ch of text) {

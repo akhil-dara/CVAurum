@@ -12,6 +12,8 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { TEMPLATES } from '@/templates/registry'
 import { FONTS } from '@/data/fonts'
+import { documentScript } from '@/lib/script'
+import { applyRtlSetup, offeredFonts, turnRtlOff } from '@/lib/rtlSetup'
 import { ADD_LABEL, BODY_SECTION_KEYS, DEFAULT_LABELS, panelColumns, pushNewItem, sectionLabel } from '@/lib/sections'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useEditorStore } from '@/store/useEditorStore'
@@ -169,11 +171,14 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
     }
 
     // fonts
-    for (const f of FONTS.filter((f) => f.category === 'sans' || f.category === 'serif')) {
+    const script = documentScript(doc)
+    const t = doc.metadata.typography
+    const pickable = offeredFonts(FONTS, script.arabic, [t.fontFamily, t.headingFamily, t.nameFamily])
+    for (const f of pickable.filter((f) => f.category === 'sans' || f.category === 'serif')) {
       cmds.push({
         id: `font-${f.name}`,
         group: 'Font',
-        label: `Font: ${f.name}`,
+        label: `Font: ${f.label ?? f.name}`,
         hint: f.category,
         run: () => updateMetadata((m) => { m.typography.fontFamily = f.name }),
       })
@@ -236,6 +241,24 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
           ed.markFresh(key)
           toast(`${DEFAULT_LABELS[key] ?? key} added`, 'success')
         },
+      })
+    }
+
+    // Right to left: only for a page with Persian or Arabic letters, or one
+    // already mirrored - the same rule as the Design panel's switch, and the
+    // same setup when it turns on (src/lib/rtlSetup.ts).
+    if (script.arabic || doc.metadata.layout.rtl) {
+      const on = doc.metadata.layout.rtl
+      cmds.push({
+        id: 'rtl',
+        group: 'View',
+        label: 'Right-to-left page',
+        hint: on ? 'on: turn off' : 'mirror the page for Persian or Arabic',
+        run: () =>
+          updateMetadata((m) => {
+            if (on) turnRtlOff(m)
+            else applyRtlSetup(m, script)
+          }),
       })
     }
 
@@ -304,7 +327,7 @@ export function CommandPalette({ doc }: { doc: ResumeDocument }) {
               role="option"
               aria-selected={i === sel}
               tabIndex={-1}
-              className={`flex min-h-[40px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
+              className={`flex min-h-[40px] w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm transition ${i === sel ? 'bg-primary/10 text-foreground' : 'text-foreground hover:bg-muted/60'}`}
               // mouseMOVE, not mouseenter: when the list re-renders under a
               // stationary cursor, mouseenter fires and silently steals the
               // selection from the keyboard — Enter then runs the wrong command.

@@ -7,12 +7,16 @@
  * preview and the native print render in the SAME browser, the printed PDF is
  * byte-identical to the preview.
  */
+import { ARABIC_SCRIPT_CLASS } from '@/lib/rtlBlocks'
 
 export type FontCategory = 'sans' | 'serif' | 'mono' | 'display' | 'handwriting'
 
 export interface FontDef {
   /** Display + CSS family name */
   name: string
+  /** What the font menus call it, when the name alone does not say what it
+   *  is for. The CSS family is still `name`. */
+  label?: string
   category: FontCategory
   /** Google Fonts family query (defaults to name) */
   family?: string
@@ -54,6 +58,15 @@ export const FONTS: FontDef[] = [
   { name: 'Exo 2', category: 'sans' },
   { name: 'IBM Plex Sans', category: 'sans' },
   { name: 'DM Sans', category: 'sans' },
+  // Persian/Arabic script, for the resume page only: the interface is always
+  // left to right and never set in it.
+  {
+    name: 'Vazirmatn',
+    label: 'Vazirmatn (Persian, Arabic)',
+    category: 'sans',
+    weights: [400, 500, 600, 700],
+    fallback: 'Tahoma, "Segoe UI", ui-sans-serif, system-ui, sans-serif',
+  },
   { name: 'Space Grotesk', category: 'sans', weights: [400, 500, 600, 700] },
 
   // — Serif —
@@ -171,10 +184,56 @@ export const SCRIPT_FALLBACKS: Record<FontCategory, string[]> = {
  */
 export const MARKS_FAMILY = 'CVAurum Marks'
 
+/**
+ * The family that draws Arabic script - Persian, Arabic, Urdu, Pashto. NO other
+ * bundled face carries a single one of those letters, so the browser used to
+ * pick whatever Arabic face the reader's computer happened to have. It is
+ * appended to every chain, after the Latin-adjacent script fallbacks (those
+ * must draw Cyrillic, Greek and Vietnamese, which this face cannot) and BEFORE
+ * the marks family, so a Persian bullet no face has still lands on the marks.
+ *
+ * It sits behind the chosen face, so only a character the chosen face does not
+ * have ever reaches it - and in the CSS stack it is named by its fallback alias
+ * (ARABIC_FALLBACK_FAMILY), so what reaches it is Arabic script and nothing
+ * else.
+ */
+export const ARABIC_FAMILY = 'Vazirmatn'
+
+/**
+ * The name the Arabic face goes by as a FALLBACK in the CSS stack: the same
+ * woff2 files, declared with the arabic subset alone (src/styles/
+ * fonts-arabic-fallback.css). Under its own name Vazirmatn also ships latin
+ * and latin-ext files, so an arrow, a minus sign or an accented letter the
+ * chosen face lacked could come out in Vazirmatn on a resume with no Arabic
+ * at all. The PDF side reads the alias as ARABIC_FAMILY (fontIndex.ts), and
+ * walks it only for a run with Arabic letters (pdf/fonts.ts `coverage`).
+ */
+export const ARABIC_FALLBACK_FAMILY = 'Vazirmatn Arabic'
+
+const ARABIC_SCRIPT = new RegExp(`[${ARABIC_SCRIPT_CLASS}]`)
+
+/** Does this text contain a letter of the Arabic script? Those are exactly the
+ *  characters only the Arabic family can draw, so they decide whether an export
+ *  has to wait for that face, and which runs the native painter shapes as
+ *  Arabic (src/lib/pdf/paint.ts, directedText.ts). Every PDF is drawn by that
+ *  painter, Persian and Arabic ones included.
+ *
+ *  The presentation forms stop at U+FEFC: U+FEFF in that block is the
+ *  byte-order mark, which a pasted or imported line can start with and which
+ *  is no letter of any script. */
+export function usesArabicScript(text: string): boolean {
+  return ARABIC_SCRIPT.test(text)
+}
+
 /** The fallback families for `name`, in order, never naming `name` itself. */
 export function scriptFallbacks(name?: string): string[] {
   const def = name ? FONT_MAP[name] : undefined
-  const chain = [...(def?.chain ?? []), ...SCRIPT_FALLBACKS[def?.category ?? 'sans'], MARKS_FAMILY]
+  const chain = [
+    ...(def?.chain ?? []),
+    ...SCRIPT_FALLBACKS[def?.category ?? 'sans'],
+    ARABIC_FAMILY,
+    MARKS_FAMILY,
+  ]
   return [...new Set(chain)].filter((f) => f !== name)
 }
 
@@ -182,7 +241,9 @@ export function fontStack(name?: string): string {
   if (!name) return FALLBACKS.sans
   const def = FONT_MAP[name]
   const fb = def ? def.fallback ?? FALLBACKS[def.category] : FALLBACKS.sans
-  const chain = scriptFallbacks(name).map((f) => `"${f}"`)
+  // The Arabic face as a fallback is the arabic-only alias; chosen, it keeps
+  // its real name (and every subset) at the head of the stack.
+  const chain = scriptFallbacks(name).map((f) => `"${f === ARABIC_FAMILY ? ARABIC_FALLBACK_FAMILY : f}"`)
   return [`"${name}"`, ...chain, fb].join(', ')
 }
 
@@ -206,10 +267,18 @@ export async function ensureFontsReady(names: (string | undefined)[]): Promise<v
   const real = names.filter((n): n is string => !!n)
   if (typeof document === 'undefined' || !('fonts' in document)) return
   const fonts = (document as Document & { fonts: FontFaceSet }).fonts
+  // The Arabic face is drawn as a fallback under its alias, whose files cover
+  // Arabic script alone: a load with no text asks for a space, which matches
+  // none of them, so both names are loaded for an Arabic letter.
+  const loads = (n: string) =>
+    n === ARABIC_FAMILY
+      ? [ARABIC_FAMILY, ARABIC_FALLBACK_FAMILY].flatMap((f) => [
+          fonts.load(`400 1em "${f}"`, 'ا'),
+          fonts.load(`700 1em "${f}"`, 'ا'),
+        ])
+      : [fonts.load(`400 1em "${n}"`), fonts.load(`700 1em "${n}"`)]
   try {
-    await Promise.all(
-      real.flatMap((n) => [fonts.load(`400 1em "${n}"`), fonts.load(`700 1em "${n}"`)]).map((p) => p.catch(() => undefined))
-    )
+    await Promise.all(real.flatMap(loads).map((p) => p.catch(() => undefined)))
     await fonts.ready
   } catch {
     /* ignore */

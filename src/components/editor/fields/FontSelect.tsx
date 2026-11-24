@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, Check, Search } from 'lucide-react'
-import { FONTS, FONTS_BY_CATEGORY, ensureFont, fontStack, type FontCategory } from '@/data/fonts'
+import { FONTS, FONTS_BY_CATEGORY, FONT_MAP, ensureFont, fontStack, type FontCategory } from '@/data/fonts'
 import { cn } from '@/lib/utils'
+import { offeredFonts } from '@/lib/rtlSetup'
 
 const CATEGORY_LABELS: Record<FontCategory, string> = {
   sans: 'Sans-serif',
@@ -17,11 +18,17 @@ export function FontSelect({
   value,
   onChange,
   allowInherit,
+  arabicPage = false,
+  chosen = [],
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   allowInherit?: boolean
+  /** The page has Arabic-script letters: the Arabic face is offered. */
+  arabicPage?: boolean
+  /** The document's chosen faces: one that is already set stays offered. */
+  chosen?: string[]
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -35,16 +42,20 @@ export function FontSelect({
     const needle = q.trim().toLowerCase()
     return ORDER.map((cat) => ({
       cat,
-      fonts: FONTS_BY_CATEGORY[cat].filter((f) => !needle || f.name.toLowerCase().includes(needle)),
+      // Someone who never writes Persian or Arabic is not offered the face
+      // drawn for them (offeredFonts, the right-to-left switch's own rule).
+      fonts: offeredFonts(FONTS_BY_CATEGORY[cat], arabicPage, [value, ...chosen]).filter(
+        (f) => !needle || (f.label ?? f.name).toLowerCase().includes(needle)
+      ),
     })).filter((g) => g.fonts.length)
-  }, [q])
+  }, [q, arabicPage, value, chosen.join('|')])
 
   return (
     <div className="relative">
       <label className="label">{label}</label>
       <button type="button" className="input flex items-center justify-between" onClick={() => setOpen((o) => !o)}>
         <span style={{ fontFamily: value ? fontStack(value) : undefined }} className="truncate">
-          {value || (allowInherit ? 'Same as body' : 'Select font')}
+          {(value && FONT_MAP[value]?.label) || value || (allowInherit ? 'Same as body' : 'Select font')}
         </span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
@@ -72,7 +83,7 @@ export function FontSelect({
                     {CATEGORY_LABELS[g.cat]}
                   </div>
                   {g.fonts.map((f) => (
-                    <Option key={f.name} name={f.name} value={value} onPick={onChange} setOpen={setOpen} />
+                    <Option key={f.name} name={f.name} label={f.label} value={value} onPick={onChange} setOpen={setOpen} />
                   ))}
                 </div>
               ))}
@@ -101,7 +112,7 @@ function Option({
   return (
     <button
       type="button"
-      className={cn('flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left hover:bg-muted', active && 'bg-primary/10')}
+      className={cn('flex w-full items-center justify-between rounded-md px-2 py-1.5 text-start hover:bg-muted', active && 'bg-primary/10')}
       style={{ fontFamily: name ? fontStack(name) : undefined }}
       onClick={() => {
         onPick(name)

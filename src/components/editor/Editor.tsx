@@ -1,7 +1,8 @@
 import { SkipLink } from '@/components/ui/SkipLink'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { scheduleWarmPdfFonts } from '@/lib/pdf/fontWarm'
 import { documentFaces } from '@/lib/documentFaces'
+import { documentScript } from '@/lib/script'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Eye } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
@@ -77,10 +78,16 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
 
   // Save this resume's PDF fonts on the device while there IS a connection,
   // so that it exports without one. Idle, silent, once per set of families.
-  const faces = documentFaces(doc.metadata).join('|')
+  const faces = documentFaces({ metadata: doc.metadata }).join('|')
+  // The Arabic face's files are fetched only for a page that shows Arabic
+  // letters. Read once per change to the document, not on every render.
+  const arabic = useMemo(
+    () => documentScript({ content: doc.content, metadata: doc.metadata }).arabic,
+    [doc.content, doc.metadata]
+  )
   useEffect(() => {
-    scheduleWarmPdfFonts(faces.split('|'))
-  }, [faces])
+    scheduleWarmPdfFonts(faces.split('|'), { arabic })
+  }, [faces, arabic])
 
   const setLeftOpen = useEditorStore((s) => s.setLeftOpen)
 
@@ -164,7 +171,7 @@ export function Editor({ doc }: { doc: ResumeDocument }) {
             // While a section's Style inspector is docked at the right edge
             // (SectionGear), the canvas gives up its width, so the page
             // re-fits beside it instead of sliding under it.
-            'order-2 min-h-0 min-w-0 flex-1 desk:order-none desk:mr-[var(--style-dock-w,0px)] desk:transition-[margin] desk:duration-200',
+            'order-2 min-h-0 min-w-0 flex-1 desk:order-none desk:me-[var(--style-dock-w,0px)] desk:transition-[margin] desk:duration-200',
             leftOpen && (split ? 'phone:hidden' : 'hidden'),
           )}
         >

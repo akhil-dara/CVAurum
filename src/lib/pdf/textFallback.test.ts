@@ -9,6 +9,13 @@ describe('mayNeedFallback', () => {
     expect(mayNeedFallback('Senior Software Engineer — 2021 – Present, €50k, “quoted”')).toBe(false)
     expect(mayNeedFallback('Ştefan Łukasz Đorđe Ünal')).toBe(false)
   })
+  // No bundled face draws a right arrow (Inter's Latin cut carries only the
+  // up and down ones), so an arrow waved through drew the missing-glyph box:
+  // an empty square on the page, nothing in the text layer, and a file that
+  // fails PDF/A and PDF/UA (a .notdef glyph in use).
+  it('checks a run with an arrow in it', () => {
+    expect(mayNeedFallback('REST → GraphQL')).toBe(true)
+  })
   it('flags Cyrillic, Greek and other scripts', () => {
     expect(mayNeedFallback('Даниил Гогов')).toBe(true)
     expect(mayNeedFallback('Αλέξανδρος')).toBe(true)
@@ -80,3 +87,16 @@ describe('segmentByCoverage', () => {
   })
 })
 
+describe('segmentByCoverage: zero-width joiners stay with their word', () => {
+  // A Latin face can carry U+200C itself, and matching it from the start of
+  // the chain cut a Persian word in three, the middle piece in the Latin face.
+  const withZwnj = (cp: number) => cp < 0x0250 || cp === 0x200c || cp === 0x200d
+  const arabic = (cp: number) => cp >= 0x0600 && cp <= 0x06ff
+  it('keeps a ZWNJ or ZWJ in the piece of the letter before it', () => {
+    expect(segmentByCoverage('نوری‌زاده', [withZwnj, arabic])).toEqual([{ text: 'نوری‌زاده', font: 1 }])
+    expect(segmentByCoverage('ل‍ا', [withZwnj, arabic])).toEqual([{ text: 'ل‍ا', font: 1 }])
+  })
+  it('a leading joiner follows the first letter after it', () => {
+    expect(segmentByCoverage('‌زاده', [withZwnj, arabic])).toEqual([{ text: '‌زاده', font: 1 }])
+  })
+})

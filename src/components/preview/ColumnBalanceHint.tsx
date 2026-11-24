@@ -133,7 +133,7 @@ export function ColumnBalanceHint({
           <span className="truncate">{Math.round(gap.heightPx)}px free — fill it?</span>
         </button>
         {open && (
-          <div className="mt-1.5 w-full max-w-[190px] rounded-lg border border-border bg-surface p-1 text-left shadow-float">
+          <div className="mt-1.5 w-full max-w-[190px] rounded-lg border border-border bg-surface p-1 text-start shadow-float">
             <div className="flex items-center justify-between px-1.5 py-1">
               <span className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Move to sidebar</span>
               <button className="btn-icon h-5 w-5" onClick={() => setDismissed(true)} aria-label="Dismiss">
@@ -145,7 +145,7 @@ export function ColumnBalanceHint({
                 <button
                   key={key}
                   type="button"
-                  className="block w-full truncate rounded px-1.5 py-1 text-left text-[11.5px] hover:bg-muted/60"
+                  className="block w-full truncate rounded px-1.5 py-1 text-start text-[11.5px] hover:bg-muted/60"
                   onClick={() => moveToSidebar(key)}
                 >
                   {sectionLabel(key, doc)}

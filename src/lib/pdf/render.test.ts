@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import {
   resolveDecoBoxesGlobal,
@@ -6,7 +9,11 @@ import {
   exceedsOnePage,
   paginateOrThrow,
   PdfMultiPageUnsupportedError,
+  exportFaces,
 } from './render'
+import { createDocument } from '@/data/defaults'
+import { ARABIC_FAMILY } from '@/data/fonts'
+import { drawnScript } from '@/lib/script'
 import { PaginationImpossibleError } from './paginate'
 import type { PageBlock } from './paginate'
 import type { DecoBox } from './types'
@@ -164,5 +171,59 @@ describe('paginateOrThrow — wraps PaginationImpossibleError as PdfMultiPageUns
     }
     expect(caught).toBeInstanceOf(PdfMultiPageUnsupportedError)
     expect(caught).not.toBeInstanceOf(PaginationImpossibleError)
+  })
+})
+
+describe('exportFaces (the faces the native export waits for)', () => {
+  it('adds the Arabic face for a resume whose page shows Arabic-script text', () => {
+    const doc = createDocument()
+    doc.content.basics.name = 'نوری‌زاده'
+    expect(exportFaces(doc)).toContain(ARABIC_FAMILY)
+  })
+
+  it('never adds it for a Latin resume', () => {
+    const doc = createDocument()
+    doc.content.basics.name = 'Alex Morgan'
+    expect(exportFaces(doc)).not.toContain(ARABIC_FAMILY)
+  })
+})
+
+describe('the bidi hook (installed for the walk and the paint)', () => {
+  it('is cleared when the render ends, whether it finished or threw', () => {
+    // prepareBidi installs it for a resume with Arabic-script text; a render
+    // that threw midway used to leave it installed for the next one.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'render.tsx'), 'utf8')
+    const fin = source.lastIndexOf('} finally {')
+    expect(fin).toBeGreaterThan(source.indexOf('await prepareBidi('))
+    expect(source.slice(fin, fin + 200)).toContain('setBidi(null)')
+  })
+
+  it('is installed by what the page draws, decorative words included', () => {
+    // An English resume whose page-foot label is Persian: documentScript (the
+    // ATS text) is Latin, but the painter draws 'رزومه' and must shape it.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'render.tsx'), 'utf8')
+    expect(source).toMatch(/const script = drawnScript\(doc\)\s*await prepareBidi\(script\.arabic\)/)
+    const doc = createDocument()
+    doc.content.basics.name = 'Alex Morgan'
+    doc.metadata.layout.pageFoot = true
+    doc.metadata.layout.pageFootLabel = 'رزومه'
+    expect(drawnScript(doc).arabic).toBe(true)
+    expect(exportFaces(doc)).toContain(ARABIC_FAMILY)
+  })
+})
+
+describe('the export draws its page before it measures it', () => {
+  it('mounts every print tree synchronously, never behind a frame wait', () => {
+    // root.render only QUEUES the draw, behind whatever the editor has queued.
+    // The export used to wait two frames and then measure; on a busy main
+    // thread the page was not there yet, and a resume with auto-fit off threw
+    // "Cannot read properties of null" (import gate, 2026-11-24: no mount
+    // seen 75 ms in). Every mount goes through mountNow, which commits before
+    // it returns.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'render.tsx'), 'utf8')
+    const bare = source.match(/root\.render\(/g) ?? []
+    expect(bare.length).toBe(1) // the one inside mountNow
+    expect(source).toMatch(/function mountNow\([^)]*\)[^{]*\{\s*flushSync\(\(\) => root\.render\(/)
+    expect((source.match(/mountNow\(root, /g) ?? []).length).toBeGreaterThanOrEqual(3)
   })
 })

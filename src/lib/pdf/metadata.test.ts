@@ -6,8 +6,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import { PDFDocument, PDFName } from 'pdf-lib'
-import { applyPdfMetadata, buildDocInfo, buildXmpPacket, PDF_CREATOR, PDF_PRODUCER, xmlEscape } from './metadata'
+import { applyPdfMetadata, buildDocInfo, buildXmpPacket, pdfLanguageFor, PDF_CREATOR, PDF_PRODUCER, xmlEscape } from './metadata'
 import type { ResumeDocument } from '@/types/document'
+import { createDocument } from '@/data/defaults'
 
 const NOW = new Date('2026-08-19T14:30:00.000Z')
 
@@ -79,6 +80,49 @@ describe('buildDocInfo', () => {
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'fr-CA' } } }), NOW).language).toBe('fr-CA')
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: 'en' } } }), NOW).language).toBe('en-US')
     expect(buildDocInfo(doc({ metadata: { page: {}, dates: { language: '  ' } } }), NOW).language).toBe('en-US')
+  })
+
+  it('declares Persian or Arabic for a mirrored resume written in that script', () => {
+    // No date language chosen and the page mirrored: the page's own letters
+    // decide. Persian adds pe, che, zhe and gaf to the Arabic alphabet, so they
+    // tell the two apart.
+    const persian = createDocument()
+    persian.metadata.layout.rtl = true
+    persian.content.basics.name = 'علی رضایی'
+    persian.content.basics.label = 'پژوهشگر و مهندس نرم‌افزار'
+    expect(pdfLanguageFor(persian)).toBe('fa')
+
+    const arabic = createDocument()
+    arabic.metadata.layout.rtl = true
+    arabic.content.basics.name = 'علي حسن'
+    arabic.content.basics.label = 'مهندس برمجيات'
+    expect(pdfLanguageFor(arabic)).toBe('ar')
+
+    const latin = createDocument()
+    latin.content.basics.name = 'Alex Morgan'
+    expect(pdfLanguageFor(latin)).toBe('en-US')
+
+    // The buildDocInfo the export calls reads the same answer.
+    expect(buildDocInfo(persian, NOW).language).toBe('fa')
+  })
+
+  it('keeps the default language for a left-to-right resume with a Persian name', () => {
+    // An English resume that carries a Persian name is still an English
+    // document: the per-run /Lang marks the name itself as Persian.
+    const english = createDocument()
+    english.content.basics.name = 'علی رضایی'
+    english.content.basics.label = 'پژوهشگر و مهندس نرم‌افزار'
+    expect(english.metadata.layout.rtl).toBe(false)
+    expect(pdfLanguageFor(english)).toBe('en-US')
+    expect(buildDocInfo(english, NOW).language).toBe('en-US')
+  })
+
+  it('keeps a date language the author chose over the script guess', () => {
+    const persian = createDocument()
+    persian.content.basics.name = 'علی رضایی'
+    persian.metadata.layout.rtl = true
+    persian.metadata.dates.language = 'de'
+    expect(pdfLanguageFor(persian)).toBe('de')
   })
 
   it('declares only a tag a reader can act on', () => {

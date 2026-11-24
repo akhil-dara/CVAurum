@@ -62,8 +62,28 @@ describe('what the service worker precaches', () => {
     expect(ignores).toContain('img/examples/thumb/*.webp')
   })
 
+  /**
+   * The Arabic face (about 100 KB in three woff2 files) is needed only by a
+   * page with Arabic-script letters - the only page it is offered to - so it
+   * is not installed for everyone. Its files are named here DIST-RELATIVE, as
+   * the build writes them (public/fonts is copied to dist/fonts): a pattern
+   * that matches nothing fails silently.
+   */
+  it('leaves the Arabic face out, every one of its files', () => {
+    const vazirmatn = fs
+      .readdirSync(path.join(root, 'public', 'fonts'))
+      .filter((f) => /^vazirmatn-.+\.woff2$/.test(f))
+      .map((f) => `fonts/${f}`)
+    expect(vazirmatn.length).toBeGreaterThan(0)
+    // The woff2 glob would sweep them up, so the ignore is what keeps them out.
+    expect(vazirmatn.filter((f) => !swept(f))).toEqual([])
+    expect(vazirmatn.filter((f) => !ignored(f))).toEqual([])
+    // ...and only them: the Latin faces every page uses still install.
+    expect(ignored('fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2')).toBe(false)
+  })
+
   it('still precaches the app itself', () => {
-    for (const f of ['index.html', 'assets/index-abc123.js', 'shell.html', 'fonts/inter-latin-400.woff2']) {
+    for (const f of ['index.html', 'assets/index-abc123.js', 'shell.html', 'fonts/inter-UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2']) {
       expect(swept(f), f).toBe(true)
       expect(ignored(f), f).toBe(false)
     }

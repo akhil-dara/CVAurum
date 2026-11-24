@@ -12,7 +12,7 @@ const SRC = path.resolve(__dirname, 'src')
 
 /**
  * The web-font files that carry a script other than Latin (Cyrillic, Greek,
- * Vietnamese; see scripts/fetch-fonts.cjs). The browser fetches one only
+ * Vietnamese, Arabic; see scripts/fetch-fonts.cjs). The browser fetches one only
  * when a page's text needs it, so they stay OUT of the install-time
  * precache (which would otherwise grow by about 2.4 MB for every visitor)
  * and are cached on first use instead (runtimeCaching below). Read off the
@@ -21,7 +21,7 @@ const SRC = path.resolve(__dirname, 'src')
 function nonLatinFontFiles(): string[] {
   const css = fs.readFileSync(path.join(SRC, 'styles', 'fonts.css'), 'utf8')
   const files: string[] = []
-  const re = /\/\*\s*[^*]*?\s(latin-ext|latin|cyrillic-ext|cyrillic|greek-ext|greek|vietnamese)\s*\*\/\s*@font-face\s*\{[^}]*?url\(\/fonts\/([^)]+)\)/g
+  const re = /\/\*\s*[^*]*?\s(latin-ext|latin|cyrillic-ext|cyrillic|greek-ext|greek|vietnamese|arabic)\s*\*\/\s*@font-face\s*\{[^}]*?url\(\/fonts\/([^)]+)\)/g
   let m: RegExpExecArray | null
   while ((m = re.exec(css))) if (m[1] !== 'latin' && m[1] !== 'latin-ext') files.push(`fonts/${m[2]}`)
   return [...new Set(files)]
@@ -418,12 +418,24 @@ export default defineConfig({
           // visit — the whole saving, handed back at install time.
           'img/templates/thumb/*.webp',
           'img/examples/thumb/*.webp',
+          // The Arabic face (Vazirmatn, three woff2 files, about 100 KB): the
+          // face of a Persian or Arabic page and of nothing else - the picker
+          // offers it only to a page with Arabic-script letters
+          // (rtlSetup.ts offeredFonts) and the interface never uses it - so
+          // not one of its files, its Latin subsets included, installs for
+          // everyone. Same treatment as the Cyrillic and Greek subsets below.
+          // The offline promise for a Persian resume: once it has been opened
+          // online, the faces it drew are in the runtime cache (/fonts/ rule
+          // below; the PDF instances by fontWarm.ts), and it opens and exports
+          // offline from then on. Dist-relative, like every line here.
+          'fonts/vazirmatn-*.woff2',
           ...nonLatinFontFiles(),
         ],
         // Whatever the precache leaves out of /fonts/ and /fonts-pdf/ (the
-        // non-Latin web subsets, the PDF instances) is cached the first time
-        // it is fetched, so a resume in Cyrillic still exports offline once
-        // it has been exported online.
+        // non-Latin web subsets, the Arabic face, the PDF instances) is cached
+        // the first time it is fetched, so a resume in Cyrillic, Persian or
+        // Arabic still opens and exports offline once it has been opened
+        // online.
         runtimeCaching: [
           {
             urlPattern: /\/(fonts|fonts-pdf)\/.+\.(woff2|ttf)$/,

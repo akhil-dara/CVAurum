@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ResumeDocument } from '@/types/document'
 import type { HeadingStyle } from '@/types/metadata'
 import { useResumeStore } from '@/store/useResumeStore'
@@ -20,6 +20,11 @@ import { applyDensity, densityOf, type Density } from '@/lib/density'
 import { SECTION_NUMBER_STYLES } from '@/templates/_shared/sectionNumeral'
 import { justifiedBlocks } from '@/lib/pdf/looseLines'
 import { FootFields, KickerFields } from '@/templates/_shared/PageWordsFields'
+import { documentScript } from '@/lib/script'
+import { applyRtlSetup, turnRtlOff, type PageScript } from '@/lib/rtlSetup'
+
+/** Date languages written in Arabic script: offered only where the page is. */
+const ARABIC_SCRIPT_DATE_LANGUAGES = new Set(['fa', 'ar'])
 
 const BULLET_OPTIONS = [
   ['disc', '●'],
@@ -99,7 +104,7 @@ function MetaMini({ kind }: { kind: string }) {
     return (
       <span className="flex w-full items-start gap-[4px]">
         {body}
-        <span className="flex w-1/4 flex-col gap-[2px] border-l border-slate-300 pl-[3px]">
+        <span className="flex w-1/4 flex-col gap-[2px] border-l border-slate-300 ps-[3px]">
           <span className={`h-[2px] w-full ${line}`} />
           <span className={`h-[2px] w-3/4 ${line}`} />
         </span>
@@ -163,6 +168,20 @@ export function DesignPanel({ doc }: { doc: ResumeDocument }) {
   const update = useResumeStore((s) => s.updateMetadata)
   const m = doc.metadata
   const twoCol = m.layout.columns === 2
+  // Persian and Arabic dates are offered to a page that has Arabic-script
+  // letters, or already reads in one of them; a Latin resume's list is the
+  // one it always was.
+  const script = useMemo(() => documentScript(doc), [doc])
+  const arabicPage = script.arabic
+  // The Arabic face stays in every picker once any of the three uses it.
+  const chosenFaces = [m.typography.fontFamily, m.typography.headingFamily, m.typography.nameFamily]
+  const dateLanguageOptions = useMemo(
+    () =>
+      DATE_LANGUAGE_OPTIONS.filter(
+        (o) => !ARABIC_SCRIPT_DATE_LANGUAGES.has(o.value) || arabicPage || o.value === (m.dates?.language ?? 'en')
+      ),
+    [arabicPage, m.dates?.language]
+  )
   // The page count the canvas last measured: the foot says whether numbers print.
   const footPages = useEditorStore((s) => s.fitResult?.pages)
 
@@ -318,6 +337,8 @@ note={notes[r.key]}
         <DensityChoice />
         <FontSelect
           label="Body font"
+          arabicPage={arabicPage}
+          chosen={chosenFaces}
           value={m.typography.fontFamily}
           onChange={(v) =>
             update((md) => {
@@ -327,6 +348,8 @@ note={notes[r.key]}
         />
         <FontSelect
           label="Heading font"
+          arabicPage={arabicPage}
+          chosen={chosenFaces}
           value={m.typography.headingFamily}
           onChange={(v) =>
             update((md) => {
@@ -337,6 +360,8 @@ note={notes[r.key]}
         />
         <FontSelect
           label="Name font"
+          arabicPage={arabicPage}
+          chosen={chosenFaces}
           value={m.typography.nameFamily}
           onChange={(v) =>
             update((md) => {
@@ -783,7 +808,7 @@ note={notes[r.key]}
         <Select
           label="Language"
           value={m.dates?.language ?? 'en'}
-          options={DATE_LANGUAGE_OPTIONS}
+          options={dateLanguageOptions}
           onChange={(v) =>
             update((md) => {
               md.dates.language = v
@@ -1306,6 +1331,11 @@ note={notes[r.key]}
             </div>
           </>
         )}
+        {/* Last in the group, and only for a page that has Arabic-script
+            letters or is already mirrored: someone who never writes Persian
+            or Arabic never meets the switch. A resume that does is offered
+            the same setup on the canvas (RtlOffer). */}
+        <RtlSwitch doc={doc} script={script} />
       </FieldGroup>
 
       <FieldGroup title="Page">
@@ -1418,6 +1448,34 @@ note={notes[r.key]}
  *  shrunk it. The slider says the size set; without this line "I set 10pt"
  *  and a page printed at 8.6pt looked like the app ignoring the slider
  *  (reported 2026-09-26). */
+/**
+ * The right-to-left switch. On, it runs the same setup the canvas offer does
+ * (applyRtlSetup: mirror, the page's date language, an Arabic face where the
+ * chosen one has no Arabic letters); off, it sets only the direction back, so
+ * the faces and dates the author now has stay theirs.
+ */
+function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript }) {
+  const update = useResumeStore((s) => s.updateMetadata)
+  if (!script.arabic && !doc.metadata.layout.rtl) return null
+  return (
+    <div>
+      <Toggle
+        label="Right-to-left (RTL)"
+        checked={doc.metadata.layout.rtl}
+        onChange={(v) =>
+          update((md) => {
+            if (v) applyRtlSetup(md, script)
+            else turnRtlOff(md)
+          })
+        }
+      />
+      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+        Mirrors the page for Persian and Arabic. Dates, columns and bullets follow.
+      </p>
+    </div>
+  )
+}
+
 function PrintedSizeNote({ doc }: { doc: ResumeDocument }) {
   const result = useEditorStore((s) => s.fitResult)
   const updateDoc = useResumeStore((s) => s.updateDoc)

@@ -125,7 +125,7 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
 
       <SaveStatus dirty={dirty} content={doc.content} />
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ms-auto flex items-center gap-1">
         {/* undo / redo + zoom: needs a desktop layout AND a bar with room.
             Under 768px there is none (a half-width laptop window is 683px):
             the More menu carries undo/redo and the canvas its own zoom pill. */}
@@ -255,25 +255,25 @@ export function EditorTopBar({ doc }: { doc: ResumeDocument }) {
                 className="card absolute right-0 z-20 mt-1 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden p-1.5 shadow-float focus:outline-none"
               >
                 <button role="menuitem"
-                  className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left"
+                  className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-start"
                   onClick={exportPdf}
                   disabled={pdfExporting}
                   aria-busy={pdfExporting}
                 >
                   <span className="flex items-center gap-2 font-medium"><FileDown className="h-4 w-4 shrink-0 text-primary" /> {pdfExporting ? 'Generating…' : 'Download PDF'}</span>
-                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">The one to send: real text an ATS reads word for word</span>
+                  <span className="ps-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">The one to send: real text an ATS reads word for word</span>
                 </button>
-                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('docx')}>
+                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-start" onClick={() => chooseExport('docx')}>
                   <span className="flex items-center gap-2 font-medium"><FileText className="h-4 w-4 shrink-0 text-primary" /> Download Word (.docx)</span>
-                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Editable, ATS-friendly text that mirrors your template</span>
+                  <span className="ps-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Editable, ATS-friendly text that mirrors your template</span>
                 </button>
-                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={copyPlainText}>
+                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-start" onClick={copyPlainText}>
                   <span className="flex items-center gap-2 font-medium"><ClipboardCopy className="h-4 w-4 shrink-0 text-primary" /> Copy as plain text</span>
-                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Whole paragraphs, for pasting into an application form</span>
+                  <span className="ps-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Whole paragraphs, for pasting into an application form</span>
                 </button>
-                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-left" onClick={() => chooseExport('json')}>
+                <button role="menuitem" className="btn-ghost h-auto w-full flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 text-start" onClick={() => chooseExport('json')}>
                   <span className="flex items-center gap-2 font-medium"><FileJson className="h-4 w-4 shrink-0 text-primary" /> Export JSON Resume</span>
-                  <span className="pl-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Portable data — re-import here or anywhere, anytime</span>
+                  <span className="ps-6 text-xs font-normal leading-snug text-muted-foreground whitespace-normal">Portable data — re-import here or anywhere, anytime</span>
                 </button>
               </div>
             </>

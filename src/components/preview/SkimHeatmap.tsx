@@ -27,7 +27,7 @@ export function SkimPill() {
   const setSkimView = useEditorStore((s) => s.setSkimView)
   return (
     <div className="pointer-events-none sticky top-12 z-20 flex h-0 justify-center overflow-visible">
-      <div className="pointer-events-auto flex items-center gap-2.5 rounded-full border border-border bg-surface/95 py-1 pl-3 pr-1 text-[11px] font-medium text-foreground shadow-float backdrop-blur">
+      <div className="pointer-events-auto flex items-center gap-2.5 rounded-full border border-border bg-surface/95 py-1 ps-3 pe-1 text-[11px] font-medium text-foreground shadow-float backdrop-blur">
         <span className="h-2 w-10 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(245,158,11,0.3), rgba(220,38,38,0.6))' }} aria-hidden />
         <span className="whitespace-nowrap">
           Recruiter skim heat<span className="hidden sm:inline"> — 1→6 = likely first fixations · deterministic, on-device</span>

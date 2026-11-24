@@ -16,7 +16,7 @@ export function openMagicFit() {
 const pt = (x: number) => `${Math.round(x * 10) / 10}pt`
 /** A segment of the page-checks strip (PageChecks in ResumePreview). */
 export const CHIP =
-  'flex items-center gap-1.5 py-1 pl-2 pr-2.5 text-[11px] font-medium text-foreground transition hover:bg-muted/70 focus-visible:relative focus-visible:z-10 coarse:min-h-9'
+  'flex items-center gap-1.5 py-1 ps-2 pe-2.5 text-[11px] font-medium text-foreground transition hover:bg-muted/70 focus-visible:relative focus-visible:z-10 coarse:min-h-9'
 
 /**
  * What the page is doing with the text size, in words, over the page.
@@ -50,7 +50,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
           <button
             type="button"
             data-testid="fit-on-offer"
-            className="flex items-center gap-1.5 bg-primary py-1 pl-2 pr-2.5 text-[11px] font-semibold text-primary-foreground transition hover:bg-primary/90 coarse:min-h-9"
+            className="flex items-center gap-1.5 bg-primary py-1 ps-2 pe-2.5 text-[11px] font-semibold text-primary-foreground transition hover:bg-primary/90 coarse:min-h-9"
             onClick={() => updateDoc((d) => fitOn.mutate(d))}
           >
             <Wand2 className="h-3.5 w-3.5" aria-hidden />

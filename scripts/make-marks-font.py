@@ -1,4 +1,5 @@
-"""Generate the bundled MARKS font — the four bullet glyphs no bundled family has.
+"""Generate the bundled MARKS font — the four bullet glyphs no bundled family has,
+and the four arrows (U+2190..U+2193) the PDF faces lack.
 
 Measured, 2026-09-16, over every bundled face (see the coverage probe in
 `src/lib/pdf/fontsCoverage.test.ts`'s sibling checks and the numbers below):
@@ -177,18 +178,49 @@ def build_glyphs():
     glyphs["checkmark"] = pen.glyph()
     advances["checkmark"] = 600
 
+    # U+2190..U+2193 ARROWS - a shaft and a solid head, one contour each.
+    # Measured 2026-11-23: no bundled PDF face draws U+2192 (Inter's Latin cut
+    # has only the up and down arrows), so "REST -> GraphQL" lost its arrow in
+    # the file while the canvas borrowed one from a system font. The marks
+    # font comes LAST in every stack, so a face that has its own arrows still
+    # draws them, on the canvas and in the file alike. Centred on the
+    # x-height's middle, as text arrows are.
+    axis, half_shaft = 300, 38
+    right = [(70, axis - half_shaft), (560, axis - half_shaft), (560, axis - 190), (790, axis),
+             (560, axis + 190), (560, axis + half_shaft), (70, axis + half_shaft)]
+    for name, pts, adv in (
+        ("arrowright", right, 860),
+        ("arrowleft", [(860 - x, y) for x, y in right], 860),
+    ):
+        pen = TTGlyphPen(None)
+        polygon(pen, pts if name == "arrowright" else list(reversed(pts)))
+        glyphs[name] = pen.glyph()
+        advances[name] = adv
+    cx = 300
+    up = [(cx - half_shaft, -10), (cx + half_shaft, -10), (cx + half_shaft, 450), (cx + 190, 450),
+          (cx, 690), (cx - 190, 450), (cx - half_shaft, 450)]
+    for name, pts in (("arrowup", up), ("arrowdown", [(x, 680 - y) for x, y in up])):
+        pen = TTGlyphPen(None)
+        polygon(pen, pts if name == "arrowup" else list(reversed(pts)))
+        glyphs[name] = pen.glyph()
+        advances[name] = 600
+
     return glyphs, advances
 
 
 def main():
     glyphs, advances = build_glyphs()
-    order = [".notdef", "space", "whitebullet", "blacksquare", "blackdiamond", "checkmark"]
+    order = [".notdef", "space", "whitebullet", "blacksquare", "blackdiamond", "checkmark", "arrowleft", "arrowup", "arrowright", "arrowdown"]
     cmap = {
         0x0020: "space",
         0x25E6: "whitebullet",
         0x25AA: "blacksquare",
         0x25C6: "blackdiamond",
         0x2713: "checkmark",
+        0x2190: "arrowleft",
+        0x2191: "arrowup",
+        0x2192: "arrowright",
+        0x2193: "arrowdown",
     }
 
     fb = FontBuilder(UPEM, isTTF=True)
