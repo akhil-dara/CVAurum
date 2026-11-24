@@ -278,6 +278,7 @@ export const en = {
   'field.month': 'Month',
   'field.year': 'Year',
   'field.addPhoto': 'Add photo',
+  'field.uploadPhoto': 'Upload a profile photo',
   'field.changePhoto': 'Change photo',
   'field.removePhoto': 'Remove photo',
   'field.removeProfile': 'Remove profile',
@@ -386,7 +387,13 @@ export const en = {
     'A running numeral before each section title — decoration only, never in the text a parser reads.',
   'design.frameNote':
     'Drawn on every page of the PDF as decoration - never in the text a parser reads.',
-  'design.rtlNote': 'Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font.',
+  'design.rtlNote': 'Mirrors the page for Persian and Arabic. Dates, columns and bullets follow.',
+  'design.rtl': 'Right-to-left (RTL)',
+  'rtl.offerPersian': 'This resume is in Persian. Mirror the page right to left?',
+  'rtl.offerArabic': 'This resume is in Arabic. Mirror the page right to left?',
+  'rtl.mirror': 'Mirror the page',
+  'rtl.notNow': 'Not now',
+  'rtl.mirrored': 'Mirrored right to left. Fonts and dates follow the page.',
   'design.contactStyleNote':
     'Strip sets each detail under a small label (EMAIL, PHONE, LINKEDIN) in a ruled row; Pills gives each its own capsule.',
   'design.contactSidebarNote':
@@ -1310,6 +1317,77 @@ export const en = {
   'gear.g.tagSize': 'Tag size',
   'gear.g.tagsAs': 'Tags as',
   'gear.g.pillSize': 'Pill size',
+  'export.missingOne':
+    'Downloaded {file}, but one character could not be drawn and was left out: {chars}. No bundled font has it yet.',
+  'export.missingMany':
+    'Downloaded {file}, but {n} characters could not be drawn and were left out: {chars}. No bundled font has them yet.',
+  'export.doneOne': 'Downloaded {file} · one page · {size}',
+  'export.doneMany': 'Downloaded {file} · {n} pages · {size}',
+  'export.backupOffer': '{done}. Your resumes live only in this browser - keep a backup too.',
+  'export.failed': "Couldn't generate the PDF, so nothing was downloaded. {reason}",
+  'export.errMultiPage': 'This resume has no place where a page can end. Try shorter entries or a different template.',
+  'export.errOffline':
+    'This export needs a font that is not saved on this device yet, and there is no connection to fetch it. Connect once and export again — after that this resume exports with no connection.',
+  'export.errGeneric': 'The PDF renderer hit an error{detail}. Try again, or switch templates and try once more.',
+  'print.back': 'Back',
+  'print.save': 'Save as PDF',
+  'print.notFound': 'Resume not found.',
+  'ats.r.language.label': 'Writing rules in this language',
+  'ats.r.language.detail':
+    'The action-verb, passive-voice, filler-word, pronoun, buzzword and tense checks are English word lists, so lines written in Arabic script were left out of them rather than guessed at. Keyword matching compares your exact words, so a job description written in the same language still matches.',
+  'fit.smallText': 'small text',
+  'fit.smaller': 'text smaller',
+  'fit.slightlySmaller': 'text slightly smaller',
+  'fit.useSetTitle': 'Print the text at the {pt} you set. It may need more pages; Magic fit turns off.',
+  'fit.printingToast': 'Printing at {pt}, as you set. It may run onto more pages.',
+  'chip.fitsBare': 'Fits {pages}',
+  'tour.label': 'Editor tour',
+  'tour.inviteTitle': 'New here?',
+  'tour.inviteBody': 'A one-minute tour shows where everything is. You can take it any time from the ? button.',
+  'tour.showMeAround': 'Show me around',
+  'tour.noThanks': 'No thanks',
+  'tour.skip': 'Skip tour',
+  'tour.skipLink': 'Skip the tour',
+  'tour.back': 'Back',
+  'tour.next': 'Next',
+  'tour.start': 'Get started',
+  'tour.s1.title': 'Welcome — a quick tour 👋',
+  'tour.s1.body':
+    'Thirty seconds on where everything is. Skip it anytime and reopen it from the “?” in the top bar.',
+  'tour.s2.title': 'Fill in your details',
+  'tour.s2.body':
+    'Type your name, experience and skills here. Empty sections show an “Add” button — nothing is hidden.',
+  'tour.s3.title': '{count} designs, one resume',
+  'tour.s3.body':
+    'Hover a design for a full-size preview with your own content; click to switch. Nothing is retyped, and every design can be restyled afterwards.',
+  'tour.s3.mobile': 'Tap any design to switch. Nothing is retyped, and every design can be restyled afterwards.',
+  'tour.s4.title': 'Or edit on the page',
+  'tour.s4.body': 'Click any text on the resume to edit it right there. What you see is exactly what you download.',
+  'tour.s4.mobile':
+    'This is the page itself — tap any text to edit it. The Content tab below reopens the full forms; everything you type lands here instantly.',
+  'tour.s5.title': 'Make it yours',
+  'tour.s5.body':
+    'Design changes colours, fonts, the header, the contact line and where it sits, heading styles, where dates and language levels go, one or two columns, spacing and page size — on any template.',
+  'tour.s6.title': 'Restyle one section',
+  'tour.s6.body':
+    'Hover a section and press its “Style” pill to change just that section: heading, icon, entry layout, date position. The eye beside it hides the section.',
+  'tour.s6.mobile':
+    'This “Style” button restyles one section — heading, icon, entry layout, date position. The ⋯ menu renames, hides or removes it.',
+  'tour.s7.title': 'Your size, your pages, readable',
+  'tour.s7.body':
+    'This chip says how your resume prints: how many pages, and the text size. If Magic fit has made the text smaller to fit, it says so, and one tap prints it at your size instead. Beside it, a check that every line is easy to read.',
+  'tour.s8.title': 'Edit · Preview · ATS',
+  'tour.s8.body':
+    'Preview shows exactly what exports. ATS shows the plain text an applicant-tracking system reads, how five kinds of system would split it into fields, and a keyword match against the job.',
+  'tour.s9.title': 'Do anything with {keys}',
+  'tour.s9.body':
+    'Press {keys} for a command palette — switch designs, fonts and colours, add sections, change mode. In a summary, type “/” for quick inserts.',
+  'tour.s10.title': 'Share privately',
+  'tour.s10.body':
+    'Send an encrypted link: the resume is sealed with a passphrase inside the link and never touches a server.',
+  'tour.s11.title': 'Download, free',
+  'tour.s11.body':
+    'PDF or Word, unlimited, no account, no watermark. The PDF is real selectable text, tagged for screen readers (PDF/UA-1) and archival (PDF/A-2B).',
   'gear.g.thisIcon': 'This section’s icon',
 } as const
 

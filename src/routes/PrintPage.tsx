@@ -16,9 +16,11 @@ import { fitToPages } from '@/lib/fitOnePage'
 import type { FitVector } from '@/lib/fitOnePage'
 import { fitRulesOf } from '@/lib/fitReadout'
 import { pdfBaseName } from '@/lib/pdf'
+import { useT } from '@/i18n'
 import { TemplateRenderer } from '@/templates/TemplateRenderer'
 
 export function PrintPage() {
+  const t = useT()
   const { id } = useParams<{ id: string }>()
   const [doc, setDoc] = useState<ResumeDocument | null>(null)
   const [missing, setMissing] = useState(false)
@@ -142,7 +144,7 @@ export function PrintPage() {
   if (missing) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground">
-        <p>Resume not found.</p>
+        <p>{t('print.notFound')}</p>
       </div>
     )
   }
@@ -162,11 +164,11 @@ export function PrintPage() {
           explicit button, plus a way back so nobody is stranded on this page. */}
       <div className="no-print fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-2 border-b border-border bg-surface/95 px-3 py-2 shadow-sm backdrop-blur">
         <button className="btn-ghost btn-sm" onClick={goBack}>
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="flip-rtl h-4 w-4" /> {t('print.back')}
         </button>
         <span className="min-w-0 flex-1 truncate text-center text-xs font-medium text-muted-foreground">{pdfBaseName(doc)}.pdf</span>
         <button className="btn-primary btn-sm" onClick={() => window.print()}>
-          <Download className="h-4 w-4" /> Save as PDF
+          <Download className="h-4 w-4" /> {t('print.save')}
         </button>
       </div>
       <div className="print-stage" style={{ paddingTop: 64 }}>

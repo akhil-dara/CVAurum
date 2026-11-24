@@ -28,22 +28,23 @@ import { PilcrowLeft } from 'lucide-react'
 import type { ResumeDocument } from '@/types/document'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
+import { useT } from '@/i18n'
 import { documentScript } from '@/lib/script'
 import { applyRtlSetup, rtlOfferShown, rtlSetupSnapshot, undoRtlSetup } from '@/lib/rtlSetup'
 
 export function RtlOffer({ doc, raised = false }: { doc: ResumeDocument; raised?: boolean }) {
+  const t = useT()
   const script = useMemo(() => documentScript(doc), [doc])
   const shown = rtlOfferShown(doc.metadata, script)
 
-  const language = script.persian ? 'Persian' : 'Arabic'
   const mirror = () => {
     const before = rtlSetupSnapshot(doc.metadata)
     useResumeStore.getState().updateMetadata((m) => applyRtlSetup(m, script))
     // Faces and the date language changed too: say so, with the way back.
     // Undo puts every field back and declines the offer, so it does not ask
     // again at once.
-    useAppStore.getState().toast('Mirrored right to left. Fonts and dates follow the page.', 'info', {
-      label: 'Undo',
+    useAppStore.getState().toast(t('rtl.mirrored'), 'info', {
+      label: t('common.undo'),
       run: () => useResumeStore.getState().updateMetadata((m) => undoRtlSetup(m, before)),
     })
   }
@@ -67,11 +68,11 @@ export function RtlOffer({ doc, raised = false }: { doc: ResumeDocument; raised?
         >
           <span className="flex min-w-0 flex-1 basis-56 items-start gap-2.5">
             <PilcrowLeft className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-            <span className="min-w-0">{`This resume is in ${language}. Mirror the page right to left?`}</span>
+            <span className="min-w-0">{t(script.persian ? 'rtl.offerPersian' : 'rtl.offerArabic')}</span>
           </span>
           <span className="ms-auto flex shrink-0 items-center gap-1.5">
-            <button type="button" className="btn-ghost btn-xs coarse:min-h-9" onClick={decline}>Not now</button>
-            <button type="button" className="btn-primary btn-xs coarse:min-h-9" onClick={mirror}>Mirror the page</button>
+            <button type="button" className="btn-ghost btn-xs coarse:min-h-9" onClick={decline}>{t('rtl.notNow')}</button>
+            <button type="button" className="btn-primary btn-xs coarse:min-h-9" onClick={mirror}>{t('rtl.mirror')}</button>
           </span>
         </div>
       )}

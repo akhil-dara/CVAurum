@@ -4,7 +4,7 @@ import { useEditorStore } from '@/store/useEditorStore'
 import { useResumeStore } from '@/store/useResumeStore'
 import { useAppStore } from '@/store/useAppStore'
 import { fitSizesPt, shrinkWords } from '@/lib/fitReadout'
-import { useT } from '@/i18n'
+import { useLocale, useT } from '@/i18n'
 import { fill } from '@/i18n/fill'
 
 /** Opens the Design panel at the Magic fit card, from anywhere. */
@@ -33,6 +33,7 @@ export const CHIP =
  */
 export function FitChip({ doc }: { doc: ResumeDocument }) {
   const t = useT()
+  const locale = useLocale()
   const result = useEditorStore((s) => s.fitResult)
   const offers = useEditorStore((s) => s.fitOffers)
   const updateDoc = useResumeStore((s) => s.updateDoc)
@@ -71,7 +72,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
   const body = result ? fitSizesPt(doc.metadata, result.fit).body : setPt
   const shrunk = !!result && body < setPt - 0.05
   const short = result && result.pages > doc.metadata.page.fit.target
-  const said = shrinkWords(body, setPt)
+  const said = shrinkWords(body, setPt, locale)
   return (
     <>
       {/* Said the way a job seeker thinks about it - does it fit, and was
@@ -97,7 +98,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
             : short
               ? fill(t('chip.outOfReach'), { pages, target: doc.metadata.page.fit.target })
             : shrunk
-              ? <>Fits {pages} · <span className={`phone:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{said.words} ({pt(body)})</span><span className={`desk:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{pt(body)}</span></>
+              ? <>{fill(t('chip.fitsBare'), { pages })} · <span className={`phone:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{said.words} ({pt(body)})</span><span className={`desk:hidden${said.warn ? ' font-semibold text-amber-800 dark:text-amber-300' : ''}`}>{pt(body)}</span></>
               : fill(t('chip.fits'), { pages, pt: pt(body) })}
         </span>
         {offers.length > 0 && (
@@ -111,15 +112,15 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
           type="button"
           data-testid="fit-use-set"
           className="flex items-center px-2.5 py-1 text-[11px] font-semibold text-primary transition hover:bg-primary/10 coarse:min-h-9"
-          title={`Print the text at the ${pt(setPt)} you set. It may need more pages; Magic fit turns off.`}
+          title={t('fit.useSetTitle', { pt: pt(setPt) })}
           onClick={() => {
             updateDoc((d) => {
               d.metadata.page.autoFit = false
             })
             // A changed page count is the one thing nobody should find out
             // later: say what happened, and put the way back right here.
-            toast(`Printing at ${pt(setPt)}, as you set. It may run onto more pages.`, 'info', {
-              label: 'Undo',
+            toast(t('fit.printingToast', { pt: pt(setPt) }), 'info', {
+              label: t('common.undo'),
               run: () =>
                 updateDoc((d) => {
                   d.metadata.page.autoFit = true
@@ -127,7 +128,7 @@ export function FitChip({ doc }: { doc: ResumeDocument }) {
             })
           }}
         >
-          Print at {pt(setPt)}
+          {t('design.printAt', { pt: pt(setPt) })}
         </button>
       )}
     </>

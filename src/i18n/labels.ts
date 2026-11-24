@@ -11,14 +11,19 @@
  * Those are deliberately absent from the table.
  */
 import { useCallback } from 'react'
-import { fa } from './fa'
-import { en, type MsgKey } from './en'
+import { translate } from './core'
+import type { MsgKey } from './en'
 import { useLocale } from './index'
 
-const LABELS: Record<string, MsgKey> = {
+/** Exported for the test that checks every translated label in the source has
+ *  an entry here (src/i18n/labels.test.ts). Nothing else should read it. */
+export const LABELS: Record<string, MsgKey> = {
   'Personal details': 'content.personal',
   Sections: 'content.sections',
   'Add section': 'content.addSection',
+  'Upload a profile photo': 'field.uploadPhoto',
+  'More options': 'common.moreOptions',
+  'templates — every one ATS-friendly.': 'gallery.title',
   'Empty sections on the page': 'content.emptySections',
   'Section style': 'content.sectionStyle',
   Auto: 'content.auto',
@@ -200,7 +205,7 @@ const LABELS: Record<string, MsgKey> = {
   'A running numeral before each section title — decoration only, never in the text a parser reads.':
     'design.numbersNote',
   'Drawn on every page of the PDF as decoration - never in the text a parser reads.': 'design.frameNote',
-  'Mirrors the resume for Persian/Arabic — pair it with the Vazirmatn body font.': 'design.rtlNote',
+  'Mirrors the page for Persian and Arabic. Dates, columns and bullets follow.': 'design.rtlNote',
   'Strip sets each detail under a small label (EMAIL, PHONE, LINKEDIN) in a ruled row; Pills gives each its own capsule.':
     'design.contactStyleNote',
   'At the top of the sidebar. The file reads the main column first, so parsers meet your contacts after it; Below name keeps them first.':
@@ -477,6 +482,8 @@ const LABELS: Record<string, MsgKey> = {
   Finance: 'lib.cat.finance',
   Healthcare: 'lib.cat.healthcare',
   'Students & Graduates': 'lib.cat.student',
+  Legal: 'lib.cat.legal',
+  Operations: 'lib.cat.operations',
 
   // The example library's career-stage and region chips.
   Student: 'lib.sen.student',
@@ -508,13 +515,14 @@ const LABELS: Record<string, MsgKey> = {
 
 /** Translate one of the panel's own English labels. Anything not in the table
  *  — a name, a placeholder example, a sentence still untranslated — comes back
- *  untouched. */
+ *  untouched. The lookup goes through the same dictionary as every other
+ *  sentence, so a language added there needs no change here. */
 export function useLabel() {
   const locale = useLocale()
   return useCallback(
     (text: string) => {
       const key = LABELS[text]
-      return key ? (locale === 'fa' ? fa[key] : en[key]) : text
+      return key ? translate(locale, key) : text
     },
     [locale]
   )

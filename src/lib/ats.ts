@@ -573,9 +573,9 @@ export function analyzeResume(
   if (wordListBullets.length < bullets.length || wordListSummary !== summaryText) {
     push(
       'language',
-      'Writing rules in this language',
+      tx('ats.r.language.label'),
       'warn',
-      'The action-verb, passive-voice, filler-word, pronoun, buzzword and tense checks are English word lists, so lines written in Arabic script were left out of them rather than guessed at. Keyword matching compares your exact words, so a job description written in the same language still matches.',
+      tx('ats.r.language.detail'),
       0,
       'writing'
     )

@@ -196,8 +196,8 @@ export function formatFitReadout(
  * (2026-10-24): the words now scale with the shrink, and a size below what
  * prints legibly is called small and flagged.
  */
-export function shrinkWords(body: number, set: number): { words: string; warn: boolean } {
-  if (body < LEGIBLE_BODY_PT) return { words: 'small text', warn: true }
-  if (body < set * 0.9) return { words: 'text smaller', warn: false }
-  return { words: 'text slightly smaller', warn: false }
+export function shrinkWords(body: number, set: number, locale: Locale = 'en'): { words: string; warn: boolean } {
+  if (body < LEGIBLE_BODY_PT) return { words: translate(locale, 'fit.smallText'), warn: true }
+  if (body < set * 0.9) return { words: translate(locale, 'fit.smaller'), warn: false }
+  return { words: translate(locale, 'fit.slightlySmaller'), warn: false }
 }

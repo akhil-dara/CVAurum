@@ -1463,12 +1463,13 @@ note={notes[r.key]}
  * the faces and dates the author now has stay theirs.
  */
 function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript }) {
+  const t = useT()
   const update = useResumeStore((s) => s.updateMetadata)
   if (!script.arabic && !doc.metadata.layout.rtl) return null
   return (
     <div>
       <Toggle
-        label="Right-to-left (RTL)"
+        label={t('design.rtl')}
         checked={doc.metadata.layout.rtl}
         onChange={(v) =>
           update((md) => {
@@ -1478,7 +1479,7 @@ function RtlSwitch({ doc, script }: { doc: ResumeDocument; script: PageScript })
         }
       />
       <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-        Mirrors the page for Persian and Arabic. Dates, columns and bullets follow.
+        {t('design.rtlNote')}
       </p>
     </div>
   )

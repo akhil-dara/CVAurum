@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { ArrowRight, FileUp, RotateCcw, ShieldCheck, Target } from 'lucide-react'
 import { createDocument } from '@/data/defaults'
 import { analyzeResume, type AtsCategory, ATS_CATEGORY_LABELS } from '@/lib/ats'
+import { useLocale } from '@/i18n'
 import type { ImportResult } from '@/lib/import'
 import type { ResumeContent, ResumeDocument } from '@/types/document'
 import { formatDate } from '@/lib/utils'
@@ -112,10 +113,11 @@ function Report({ stage, onReset }: { stage: Extract<Stage, { kind: 'done' }>; o
   const { openImported } = useResumeActions()
   const [jd, setJd] = useState('')
   const [opening, setOpening] = useState(false)
+  const locale = useLocale()
   const file = stage.result.meta.file
   const report = useMemo(
-    () => analyzeResume({ ...stage.doc, jobDescription: jd }, { file }),
-    [stage.doc, jd, file]
+    () => analyzeResume({ ...stage.doc, jobDescription: jd }, { file }, locale),
+    [stage.doc, jd, file, locale]
   )
   const categories = (Object.keys(ATS_CATEGORY_LABELS) as AtsCategory[]).filter((k) => report.checks.some((c) => c.category === k))
   const issues = report.checks.filter((c) => c.status !== 'pass').length
